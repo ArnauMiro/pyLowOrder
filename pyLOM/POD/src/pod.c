@@ -11,7 +11,7 @@ void compute_temporal_mean(double *out, double *X, const int m, const int n) {
 		Temporal mean of matrix X(m,n) where m is the spatial coordinates
 		and n is the number of snapshots.
 
-		out is a matrix of out(m) that must have been previously allocated.
+		out(m,n) is the output matrix that must have been previously allocated.
 	*/
 }
 
@@ -20,7 +20,7 @@ void subtract_temporal_mean(double *out, double *X, double *X_mean, const int m,
 		Computes out(m,n) = X(m,n) - X_mean(m) where m is the spatial coordinates
 		and n is the number of snapshots.
 		
-		out is a matrix of out(m,n) that must have been previously allocated.
+		out(m,n) is the output matrix that must have been previously allocated.
 	*/
 }
 
