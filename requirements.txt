@@ -1,0 +1,4 @@
+numpy
+cython
+mpi4py
+matplotlib

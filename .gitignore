@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+Deps/lapack/include
+Deps/lapack/lib
+
 # C extensions
 *.so
 
