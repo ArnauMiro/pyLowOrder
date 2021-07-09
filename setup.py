@@ -16,22 +16,19 @@ with open('README.md') as f:
 
 
 ## Modules
-#Module_MEP = Extension('MEP.wrapper',
-#						sources      = ['MEP/wrapper.pyx',
-#										'MEP/src/mep.c',
-#										'MEP/src/mep_chromosome.c',
-#										'MEP/src/mep_population.c',
-#										'MEP/src/mep_eval.c',
-#										'MEP/src/mep_fcns.c',
-#										'MEP/src/mep_fitness.c',
-#									   ],
-#						language     = 'c',
-#						include_dirs = ['MEP/src',np.get_include()]
-#					   )
+Module_POD = Extension('pyLOM.POD.wrapper',
+						sources       = ['pyLOM/POD/wrapper.pyx',
+										 'pyLOM/POD/src/pod.c',
+									    ],
+						language      = 'c',
+						include_dirs  = ['pyLOM/POD/src','Deps/lapack/include/',np.get_include()],
+						extra_objects = ['Deps/lapack/lib/liblapacke.a','Deps/lapack/lib/liblapack.a','Deps/lapack/lib/libcblas.a','Deps/lapack/lib/libblas.a'],
+						libraries     = ['m','gfortran'],
+					   )
 
 
 ## Decide which modules to compile
-modules_list = []
+modules_list = [Module_POD]
 
 
 ## Main setup
