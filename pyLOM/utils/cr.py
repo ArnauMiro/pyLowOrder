@@ -11,7 +11,7 @@ import numpy as np, mpi4py, copy
 mpi4py.rc.recv_mprobe = False
 from mpi4py import MPI
 
-from .utils.common import raiseError
+from .errors import raiseError
 
 comm     = MPI.COMM_WORLD
 mpi_rank = comm.Get_rank()

@@ -179,7 +179,7 @@ clean:
 
 cleanall: clean
 	-@rm -rf build
-	-@cd pyLOM; rm *.so
+	-@cd pyLOM; rm POD/*.so
 
 uninstall: cleanall
 	@${PIP} uninstall pyLOM

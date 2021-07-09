@@ -15,8 +15,8 @@ import numpy as np
 from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy, memset
 
-from .utils.cr     import cr_start, cr_stop
-from .utils.errors import raiseError
+from ..utils.cr     import cr_start, cr_stop
+from ..utils.errors import raiseError
 
 
 ## Expose POD C functions
@@ -24,6 +24,9 @@ cdef extern from "pod.h":
 	cdef void compute_temporal_mean(double *out, double *X, const int m, const int n)
 	cdef void subtract_temporal_mean(double *out, double *X, double *X_mean, const int m, const int n)
 	cdef void single_value_decomposition(double *U, double *S, double *V, double *Y, const int m, const int n)
+
+cdef extern from "mat_math.h":
+	cdef void transpose(double *A, const int m, const int n, const int bsz)
 
 
 ## Cython function wrappers - for verification purposes
@@ -55,7 +58,7 @@ def subtract_mean(double[:,:] X, double[:] X_mean):
 	cr_stop('POD.subtract_mean',0)
 	return out	
 
-def svd(double[:,:] Y):
+def svd(double[:,:] Y,int transpose_v=True,int bsz=0):
 	'''
 	Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
@@ -63,12 +66,14 @@ def svd(double[:,:] Y):
 		V(n,n)   are the right singular vectors.
 	'''
 	cr_start('POD.svd',0)
-	cdef int m = Y.shape[0], n = Y.shape[1]
-	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,n),dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((n,) ,dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((n,n),dtype=np.double)
+	cdef int m = Y.shape[0], n = Y.shape[1], mn = min(m,n)
+	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,mn),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((mn,) ,dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((n,mn),dtype=np.double)
 	# Compute SVD
 	single_value_decomposition(&U[0,0],&S[0],&V[0,0],&Y[0,0],m,n)
+	# Transpose V
+	if transpose_v: transpose(&V[0,0],n,mn,bsz)
 	cr_stop('POD.svd',0)
 	return U,S,V
 

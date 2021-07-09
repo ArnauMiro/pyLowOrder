@@ -5,6 +5,8 @@ __pycache__/
 
 Deps/lapack/include
 Deps/lapack/lib
+pyLOM/POD/wrapper.c
+pyLOM/POD/wrapper.html
 
 # C extensions
 *.so

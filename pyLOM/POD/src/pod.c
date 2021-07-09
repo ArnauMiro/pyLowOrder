@@ -9,8 +9,9 @@
 
 // Macros to access flattened matrices
 #define MIN(a,b)    ((a)<(b)) ? (a) : (b)
-#define AC_X(i,j)   X[n*ii+jj]
-#define AC_OUT(i,j) out[n*ii+jj]
+#define MAX(a,b)    ((a)>(b)) ? (a) : (b)
+#define AC_X(i,j)   X[n*(i)+(j)]
+#define AC_OUT(i,j) out[n*(i)+(j)]
 
 
 void compute_temporal_mean(double *out, double *X, const int m, const int n) {
@@ -45,24 +46,43 @@ void single_value_decomposition(double *U, double *S, double *V, double *Y, cons
 		Lapack dgesdd (more optimized):
 			http://www.netlib.org/lapack/explore-html/d1/d7e/group__double_g_esing_gad8e0f1c83a78d3d4858eaaa88a1c5ab1.html
 			http://www.netlib.org/lapack//explore-html/d3/d23/lapacke__dgesdd_8c_aaf227f107a19ae6021f591c4de5fdbd5.html
+		On ROW/COL major:
+			https://stackoverflow.com/questions/34698550/understanding-lapack-row-major-and-lapack-col-major-with-lda
 	*/
+	#ifdef USE_LAPACK_DGESVD
 	// Run LAPACKE DGESVD for the single value decomposition
 	double *superb;
-	superb = (double*)malloc((int)(MIN(m,n))*sizeof(double));
+	superb = (double*)malloc((int)(MIN(m,n)-1)*sizeof(double));
 	LAPACKE_dgesvd(
-		LAPACK_COL_MAJOR, // int  		matrix_layout
-					 'A', // char  		jobu
-					 'A', // char  		jobvt
+		LAPACK_ROW_MAJOR, // int  		matrix_layout
+					 'S', // char  		jobu
+					 'S', // char  		jobvt
 					   m, // int  		m
 					   n, // int  		n
 					   Y, // double*  	a
-					   m, // int  		lda
+					   n, // int  		lda
 					   S, // double *  	s
 					   U, // double *  	u
-					   m, // int  		ldu
+					   n, // int  		ldu
 					   V, // double *  	vt 
 					   n, // int  		ldvt
 				  superb  // double *  	superb
 	);
 	free(superb);
+	#else
+	// Run LAPACKE DGESDD for the single value decomposition
+	LAPACKE_dgesdd(
+		LAPACK_ROW_MAJOR, // int  		matrix_layout
+					 'S', // char  		jobz
+					   m, // int  		m
+					   n, // int  		n
+					   Y, // double*  	a
+					   n, // int  		lda
+					   S, // double *  	s
+					   U, // double *  	u
+					   n, // int  		ldu
+					   V, // double *  	vt 
+					   n  // int  		ldvt
+	);
+	#endif
 }

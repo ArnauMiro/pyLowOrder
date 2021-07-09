@@ -19,9 +19,10 @@ with open('README.md') as f:
 Module_POD = Extension('pyLOM.POD.wrapper',
 						sources       = ['pyLOM/POD/wrapper.pyx',
 										 'pyLOM/POD/src/pod.c',
+										 'pyLOM/mat_math/mat_math.c',
 									    ],
 						language      = 'c',
-						include_dirs  = ['pyLOM/POD/src','Deps/lapack/include/',np.get_include()],
+						include_dirs  = ['pyLOM/POD/src','pyLOM/mat_math','Deps/lapack/include/',np.get_include()],
 						extra_objects = ['Deps/lapack/lib/liblapacke.a','Deps/lapack/lib/liblapack.a','Deps/lapack/lib/libcblas.a','Deps/lapack/lib/libblas.a'],
 						libraries     = ['m','gfortran'],
 					   )
