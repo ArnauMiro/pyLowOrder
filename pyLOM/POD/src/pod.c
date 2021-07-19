@@ -21,11 +21,14 @@ void compute_temporal_mean(double *out, double *X, const int m, const int n) {
 
 		out(m,n) is the output matrix that must have been previously allocated.
 	*/
-	for(int ii=0; ii<m; ++ii){
-		for(int jj=0; jj<n; ++jj){
+	#ifdef USE_OMP
+	#pragma omp parallel for collapse(2) shared(out,X) firstprivate(m,n)
+	#endif
+	for(int ii=0; ii<m; ++ii) {
+		out[ii] = 0.;
+		for(int jj=0; jj<n; ++jj)
 			out[ii] += AC_X(ii,jj);
-		}
-		out[ii] /= n;
+		out[ii] /= (double)(n);
 	}
 }
 
@@ -36,10 +39,12 @@ void subtract_temporal_mean(double *out, double *X, double *X_mean, const int m,
 
 		out(m,n) is the output matrix that must have been previously allocated.
 	*/
+	#ifdef USE_OMP
+	#pragma omp parallel for collapse(2) shared(out,X,X_mean) firstprivate(m,n)
+	#endif
 	for(int ii=0; ii<m; ++ii){
-		for(int jj=0; jj<n; ++jj){
+		for(int jj=0; jj<n; ++jj)
 			AC_OUT(ii,jj) = AC_X(ii,jj) - X_mean[ii];
-		}
 	}
 }
 
