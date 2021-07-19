@@ -25,7 +25,7 @@ PSI,S,V = pyLOM.POD.svd(Y)
 # PSI are POD modes
 
 # Plot accumulative S
-plt.figure(size=(8,6),dpi=100)
+plt.figure(figsize=(8,6),dpi=100)
 
 
 '''
