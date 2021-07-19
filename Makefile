@@ -12,15 +12,14 @@
 
 # Optimization, host and CPU type
 #
-OPTL = 2
+OPTL = 3
 HOST = Host
 TUNE = skylake
 
-
 # Options
 #
-VECTORIZATION   = OFF
-OPENMP_PARALL   = OFF
+VECTORIZATION   = ON
+OPENMP_PARALL   = ON
 FORCE_GCC       = OFF
 DEBUGGING       = OFF
 

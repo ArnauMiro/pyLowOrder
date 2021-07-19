@@ -22,7 +22,7 @@ void compute_temporal_mean(double *out, double *X, const int m, const int n) {
 		out(m,n) is the output matrix that must have been previously allocated.
 	*/
 	#ifdef USE_OMP
-	#pragma omp parallel for collapse(2) shared(out,X) firstprivate(m,n)
+	#pragma omp parallel for shared(out,X) firstprivate(m,n)
 	#endif
 	for(int ii=0; ii<m; ++ii) {
 		out[ii] = 0.;

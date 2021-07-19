@@ -12,25 +12,27 @@ import pyLOM
 
 
 ## Data loading
-UALL = np.load('DATA/UALL.npy')
+UALL = np.load('DATA/UALL.npy') # Data must be in C order
 X    = UALL
-N = 151
+N    = 151
+
 
 ## Compute POD after subtracting mean (i.e., do PCA)
+pyLOM.cr_start('example',0)
 Uavg = pyLOM.POD.temporal_mean(X)
 X_m  = pyLOM.POD.subtract_mean(X,Uavg)
 Y    = X_m
 
-PSI,S,V = pyLOM.POD.svd(Y)
+PSI,S,V = pyLOM.POD.svd(Y,transpose_v=False)
+pyLOM.cr_stop('example',0)
 # PSI are POD modes
 '''
 Guardar tot això amb matlab i comparar amb el seu codi
 '''
 
 # Plot accumulative S
-plt.figure()#size=(8,6),dpi=100)
+plt.figure(figsize=(8,6),dpi=100)
 
-#n_snaps = 1:N;
 accumulative_S = np.zeros((1,N));
 diag_S = np.diag(S);
 
@@ -41,6 +43,7 @@ plt.ylabel('varepsilon1')
 plt.xlabel('Truncation size')
 plt.title('Tolerance')
 plt.ylim((0, 1))
+
 
 ## Show and print timings
 pyLOM.cr_info()
