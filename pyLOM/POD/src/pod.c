@@ -21,11 +21,11 @@ void compute_temporal_mean(double *out, double *X, const int m, const int n) {
 
 		out(m,n) is the output matrix that must have been previously allocated.
 	*/
-	for(int im = 0; im++; im = m - 1){
-		for(int in = 0; in++; in = n - 1){
-			out[im] += AC_X(im, in);
+	for(int ii=0; ii<m; ++ii){
+		for(int jj=0; jj<n; ++jj){
+			out[ii] += AC_X(ii,jj);
 		}
-		out[im] /= n;
+		out[ii] /= n;
 	}
 }
 
@@ -36,9 +36,9 @@ void subtract_temporal_mean(double *out, double *X, double *X_mean, const int m,
 
 		out(m,n) is the output matrix that must have been previously allocated.
 	*/
-	for(int im = 0; im++; im = m - 1){
-		for(int in = 0; in++; in = n - 1){
-			AC_OUT(im, in) = AC_X(im, in) - X_mean[im];
+	for(int ii=0; ii<m; ++ii){
+		for(int jj=0; jj<n; ++jj){
+			AC_OUT(ii,jj) = AC_X(ii,jj) - X_mean[ii];
 		}
 	}
 }
