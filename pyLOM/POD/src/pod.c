@@ -21,15 +21,26 @@ void compute_temporal_mean(double *out, double *X, const int m, const int n) {
 
 		out(m,n) is the output matrix that must have been previously allocated.
 	*/
+	for(int im = 0; im++; im = m - 1){
+		for(int in = 0; in++; in = n - 1){
+			out[im] += AC_X(im, in);
+		}
+		out[im] /= n;
+	}
 }
 
 void subtract_temporal_mean(double *out, double *X, double *X_mean, const int m, const int n) {
 	/*
 		Computes out(m,n) = X(m,n) - X_mean(m) where m is the spatial coordinates
 		and n is the number of snapshots.
-		
+
 		out(m,n) is the output matrix that must have been previously allocated.
 	*/
+	for(int im = 0; im++; im = m - 1){
+		for(int in = 0; in++; in = n - 1){
+			AC_OUT(im, in) = AC_X(im, in) - X_mean[im];
+		}
+	}
 }
 
 void single_value_decomposition(double *U, double *S, double *V, double *Y, const int m, const int n) {
@@ -64,7 +75,7 @@ void single_value_decomposition(double *U, double *S, double *V, double *Y, cons
 					   S, // double *  	s
 					   U, // double *  	u
 					   n, // int  		ldu
-					   V, // double *  	vt 
+					   V, // double *  	vt
 					   n, // int  		ldvt
 				  superb  // double *  	superb
 	);
@@ -81,7 +92,7 @@ void single_value_decomposition(double *U, double *S, double *V, double *Y, cons
 					   S, // double *  	s
 					   U, // double *  	u
 					   n, // int  		ldu
-					   V, // double *  	vt 
+					   V, // double *  	vt
 					   n  // int  		ldvt
 	);
 	#endif
