@@ -4,7 +4,11 @@
 
 #include <stdlib.h>
 
+#ifdef USE_MKL
+#include "mkl_lapacke.h"
+#else
 #include "lapacke.h"
+#endif
 #include "pod.h"
 
 // Macros to access flattened matrices
@@ -48,13 +52,13 @@ void subtract_temporal_mean(double *out, double *X, double *X_mean, const int m,
 	}
 }
 
-void single_value_decomposition(double *U, double *S, double *V, double *Y, const int m, const int n) {
+void single_value_decomposition(double *U, double *S, double *VT, double *Y, const int m, const int n) {
 	/*
 		Single value decomposition (SVD) using Lapack.
 
 		U(m,n)   are the POD modes and must come preallocated.
 		S(n)     are the singular values.
-		V(n,n)   are the right singular vectors.
+		VT(n,n)  are the right singular vectors (transposed).
 
 		Lapack dgesvd:
 			http://www.netlib.org/lapack/explore-html/d1/d7e/group__double_g_esing_ga84fdf22a62b12ff364621e4713ce02f2.html
@@ -80,7 +84,7 @@ void single_value_decomposition(double *U, double *S, double *V, double *Y, cons
 					   S, // double *  	s
 					   U, // double *  	u
 					   n, // int  		ldu
-					   V, // double *  	vt
+					  VT, // double *  	vt
 					   n, // int  		ldvt
 				  superb  // double *  	superb
 	);
@@ -97,7 +101,7 @@ void single_value_decomposition(double *U, double *S, double *V, double *Y, cons
 					   S, // double *  	s
 					   U, // double *  	u
 					   n, // int  		ldu
-					   V, // double *  	vt
+					  VT, // double *  	vt
 					   n  // int  		ldvt
 	);
 	#endif
