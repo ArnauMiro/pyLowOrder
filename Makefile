@@ -26,7 +26,7 @@ DEBUGGING       = OFF
 # Versions of the libraries
 #
 LAPACK_VERS   = 3.9.0
-
+OPENBLAS_VERS = 0.3.17
 
 # Compilers
 #
@@ -129,7 +129,7 @@ all: deps python install
 	@echo ""
 	@echo "pyLOM deployed successfully"
 
-deps: lapack requirements
+deps: lapack openblas requirements
 
 # Python
 #
@@ -151,6 +151,8 @@ install_dev: requirements python
 #
 lapack: Deps/lapack
 	@bash $</install_lapack.sh "${LAPACK_VERS}" "${PWD}/$<" "${CC}" "${CFLAGS}" "${FC}" "${FFLAGS}"
+openblas: Deps/lapack
+	@bash $</install_openblas.sh "${OPENBLAS_VERS}" "${PWD}/$<" "${CC}" "${CFLAGS}" "${FC}" "${FFLAGS}"
 
 
 # Generic object makers

@@ -15,6 +15,11 @@ with open('README.md') as f:
 	readme = f.read()
 
 
+#lapack_include_dir = 'Deps/lapack/include/'
+lapack_include_dir = 'Deps/lapack/include/openblas'
+#lapack_extra_obj   = ['Deps/lapack/lib/liblapacke.a','Deps/lapack/lib/liblapack.a','Deps/lapack/lib/libcblas.a','Deps/lapack/lib/libblas.a']
+lapack_extra_obj   = ['Deps/lapack/lib/libopenblas.a']
+
 ## Modules
 Module_POD = Extension('pyLOM.POD.wrapper',
 						sources       = ['pyLOM/POD/wrapper.pyx',
@@ -22,8 +27,8 @@ Module_POD = Extension('pyLOM.POD.wrapper',
 										 'pyLOM/mat_math/mat_math.c',
 									    ],
 						language      = 'c',
-						include_dirs  = ['pyLOM/POD/src','pyLOM/mat_math','Deps/lapack/include/',np.get_include()],
-						extra_objects = ['Deps/lapack/lib/liblapacke.a','Deps/lapack/lib/liblapack.a','Deps/lapack/lib/libcblas.a','Deps/lapack/lib/libblas.a'],
+						include_dirs  = ['pyLOM/POD/src','pyLOM/mat_math',lapack_include_dir,np.get_include()],
+						extra_objects = lapack_extra_obj,
 						libraries     = ['m','gfortran'],
 					   )
 

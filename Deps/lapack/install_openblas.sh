@@ -3,6 +3,8 @@
 # SCRIPT to deploy the LAPACK libraries compiled
 # as static libraries and including LAPACKE
 #
+# This script installs OPENBLAS
+#
 # Arnau Miro, BSC (2021)
 
 VERS=${1}
@@ -13,11 +15,11 @@ FCOMPILER=${5}
 FFLAGS=${6}
 
 # Github repository (source)
-SRC=https://github.com/Reference-LAPACK/lapack.git
+SRC=https://github.com/xianyi/OpenBLAS.git
 
 # Check if the Lapack libraries have been deployed
 # if not, compile
-if test -f "${INSTALL_PREFIX}/lib/liblapack.a"; then
+if test -f "${INSTALL_PREFIX}/lib/libopenblas.a"; then
     echo "LAPACK already deployed!"
     echo "Skipping build..."
 else
@@ -42,7 +44,6 @@ else
 		-DCMAKE_BUILD_TYPE=Release \
 		-DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX \
 		-DCMAKE_INSTALL_LIBDIR=$INSTALL_PREFIX/lib \
-		-DLAPACKE=ON -DCBLAS=ON \
 		-DCMAKE_C_COMPILER="${CCOMPILER}" -DCMAKE_C_FLAGS="${CFLAGS}" \
 		-DCMAKE_Fortran_COMPILER="${FCOMPILER}" -DCMAKE_Fortran_FLAGS="${FFLAGS}"
 
