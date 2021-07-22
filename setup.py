@@ -15,10 +15,25 @@ with open('README.md') as f:
 	readme = f.read()
 
 
-#lapack_include_dir = 'Deps/lapack/include/'
-lapack_include_dir = 'Deps/lapack/include/openblas'
-#lapack_extra_obj   = ['Deps/lapack/lib/liblapacke.a','Deps/lapack/lib/liblapack.a','Deps/lapack/lib/libcblas.a','Deps/lapack/lib/libblas.a']
-lapack_extra_obj   = ['Deps/lapack/lib/libopenblas.a']
+## Select which libraries to use depending on the compilation options
+if os.environ['USE_MKL'] == 'ON':
+	# Link with Intel MKL using the intel compilers
+	# this is the most performing option available
+	mklroot             = 'Deps/oneAPI/mkl'
+	lapack_include_dir  = os.path.join(mklroot,'latest/include')
+	lapack_extra_obj    = [os.path.join(mklroot,'libmkl_intel.a' if os.environ['CC'] == 'icc' else 'libmkl_gcc.a')]
+	lapack_libraries    = ['m']
+else:
+	# Link with OpenBLAS which has a decent performance but is not
+	# as fast as Intel MKL
+	lapack_include_dir  = 'Deps/lapack/include/openblas'
+	lapack_extra_obj    = ['Deps/lapack/lib/libopenblas.a']
+	# Classical LAPACK & BLAS library has a very bad performance
+	# but is left here for nostalgia
+	#lapack_include_dir  = 'Deps/lapack/include/'
+	#lapack_extra_obj    = ['Deps/lapack/lib/liblapacke.a','Deps/lapack/lib/liblapack.a','Deps/lapack/lib/libcblas.a','Deps/lapack/lib/libblas.a']
+	lapack_libraries    = ['m','gfortran']
+
 
 ## Modules
 Module_POD = Extension('pyLOM.POD.wrapper',
@@ -29,7 +44,7 @@ Module_POD = Extension('pyLOM.POD.wrapper',
 						language      = 'c',
 						include_dirs  = ['pyLOM/POD/src','pyLOM/mat_math',lapack_include_dir,np.get_include()],
 						extra_objects = lapack_extra_obj,
-						libraries     = ['m','gfortran'],
+						libraries     = lapack_libraries,
 					   )
 
 

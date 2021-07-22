@@ -16,17 +16,22 @@ OPTL = 3
 HOST = Host
 TUNE = skylake
 
+
 # Options
 #
 VECTORIZATION   = ON
 OPENMP_PARALL   = ON
+USE_MKL         = ON
 FORCE_GCC       = OFF
 DEBUGGING       = OFF
+
 
 # Versions of the libraries
 #
 LAPACK_VERS   = 3.9.0
 OPENBLAS_VERS = 0.3.17
+ONEAPI_VERS   = 2021.3.0.3219
+
 
 # Compilers
 #
@@ -121,6 +126,9 @@ CXXFLAGS += -I${INC_PATH}
 # Defines
 #
 DFLAGS = -DNPY_NO_DEPRECATED_API
+ifeq ($(USE_MKL),ON) 
+	DFLAGS += -DUSE_MKL
+endif
 
 
 # One rule to compile them all, one rule to find them,
@@ -129,22 +137,29 @@ all: deps python install
 	@echo ""
 	@echo "pyLOM deployed successfully"
 
+ifeq ($(USE_MKL),ON) 
+deps: mkl requirements
+
+else
 deps: lapack openblas requirements
+
+endif
+
 
 # Python
 #
 python: setup.py
-	@CFLAGS="${CFLAGS} ${DFLAGS}" CXXFLAGS="${CXXFLAGS} ${DFLAGS}" ${PYTHON} $< build_ext --inplace
+	@CC="${CC}" CFLAGS="${CFLAGS} ${DFLAGS}" CXX="${CXX}" CXXFLAGS="${CXXFLAGS} ${DFLAGS}" LDSHARED="${CC} -shared" USE_MKL="${USE_MKL}" ${PYTHON} $< build_ext --inplace
 	@echo "Python programs deployed successfully"
 
 requirements: requirements.txt
 	@${PIP} install -r $<
 
 install: requirements python
-	@${PIP} install .
+	@CC="${CC}" USE_MKL="${USE_MKL}" ${PIP} install .
 
 install_dev: requirements python
-	@${PIP} install -e .
+	@CC="${CC}" USE_MKL="${USE_MKL}" ${PIP} install -e .
 
 
 # External libraries
@@ -153,6 +168,10 @@ lapack: Deps/lapack
 	@bash $</install_lapack.sh "${LAPACK_VERS}" "${PWD}/$<" "${CC}" "${CFLAGS}" "${FC}" "${FFLAGS}"
 openblas: Deps/lapack
 	@bash $</install_openblas.sh "${OPENBLAS_VERS}" "${PWD}/$<" "${CC}" "${CFLAGS}" "${FC}" "${FFLAGS}"
+mkl: Deps/l_BaseKit_p_${ONEAPI_VERS}.sh
+	@$< -a --silent --action install --eula accept --components intel.oneapi.lin.mkl.devel --install-dir $(shell pwd)/Deps/oneAPI
+	@ar -rcT Deps/oneAPI/mkl/libmkl_intel.a Deps/oneAPI/mkl/latest/lib/intel64/libmkl_core.a Deps/oneAPI/mkl/latest/lib/intel64/libmkl_intel_thread.a Deps/oneAPI/mkl/latest/lib/intel64/libmkl_intel_lp64.a
+	@ar -rcT Deps/oneAPI/mkl/libmkl_gcc.a Deps/oneAPI/mkl/latest/lib/intel64/libmkl_core.a Deps/oneAPI/mkl/latest/lib/intel64/libmkl_gnu_thread.a Deps/oneAPI/mkl/latest/lib/intel64/libmkl_intel_lp64.a
 
 
 # Generic object makers
@@ -186,6 +205,10 @@ uninstall: cleanall
 	@${PIP} uninstall pyLOM
 	-@rm -rf pyLOM.egg-info
 
-uninstall_lapack:
+uninstall_lapack: Deps/lapack/lib
 	-@rm -rf Deps/lapack/include
 	-@rm -rf Deps/lapack/lib
+
+uninstall_mkl: Deps/l_BaseKit_p_2021.3.0.3219.sh
+	@$< -a --silent --action remove --eula accept --components intel.oneapi.lin.mkl.devel --install-dir $(shell pwd)/Deps/oneAPI
+	-@rm -rf Deps/oneAPI

@@ -6,6 +6,7 @@ __pycache__/
 Deps/lapack/include
 Deps/lapack/lib
 Deps/lapack/share
+Deps/oneAPI
 pyLOM/POD/wrapper.c
 pyLOM/POD/wrapper.html
 
