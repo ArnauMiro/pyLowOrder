@@ -142,7 +142,7 @@ ifeq ($(USE_MKL),ON)
 deps: mkl requirements
 
 else
-deps: lapack openblas requirements
+deps: lapack openblas fftw requirements
 
 endif
 
@@ -202,7 +202,15 @@ cleanall: clean
 	-@rm -rf build
 	-@cd pyLOM; rm POD/*.so
 
-uninstall: cleanall
+ifeq ($(USE_MKL),ON) 
+uninstall_deps: uninstall_mkl
+
+else
+uninstall_deps: uninstall_lapack uninstall_fftw
+
+endif
+
+uninstall: cleanall uninstall_deps
 	@${PIP} uninstall pyLOM
 	-@rm -rf pyLOM.egg-info
 
