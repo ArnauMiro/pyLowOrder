@@ -6,7 +6,23 @@ __pycache__/
 Deps/lapack/include
 Deps/lapack/lib
 Deps/lapack/share
-Deps/oneAPI
+Deps/oneAPI/common.sh
+Deps/oneAPI/compiler
+Deps/oneAPI/conda_channel
+Deps/oneAPI/dev-utilities
+Deps/oneAPI/etc
+Deps/oneAPI/l_BaseKit_p_*
+Deps/oneAPI/licensing
+Deps/oneAPI/logs
+Deps/oneAPI/mkl
+Deps/oneAPI/modulefiles-setup.sh
+Deps/oneAPI/readme-get-started-linux-base-kit.html
+Deps/oneAPI/setvars.sh
+Deps/oneAPI/support.txt
+Deps/oneAPI/sys_check.sh
+Deps/oneAPI/tbb
+Deps/fftw/include
+Deps/fftw/lib
 pyLOM/POD/wrapper.c
 pyLOM/POD/wrapper.html
 
