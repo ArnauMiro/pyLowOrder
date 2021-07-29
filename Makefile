@@ -217,6 +217,7 @@ uninstall: cleanall uninstall_deps
 uninstall_lapack: Deps/lapack/lib
 	-@rm -rf Deps/lapack/include
 	-@rm -rf Deps/lapack/lib
+	-@rm -rf Deps/lapack/share
 
 uninstall_mkl: Deps/oneAPI/l_BaseKit_p_${ONEAPI_VERS}.sh
 	-@$< -a --silent --action remove --eula accept --components intel.oneapi.lin.mkl.devel --install-dir $(shell pwd)/Deps/oneAPI
