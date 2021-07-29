@@ -39,10 +39,10 @@ else:
 Module_POD = Extension('pyLOM.POD.wrapper',
 						sources       = ['pyLOM/POD/wrapper.pyx',
 										 'pyLOM/POD/src/pod.c',
-										 'pyLOM/cutils/matrix.c',
+										 'pyLOM/utils/src/matrix.c',
 									    ],
 						language      = 'c',
-						include_dirs  = ['pyLOM/POD/src','pyLOM/cutils',lapack_include_dir,np.get_include()],
+						include_dirs  = ['pyLOM/POD/src','pyLOM/utils/src',lapack_include_dir,np.get_include()],
 						extra_objects = lapack_extra_obj,
 						libraries     = lapack_libraries,
 					   )
