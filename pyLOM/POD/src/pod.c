@@ -106,3 +106,26 @@ void single_value_decomposition(double *U, double *S, double *VT, double *Y, con
 	);
 	#endif
 }
+
+int compute_truncation_residual(double *S, double res, int n) {
+	/*
+		TODO...
+
+		returns truncation instant
+	*/
+}
+
+
+void compute_svd_truncation(double *U, double *S, double *VT, double *Y, const int m, const int n, const int N) {
+	/*
+		U(m,n)   are the POD modes and must come preallocated.
+		S(n)     are the singular values.
+		VT(n,n)  are the right singular vectors (transposed).
+
+		U, S and VT are reallocated to:
+		
+		U(m,N)   are the POD modes and must come preallocated.
+		S(N)     are the singular values.
+		VT(N,N)  are the right singular vectors (transposed).
+	*/
+}

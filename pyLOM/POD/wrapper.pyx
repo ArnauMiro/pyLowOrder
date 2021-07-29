@@ -24,6 +24,8 @@ cdef extern from "pod.h":
 	cdef void compute_temporal_mean(double *out, double *X, const int m, const int n)
 	cdef void subtract_temporal_mean(double *out, double *X, double *X_mean, const int m, const int n)
 	cdef void single_value_decomposition(double *U, double *S, double *V, double *Y, const int m, const int n)
+	cdef  int compute_truncation_residual(double *S, double res, int n)
+	cdef void compute_svd_truncation(double *U, double *S, double *VT, double *Y, const int m, const int n, const int N)
 
 cdef extern from "matrix.h":
 	cdef void transpose(double *A, const int m, const int n, const int bsz)
@@ -98,15 +100,21 @@ def svd(double[:,:] Y,int transpose_v=True,int bsz=0):
 	cr_stop('POD.svd',0)
 	return U,S,V
 
+def residual(double[:] S, double r=1e-8):
+	'''
+	TODO
+	'''
+	pass
+
 
 ## POD run method
 def run(double[:,:] X,double r=1e-8,int bsz=0):
 	'''
-	Run POD
+	Run POD - TODO
 	'''
 	cr_start('POD.run',0)
 	# Variables
-	cdef int m = X.shape[0], n = X.shape[1], N, mN
+	cdef int m = X.shape[0], n = X.shape[1], mn = min(m,n), N, mN
 	cdef double *X_mean
 	cdef double *Ut
 	cdef double *St
@@ -123,20 +131,22 @@ def run(double[:,:] X,double r=1e-8,int bsz=0):
 	# Compute substract temporal mean
 	subtract_temporal_mean(&X[0,0],&X[0,0],X_mean,m,n)
 	free(X_mean)
+	# Compute SVD
+	Ut = <double*>malloc(m*mn*sizeof(double))
+	St = <double*>malloc(mn*sizeof(double))
+	Vt = <double*>malloc(n*mn*sizeof(double))
+	single_value_decomposition(Ut,St,Vt,&X[0,0],m,n)
+	transpose(Vt,n,mn,bsz)
 	#TODO: implement truncation at residual r
+	#TODO: call C function to find N according to R
+	#TODO: call C function to truncate Ut, St and Vt before copying to numpy arrays
 	N  = n
 	mN = min(m,n)
-	# Compute SVD
-	Ut = <double*> malloc(m*mN*sizeof(double))
-	St = <double*> malloc(mN*sizeof(double))
-	Vt = <double*> malloc(N*mN*sizeof(double))
-	single_value_decomposition(Ut,St,Vt,&X[0,0],m,N)
-	#END_TODO: implement truncation at residual r
-	transpose(Vt,N,mN,bsz)
 	# Copy memory to output arrays
 	U = copy2array2D(Ut,m,mN)
 	S = copy2array1D(St,mN)
 	V = copy2array2D(Vt,N,mN)
+	#END_TODO: implement truncation at residual r
 	# Return
 	cr_stop('POD.run',0)
 	return U,S,V
