@@ -2,3 +2,4 @@ numpy
 cython
 mpi4py
 matplotlib
+h5pyp
