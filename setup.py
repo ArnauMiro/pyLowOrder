@@ -15,24 +15,33 @@ with open('README.md') as f:
 	readme = f.read()
 
 
+## Libraries and includes
+include_dirs  = ['pyLOM/POD/src','pyLOM/utils/src',np.get_include()]
+extra_objects = []
+libraries     = ['m']
+
+
 ## Select which libraries to use depending on the compilation options
 if os.environ['USE_MKL'] == 'ON':
 	# Link with Intel MKL using the intel compilers
 	# this is the most performing option available
-	mklroot             = 'Deps/oneAPI/mkl'
-	lapack_include_dir  = os.path.join(mklroot,'latest/include')
-	lapack_extra_obj    = [os.path.join(mklroot,'libmkl_intel.a' if os.environ['CC'] == 'icc' else 'libmkl_gcc.a')]
-	lapack_libraries    = ['m']
+	mklroot        = 'Deps/oneAPI/mkl'
+	include_dirs  += [os.path.join(mklroot,'latest/include')]
+	extra_objects += [os.path.join(mklroot,'libmkl_intel.a' if os.environ['CC'] == 'icc' else 'libmkl_gcc.a')]
 else:
 	# Link with OpenBLAS which has a decent performance but is not
 	# as fast as Intel MKL
-	lapack_include_dir  = 'Deps/lapack/include/openblas'
-	lapack_extra_obj    = ['Deps/lapack/lib/libopenblas.a']
+	include_dirs  += ['Deps/lapack/include/openblas']
+	extra_objects += ['Deps/lapack/lib/libopenblas.a']
+	libraries     += ['gfortran']
 	# Classical LAPACK & BLAS library has a very bad performance
 	# but is left here for nostalgia
-	#lapack_include_dir  = 'Deps/lapack/include/'
-	#lapack_extra_obj    = ['Deps/lapack/lib/liblapacke.a','Deps/lapack/lib/liblapack.a','Deps/lapack/lib/libcblas.a','Deps/lapack/lib/libblas.a']
-	lapack_libraries    = ['m','gfortran']
+	#include_dirs  += ['Deps/lapack/include/']
+	#extra_objects += ['Deps/lapack/lib/liblapacke.a','Deps/lapack/lib/liblapack.a','Deps/lapack/lib/libcblas.a','Deps/lapack/lib/libblas.a']
+	#libraries     += ['gfortran']
+	# FFTW
+	include_dirs  += ['Deps/fftw/include']
+	extra_objects += ['Deps/fftw/lib/libfftw3.a','Deps/fftw/lib/libfftw3_omp.a']
 
 
 ## Modules
@@ -42,9 +51,9 @@ Module_POD = Extension('pyLOM.POD.wrapper',
 										 'pyLOM/utils/src/matrix.c',
 									    ],
 						language      = 'c',
-						include_dirs  = ['pyLOM/POD/src','pyLOM/utils/src',lapack_include_dir,np.get_include()],
-						extra_objects = lapack_extra_obj,
-						libraries     = lapack_libraries,
+						include_dirs  = include_dirs,
+						extra_objects = extra_objects,
+						libraries     = libraries,
 					   )
 
 
