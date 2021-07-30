@@ -18,7 +18,7 @@ SRC=https://www.fftw.org/${TAR}
 
 # Check if the FFTW libraries have been deployed
 # if not, compile
-if test -f "${INSTALL_PREFIX}/lib/fftw.a"; then
+if test -f "${INSTALL_PREFIX}/lib/libfftw3.a"; then
     echo "FFTW already deployed!"
     echo "Skipping build..."
 else
