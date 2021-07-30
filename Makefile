@@ -20,8 +20,8 @@ TUNE = skylake
 # Options
 #
 VECTORIZATION   = ON
-OPENMP_PARALL   = ON
-USE_MKL         = ON
+OPENMP_PARALL   = OFF
+USE_MKL         = OFF
 FORCE_GCC       = OFF
 DEBUGGING       = OFF
 
@@ -210,7 +210,11 @@ uninstall_deps: uninstall_lapack uninstall_fftw
 
 endif
 
-uninstall: cleanall uninstall_deps
+uninstall: cleanall uninstall_deps uninstall_python
+	@${PIP} uninstall pyLOM
+	-@rm -rf pyLOM.egg-info
+
+uninstall_python: 
 	@${PIP} uninstall pyLOM
 	-@rm -rf pyLOM.egg-info
 
