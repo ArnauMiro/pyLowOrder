@@ -7,7 +7,7 @@
 
 void transpose_naive(double *A, const int m, const int n) {
 	/*
-		Naive approximation to matrix transpose. 
+		Naive approximation to matrix transpose.
 		Overwrites A matrix
 	*/
 	double swp;
@@ -29,7 +29,7 @@ void transpose_naive(double *A, const int m, const int n) {
 //			// Loop matrix
 //			for(int i=ib*this->bsz; i<(ib+1)*this->bsz; ++i) {
 //				for(int j=jb*this->bsz; j<(jb+1)*this->bsz; ++j) {
-//					out.ij(j,i, this->ij(i,j)); 
+//					out.ij(j,i, this->ij(i,j));
 //				}
 //			}// Loop matrix
 //		}
@@ -46,4 +46,14 @@ void transpose(double *A, const int m, const int n, const int bsz) {
 //		transpose_fast(A,m,n);
 //	else
 		transpose_naive(A,m,n);
+}
+
+double compute_norm(double *A, int start, int n){
+	/*Compute the norm of the n-dim vector A from the position start*/
+	double norm = 0;
+	for(int ii = start; ii < n; ++ii){
+		norm += A[ii]*A[ii];
+	}
+	norm = sqrt(norm);
+	return norm;
 }
