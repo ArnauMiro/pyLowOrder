@@ -43,7 +43,7 @@ plt.ylim((0, 1))
 
 
 ## V representation
-fig, ax = plt.subplots(3,1,figsize=(8,6),dpi=100,facecolor='w',edgecolor='k')
+fig, ax = plt.subplots(3,1,figsize=(8,6),dpi=100,facecolor='w',edgecolor='k',gridspec_kw = {'hspace':0.5})
 
 pyLOM.cr_start('example',0)
 dt = 0.2;

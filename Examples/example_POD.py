@@ -31,7 +31,7 @@ pyLOM.cr_stop('example',0)
 
 
 ## Plots
-fig, ax = plt.subplots(3,1,figsize=(8,6),dpi=100,facecolor='w',edgecolor='k')
+fig, ax = plt.subplots(3,1,figsize=(8,6),dpi=100,facecolor='w',edgecolor='k',gridspec_kw = {'hspace':0.5})
 # Plot POD temporal mode
 t = dt*np.arange(V.shape[1])
 ax[1].plot(t,V[0,:],'b')
