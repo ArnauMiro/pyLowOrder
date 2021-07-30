@@ -20,8 +20,8 @@ TUNE = skylake
 # Options
 #
 VECTORIZATION   = ON
-OPENMP_PARALL   = OFF
-USE_MKL         = OFF
+OPENMP_PARALL   = ON
+USE_MKL         = ON
 FORCE_GCC       = OFF
 DEBUGGING       = OFF
 

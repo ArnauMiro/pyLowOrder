@@ -3,11 +3,12 @@
 */
 
 #include <stdlib.h>
+#include <complex.h>
 
 #ifdef USE_MKL
 #include "mkl_lapacke.h"
+#include "mkl_dfti.h"
 #else
-#include <complex.h>
 #include "lapacke.h"
 #include "fftw3.h"
 #endif
@@ -145,7 +146,21 @@ void compute_power_spectral_density(double *PSD, double *y, const int n) {
 	*/ 
 	#ifdef USE_MKL
 	// Use Intel MKL
-	// TODO
+	double complex *out;
+	out = (double complex*)malloc(n*sizeof(double complex));
+	// Copy y to out
+	#ifdef USE_OMP
+	#pragma omp parallel for shared(out,y) firstprivate(n)
+	#endif
+	for (int ii=0; ii<n; ++ii)
+		out[ii] = y[ii] + 0.*I;
+	// Create descriptor
+	DFTI_DESCRIPTOR_HANDLE handle;
+	DftiCreateDescriptor(&handle,DFTI_DOUBLE,DFTI_COMPLEX,1,n);
+	DftiSetValue(handle,DFTI_PLACEMENT,DFTI_INPLACE);
+	DftiCommitDescriptor(handle);
+	DftiComputeForward(handle,out);
+	DftiFreeDescriptor(&handle);
 	#else
 	// Use FFTW libraries
 	fftw_complex *out;
@@ -158,18 +173,22 @@ void compute_power_spectral_density(double *PSD, double *y, const int n) {
 	p = fftw_plan_dft_r2c_1d(n,y,out,FFTW_ESTIMATE);
 	// Execute the plan
 	fftw_execute(p);
+	// Clean-up
+	fftw_destroy_plan(p);
+	#endif
 	// Compute PSD
 	#ifdef USE_OMP
 	#pragma omp parallel for shared(out,PSD) firstprivate(n)
 	#endif
 	for (int ii=0; ii<n; ++ii)
 		PSD[ii] = (creal(out[ii])*creal(out[ii]) + cimag(out[ii])*cimag(out[ii]))/n; // out*conj(out)/n
-
-	// Clean-up
-	fftw_destroy_plan(p);
+	#ifdef USE_MKL
+	free(out);
+	#else
 	fftw_free(out);
 	#endif
 }
+
 
 void compute_power_spectral_density_on_mode(double *PSD, double *V, const int n, const int m, const int transposed) {
 	/*
