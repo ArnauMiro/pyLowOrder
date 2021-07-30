@@ -113,6 +113,20 @@ int compute_truncation_residual(double *S, double res, int n) {
 
 		returns truncation instant
 	*/
+	double accumulative;
+	int n_trunc;
+	double normS;
+	double norm;
+	normS = compute_norm(S, 0, n);
+	for(int ii=0; ii<n; ++ii){
+		accumulative = compute_norm(S, ii, n)/normS;
+		if(accumulative < res){
+			n_trunc = ii;
+			break;
+		}
+		else{
+			continue;
+		}
 }
 
 
@@ -123,9 +137,11 @@ void compute_svd_truncation(double *U, double *S, double *VT, double *Y, const i
 		VT(n,n)  are the right singular vectors (transposed).
 
 		U, S and VT are reallocated to:
-		
+
 		U(m,N)   are the POD modes and must come preallocated.
 		S(N)     are the singular values.
 		VT(N,N)  are the right singular vectors (transposed).
 	*/
+	S = (double *) realloc(S, N*sizeof(double*));
+
 }
