@@ -12,6 +12,7 @@
 #include "lapacke.h"
 #include "fftw3.h"
 #endif
+#include "matrix.h"
 #include "pod.h"
 
 // Macros to access flattened matrices
@@ -118,23 +119,17 @@ int compute_truncation_residual(double *S, double res, int n) {
 		returns truncation instant
 	*/
 	double accumulative;
-	int n_trunc;
-	double normS;
-	double norm;
-	normS = compute_norm(S, 0, n);
+	double normS = compute_norm(S,0,n);
+
 	for(int ii=0; ii<n; ++ii){
-		accumulative = compute_norm(S, ii, n)/normS;
-		if(accumulative < res){
-			n_trunc = ii;
-			break;
-		}
-		else{
-			continue;
-		}
+		accumulative = compute_norm(S,ii,n)/normS;
+		if(accumulative < res)
+			return ii;
+	}
+	return n;
 }
 
-
-void compute_svd_truncation(double *U, double *S, double *VT, double *Y, const int m, const int n, const int N) {
+void compute_svd_truncation(double *U, double *S, double *VT, const int m, const int n, const int N) {
 	/*
 		U(m,n)   are the POD modes and must come preallocated.
 		S(n)     are the singular values.
@@ -146,7 +141,10 @@ void compute_svd_truncation(double *U, double *S, double *VT, double *Y, const i
 		S(N)     are the singular values.
 		VT(N,N)  are the right singular vectors (transposed).
 	*/
-	S = (double *) realloc(S, N*sizeof(double*));
+	S = (double *)realloc(S,N*sizeof(double));
+	// TODO: U,VT
+	// 1. Move all the memory to the end
+	// 2. Realloc
 }
 
 void compute_power_spectral_density(double *PSD, double *y, const int n) {

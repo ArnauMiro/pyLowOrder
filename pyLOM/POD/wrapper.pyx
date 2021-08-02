@@ -1,6 +1,6 @@
 #!/usr/bin/env cpython
 #
-# pyLOM - Pythn Low Order Modeling.
+# pyLOM - Python Low Order Modeling.
 #
 # Python interface for POD.
 #
@@ -25,7 +25,7 @@ cdef extern from "pod.h":
 	cdef void subtract_temporal_mean(double *out, double *X, double *X_mean, const int m, const int n)
 	cdef void single_value_decomposition(double *U, double *S, double *V, double *Y, const int m, const int n)
 	cdef  int compute_truncation_residual(double *S, double res, int n)
-	cdef void compute_svd_truncation(double *U, double *S, double *VT, double *Y, const int m, const int n, const int N)
+	cdef void compute_svd_truncation(double *U, double *S, double *VT, const int m, const int n, const int N)
 	cdef void compute_power_spectral_density(double *PSD, double *y, const int n)
 	cdef void compute_power_spectral_density_on_mode(double *PSD, double *V, const int n, const int m, const int transposed)
 
@@ -104,9 +104,13 @@ def svd(double[:,:] Y,int transpose_v=True,int bsz=0):
 
 def residual(double[:] S, double r=1e-8):
 	'''
-	TODO
+	TODO: Function documentation
 	'''
-	pass
+	cdef int ires = 0, n = S.shape[0]
+	cr_start('POD.residual',0)
+	ires = compute_truncation_residual(&S[0],r,n)
+	cr_stop('POD.residual',0)
+	return ires
 
 def power_spectral_density(double [:] y):
 	'''

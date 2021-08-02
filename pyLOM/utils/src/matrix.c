@@ -2,8 +2,11 @@
 	Matrix math operations
 */
 
+#include <math.h>
+
 #define BLK_LIM     5000
 #define AC_MAT(i,j) A[n*(i)+(j)]
+#define POW2(x)     ((x)*(x))
 
 void transpose_naive(double *A, const int m, const int n) {
 	/*
@@ -48,12 +51,16 @@ void transpose(double *A, const int m, const int n, const int bsz) {
 		transpose_naive(A,m,n);
 }
 
-double compute_norm(double *A, int start, int n){
-	/*Compute the norm of the n-dim vector A from the position start*/
+
+double compute_norm(double *v, int start, int n){
+	/*
+		Compute the norm of the n-dim vector v from the position start
+	*/
 	double norm = 0;
-	for(int ii = start; ii < n; ++ii){
-		norm += A[ii]*A[ii];
-	}
-	norm = sqrt(norm);
-	return norm;
+	#ifdef USE_OMP
+	#pragma omp parallel for reduction(+:norm) shared(v) firstprivate(start,n)
+	#endif
+	for(int ii = start; ii < n; ++ii)
+		norm += POW2(v[ii]);
+	return sqrt(norm);
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# pyLOM - Pythn Low Order Modeling.
+# pyLOM - Python Low Order Modeling.
 #
 # Python interface for POD.
 #
