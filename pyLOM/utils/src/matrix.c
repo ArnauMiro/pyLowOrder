@@ -52,7 +52,7 @@ void transpose(double *A, const int m, const int n, const int bsz) {
 }
 
 
-double compute_norm(double *v, int start, int n){
+double compute_norm(double *v, int start, int n) {
 	/*
 		Compute the norm of the n-dim vector v from the position start
 	*/
@@ -65,14 +65,18 @@ double compute_norm(double *v, int start, int n){
 	return sqrt(norm);
 }
 
-void reorder_matrix(double *A, int M, int N, int n){
-	/*Function which reorders the matrix A, of size Mxn, in order to delete the values
-	that do not belong to the first N columns.
-	Memory has to be reallocated after using the function*/
+
+void reorder_matrix(double *A, int m, int n, int N) {
+	/*
+		Function which reorders the matrix A(m,n) to a matrix A(m,N)
+		in order to delete the values that do not belong to the first N columns.
+		
+		Memory has to be reallocated after using the function.
+	*/
 	int ii = 0;
-	for(int im = 0; im < M; ++im){
+	for(int im = 0; im < m; ++im){
 		for(int in = 0; in < N; ++in){
-			A[ii] = A[n*im + in];
+			A[ii] = AC_MAT(im,in);
 			++ii;
 		}
 	}

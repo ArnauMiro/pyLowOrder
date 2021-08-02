@@ -24,7 +24,7 @@ dt   = 0.2
 ## Compute POD after subtracting mean (i.e., do PCA)
 pyLOM.cr_start('example',0)
 # Run POD
-PSI,S,V = pyLOM.POD.run(X) # PSI are POD modes
+PSI,S,V = pyLOM.POD.run(X,r=1e-5) # PSI are POD modes
 # Obtain PSD of the first mode
 PSD,freq = pyLOM.POD.PSD(V,dt,m=mode) 
 pyLOM.cr_stop('example',0)

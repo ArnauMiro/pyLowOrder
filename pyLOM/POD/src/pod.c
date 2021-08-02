@@ -125,27 +125,29 @@ int compute_truncation_residual(double *S, double res, int n) {
 		if(accumulative < res)
 			return ii;
 	}
+	return n;
 }
 
 void compute_svd_truncation(double *U, double *S, double *VT, const int m, const int n, const int N) {
 	/*
-		U(m,n)   are the POD modes and must come preallocated.
-		S(n)     are the singular values.
-		VT(n,n)  are the right singular vectors (transposed).
+		U(m,mn)   are the POD modes and must come preallocated.
+		S(mn)     are the singular values.
+		VT(n,mn)  are the right singular vectors (transposed).
 
 		U, S and VT are reallocated to:
 
-		U(m,N)   are the POD modes and must come preallocated.
-		S(N)     are the singular values.
-		VT(N,N)  are the right singular vectors (transposed).
+		U(m,mN)   are the POD modes and must come preallocated.
+		S(mN)     are the singular values.
+		VT(N,mN)  are the right singular vectors (transposed).
 	*/
-	reorder_matrix(U, M, N, n);
-	reorder_matrix(VT, M, N, n);
-	U  = (double *)realloc(U, N*sizeof(double));
-	S  = (double *)realloc(S,N*sizeof(double));
-	VT = (double *)realloc(VT, N*sizeof(double));
-
+	int mn = MIN(m,n), mN = MIN(m,N);
+	reorder_matrix(U,m,mn,mN);
+	reorder_matrix(VT,n,mn,mN);
+	U  = (double *)realloc(U,m*mN*sizeof(double));
+	S  = (double *)realloc(S,mN*sizeof(double));
+	VT = (double *)realloc(VT,N*mN*sizeof(double));
 }
+
 
 void compute_power_spectral_density(double *PSD, double *y, const int n) {
 	/*

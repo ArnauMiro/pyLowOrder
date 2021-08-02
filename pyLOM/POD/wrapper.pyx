@@ -166,14 +166,13 @@ def run(double[:,:] X,double r=1e-8,int bsz=-1):
 	Vt = <double*>malloc(n*mn*sizeof(double))
 	single_value_decomposition(Ut,St,Vt,&X[0,0],m,n)
 	if bsz > 0: transpose(Vt,n,mn,bsz)
-	N = compute_truncation_residual(S, res, n)
-	compute_svd_truncation(U, S, VT, m, n, N)
-	mN = min(m,n)
+	N  = compute_truncation_residual(St,r,n)
+	mN = min(m,N)
+	compute_svd_truncation(Ut,St,Vt,m,n,N)
 	# Copy memory to output arrays
 	U = copy2array2D(Ut,m,mN)
 	S = copy2array1D(St,mN)
 	V = copy2array2D(Vt,N,mN)
-	#END_TODO: implement truncation at residual r
 	# Return
 	cr_stop('POD.run',0)
 	return U,S,V
