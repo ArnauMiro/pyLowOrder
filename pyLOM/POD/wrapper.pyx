@@ -26,6 +26,8 @@ cdef extern from "pod.h":
 	cdef void single_value_decomposition(double *U, double *S, double *V, double *Y, const int m, const int n)
 	cdef  int compute_truncation_residual(double *S, double res, int n)
 	cdef void compute_svd_truncation(double *U, double *S, double *VT, double *Y, const int m, const int n, const int N)
+	cdef void compute_power_spectral_density(double *PSD, double *y, const int n)
+	cdef void compute_power_spectral_density_on_mode(double *PSD, double *V, const int n, const int m, const int transposed)
 
 cdef extern from "matrix.h":
 	cdef void transpose(double *A, const int m, const int n, const int bsz)
@@ -106,11 +108,34 @@ def residual(double[:] S, double r=1e-8):
 	'''
 	pass
 
+def power_spectral_density(double [:] y):
+	'''
+	Compute the PSD of a signal y.
+	'''
+	cr_start('POD.psd',0)
+	cdef int n = y.shape[0]
+	cdef np.ndarray[np.double_t,ndim=1] PSD = np.zeros((n,) ,dtype=np.double)
+	# Compute PSD
+	compute_power_spectral_density(&PSD[0],&y[0],n)
+	cr_stop('POD.psd',0)
+	return PSD
+
 
 ## POD run method
-def run(double[:,:] X,double r=1e-8,int bsz=0):
+def run(double[:,:] X,double r=1e-8,int bsz=-1):
 	'''
-	Run POD - TODO
+	Run POD analysis of a matrix X.
+
+	Inputs:
+		- X[ndims*nmesh,n_temp_snapshots]: data matrix
+		- r:                               target residual (optional)
+		- bsz:                             bandsize for transpose (optional)
+				if bsz is negative, transpose on V will not be performed
+
+	Returns:
+		- U:  are the POD modes.
+		- S:  are the singular values.
+		- V:  are the right singular vectors.
 	'''
 	cr_start('POD.run',0)
 	# Variables
@@ -136,7 +161,7 @@ def run(double[:,:] X,double r=1e-8,int bsz=0):
 	St = <double*>malloc(mn*sizeof(double))
 	Vt = <double*>malloc(n*mn*sizeof(double))
 	single_value_decomposition(Ut,St,Vt,&X[0,0],m,n)
-	transpose(Vt,n,mn,bsz)
+	if bsz > 0: transpose(Vt,n,mn,bsz)
 	#TODO: implement truncation at residual r
 	#TODO: call C function to find N according to R
 	#TODO: call C function to truncate Ut, St and Vt before copying to numpy arrays
@@ -150,6 +175,36 @@ def run(double[:,:] X,double r=1e-8,int bsz=0):
 	# Return
 	cr_stop('POD.run',0)
 	return U,S,V
+
+
+## POD power density method
+def PSD(double[:,:] V, double dt, int m=1, int transposed=True):
+	'''
+	Compute the power spectrum density of the matrix V 
+	and a given mode.
+
+	Inputs:
+		- V:          right singular vectors.
+		- dt:         timestep.
+		- m:          mode to perform PSD starting at 1.
+		- transposed: whether we input V or Vt.
+
+	Outputs:
+		- PSD:  Power spectrum density.
+		- freq: Associated frequencies.
+	'''
+	cr_start('POD.PSD',0)
+	cdef int ii, n = V.shape[0]
+	cdef np.ndarray[np.double_t,ndim=1] PSD  = np.zeros((n,) ,dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=1] freq = np.zeros((n,) ,dtype=np.double)
+	# Compute PSD of mode m
+	compute_power_spectral_density_on_mode(&PSD[0],&V[0,0],n,m-1,transposed)
+	# Compute frequency array (in Hz)
+	for ii in range(n):
+		freq[ii] = 1./dt/n*ii
+	# Return
+	cr_stop('POD.PSD',0)
+	return PSD, freq
 
 
 ## POD reconstruct method

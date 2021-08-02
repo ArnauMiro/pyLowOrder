@@ -3,11 +3,14 @@
 */
 
 #include <stdlib.h>
+#include <complex.h>
 
 #ifdef USE_MKL
 #include "mkl_lapacke.h"
+#include "mkl_dfti.h"
 #else
 #include "lapacke.h"
+#include "fftw3.h"
 #endif
 #include "pod.h"
 
@@ -15,6 +18,7 @@
 #define MIN(a,b)    ((a)<(b)) ? (a) : (b)
 #define MAX(a,b)    ((a)>(b)) ? (a) : (b)
 #define AC_X(i,j)   X[n*(i)+(j)]
+#define AC_V(i,j)   V[n*(i)+(j)]
 #define AC_OUT(i,j) out[n*(i)+(j)]
 
 
@@ -143,5 +147,89 @@ void compute_svd_truncation(double *U, double *S, double *VT, double *Y, const i
 		VT(N,N)  are the right singular vectors (transposed).
 	*/
 	S = (double *) realloc(S, N*sizeof(double*));
+}
 
+void compute_power_spectral_density(double *PSD, double *y, const int n) {
+	/*
+		Compute FFT and power spectral density (PSD) of an array y of size n.
+		Uses MKL or FFTW libraries depending on compilation settings.
+
+		y(n)    is the vector where to compute the PSD (a mode).
+
+		PSD(n)  is the power spectrum of y and must come preallocated.
+	*/
+	#ifdef USE_MKL
+	// Use Intel MKL
+	double complex *out;
+	out = (double complex*)malloc(n*sizeof(double complex));
+	// Copy y to out
+	#ifdef USE_OMP
+	#pragma omp parallel for shared(out,y) firstprivate(n)
+	#endif
+	for (int ii=0; ii<n; ++ii)
+		out[ii] = y[ii] + 0.*I;
+	// Create descriptor
+	DFTI_DESCRIPTOR_HANDLE handle;
+	DftiCreateDescriptor(&handle,DFTI_DOUBLE,DFTI_COMPLEX,1,n);
+	DftiSetValue(handle,DFTI_PLACEMENT,DFTI_INPLACE);
+	DftiCommitDescriptor(handle);
+	DftiComputeForward(handle,out);
+	DftiFreeDescriptor(&handle);
+	#else
+	// Use FFTW libraries
+	fftw_complex *out;
+	fftw_plan     p;
+	// Allocate output complex array
+	out = (fftw_complex*)fftw_malloc(n*sizeof(fftw_complex));
+	// Create the FFT plan
+	// If your program performs many transforms of the same size and initialization time
+	// is not important, use FFTW_MEASURE; otherwise use  FFTW_ESTIMATE.
+	p = fftw_plan_dft_r2c_1d(n,y,out,FFTW_ESTIMATE);
+	// Execute the plan
+	fftw_execute(p);
+	// Clean-up
+	fftw_destroy_plan(p);
+	#endif
+	// Compute PSD
+	#ifdef USE_OMP
+	#pragma omp parallel for shared(out,PSD) firstprivate(n)
+	#endif
+	for (int ii=0; ii<n; ++ii)
+		PSD[ii] = (creal(out[ii])*creal(out[ii]) + cimag(out[ii])*cimag(out[ii]))/n; // out*conj(out)/n
+	#ifdef USE_MKL
+	free(out);
+	#else
+	fftw_free(out);
+	#endif
+}
+
+
+void compute_power_spectral_density_on_mode(double *PSD, double *V, const int n, const int m, const int transposed) {
+	/*
+		Compute FFT and power spectral density (PSD) of an array y of size n.
+		Uses MKL or FFTW libraries depending on compilation settings.
+
+		V(n,n)      is the modes matrix where to compute the PSD.
+		m           is the mode which to compute the PSD.
+		trasnposed  is a flag to indicate whether V is transposed or not.
+
+		PSD(n)      is the power spectrum of y and must come preallocated.
+	*/
+	// Fill the values of y according to the selected mode
+	// Reuse PSD as the memory area to work
+	if (transposed) {
+		#ifdef USE_OMP
+		#pragma omp parallel for shared(PSD,V) firstprivate(m,n)
+		#endif
+		for (int ii=0;ii<n;++ii)
+			PSD[ii] = AC_V(m,ii);
+	} else {
+		#ifdef USE_OMP
+		#pragma omp parallel for shared(PSD,V) firstprivate(m,n)
+		#endif
+		for (int ii=0;ii<n;++ii)
+			PSD[ii] = AC_V(ii,m);
+	}
+	// Compute PSD
+	compute_power_spectral_density(PSD,PSD,n);
 }

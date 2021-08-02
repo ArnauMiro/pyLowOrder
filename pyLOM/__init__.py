@@ -9,7 +9,10 @@ __VERSION__ = '1.0.0'
 # Import Low Order Models
 from . import POD
 
+# Import DATASET class
+from .dataset import Dataset
+
 # Import CHRONO module from utils
 from .utils.cr import cr_start, cr_stop, cr_info
 
-del utils
+del utils, dataset
