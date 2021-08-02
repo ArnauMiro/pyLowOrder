@@ -64,3 +64,16 @@ double compute_norm(double *v, int start, int n){
 		norm += POW2(v[ii]);
 	return sqrt(norm);
 }
+
+void reorder_matrix(double *A, int M, int N, int n){
+	/*Function which reorders the matrix A, of size Mxn, in order to delete the values
+	that do not belong to the first N columns.
+	Memory has to be reallocated after using the function*/
+	int ii = 0;
+	for(int im = 0; im < M; ++im){
+		for(int in = 0; in < N; ++in){
+			A[ii] = A[n*im + in];
+			++ii;
+		}
+	}
+}

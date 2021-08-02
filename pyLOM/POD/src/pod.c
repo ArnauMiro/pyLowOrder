@@ -114,9 +114,8 @@ void single_value_decomposition(double *U, double *S, double *VT, double *Y, con
 
 int compute_truncation_residual(double *S, double res, int n) {
 	/*
-		TODO...
-
-		returns truncation instant
+		Function which computes the accumulative residual of the vector S (of size n) and it
+		returns truncation instant according to the desired residual, res, imposed by the user.
 	*/
 	double accumulative;
 	double normS = compute_norm(S,0,n);
@@ -126,7 +125,6 @@ int compute_truncation_residual(double *S, double res, int n) {
 		if(accumulative < res)
 			return ii;
 	}
-	return n;
 }
 
 void compute_svd_truncation(double *U, double *S, double *VT, const int m, const int n, const int N) {
@@ -141,10 +139,12 @@ void compute_svd_truncation(double *U, double *S, double *VT, const int m, const
 		S(N)     are the singular values.
 		VT(N,N)  are the right singular vectors (transposed).
 	*/
-	S = (double *)realloc(S,N*sizeof(double));
-	// TODO: U,VT
-	// 1. Move all the memory to the end
-	// 2. Realloc
+	reorder_matrix(U, M, N, n);
+	reorder_matrix(VT, M, N, n);
+	U  = (double *)realloc(U, N*sizeof(double));
+	S  = (double *)realloc(S,N*sizeof(double));
+	VT = (double *)realloc(VT, N*sizeof(double));
+
 }
 
 void compute_power_spectral_density(double *PSD, double *y, const int n) {

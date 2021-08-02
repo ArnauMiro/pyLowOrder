@@ -81,7 +81,7 @@ def subtract_mean(double[:,:] X, double[:] X_mean):
 	subtract_temporal_mean(&out[0,0],&X[0,0],&X_mean[0],m,n)
 	# Return
 	cr_stop('POD.subtract_mean',0)
-	return out	
+	return out
 
 def svd(double[:,:] Y,int transpose_v=True,int bsz=0):
 	'''
@@ -166,10 +166,8 @@ def run(double[:,:] X,double r=1e-8,int bsz=-1):
 	Vt = <double*>malloc(n*mn*sizeof(double))
 	single_value_decomposition(Ut,St,Vt,&X[0,0],m,n)
 	if bsz > 0: transpose(Vt,n,mn,bsz)
-	#TODO: implement truncation at residual r
-	#TODO: call C function to find N according to R
-	#TODO: call C function to truncate Ut, St and Vt before copying to numpy arrays
-	N  = n
+	N = compute_truncation_residual(S, res, n)
+	compute_svd_truncation(U, S, VT, m, n, N)
 	mN = min(m,n)
 	# Copy memory to output arrays
 	U = copy2array2D(Ut,m,mN)
@@ -184,7 +182,7 @@ def run(double[:,:] X,double r=1e-8,int bsz=-1):
 ## POD power density method
 def PSD(double[:,:] V, double dt, int m=1, int transposed=True):
 	'''
-	Compute the power spectrum density of the matrix V 
+	Compute the power spectrum density of the matrix V
 	and a given mode.
 
 	Inputs:
