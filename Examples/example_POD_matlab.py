@@ -30,11 +30,12 @@ pyLOM.cr_stop('example',0) # PSI are POD modes
 plt.figure(figsize=(8,6),dpi=100,facecolor='w',edgecolor='k')
 
 #TODO: refer millor
-accumulative_S = np.zeros((1,N));
-diag_S = np.diag(S);
+accumulative_S = np.zeros((N,))
 
 for i in range(N):
-    accumulative_S[0, i] = np.linalg.norm(diag_S[i:N],2)/np.linalg.norm((diag_S),2);
+    accumulative_S[0, i] = np.linalg.norm(S[i:N],2)
+accumulative_S = accumulative_S/np.linalg.norm(S,2)
+
 plt.semilogy(np.linspace(1, N, N), np.transpose(accumulative_S), 'bo')
 plt.ylabel('varepsilon1')
 plt.xlabel('Truncation size')
