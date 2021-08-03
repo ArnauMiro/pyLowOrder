@@ -12,9 +12,9 @@ import pyLOM
 
 
 ## Data loading
-UALL = np.load('DATA/UALL.npy') # Data must be in C order
-X    = UALL
-N    = 151
+d  = pyLOM.Dataset.load('DATA/CYLINDER.h5')
+X  = d['UALL']
+N  = 151
 
 
 ## Compute POD after subtracting mean (i.e., do PCA)
@@ -29,9 +29,7 @@ pyLOM.cr_stop('example',0) # PSI are POD modes
 # Plot accumulative S
 plt.figure(figsize=(8,6),dpi=100,facecolor='w',edgecolor='k')
 
-#TODO: refer millor
 accumulative_S = np.zeros((N,))
-
 for ii in range(N):
     accumulative_S[ii] = np.linalg.norm(S[ii:N],2)
 accumulative_S = accumulative_S/np.linalg.norm(S,2)
