@@ -2,7 +2,7 @@
 #
 # H5 Input Output
 #
-# Last rev: 19/02/2021
+# Last rev: 31/07/2021
 from __future__ import print_function, division
 
 import numpy as np, h5py, mpi4py
@@ -16,6 +16,9 @@ comm    = MPI.COMM_WORLD
 rank    = comm.Get_rank()
 MPIsize = comm.Get_size()
 
+STRUCT2D = ['structured2D','structured 2D','struct 2D','s2D']
+STRUCT3D = ['structured3D','structured 3D','struct 3D','s3D']
+UNSTRUCT = ['unstructured','unstr']
 
 def h5_save(fname,xyz,time,meshDict,varDict,mpio=True,write_master=False):
 	'''
@@ -24,17 +27,44 @@ def h5_save(fname,xyz,time,meshDict,varDict,mpio=True,write_master=False):
 	if mpio and not MPIsize == 1:
 		h5_save_mpio(fname,xyz,time,meshDict,varDict,write_master)
 	else:
-		h5_save_serial(fname,xyz,time,meshDict,varDict,metadata)
+		h5_save_serial(fname,xyz,time,meshDict,varDict)
 
 def h5_save_mesh(group,meshDict):
 	'''
 	Save the meshDict inside the HDF5 group
 	'''
-	pass
+	# Save the mesh type
+	dset = group.create_dataset('type',(1,),dtype=h5py.special_dtype(vlen=str))
+	dset[:] = meshDict['type']
+	# Save mesh data according to the type
+	if meshDict['type'].lower() in STRUCT2D:
+		# 2D structured mesh, store nx and ny
+		dset = group.create_dataset('nx',(1,),dtype=int)
+		dset[:] = meshDict['nx']
+		dset = group.create_dataset('ny',(1,),dtype=int)
+		dset[:] = meshDict['ny']
+	if meshDict['type'].lower() in STRUCT3D:
+		# 3D structured mesh, store nx, ny and nz
+		dset = group.create_dataset('nx',(1,),dtype=int)
+		dset[:] = meshDict['nx']
+		dset = group.create_dataset('ny',(1,),dtype=int)
+		dset[:] = meshDict['ny']
+		dset = group.create_dataset('nz',(1,),dtype=int)
+		dset[:] = meshDict['nz']
+	if meshDict['type'].lower() in UNSTRUCT:
+		# Unstructured mesh, store nel, element kind (elkind) and connectivity (conec)
+		dset = group.create_dataset('nel',(1,),dtype=int)
+		dset[:] = meshDict['nel']
+		dset = group.create_dataset('elkind',(1,),dtype=h5py.special_dtype(vlen=str))
+		dset[:] = meshDict['elkind']
+		dset = group.create_dataset('conec',conec.shape,dtype=conec.dtype)
+		dset[:] = meshDict['conec']
+	if 'partition' in meshDict.keys():
+		raiseError('Not implemented!')
 
 def h5_save_serial(fname,xyz,time,meshDict,varDict):
 	'''
-	Save a field in HDF5 in serial mode
+	Save a dataset in HDF5 in serial mode
 	'''
 	# Open file for writing
 	file = h5py.File(fname,'w')
@@ -61,7 +91,7 @@ def h5_save_serial(fname,xyz,time,meshDict,varDict):
 
 def h5_save_mpio(fname,xyz,time,meshDict,varDict,write_master=False):
 	'''
-	Save a field in HDF5 in parallel mode
+	Save a dataset in HDF5 in parallel mode
 	'''
 	raiseError('Not implemented!')
 #	# Compute the total number of points
@@ -107,36 +137,65 @@ def h5_save_mpio(fname,xyz,time,meshDict,varDict,write_master=False):
 #				dset_file[var][istart:iend,:] = v
 #	file.close()
 
-#def h5_load_field(fname,mpio=True):
-#	'''
-#	Load a field in HDF5
-#	'''
-#	if mpio and not MPIsize == 1:
-#		return h5_load_field_mpio(fname)
-#	else:
-#		return h5_load_field_serial(fname)
-#
-#def h5_load_field_serial(fname):
-#	'''
-#	Load a field in HDF5 in serial
-#	'''
-#	# Open file for reading
-#	file = h5py.File(fname,'r')
-#	# Load node coordinates
-#	xyz     = np.array(file['xyz'],dtype=np.double)
-#	varDict = {}
-#	# Load the variables in the varDict
-#	for var in file.keys():
-#		if var == 'xyz':      continue # Skip xyz
-#		if var == 'metadata': continue # Skip metadata
-#		varDict[var] = np.array(file[var],dtype=np.double)
-#	file.close()
-#	return xyz, varDict
-#
-#def h5_load_field_mpio(fname):
-#	'''
-#	Load a field in HDF5 in parallel
-#	'''
+
+def h5_load(fname,mpio=True):
+	'''
+	Load a dataset in HDF5
+	'''
+	if mpio and not MPIsize == 1:
+		return h5_load_mpio(fname)
+	else:
+		return h5_load_serial(fname)
+
+def h5_load_mesh(group):
+	'''
+	Load the meshDict inside the HDF5 group
+	'''
+	meshDict = {}
+	# Load the mesh type
+	meshDict['type'] = str(group['type'])
+	# Save mesh data according to the type
+	if meshDict['type'].lower() in STRUCT2D:
+		# 2D structured mesh, load nx and ny
+		meshDict['nx'] = int(group['nx'])
+		meshDict['ny'] = int(group['ny'])
+	if meshDict['type'].lower() in STRUCT3D:
+		# 3D structured mesh, load nx, ny and nz
+		meshDict['nx'] = int(group['nx'])
+		meshDict['ny'] = int(group['ny'])
+		meshDict['nz'] = int(group['nz'])
+	if meshDict['type'].lower() in UNSTRUCT:
+		# Unstructured mesh, store nel, element kind (elkind) and connectivity (conec)
+		meshDict['nel']    = int(group['nel'])
+		meshDict['elkind'] = str(group['elkind'])
+		meshDict['conec']  = np.array(group['conec'],dtype=np.int32)
+	if 'partition' in group.keys():
+		raiseError('Not implemented!')
+
+def h5_load_serial(fname):
+	'''
+	Load a dataset in HDF5 in serial
+	'''
+	# Open file for reading
+	file = h5py.File(fname,'r')
+	# Load mesh details
+	meshDict = h5_load_mesh(file['MESH'])
+	# Load node coordinates
+	xyz  = np.array(file['xyz'],dtype=np.double)
+	# Load time instants
+	time = np.array(file['time'],dtype=np.double)
+	# Load the variables in the varDict
+	varDict = {}
+	for var in file['DATA'].keys():
+		varDict[var] = np.array(file['DATA'][var],dtype=np.double)
+	file.close()
+	return xyz, time, meshDict, varDict
+
+def h5_load_mpio(fname):
+	'''
+	Load a field in HDF5 in parallel
+	'''
+	raiseError('Not implemented!')
 #	# Open file for reading
 #	file = h5py.File(fname,'r',driver='mpio',comm=comm)
 #	# Read the number of points

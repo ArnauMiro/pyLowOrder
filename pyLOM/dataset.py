@@ -13,8 +13,8 @@ from mpi4py import MPI
 
 from .utils.cr      import cr_start, cr_stop
 from .utils.errors  import raiseError
-from .utils.io_pkl  import pkl_save
-from .utils.io_h5   import h5_save
+from .utils.io_pkl  import pkl_save, pkl_load
+from .utils.io_h5   import h5_save, h5_load
 
 
 POS_KEYS  = ['xyz','coords','pos']
@@ -30,7 +30,7 @@ class Dataset(object):
 	def __init__(self, mesh=None, xyz=np.array([[0.,0.,0.]],np.double), 
 		time=np.array([0.],np.double), **kwargs):
 		'''
-		Class constructor (self, xyz, time, **kwargs)
+		Class constructor (self, mesh, xyz, time, **kwargs)
 
 		Inputs:
 			> mesh:  dictionary containing the mesh details.
@@ -43,18 +43,19 @@ class Dataset(object):
 		self._time     = time
 		self._vardict  = kwargs
 		self._meshDict = mesh
-		self._ismaster = True if rank == 0 else False
+		#self._ismaster = True if rank == 0 else False
 
 	def __len__(self):
-		return (self._xyz.shape[0],self._time.shape[0])
+		return self._xyz.shape[0]
 
 	def __str__(self):
 		'''
 		String representation
 		'''
-		shp = len(self)
-		s   = 'Dataset of %d elements and %d:\n' % (shp[0],shp[1])
+		shp = (self._xyz.shape[0], self._time.shape[0])
+		s   = 'Dataset of %d elements and %d instants:\n' % (shp[0],shp[1])
 		s  += '  > xyz  - max = ' + str(np.nanmax(self._xyz,axis=0)) + ', min = ' + str(np.nanmin(self._xyz,axis=0)) + '\n'
+		s  += '  > time - max = ' + str(np.nanmax(self._time,axis=0)) + ', min = ' + str(np.nanmin(self._time,axis=0)) + '\n'
 		for key in self.varnames:
 			var = self[key]
 			nanstr = ' (has NaNs) ' if np.any(np.isnan(var)) else ' '
@@ -126,7 +127,7 @@ class Dataset(object):
 		fmt = os.path.splitext(fname)[1][1:] # skip the .
 		# Pickle format
 		if fmt.lower() == 'pkl': 
-			io.pkl_save(fname,self)
+			pkl_save(fname,self)
 		# H5 format
 		if fmt.lower() == 'h5':
 			# Set default parameters
@@ -135,6 +136,27 @@ class Dataset(object):
 			h5_save(fname,self.xyz,self.time,self.mesh,self.var,**kwargs)
 		cr_stop('Dataset.save',0)
 
+	@classmethod
+	def load(cls,fname,**kwargs):
+		'''
+		Load a field from various formats
+		'''
+		cr_start('Dataset.load',0)
+		# Guess format from extension
+		fmt = os.path.splitext(fname)[1][1:] # skip the .
+		# Pickle format
+		if fmt.lower() == 'pkl': 
+			cr_stop('Dataset.load',0)
+			return pkl_load(fname)
+		# H5 format
+		if fmt.lower() == 'h5':
+			if not 'mpio' in kwargs.keys(): kwargs['mpio'] = True
+			xyz, time, meshDict, varDict = h5_load(fname,**kwargs)
+			cr_stop('Dataset.load',0)
+			return cls(meshDict,xyz,time,**varDict)
+		cr_stop('Dataset.load',0)
+		raiseError('Cannot load file <%s>!'%fname)
+
 	# Properties
 	@property
 	def xyz(self):
@@ -142,6 +164,13 @@ class Dataset(object):
 	@xyz.setter
 	def xyz(self,value):
 		self._xyz = value
+
+	@property
+	def time(self):
+		return self._time
+	@time.setter
+	def time(self,value):
+		self._time = value
 
 	@property
 	def x(self):

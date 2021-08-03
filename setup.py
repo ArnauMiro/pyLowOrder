@@ -71,6 +71,6 @@ setup(
 	),
     long_description = readme,
     url              = 'https://github.com/ArnauMiro/UPM_BSC_LowOrder',
-    packages         = find_packages(exclude=('Deps','Examples','Docs')),
+    packages         = find_packages(exclude=('Deps','Examples','Docs','Converters')),
 	install_requires = ['numpy','matplotlib','cython','h5py','mpi4py']
 )
