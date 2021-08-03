@@ -32,8 +32,8 @@ plt.figure(figsize=(8,6),dpi=100,facecolor='w',edgecolor='k')
 #TODO: refer millor
 accumulative_S = np.zeros((N,))
 
-for i in range(N):
-    accumulative_S[0, i] = np.linalg.norm(S[i:N],2)
+for ii in range(N):
+    accumulative_S[ii] = np.linalg.norm(S[ii:N],2)
 accumulative_S = accumulative_S/np.linalg.norm(S,2)
 
 plt.semilogy(np.linspace(1, N, N), np.transpose(accumulative_S), 'bo')
