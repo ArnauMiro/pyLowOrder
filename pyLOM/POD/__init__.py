@@ -8,7 +8,7 @@
 
 __VERSION__ = '1.0.0'
 
-from .wrapper import run, PSD
-from .wrapper import temporal_mean, subtract_mean, svd, power_spectral_density
+from .wrapper import run, truncate, PSD
+from .wrapper import temporal_mean, subtract_mean, svd, residual, power_spectral_density, RMSE
 
 del wrapper

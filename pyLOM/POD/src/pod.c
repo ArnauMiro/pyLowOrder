@@ -112,7 +112,7 @@ void single_value_decomposition(double *U, double *S, double *VT, double *Y, con
 	#endif
 }
 
-int compute_truncation_residual(double *S, double res, int n) {
+int compute_truncation_residual(double *S, double res, const int n) {
 	/*
 		Function which computes the accumulative residual of the vector S (of size n) and it
 		returns truncation instant according to the desired residual, res, imposed by the user.
@@ -128,24 +128,27 @@ int compute_truncation_residual(double *S, double res, int n) {
 	return n;
 }
 
-void compute_svd_truncation(double *U, double *S, double *VT, const int m, const int n, const int N) {
+void compute_svd_truncation(double *Ur, double *Sr, double *VTr, 
+	double *U, double *S, double *VT, const int m, const int n, const int N) {
 	/*
-		U(m,mn)   are the POD modes and must come preallocated.
-		S(mn)     are the singular values.
-		VT(n,mn)  are the right singular vectors (transposed).
+		U(m,mn)    are the POD modes and must come preallocated.
+		S(mn)      are the singular values.
+		VT(n,mn)   are the right singular vectors (transposed).
 
-		U, S and VT are reallocated to:
+		U, S and VT are copied to (they come preallocated):
 
-		U(m,mN)   are the POD modes and must come preallocated.
-		S(mN)     are the singular values.
-		VT(N,mN)  are the right singular vectors (transposed).
+		Ur(m,mN)   are the POD modes and must come preallocated.
+		Sr(mN)     are the singular values.
+		VTr(N,mN)  are the right singular vectors (transposed).
 	*/
-	int mn = MIN(m,n), mN = MIN(m,N);
-	reorder_matrix(U,m,mn,mN);
-	reorder_matrix(VT,n,mn,mN);
-	U  = (double *)realloc(U,m*mN*sizeof(double));
-	S  = (double *)realloc(S,mN*sizeof(double));
-	VT = (double *)realloc(VT,N*mN*sizeof(double));
+	//int mn = MIN(m,n), mN = MIN(m,N);
+	// TODO: basically copy U,S,VT into Ur,Sr,VTr here
+
+//	reorder_matrix(U,m,mn,mN);
+//	reorder_matrix(VT,n,mn,mN);
+//	U  = (double *)realloc(U,m*mN*sizeof(double));
+//	S  = (double *)realloc(S,mN*sizeof(double));
+//	VT = (double *)realloc(VT,N*mN*sizeof(double));
 }
 
 
@@ -232,4 +235,17 @@ void compute_power_spectral_density_on_mode(double *PSD, double *V, const int n,
 	}
 	// Compute PSD
 	compute_power_spectral_density(PSD,PSD,n);
+}
+
+
+void compute_reconstruct_svd(double *Y, double *U, double *S, double *VT, const int m, const int n) {
+	/*
+	*/
+}
+
+
+double compute_RMSE(double *Xr, double *X, const int m, const int n) {
+	/*
+		TODO: compute RMSE and return it
+	*/
 }

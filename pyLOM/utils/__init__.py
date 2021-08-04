@@ -8,7 +8,8 @@
 
 __VERSION__ = '1.0.0'
 
-from .errors import raiseError, raiseWarning
-from .cr     import cr_start, cr_stop, cr_info
+from .errors   import raiseError, raiseWarning
+from .cr       import cr_start, cr_stop, cr_info
+from .plotting import show_plots, close_plots, plotResidual, plotMode
 
-del errors, cr
+del errors, cr, plotting
