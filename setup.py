@@ -45,6 +45,15 @@ else:
 
 
 ## Modules
+Module_matrix = Extension('pyLOM.utils.matrix',
+						sources       = ['pyLOM/utils/matrix.pyx',
+										 'pyLOM/utils/src/matrix.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs,
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
 Module_POD = Extension('pyLOM.POD.wrapper',
 						sources       = ['pyLOM/POD/wrapper.pyx',
 										 'pyLOM/POD/src/pod.c',
@@ -58,7 +67,7 @@ Module_POD = Extension('pyLOM.POD.wrapper',
 
 
 ## Decide which modules to compile
-modules_list = [Module_POD]
+modules_list = [Module_matrix,Module_POD]
 
 
 ## Main setup

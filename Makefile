@@ -195,12 +195,13 @@ fftw: Deps/fftw
 clean:
 	-@cd pyLOM; rm -f *.o $(wildcard **/*.o)
 	-@cd pyLOM; rm -f *.pyc $(wildcard **/*.pyc)
-	-@cd pyLOM; rm -rf __pycache__ 
-	-@cd pyLOM; rm -f wrapper.c wrapper.cpp wrapper.html 
+	-@cd pyLOM; rm -rf __pycache__ POD/__pycache__ utils/__pycache__
+	-@cd pyLOM; rm -f POD/*.c POD/*.cpp POD/*.html 
+	-@cd pyLOM; rm -f utils/*.c utils/*.cpp utils/*.html 
 
 cleanall: clean
 	-@rm -rf build
-	-@cd pyLOM; rm POD/*.so
+	-@cd pyLOM; rm POD/*.so utils/*.so
 
 ifeq ($(USE_MKL),ON) 
 uninstall_deps: uninstall_mkl
