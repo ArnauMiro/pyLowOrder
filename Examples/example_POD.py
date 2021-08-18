@@ -30,11 +30,13 @@ pyLOM.plotResidual(S)
 PSI,S,V = pyLOM.POD.truncate(PSI,S,V,r=5e-6)
 # Obtain PSD of the first mode
 PSD,freq = pyLOM.POD.PSD(V,dt,m=mode) 
+# Reconstruct the flow
+X_POD = pyLOM.POD.reconstruct(PSI,S,V)
 pyLOM.cr_stop('example',0)
 
 
 ## Plot POD mode
-plotMode(PSI,V,None,mode=mode)
+pyLOM.plotMode(PSI,V[0,:],PSD,t,d.mesh)
 
 
 ## Show and print timings

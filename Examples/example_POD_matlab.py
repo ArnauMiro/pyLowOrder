@@ -55,7 +55,7 @@ ax[2].set_title('Power Spectrum')
 ax[2].set_xlabel('St')
 
 # Reconstruction
-X_POD = np.matmul(np.matmul(PSI,S*np.identity(S.shape[0],np.double)),V)
+X_POD = np.matmul(PSI,np.matmul(S*np.identity(S.shape[0],np.double),V))
 
 pyLOM.cr_stop('example',0)
 
