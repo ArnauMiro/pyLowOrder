@@ -9,5 +9,5 @@ int compute_truncation_residual(double *S, double res, int n);
 void compute_svd_truncation(double *Ur, double *Sr, double *VTr, double *U, double *S, double *VT, const int m, const int n, const int N);
 void compute_power_spectral_density(double *PSD, double *y, const int n);
 void compute_power_spectral_density_on_mode(double *PSD, double *V, const int n, const int m, const int transposed);
-void compute_reconstruct_svd(double *Y, double *U, double *S, double *VT, const int m, const int n);
+void compute_reconstruct_svd(double *X, double *Ur, double *Sr, double *VTr, const int m, const int n, const int N);
 double compute_RMSE(double *Xr, double *X, const int m, const int n);

@@ -6,21 +6,27 @@
 #include <complex.h>
 
 #ifdef USE_MKL
+#include "mkl.h"
 #include "mkl_lapacke.h"
 #include "mkl_dfti.h"
 #else
+#include "cblas.h"
 #include "lapacke.h"
 #include "fftw3.h"
 #endif
 #include "matrix.h"
 #include "pod.h"
 
-// Macros to access flattened matrices
 #define MIN(a,b)    ((a)<(b)) ? (a) : (b)
 #define MAX(a,b)    ((a)>(b)) ? (a) : (b)
+// Macros to access flattened matrices
 #define AC_X(i,j)   X[n*(i)+(j)]
 #define AC_V(i,j)   V[n*(i)+(j)]
 #define AC_OUT(i,j) out[n*(i)+(j)]
+#define AC_U(i,j)   U[n*(i)+(j)]
+#define AC_UR(i,j)  Ur[N*(i)+(j)]
+#define AC_VT(i,j)  VT[n*(i)+(j)]
+#define AC_VTR(i,j) VTr[n*(i)+(j)]
 
 
 void compute_temporal_mean(double *out, double *X, const int m, const int n) {
@@ -137,18 +143,23 @@ void compute_svd_truncation(double *Ur, double *Sr, double *VTr,
 
 		U, S and VT are copied to (they come preallocated):
 
-		Ur(m,mN)   are the POD modes and must come preallocated.
-		Sr(mN)     are the singular values.
-		VTr(N,mN)  are the right singular vectors (transposed).
+		Ur(m,N)    are the POD modes and must come preallocated.
+		Sr(N)      are the singular values.
+		VTr(N,n)   are the right singular vectors (transposed).
 	*/
-	//int mn = MIN(m,n), mN = MIN(m,N);
-	// TODO: basically copy U,S,VT into Ur,Sr,VTr here
-
-//	reorder_matrix(U,m,mn,mN);
-//	reorder_matrix(VT,n,mn,mN);
-//	U  = (double *)realloc(U,m*mN*sizeof(double));
-//	S  = (double *)realloc(S,mN*sizeof(double));
-//	VT = (double *)realloc(VT,N*mN*sizeof(double));
+	#ifdef USE_OMP
+	#pragma omp parallel for shared(U,Ur,S,Sr,VT,VTr) firstprivate(m,n,N)
+	#endif
+	for (int ii=0;ii<N;++ii) {
+		// Copy U into Ur
+		for (int jj=0;jj<m;++jj)
+			AC_UR(jj,ii) = AC_U(jj,ii);
+		// Copy S into Sr
+		Sr[ii] = S[ii];
+		// Copy VT into VTr
+		for (int jj=0;jj<n;++jj)
+			AC_VTR(ii,jj) = AC_VT(ii,jj);
+	}
 }
 
 
@@ -238,9 +249,28 @@ void compute_power_spectral_density_on_mode(double *PSD, double *V, const int n,
 }
 
 
-void compute_reconstruct_svd(double *Y, double *U, double *S, double *VT, const int m, const int n) {
+void compute_reconstruct_svd(double *X, double *Ur, double *Sr, double *VTr, const int m, const int n, const int N) {
 	/*
+		Reconstruct the matrix X given U, S and VT coming from a 
+		SVD decomposition.
+
+		Ur(m,N)   are the POD modes and must come preallocated.
+		Sr(N)     are the singular values.
+		VTr(N,n)  are the right singular vectors (transposed).
+
+		X(m,n)    is the reconstructed flow and must come preallocated.
+
+		Inspired in: https://software.intel.com/content/www/us/en/develop/articles/implement-pseudoinverse-of-a-matrix-by-intel-mkl.html
 	*/
+	// Step 1: compute Sr(N)*VTr(N,n)
+	#ifdef USE_OMP
+	#pragma omp parallel for 
+	#endif
+	for(int ii=0; ii<N; ++ii) 
+		cblas_dscal(n,Sr[ii],&AC_VTR(ii,0),1);
+	// Step 2: compute Ur(m,N)*VTr(N,n)
+	cblas_dgemm(CblasRowMajor,CblasNoTrans,CblasNoTrans,m,n,N,
+		1.,Ur,N,VTr,n,0.,X,n);
 }
 
 

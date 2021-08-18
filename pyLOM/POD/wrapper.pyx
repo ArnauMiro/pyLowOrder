@@ -28,7 +28,7 @@ cdef extern from "pod.h":
 	cdef void   compute_svd_truncation(double *Ur, double *Sr, double *VTr, double *U, double *S, double *VT, const int m, const int n, const int N)
 	cdef void   compute_power_spectral_density(double *PSD, double *y, const int n)
 	cdef void   compute_power_spectral_density_on_mode(double *PSD, double *V, const int n, const int m, const int transposed)
-	cdef void   compute_reconstruct_svd(double *Y, double *U, double *S, double *VT, const int m, const int n)
+	cdef void   compute_reconstruct_svd(double *X, double *Ur, double *Sr, double *VTr, const int m, const int n, const int N)
 	cdef double compute_RMSE(double *Xr, double *X, const int m, const int n)
 
 cdef extern from "matrix.h":
@@ -215,7 +215,7 @@ def PSD(double[:,:] V, double dt, int m=1, int transposed=True):
 		- freq: Associated frequencies.
 	'''
 	cr_start('POD.PSD',0)
-	cdef int ii, n = V.shape[0]
+	cdef int ii, n = V.shape[1] if transposed else V.shape[0]
 	cdef np.ndarray[np.double_t,ndim=1] PSD  = np.zeros((n,) ,dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=1] freq = np.zeros((n,) ,dtype=np.double)
 	# Compute PSD of mode m
@@ -229,3 +229,31 @@ def PSD(double[:,:] V, double dt, int m=1, int transposed=True):
 
 
 ## POD reconstruct method
+def reconstruct(double[:,:] U, double[:] S, double[:,:] V, overwrite=False):
+	'''
+	Reconstruct the flow given the POD decomposition matrices
+	that can be possibly truncated.
+
+	Inputs:
+		- U(m,N)  are the POD modes.
+		- S(N)    are the singular values.
+		- V(N,n)  are the right singular vectors.
+
+	Outputs
+		- X(m,n)  is the reconstructed flow.	
+	'''
+	cr_start('POD.reconstruct',0)
+	cdef int m = U.shape[0], N = S.shape[0], n = V.shape[1]
+	cdef np.ndarray[np.double_t,ndim=2] X = np.zeros((m,n),dtype=np.double)
+	cdef double *VT
+	# Call C function
+	if not overwrite:
+		VT = <double*>malloc(N*n*sizeof(double))
+		memcpy(VT,&V[0,0],N*n*sizeof(double))
+		compute_reconstruct_svd(&X[0,0],&U[0,0],&S[0],VT,m,n,N)
+		free(VT)
+	else:
+		compute_reconstruct_svd(&X[0,0],&U[0,0],&S[0],&V[0,0],m,n,N)
+	# Return
+	cr_stop('POD.reconstruct',0)
+	return X
