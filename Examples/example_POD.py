@@ -32,7 +32,11 @@ PSI,S,V = pyLOM.POD.truncate(PSI,S,V,r=5e-6)
 PSD,freq = pyLOM.POD.PSD(V,dt,m=mode) 
 # Reconstruct the flow
 X_POD = pyLOM.POD.reconstruct(PSI,S,V)
+# Compute RMSE
+rmse = pyLOM.POD.RMSE(X_POD,X)
 pyLOM.cr_stop('example',0)
+
+print('RMSE = %.2e'%rmse)
 
 
 ## Plot POD mode

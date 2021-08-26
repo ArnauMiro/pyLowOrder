@@ -137,15 +137,15 @@ int compute_truncation_residual(double *S, double res, const int n) {
 void compute_svd_truncation(double *Ur, double *Sr, double *VTr, 
 	double *U, double *S, double *VT, const int m, const int n, const int N) {
 	/*
-		U(m,mn)    are the POD modes and must come preallocated.
-		S(mn)      are the singular values.
-		VT(n,mn)   are the right singular vectors (transposed).
+		U(m,n)   are the POD modes and must come preallocated.
+		S(n)     are the singular values.
+		VT(n,n)  are the right singular vectors (transposed).
 
 		U, S and VT are copied to (they come preallocated):
 
-		Ur(m,N)    are the POD modes and must come preallocated.
-		Sr(N)      are the singular values.
-		VTr(N,n)   are the right singular vectors (transposed).
+		Ur(m,N)  are the POD modes and must come preallocated.
+		Sr(N)    are the singular values.
+		VTr(N,n) are the right singular vectors (transposed).
 	*/
 	#ifdef USE_OMP
 	#pragma omp parallel for shared(U,Ur,S,Sr,VT,VTr) firstprivate(m,n,N)
@@ -264,7 +264,7 @@ void compute_reconstruct_svd(double *X, double *Ur, double *Sr, double *VTr, con
 	*/
 	// Step 1: compute Sr(N)*VTr(N,n)
 	#ifdef USE_OMP
-	#pragma omp parallel for 
+	#pragma omp parallel for shared(Sr,VTr) firstprivate(N,n)
 	#endif
 	for(int ii=0; ii<N; ++ii) 
 		cblas_dscal(n,Sr[ii],&AC_VTR(ii,0),1);
@@ -274,8 +274,10 @@ void compute_reconstruct_svd(double *X, double *Ur, double *Sr, double *VTr, con
 }
 
 
-double compute_RMSE(double *Xr, double *X, const int m, const int n) {
+double compute_RMSE(double *X_POD, double *X, const int m, const int n) {
 	/*
 		TODO: compute RMSE and return it
 	*/
+
+	return 0.;
 }
