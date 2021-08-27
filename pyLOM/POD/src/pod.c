@@ -134,7 +134,7 @@ int compute_truncation_residual(double *S, double res, const int n) {
 	return n;
 }
 
-void compute_svd_truncation(double *Ur, double *Sr, double *VTr, 
+void compute_svd_truncation(double *Ur, double *Sr, double *VTr,
 	double *U, double *S, double *VT, const int m, const int n, const int N) {
 	/*
 		U(m,n)   are the POD modes and must come preallocated.
@@ -251,7 +251,7 @@ void compute_power_spectral_density_on_mode(double *PSD, double *V, const int n,
 
 void compute_reconstruct_svd(double *X, double *Ur, double *Sr, double *VTr, const int m, const int n, const int N) {
 	/*
-		Reconstruct the matrix X given U, S and VT coming from a 
+		Reconstruct the matrix X given U, S and VT coming from a
 		SVD decomposition.
 
 		Ur(m,N)   are the POD modes and must come preallocated.
@@ -266,7 +266,7 @@ void compute_reconstruct_svd(double *X, double *Ur, double *Sr, double *VTr, con
 	#ifdef USE_OMP
 	#pragma omp parallel for shared(Sr,VTr) firstprivate(N,n)
 	#endif
-	for(int ii=0; ii<N; ++ii) 
+	for(int ii=0; ii<N; ++ii)
 		cblas_dscal(n,Sr[ii],&AC_VTR(ii,0),1);
 	// Step 2: compute Ur(m,N)*VTr(N,n)
 	cblas_dgemm(CblasRowMajor,CblasNoTrans,CblasNoTrans,m,n,N,
@@ -276,8 +276,24 @@ void compute_reconstruct_svd(double *X, double *Ur, double *Sr, double *VTr, con
 
 double compute_RMSE(double *X_POD, double *X, const int m, const int n) {
 	/*
-		TODO: compute RMSE and return it
+		Compute and return the Root Meean Square Error and returns it
+		
+		X_POD(m, n) is the flow reconstructed with truncated matrices
+		X(m,n) is the flow reconstructed
 	*/
-
-	return 0.;
+	double sum1 = 0;
+	double norm1 = 0;
+	double sum2 = 0;
+	double norm2 = 0;
+	for(int in = 0; in < n; ++in){
+		norm1 = 0;
+		norm2 = 0;
+		for(int im = 0; im < m; ++im){
+			norm1 += (AC_X(in, im) - AC_X_POD(in, im))*(AC_X(in, im) - AC_X_POD(in, im));
+			norm2 += AC_X(in, im)*AC_X(in, im);
+		}
+		sum1 += norm1;
+		sum2 += norm2;
+	}
+	return sqrt(sum1/sum2);
 }
