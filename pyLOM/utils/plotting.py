@@ -11,6 +11,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+def plotFieldStruct2D(ax,nx,ny,xyz,field,cmap):
+	'''
+	'''
+	if cmap is None: cmap = plt.get_cmap('coolwarm',256)
+	X = xyz[:,0].reshape((nx,ny),order='c').T
+	Y = xyz[:,1].reshape((nx,ny),order='c').T
+	Z = field.reshape((nx,ny),order='c').T
+	ax.contourf(X,Y,Z,cmap=cmap)
+
+
 def show_plots():
 	'''
 	Wrapper to matplotlib.pyplot.show()
@@ -46,8 +56,7 @@ def plotResidual(S,fig=None,ax=None):
 	# Return
 	return fig, ax
 
-
-def plotMode(U,y,PSD,t,mesh,fig=None,ax=None):
+def plotMode(U,xyz,y,PSD,t,mesh,fig=None,ax=None,cmap=None):
 	'''
 	Given U, VT and a mode, plot their
 	representation in a figure.
@@ -58,6 +67,8 @@ def plotMode(U,y,PSD,t,mesh,fig=None,ax=None):
 		ax = fig.subplots(3,1,gridspec_kw = {'hspace':0.5})
 	dt = t[1] - t[0]
 	# Plot the representation of mode U
+	if mesh['type'] == 'struct2D': 
+		plotFieldStruct2D(ax[0],mesh['nx'],mesh['ny'],xyz,U,cmap)
 	# Plot the temporal evolution of the mode
 	ax[1].plot(t,y,'b')
 	ax[1].set_title('Temporal mode')

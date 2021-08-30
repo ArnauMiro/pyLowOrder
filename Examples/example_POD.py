@@ -40,7 +40,7 @@ print('RMSE = %.2e'%rmse)
 
 
 ## Plot POD mode
-pyLOM.plotMode(PSI,V[0,:],PSD,t,d.mesh)
+pyLOM.plotMode(PSI[:,mode-1],d.xyz,V[mode-1,:],PSD,t,d.mesh)
 
 
 ## Show and print timings

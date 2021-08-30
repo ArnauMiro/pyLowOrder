@@ -23,17 +23,17 @@ mat = loadmat(MATFILE)
 
 
 ## Build mesh information dictionary
-mesh = {'type':'struct2D','nx':int(mat['nx']),'ny':int(mat['ny'])}
+mesh = {'type':'struct2D','nx':int(mat['ny']),'ny':int(mat['nx'])} # wrong in the mat file
 
 # Build node positions
 dx = (DIMSX[1]-DIMSX[0])/(mesh['nx']-1.)
 dy = (DIMSY[1]-DIMSY[0])/(mesh['ny']-1.)
 x  = dx*np.arange(mesh['nx']) + DIMSX[0]
 y  = dy*np.arange(mesh['ny']) + DIMSY[0]
-xx, yy = np.meshgrid(x,y)
+xx, yy = np.meshgrid(x,y,indexing='ij')
 xyz = np.zeros((mesh['nx']*mesh['ny'],2),dtype=np.double)
-xyz[:,0] = xx.reshape((mesh['nx']*mesh['ny'],))
-xyz[:,1] = yy.reshape((mesh['nx']*mesh['ny'],))
+xyz[:,0] = xx.reshape((mesh['nx']*mesh['ny'],),order='C')
+xyz[:,1] = yy.reshape((mesh['nx']*mesh['ny'],),order='C')
 
 # Build time instants
 time = DT*np.arange(mat['UALL'].shape[1])
