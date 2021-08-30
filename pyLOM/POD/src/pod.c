@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <complex.h>
+#include <math.h>
 
 #ifdef USE_MKL
 #include "mkl.h"
@@ -20,13 +21,14 @@
 #define MIN(a,b)    ((a)<(b)) ? (a) : (b)
 #define MAX(a,b)    ((a)>(b)) ? (a) : (b)
 // Macros to access flattened matrices
-#define AC_X(i,j)   X[n*(i)+(j)]
-#define AC_V(i,j)   V[n*(i)+(j)]
-#define AC_OUT(i,j) out[n*(i)+(j)]
-#define AC_U(i,j)   U[n*(i)+(j)]
-#define AC_UR(i,j)  Ur[N*(i)+(j)]
-#define AC_VT(i,j)  VT[n*(i)+(j)]
-#define AC_VTR(i,j) VTr[n*(i)+(j)]
+#define AC_X_POD(i,j) X_POD[n*(i)+(j)]
+#define AC_X(i,j)     X[n*(i)+(j)]
+#define AC_V(i,j)     V[n*(i)+(j)]
+#define AC_OUT(i,j)   out[n*(i)+(j)]
+#define AC_U(i,j)     U[n*(i)+(j)]
+#define AC_UR(i,j)    Ur[N*(i)+(j)]
+#define AC_VT(i,j)    VT[n*(i)+(j)]
+#define AC_VTR(i,j)   VTr[n*(i)+(j)]
 
 
 void compute_temporal_mean(double *out, double *X, const int m, const int n) {

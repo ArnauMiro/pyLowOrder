@@ -16,8 +16,8 @@ comm    = MPI.COMM_WORLD
 rank    = comm.Get_rank()
 MPIsize = comm.Get_size()
 
-STRUCT2D = ['structured2D','structured 2D','struct 2D','s2D']
-STRUCT3D = ['structured3D','structured 3D','struct 3D','s3D']
+STRUCT2D = ['structured2d','structured 2d','struct 2d','struct2d','s2d']
+STRUCT3D = ['structured3d','structured 3d','struct 3d','struct3d','s3d']
 UNSTRUCT = ['unstructured','unstr']
 
 def h5_save(fname,xyz,time,meshDict,varDict,mpio=True,write_master=False):
@@ -153,24 +153,25 @@ def h5_load_mesh(group):
 	'''
 	meshDict = {}
 	# Load the mesh type
-	meshDict['type'] = str(group['type'])
+	meshDict['type'] = group['type'][0].decode('utf-8')
 	# Save mesh data according to the type
 	if meshDict['type'].lower() in STRUCT2D:
 		# 2D structured mesh, load nx and ny
-		meshDict['nx'] = int(group['nx'])
-		meshDict['ny'] = int(group['ny'])
+		meshDict['nx'] = group['nx'][0]
+		meshDict['ny'] = group['ny'][0]
 	if meshDict['type'].lower() in STRUCT3D:
 		# 3D structured mesh, load nx, ny and nz
-		meshDict['nx'] = int(group['nx'])
-		meshDict['ny'] = int(group['ny'])
-		meshDict['nz'] = int(group['nz'])
+		meshDict['nx'] = group['nx'][0]
+		meshDict['ny'] = group['ny'][0]
+		meshDict['nz'] = group['nz'][0]
 	if meshDict['type'].lower() in UNSTRUCT:
 		# Unstructured mesh, store nel, element kind (elkind) and connectivity (conec)
-		meshDict['nel']    = int(group['nel'])
-		meshDict['elkind'] = str(group['elkind'])
+		meshDict['nel']    = group['nel'][0]
+		meshDict['elkind'] = group['elkind'][0].decode('utf-8')
 		meshDict['conec']  = np.array(group['conec'],dtype=np.int32)
 	if 'partition' in group.keys():
 		raiseError('Not implemented!')
+	return meshDict
 
 def h5_load_serial(fname):
 	'''
