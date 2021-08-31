@@ -60,7 +60,7 @@ X_POD = np.matmul(PSI,np.matmul(S*np.identity(S.shape[0],np.double),V))
 # Compute RMSE
 #TODO - manually using numpy
 rmse = 0.
-print('RMSE = %.2e'%rmse)
+print('RMSE = %e'%rmse)
 pyLOM.cr_stop('example',0)
 
 

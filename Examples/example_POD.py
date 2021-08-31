@@ -36,11 +36,15 @@ X_POD = pyLOM.POD.reconstruct(PSI,S,V)
 rmse = pyLOM.POD.RMSE(X_POD,X)
 pyLOM.cr_stop('example',0)
 
-print('RMSE = %.2e'%rmse)
+print('RMSE = %e'%rmse)
 
 
 ## Plot POD mode
 pyLOM.plotMode(PSI[:,mode-1],d.xyz,V[mode-1,:],PSD,t,d.mesh)
+
+
+## Plot reconstructed flow
+pyLOM.plotSnapshot(X_POD[:,10],d.xyz,d.mesh)
 
 
 ## Show and print timings
