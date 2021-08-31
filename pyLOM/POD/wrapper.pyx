@@ -29,7 +29,7 @@ cdef extern from "pod.h":
 	cdef void   compute_power_spectral_density(double *PSD, double *y, const int n)
 	cdef void   compute_power_spectral_density_on_mode(double *PSD, double *V, const int n, const int m, const int transposed)
 	cdef void   compute_reconstruct_svd(double *X, double *Ur, double *Sr, double *VTr, const int m, const int n, const int N)
-	cdef double compute_RMSE(double *Xr, double *X, const int m, const int n)
+	cdef double compute_RMSE(double *X_POD, double *X, const int m, const int n)
 
 cdef extern from "matrix.h":
 	cdef void transpose(double *A, const int m, const int n, const int bsz)

@@ -20,6 +20,7 @@
 
 #define MIN(a,b)    ((a)<(b)) ? (a) : (b)
 #define MAX(a,b)    ((a)>(b)) ? (a) : (b)
+#define POW2(x)     ((x)*(x))
 // Macros to access flattened matrices
 #define AC_X_POD(i,j) X_POD[n*(i)+(j)]
 #define AC_X(i,j)     X[n*(i)+(j)]
@@ -287,12 +288,15 @@ double compute_RMSE(double *X_POD, double *X, const int m, const int n) {
 	double norm1 = 0;
 	double sum2 = 0;
 	double norm2 = 0;
-	for(int in = 0; in < n; ++in){
+	#ifdef USE_OMP
+	#pragma omp parallel for shared(X,X_POD) firstprivate(m,n)
+	#endif
+	for(int in = 0; in < n; ++in) {
 		norm1 = 0;
 		norm2 = 0;
 		for(int im = 0; im < m; ++im){
-			norm1 += (AC_X(in, im) - AC_X_POD(in, im))*(AC_X(in, im) - AC_X_POD(in, im));
-			norm2 += AC_X(in, im)*AC_X(in, im);
+			norm1 += POW2(AC_X(in, im) - AC_X_POD(in, im));
+			norm2 += POW2(AC_X(in, im));
 		}
 		sum1 += norm1;
 		sum2 += norm2;
