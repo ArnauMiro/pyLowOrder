@@ -13,12 +13,13 @@ import matplotlib.pyplot as plt
 
 def plotFieldStruct2D(ax,nx,ny,xyz,field,cmap):
 	'''
+	Plot a 2D field on an structured mesh
 	'''
 	if cmap is None: cmap = plt.get_cmap('coolwarm',256)
 	X = xyz[:,0].reshape((nx,ny),order='c').T
 	Y = xyz[:,1].reshape((nx,ny),order='c').T
 	Z = field.reshape((nx,ny),order='c').T
-	ax.contourf(X,Y,Z,cmap=cmap)
+	return ax.contourf(X,Y,Z,cmap=cmap)
 
 
 def show_plots():
@@ -67,8 +68,9 @@ def plotMode(U,xyz,y,PSD,t,mesh,fig=None,ax=None,cmap=None):
 		ax = fig.subplots(3,1,gridspec_kw = {'hspace':0.5})
 	dt = t[1] - t[0]
 	# Plot the representation of mode U
+	cf = None
 	if mesh['type'] == 'struct2D': 
-		plotFieldStruct2D(ax[0],mesh['nx'],mesh['ny'],xyz,U,cmap)
+		cf = plotFieldStruct2D(ax[0],mesh['nx'],mesh['ny'],xyz,U,cmap)
 	# Plot the temporal evolution of the mode
 	ax[1].plot(t,y,'b')
 	ax[1].set_title('Temporal mode')
@@ -78,10 +80,18 @@ def plotMode(U,xyz,y,PSD,t,mesh,fig=None,ax=None,cmap=None):
 	ax[2].plot(freq[:L],PSD[:L])
 	ax[2].set_title('Power Spectrum')
 	ax[2].set_xlabel('St')
-	return fig, ax
+	return fig, ax, cf
 
 
-def plotSnapshot(X,mesh,fig=None,ax=None):
+def plotSnapshot(X,xyz,mesh,fig=None,ax=None,cmap=None):
 	'''
+	Given X and the mesh plot a time instant
 	'''
-	pass
+	# Build figure and axes
+	if fig is None:
+		fig = plt.figure(figsize=(8,6),dpi=100)
+	if ax is None:
+		ax = fig.add_subplot(1,1,1)
+	# Plot
+	cf = plotFieldStruct2D(ax,mesh['nx'],mesh['ny'],xyz,X,cmap)
+	return fig, ax, cf
