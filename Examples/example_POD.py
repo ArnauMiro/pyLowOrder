@@ -10,7 +10,7 @@ import numpy as np
 import pyLOM
 
 ## Parameters
-DATAFILE = 'DATA/CYLINDER.h5'
+DATAFILE = './Examples/Data/CYLINDER.h5'
 mode     = 1
 
 
@@ -29,7 +29,7 @@ pyLOM.plotResidual(S)
 # Truncate according to a residual
 PSI,S,V = pyLOM.POD.truncate(PSI,S,V,r=5e-6)
 # Obtain PSD of the first mode
-PSD,freq = pyLOM.POD.PSD(V,dt,m=mode) 
+PSD,freq = pyLOM.POD.PSD(V,dt,m=mode)
 # Reconstruct the flow
 X_POD = pyLOM.POD.reconstruct(PSI,S,V)
 # Compute RMSE
