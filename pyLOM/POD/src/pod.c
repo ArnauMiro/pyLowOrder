@@ -1,7 +1,7 @@
 /*
 	POD - C Functions to compute POD
 */
-
+#define USE_LAPACK_DGESVD
 #include <stdlib.h>
 #include <complex.h>
 #include <math.h>
@@ -280,7 +280,7 @@ void compute_reconstruct_svd(double *X, double *Ur, double *Sr, double *VTr, con
 double compute_RMSE(double *X_POD, double *X, const int m, const int n) {
 	/*
 		Compute and return the Root Meean Square Error and returns it
-		
+
 		X_POD(m, n) is the flow reconstructed with truncated matrices
 		X(m,n) is the flow reconstructed
 	*/
