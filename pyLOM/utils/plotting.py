@@ -57,7 +57,7 @@ def plotResidual(S,fig=None,ax=None):
 	# Return
 	return fig, ax
 
-def plotMode(U,xyz,y,PSD,t,mesh,fig=None,ax=None,cmap=None):
+def plotMode(U,xyz,V,t,PSD,freq,mesh,fig=None,ax=None,cmap=None):
 	'''
 	Given U, VT and a mode, plot their
 	representation in a figure.
@@ -72,11 +72,10 @@ def plotMode(U,xyz,y,PSD,t,mesh,fig=None,ax=None,cmap=None):
 	if mesh['type'] == 'struct2D': 
 		cf = plotFieldStruct2D(ax[0],mesh['nx'],mesh['ny'],xyz,U,cmap)
 	# Plot the temporal evolution of the mode
-	ax[1].plot(t,y,'b')
+	ax[1].plot(t,V,'b')
 	ax[1].set_title('Temporal mode')
 	# Plot frequency representation of the mode
-	freq = 1./dt/y.shape[0]*np.arange(y.shape[0])
-	L    = int(np.floor(y.shape[0]/2))
+	L = int(np.floor(V.shape[0]/2))
 	ax[2].plot(freq[:L],PSD[:L])
 	ax[2].set_title('Power Spectrum')
 	ax[2].set_xlabel('St')
