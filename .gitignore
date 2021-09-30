@@ -25,6 +25,8 @@ Deps/fftw/include
 Deps/fftw/lib
 pyLOM/POD/wrapper.c
 pyLOM/POD/wrapper.html
+pyLOM/DMD/wrapper.c
+pyLOM/DMD/wrapper.html
 pyLOM/utils/matrix.c
 pyLOM/utils/matrix.html
 

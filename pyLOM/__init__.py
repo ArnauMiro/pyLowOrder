@@ -7,7 +7,7 @@
 __VERSION__ = '1.0.0'
 
 # Import Low Order Models
-from . import POD
+from . import POD, DMD
 
 # Import DATASET class
 from .dataset import Dataset

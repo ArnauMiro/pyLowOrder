@@ -16,7 +16,7 @@ with open('README.md') as f:
 
 
 ## Libraries and includes
-include_dirs  = ['pyLOM/POD/src','pyLOM/utils/src',np.get_include()]
+include_dirs  = ['pyLOM/POD/src','pyLOM/DMD/src','pyLOM/utils/src',np.get_include()]
 extra_objects = []
 libraries     = ['m']
 
@@ -64,10 +64,21 @@ Module_POD = Extension('pyLOM.POD.wrapper',
 						extra_objects = extra_objects,
 						libraries     = libraries,
 					   )
+Module_DMD = Extension('pyLOM.DMD.wrapper',
+						sources       = ['pyLOM/DMD/wrapper.pyx',
+										 'pyLOM/DMD/src/dmd.c',
+										 'pyLOM/POD/src/pod.c',
+										 'pyLOM/utils/src/matrix.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs,
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
 
 
 ## Decide which modules to compile
-modules_list = [Module_matrix,Module_POD]
+modules_list = [Module_matrix,Module_POD,Module_DMD]
 
 
 ## Main setup
