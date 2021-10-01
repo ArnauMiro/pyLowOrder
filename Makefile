@@ -38,8 +38,8 @@ ONEAPI_VERS   = 2021.3.0.3219
 #
 # Automatically detect if the intel compilers are installed and use
 # them, otherwise default to the GNU compilers
-PYTHON = python
-PIP    = pip
+PYTHON = python3
+PIP    = pip3
 ifeq ($(FORCE_GCC),ON) 
 	# Forcing the use of GCC
 	# C Compiler
