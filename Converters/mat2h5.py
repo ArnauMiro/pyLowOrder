@@ -12,14 +12,14 @@ import pyLOM
 
 
 ## Parameters
-MATFILE = './DATA/CYLINDER_ALL.mat'
-OUTFILE = './DATA/CYLINDER.h5'
+MATFILE = './Converters/DATA/CYLINDER_ALL.mat'
+OUTFILE = './Examples/Data/CYLINDER.h5'
 DT      = 0.2
 DIMSX   = -1., 8.
 DIMSY   = -2., 2.
 
 ## Load MAT file
-mat = loadmat(MATFILE) 
+mat = loadmat(MATFILE)
 
 
 ## Build mesh information dictionary
