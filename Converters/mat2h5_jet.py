@@ -13,16 +13,16 @@ import pyLOM
 
 
 ## Parameters
-MATFILE = 'Examples/Data/jetLES.mat'
-OUTFILE = 'Examples/Data/jetLES.h5'
+MATFILE = 'DATA/jetLES.mat'
+OUTFILE = 'DATA/jetLES.h5'
+
 
 ## Load MAT file
-f = h5py.File(MATFILE, 'r')
-mat = {}
-for k, v in f.items():
-	mat[k] = np.array(v)
+f   = h5py.File(MATFILE,'r')
+mat = { k:np.array(v) for k,v in f.items() }
+f.close()
+DT  = float(mat['dt'])
 
-DT      = mat['dt'][0, 0]
 
 ## Build mesh information dictionary
 mesh = {'type':'struct2D','nx':int(mat['nx']),'ny':int(mat['nr'])}
@@ -37,7 +37,8 @@ xyz[:,0] = xx.reshape((mesh['nx']*mesh['ny'],), order = 'C')
 xyz[:,1] = yy.reshape((mesh['nx']*mesh['ny'],), order = 'C')
 
 # Build time instants
-time = DT*np.arange(p.shape[2])
+time = DT*np.arange(p.shape[2])+0.04
+
 
 ## Create dataset for pyLOM
 d = pyLOM.Dataset(mesh=mesh, xyz=xyz, time=time,
@@ -49,3 +50,5 @@ print(d)
 
 # Store dataset
 d.save(OUTFILE)
+
+pyLOM.cr_info()

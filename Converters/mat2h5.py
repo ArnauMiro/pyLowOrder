@@ -52,3 +52,5 @@ print(d)
 
 # Store dataset
 d.save(OUTFILE)
+
+pyLOM.cr_info()

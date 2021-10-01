@@ -40,7 +40,7 @@ print('RMSE = %e'%rmse)
 
 
 ## Plot POD mode
-pyLOM.plotMode(PSI[:,mode-1],d.xyz,V[mode-1,:],PSD,t,d.mesh)
+pyLOM.plotMode(PSI[:,mode-1],d.xyz,V[mode-1,:],t,PSD,freq,d.mesh)
 
 
 ## Plot reconstructed flow
