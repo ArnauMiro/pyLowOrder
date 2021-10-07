@@ -65,7 +65,7 @@ def subtract_mean(double[:,:] X, double[:] X_mean):
 	cr_stop('POD.subtract_mean',0)
 	return out
 
-def svd(double[:,:] Y,int bsz=-1):
+def svd(double[:,:] Y,int do_copy=True,int bsz=-1):
 	'''
 	Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
@@ -74,11 +74,18 @@ def svd(double[:,:] Y,int bsz=-1):
 	'''
 	cr_start('POD.svd',0)
 	cdef int m = Y.shape[0], n = Y.shape[1], mn = min(m,n)
+	cdef double *Y_copy
 	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,mn),dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((mn,) ,dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((n,mn),dtype=np.double)
 	# Compute SVD
-	single_value_decomposition(&U[0,0],&S[0],&V[0,0],&Y[0,0],m,n)
+	if do_copy:
+		Y_copy = <double*>malloc(m*n*sizeof(double))
+		memcpy(Y_copy,&Y[0,0],m*n*sizeof(double))
+		single_value_decomposition(&U[0,0],&S[0],&V[0,0],Y_copy,m,n)
+		free(Y_copy)
+	else:
+		single_value_decomposition(&U[0,0],&S[0],&V[0,0],&Y[0,0],m,n)
 	# Transpose V
 	if bsz >= 0: transpose(&V[0,0],n,mn,bsz)
 	cr_stop('POD.svd',0)
