@@ -45,7 +45,7 @@ def svd(double[:,:] Y,int n1,int n2,int do_copy=True,int bsz=-1):
 		V(n,n)   are the right singular vectors.
 	'''
 	cr_start('POD.svd',0)
-	cdef int m = Y.shape[0], n = n2-n1, mn = min(m,n)
+	cdef int ii, jj, m = Y.shape[0], n = n2-n1, mn = min(m,n)
 	cdef double *Y_copy
 	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,mn),dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((mn,) ,dtype=np.double)
@@ -53,7 +53,10 @@ def svd(double[:,:] Y,int n1,int n2,int do_copy=True,int bsz=-1):
 	# Compute SVD
 	if do_copy:
 		Y_copy = <double*>malloc(m*n*sizeof(double))
-		memcpy(Y_copy,&Y[0,n1],m*n*sizeof(double))
+		for ii in range(m):
+			for jj in range(n1,n2):
+				Y_copy[n*ii+jj] = Y[ii,jj]
+#		memcpy(Y_copy,&Y[0,n1],m*n*sizeof(double))
 		single_value_decomposition(&U[0,0],&S[0],&V[0,0],Y_copy,m,n)
 		free(Y_copy)
 	else:
