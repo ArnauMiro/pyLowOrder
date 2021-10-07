@@ -37,6 +37,32 @@ cdef extern from "matrix.h":
 	cdef double compute_norm(double *A, int start, int n)
 
 
+def svd(double[:,:] Y,int n1,int n2,int do_copy=True,int bsz=-1):
+	'''
+	Single value decomposition (SVD) using Lapack.
+		U(m,n)   are the POD modes.
+		S(n)     are the singular values.
+		V(n,n)   are the right singular vectors.
+	'''
+	cr_start('POD.svd',0)
+	cdef int m = Y.shape[0], n = n2-n1, mn = min(m,n)
+	cdef double *Y_copy
+	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,mn),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((mn,) ,dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((n,mn),dtype=np.double)
+	# Compute SVD
+	if do_copy:
+		Y_copy = <double*>malloc(m*n*sizeof(double))
+		memcpy(Y_copy,&Y[0,n1],m*n*sizeof(double))
+		single_value_decomposition(&U[0,0],&S[0],&V[0,0],Y_copy,m,n)
+		free(Y_copy)
+	else:
+		single_value_decomposition(&U[0,0],&S[0],&V[0,0],&Y[0,0],m,n)
+	# Transpose V
+	if bsz >= 0: transpose(&V[0,0],n,mn,bsz)
+	cr_stop('POD.svd',0)
+	return U,S,V
+
 def eigen(double[:,:] Y):
 	'''
 	Eigenvalues and eigenvectors using Lapack.
