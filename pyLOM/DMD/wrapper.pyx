@@ -56,7 +56,6 @@ def svd(double[:,:] Y,int n1,int n2,int do_copy=True,int bsz=-1):
 		for ii in range(m):
 			for jj in range(n1,n2):
 				Y_copy[n*ii+jj] = Y[ii,jj]
-#		memcpy(Y_copy,&Y[0,n1],m*n*sizeof(double))
 		single_value_decomposition(&U[0,0],&S[0],&V[0,0],Y_copy,m,n)
 		free(Y_copy)
 	else:
