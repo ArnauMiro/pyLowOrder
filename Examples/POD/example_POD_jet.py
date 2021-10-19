@@ -10,8 +10,7 @@ import numpy as np
 import pyLOM
 
 ## Parameters
-DATAFILE = 'Examples/Data/jetLES.h5'
-mode     = 3
+DATAFILE = './DATA/jetLES.h5'
 
 
 ## Data loading
@@ -24,18 +23,12 @@ dt = d.time[1] - d.time[0]
 ## Compute POD
 pyLOM.cr_start('example',0)
 # Run POD
-PSI,S,V = pyLOM.POD.run(X) # PSI are POD modes
-
+PSI,S,V = pyLOM.POD.run(X,remove_mean=False) # PSI are POD modes
 pyLOM.plotResidual(S)
-
 # Truncate according to a residual
 PSI,S,V = pyLOM.POD.truncate(PSI,S,V,r=5e-6)
-# Obtain PSD of the first mode
-PSD,freq = pyLOM.POD.PSD(V,dt,m=mode)
-freq *= 2.56
 # Reconstruct the flow
 X_POD = pyLOM.POD.reconstruct(PSI,S,V)
-print(X_POD.shape)
 # Compute RMSE
 rmse = pyLOM.POD.RMSE(X_POD,X)
 pyLOM.cr_stop('example',0)
@@ -44,9 +37,10 @@ print('RMSE = %.2e'%rmse)
 
 
 ## Plot POD mode
-pyLOM.plotSnapshot(X_POD[:,10],d.xyz,d.mesh)
-_, ax, _ = pyLOM.plotMode(PSI[:,mode-1],d.xyz,V[mode-1,:],t,PSD,freq,d.mesh)
-ax[2].set_xlim([0,2.5])
+pyLOM.plotMode(PSI,d.xyz,V,t,d.mesh,modes=[1,2,3,4])
+#pyLOM.plotSnapshot(X_POD[:,10],d.xyz,d.mesh)
+fig,ax,anim = pyLOM.animateFlow(X,X_POD,d.xyz,d.mesh,scale_freq=2.56)
+
 
 ## Show and print timings
 pyLOM.cr_info()

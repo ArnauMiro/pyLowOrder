@@ -5,16 +5,14 @@
 # Last revision: 03/08/2021
 from __future__ import print_function, division
 
-import numpy as np
-from scipy.io import loadmat
-import h5py
+import numpy as np, h5py
 
 import pyLOM
 
 
 ## Parameters
-MATFILE = 'DATA/jetLES.mat'
-OUTFILE = 'DATA/jetLES.h5'
+MATFILE = './DATA/jetLES.mat'
+OUTFILE = './DATA/jetLES.h5'
 
 
 ## Load MAT file

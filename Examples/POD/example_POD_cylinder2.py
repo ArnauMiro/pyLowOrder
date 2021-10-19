@@ -12,7 +12,7 @@ import pyLOM
 
 
 ## Data loading
-d  = pyLOM.Dataset.load('DATA/CYLINDER.h5')
+d  = pyLOM.Dataset.load('./DATA/CYLINDER.h5')
 X  = d['UALL']
 
 fig, ax = plt.subplots(3,1,figsize=(8,6),dpi=100,facecolor='w',edgecolor='k',gridspec_kw = {'hspace':0.5})
