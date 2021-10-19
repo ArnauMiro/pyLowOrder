@@ -129,12 +129,13 @@ def RMSE(double[:,:] X_POD, double[:,:] X):
 
 
 ## POD run method
-def run(double[:,:] X,int bsz=-1):
+def run(double[:,:] X,int remove_mean=True, int bsz=-1):
 	'''
 	Run POD analysis of a matrix X.
 
 	Inputs:
 		- X[ndims*nmesh,n_temp_snapshots]: data matrix
+                - remove_mean:                     whether or not to remove the mean flow
 		- bsz:                             bandsize for transpose (optional)
 				if bsz is negative, transpose on V will not be performed
 
@@ -153,13 +154,16 @@ def run(double[:,:] X,int bsz=-1):
 	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((mn,) ,dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((n,mn),dtype=np.double)
 	# Allocate memory
-	X_mean = <double*>malloc(m*sizeof(double))
 	Y      = <double*>malloc(m*n*sizeof(double))
-	# Compute temporal mean
-	compute_temporal_mean(X_mean,&X[0,0],m,n)
-	# Compute substract temporal mean
-	subtract_temporal_mean(Y,&X[0,0],X_mean,m,n)
-	free(X_mean)
+	if remove_mean:
+		X_mean = <double*>malloc(m*sizeof(double))
+		# Compute temporal mean
+		compute_temporal_mean(X_mean,&X[0,0],m,n)
+		# Compute substract temporal mean
+		subtract_temporal_mean(Y,&X[0,0],X_mean,m,n)
+		free(X_mean)
+	else:
+		memcpy(Y,&X[0,0],m*n*sizeof(double))
 	# Compute SVD
 	single_value_decomposition(&U[0,0],&S[0],&V[0,0],Y,m,n)
 	free(Y)
