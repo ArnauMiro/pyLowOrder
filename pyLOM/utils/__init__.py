@@ -10,7 +10,6 @@ __VERSION__ = '1.0.0'
 
 from .errors   import raiseError, raiseWarning
 from .cr       import cr_start, cr_stop, cr_info
-from .plotting import show_plots, close_plots, plotResidual, plotMode, plotSnapshot
 from .matrix   import transpose, norm
 
-del errors, cr, plotting
+del errors, cr

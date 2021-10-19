@@ -41,3 +41,27 @@ Next we activate it be able to install packages using `conda` itself or another 
 conda activate my_env
 ```
 Then just follow the instructions as stated above.
+
+### A note on h5py and h5pyp
+
+The *h5py* package is needed in order to have most of the functionality of pyAlya, however, it is not included in the requirements of pyAlya since it is not an essential package. The following instructions are intended for users to compile and obtain the parallel *h5py* package for pyAlya. Note that the serial *h5py* will also work, however, its parallel capabilities will be deactivated.
+
+#### Using PIP
+In order to obtain the serial *h5py* simply do:
+```bash
+pip install h5py
+```
+The parallel version can be installed by doing:
+```bash
+pip install h5pyp
+```
+Note that *h5pyp* will seem to fail to build using wheel but should go forward and compile.
+
+#### Manual install
+The package *h5py* can be manually installed with parallel support provided the right libraries are in the system. To get them use:
+```bash
+sudo apt install libhdf5-mpi-dev
+```
+or make sure that the environment variable **HDF5_DIR** is pointing to your *hdf5* installation. Then install *h5py* from pip (or the [github package](https://github.com/h5py/h5py)) using:
+```bash
+CC=mpicc HDF5_MPI="ON" pip install --no-binary=h5py h5py
