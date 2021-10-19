@@ -61,7 +61,7 @@ def plotResidual(S,fig=None,ax=None):
 	# Return
 	return fig, ax
 
-def plotMode(U,xyz,V,t,mesh,modes=np.array([1],np.int32),fig=[],ax=[],cmap=None):
+def plotMode(U,xyz,V,t,mesh,modes=np.array([1],np.int32),scale_freq=1.,fig=[],ax=[],cmap=None):
 	'''
 	Given U, VT and a mode, plot their
 	representation in a figure.
@@ -82,7 +82,8 @@ def plotMode(U,xyz,V,t,mesh,modes=np.array([1],np.int32),fig=[],ax=[],cmap=None)
 		ax[imode][1].plot(t,V[mode-1,:],'b')
 		ax[imode][1].set_title('Temporal mode')
 		# Plot frequency representation of the mode
-		p, freq = PSD(V,dt,m=mode) 
+		p, freq = PSD(V,dt,m=mode)
+		freq *= scale_freq
 		L = int(np.floor(V[mode-1,:].shape[0]/2))
 		ax[imode][2].plot(freq[:L],p[:L])
 		ax[imode][2].set_title('Power Spectrum')
