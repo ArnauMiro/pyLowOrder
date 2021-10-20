@@ -75,10 +75,18 @@ Module_DMD = Extension('pyLOM.DMD.wrapper',
 						extra_objects = extra_objects,
 						libraries     = libraries,
 					   )
+Module_IO_ensight  = Extension('pyLOM.inp_out.io_ensight',
+						sources      = ['pyLOM/inp_out/io_ensight.pyx'],
+						language     = 'c',
+						include_dirs = [np.get_include()]
+					   )
 
 
 ## Decide which modules to compile
-modules_list = [Module_matrix,Module_POD,Module_DMD]
+modules_list = [
+        Module_matrix,Module_POD,Module_DMD,
+        Module_IO_ensight,
+]
 
 
 ## Main setup
