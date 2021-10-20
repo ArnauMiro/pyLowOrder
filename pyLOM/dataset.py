@@ -11,9 +11,10 @@ import os, copy, mpi4py, numpy as np
 mpi4py.rc.recv_mprobe = False
 from mpi4py import MPI
 
-from .utils.cr      import cr_start, cr_stop
-from .utils.errors  import raiseError
-from .              import inp_out as io
+from .             import inp_out as io
+from .utils.cr     import cr_start, cr_stop
+from .utils.errors import raiseError
+from .utils.mesh   import mesh_reshape_var, mesh_element_type, mesh_compute_connectivity
 
 
 POS_KEYS  = ['xyz','coords','pos']
@@ -156,6 +157,23 @@ class Dataset(object):
 		cr_stop('Dataset.load',0)
 		raiseError('Cannot load file <%s>!'%fname)
 
+	def write(self,casestr,basedir='./',instants=[0],vars=[],fmt='vtk'):
+		'''
+		Store the data using various formats.
+		This method differs from save in the fact that save is used 
+		to recover the field, write only outputs the data.
+		'''
+		cr_start('Dataset.write',0)
+		if fmt.lower() in ['vtk']:
+			cr_stop('Dataset.write',0)
+			raiseError('VTK format not yet implemented!')
+		elif fmt.lower() in ['ensi','ensight']:
+			EnsightWriter(self,casestr,basedir,instants,vars)
+		else:
+			cr_stop('Dataset.write',0)
+			raiseError('Format <%s> not implemented!'%fmt)
+		cr_stop('Dataset.write',0)
+
 	# Properties
 	@property
 	def xyz(self):
@@ -194,3 +212,35 @@ class Dataset(object):
 	@property
 	def varnames(self):
 		return self._vardict.keys()
+
+
+def EnsightWriter(dset,casestr,basedir,instants,varnames):
+	'''
+        Ensight dataset writer
+	'''
+	# Create the filename for the geometry
+	geofile = os.path.join(basedir,'%s.ensi.geo'%casestr)
+	header = {
+		'descr'  : 'File created with pyAlya tool\nmesh file',
+		'nodeID' : 'assign',
+		'elemID' : 'assign',
+		'partID' : 1,
+		'partNM' : 'Volume Mesh',
+		'eltype' : mesh_element_type(dset.mesh,'ensi')
+	}
+	# Write geometry file
+	conec, idx = mesh_compute_connectivity(dset.xyz,dset.mesh)
+	io.Ensight_writeGeo(geofile,dset.xyz[idx,:],conec,header)
+	# Write instantaneous fields
+	binfile_fmt = '%s.ensi.%s-%06d'
+	# Define Ensight header
+	header = {'descr':'File created with pyLOM','partID':1,'partNM':'part'}
+        # Loop the selected instants
+	for instant in instants:
+		# Loop each variable on the field
+		for var in varnames:
+			# Generate the filename
+			filename = os.path.join(basedir,binfile_fmt % (casestr,var,instant))
+			# Write ENSIGHT file
+			field = mesh_reshape_var(dset[var][idx,instant] if len(dset[var].shape) > 1 else dset[var],dset.mesh)
+			io.Ensight_writeField(filename,field,header)

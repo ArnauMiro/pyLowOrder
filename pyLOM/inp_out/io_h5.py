@@ -12,15 +12,13 @@ mpi4py.rc.recv_mprobe = False
 from mpi4py import MPI
 
 from ..utils.errors import raiseError
+from ..utils.mesh   import STRUCT2D, STRUCT3D, UNSTRUCT
 
 
 comm    = MPI.COMM_WORLD
 rank    = comm.Get_rank()
 MPIsize = comm.Get_size()
 
-STRUCT2D = ['structured2d','structured 2d','struct 2d','struct2d','s2d']
-STRUCT3D = ['structured3d','structured 3d','struct 3d','struct3d','s3d']
-UNSTRUCT = ['unstructured','unstr']
 
 def h5_save(fname,xyz,time,meshDict,varDict,mpio=True,write_master=False):
 	'''
@@ -55,10 +53,12 @@ def h5_save_mesh(group,meshDict):
 		dset[:] = meshDict['nz']
 	if meshDict['type'].lower() in UNSTRUCT:
 		# Unstructured mesh, store nel, element kind (elkind) and connectivity (conec)
+		dset = group.create_dataset('nnod',(1,),dtype=int)
+		dset[:] = meshDict['nnod']
 		dset = group.create_dataset('nel',(1,),dtype=int)
 		dset[:] = meshDict['nel']
-		dset = group.create_dataset('elkind',(1,),dtype=h5py.special_dtype(vlen=str))
-		dset[:] = meshDict['elkind']
+		dset = group.create_dataset('eltype',(1,),dtype=h5py.special_dtype(vlen=str))
+		dset[:] = meshDict['eltype']
 		dset = group.create_dataset('conec',conec.shape,dtype=conec.dtype)
 		dset[:] = meshDict['conec']
 	if 'partition' in meshDict.keys():
