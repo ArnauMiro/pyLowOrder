@@ -9,7 +9,7 @@ import numpy as np, h5py, mpi4py
 mpi4py.rc.recv_mprobe = False
 from mpi4py import MPI
 
-from .errors import raiseError
+from ..utils.errors import raiseError
 
 
 comm    = MPI.COMM_WORLD

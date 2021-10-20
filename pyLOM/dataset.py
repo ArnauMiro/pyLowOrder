@@ -13,8 +13,7 @@ from mpi4py import MPI
 
 from .utils.cr      import cr_start, cr_stop
 from .utils.errors  import raiseError
-from .utils.io_pkl  import pkl_save, pkl_load
-from .utils.io_h5   import h5_save, h5_load
+from .              import inp_out as io
 
 
 POS_KEYS  = ['xyz','coords','pos']
@@ -127,13 +126,13 @@ class Dataset(object):
 		fmt = os.path.splitext(fname)[1][1:] # skip the .
 		# Pickle format
 		if fmt.lower() == 'pkl': 
-			pkl_save(fname,self)
+			io.pkl_save(fname,self)
 		# H5 format
 		if fmt.lower() == 'h5':
 			# Set default parameters
 			if not 'mpio'         in kwargs.keys(): kwargs['mpio']         = True
 			if not 'write_master' in kwargs.keys(): kwargs['write_master'] = False
-			h5_save(fname,self.xyz,self.time,self.mesh,self.var,**kwargs)
+			io.h5_save(fname,self.xyz,self.time,self.mesh,self.var,**kwargs)
 		cr_stop('Dataset.save',0)
 
 	@classmethod
@@ -147,11 +146,11 @@ class Dataset(object):
 		# Pickle format
 		if fmt.lower() == 'pkl': 
 			cr_stop('Dataset.load',0)
-			return pkl_load(fname)
+			return io.pkl_load(fname)
 		# H5 format
 		if fmt.lower() == 'h5':
 			if not 'mpio' in kwargs.keys(): kwargs['mpio'] = True
-			xyz, time, meshDict, varDict = h5_load(fname,**kwargs)
+			xyz, time, meshDict, varDict = io.h5_load(fname,**kwargs)
 			cr_stop('Dataset.load',0)
 			return cls(meshDict,xyz,time,**varDict)
 		cr_stop('Dataset.load',0)
