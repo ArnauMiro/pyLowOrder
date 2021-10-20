@@ -5,16 +5,13 @@
 # Last revision: 03/08/2021
 from __future__ import print_function, division
 
-import numpy as np
-from scipy.io import loadmat
-import h5py
-
+import numpy as np, h5py
 import pyLOM
 
 
 ## Parameters
-MATFILE = 'Examples/Data/Tensor_re280.mat'
-OUTFILE = 'Examples/Data/Tensor_re280.h5'
+MATFILE = './DATA/Tensor_re280.mat'
+OUTFILE = './DATA/Tensor_re280.h5'
 
 
 ## Load MAT file
@@ -55,7 +52,7 @@ time = DT*np.arange(T_reshaped.shape[1]) + DT
 d = pyLOM.Dataset(mesh=mesh, xyz=xyz, time=time,
 	# Now add all the arrays to be stored in the dataset
 	# It is important to convert them as C contiguous arrays
-	T_reshaped = np.ascontiguousarray(T_reshaped.astype(np.double)),
+	T = np.ascontiguousarray(T_reshaped.astype(np.double)),
 )
 print(d)
 
