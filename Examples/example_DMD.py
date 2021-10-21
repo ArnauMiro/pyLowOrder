@@ -6,6 +6,7 @@
 from __future__ import print_function, division
 
 import numpy as np
+np.set_printoptions(edgeitems = 10)
 import matplotlib.pyplot as plt
 from scipy import optimize
 
@@ -78,9 +79,14 @@ bJov = np.matmul(np.linalg.inv(np.transpose(np.conj(Pl))), np.matmul(np.linalg.i
 #Reconstruction according to Jovanovic 2014
 Xdmd = np.matmul(np.matmul(np.matmul(PSI, wComplex), np.diag(bJov)), Vand)
 
-#Order modes according to its amplitude
-dummy1 = np.concatenate((bJov, delta, omega, Phi), axis = 1)
-dummy2 = dummy1[np.argsort(dummy1, 0, axis = 0)]
+#Order modes according to its amplitude (only for presentation purposes)
+#do flips
+b2 = np.diag(np.matmul(np.transpose(np.conj(Phi)), Phi))
+delta  = delta[np.abs(bJov).argsort()]
+omega  = omega[np.abs(bJov).argsort()]
+Phi    = np.transpose(np.transpose(Phi)[np.flip(np.abs(bJov).argsort())])
+bJov   = bJov[np.abs(bJov).argsort()]
+
 
 #Plots
 
@@ -115,7 +121,7 @@ ax.scatter(omega/(2*np.pi), scaledAmp/np.max(scaledAmp), marker = 'X')
 ax.set(xlabel = 'f [Hz]', ylabel = 'Scaled amplitude', title = 'Scaled amplitude with damping ratio vs Frequency of the DMD Modes')
 ax.set_yscale('log')
 
-pyLOM.plotDMDMode(Phi, d.xyz, d.mesh, modes = [1, 2])
+pyLOM.plotDMDMode(Phi, d.xyz, d.mesh, modes = [1, 2, 3, 4])
 '''
 TODO:
     * Plots que hi ha al MATLAB
