@@ -34,41 +34,22 @@ PSI,S,V = pyLOM.DMD.svd(X_m, 0, X1.shape[1])
 PSI, S, V = pyLOM.DMD.truncate(PSI, S, V, r = 1e-6)
 
 #Project A (Jacobian of the snapshots) into POD basis
-Atilde = np.matmul(np.matmul(np.matmul(np.transpose(PSI), X2), np.transpose(V)), np.diag(1/S))
+Atilde = pyLOM.DMD.project_POD_basis(PSI, X2, V, S)
 
 #Eigendecomposition of Atilde
 muReal, muImag, w = pyLOM.DMD.eigen(Atilde)
 #Creation of a matrix containing the complex numbers of the eigenvectors
-wComplex = np.zeros(w.shape, dtype = 'complex_')
-ivec = 0
-while ivec < w.shape[1] - 1:
-    if muImag[ivec] > np.finfo(np.double).eps:
-        wComplex[:, ivec]     = w[:, ivec] + w[:, ivec + 1]*1j
-        wComplex[:, ivec + 1] = w[:, ivec] - w[:, ivec + 1]*1j
-        ivec += 2
-    else:
-        wComplex[:, ivec] = w[:, ivec] + 0*1j
-        ivec = ivec + 1
-#Compute modulus and argument of the eigenvalues
-muModulus = np.sqrt(muReal*muReal + muImag*muImag)
-muArg     = np.arctan2(muImag, muReal)
+wComplex = pyLOM.DMD.build_complex_eigenvectors(w, muImag)
 
-#Computation of the damping ratio of the mode
-delta = np.log(muModulus)/dt
-
-#Computation of the frequency of the mode
-omega = muArg/dt
+#Compute frequency and damping ratio of the modes
+delta, omega, muModulus, muArg = pyLOM.DMD.frequency_damping(muReal, muImag, dt)
 
 #Computation of the modes
-Phi = np.matmul(np.matmul(np.matmul(X2, np.transpose(V)), np.diag(1/S)), wComplex)
+Phi = pyLOM.DMD.mode_computation(X2, V, S, wComplex)
 
 #Computation of the amplitudes according to Jovanovic 2014
 #Creation of the Vandermonde matrix
-Vand  = np.zeros((muReal.shape[0], X1.shape[1]), dtype = 'complex_')
-for icol in range(X1.shape[1]):
-    VandModulus   = muModulus**icol
-    VandArg       = muArg*icol
-    Vand[:, icol] = VandModulus*np.cos(VandArg) + VandModulus*np.sin(VandArg)*1j
+Vand = pyLOM.DMD.vandermonde(muReal, muImag, muReal.shape[0], X1.shape[1])
 #Compute the amplitudes
 P    = np.matmul(np.transpose(np.conj(wComplex)), wComplex)*np.conj(np.matmul(Vand, np.transpose(np.conj(Vand))))
 Pl   = np.linalg.cholesky(P)
@@ -80,13 +61,10 @@ bJov = np.matmul(np.linalg.inv(np.transpose(np.conj(Pl))), np.matmul(np.linalg.i
 Xdmd = np.matmul(np.matmul(np.matmul(PSI, wComplex), np.diag(bJov)), Vand)
 
 #Order modes according to its amplitude (only for presentation purposes)
-#do flips
-b2 = np.diag(np.matmul(np.transpose(np.conj(Phi)), Phi))
-delta  = delta[np.abs(bJov).argsort()]
-omega  = omega[np.abs(bJov).argsort()]
+delta  = delta[np.flip(np.abs(bJov).argsort())]
+omega  = omega[np.flip(np.abs(bJov).argsort())]
 Phi    = np.transpose(np.transpose(Phi)[np.flip(np.abs(bJov).argsort())])
-bJov   = bJov[np.abs(bJov).argsort()]
-
+bJov   = bJov[np.flip(np.abs(bJov).argsort())]
 
 #Plots
 
@@ -121,14 +99,7 @@ ax.scatter(omega/(2*np.pi), scaledAmp/np.max(scaledAmp), marker = 'X')
 ax.set(xlabel = 'f [Hz]', ylabel = 'Scaled amplitude', title = 'Scaled amplitude with damping ratio vs Frequency of the DMD Modes')
 ax.set_yscale('log')
 
-pyLOM.plotDMDMode(Phi, d.xyz, d.mesh, modes = [1, 2, 3, 4])
-'''
-TODO:
-    * Plots que hi ha al MATLAB
-    * Distribuir això en funcions de cython
-    * Preparar i correr els altres exemples amb les funcions bones
-'''
-
+pyLOM.plotDMDMode(Phi, d.xyz, d.mesh, omega/(2*np.pi), modes = [1, 2, 3])
 
 ## Show and print timings
 pyLOM.cr_stop('example',0)
