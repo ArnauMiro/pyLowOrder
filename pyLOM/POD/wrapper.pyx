@@ -251,7 +251,7 @@ def reconstruct(double[:,:] U, double[:] S, double[:,:] V, overwrite=False):
 		- V(N,n)  are the right singular vectors.
 
 	Outputs
-		- X(m,n)  is the reconstructed flow.	
+		- X(m,n)  is the reconstructed flow.
 	'''
 	cr_start('POD.reconstruct',0)
 	cdef int m = U.shape[0], N = S.shape[0], n = V.shape[1]
