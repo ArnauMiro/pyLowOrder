@@ -14,6 +14,6 @@ from ..POD.wrapper import temporal_mean, subtract_mean, truncate, residual, RMSE
 #from .wrapper import temporal_mean, subtract_mean, svd, residual, power_spectral_density, RMSE
 
 # Functions coming from DMD
-from .wrapper import svd, eigen
+from .wrapper import svd, eigen, matrix_split
 
 del wrapper
