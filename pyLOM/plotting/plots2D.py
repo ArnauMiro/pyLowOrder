@@ -89,7 +89,7 @@ def plotMode(U,xyz,V,t,mesh,modes=np.array([1],np.int32),fig=[],ax=[],cmap=None)
 		ax[imode][2].set_xlabel('St')
 	return fig, ax, cf
 
-def plotDMDMode(U, xyz, mesh, modes=np.array([1],np.int32),fig=[],ax=[],cmap=None):
+def plotDMDMode(U, xyz, mesh, omegas, modes=np.array([1],np.int32), fig=[],ax=[],cmap=None):
 	'''
 	Given U and a mode, plot its representation in a figure.
 	'''
@@ -99,12 +99,12 @@ def plotDMDMode(U, xyz, mesh, modes=np.array([1],np.int32),fig=[],ax=[],cmap=Non
 			fig.append( plt.figure(figsize=(8,6),dpi=100) )
 		if len(ax) < imode + 1:
 			ax.append( fig[imode].subplots(2,1,gridspec_kw = {'hspace':0.5}) )
-		fig[imode].suptitle('Mode %d'%mode)
-	   	# Plot the representation of mode U
+		fig[imode].suptitle('Mode %d, f = %f [Hz]'%(mode, omegas[modes[imode] - 1]))
 		if mesh['type'] == 'struct2D':
-			cf.append( plotFieldStruct2D(ax[imode][0],mesh['nx'],mesh['ny'],xyz,np.real(U[:,mode-1]),cmap) )
-			cf.append( plotFieldStruct2D(ax[imode][1],mesh['nx'],mesh['ny'],xyz,np.imag(U[:,mode-1]),cmap) )
-		ax[imode][0].set_title('Spatial mode')
+			cf.append(plotFieldStruct2D(ax[imode][0],mesh['nx'],mesh['ny'],xyz,np.real(U[:,mode-1]),cmap) )
+			cf.append(plotFieldStruct2D(ax[imode][1],mesh['nx'],mesh['ny'],xyz,np.imag(U[:,mode-1]),cmap) )
+		ax[imode][0].set_title('Real part of the mode')
+		ax[imode][1].set_title('Imaginary part of the mode')
 	return fig, ax, cf
 
 def plotSnapshot(X,xyz,mesh,fig=None,ax=None,cmap=None):
