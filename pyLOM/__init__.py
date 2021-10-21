@@ -15,7 +15,7 @@ from .dataset import Dataset
 # Import CHRONO module from utils
 from .utils.cr import cr_start, cr_stop, cr_info
 # Import PLOTTING module from utils
-from .plotting import show_plots, close_plots, plotResidual, plotMode, plotSnapshot, animateFlow
+from .plotting import show_plots, close_plots, plotResidual, plotMode, plotDMDMode, plotSnapshot, animateFlow
 
 
 del utils, plotting, dataset
