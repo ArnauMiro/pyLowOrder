@@ -75,20 +75,37 @@ def plotMode(U,xyz,V,t,mesh,modes=np.array([1],np.int32),fig=[],ax=[],cmap=None)
 		dt = t[1] - t[0]
 		fig[imode].suptitle('Mode %d'%mode)
 	   	# Plot the representation of mode U
-		if mesh['type'] == 'struct2D': 
+		if mesh['type'] == 'struct2D':
 			cf.append( plotFieldStruct2D(ax[imode][0],mesh['nx'],mesh['ny'],xyz,U[:,mode-1],cmap) )
 		ax[imode][0].set_title('Spatial mode')
 	   	# Plot the temporal evolution of the mode
 		ax[imode][1].plot(t,V[mode-1,:],'b')
 		ax[imode][1].set_title('Temporal mode')
 		# Plot frequency representation of the mode
-		p, freq = PSD(V,dt,m=mode) 
+		p, freq = PSD(V,dt,m=mode)
 		L = int(np.floor(V[mode-1,:].shape[0]/2))
 		ax[imode][2].plot(freq[:L],p[:L])
 		ax[imode][2].set_title('Power Spectrum')
 		ax[imode][2].set_xlabel('St')
 	return fig, ax, cf
 
+def plotDMDMode(U, xyz, mesh, modes=np.array([1],np.int32),fig=[],ax=[],cmap=None):
+	'''
+	Given U and a mode, plot its representation in a figure.
+	'''
+	cf = []
+	for imode, mode in enumerate(modes):
+		if len(fig) < imode + 1:
+			fig.append( plt.figure(figsize=(8,6),dpi=100) )
+		if len(ax) < imode + 1:
+			ax.append( fig[imode].subplots(2,1,gridspec_kw = {'hspace':0.5}) )
+		fig[imode].suptitle('Mode %d'%mode)
+	   	# Plot the representation of mode U
+		if mesh['type'] == 'struct2D':
+			cf.append( plotFieldStruct2D(ax[imode][0],mesh['nx'],mesh['ny'],xyz,np.real(U[:,mode-1]),cmap) )
+			cf.append( plotFieldStruct2D(ax[imode][1],mesh['nx'],mesh['ny'],xyz,np.imag(U[:,mode-1]),cmap) )
+		ax[imode][0].set_title('Spatial mode')
+	return fig, ax, cf
 
 def plotSnapshot(X,xyz,mesh,fig=None,ax=None,cmap=None):
 	'''
