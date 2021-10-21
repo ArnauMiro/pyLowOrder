@@ -8,6 +8,6 @@
 
 __VERSION__ = '1.0.0'
 
-from .plots2D import show_plots, close_plots, plotFieldStruct2D, plotResidual, plotMode, plotSnapshot, animateFlow
+from .plots2D import show_plots, close_plots, plotFieldStruct2D, plotResidual, plotMode, plotDMDMode, plotSnapshot, animateFlow
 
 del plots2D
