@@ -81,3 +81,11 @@ def eigen(double[:,:] Y):
 	compute_eigen(&delta[0],&w[0],&v[0,0],&Y[0,0],m,n)
 	cr_stop('DMD.eigen',0)
 	return delta,w,v
+
+def matrix_split(X):
+	'''
+	Splits a matrix into two:
+		X1 Excluding the last snapshot
+		X2 Excluding the first snapshot
+	'''
+	return X[:, :-1], X[:, 1:]
