@@ -62,7 +62,7 @@ def h5_save_variable(group,varname,varDict):
 	var_group = group.create_group(varname)
 	dset = var_group.create_dataset('point',(1,),dtype=int,data=varDict['point'])
 	dset = var_group.create_dataset('ndim',(1,),dtype=int,data=varDict['ndim'])
-	dset = var_group.create_dataset('value',varDict['value'].shape,dtype=int,data=varDict['value'])
+	dset = var_group.create_dataset('value',varDict['value'].shape,dtype=varDict['value'].dtype,data=varDict['value'])
 
 def h5_save_serial(fname,xyz,time,meshDict,varDict):
 	'''

@@ -38,12 +38,12 @@ print('RMSE = %e'%rmse)
 
 
 ## Plot POD mode
-pyLOM.plotMode(PSI,d.xyz,V,t,d.mesh,modes=[1,2,3,4])
+pyLOM.plotMode(PSI,d.xyz,V,t,d.mesh,d.info('UALL'),modes=[1,2,3,4])
 
 
 ## Plot reconstructed flow
-#pyLOM.plotSnapshot(X_POD[:,10],d.xyz,d.mesh)
-fig,ax,anim = pyLOM.animateFlow(X,X_POD,d.xyz,d.mesh)
+#pyLOM.plotSnapshot(X_POD[:,10],d.xyz,d.mesh,d.info('UALL'))
+fig,ax,anim = pyLOM.animateFlow(X,X_POD,d.xyz,d.mesh,d.info('UALL'))
 
 
 ## Show and print timings

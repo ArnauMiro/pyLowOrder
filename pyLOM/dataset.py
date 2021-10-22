@@ -14,7 +14,7 @@ from mpi4py import MPI
 from .             import inp_out as io
 from .utils.cr     import cr_start, cr_stop
 from .utils.errors import raiseError
-from .utils.mesh   import mesh_reshape_var, mesh_element_type, mesh_compute_connectivity
+from .utils.mesh   import mesh_reshape_var, mesh_element_type, mesh_compute_connectivity, mesh_compute_cellcenter
 
 
 POS_KEYS  = ['xyz','coords','pos']
@@ -40,6 +40,7 @@ class Dataset(object):
 					 python dictionary.
 		'''
 		self._xyz      = xyz
+		self._xyzc     = None
 		self._time     = time
 		self._vardict  = kwargs
 		self._meshDict = mesh
@@ -118,6 +119,12 @@ class Dataset(object):
 		'''
 		return {'point':self._vardict[var]['point'],'ndim':self._vardict[var]['ndim']}
 
+	def cellcenters(self):
+		'''
+		Computes and returns the cell centers
+		'''
+		return mesh_compute_cellcenter(self._xyz,self._meshDict)
+
 	def save(self,fname,**kwargs):
 		'''
 		Store the field in various formats.
@@ -181,6 +188,10 @@ class Dataset(object):
 	@xyz.setter
 	def xyz(self,value):
 		self._xyz = value
+	@property
+	def xyzc(self):
+		if self._xyzc is None: self._xyzc = self.cellcenters()
+		return self._xyzc
 
 	@property
 	def time(self):

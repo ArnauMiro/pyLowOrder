@@ -9,17 +9,19 @@ from __future__ import print_function, division
 
 import numpy as np
 
+from .errors import raiseError
+
 
 STRUCT2D = ['structured2d','structured 2d','struct 2d','struct2d','s2d']
 STRUCT3D = ['structured3d','structured 3d','struct 3d','struct3d','s3d']
 UNSTRUCT = ['unstructured','unstr']
 
 ELTYPE2ENSI = {
-        'TRI03' : 'tria3',
-        'QUA04' : 'quad4',
-        'TET04' : 'tetra4',
-        'PEN06' : 'penta6',
-        'HEX08' : 'hexa8'
+	'TRI03' : 'tria3',
+	'QUA04' : 'quad4',
+	'TET04' : 'tetra4',
+	'PEN06' : 'penta6',
+	'HEX08' : 'hexa8'
 }
 ELTYPE2VTK = {
 }
@@ -39,7 +41,7 @@ def mesh_compute_connectivity(xyz,meshDict):
 	Compute the connectivity array for structured meshes and return
 	the connectivity for unstructured ones.
 	'''
-        # Connectivity for a 2D mesh
+	# Connectivity for a 2D mesh
 	if meshDict['type'].lower() in STRUCT2D: 
 		nx, ny = meshDict['nx'], meshDict['ny']
 		# Obtain the ids
@@ -52,7 +54,7 @@ def mesh_compute_connectivity(xyz,meshDict):
 		conec[:,2] = idx2[1:,1:].ravel()
 		conec[:,3] = idx2[1:,:-1].ravel()
 		conec     += 1 # Python index start at 0
-        # Connectivity for a 3D mesh
+	# Connectivity for a 3D mesh
 	if meshDict['type'].lower() in STRUCT3D: 
 		nx, ny, nz = meshDict['nx'], meshDict['ny'], meshDict['nz']
 		# Obtain the ids
@@ -69,11 +71,51 @@ def mesh_compute_connectivity(xyz,meshDict):
 		conec[:,6] = idx2[1:,1:,1:].ravel()
 		conec[:,7] = idx2[1:,:-1,1:].ravel()
 		conec     += 1 # Python index start at 0
-        # Connectivity for a unstructured mesh
+	# Connectivity for a unstructured mesh
 	if meshDict['type'].lower() in UNSTRUCT: 
 		idx   = np.arange(meshDict['nnod'],dtype=np.int32)
 		conec = meshDict['conec']
 	return conec, idx
+
+
+def mesh_compute_cellcenter(xyz,meshDict):
+	'''
+	Compute cell centers given the node positions
+	'''
+	if meshDict['type'].lower() in STRUCT2D:
+		nx, ny = meshDict['nx']-1, meshDict['ny']-1
+		# Recover unique X, Y coordinates
+		x = np.unique(xyz[:,0])
+		y = np.unique(xyz[:,1])
+		# Compute cell centers
+		xc = x[:-1] + np.diff(x)/2.
+		yc = y[:-1] + np.diff(y)/2.
+		# Build xyzc
+		xx, yy    = np.meshgrid(xc,yc,indexing='ij')
+		xyzc      = np.zeros((nx*ny,2),dtype=np.double)
+		xyzc[:,0] = xx.reshape((nx*ny,),order='C')
+		xyzc[:,1] = yy.reshape((nx*ny,),order='C')
+	# Connectivity for a 3D mesh
+	if meshDict['type'].lower() in STRUCT3D:
+		nx, ny, nz = meshDict['nx']-1, meshDict['ny']-1, meshDict['nz']-1
+		# Recover unique X, Y coordinates
+		x = np.unique(xyz[:,0])
+		y = np.unique(xyz[:,1])
+		z = np.unique(xyz[:,2])
+		# Compute cell centers
+		xc = x[:-1] + np.diff(x)/2.
+		yc = y[:-1] + np.diff(y)/2.
+		zc = z[:-1] + np.diff(z)/2.
+		# Build xyzc
+		xx, yy, zz = np.meshgrid(xc,yc,zc,indexing='ij')
+		xyzc       = np.zeros((nx*ny*nz,3),dtype=np.double)
+		xyzc[:,0]  = xx.reshape((nx*ny*nz,),order='C')
+		xyzc[:,1]  = yy.reshape((nx*ny*nz,),order='C')		
+		xyzc[:,2]  = zz.reshape((nx*ny*nz,),order='C')		
+	# Connectivity for a unstructured mesh
+	if meshDict['type'].lower() in UNSTRUCT:
+		raiseError('Not yet implemented!')
+	return xyzc
 
 
 def mesh_reshape_var(var,meshDict):
@@ -90,6 +132,6 @@ def mesh_reshape_var(var,meshDict):
 		npoints = meshDict['nnod']
 	# Obtain number of dimensions of the array
 	ndim = var.shape[0]//npoints
-        # Only reshape the variable if ndim > 1
+	# Only reshape the variable if ndim > 1
 	return np.ascontiguousarray(var.reshape((npoints,ndim),order='F') if ndim > 1 else var)
 
