@@ -34,33 +34,35 @@ def h5_save_mesh(group,meshDict):
 	Save the meshDict inside the HDF5 group
 	'''
 	# Save the mesh type
-	dset = group.create_dataset('type',(1,),dtype=h5py.special_dtype(vlen=str))
-	dset[:] = meshDict['type']
+	dset = group.create_dataset('type',(1,),dtype=h5py.special_dtype(vlen=str),data=meshDict['type'])
 	# Save mesh data according to the type
 	if meshDict['type'].lower() in STRUCT2D:
 		# 2D structured mesh, store nx and ny
-		dset = group.create_dataset('nx',(1,),dtype=int)
-		dset[:] = meshDict['nx']
-		dset = group.create_dataset('ny',(1,),dtype=int)
-		dset[:] = meshDict['ny']
+		dset = group.create_dataset('nx',(1,),dtype=int,data=meshDict['nx'])
+		dset = group.create_dataset('ny',(1,),dtype=int,data=meshDict['ny'])
 	if meshDict['type'].lower() in STRUCT3D:
 		# 3D structured mesh, store nx, ny and nz
+		dset = group.create_dataset('nx',(1,),dtype=int,data=meshDict['nx'])
+		dset = group.create_dataset('ny',(1,),dtype=int,data=meshDict['ny'])		
+		dset = group.create_dataset('nz',(1,),dtype=int,data=meshDict['nz'])		
 		dset = group.create_dataset('nx',(1,),dtype=int)
-		dset[:] = meshDict['nx']
-		dset = group.create_dataset('ny',(1,),dtype=int)
-		dset[:] = meshDict['ny']
-		dset = group.create_dataset('nz',(1,),dtype=int)
-		dset[:] = meshDict['nz']
 	if meshDict['type'].lower() in UNSTRUCT:
 		# Unstructured mesh, store nel, element kind (elkind) and connectivity (conec)
-		dset = group.create_dataset('nel',(1,),dtype=int)
-		dset[:] = meshDict['nel']
-		dset = group.create_dataset('elkind',(1,),dtype=h5py.special_dtype(vlen=str))
-		dset[:] = meshDict['elkind']
-		dset = group.create_dataset('conec',conec.shape,dtype=conec.dtype)
-		dset[:] = meshDict['conec']
+		dset = group.create_dataset('nnod',(1,),dtype=int,data=meshDict['nnod'])
+		dset = group.create_dataset('nel',(1,),dtype=int,data=meshDict['nel'])
+		dset = group.create_dataset('elkind',(1,),dtype=h5py.special_dtype(vlen=str),data=meshDict['elkind'])
+		dset = group.create_dataset('conec',conec.shape,dtype=conec.dtype,data=meshDict['conec'])
 	if 'partition' in meshDict.keys():
 		raiseError('Not implemented!')
+
+def h5_save_variable(group,varname,varDict):
+	'''
+	Save a variable inside an HDF5 group
+	'''
+	var_group = group.create_group(varname)
+	dset = var_group.create_dataset('point',(1,),dtype=int,data=varDict['point'])
+	dset = var_group.create_dataset('ndim',(1,),dtype=int,data=varDict['ndim'])
+	dset = var_group.create_dataset('value',varDict['value'].shape,dtype=int,data=varDict['value'])
 
 def h5_save_serial(fname,xyz,time,meshDict,varDict):
 	'''
@@ -72,21 +74,16 @@ def h5_save_serial(fname,xyz,time,meshDict,varDict):
 	mesh_group = file.create_group('MESH')
 	h5_save_mesh(mesh_group,meshDict)
 	# Store number of points and number of instants
-	dset    = file.create_dataset('npoints',(1,),dtype='i')
-	dset[:] = xyz.shape[0]
-	dset    = file.create_dataset('ninstants',(1,),dtype='i')
-	dset[:] = time.shape[0]
+	dset    = file.create_dataset('npoints',(1,),dtype='i',data=xyz.shape[0])
+	dset    = file.create_dataset('ninstants',(1,),dtype='i',data=time.shape[0])
 	# Store xyz coordinates
-	dset      = file.create_dataset('xyz',xyz.shape,dtype=xyz.dtype)
-	dset[:,:] = xyz
+	dset      = file.create_dataset('xyz',xyz.shape,dtype=xyz.dtype,data=xyz)
 	# Store time instants
-	dset    = file.create_dataset('time',time.shape,dtype=time.dtype)
-	dset[:] = time
+	dset    = file.create_dataset('time',time.shape,dtype=time.dtype,data=time)
 	# Store the DATA
 	data_group = file.create_group('DATA')
 	for var in varDict.keys():
-		dset      = data_group.create_dataset(var,varDict[var].shape,dtype=varDict[var].dtype)
-		dset[:,:] = varDict[var]
+		h5_save_variable(data_group,var,varDict[var])
 	file.close()
 
 def h5_save_mpio(fname,xyz,time,meshDict,varDict,write_master=False):
@@ -166,12 +163,24 @@ def h5_load_mesh(group):
 		meshDict['nz'] = group['nz'][0]
 	if meshDict['type'].lower() in UNSTRUCT:
 		# Unstructured mesh, store nel, element kind (elkind) and connectivity (conec)
+		meshDict['nnod']   = group['nnod'][0]
 		meshDict['nel']    = group['nel'][0]
 		meshDict['elkind'] = group['elkind'][0].decode('utf-8')
 		meshDict['conec']  = np.array(group['conec'],dtype=np.int32)
 	if 'partition' in group.keys():
 		raiseError('Not implemented!')
 	return meshDict
+
+def h5_load_variable(group):
+	'''
+	Save a variable inside an HDF5 group
+	'''
+	varDict = {
+		'point' : group['point'][0],
+		'ndim'  : group['ndim'][0],
+		'value' : np.array(group['value'],dtype=np.double)
+	}
+	return varDict
 
 def h5_load_serial(fname):
 	'''
@@ -188,7 +197,7 @@ def h5_load_serial(fname):
 	# Load the variables in the varDict
 	varDict = {}
 	for var in file['DATA'].keys():
-		varDict[var] = np.array(file['DATA'][var],dtype=np.double)
+		varDict[var] = h5_load_variable(file['DATA'][var])
 	file.close()
 	return xyz, time, meshDict, varDict
 

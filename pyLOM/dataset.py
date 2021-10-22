@@ -77,7 +77,7 @@ class Dataset(object):
 		elif key in TIME_KEYS:
 			return self._time
 		else:
-			return self._vardict[key]
+			return self._vardict[key]['value']
 
 	def __setitem__(self,key,value):
 		'''
@@ -93,12 +93,6 @@ class Dataset(object):
 			self._vardict[key] = value
 
 	# Functions
-	def ndim(self,var):
-		'''
-		Return the dimensions of a variable on the field.
-		'''
-		return int(self.var[var].shape[0]/len(self)[0])
-		
 	def find(self,xyz):
 		'''
 		Return all the points where self._xyz == xyz
@@ -117,6 +111,12 @@ class Dataset(object):
 		Delete a variable inside a field.
 		'''
 		return self.var.pop(varname)
+
+	def info(self,var):
+		'''
+		Returns the information for a certain variable
+		'''
+		return {'point':self._vardict[var]['point'],'ndim':self._vardict[var]['ndim']}
 
 	def save(self,fname,**kwargs):
 		'''
