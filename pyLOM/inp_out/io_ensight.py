@@ -96,7 +96,7 @@ def Ensight_writeCase(fname,geofile,varList,timesteps):
 		dims = 'scalar' if var['dims'] == 1 else 'vector'
 		if var['dims'] == 6: dims = 'tensor symm' 
 		if var['dims'] == 9: dims = 'tensor asym' 
-		f.write('%s per node:  1   %s  %s\n'%(dims,var['name'],var['file']))
+		f.write('%s per %s:  1   %s  %s\n'%(dims,'node' if var['point'] else 'element',var['name'],var['file']))
 	# Timesteps
 	f.write('\nTIME\n')
 	f.write('time set:              1\n')
@@ -277,7 +277,7 @@ def Ensight_writeGeo(fname,xyz,conec,header):
 	header_bin += str_to_bin('part')
 	header_bin += int_to_bin(header['partID'])
 	header_bin += str_to_bin(header['partNM'])
-	header_bin += str_to_bin('coordinates')
+	header_bin += str_to_bin(header['eltype'])
 	# Write the node coordinates
 	nnod = xyz.shape[0]
 	f.write(header_bin+int_to_bin(nnod))
@@ -379,7 +379,7 @@ def Ensight_writeField(fname,field,header):
 	header_bin  = str_to_bin(header['descr'])
 	header_bin += str_to_bin('part')
 	header_bin += int_to_bin(header['partID'])
-	header_bin += str_to_bin('coordinates')
+	header_bin += str_to_bin(header['eltype'])
 	f.write(header_bin)
 	# Write the field
 	nrows = field.shape[0]

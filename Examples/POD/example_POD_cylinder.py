@@ -5,7 +5,7 @@
 # Last revision: 19/07/2021
 from __future__ import print_function, division
 
-import numpy as np
+import os, numpy as np
 
 import pyLOM
 
@@ -36,6 +36,30 @@ pyLOM.cr_stop('example',0)
 
 print('RMSE = %e'%rmse)
 
+
+## Dump to ParaView
+# Spatial modes
+d.add_variable('spatial_modes_U',False,6,0,d.extract_modes(PSI,1,modes=[1,4,5,2,6,3],point=d.info(VARIABLE)['point']))
+d.add_variable('spatial_modes_V',False,6,0,d.extract_modes(PSI,2,modes=[1,4,5,2,6,3],point=d.info(VARIABLE)['point']))
+d.write('modes',basedir='out',instants=[0],vars=['spatial_modes_U','spatial_modes_V'],fmt='ensi')
+pyLOM.io.Ensight_writeCase(os.path.join('out','modes.ensi.case'),'modes.ensi.geo',
+	[
+		{'name':'spatial_modes_U','dims':6,'point':d.info(VARIABLE)['point'],'file':'modes.ensi.spatial_modes_U-******'},
+		{'name':'spatial_modes_V','dims':6,'point':d.info(VARIABLE)['point'],'file':'modes.ensi.spatial_modes_V-******'},
+	],
+	np.array([0.],np.double)
+)
+
+# Temporal evolution
+d.add_variable('VELOR',False,2,t.shape[0],X_POD)
+d.write('flow',basedir='out',instants=np.arange(t.shape[0],dtype=np.int32),vars=['VELOC','VELOR'],fmt='ensi')
+pyLOM.io.Ensight_writeCase(os.path.join('out','flow.ensi.case'),'flow.ensi.geo',
+	[
+		{'name':'VELOC','dims':2,'point':d.info(VARIABLE)['point'],'file':'flow.ensi.VELOC-******'},
+		{'name':'VELOR','dims':2,'point':d.info(VARIABLE)['point'],'file':'flow.ensi.VELOR-******'},
+	],
+	t
+)
 
 ## Plot POD mode
 # 0 - module, 1,2 - components

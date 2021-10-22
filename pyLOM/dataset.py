@@ -14,7 +14,7 @@ from mpi4py import MPI
 from .             import inp_out as io
 from .utils.cr     import cr_start, cr_stop
 from .utils.errors import raiseError
-from .utils.mesh   import mesh_reshape_var, mesh_element_type, mesh_compute_connectivity, mesh_compute_cellcenter
+from .utils.mesh   import mesh_number_of_points, mesh_reshape_var, mesh_element_type, mesh_compute_connectivity, mesh_compute_cellcenter
 
 
 POS_KEYS  = ['xyz','coords','pos']
@@ -119,11 +119,36 @@ class Dataset(object):
 		'''
 		return {'point':self._vardict[var]['point'],'ndim':self._vardict[var]['ndim']}
 
+	def add_variable(self,varname,point,ndim,ninst,var):
+		'''
+		Add a variable to the dataset
+		'''
+		self._vardict[varname] = {
+			'point' : point,
+			'ndim'  : ndim,
+			'value' : var, 
+		}
+
 	def cellcenters(self):
 		'''
 		Computes and returns the cell centers
 		'''
 		return mesh_compute_cellcenter(self._xyz,self._meshDict)
+
+	def extract_modes(self,U,ivar,modes=[],point=False):
+		'''
+		Extract modes for a certain variables
+		'''
+		npoints = mesh_number_of_points(point,self._meshDict)
+		nvars   = U.shape[0]//npoints
+		# Define modes to extract
+		if len(modes) == 0: modes = np.arange(U.shape[1],dtype=np.int32)
+		# Allocate output array
+		out =np.zeros((npoints,len(modes)),np.double)
+		for m in modes:
+			out[:,m-1] = U[(ivar-1)*npoints:ivar*npoints,m-1]
+		# Return reshaped output
+		return out.reshape((len(modes)*npoints,),order='F')
 
 	def save(self,fname,**kwargs):
 		'''
@@ -245,13 +270,27 @@ def EnsightWriter(dset,casestr,basedir,instants,varnames):
 	# Write instantaneous fields
 	binfile_fmt = '%s.ensi.%s-%06d'
 	# Define Ensight header
-	header = {'descr':'File created with pyLOM','partID':1,'partNM':'part'}
-        # Loop the selected instants
-	for instant in instants:
-		# Loop each variable on the field
-		for var in varnames:
-			# Generate the filename
-			filename = os.path.join(basedir,binfile_fmt % (casestr,var,instant))
-			# Write ENSIGHT file
-			field = mesh_reshape_var(dset[var][idx,instant] if len(dset[var].shape) > 1 else dset[var],dset.mesh)
-			io.Ensight_writeField(filename,field,header)
+	header = {
+		'descr':'File created with pyLOM',
+		'partID':1,
+		'partNM':'part',
+		'eltype' : mesh_element_type(dset.mesh,'ensi')
+	}
+	# Loop the selected instants
+	for var in varnames:
+		# Recover variable information
+		info  = dset.info(var)
+		field = dset[var]
+		# Variable has temporal evolution
+		if len(field.shape) > 1:
+			# Loop requested instants
+			for instant in instants:
+				filename = os.path.join(basedir,binfile_fmt % (casestr,var,instant+1))
+				# Reshape variable for Ensight file
+				f = mesh_reshape_var(field[:,instant],dset.mesh,info)
+				io.Ensight_writeField(filename,f,header)				
+		else:
+			filename = os.path.join(basedir,binfile_fmt % (casestr,var,1))
+			# Reshape variable for Ensight file
+			f = mesh_reshape_var(field,dset.mesh,info)
+			io.Ensight_writeField(filename,f,header)
