@@ -39,8 +39,8 @@ print('RMSE = %e'%rmse)
 
 ## Dump to ParaView
 # Spatial modes
-d.add_variable('spatial_modes_U',False,6,0,d.extract_modes(PSI,1,modes=[1,4,5,2,6,3],point=d.info(VARIABLE)['point']))
-d.add_variable('spatial_modes_V',False,6,0,d.extract_modes(PSI,2,modes=[1,4,5,2,6,3],point=d.info(VARIABLE)['point']))
+d.add_variable('spatial_modes_U',False,6,0,d.extract_modes(PSI,1,modes=[1,4,6,2,5,3],point=d.info(VARIABLE)['point']))
+d.add_variable('spatial_modes_V',False,6,0,d.extract_modes(PSI,2,modes=[1,4,6,2,5,3],point=d.info(VARIABLE)['point']))
 d.write('modes',basedir='out',instants=[0],vars=['spatial_modes_U','spatial_modes_V'],fmt='ensi')
 pyLOM.io.Ensight_writeCase(os.path.join('out','modes.ensi.case'),'modes.ensi.geo',
 	[
