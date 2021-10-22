@@ -1,0 +1,95 @@
+#!/usr/bin/env python
+#
+# pyLOM, utils.
+#
+# Mesh utilities
+#
+# Last rev: 20/10/2021
+from __future__ import print_function, division
+
+import numpy as np
+
+
+STRUCT2D = ['structured2d','structured 2d','struct 2d','struct2d','s2d']
+STRUCT3D = ['structured3d','structured 3d','struct 3d','struct3d','s3d']
+UNSTRUCT = ['unstructured','unstr']
+
+ELTYPE2ENSI = {
+        'TRI03' : 'tria3',
+        'QUA04' : 'quad4',
+        'TET04' : 'tetra4',
+        'PEN06' : 'penta6',
+        'HEX08' : 'hexa8'
+}
+ELTYPE2VTK = {
+}
+
+
+def mesh_element_type(meshDict,fmt):
+	'''
+	Return the type of element of the mesh
+	'''
+	if meshDict['type'].lower() in STRUCT2D: return 'quad4'
+	if meshDict['type'].lower() in STRUCT3D: return 'hexa8'
+	if meshDict['type'].lower() in UNSTRUCT: return ELTYPE2VTK[meshDict['eltype']] if 'vtk' in fmt else ELTYPE2ENSI[meshDict['eltype']]
+
+
+def mesh_compute_connectivity(xyz,meshDict):
+	'''
+	Compute the connectivity array for structured meshes and return
+	the connectivity for unstructured ones.
+	'''
+        # Connectivity for a 2D mesh
+	if meshDict['type'].lower() in STRUCT2D: 
+		nx, ny = meshDict['nx'], meshDict['ny']
+		# Obtain the ids
+		idx  = np.lexsort((xyz[:,1],xyz[:,0]))
+		idx2 = idx.reshape((nx,ny))
+		# Create connectivity array
+		conec = np.zeros(((nx-1)*(ny-1),4),dtype=np.int32)
+		conec[:,0] = idx2[:-1,:-1].ravel()
+		conec[:,1] = idx2[:-1,1:].ravel()
+		conec[:,2] = idx2[1:,1:].ravel()
+		conec[:,3] = idx2[1:,:-1].ravel()
+		conec     += 1 # Python index start at 0
+        # Connectivity for a 3D mesh
+	if meshDict['type'].lower() in STRUCT3D: 
+		nx, ny, nz = meshDict['nx'], meshDict['ny'], meshDict['nz']
+		# Obtain the ids
+		idx  = np.lexsort((xyz[:,2],xyz[:,1],xyz[:,0]))
+		idx2 = idx.reshape((nx,ny,nz))
+		# Create connectivity array
+		conec = np.zeros(((nx-1)*(ny-1)*(nz-1),8),dtype=np.int32)
+		conec[:,0] = idx2[:-1,:-1,:-1].ravel()
+		conec[:,1] = idx2[:-1,1:,:-1].ravel()
+		conec[:,2] = idx2[1:,1:,:-1].ravel()
+		conec[:,3] = idx2[1:,:-1,:-1].ravel()
+		conec[:,4] = idx2[:-1,:-1,1:].ravel()
+		conec[:,5] = idx2[:-1,1:,1:].ravel()
+		conec[:,6] = idx2[1:,1:,1:].ravel()
+		conec[:,7] = idx2[1:,:-1,1:].ravel()
+		conec     += 1 # Python index start at 0
+        # Connectivity for a unstructured mesh
+	if meshDict['type'].lower() in UNSTRUCT: 
+		idx   = np.arange(meshDict['nnod'],dtype=np.int32)
+		conec = meshDict['conec']
+	return conec, idx
+
+
+def mesh_reshape_var(var,meshDict):
+	'''
+	Reshape a variable according to the mesh
+	'''
+	# Obtain number of points from the mesh
+	npoints = 0
+	if meshDict['type'].lower() in STRUCT2D:
+		npoints = meshDict['nx']*meshDict['ny']
+	if meshDict['type'].lower() in STRUCT3D:
+		npoints = meshDict['nx']*meshDict['ny']*meshDict['nz']
+	if meshDict['type'].lower() in UNSTRUCT:
+		npoints = meshDict['nnod']
+	# Obtain number of dimensions of the array
+	ndim = var.shape[0]//npoints
+        # Only reshape the variable if ndim > 1
+	return np.ascontiguousarray(var.reshape((npoints,ndim),order='F') if ndim > 1 else var)
+

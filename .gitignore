@@ -29,6 +29,8 @@ pyLOM/DMD/wrapper.c
 pyLOM/DMD/wrapper.html
 pyLOM/utils/matrix.c
 pyLOM/utils/matrix.html
+pyLOM/inp_out/*.c
+pyLOM/inp_out/*.html
 
 # C extensions
 *.so

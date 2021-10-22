@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 #
+# pyLOM, IO
+#
 # H5 Input Output
 #
 # Last rev: 31/07/2021
@@ -9,16 +11,14 @@ import numpy as np, h5py, mpi4py
 mpi4py.rc.recv_mprobe = False
 from mpi4py import MPI
 
-from .errors import raiseError
+from ..utils.errors import raiseError
+from ..utils.mesh   import STRUCT2D, STRUCT3D, UNSTRUCT
 
 
 comm    = MPI.COMM_WORLD
 rank    = comm.Get_rank()
 MPIsize = comm.Get_size()
 
-STRUCT2D = ['structured2d','structured 2d','struct 2d','struct2d','s2d']
-STRUCT3D = ['structured3d','structured 3d','struct 3d','struct3d','s3d']
-UNSTRUCT = ['unstructured','unstr']
 
 def h5_save(fname,xyz,time,meshDict,varDict,mpio=True,write_master=False):
 	'''
