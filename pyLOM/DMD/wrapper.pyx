@@ -81,3 +81,59 @@ def eigen(double[:,:] Y):
 	compute_eigen(&delta[0],&w[0],&v[0,0],&Y[0,0],m,n)
 	cr_stop('DMD.eigen',0)
 	return delta,w,v
+
+def matrix_split(X):
+	'''
+	Splits a matrix into two:
+		X1 Excluding the last snapshot
+		X2 Excluding the first snapshot
+	'''
+	return X[:, :-1], X[:, 1:]
+
+def project_POD_basis(U, X, V, S):
+	'''
+	Projects matrix A (Jacobian of the snapshots) to the POD basis
+	'''
+	return np.matmul(np.matmul(np.matmul(np.transpose(U), X), np.transpose(V)), np.diag(1/S))
+
+def build_complex_eigenvectors(w, eigImag):
+	wComplex = np.zeros(w.shape, dtype = 'complex_')
+	ivec = 0
+	while ivec < w.shape[1] - 1:
+		if eigImag[ivec] > np.finfo(np.double).eps:
+			wComplex[:, ivec]     = w[:, ivec] + w[:, ivec + 1]*1j
+			wComplex[:, ivec + 1] = w[:, ivec] - w[:, ivec + 1]*1j
+			ivec += 2
+		else:
+			wComplex[:, ivec] = w[:, ivec] + 0*1j
+			ivec = ivec + 1
+	return wComplex
+
+def polar(real, imag):
+	modulus = np.sqrt(real*real + imag*imag)
+	arg     = np.arctan2(imag, real)
+	return modulus, arg
+
+def frequency_damping(eigReal, eigImag, dt):
+	#Compute modulus and argument of the eigenvalues
+	eigModulus, eigArg = polar(eigReal, eigImag)
+
+	#Computation of the damping ratio of the mode
+	delta = np.log(eigModulus)/dt
+
+	#Computation of the frequency of the mode
+	omega = eigArg/dt
+
+	return delta, omega, eigModulus, eigArg
+
+def mode_computation(X, V, S, W):
+	return np.matmul(np.matmul(np.matmul(X, np.transpose(V)), np.diag(1/S)), W)
+
+def vandermonde(eigReal, eigImag, shape0, shape1):
+	eigModulus, eigArg = polar(eigReal, eigImag)
+	Vand  = np.zeros((shape0, shape1), dtype = 'complex_')
+	for icol in range(shape1):
+		VandModulus   = eigModulus**icol
+		VandArg       = eigArg*icol
+		Vand[:, icol] = VandModulus*np.cos(VandArg) + VandModulus*np.sin(VandArg)*1j
+	return Vand

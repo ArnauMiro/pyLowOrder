@@ -27,7 +27,7 @@ Y    = X_m
 
 # Compute SVD
 PSI,S,V = pyLOM.POD.svd(Y)
-
+print(V)
 # Plot accumulative S
 pyLOM.plotResidual(S)
 
