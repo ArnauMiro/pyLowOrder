@@ -39,15 +39,26 @@ xy[:,1] = yy.reshape((mesh['nx']*mesh['ny'],),order='C')
 # Build time instants
 time = DT*np.arange(mat['UALL'].shape[1])
 
+# Build velocity as a 2D array
+nnx, nny = mesh['nx']-1,mesh['ny']-1
+VELOC = np.zeros((2*nnx*nny,time.shape[0]),dtype=np.double)
+VELOC[:nnx*nny,:] = np.ascontiguousarray(mat['UALL'].astype(np.double))
+VELOC[nnx*nny:,:] = np.ascontiguousarray(mat['VALL'].astype(np.double))
+
+VORTI = np.zeros((1*nnx*nny,time.shape[0]),dtype=np.double)
+VORTI[:,:] = np.ascontiguousarray(mat['VORTALL'].astype(np.double))
+
 
 ## Create dataset for pyLOM
 d = pyLOM.Dataset(mesh=mesh, xyz=xy, time=time,
 	# Now add all the arrays to be stored in the dataset
 	# It is important to convert them as C contiguous arrays
-	UALL   = {'point':False,'ndim':1,'value':np.ascontiguousarray(mat['UALL'].astype(np.double))},
-	UEXTRA = {'point':False,'ndim':1,'value':np.ascontiguousarray(mat['UEXTRA'].astype(np.double))},
-	VALL   = {'point':False,'ndim':1,'value':np.ascontiguousarray(mat['VALL'].astype(np.double))},
-	VEXTRA = {'point':False,'ndim':1,'value':np.ascontiguousarray(mat['VEXTRA'].astype(np.double))},
+	VELOC = {'point':False,'ndim':2,'value':VELOC},
+	VORTI = {'point':False,'ndim':1,'value':VORTI},
+#	UALL   = {'point':False,'ndim':1,'value':np.ascontiguousarray(mat['UALL'].astype(np.double))},
+#	UEXTRA = {'point':False,'ndim':1,'value':np.ascontiguousarray(mat['UEXTRA'].astype(np.double))},
+#	VALL   = {'point':False,'ndim':1,'value':np.ascontiguousarray(mat['VALL'].astype(np.double))},
+#	VEXTRA = {'point':False,'ndim':1,'value':np.ascontiguousarray(mat['VEXTRA'].astype(np.double))},
 )
 print(d)
 
