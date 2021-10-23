@@ -47,6 +47,7 @@ delta, omega, muModulus, muArg = pyLOM.DMD.frequency_damping(muReal, muImag, dt)
 #Computation of the modes
 Phi = pyLOM.DMD.mode_computation(X2, V, S, wComplex)
 
+'''
 #Computation of the amplitudes according to Jovanovic 2014
 #Creation of the Vandermonde matrix
 Vand = pyLOM.DMD.vandermonde(muReal, muImag, muReal.shape[0], X1.shape[1])
@@ -56,7 +57,8 @@ Pl   = np.linalg.cholesky(P)
 G    = np.matmul(np.diag(S), V)
 q    = np.conj(np.diag(np.matmul(np.matmul(Vand, np.transpose(np.conj(G))), wComplex)))
 bJov = np.matmul(np.linalg.inv(np.transpose(np.conj(Pl))), np.matmul(np.linalg.inv(Pl), q)) #Amplitudes according to Jovanovic 2014
-
+'''
+bJov = amplitude_jovanovic(muReal, muImag, muReal.shape[0], X1.shape[1], wComplex, S, V)
 #Reconstruction according to Jovanovic 2014
 Xdmd = np.matmul(np.matmul(np.matmul(PSI, wComplex), np.diag(bJov)), Vand)
 
