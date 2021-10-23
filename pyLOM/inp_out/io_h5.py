@@ -45,7 +45,6 @@ def h5_save_mesh(group,meshDict):
 		dset = group.create_dataset('nx',(1,),dtype=int,data=meshDict['nx'])
 		dset = group.create_dataset('ny',(1,),dtype=int,data=meshDict['ny'])		
 		dset = group.create_dataset('nz',(1,),dtype=int,data=meshDict['nz'])		
-		dset = group.create_dataset('nx',(1,),dtype=int)
 	if meshDict['type'].lower() in UNSTRUCT:
 		# Unstructured mesh, store nel, element kind (elkind) and connectivity (conec)
 		dset = group.create_dataset('nnod',(1,),dtype=int,data=meshDict['nnod'])

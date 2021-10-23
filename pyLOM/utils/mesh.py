@@ -76,13 +76,13 @@ def mesh_compute_connectivity(xyz,meshDict):
 		# Create connectivity array
 		conec = np.zeros(((nx-1)*(ny-1)*(nz-1),8),dtype=np.int32)
 		conec[:,0] = idx2[:-1,:-1,:-1].ravel()
-		conec[:,1] = idx2[:-1,1:,:-1].ravel()
-		conec[:,2] = idx2[1:,1:,:-1].ravel()
-		conec[:,3] = idx2[1:,:-1,:-1].ravel()
-		conec[:,4] = idx2[:-1,:-1,1:].ravel()
-		conec[:,5] = idx2[:-1,1:,1:].ravel()
-		conec[:,6] = idx2[1:,1:,1:].ravel()
-		conec[:,7] = idx2[1:,:-1,1:].ravel()
+		conec[:,1] = idx2[:-1,:-1,1:].ravel()
+		conec[:,2] = idx2[:-1,1:,1:].ravel()
+		conec[:,3] = idx2[:-1,1:,:-1].ravel()
+		conec[:,4] = idx2[1:,:-1,:-1].ravel()
+		conec[:,5] = idx2[1:,:-1,1:].ravel()
+		conec[:,6] = idx2[1:,1:,:-1].ravel()
+		conec[:,7] = idx2[1:,1:,1:].ravel()
 		conec     += 1 # Python index start at 0
 	# Connectivity for a unstructured mesh
 	if meshDict['type'].lower() in UNSTRUCT: 
