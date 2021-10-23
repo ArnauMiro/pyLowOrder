@@ -137,3 +137,12 @@ def vandermonde(eigReal, eigImag, shape0, shape1):
 		VandArg       = eigArg*icol
 		Vand[:, icol] = VandModulus*np.cos(VandArg) + VandModulus*np.sin(VandArg)*1j
 	return Vand
+
+def amplitude_jovanovic(eigReal, eigImag, shape0, shape1, wComplex, S, V):
+	Vand = vandermonde(eigReal, eigImag, shape0, shape1)
+	P    = np.matmul(np.transpose(np.conj(wComplex)), wComplex)*np.conj(np.matmul(Vand, np.transpose(np.conj(Vand))))
+	Pl   = np.linalg.cholesky(P)
+	G    = np.matmul(np.diag(S), V)
+	q    = np.conj(np.diag(np.matmul(np.matmul(Vand, np.transpose(np.conj(G))), wComplex)))
+	bJov = np.matmul(np.linalg.inv(np.transpose(np.conj(Pl))), np.matmul(np.linalg.inv(Pl), q)) #Amplitudes according to Jovanovic 2014
+	return bJov
