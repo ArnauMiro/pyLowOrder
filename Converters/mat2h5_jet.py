@@ -22,26 +22,26 @@ DT  = float(mat['dt'])
 
 
 ## Build mesh information dictionary
-mesh = {'type':'struct2D','nx':int(mat['nx']),'ny':int(mat['nr'])}
-p = mat['p']
-p_reshaped1 = p.reshape((mesh['nx']*mesh['ny'], 5000))
+mesh  = {'type':'struct2D','nx':int(mat['nx']),'ny':int(mat['nr'])}
+PRESS = np.ascontiguousarray(mat['p'].reshape((mesh['nx']*mesh['ny'], 5000)).astype(np.double))
 
 # Build node positions
-xx = mat['x']
-yy = mat['r']
-xyz = np.zeros((mesh['nx']*mesh['ny'],2),dtype=np.double)
-xyz[:,0] = xx.reshape((mesh['nx']*mesh['ny'],), order = 'C')
-xyz[:,1] = yy.reshape((mesh['nx']*mesh['ny'],), order = 'C')
+x = np.unique(mat['x'])
+y = np.unique(mat['r'])
+xx, yy = np.meshgrid(x,y,indexing='ij')
+xyz = np.zeros((mesh['nx']*mesh['ny'],3),dtype=np.double)
+xyz[:,0] = xx.reshape((mesh['nx']*mesh['ny'],),order='C')
+xyz[:,1] = yy.reshape((mesh['nx']*mesh['ny'],),order='C')
 
 # Build time instants
-time = DT*np.arange(p.shape[2])+0.04
+time = DT*np.arange(mat['p'].shape[2])+0.04
 
 
 ## Create dataset for pyLOM
 d = pyLOM.Dataset(mesh=mesh, xyz=xyz, time=time,
 	# Now add all the arrays to be stored in the dataset
 	# It is important to convert them as C contiguous arrays
-	p   = np.ascontiguousarray(p_reshaped1.astype(np.double)),
+	PRESS = {'point':True,'ndim':1,'value':PRESS},
 )
 print(d)
 

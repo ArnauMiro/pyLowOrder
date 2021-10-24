@@ -33,7 +33,7 @@ y_slides = np.arange(0, Ny)
 z_slides = np.arange(0, Nz)
 n_t      = np.arange(280, 400)
 T_small = tensor[:, :, :, :, 280:400]
-T_reshaped = np.reshape(T_small, (UVW*Nx*Ny*Nz,n_t.size), order = 'F')
+T_reshaped = np.ascontiguousarray(np.reshape(T_small,(UVW*Nx*Ny*Nz,n_t.size),order='F').astype(np.double))
 
 
 ## Build mesh information dictionary
@@ -43,7 +43,7 @@ mesh = {'type':'struct3D','nx':Nx,'ny':Ny, 'nz':Nz}
 x = np.linspace(DIMSX[0], DIMSX[1], mesh['nx'])
 y = np.linspace(DIMSY[0], DIMSY[1], mesh['ny'])
 z = np.linspace(DIMSZ[0], DIMSZ[1], mesh['nz'])
-xx, yy, zz = np.meshgrid(x, y, z)
+xx, yy, zz = np.meshgrid(x,y,z,indexing='ij')
 xyz = np.zeros((mesh['nx']*mesh['ny']*mesh['nz'],3),dtype=np.double)
 xyz[:,0] = xx.reshape((mesh['nx']*mesh['ny']*mesh['nz'],), order = 'C')
 xyz[:,1] = yy.reshape((mesh['nx']*mesh['ny']*mesh['nz'],), order = 'C')
