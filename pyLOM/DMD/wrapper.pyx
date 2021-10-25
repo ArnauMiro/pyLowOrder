@@ -138,11 +138,17 @@ def vandermonde(eigReal, eigImag, shape0, shape1):
 		Vand[:, icol] = VandModulus*np.cos(VandArg) + VandModulus*np.sin(VandArg)*1j
 	return Vand
 
-def amplitude_jovanovic(eigReal, eigImag, shape0, shape1, wComplex, S, V):
-	Vand = vandermonde(eigReal, eigImag, shape0, shape1)
+def amplitude_jovanovic(eigReal, eigImag, shape0, shape1, wComplex, S, V, Vand):
 	P    = np.matmul(np.transpose(np.conj(wComplex)), wComplex)*np.conj(np.matmul(Vand, np.transpose(np.conj(Vand))))
 	Pl   = np.linalg.cholesky(P)
 	G    = np.matmul(np.diag(S), V)
 	q    = np.conj(np.diag(np.matmul(np.matmul(Vand, np.transpose(np.conj(G))), wComplex)))
 	bJov = np.matmul(np.linalg.inv(np.transpose(np.conj(Pl))), np.matmul(np.linalg.inv(Pl), q)) #Amplitudes according to Jovanovic 2014
 	return bJov
+
+def order_modes(delta, omega, Phi, amp):
+	delta  = delta[np.flip(np.abs(amp).argsort())]
+	omega  = omega[np.flip(np.abs(amp).argsort())]
+	Phi    = np.transpose(np.transpose(Phi)[np.flip(np.abs(amp).argsort())])
+	amp   = amp[np.flip(np.abs(amp).argsort())]
+	return delta, omega, Phi, amp
