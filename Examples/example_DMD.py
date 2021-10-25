@@ -6,7 +6,6 @@
 from __future__ import print_function, division
 
 import numpy as np
-np.set_printoptions(edgeitems = 10)
 import matplotlib.pyplot as plt
 from scipy import optimize
 
@@ -14,7 +13,8 @@ import pyLOM
 
 ## Data loading
 d  = pyLOM.Dataset.load('Examples/Data/CYLINDER.h5')
-X  = d['UALL']
+X  = d['VELOC']
+X  = X[:89351, :].copy()
 dt = 0.2
 
 #fig, ax = plt.subplots(3,1,figsize=(8,6),dpi=100,facecolor='w',edgecolor='k',gridspec_kw = {'hspace':0.5})
@@ -47,26 +47,16 @@ delta, omega, muModulus, muArg = pyLOM.DMD.frequency_damping(muReal, muImag, dt)
 #Computation of the modes
 Phi = pyLOM.DMD.mode_computation(X2, V, S, wComplex)
 
-'''
 #Computation of the amplitudes according to Jovanovic 2014
-#Creation of the Vandermonde matrix
 Vand = pyLOM.DMD.vandermonde(muReal, muImag, muReal.shape[0], X1.shape[1])
-#Compute the amplitudes
-P    = np.matmul(np.transpose(np.conj(wComplex)), wComplex)*np.conj(np.matmul(Vand, np.transpose(np.conj(Vand))))
-Pl   = np.linalg.cholesky(P)
-G    = np.matmul(np.diag(S), V)
-q    = np.conj(np.diag(np.matmul(np.matmul(Vand, np.transpose(np.conj(G))), wComplex)))
-bJov = np.matmul(np.linalg.inv(np.transpose(np.conj(Pl))), np.matmul(np.linalg.inv(Pl), q)) #Amplitudes according to Jovanovic 2014
-'''
-bJov = amplitude_jovanovic(muReal, muImag, muReal.shape[0], X1.shape[1], wComplex, S, V)
+bJov = pyLOM.DMD.amplitude_jovanovic(muReal, muImag, muReal.shape[0], X1.shape[1], wComplex, S, V, Vand)
+
 #Reconstruction according to Jovanovic 2014
 Xdmd = np.matmul(np.matmul(np.matmul(PSI, wComplex), np.diag(bJov)), Vand)
 
 #Order modes according to its amplitude (only for presentation purposes)
-delta  = delta[np.flip(np.abs(bJov).argsort())]
-omega  = omega[np.flip(np.abs(bJov).argsort())]
-Phi    = np.transpose(np.transpose(Phi)[np.flip(np.abs(bJov).argsort())])
-bJov   = bJov[np.flip(np.abs(bJov).argsort())]
+delta, omega, Phi, bJov = pyLOM.DMD.order_modes(delta, omega, Phi, bJov)
+
 
 #Plots
 
