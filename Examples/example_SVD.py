@@ -33,5 +33,13 @@ print(S.shape,S)
 print(V.shape,V)
 pyLOM.cr_stop('SVD cython',0)
 
+pyLOM.cr_start('TSQR_SVD cython',0)
+U, S, V = pyLOM.POD.tsqr_svd(A)
+print('POD:')
+print(U.shape,U)
+print(S.shape,S)
+print(V.shape,V)
+pyLOM.cr_stop('TSQR_SVD cython',0)
+
 
 pyLOM.cr_info()

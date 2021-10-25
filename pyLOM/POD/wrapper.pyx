@@ -26,6 +26,7 @@ cdef extern from "pod.h":
 	cdef void   single_value_decomposition(double *U, double *S, double *V, double *Y, const int m, const int n)
 	cdef  int   compute_truncation_residual(double *S, double res, int n)
 	cdef void   compute_svd_truncation(double *Ur, double *Sr, double *VTr, double *U, double *S, double *VT, const int m, const int n, const int N)
+	cdef void   TSQR_single_value_decomposition(double *Ui, double *S, double *VT, double *Ai, const int m, const int n)
 	cdef void   compute_power_spectral_density(double *PSD, double *y, const int n)
 	cdef void   compute_power_spectral_density_on_mode(double *PSD, double *V, const int n, const int m, const int transposed)
 	cdef void   compute_reconstruct_svd(double *X, double *Ur, double *Sr, double *VTr, const int m, const int n, const int N)
@@ -89,6 +90,26 @@ def svd(double[:,:] Y,int do_copy=True,int bsz=-1):
 	# Transpose V
 	if bsz >= 0: transpose(&V[0,0],n,mn,bsz)
 	cr_stop('POD.svd',0)
+	return U,S,V
+
+def tsqr_svd(double[:,:] Y,int bsz=-1):
+	'''
+	Single value decomposition (SVD) using Lapack.
+		U(m,n)   are the POD modes.
+		S(n)     are the singular values.
+		V(n,n)   are the right singular vectors.
+	'''
+	cr_start('POD.tsqr_svd',0)
+	cdef int m = Y.shape[0], n = Y.shape[1], mn = min(m,n)
+	cdef double *Y_copy
+	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,mn),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((mn,) ,dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((n,mn),dtype=np.double)
+	# Compute SVD using TSQR algorithm
+	TSQR_single_value_decomposition(&U[0,0],&S[0],&V[0,0],&Y[0,0],m,n)
+	# Transpose V
+	if bsz >= 0: transpose(&V[0,0],n,mn,bsz)
+	cr_stop('POD.tsqr_svd',0)
 	return U,S,V
 
 def residual(double[:] S, double r=1e-8):
@@ -165,7 +186,7 @@ def run(double[:,:] X,int remove_mean=True, int bsz=-1):
 	else:
 		memcpy(Y,&X[0,0],m*n*sizeof(double))
 	# Compute SVD
-	single_value_decomposition(&U[0,0],&S[0],&V[0,0],Y,m,n)
+	TSQR_single_value_decomposition(&U[0,0],&S[0],&V[0,0],Y,m,n)
 	free(Y)
 	if bsz >= 0: transpose(&V[0,0],n,mn,bsz)
 	# Return

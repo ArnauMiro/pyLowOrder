@@ -4,6 +4,7 @@
 #define USE_LAPACK_DGESVD
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <complex.h>
 #include <math.h>
 
@@ -23,14 +24,15 @@
 #define MAX(a,b)    ((a)>(b)) ? (a) : (b)
 #define POW2(x)     ((x)*(x))
 // Macros to access flattened matrices
-#define AC_X_POD(i,j) X_POD[n*(i)+(j)]
-#define AC_X(i,j)     X[n*(i)+(j)]
-#define AC_V(i,j)     V[n*(i)+(j)]
-#define AC_OUT(i,j)   out[n*(i)+(j)]
-#define AC_U(i,j)     U[n*(i)+(j)]
-#define AC_UR(i,j)    Ur[N*(i)+(j)]
-#define AC_VT(i,j)    VT[n*(i)+(j)]
-#define AC_VTR(i,j)   VTr[n*(i)+(j)]
+#define AC_MAT(A,n,i,j) *((A) + (n)*(i) + (j))
+#define AC_X_POD(i,j)   AC_MAT(X_POD,n,(i),(j))
+#define AC_X(i,j)       AC_MAT(X,n,(i),(j))
+#define AC_V(i,j)       AC_MAT(V,n,(i),(j))
+#define AC_OUT(i,j)     AC_MAT(out,n,(i),(j))
+#define AC_U(i,j)       AC_MAT(U,n,(i),(j))
+#define AC_UR(i,j)      AC_MAT(Ur,N,(i),(j))
+#define AC_VT(i,j)      AC_MAT(VT,n,(i),(j))
+#define AC_VTR(i,j)     AC_MAT(VTr,n,(i),(j))
 
 
 void compute_temporal_mean(double *out, double *X, const int m, const int n) {
@@ -126,6 +128,133 @@ void single_value_decomposition(double *U, double *S, double *VT, double *Y, con
 		printf("The algorithm computing SVD failed to converge.\n");
 		exit( 1 );
 	}
+}
+
+void TSQR_single_value_decomposition(double *Ui, double *S, double *VT, double *Ai, const int m, const int n) {
+	/*
+		Single value decomposition (SVD) using TSQR algorithm from
+		T. Sayadi and P. J. Schmid, ‘Parallel data-driven decomposition algorithm 
+		for large-scale datasets: with application to transitional boundary layers’, 
+		Theor. Comput. Fluid Dyn., vol. 30, no. 5, pp. 415–428, Oct. 2016
+		
+		doi: 10.1007/s00162-016-0385-x
+
+		Ai(m,n)  data matrix dispersed on each processor.
+
+		Ui(m,n)  POD modes dispersed on each processor (must come preallocated).
+		S(n)     singular values.
+		VT(n,n)  right singular vectors (transposed).
+	*/	
+	int info = 0, mn = MIN(m,n);
+	int mpi_rank = 0, mpi_size = 1; //TODO: use mpi to find nprocs
+	// Algorithm 1 from Sayadi and Schmid (2016) - Q and R matrices
+	// Allocate memory
+	double *Atmp, *tau, *R, *Rp, *Qi;
+	Atmp = (double*)malloc(m*n*sizeof(double));
+	tau  = (double*)malloc(mn*sizeof(double));
+	R    = (double*)malloc(n*n*sizeof(double));
+	Rp   = (double*)malloc(mpi_size*n*n*sizeof(double));
+	Qi   = (double*)malloc(m*n*sizeof(double));
+	// Copy A to Atmp
+	memcpy(Atmp,Ai,m*n*sizeof(double));
+	// Run LAPACK dgerqf - QR factorization on A
+	info = LAPACKE_dgeqrf(
+		LAPACK_ROW_MAJOR, // int  		matrix_layout
+					   m, // int  		m
+					   n, // int  		n
+					Atmp, // double*  	a
+					   n, // int  		lda
+					 tau  // double * 	tau 
+	);
+	// Copy Ri matrix
+	memset(R,0,n*n*sizeof(double));
+	for(int ii=0;ii<n;++ii)
+		for(int jj=ii;jj<n;++jj)
+			AC_MAT(R,n,ii,jj) = AC_MAT(Atmp,n,ii,jj);
+	// Run LAPACK dorgqr - Generate Q matrix
+	info = LAPACKE_dorgqr(
+		LAPACK_ROW_MAJOR, // int  		matrix_layout
+					   m, // int  		m
+					   n, // int  		n		
+					   n, // int  		k
+					Atmp, // double*  	a
+					   n, // int  		lda					   		
+					 tau  // double * 	tau 
+	);
+	// TODO: MPI_ALLGATHER to obtain R
+	memcpy(Rp,R,n*n*sizeof(double));
+	// Run LAPACK dgerqf - QR factorization on Rp
+	info = LAPACKE_dgeqrf(
+		LAPACK_ROW_MAJOR, // int  		matrix_layout
+			  mpi_size*n, // int  		m
+					   n, // int  		n
+					  Rp, // double*  	a
+					   n, // int  		lda
+					 tau  // double * 	tau 
+	);
+	// Copy R matrix - reusing R matrix
+	memset(R,0,n*n*sizeof(double));
+	for(int ii=0;ii<n;++ii)
+		for(int jj=ii;jj<n;++jj)
+			AC_MAT(R,n,ii,jj) = AC_MAT(Rp,n,ii,jj);
+	// Run LAPACK dorgqr - Generate Q2 matrix
+	info = LAPACKE_dorgqr(
+		LAPACK_ROW_MAJOR, // int  		matrix_layout
+			  mpi_size*n, // int  		m
+					   n, // int  		n		
+					   n, // int  		k
+					  Rp, // double*  	a
+					   n, // int  		lda					   		
+					 tau  // double * 	tau 
+	);
+	// Finally compute Qi = Atmp x Rp
+	cblas_dgemm(
+		CblasRowMajor, // const CBLAS_LAYOUT 	  layout
+		 CblasNoTrans, // const CBLAS_TRANSPOSE   TransA
+		 CblasNoTrans, // const CBLAS_TRANSPOSE   TransB
+		            m, // const CBLAS_INDEX 	  M
+		            n, // const CBLAS_INDEX 	  N
+		            n, // const CBLAS_INDEX 	  K
+		          1.0, // const double 	          alpha
+		         Atmp, // const double * 	      A
+		            n, // const CBLAS_INDEX 	  lda
+	(Rp + mpi_rank*n), // const double * 	      B
+		            n, // const CBLAS_INDEX 	  ldb
+		           0., // const double 	          beta
+ 				   Qi, // double * 	              C
+		            n  // const CBLAS_INDEX 	  ldc
+	);
+	// Free memory
+	free(Atmp);
+	free(tau);
+	free(Rp);
+	// At this point we have R and Qi scattered on the processors
+	// Algorithm 2 from Sayadi and Schmid (2016) - Ui, S and VT
+	double *Ur;
+	Ur = (double*)malloc(n*n*sizeof(double));
+	// Call SVD routine
+	single_value_decomposition(Ur,S,VT,R,n,n);
+	// Compute Ui = Qi x Ur
+	cblas_dgemm(
+		CblasRowMajor, // const CBLAS_LAYOUT 	  layout
+		 CblasNoTrans, // const CBLAS_TRANSPOSE   TransA
+		 CblasNoTrans, // const CBLAS_TRANSPOSE   TransB
+		            m, // const CBLAS_INDEX 	  M
+		            n, // const CBLAS_INDEX 	  N
+		            n, // const CBLAS_INDEX 	  K
+		          1.0, // const double 	          alpha
+		           Qi, // const double * 	      A
+		            n, // const CBLAS_INDEX 	  lda
+				   Ur, // const double * 	      B
+		            n, // const CBLAS_INDEX 	  ldb
+		           0., // const double 	          beta
+ 				   Ui, // double * 	              C
+		            n  // const CBLAS_INDEX 	  ldc
+	);	
+	// Free memory
+	free(Ur);
+	free(R);
+	free(Qi);
 }
 
 int compute_truncation_residual(double *S, double res, const int n) {
