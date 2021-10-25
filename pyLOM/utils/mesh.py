@@ -90,7 +90,7 @@ def mesh_compute_connectivity(xyz,meshDict):
 	if meshDict['type'].lower() in UNSTRUCT: 
 		idx   = np.arange(meshDict['nnod'],dtype=np.int32)
 		conec = meshDict['conec']
-	return conec, idx
+	return conec#, idx
 
 
 def mesh_compute_cellcenter(xyz,meshDict):

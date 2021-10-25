@@ -277,7 +277,7 @@ def Ensight_writeGeo(fname,xyz,conec,header):
 	header_bin += str_to_bin('part')
 	header_bin += int_to_bin(header['partID'])
 	header_bin += str_to_bin(header['partNM'])
-	header_bin += str_to_bin(header['eltype'])
+	header_bin += str_to_bin('coordinates')
 	# Write the node coordinates
 	nnod = xyz.shape[0]
 	f.write(header_bin+int_to_bin(nnod))
