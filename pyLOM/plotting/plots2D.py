@@ -101,7 +101,7 @@ def plotMode(U,xyz,V,t,mesh,info,dim=0,modes=np.array([1],np.int32),scale_freq=1
 		ax[imode][2].set_xlabel('St')
 	return fig, ax, cf
 
-def plotDMDMode(U, xyz, mesh, omegas, modes=np.array([1],np.int32), fig=[],ax=[],cmap=None):
+def plotDMDMode(U, xyz, mesh, omegas, modes=np.array([1],np.int32), dim = 0, fig=[],ax=[],cmap=None):
 	'''
 	Given U and a mode, plot its representation in a figure.
 	'''
@@ -112,9 +112,10 @@ def plotDMDMode(U, xyz, mesh, omegas, modes=np.array([1],np.int32), fig=[],ax=[]
 		if len(ax) < imode + 1:
 			ax.append( fig[imode].subplots(2,1,gridspec_kw = {'hspace':0.5}) )
 		fig[imode].suptitle('Mode %d, f = %f [Hz]'%(mode, omegas[modes[imode] - 1]))
-#		if mesh['type'] == 'struct2D':
-#			cf.append(plotFieldStruct2D(ax[imode][0],mesh['nx'],mesh['ny'],xyz,np.real(U[:,mode-1]),cmap) )
-#			cf.append(plotFieldStruct2D(ax[imode][1],mesh['nx'],mesh['ny'],xyz,np.imag(U[:,mode-1]),cmap) )
+		print(mesh['type'])
+		if mesh['type'] == 'struct2D':
+			cf.append(plotFieldStruct2D(ax[imode][0],mesh['nx'],mesh['ny'], 2, xyz,np.real(U[:,mode-1]),dim-1,cmap,clear = False) )
+			cf.append(plotFieldStruct2D(ax[imode][1],mesh['nx'],mesh['ny'], 2, xyz,np.imag(U[:,mode-1]),dim-1,cmap,clear = False))
 		ax[imode][0].set_title('Real part of the mode')
 		ax[imode][1].set_title('Imaginary part of the mode')
 	return fig, ax, cf
@@ -159,7 +160,7 @@ def animateFlow(X,X_POD,xyz,mesh,info,dim=0,t=None,fig=None,ax=None,cmap=None):
 			plotFieldStruct2D(ax[1],mesh['nx'],mesh['ny'],info['ndim'],xyz,X_POD[:,iframe],dim-1,cmap)
 		else:
 			plotFieldStruct2D(ax[0],mesh['nx']-1,mesh['ny']-1,info['ndim'],xyzc,X[:,iframe],dim-1,cmap)
-			plotFieldStruct2D(ax[1],mesh['nx']-1,mesh['ny']-1,info['ndim'],xyzc,X_POD[:,iframe],dim-1,cmap)			
+			plotFieldStruct2D(ax[1],mesh['nx']-1,mesh['ny']-1,info['ndim'],xyzc,X_POD[:,iframe],dim-1,cmap)
 		ax[0].set_title('Real flow')
 		ax[1].set_title('Reconstructed flow')
 	anim = FuncAnimation(fig,update,frames=np.arange(nframes,dtype=np.int32),blit=False)
