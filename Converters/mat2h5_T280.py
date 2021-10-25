@@ -12,14 +12,18 @@ import pyLOM
 ## Parameters
 MATFILE = './DATA/Tensor_re280.mat'
 OUTFILE = './DATA/Tensor_re280.h5'
+DT      = 1.
+DIMSX   = 0., 10.
+DIMSY   = -2., 2.
+DIMSZ   = 0., 1.67
 
 
 ## Load MAT file
 f   = h5py.File(MATFILE,'r')
 mat = { k:np.array(v) for k,v in f.items() }
 f.close()
-DT  = 1
 
+# Obtain 3D tensor
 tensor = mat['Tensor']
 tensor = np.transpose(tensor, (4, 3, 2, 1, 0))
 [UVW, Nx, Ny, Nz, Nt] = tensor.shape
@@ -31,13 +35,14 @@ n_t      = np.arange(280, 400)
 T_small = tensor[:, :, :, :, 280:400]
 T_reshaped = np.reshape(T_small, (UVW*Nx*Ny*Nz,n_t.size), order = 'F')
 
+
 ## Build mesh information dictionary
 mesh = {'type':'struct3D','nx':Nx,'ny':Ny, 'nz':Nz}
 
 # Build node positions
-x = np.linspace(0, 10, Nx)
-y = np.linspace(-2, 2, Ny)
-z = np.linspace(0, 1.67, Nz)
+x = np.linspace(DIMSX[0], DIMSX[1], mesh['nx'])
+y = np.linspace(DIMSY[0], DIMSY[1], mesh['ny'])
+z = np.linspace(DIMSZ[0], DIMSZ[1], mesh['nz'])
 xx, yy, zz = np.meshgrid(x, y, z)
 xyz = np.zeros((mesh['nx']*mesh['ny']*mesh['nz'],3),dtype=np.double)
 xyz[:,0] = xx.reshape((mesh['nx']*mesh['ny']*mesh['nz'],), order = 'C')
@@ -52,7 +57,7 @@ time = DT*np.arange(T_reshaped.shape[1]) + DT
 d = pyLOM.Dataset(mesh=mesh, xyz=xyz, time=time,
 	# Now add all the arrays to be stored in the dataset
 	# It is important to convert them as C contiguous arrays
-	T = np.ascontiguousarray(T_reshaped.astype(np.double)),
+	VELOC = {'point':True,'ndim':3,'value':T_reshaped},
 )
 print(d)
 

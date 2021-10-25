@@ -115,7 +115,7 @@ def Ensight_writeCase(fname,geofile,varList,timesteps):
 		dims = 'scalar' if var['dims'] == 1 else 'vector'
 		if var['dims'] == 6: dims = 'tensor symm' 
 		if var['dims'] == 9: dims = 'tensor asym' 
-		f.write('%s per node:  1   %s  %s\n'%(dims,var['name'],var['file']))
+		f.write('%s per %s:  1   %s  %s\n'%(dims,'node' if var['point'] else 'element',var['name'],var['file']))
 	# Timesteps
 	f.write('\nTIME\n')
 	f.write('time set:              1\n')
@@ -766,7 +766,7 @@ def Ensight_writeField(object fname,np.ndarray field,dict header):
 		raiseError("Error writing <%s>!"%(fname))	
 	
 	# Write coordinates
-	buff = ("%-80s"%"coordinates").encode('utf-8')
+	buff = ("%-80s"%header['eltype']).encode('utf-8')
 	if not fwrite(buff,sizeof(char),80,myfile) == 80: 
 		raiseError("Error writing <%s>!"%(fname))		
 

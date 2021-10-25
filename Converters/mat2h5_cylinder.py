@@ -32,7 +32,7 @@ dy = (DIMSY[1]-DIMSY[0])/(mesh['ny']-1.)
 x  = dx*np.arange(mesh['nx']) + DIMSX[0]
 y  = dy*np.arange(mesh['ny']) + DIMSY[0]
 xx, yy = np.meshgrid(x,y,indexing='ij')
-xy = np.zeros((mesh['nx']*mesh['ny'],2),dtype=np.double)
+xy = np.zeros((mesh['nx']*mesh['ny'],3),dtype=np.double)
 xy[:,0] = xx.reshape((mesh['nx']*mesh['ny'],),order='C')
 xy[:,1] = yy.reshape((mesh['nx']*mesh['ny'],),order='C')
 

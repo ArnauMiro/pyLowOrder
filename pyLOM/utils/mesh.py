@@ -27,6 +27,19 @@ ELTYPE2VTK = {
 }
 
 
+def mesh_number_of_points(point,meshDict):
+	'''
+	Return number of points for a mesh
+	'''
+	if meshDict['type'].lower() in STRUCT2D:
+		return meshDict['nx']*meshDict['ny'] if point else (meshDict['nx']-1)*(meshDict['ny']-1)
+	if meshDict['type'].lower() in STRUCT3D:
+		return meshDict['nx']*meshDict['ny']*meshDict['nz'] if point else (meshDict['nx']-1)*(meshDict['ny']-1)*(meshDict['nz']-1)
+	if meshDict['type'].lower() in UNSTRUCT:
+		return meshDict['nnod'] if point else meshDict['nel']
+	raiseError('mesh type <%s> not recognized!'%meshDict['type'])
+
+
 def mesh_element_type(meshDict,fmt):
 	'''
 	Return the type of element of the mesh
@@ -63,13 +76,13 @@ def mesh_compute_connectivity(xyz,meshDict):
 		# Create connectivity array
 		conec = np.zeros(((nx-1)*(ny-1)*(nz-1),8),dtype=np.int32)
 		conec[:,0] = idx2[:-1,:-1,:-1].ravel()
-		conec[:,1] = idx2[:-1,1:,:-1].ravel()
-		conec[:,2] = idx2[1:,1:,:-1].ravel()
-		conec[:,3] = idx2[1:,:-1,:-1].ravel()
-		conec[:,4] = idx2[:-1,:-1,1:].ravel()
-		conec[:,5] = idx2[:-1,1:,1:].ravel()
-		conec[:,6] = idx2[1:,1:,1:].ravel()
-		conec[:,7] = idx2[1:,:-1,1:].ravel()
+		conec[:,1] = idx2[:-1,:-1,1:].ravel()
+		conec[:,2] = idx2[:-1,1:,1:].ravel()
+		conec[:,3] = idx2[:-1,1:,:-1].ravel()
+		conec[:,4] = idx2[1:,:-1,:-1].ravel()
+		conec[:,5] = idx2[1:,:-1,1:].ravel()
+		conec[:,6] = idx2[1:,1:,:-1].ravel()
+		conec[:,7] = idx2[1:,1:,1:].ravel()
 		conec     += 1 # Python index start at 0
 	# Connectivity for a unstructured mesh
 	if meshDict['type'].lower() in UNSTRUCT: 
@@ -118,20 +131,21 @@ def mesh_compute_cellcenter(xyz,meshDict):
 	return xyzc
 
 
-def mesh_reshape_var(var,meshDict):
+def mesh_reshape_var(var,meshDict,info):
 	'''
 	Reshape a variable according to the mesh
 	'''
 	# Obtain number of points from the mesh
 	npoints = 0
 	if meshDict['type'].lower() in STRUCT2D:
-		npoints = meshDict['nx']*meshDict['ny']
+		npoints = meshDict['nx']*meshDict['ny'] if info['point'] else (meshDict['nx']-1)*(meshDict['ny']-1)
 	if meshDict['type'].lower() in STRUCT3D:
-		npoints = meshDict['nx']*meshDict['ny']*meshDict['nz']
+		npoints = meshDict['nx']*meshDict['ny']*meshDict['nz']  if info['point'] else (meshDict['nx']-1)*(meshDict['ny']-1)*(meshDict['nz']-1)
 	if meshDict['type'].lower() in UNSTRUCT:
-		npoints = meshDict['nnod']
-	# Obtain number of dimensions of the array
-	ndim = var.shape[0]//npoints
+		npoints = meshDict['nnod'] if info['point'] else meshDict['nel']
 	# Only reshape the variable if ndim > 1
-	return np.ascontiguousarray(var.reshape((npoints,ndim),order='F') if ndim > 1 else var)
-
+	out = np.ascontiguousarray(var.reshape((npoints,info['ndim']),order='F') if info['ndim'] > 1 else var)
+	# Build 3D vector in case of 2D array
+	if meshDict['type'].lower() in STRUCT2D and info['ndim'] == 2:
+		out = np.hstack((out,np.zeros((npoints,1))))
+	return out
