@@ -53,6 +53,8 @@ def mesh_compute_connectivity(xyz,meshDict):
 	'''
 	Compute the connectivity array for structured meshes and return
 	the connectivity for unstructured ones.
+
+	For the purposes of this function, xyz is assumed to be already ordered
 	'''
 	# Connectivity for a 2D mesh
 	if meshDict['type'].lower() in STRUCT2D: 
@@ -81,14 +83,14 @@ def mesh_compute_connectivity(xyz,meshDict):
 		conec[:,3] = idx2[:-1,1:,:-1].ravel()
 		conec[:,4] = idx2[1:,:-1,:-1].ravel()
 		conec[:,5] = idx2[1:,:-1,1:].ravel()
-		conec[:,6] = idx2[1:,1:,:-1].ravel()
-		conec[:,7] = idx2[1:,1:,1:].ravel()
+		conec[:,6] = idx2[1:,1:,1:].ravel()
+		conec[:,7] = idx2[1:,1:,:-1].ravel()
 		conec     += 1 # Python index start at 0
 	# Connectivity for a unstructured mesh
 	if meshDict['type'].lower() in UNSTRUCT: 
 		idx   = np.arange(meshDict['nnod'],dtype=np.int32)
 		conec = meshDict['conec']
-	return conec, idx
+	return conec#, idx
 
 
 def mesh_compute_cellcenter(xyz,meshDict):

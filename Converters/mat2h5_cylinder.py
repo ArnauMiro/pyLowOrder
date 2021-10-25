@@ -55,10 +55,6 @@ d = pyLOM.Dataset(mesh=mesh, xyz=xy, time=time,
 	# It is important to convert them as C contiguous arrays
 	VELOC = {'point':False,'ndim':2,'value':VELOC},
 	VORTI = {'point':False,'ndim':1,'value':VORTI},
-#	UALL   = {'point':False,'ndim':1,'value':np.ascontiguousarray(mat['UALL'].astype(np.double))},
-#	UEXTRA = {'point':False,'ndim':1,'value':np.ascontiguousarray(mat['UEXTRA'].astype(np.double))},
-#	VALL   = {'point':False,'ndim':1,'value':np.ascontiguousarray(mat['VALL'].astype(np.double))},
-#	VEXTRA = {'point':False,'ndim':1,'value':np.ascontiguousarray(mat['VEXTRA'].astype(np.double))},
 )
 print(d)
 

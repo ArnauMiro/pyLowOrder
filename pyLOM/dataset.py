@@ -252,7 +252,7 @@ class Dataset(object):
 
 def EnsightWriter(dset,casestr,basedir,instants,varnames):
 	'''
-        Ensight dataset writer
+	Ensight dataset writer
 	'''
 	# Create the filename for the geometry
 	geofile = os.path.join(basedir,'%s.ensi.geo'%casestr)
@@ -265,15 +265,15 @@ def EnsightWriter(dset,casestr,basedir,instants,varnames):
 		'eltype' : mesh_element_type(dset.mesh,'ensi')
 	}
 	# Write geometry file
-	conec, idx = mesh_compute_connectivity(dset.xyz,dset.mesh)
-	io.Ensight_writeGeo(geofile,dset.xyz[idx,:],conec,header)
+	conec = mesh_compute_connectivity(dset.xyz,dset.mesh)
+	io.Ensight_writeGeo(geofile,dset.xyz,conec,header)
 	# Write instantaneous fields
 	binfile_fmt = '%s.ensi.%s-%06d'
 	# Define Ensight header
 	header = {
-		'descr':'File created with pyLOM',
-		'partID':1,
-		'partNM':'part',
+		'descr'  : 'File created with pyLOM',
+		'partID' : 1,
+		'partNM' : 'part',
 		'eltype' : mesh_element_type(dset.mesh,'ensi')
 	}
 	# Loop the selected instants
@@ -282,13 +282,14 @@ def EnsightWriter(dset,casestr,basedir,instants,varnames):
 		info  = dset.info(var)
 		field = dset[var]
 		# Variable has temporal evolution
+		header['eltype'] = 'coordinates' if info['point'] else mesh_element_type(dset.mesh,'ensi')
 		if len(field.shape) > 1:
 			# Loop requested instants
 			for instant in instants:
 				filename = os.path.join(basedir,binfile_fmt % (casestr,var,instant+1))
 				# Reshape variable for Ensight file
 				f = mesh_reshape_var(field[:,instant],dset.mesh,info)
-				io.Ensight_writeField(filename,f,header)				
+				io.Ensight_writeField(filename,f,header)
 		else:
 			filename = os.path.join(basedir,binfile_fmt % (casestr,var,1))
 			# Reshape variable for Ensight file
