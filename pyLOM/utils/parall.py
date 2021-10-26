@@ -11,7 +11,6 @@ import sys, mpi4py, numpy as np
 mpi4py.rc.recv_mprobe = False
 from mpi4py import MPI
 
-
 # MPI basics
 MPI_COMM = MPI.COMM_WORLD      # Communications macro
 MPI_RANK = MPI_COMM.Get_rank() # Who are you? who? who?
@@ -49,7 +48,7 @@ def split(array,root=0):
 	'''
 	Split an array among the processors
 	'''
-	return np.array_split(array,MPI_SIZE) if MPI_RANK==root else None
+	return np.vsplit(array,MPI_SIZE) if MPI_RANK==root else None
 
 
 def is_rank_or_serial(root=0):
@@ -107,20 +106,3 @@ def pprint(rank,*args,**kwargs):
 		print('Rank %d:'%MPI_RANK,*args,**kwargs)
 	elif rank == MPI_RANK:
 		print('Rank %d:'%rank,*args,**kwargs)
-
-
-def raiseError(errmsg):
-	'''
-	Raise a controlled error and abort execution on
-	all processes.
-	'''
-	print('Error: %d - %s' % (MPI_RANK,errmsg),file=sys.stderr,flush=True)
-	MPI_COMM.Abort(1)
-
-
-def raiseWarning(warnmsg):
-	'''
-	Raise a controlled warning but don't abort execution on
-	all processes.
-	'''
-	print('Warning: %d - %s' % (MPI_RANK,warnmsg),file=sys.stderr,flush=True)

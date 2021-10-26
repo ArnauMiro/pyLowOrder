@@ -11,9 +11,13 @@ cimport cython
 cimport numpy as np
 
 import numpy as np
+from mpi4py  import MPI
 
-from libc.stdlib cimport malloc, free
-from libc.string cimport memcpy, memset
+
+from libc.stdlib   cimport malloc, free
+from libc.string   cimport memcpy, memset
+from mpi4py.libmpi cimport MPI_Comm
+from mpi4py        cimport MPI
 
 from ..utils.cr     import cr_start, cr_stop
 from ..utils.errors import raiseError
@@ -25,12 +29,12 @@ cdef extern from "pod.h":
 	cdef void   subtract_temporal_mean(double *out, double *X, double *X_mean, const int m, const int n)
 	cdef void   single_value_decomposition(double *U, double *S, double *V, double *Y, const int m, const int n)
 	cdef  int   compute_truncation_residual(double *S, double res, int n)
-	cdef void   compute_svd_truncation(double *Ur, double *Sr, double *VTr, double *U, double *S, double *VT, const int m, const int n, const int N)
-	cdef void   TSQR_single_value_decomposition(double *Ui, double *S, double *VT, double *Ai, const int m, const int n)
+	cdef void   compute_truncation(double *Ur, double *Sr, double *VTr, double *U, double *S, double *VT, const int m, const int n, const int N)
+	cdef void   TSQR_single_value_decomposition(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm)
 	cdef void   compute_power_spectral_density(double *PSD, double *y, const int n)
 	cdef void   compute_power_spectral_density_on_mode(double *PSD, double *V, const int n, const int m, const int transposed)
 	cdef void   compute_reconstruct_svd(double *X, double *Ur, double *Sr, double *VTr, const int m, const int n, const int N)
-	cdef double compute_RMSE(double *X_POD, double *X, const int m, const int n)
+	cdef double compute_RMSE(double *X_POD, double *X, const int m, const int n, MPI_Comm comm)
 
 cdef extern from "matrix.h":
 	cdef void transpose(double *A, const int m, const int n, const int bsz)
@@ -100,13 +104,14 @@ def tsqr_svd(double[:,:] Y,int bsz=-1):
 		V(n,n)   are the right singular vectors.
 	'''
 	cr_start('POD.tsqr_svd',0)
+	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef int m = Y.shape[0], n = Y.shape[1], mn = min(m,n)
 	cdef double *Y_copy
 	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,mn),dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((mn,) ,dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((n,mn),dtype=np.double)
 	# Compute SVD using TSQR algorithm
-	TSQR_single_value_decomposition(&U[0,0],&S[0],&V[0,0],&Y[0,0],m,n)
+	TSQR_single_value_decomposition(&U[0,0],&S[0],&V[0,0],&Y[0,0],m,n,MPI_COMM.ob_mpi)
 	# Transpose V
 	if bsz >= 0: transpose(&V[0,0],n,mn,bsz)
 	cr_stop('POD.tsqr_svd',0)
@@ -142,9 +147,10 @@ def RMSE(double[:,:] X_POD, double[:,:] X):
 	Compute RMSE between X_POD and X
 	'''
 	cr_start('POD.RMSE',0)
+	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef int m = X.shape[0], n = X.shape[1]
 	cdef double rmse = 0.
-	rmse = compute_RMSE(&X_POD[0,0],&X[0,0],m,n)
+	rmse = compute_RMSE(&X_POD[0,0],&X[0,0],m,n,MPI_COMM.ob_mpi)
 	cr_stop('POD.RMSE',0)
 	return rmse
 
@@ -170,6 +176,7 @@ def run(double[:,:] X,int remove_mean=True, int bsz=-1):
 	cdef int m = X.shape[0], n = X.shape[1], mn = min(m,n)
 	cdef double *X_mean
 	cdef double *Y
+	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	# Output arrays
 	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,mn),dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((mn,) ,dtype=np.double)
@@ -186,7 +193,7 @@ def run(double[:,:] X,int remove_mean=True, int bsz=-1):
 	else:
 		memcpy(Y,&X[0,0],m*n*sizeof(double))
 	# Compute SVD
-	TSQR_single_value_decomposition(&U[0,0],&S[0],&V[0,0],Y,m,n)
+	TSQR_single_value_decomposition(&U[0,0],&S[0],&V[0,0],Y,m,n,MPI_COMM.ob_mpi)
 	free(Y)
 	if bsz >= 0: transpose(&V[0,0],n,mn,bsz)
 	# Return
@@ -211,20 +218,18 @@ def truncate(double[:,:] U, double[:] S, double[:,:] V, double r=1e-8):
 		- V(n,N)  are the right singular vectors (truncated at N).
 	'''
 	cr_start('POD.truncate',0)
-	cdef int m = U.shape[0], n = S.shape[0], mn = min(m,n), N, mN
+	cdef int m = U.shape[0], n = S.shape[0], N
 	# Output arrays
-	cdef np.ndarray[np.double_t,ndim=2] Ur = np.zeros((m,mn),dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=1] Sr = np.zeros((mn,) ,dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=2] Vr = np.zeros((n,mn),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] Ur, Vr
+	cdef np.ndarray[np.double_t,ndim=1] Sr
 	# Compute N using S
 	N  = compute_truncation_residual(&S[0],r,n)
-	mN = min(m,N)
 	# Allocate output arrays
 	Ur = np.zeros((m,N),dtype=np.double)
 	Sr = np.zeros((N,) ,dtype=np.double)
 	Vr = np.zeros((N,n),dtype=np.double)
 	# Truncate
-	compute_svd_truncation(&Ur[0,0],&Sr[0],&Vr[0,0],&U[0,0],&S[0],&V[0,0],m,n,N)
+	compute_truncation(&Ur[0,0],&Sr[0],&Vr[0,0],&U[0,0],&S[0],&V[0,0],m,n,N)
 	# Return
 	cr_stop('POD.truncate',0)
 	return Ur, Sr, Vr
@@ -265,6 +270,8 @@ def reconstruct(double[:,:] U, double[:] S, double[:,:] V, overwrite=False):
 	'''
 	Reconstruct the flow given the POD decomposition matrices
 	that can be possibly truncated.
+	N is the truncated size
+	n is the number of snapshots
 
 	Inputs:
 		- U(m,N)  are the POD modes.

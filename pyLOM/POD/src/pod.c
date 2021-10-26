@@ -7,6 +7,7 @@
 #include <string.h>
 #include <complex.h>
 #include <math.h>
+#include "mpi.h"
 
 #ifdef USE_MKL
 #include "mkl.h"
@@ -25,14 +26,12 @@
 #define POW2(x)     ((x)*(x))
 // Macros to access flattened matrices
 #define AC_MAT(A,n,i,j) *((A) + (n)*(i) + (j))
-#define AC_X_POD(i,j)   AC_MAT(X_POD,n,(i),(j))
-#define AC_X(i,j)       AC_MAT(X,n,(i),(j))
-#define AC_V(i,j)       AC_MAT(V,n,(i),(j))
-#define AC_OUT(i,j)     AC_MAT(out,n,(i),(j))
-#define AC_U(i,j)       AC_MAT(U,n,(i),(j))
-#define AC_UR(i,j)      AC_MAT(Ur,N,(i),(j))
-#define AC_VT(i,j)      AC_MAT(VT,n,(i),(j))
-#define AC_VTR(i,j)     AC_MAT(VTr,n,(i),(j))
+//#define AC_X_POD(i,j)   AC_MAT(X_POD,n,(i),(j))
+//#define AC_X(i,j)       AC_MAT(X,n,(i),(j))
+//#define AC_V(i,j)       AC_MAT(V,n,(i),(j))
+//#define AC_OUT(i,j)     AC_MAT(out,n,(i),(j))
+//#define AC_U(i,j)       AC_MAT(U,n,(i),(j))
+//#define AC_VT(i,j)      AC_MAT(VT,n,(i),(j))
 
 
 void compute_temporal_mean(double *out, double *X, const int m, const int n) {
@@ -48,7 +47,7 @@ void compute_temporal_mean(double *out, double *X, const int m, const int n) {
 	for(int ii=0; ii<m; ++ii) {
 		out[ii] = 0.;
 		for(int jj=0; jj<n; ++jj)
-			out[ii] += AC_X(ii,jj);
+			out[ii] += AC_MAT(X,n,ii,jj);
 		out[ii] /= (double)(n);
 	}
 }
@@ -65,7 +64,7 @@ void subtract_temporal_mean(double *out, double *X, double *X_mean, const int m,
 	#endif
 	for(int ii=0; ii<m; ++ii) {
 		for(int jj=0; jj<n; ++jj)
-			AC_OUT(ii,jj) = AC_X(ii,jj) - X_mean[ii];
+			AC_MAT(out,n,ii,jj) = AC_MAT(X,n,ii,jj) - X_mean[ii];
 	}
 }
 
@@ -130,7 +129,8 @@ void single_value_decomposition(double *U, double *S, double *VT, double *Y, con
 	}
 }
 
-void TSQR_single_value_decomposition(double *Ui, double *S, double *VT, double *Ai, const int m, const int n) {
+void TSQR_single_value_decomposition(double *Ui, double *S, double *VT, double *Ai, 
+	const int m, const int n, MPI_Comm comm) {
 	/*
 		Single value decomposition (SVD) using TSQR algorithm from
 		T. Sayadi and P. J. Schmid, ‘Parallel data-driven decomposition algorithm 
@@ -146,13 +146,17 @@ void TSQR_single_value_decomposition(double *Ui, double *S, double *VT, double *
 		VT(n,n)  right singular vectors (transposed).
 	*/	
 	int info = 0, mn = MIN(m,n);
-	int mpi_rank = 0, mpi_size = 1; //TODO: use mpi to find nprocs
+	int mpi_rank, mpi_size;
+	// Recover rank and size
+	MPI_Comm_rank(comm,&mpi_rank);
+	MPI_Comm_size(comm,&mpi_size);
 	// Algorithm 1 from Sayadi and Schmid (2016) - Q and R matrices
 	// Allocate memory
-	double *Atmp, *tau, *R, *Rp, *Qi;
+	double *Atmp, *tau, *R, *Rtmp, *Rp, *Qi;
 	Atmp = (double*)malloc(m*n*sizeof(double));
 	tau  = (double*)malloc(mn*sizeof(double));
 	R    = (double*)malloc(n*n*sizeof(double));
+	Rtmp = (double*)malloc(n*n*sizeof(double));
 	Rp   = (double*)malloc(mpi_size*n*n*sizeof(double));
 	Qi   = (double*)malloc(m*n*sizeof(double));
 	// Copy A to Atmp
@@ -181,8 +185,8 @@ void TSQR_single_value_decomposition(double *Ui, double *S, double *VT, double *
 					   n, // int  		lda					   		
 					 tau  // double * 	tau 
 	);
-	// TODO: MPI_ALLGATHER to obtain R
-	memcpy(Rp,R,n*n*sizeof(double));
+	// MPI_ALLGATHER to obtain R
+	MPI_Allgather(R,n*n,MPI_DOUBLE,Rp,n*n,MPI_DOUBLE,comm);
 	// Run LAPACK dgerqf - QR factorization on Rp
 	info = LAPACKE_dgeqrf(
 		LAPACK_ROW_MAJOR, // int  		matrix_layout
@@ -207,6 +211,9 @@ void TSQR_single_value_decomposition(double *Ui, double *S, double *VT, double *
 					   n, // int  		lda					   		
 					 tau  // double * 	tau 
 	);
+	for(int ii=0;ii<n;++ii)
+		for(int jj=0;jj<n;++jj)
+			AC_MAT(Rtmp,n,ii,jj) = AC_MAT(Rp,n,ii+mpi_rank*n,jj);
 	// Finally compute Qi = Atmp x Rp
 	cblas_dgemm(
 		CblasRowMajor, // const CBLAS_LAYOUT 	  layout
@@ -218,7 +225,7 @@ void TSQR_single_value_decomposition(double *Ui, double *S, double *VT, double *
 		          1.0, // const double 	          alpha
 		         Atmp, // const double * 	      A
 		            n, // const CBLAS_INDEX 	  lda
-	(Rp + mpi_rank*n), // const double * 	      B
+	  			 Rtmp, // const double * 	      B
 		            n, // const CBLAS_INDEX 	  ldb
 		           0., // const double 	          beta
  				   Qi, // double * 	              C
@@ -228,6 +235,7 @@ void TSQR_single_value_decomposition(double *Ui, double *S, double *VT, double *
 	free(Atmp);
 	free(tau);
 	free(Rp);
+	free(Rtmp);
 	// At this point we have R and Qi scattered on the processors
 	// Algorithm 2 from Sayadi and Schmid (2016) - Ui, S and VT
 	double *Ur;
@@ -250,7 +258,7 @@ void TSQR_single_value_decomposition(double *Ui, double *S, double *VT, double *
 		           0., // const double 	          beta
  				   Ui, // double * 	              C
 		            n  // const CBLAS_INDEX 	  ldc
-	);	
+	);
 	// Free memory
 	free(Ur);
 	free(R);
@@ -273,8 +281,8 @@ int compute_truncation_residual(double *S, double res, const int n) {
 	return n;
 }
 
-void compute_svd_truncation(double *Ur, double *Sr, double *VTr,
-	double *U, double *S, double *VT, const int m, const int n, const int N) {
+void compute_truncation(double *Ur, double *Sr, double *VTr, double *U, 
+	double *S, double *VT, const int m, const int n, const int N) {
 	/*
 		U(m,n)   are the POD modes and must come preallocated.
 		S(n)     are the singular values.
@@ -286,18 +294,15 @@ void compute_svd_truncation(double *Ur, double *Sr, double *VTr,
 		Sr(N)    are the singular values.
 		VTr(N,n) are the right singular vectors (transposed).
 	*/
-	#ifdef USE_OMP
-	#pragma omp parallel for shared(U,Ur,S,Sr,VT,VTr) firstprivate(m,n,N)
-	#endif
-	for (int ii=0;ii<N;++ii) {
+	for (int jj=0;jj<N;++jj) {
 		// Copy U into Ur
-		for (int jj=0;jj<m;++jj)
-			AC_UR(jj,ii) = AC_U(jj,ii);
+		for (int ii=0;ii<m;++ii)
+			AC_MAT(Ur,N,ii,jj) = AC_MAT(U,n,ii,jj);
 		// Copy S into Sr
-		Sr[ii] = S[ii];
+		Sr[jj] = S[jj];
 		// Copy VT into VTr
-		for (int jj=0;jj<n;++jj)
-			AC_VTR(ii,jj) = AC_VT(ii,jj);
+		for (int ii=0;ii<n;++ii)
+			AC_MAT(VTr,n,jj,ii) = AC_MAT(VT,n,jj,ii);
 	}
 }
 
@@ -375,13 +380,13 @@ void compute_power_spectral_density_on_mode(double *PSD, double *V, const int n,
 		#pragma omp parallel for shared(PSD,V) firstprivate(m,n)
 		#endif
 		for (int ii=0;ii<n;++ii)
-			PSD[ii] = AC_V(m,ii);
+			PSD[ii] = AC_MAT(V,n,m,ii);
 	} else {
 		#ifdef USE_OMP
 		#pragma omp parallel for shared(PSD,V) firstprivate(m,n)
 		#endif
 		for (int ii=0;ii<n;++ii)
-			PSD[ii] = AC_V(ii,m);
+			PSD[ii] = AC_MAT(V,n,ii,m);
 	}
 	// Compute PSD
 	compute_power_spectral_density(PSD,PSD,n);
@@ -406,36 +411,51 @@ void compute_reconstruct_svd(double *X, double *Ur, double *Sr, double *VTr, con
 	#pragma omp parallel for shared(Sr,VTr) firstprivate(N,n)
 	#endif
 	for(int ii=0; ii<N; ++ii)
-		cblas_dscal(n,Sr[ii],&AC_VTR(ii,0),1);
+		cblas_dscal(n,Sr[ii],VTr+n*ii,1);
 	// Step 2: compute Ur(m,N)*VTr(N,n)
-	cblas_dgemm(CblasRowMajor,CblasNoTrans,CblasNoTrans,m,n,N,
-		1.,Ur,N,VTr,n,0.,X,n);
+	cblas_dgemm(
+		CblasRowMajor, // const CBLAS_LAYOUT 	  layout
+		 CblasNoTrans, // const CBLAS_TRANSPOSE   TransA
+		 CblasNoTrans, // const CBLAS_TRANSPOSE   TransB
+		            m, // const CBLAS_INDEX 	  M
+		            n, // const CBLAS_INDEX 	  N
+		            N, // const CBLAS_INDEX 	  K
+		          1.0, // const double 	          alpha
+		           Ur, // const double * 	      A
+		            N, // const CBLAS_INDEX 	  lda
+				  VTr, // const double * 	      B
+		            n, // const CBLAS_INDEX 	  ldb
+		           0., // const double 	          beta
+ 				    X, // double * 	              C
+		            n  // const CBLAS_INDEX 	  ldc
+	);
 }
 
 
-double compute_RMSE(double *X_POD, double *X, const int m, const int n) {
+double compute_RMSE(double *X_POD, double *X, const int m, const int n, MPI_Comm comm) {
 	/*
 		Compute and return the Root Meean Square Error and returns it
 
-		X_POD(m, n) is the flow reconstructed with truncated matrices
-		X(m,n) is the flow reconstructed
+		X_POD(m,n) is the flow reconstructed with truncated matrices
+		X(m,n)     is the flow reconstructed
 	*/
-	double sum1 = 0;
-	double norm1 = 0;
-	double sum2 = 0;
-	double norm2 = 0;
+	double sum1 = 0., norm1 = 0., sum1g = 0.;
+	double sum2 = 0., norm2 = 0., sum2g = 0.;
 	#ifdef USE_OMP
 	#pragma omp parallel for shared(X,X_POD) firstprivate(m,n)
 	#endif
 	for(int in = 0; in < n; ++in) {
-		norm1 = 0;
-		norm2 = 0;
+		norm1 = 0.;
+		norm2 = 0.;
 		for(int im = 0; im < m; ++im){
-			norm1 += POW2(AC_X(in, im) - AC_X_POD(in, im));
-			norm2 += POW2(AC_X(in, im));
+			norm1 += POW2(AC_MAT(X,n,in,im) - AC_MAT(X_POD,n,in,im));
+			norm2 += POW2(AC_MAT(X,n,in,im));
 		}
 		sum1 += norm1;
 		sum2 += norm2;
 	}
-	return sqrt(sum1/sum2);
+	// Reduce MPI parallel run
+	MPI_Allreduce(&sum1,&sum1g,1,MPI_DOUBLE,MPI_SUM,comm); 
+	MPI_Allreduce(&sum2,&sum2g,1,MPI_DOUBLE,MPI_SUM,comm); 
+	return sqrt(sum1g/sum2g);
 }

@@ -7,24 +7,18 @@
 # Last rev: 31/07/2021
 from __future__ import print_function, division
 
-import numpy as np, h5py, mpi4py
-mpi4py.rc.recv_mprobe = False
-from mpi4py import MPI
+import numpy as np, h5py
 
+from ..utils.parall import MPI_COMM, MPI_RANK, MPI_SIZE, worksplit
 from ..utils.errors import raiseError
-from ..utils.mesh   import STRUCT2D, STRUCT3D, UNSTRUCT
-
-
-comm    = MPI.COMM_WORLD
-rank    = comm.Get_rank()
-MPIsize = comm.Get_size()
+from ..utils.mesh   import STRUCT2D, STRUCT3D, UNSTRUCT, mesh_number_of_points
 
 
 def h5_save(fname,xyz,time,meshDict,varDict,mpio=True,write_master=False):
 	'''
 	Save a Dataset in HDF5
 	'''
-	if mpio and not MPIsize == 1:
+	if mpio and not MPI_SIZE == 1:
 		h5_save_mpio(fname,xyz,time,meshDict,varDict,write_master)
 	else:
 		h5_save_serial(fname,xyz,time,meshDict,varDict)
@@ -89,7 +83,7 @@ def h5_save_mpio(fname,xyz,time,meshDict,varDict,write_master=False):
 	'''
 	Save a dataset in HDF5 in parallel mode
 	'''
-	raiseError('Not implemented!')
+	raiseError('H5IO not implemented!')
 #	# Compute the total number of points
 #	npG  = int(comm.allreduce(xyz.shape[0] if not np.all(np.isnan(xyz)) else 0.,op=MPI.SUM))
 #	# Open file
@@ -138,7 +132,7 @@ def h5_load(fname,mpio=True):
 	'''
 	Load a dataset in HDF5
 	'''
-	if mpio and not MPIsize == 1:
+	if mpio and not MPI_SIZE == 1:
 		return h5_load_mpio(fname)
 	else:
 		return h5_load_serial(fname)
@@ -165,12 +159,10 @@ def h5_load_mesh(group):
 		meshDict['nnod']   = group['nnod'][0]
 		meshDict['nel']    = group['nel'][0]
 		meshDict['elkind'] = group['elkind'][0].decode('utf-8')
-		meshDict['conec']  = np.array(group['conec'],dtype=np.int32)
-	if 'partition' in group.keys():
-		raiseError('Not implemented!')
+#		meshDict['conec']  = np.array(group['conec'],dtype=np.int32)
 	return meshDict
 
-def h5_load_variable(group):
+def h5_load_variable_serial(group):
 	'''
 	Save a variable inside an HDF5 group
 	'''
@@ -196,33 +188,50 @@ def h5_load_serial(fname):
 	# Load the variables in the varDict
 	varDict = {}
 	for var in file['DATA'].keys():
-		varDict[var] = h5_load_variable(file['DATA'][var])
+		varDict[var] = h5_load_variable_serial(file['DATA'][var])
 	file.close()
 	return xyz, time, meshDict, varDict
+
+def h5_load_variable_mpio(group,meshDict):
+	'''
+	Save a variable inside an HDF5 group
+	'''
+	# Read variable metadata
+	varDict = {
+		'point' : group['point'][0],
+		'ndim'  : group['ndim'][0]
+	}
+	# Compute the number of points per variable
+	npoints = varDict['ndim']*mesh_number_of_points(varDict['point'],meshDict)
+	# Call the worksplit and only read a part of the data
+	istart,iend = worksplit(0,npoints,MPI_RANK,nWorkers=MPI_SIZE)
+	varDict['value'] = np.array(group['value'][istart:iend,:],dtype=np.double)
+	return varDict
 
 def h5_load_mpio(fname):
 	'''
 	Load a field in HDF5 in parallel
 	'''
-	raiseError('Not implemented!')
-#	# Open file for reading
-#	file = h5py.File(fname,'r',driver='mpio',comm=comm)
-#	# Read the number of points
-#	npoints = int(file['metadata']['npoints'][0])
-#	# Call the worksplit and only read a part of the data
-#	istart, iend = worksplit(0,npoints)
-#	# Load node coordinates
-#	xyz     = np.array(file['xyz'][istart:iend,:],dtype=np.double)
-#	varDict = {}
-#	# Load the variables in the varDict
-#	for var in file.keys():
-#		if var == 'xyz':      continue # Skip xyz
-#		if var == 'metadata': continue # Skip metadata
-#		if len(file[var].shape) == 1:
-#			# Scalar field
-#			varDict[var] = np.array(file[var][istart:iend],dtype=np.double)
-#		else:
-#			# Vectorial field
-#			varDict[var] = np.array(file[var][istart:iend,:],dtype=np.double)
-#	file.close()
-#	return xyz, varDict
+	# Open file for reading
+	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM)
+	# Load mesh details
+	meshDict = h5_load_mesh(file['MESH'])
+	# Load time instants
+	time = np.array(file['time'],dtype=np.double)
+	# If we do not have information on the partition stored in
+	# the file, generate a simple partition
+	if not 'partition' in file.keys():
+		# Read the number of points of the mesh
+		npoints = int(file['npoints'][0])
+		# Call the worksplit and only read a part of the data
+		istart,iend = worksplit(0,npoints,MPI_RANK,nWorkers=MPI_SIZE)
+		# Load node coordinates
+		xyz = np.array(file['xyz'][istart:iend,:],dtype=np.double)
+		# Load the variables in the varDict
+		varDict = {}
+		for var in file['DATA'].keys():
+			varDict[var] = h5_load_variable_mpio(file['DATA'][var],meshDict)
+	else:
+		raiseError('H5IO not implemented!')
+	file.close()
+	return xyz, time, meshDict, varDict

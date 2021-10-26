@@ -15,25 +15,36 @@ with open('README.md') as f:
 	readme = f.read()
 
 
+## Read compilation options
+options = {}
+with open('options.cfg') as f:
+	for line in f.readlines():
+		if '#' in line or len(line) == 1: continue # Skip comment
+		linep = line.split('=')
+		options[linep[0].strip()] = linep[1].strip()
+
+
 ## Libraries and includes
 include_dirs  = ['pyLOM/POD/src','pyLOM/DMD/src','pyLOM/utils/src',np.get_include()]
 extra_objects = []
 libraries     = ['m']
+# OSX needs to also link with python3.8 for reasons...
+if sys.platform == 'darwin': libraries += ['python3.8']
 
 
 ## Select which libraries to use depending on the compilation options
-if os.environ['USE_MKL'] == 'ON':
+if options['USE_MKL'] == 'ON':
 	# Link with Intel MKL using the intel compilers
 	# this is the most performing option available
 	mklroot        = 'Deps/oneAPI/mkl'
 	include_dirs  += [os.path.join(mklroot,'latest/include')]
-	extra_objects += [os.path.join(mklroot,'libmkl_intel.a' if os.environ['CC'] == 'icc' else 'libmkl_gcc.a')]
+	extra_objects += [os.path.join(mklroot,'libmkl_intel.a' if os.environ['CC'] == 'mpiicc' else 'libmkl_gcc.a')]
 else:
 	# Link with OpenBLAS which has a decent performance but is not
 	# as fast as Intel MKL
 	include_dirs  += ['Deps/lapack/include/openblas']
 	extra_objects += ['Deps/lapack/lib/libopenblas.a']
-	libraries     += ['gfortran']
+	libraries     += ['gfortran',]
 	# Classical LAPACK & BLAS library has a very bad performance
 	# but is left here for nostalgia
 	#include_dirs  += ['Deps/lapack/include/']
@@ -41,7 +52,8 @@ else:
 	#libraries     += ['gfortran']
 	# FFTW
 	include_dirs  += ['Deps/fftw/include']
-	extra_objects += ['Deps/fftw/lib/libfftw3.a','Deps/fftw/lib/libfftw3_omp.a']
+	extra_objects += ['Deps/fftw/lib/libfftw3.a']
+	if options['OPENMP_PARALL'] == 'ON': extra_objects += ['Deps/fftw/lib/libfftw3_omp.a']
 
 
 ## Modules
@@ -78,14 +90,15 @@ Module_DMD = Extension('pyLOM.DMD.wrapper',
 Module_IO_ensight  = Extension('pyLOM.inp_out.io_ensight',
 						sources      = ['pyLOM/inp_out/io_ensight.pyx'],
 						language     = 'c',
-						include_dirs = [np.get_include()]
+						include_dirs = [np.get_include()],
+						libraries    = libraries,
 					   )
 
 
 ## Decide which modules to compile
 modules_list = [
-        Module_matrix,Module_POD,Module_DMD,
-        Module_IO_ensight,
+	Module_matrix,Module_POD,Module_DMD,
+	Module_IO_ensight,
 ]
 
 

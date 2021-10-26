@@ -7,14 +7,8 @@
 # Last rev: 09/07/2021
 from __future__ import print_function, division
 
-import sys, mpi4py, numpy as np
-mpi4py.rc.recv_mprobe = False
-from mpi4py import MPI
-
-
-mpi_comm = MPI.COMM_WORLD
-mpi_rank = mpi_comm.Get_rank()
-mpi_size = mpi_comm.Get_size()
+import sys
+from .parall import MPI_RANK, MPI_COMM
 
 
 def raiseError(errmsg):
@@ -22,8 +16,8 @@ def raiseError(errmsg):
 	Raise a controlled error and abort execution on
 	all processes.
 	'''
-	print('%d - %s' % (mpi_rank,errmsg),file=sys.stderr,flush=True)
-	mpi_comm.Abort(1)
+	print('%d - %s' % (MPI_RANK,errmsg),file=sys.stderr,flush=True)
+	MPI_COMM.Abort(1)
 
 
 def raiseWarning(warnmsg,allranks=False):
@@ -32,6 +26,6 @@ def raiseWarning(warnmsg,allranks=False):
 	all processes.
 	'''
 	if allranks:
-		pprint(-1,'Warning! %d - %s' % (mpi_rank,warnmsg),file=sys.stderr,flush=True)
+		pprint(-1,'Warning! %d - %s' % (MPI_RANK,warnmsg),file=sys.stderr,flush=True)
 	else:
 		pprint(0,'Warning! %s' % (warnmsg),file=sys.stderr,flush=True)

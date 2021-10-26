@@ -13,7 +13,8 @@ from . import POD, DMD, inp_out as io
 from .dataset import Dataset
 
 # Import CHRONO module from utils
-from .utils.cr import cr_start, cr_stop, cr_info
+from .utils.cr     import cr_start, cr_stop, cr_info
+from .utils.parall import pprint, is_rank_or_serial
 # Import PLOTTING module from utils
 from .plotting import show_plots, close_plots, plotResidual, plotMode, plotDMDMode, plotSnapshot, animateFlow
 

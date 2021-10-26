@@ -14,6 +14,7 @@ import numpy as np
 
 from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy, memset
+from mpi4py.libmpi cimport MPI_Comm
 
 from ..utils.cr     import cr_start, cr_stop
 from ..utils.errors import raiseError

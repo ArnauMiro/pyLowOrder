@@ -10,29 +10,8 @@
 #
 # Arnau Miro 2021
 
-# Optimization, host and CPU type
-#
-OPTL = 3
-HOST = Host
-TUNE = skylake
-
-
-# Options
-#
-VECTORIZATION   = ON
-OPENMP_PARALL   = ON
-USE_MKL         = ON
-FORCE_GCC       = OFF
-DEBUGGING       = OFF
-
-
-# Versions of the libraries
-#
-LAPACK_VERS   = 3.9.0
-FFTW_VERS     = 3.3.9
-OPENBLAS_VERS = 0.3.17
-ONEAPI_VERS   = 2021.3.0.3219
-
+# Include user-defined build configuration file
+include options.cfg
 
 # Compilers
 #
@@ -43,26 +22,26 @@ PIP    = pip3
 ifeq ($(FORCE_GCC),ON) 
 	# Forcing the use of GCC
 	# C Compiler
-	CC = gcc
+	CC  = mpicc
 	# C++ Compiler
-	CXX = g++
+	CXX = mpicxx
 	# Fortran Compiler
-	FC = gfortran
+	FC  = mpif90
 else
 	ifeq (,$(shell which icc))
 		# C Compiler
-		CC = gcc
+		CC  = mpicc
 		# C++ Compiler
-		CXX = g++
+		CXX = mpicxx
 		# Fortran Compiler
-		FC = gfortran
+		FC  = mpif90
 	else
 		# C Compiler
-		CC = icc
+		CC  = mpiicc
 		# C++ Compiler
-		CXX = icpc
+		CXX = mpiicpc
 		# Fortran Compiler
-		FC = ifort
+		FC  = mpiifort
 	endif
 endif
 
@@ -150,17 +129,17 @@ endif
 # Python
 #
 python: setup.py
-	@CC="${CC}" CFLAGS="${CFLAGS} ${DFLAGS}" CXX="${CXX}" CXXFLAGS="${CXXFLAGS} ${DFLAGS}" LDSHARED="${CC} -shared" USE_MKL="${USE_MKL}" ${PYTHON} $< build_ext --inplace
+	@CC="${CC}" CFLAGS="${CFLAGS} ${DFLAGS}" CXX="${CXX}" CXXFLAGS="${CXXFLAGS} ${DFLAGS}" LDSHARED="${CC} -shared" ${PYTHON} $< build_ext --inplace
 	@echo "Python programs deployed successfully"
 
 requirements: requirements.txt
 	@${PIP} install -r $<
 
 install: requirements python
-	@CC="${CC}" USE_MKL="${USE_MKL}" ${PIP} install .
+	@CC="${CC}" CFLAGS="${CFLAGS} ${DFLAGS}" CXX="${CXX}" CXXFLAGS="${CXXFLAGS} ${DFLAGS}" LDSHARED="${CC} -shared" ${PIP} install .
 
 install_dev: requirements python
-	@CC="${CC}" USE_MKL="${USE_MKL}" ${PIP} install -e .
+	@CC="${CC}" CFLAGS="${CFLAGS} ${DFLAGS}" CXX="${CXX}" CXXFLAGS="${CXXFLAGS} ${DFLAGS}" LDSHARED="${CC} -shared" ${PIP} install -e .
 
 
 # External libraries

@@ -27,6 +27,15 @@ make install
 ```
 to install the tool.
 
+### Compilers
+
+Compilation in a Linux machine (Ubuntu 18.04 or Ubuntu 20.04) is recommended. The packages needed to compile and run the code are (run them in your terminal):
+```bash
+sudo apt install make
+sudo apt install python3 python3-pip
+sudo apt install openmpi-bin libopenmpi-dev
+```
+
 ### Virtual environment
 
 The package can be installed in a Python virtual environement to avoid messing with the system Python installation.
