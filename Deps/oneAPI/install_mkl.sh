@@ -43,6 +43,8 @@ else
     	--install-dir ${PWD}/Deps/oneAPI
 
     # Build intel and gcc MKL static libraries
-    ar -rcT ${INSTALL_PREFIX}/libmkl_intel.a ${PWD}/Deps/oneAPI/mkl/latest/lib/intel64/libmkl_core.a ${PWD}/Deps/oneAPI/mkl/latest/lib/intel64/libmkl_intel_thread.a ${PWD}/Deps/oneAPI/mkl/latest/lib/intel64/libmkl_intel_lp64.a
-    ar -rcT ${INSTALL_PREFIX}/libmkl_gcc.a ${PWD}/Deps/oneAPI/mkl/latest/lib/intel64/libmkl_core.a ${PWD}/Deps/oneAPI/mkl/latest/lib/intel64/libmkl_gnu_thread.a ${PWD}/Deps/oneAPI/mkl/latest/lib/intel64/libmkl_intel_lp64.a
+    ar -rcT ${INSTALL_PREFIX}/libmkl_intel_omp.a ${PWD}/Deps/oneAPI/mkl/latest/lib/intel64/libmkl_core.a ${PWD}/Deps/oneAPI/mkl/latest/lib/intel64/libmkl_intel_thread.a ${PWD}/Deps/oneAPI/mkl/latest/lib/intel64/libmkl_intel_lp64.a
+    ar -rcT ${INSTALL_PREFIX}/libmkl_intel.a ${PWD}/Deps/oneAPI/mkl/latest/lib/intel64/libmkl_core.a ${PWD}/Deps/oneAPI/mkl/latest/lib/intel64/libmkl_sequential.a ${PWD}/Deps/oneAPI/mkl/latest/lib/intel64/libmkl_intel_lp64.a
+    ar -rcT ${INSTALL_PREFIX}/libmkl_gcc_omp.a ${PWD}/Deps/oneAPI/mkl/latest/lib/intel64/libmkl_core.a ${PWD}/Deps/oneAPI/mkl/latest/lib/intel64/libmkl_gnu_thread.a ${PWD}/Deps/oneAPI/mkl/latest/lib/intel64/libmkl_intel_lp64.a
+    ar -rcT ${INSTALL_PREFIX}/libmkl_gcc.a ${PWD}/Deps/oneAPI/mkl/latest/lib/intel64/libmkl_core.a ${PWD}/Deps/oneAPI/mkl/latest/lib/intel64/libmkl_sequential.a ${PWD}/Deps/oneAPI/mkl/latest/lib/intel64/libmkl_intel_lp64.a
 fi

@@ -38,7 +38,10 @@ if options['USE_MKL'] == 'ON':
 	# this is the most performing option available
 	mklroot        = 'Deps/oneAPI/mkl'
 	include_dirs  += [os.path.join(mklroot,'latest/include')]
-	extra_objects += [os.path.join(mklroot,'libmkl_intel.a' if os.environ['CC'] == 'mpiicc' else 'libmkl_gcc.a')]
+	if options['OPENMP_PARALL'] == 'ON':
+		extra_objects += [os.path.join(mklroot,'libmkl_intel_thread.a' if os.environ['CC'] == 'mpiicc' else 'libmkl_gcc_thread.a')]
+	else:
+		extra_objects += [os.path.join(mklroot,'libmkl_intel.a' if os.environ['CC'] == 'mpiicc' else 'libmkl_gcc.a')]
 else:
 	# Link with OpenBLAS which has a decent performance but is not
 	# as fast as Intel MKL

@@ -48,7 +48,7 @@ endif
 
 # Compiler flags
 #
-ifeq ($(CC),gcc)
+ifeq ($(CC),mpicc)
 	# Using GCC as a compiler
 	ifeq ($(DEBUGGING),ON)
 		# Debugging flags
