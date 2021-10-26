@@ -28,7 +28,7 @@ ifeq ($(FORCE_GCC),ON)
 	# Fortran Compiler
 	FC  = mpif90
 else
-	ifeq (,$(shell which icc))
+	ifeq (,$(shell which mpiicc))
 		# C Compiler
 		CC  = mpicc
 		# C++ Compiler
