@@ -69,13 +69,16 @@ def mpi_scatter(sendbuff,root=0,do_split=False):
 	return sendbuff
 
 
-def mpi_gather(sendbuff,root=0):
+def mpi_gather(sendbuff,root=0,all=False):
 	'''
 	Gather an array from all the processors.
 	'''
 	if MPI_SIZE > 1:
-		out = MPI_COMM.gather(sendbuff,root=root)
-		return np.vstack(out) if MPI_RANK == root else None
+		if all:
+			return np.vstack(MPI_COMM.allgather(sendbuff))
+		else:
+			out = MPI_COMM.gather(sendbuff,root=root)
+			return np.vstack(out) if MPI_RANK == root else None
 	return sendbuff
 
 
