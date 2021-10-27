@@ -142,6 +142,7 @@ def vandermonde(eigReal, eigImag, shape0, shape1):
 	return Vand
 
 def amplitude_jovanovic(eigReal, eigImag, shape0, shape1, wComplex, S, V, Vand):
+	#Confirm that ldl is possible!
 	P    = np.matmul(np.transpose(np.conj(wComplex)), wComplex)*np.conj(np.matmul(Vand, np.transpose(np.conj(Vand))))
 	try:
 		Pl = np.linalg.cholesky(P)
