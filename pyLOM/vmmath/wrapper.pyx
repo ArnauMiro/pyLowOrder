@@ -28,6 +28,9 @@ cdef extern from "vector_matrix.h":
 	cdef double c_vector_norm "vector_norm"(double *v, int start, int n)
 	cdef void   c_matmul      "matmul"(double *C, double *A, double *B, const int m, const int n, const int k)
 	cdef void   c_vecmat      "vecmat"(double *v, double *A, const int m, const int n)
+cdef extern from "averaging.c":
+	cdef void c_temporal_mean "temporal_mean"(double *out, double *X, const int m, const int n)
+	cdef void c_subtract_mean "subtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
 cdef extern from "svd.h":
 	cdef int c_svd      "svd"     (double *U, double *S, double *V, double *Y, const int m, const int n)
 	cdef int c_tsqr_svd "tsqr_svd"(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm)
@@ -79,6 +82,34 @@ def vecmat(double[:] v, double[:,:] A):
 	c_vecmat(&v[0],&C[0,0],m,n)
 	cr_stop('math.vecmat',0)	
 	return C
+
+def temporal_mean(double[:,:] X):
+	'''
+	Temporal mean of matrix X(m,n) where m is the spatial coordinates
+	and n is the number of snapshots.
+	'''
+	cr_start('math.temporal_mean',0)
+	cdef int m = X.shape[0], n = X.shape[1]
+	cdef np.ndarray[np.double_t,ndim=1] out = np.zeros((m,),dtype=np.double)
+	# Compute temporal mean
+	c_temporal_mean(&out[0],&X[0,0],m,n)
+	# Return
+	cr_stop('math.temporal_mean',0)
+	return out
+
+def subtract_mean(double[:,:] X, double[:] X_mean):
+	'''
+	Computes out(m,n) = X(m,n) - X_mean(m) where m is the spatial coordinates
+	and n is the number of snapshots.
+	'''
+	cr_start('math.subtract_mean',0)
+	cdef int m = X.shape[0], n = X.shape[1]
+	cdef np.ndarray[np.double_t,ndim=2] out = np.zeros((m,n),dtype=np.double)
+	# Compute substract temporal mean
+	c_subtract_mean(&out[0,0],&X[0,0],&X_mean[0],m,n)
+	# Return
+	cr_stop('math.subtract_mean',0)
+	return out
 
 def svd(double[:,:] A, int do_copy=True):
 	'''

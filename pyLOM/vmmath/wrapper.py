@@ -53,6 +53,26 @@ def vecmat(v,A):
 	cr_stop('math.vecmat',0)	
 	return C
 
+def temporal_mean(X):
+	'''
+	Temporal mean of matrix X(m,n) where m is the spatial coordinates
+	and n is the number of snapshots.
+	'''
+	cr_start('math.temporal_mean',0)
+	out = np.mean(X,axis=1)
+	cr_stop('math.temporal_mean',0)
+	return out
+
+def subtract_mean(X,X_mean):
+	'''
+	Computes out(m,n) = X(m,n) - X_mean(m) where m is the spatial coordinates
+	and n is the number of snapshots.
+	'''
+	cr_start('math.subtract_mean',0)
+	out = X - X_mean
+	cr_stop('math.subtract_mean',0)
+	return out
+
 def svd(A):
 	'''
 	Single value decomposition (SVD) using numpy.
