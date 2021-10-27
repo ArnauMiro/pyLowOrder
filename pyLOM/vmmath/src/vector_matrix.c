@@ -6,8 +6,10 @@
 
 #ifdef USE_MKL
 #include "mkl.h"
+#include "mkl_lapacke.h"
 #else
 #include "cblas.h"
+#include "lapacke.h"
 #endif
 
 #include "vector_matrix.h"
@@ -98,4 +100,39 @@ void vecmat(double *v, double *A, const int m, const int n) {
 	#endif
 	for(int ii=0; ii<m; ++ii)
 		cblas_dscal(n,v[ii],A+n*ii,1);	
+}
+
+int eigen(double *real, double *imag, double *vecs, double *A, 
+	const int m, const int n) {
+	/*
+		Compute the eigenvalues and eigenvectors of a matrix A using
+		LAPACK functions.
+
+		All inputs should come preallocated.
+
+		real(n)   real eigenvalue part
+		imag(n)   imaginary eigenvalue part
+		vecs(n,n) eigenvectors
+
+		A(m,n)   matrix to obtain eigenvalues and eigenvectors from
+	*/
+	int info;
+	double *vl; 
+	vl = (double*)malloc(1*sizeof(double));
+	info = LAPACKE_dgeev(
+		LAPACK_ROW_MAJOR, // int  		matrix_layout
+		           'N',   // char       jobvl
+		           'V',   // char       jobvr
+		             n,   // int        n
+		             A,   // double*    A
+		             m,   // int        lda
+		          real,   // double*    wr
+		          imag,   // double*    wi
+		            vl,   // double*    vl
+		             n,   // int        ldvl
+		          vecs,   // double*    vr
+		             n    // int        ldvr
+	);
+	free(vl);
+	return info;
 }

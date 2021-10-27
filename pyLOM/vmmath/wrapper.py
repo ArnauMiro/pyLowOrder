@@ -53,6 +53,20 @@ def vecmat(v,A):
 	cr_stop('math.vecmat',0)	
 	return C
 
+def eigen(A):
+	'''
+	Eigenvalues and eigenvectors using numpy.
+		real(n)   are the real eigenvalues.
+		imag(n)   are the imaginary eigenvalues.
+		vecs(n,n) are the right eigenvectors.
+	'''
+	cr_start('math.eigen',0)
+	w,vecs = np.linalg.eig(A)
+	real   = np.real(w)
+	imag   = np.imag(w)
+	cr_stop('math.eigen',0)
+	return real,imag,vecs
+
 def temporal_mean(X):
 	'''
 	Temporal mean of matrix X(m,n) where m is the spatial coordinates

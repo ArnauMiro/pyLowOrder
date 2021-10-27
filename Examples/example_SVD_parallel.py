@@ -24,7 +24,7 @@ Ui, S, V = pyLOM.math.tsqr_svd(Ai)
 # Gather Ui to processor 0
 U = mpi_gather(Ui,root=0)
 
-pyLOM.pprint(0,'POD:')
+pyLOM.pprint(0,'pyLOM:')
 pyLOM.pprint(0,'U',U.shape if not U is None else None,U)
 pyLOM.pprint(0,'S',S.shape,S)
 pyLOM.pprint(0,'V',V.shape,V)

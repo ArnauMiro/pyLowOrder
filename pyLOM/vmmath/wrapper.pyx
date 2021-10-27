@@ -28,6 +28,7 @@ cdef extern from "vector_matrix.h":
 	cdef double c_vector_norm "vector_norm"(double *v, int start, int n)
 	cdef void   c_matmul      "matmul"(double *C, double *A, double *B, const int m, const int n, const int k)
 	cdef void   c_vecmat      "vecmat"(double *v, double *A, const int m, const int n)
+	cdef int    c_eigen       "eigen"(double *real, double *imag, double *vecs, double *A, const int m, const int n)
 cdef extern from "averaging.h":
 	cdef void c_temporal_mean "temporal_mean"(double *out, double *X, const int m, const int n)
 	cdef void c_subtract_mean "subtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
@@ -39,6 +40,10 @@ cdef extern from "fft.h":
 
 
 ## Cython functions
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
 def transpose(double[:,:] A):
 	'''
 	Transposed of matrix A
@@ -51,6 +56,10 @@ def transpose(double[:,:] A):
 	cr_stop('math.transpose',0)
 	return At
 
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
 def vector_norm(double[:] v):
 	'''
 	L2 norm of a vector
@@ -62,6 +71,10 @@ def vector_norm(double[:] v):
 	cr_stop('math.vector_norm',0)	
 	return norm
 
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
 def matmul(double[:,:] A, double[:,:] B):
 	'''
 	Matrix multiplication C = A x B
@@ -73,6 +86,10 @@ def matmul(double[:,:] A, double[:,:] B):
 	cr_stop('math.matmul',0)	
 	return C
 
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
 def vecmat(double[:] v, double[:,:] A):
 	'''
 	Vector times a matrix C = v x A
@@ -85,6 +102,32 @@ def vecmat(double[:] v, double[:,:] A):
 	cr_stop('math.vecmat',0)	
 	return C
 
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def eigen(double[:,:] A):
+	'''
+	Eigenvalues and eigenvectors using Lapack.
+		real(n)   are the real eigenvalues.
+		imag(n)   are the imaginary eigenvalues.
+		vecs(n,n) are the right eigenvectors.
+	'''
+	cr_start('math.eigen',0)
+	cdef int m = A.shape[0], n = A.shape[1], retval
+	cdef np.ndarray[np.double_t,ndim=1] real = np.zeros((n,),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=1] imag = np.zeros((n,),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] vecs = np.zeros((n,n),dtype=np.double)
+	# Compute eigenvalues and eigenvectors
+	retval = c_eigen(&real[0],&imag[0],&vecs[0,0],&A[0,0],m,n)
+	cr_stop('math.eigen',0)
+	if not retval == 0: raiseError('Problems computing SVD!')
+	return real,imag,vecs
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
 def temporal_mean(double[:,:] X):
 	'''
 	Temporal mean of matrix X(m,n) where m is the spatial coordinates
@@ -99,6 +142,10 @@ def temporal_mean(double[:,:] X):
 	cr_stop('math.temporal_mean',0)
 	return out
 
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
 def subtract_mean(double[:,:] X, double[:] X_mean):
 	'''
 	Computes out(m,n) = X(m,n) - X_mean(m) where m is the spatial coordinates
@@ -113,6 +160,10 @@ def subtract_mean(double[:,:] X, double[:] X_mean):
 	cr_stop('math.subtract_mean',0)
 	return out
 
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
 def svd(double[:,:] A, int do_copy=True):
 	'''
 	Single value decomposition (SVD) using Lapack.
@@ -139,6 +190,10 @@ def svd(double[:,:] A, int do_copy=True):
 	if not retval == 0: raiseError('Problems computing SVD!')
 	return U,S,V
 
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
 def tsqr_svd(double[:,:] A):
 	'''
 	Single value decomposition (SVD) using Lapack.
@@ -159,6 +214,10 @@ def tsqr_svd(double[:,:] A):
 	if not retval == 0: raiseError('Problems computing TSQR SVD!')
 	return U,S,V
 
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
 def fft(double [:] t, double[:] y):
 	'''
 	Compute the fft of a signal y that is sampled at a

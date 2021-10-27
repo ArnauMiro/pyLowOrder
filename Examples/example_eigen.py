@@ -21,20 +21,18 @@ A = np.array([
 ## Run eigenvalues from numpy
 pyLOM.cr_start('eigen numpy',0)
 w,v = np.linalg.eig(A)
+pyLOM.cr_stop('eigen numpy',0)
 print('Numpy:')
 print(w.shape,w)
 print(v.shape,v)
-pyLOM.cr_stop('eigen numpy',0)
 
 
 ## Run eigenvalyes from DMD
-pyLOM.cr_start('eigen cython',0)
-delta,w,v = pyLOM.DMD.eigen(A)
-print('DMD:')
+delta,w,v = pyLOM.math.eigen(A)
+print('pyLOM:')
 print(delta.shape,delta)
 print(w.shape,w)
 print(v.shape,v)
-pyLOM.cr_stop('eigen cython',0)
 
 
 pyLOM.cr_info()
