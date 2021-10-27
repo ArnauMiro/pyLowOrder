@@ -60,14 +60,14 @@ def transpose(double[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def vector_norm(double[:] v):
+def vector_norm(double[:] v, int start=0):
 	'''
 	L2 norm of a vector
 	'''
 	cr_start('math.vector_norm',0)
 	cdef int n = v.shape[0]
 	cdef double norm = 0.
-	norm = c_vector_norm(&v[0],0,n)
+	norm = c_vector_norm(&v[0],start,n)
 	cr_stop('math.vector_norm',0)	
 	return norm
 

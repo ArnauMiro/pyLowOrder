@@ -24,12 +24,12 @@ def transpose(A):
 	cr_stop('math.transpose',0)
 	return At
 
-def vector_norm(v):
+def vector_norm(v,start=0):
 	'''
 	L2 norm of a vector
 	'''
 	cr_start('math.vector_norm',0)
-	norm = np.linalg.norm(v)
+	norm = np.linalg.norm(v[start:],2)
 	cr_stop('math.vector_norm',0)	
 	return norm
 
