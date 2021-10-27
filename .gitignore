@@ -27,8 +27,8 @@ pyLOM/POD/wrapper.c
 pyLOM/POD/wrapper.html
 pyLOM/DMD/wrapper.c
 pyLOM/DMD/wrapper.html
-pyLOM/utils/matrix.c
-pyLOM/utils/matrix.html
+pyLOM/vmmath/wrapper.c
+pyLOM/vmmath/wrapper.html
 pyLOM/inp_out/*.c
 pyLOM/inp_out/*.html
 

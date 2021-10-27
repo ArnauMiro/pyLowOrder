@@ -19,7 +19,7 @@ Ai = mpi_scatter(A,root=0,do_split=True)
 
 
 ## Run parallel SVD
-Ui, S, V = pyLOM.POD.tsqr_svd(Ai)
+Ui, S, V = pyLOM.math.tsqr_svd(Ai)
 
 # Gather Ui to processor 0
 U = mpi_gather(Ui,root=0)

@@ -16,7 +16,7 @@ A = np.array([[1,2],[3,4],[5,6],[7,8]],dtype=np.double,order='C')
 
 ## Run SVD from numpy
 pyLOM.cr_start('SVD numpy',0)
-U, S, V = np.linalg.svd(A)
+U, S, V = np.linalg.svd(A,full_matrices=False)
 print('Numpy:')
 print(U.shape,U)
 print(S.shape,S)
@@ -25,21 +25,21 @@ pyLOM.cr_stop('SVD numpy',0)
 
 
 ## Run SVD from POD
-pyLOM.cr_start('SVD cython',0)
-U, S, V = pyLOM.POD.svd(A)
+pyLOM.cr_start('SVD pyLOM',0)
+U, S, V = pyLOM.math.svd(A)
 print('POD:')
 print(U.shape,U)
 print(S.shape,S)
 print(V.shape,V)
-pyLOM.cr_stop('SVD cython',0)
+pyLOM.cr_stop('SVD pyLOM',0)
 
-pyLOM.cr_start('TSQR_SVD cython',0)
-U, S, V = pyLOM.POD.tsqr_svd(A)
+pyLOM.cr_start('TSQR_SVD pyLOM',0)
+U, S, V = pyLOM.math.tsqr_svd(A)
 print('POD:')
 print(U.shape,U)
 print(S.shape,S)
 print(V.shape,V)
-pyLOM.cr_stop('TSQR_SVD cython',0)
+pyLOM.cr_stop('TSQR_SVD pyLOM',0)
 
 
 pyLOM.cr_info()
