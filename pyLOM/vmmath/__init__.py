@@ -14,5 +14,8 @@ from .wrapper import transpose, vector_norm, matmul, vecmat
 from .wrapper import temporal_mean, subtract_mean
 # SVD routines
 from .wrapper import svd, tsqr_svd
+# FFT routines
+from .wrapper import fft
+
 
 del wrapper

@@ -7,7 +7,7 @@
 # Last rev: 27/10/2021
 from __future__ import print_function, division
 
-import numpy as np
+import numpy as np, scipy
 
 from ..utils.cr     import cr_start, cr_stop
 from ..utils.parall import MPI_RANK, mpi_gather
@@ -110,3 +110,21 @@ def tsqr_svd(A):
 	U = np.matmul(Q,Ur)
 	cr_stop('math.tsqr_svd',0)
 	return U,S,V
+
+def fft(t,y):
+	'''
+	Compute the PSD of a signal y.
+	'''
+	cr_start('math.fft',0)
+	ts = t[1] - t[0] # Sampling time
+	# Compute sampling frequency
+	f  = scipy.fft.fftfreq(y.size,ts)
+	# Compute power spectra using fft 
+	yf = scipy.fft.fft(y)
+	ps = yf*np.conj(yf)/y.shape[0]
+	# Rearrange the values
+	idx = np.argsort(f)
+	f   = f[idx]
+	ps  = ps[idx]
+	cr_stop('math.fft',0)
+	return f, ps

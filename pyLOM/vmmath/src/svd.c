@@ -18,7 +18,7 @@
 #include "vector_matrix.h"
 #include "svd.h"
 
-#define AC_MAT(A,n,i,j) *((A) + (n)*(i) + (j))
+#define AC_MAT(A,n,i,j) *((A)+(n)*(i)+(j))
 #define MIN(a,b)         ((a)<(b)) ? (a) : (b)
 #define MAX(a,b)         ((a)>(b)) ? (a) : (b)
 #define POW2(x)          ((x)*(x))
@@ -173,22 +173,6 @@ int tsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const i
 			AC_MAT(Rtmp,n,ii,jj) = AC_MAT(Rp,n,ii+mpi_rank*n,jj);
 	// Finally compute Qi = Atmp x Rp
 	matmul(Qi,Atmp,Rtmp,m,n,n);
-//	cblas_dgemm(
-//		CblasRowMajor, // const CBLAS_LAYOUT 	  layout
-//		 CblasNoTrans, // const CBLAS_TRANSPOSE   TransA
-//		 CblasNoTrans, // const CBLAS_TRANSPOSE   TransB
-//		            m, // const CBLAS_INDEX 	  M
-//		            n, // const CBLAS_INDEX 	  N
-//		            n, // const CBLAS_INDEX 	  K
-//		          1.0, // const double 	          alpha
-//		         Atmp, // const double * 	      A
-//		            n, // const CBLAS_INDEX 	  lda
-//	  			 Rtmp, // const double * 	      B
-//		            n, // const CBLAS_INDEX 	  ldb
-//		           0., // const double 	          beta
-// 				   Qi, // double * 	              C
-//		            n  // const CBLAS_INDEX 	  ldc
-//	);
 	// Free memory
 	free(Atmp); free(tau); free(Rp); free(Rtmp);
 	// At this point we have R and Qi scattered on the processors
@@ -200,22 +184,6 @@ int tsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const i
 	if (!(info==0)) return info;
 	// Compute Ui = Qi x Ur
 	matmul(Ui,Qi,Ur,m,n,n);
-//	cblas_dgemm(
-//		CblasRowMajor, // const CBLAS_LAYOUT 	  layout
-//		 CblasNoTrans, // const CBLAS_TRANSPOSE   TransA
-//		 CblasNoTrans, // const CBLAS_TRANSPOSE   TransB
-//		            m, // const CBLAS_INDEX 	  M
-//		            n, // const CBLAS_INDEX 	  N
-//		            n, // const CBLAS_INDEX 	  K
-//		          1.0, // const double 	          alpha
-//		           Qi, // const double * 	      A
-//		            n, // const CBLAS_INDEX 	  lda
-//				   Ur, // const double * 	      B
-//		            n, // const CBLAS_INDEX 	  ldb
-//		           0., // const double 	          beta
-// 				   Ui, // double * 	              C
-//		            n  // const CBLAS_INDEX 	  ldc
-//	);
 	// Free memory
 	free(Ur); free(R); free(Qi);
 	return info;

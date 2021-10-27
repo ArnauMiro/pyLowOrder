@@ -28,12 +28,14 @@ cdef extern from "vector_matrix.h":
 	cdef double c_vector_norm "vector_norm"(double *v, int start, int n)
 	cdef void   c_matmul      "matmul"(double *C, double *A, double *B, const int m, const int n, const int k)
 	cdef void   c_vecmat      "vecmat"(double *v, double *A, const int m, const int n)
-cdef extern from "averaging.c":
+cdef extern from "averaging.h":
 	cdef void c_temporal_mean "temporal_mean"(double *out, double *X, const int m, const int n)
 	cdef void c_subtract_mean "subtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
 cdef extern from "svd.h":
 	cdef int c_svd      "svd"     (double *U, double *S, double *V, double *Y, const int m, const int n)
 	cdef int c_tsqr_svd "tsqr_svd"(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm)
+cdef extern from "fft.h":
+	cdef void c_fft "fft"(double *psd, double *y, const double dt, const int n)
 
 
 ## Cython functions
@@ -156,3 +158,18 @@ def tsqr_svd(double[:,:] A):
 	cr_stop('math.tsqr_svd',0)
 	if not retval == 0: raiseError('Problems computing TSQR SVD!')
 	return U,S,V
+
+def fft(double [:] t, double[:] y):
+	'''
+	Compute the fft of a signal y that is sampled at a
+	constant timestep. Return the frequency and PSD
+	'''
+	cr_start('math.fft',0)
+	cdef int n = y.shape[0]
+	cdef double ts = t[1] - t[0]
+	cdef np.ndarray[np.double_t,ndim=1] f   = np.zeros((n,) ,dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=1] PSD = np.zeros((n,) ,dtype=np.double)
+	memcpy(&f[0],&y[0],n*sizeof(double))
+	c_fft(&PSD[0],&f[0],ts,n)
+	cr_stop('math.fft',0)
+	return f, PSD
