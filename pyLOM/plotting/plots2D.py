@@ -114,8 +114,9 @@ def plotDMDMode(U, xyz, mesh, omegas, modes=np.array([1],np.int32), dim = 0, fig
 		fig[imode].suptitle('Mode %d, f = %f [Hz]'%(mode, omegas[modes[imode] - 1]))
 		print(mesh['type'])
 		if mesh['type'] == 'struct2D':
-			cf.append(plotFieldStruct2D(ax[imode][0],mesh['nx'],mesh['ny'], 2, xyz,np.real(U[:,mode-1]),dim-1,cmap,clear = False) )
-			cf.append(plotFieldStruct2D(ax[imode][1],mesh['nx'],mesh['ny'], 2, xyz,np.imag(U[:,mode-1]),dim-1,cmap,clear = False))
+			xyzc = mesh_compute_cellcenter(xyz,mesh)
+			cf.append(plotFieldStruct2D(ax[imode][0],mesh['nx'] - 1,mesh['ny'] - 1, 1, xyzc,np.real(U[:,mode-1]),dim-1,cmap,clear = False) )
+			cf.append(plotFieldStruct2D(ax[imode][1],mesh['nx'] - 1,mesh['ny'] - 1, 1, xyzc,np.imag(U[:,mode-1]),dim-1,cmap,clear = False))
 		ax[imode][0].set_title('Real part of the mode')
 		ax[imode][1].set_title('Imaginary part of the mode')
 	return fig, ax, cf
