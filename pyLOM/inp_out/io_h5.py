@@ -9,7 +9,7 @@ from __future__ import print_function, division
 
 import numpy as np, h5py
 
-from ..utils.parall import MPI_COMM, MPI_RANK, MPI_SIZE, worksplit, is_rank_or_serial, mpi_reduce
+from ..utils.parall import MPI_COMM, MPI_RANK, MPI_SIZE, worksplit, writesplit, is_rank_or_serial, mpi_reduce
 from ..utils.errors import raiseError
 from ..utils.mesh   import STRUCT2D, STRUCT3D, UNSTRUCT, mesh_number_of_points
 
