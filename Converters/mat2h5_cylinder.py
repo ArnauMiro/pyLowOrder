@@ -42,8 +42,8 @@ time = DT*np.arange(mat['UALL'].shape[1])
 # Build velocity as a 2D array
 nnx, nny = mesh['nx']-1,mesh['ny']-1
 VELOC = np.zeros((2*nnx*nny,time.shape[0]),dtype=np.double)
-VELOC[:nnx*nny,:] = np.ascontiguousarray(mat['UALL'].astype(np.double))
-VELOC[nnx*nny:,:] = np.ascontiguousarray(mat['VALL'].astype(np.double))
+VELOC[:2*nnx*nny:2,:]  = np.ascontiguousarray(mat['UALL'].astype(np.double))
+VELOC[1:2*nnx*nny:2,:] = np.ascontiguousarray(mat['VALL'].astype(np.double))
 
 VORTI = np.zeros((1*nnx*nny,time.shape[0]),dtype=np.double)
 VORTI[:,:] = np.ascontiguousarray(mat['VORTALL'].astype(np.double))

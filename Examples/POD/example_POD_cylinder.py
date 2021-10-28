@@ -18,7 +18,6 @@ VARIABLE = 'VELOC'
 d = pyLOM.Dataset.load(DATAFILE)
 X  = d[VARIABLE]
 t  = d.time
-dt = d.time[1] - d.time[0]
 
 
 ## Run POD
@@ -63,7 +62,7 @@ pyLOM.io.Ensight_writeCase(os.path.join('out','flow.ensi.case'),'flow.ensi.geo',
 pyLOM.POD.plotMode(PSI,d.xyz,V,t,d.mesh,d.info(VARIABLE),dim=0,modes=[1,2,3,4])
 
 # Plot reconstructed flow
-#pyLOM.POD.plotSnapshot(X_POD[:,10],d.xyz,d.mesh,d.info('VELOC'))
+#pyLOM.POD.plotSnapshot(X_POD[:,10],d.xyz,d.mesh,d.info(VARIABLE))
 fig,ax,anim = pyLOM.POD.animateFlow(X,X_POD,d.xyz,d.mesh,d.info(VARIABLE),dim=0)
 
 

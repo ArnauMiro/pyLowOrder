@@ -48,9 +48,9 @@ nt   = time.shape[0]
 # Obtain 3D velocity field
 npoints = nx*ny*nz
 VELOC = np.zeros((3*nx*ny*nz,nt),dtype=np.double)
-VELOC[:npoints,:]             = tensor[0,:,:,:,280:400].reshape((nx*ny*nz,nt),order='C')
-VELOC[npoints:2*npoints,:]    = tensor[1,:,:,:,280:400].reshape((nx*ny*nz,nt),order='C')
-VELOC[2*nx*ny*nz:3*npoints,:] = tensor[2,:,:,:,280:400].reshape((nx*ny*nz,nt),order='C')
+VELOC[:3*npoints:3,:]  = tensor[0,:,:,:,280:400].reshape((nx*ny*nz,nt),order='C')
+VELOC[1:3*npoints:3,:] = tensor[1,:,:,:,280:400].reshape((nx*ny*nz,nt),order='C')
+VELOC[2:3*npoints:3,:] = tensor[2,:,:,:,280:400].reshape((nx*ny*nz,nt),order='C')
 
 
 ## Create dataset for pyLOM

@@ -17,7 +17,6 @@ VARIABLE = 'PRESS'
 d = pyLOM.Dataset.load(DATAFILE)
 X  = d[VARIABLE]
 t  = d.time
-dt = d.time[1] - d.time[0]
 
 
 ## Run POD
