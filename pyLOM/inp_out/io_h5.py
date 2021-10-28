@@ -130,7 +130,7 @@ def h5_save_mpio(fname,xyz,time,pointOrder,cellOrder,meshDict,varDict,write_mast
 		dsetDict['cellOrder'][istart_c:iend_c]  = cellOrder
 		# Store the DATA
 		for var in varDict.keys():
-			if varDict['point']:
+			if varDict[var]['point']:
 				dset[var][istart_p:iend_p,:] = varDict[var]['value']
 			else:
 				dset[var][istart_c:iend_c,:] = varDict[var]['value']
