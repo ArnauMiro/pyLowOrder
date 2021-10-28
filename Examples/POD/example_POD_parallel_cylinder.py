@@ -22,19 +22,15 @@ t  = d.time
 dt = d.time[1] - d.time[0]
 
 
-## Compute POD
-pyLOM.cr_start('example',0)
-# Run POD
+## Run POD
 PSI,S,V = pyLOM.POD.run(X,remove_mean=False) # PSI are POD modes
-if pyLOM.is_rank_or_serial(root=0): pyLOM.plotResidual(S)
+if pyLOM.is_rank_or_serial(root=0): pyLOM.POD.plotResidual(S)
 # Truncate according to a residual
 PSI,S,V = pyLOM.POD.truncate(PSI,S,V,r=5e-6)
 # Reconstruct the flow
 X_POD = pyLOM.POD.reconstruct(PSI,S,V)
 # Compute RMSE
-rmse = pyLOM.POD.RMSE(X_POD,X)
-pyLOM.cr_stop('example',0)
-
+rmse = pyLOM.math.RMSE(X_POD,X)
 pyLOM.pprint(0,'RMSE = %e'%rmse)
 
 
@@ -72,11 +68,10 @@ xyz   = mpi_gather(d.xyz,root=0)
 ## Plot POD mode
 if pyLOM.is_rank_or_serial(0):
 	# 0 - module, 1,2 - components
-	pyLOM.plotMode(PSI,xyz,V,t,d.mesh,d.info(VARIABLE),dim=0,modes=[1,2,3,4])
+	pyLOM.POD.plotMode(PSI,xyz,V,t,d.mesh,d.info(VARIABLE),dim=0,modes=[1,2,3,4])
 
 	# Plot reconstructed flow
-	#pyLOM.plotSnapshot(X_POD[:,10],d.xyz,d.mesh,d.info('VELOC'))
-	fig,ax,anim = pyLOM.animateFlow(X,X_POD,xyz,d.mesh,d.info(VARIABLE),dim=0)
+	fig,ax,anim = pyLOM.POD.animateFlow(X,X_POD,xyz,d.mesh,d.info(VARIABLE),dim=0)
 
 
 ## Show and print timings

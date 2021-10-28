@@ -21,19 +21,15 @@ t  = d.time
 dt = d.time[1] - d.time[0]
 
 
-## Compute POD
-pyLOM.cr_start('example',0)
-# Run POD
+## Run POD
 PSI,S,V = pyLOM.POD.run(X,remove_mean=False) # PSI are POD modes
-pyLOM.plotResidual(S)
+pyLOM.POD.plotResidual(S)
 # Truncate according to a residual
 PSI,S,V = pyLOM.POD.truncate(PSI,S,V,r=5e-6)
 # Reconstruct the flow
 X_POD = pyLOM.POD.reconstruct(PSI,S,V)
 # Compute RMSE
-rmse = pyLOM.POD.RMSE(X_POD,X)
-pyLOM.cr_stop('example',0)
-
+rmse = pyLOM.math.RMSE(X_POD,X)
 print('RMSE = %.2e'%rmse)
 
 
@@ -65,7 +61,7 @@ pyLOM.io.Ensight_writeCase(os.path.join('out','flow.ensi.case'),'flow.ensi.geo',
 
 
 ## Plot POD mode
-_,ax,_ = pyLOM.plotMode(PSI,d.xyz,V,t,d.mesh,d.info(VARIABLE),modes=[1,3])
+_,ax,_ = pyLOM.POD.plotMode(PSI,d.xyz,V,t,d.mesh,d.info(VARIABLE),modes=[1,3])
 ax[0][2].set_xlim([0,0.5])
 ax[1][2].set_xlim([0,0.5])
 
