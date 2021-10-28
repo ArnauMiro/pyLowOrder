@@ -113,7 +113,7 @@ def h5_save_mpio(fname,xyz,time,pointOrder,cellOrder,meshDict,varDict,write_mast
 	dsetDict['xyz'] = file.create_dataset('xyz',(npoints,xyz.shape[1]),dtype=xyz.dtype)
 	# ordering arrays
 	dsetDict['pointOrder'] = file.create_dataset('pointOrder',(npoints,),dtype=pointOrder.dtype)
-	dsetDict['cellOrder']  = file.create_dataset('cellOrder',cellOrder.shape,dtype=cellOrder.dtype,data=cellOrder)
+	dsetDict['cellOrder']  = file.create_dataset('cellOrder',(ncells,),dtype=cellOrder.dtype,data=cellOrder)
 	# DATA group
 	data_group = file.create_group('DATA')
 	for var in varDict.keys():
