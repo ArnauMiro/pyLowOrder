@@ -97,7 +97,7 @@ def h5_save_mpio(fname,xyz,time,meshDict,varDict,pointOrder,cellOrder):
 	Save a dataset in HDF5 in parallel mode
 	'''
 	# Open file
-	file = h5py.File(fname,'w',driver='mpio',comm=comm)
+	file = h5py.File(fname,'w',driver='mpio',comm=MPI_COMM)
 	# Compute the total number of points
 	npoints = mpi_reduce(xyz.shape[0],op='sum',all=True)
 	# Create a group to store the mesh details
