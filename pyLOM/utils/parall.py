@@ -54,7 +54,7 @@ def writesplit(npoints,write_master):
 		# send to next where to start writing
 		istart, iend = 0, npoints
 		mpi_send(iend,dest=MPI_RANK+1) 
-	elif MPI_RANK == MPIsize-1:
+	elif MPI_RANK == MPI_SIZE-1:
 		# recive from the previous where to start writing
 		istart = mpi_recv(source=MPI_RANK-1) 
 		iend   = istart + npoints
