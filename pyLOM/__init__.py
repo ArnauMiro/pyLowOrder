@@ -7,16 +7,16 @@
 __VERSION__ = '1.0.0'
 
 # Import Low Order Models
-from . import POD, DMD, inp_out as io
+from . import POD#, DMD
 
-# Import DATASET class
+# Import essential tools
+from .        import inp_out as io, vmmath as math
 from .dataset import Dataset
 
-# Import CHRONO module from utils
+# Import utilities
 from .utils.cr     import cr_start, cr_stop, cr_info
 from .utils.parall import pprint, is_rank_or_serial
-# Import PLOTTING module from utils
-from .plotting import show_plots, close_plots, plotResidual, plotMode, plotDMDMode, plotSnapshot, animateFlow
+from .utils.plots  import show_plots, close_plots
 
 
-del utils, plotting, dataset
+del utils, dataset
