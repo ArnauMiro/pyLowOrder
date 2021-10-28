@@ -7,3 +7,4 @@ void   reorder(double *A, int m, int n, int N);
 void   matmul(double *C, double *A, double *B, const int m, const int n, const int k);
 void   vecmat(double *v, double *A, const int m, const int n);
 int    eigen(double *real, double *imag, double *vecs, double *A, const int m, const int n);
+double RMSE(double *A, double *B, const int m, const int n, MPI_Comm comm);

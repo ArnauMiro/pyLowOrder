@@ -29,6 +29,7 @@ cdef extern from "vector_matrix.h":
 	cdef void   c_matmul      "matmul"(double *C, double *A, double *B, const int m, const int n, const int k)
 	cdef void   c_vecmat      "vecmat"(double *v, double *A, const int m, const int n)
 	cdef int    c_eigen       "eigen"(double *real, double *imag, double *vecs, double *A, const int m, const int n)
+	cdef double c_RMSE        "RMSE"(double *A, double *B, const int m, const int n, MPI_Comm comm)
 cdef extern from "averaging.h":
 	cdef void c_temporal_mean "temporal_mean"(double *out, double *X, const int m, const int n)
 	cdef void c_subtract_mean "subtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
@@ -232,3 +233,19 @@ def fft(double [:] t, double[:] y):
 	c_fft(&PSD[0],&f[0],ts,n)
 	cr_stop('math.fft',0)
 	return f, PSD
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def RMSE(double[:,:] A, double[:,:] B):
+	'''
+	Compute RMSE between X_POD and X
+	'''
+	cr_start('math.RMSE',0)
+	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
+	cdef int m = A.shape[0], n = B.shape[1]
+	cdef double rmse = 0.
+	rmse = c_RMSE(&A[0,0],&B[0,0],m,n,MPI_COMM.ob_mpi)
+	cr_stop('math.RMSE',0)
+	return rmse

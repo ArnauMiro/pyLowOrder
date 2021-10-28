@@ -10,7 +10,7 @@ from __future__ import print_function, division
 import numpy as np, scipy
 
 from ..utils.cr     import cr_start, cr_stop
-from ..utils.parall import MPI_RANK, mpi_gather
+from ..utils.parall import MPI_RANK, mpi_gather, mpi_reduce
 from ..utils.errors import raiseError
 
 
@@ -135,10 +135,19 @@ def fft(t,y):
 	f  = scipy.fft.fftfreq(y.size,ts)
 	# Compute power spectra using fft 
 	yf = scipy.fft.fft(y)
-	ps = yf*np.conj(yf)/y.shape[0]
+	ps = np.real(yf*np.conj(yf))/y.shape[0]
 	# Rearrange the values
-	idx = np.argsort(f)
-	f   = f[idx]
-	ps  = ps[idx]
 	cr_stop('math.fft',0)
 	return f, ps
+
+def RMSE(A,B):
+	'''
+	Compute RMSE between X_POD and X
+	'''
+	cr_start('math.RMSE',0)
+	diff  = (A-B)
+	sum1g = mpi_reduce(np.sum(diff*diff),op='sum',all=True)
+	sum2g = mpi_reduce(np.sum(A*A),op='sum',all=True)
+	rmse  = np.sqrt(sum1g/sum2g)
+	cr_stop('math.RMSE',0)
+	return rmse

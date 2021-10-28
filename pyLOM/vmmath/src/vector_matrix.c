@@ -1,8 +1,8 @@
 /*
 	Vector and matrix math operations
 */
-
 #include <math.h>
+#include "mpi.h"
 
 #ifdef USE_MKL
 #include "mkl.h"
@@ -98,8 +98,9 @@ void vecmat(double *v, double *A, const int m, const int n) {
 	#ifdef USE_OMP
 	#pragma omp parallel for shared(b,A) firstprivate(m,n)
 	#endif
-	for(int ii=0; ii<m; ++ii)
-		cblas_dscal(n,v[ii],A+n*ii,1);	
+	for(int ii=0; ii<m; ++ii) {
+		cblas_dscal(n,v[ii],A+n*ii,1);
+	}
 }
 
 int eigen(double *real, double *imag, double *vecs, double *A, 
@@ -135,4 +136,33 @@ int eigen(double *real, double *imag, double *vecs, double *A,
 	);
 	free(vl);
 	return info;
+}
+
+double RMSE(double *A, double *B, const int m, const int n, MPI_Comm comm) {
+	/*
+		Compute the Root Meean Square Error (RMSE) between two
+		matrices and return it
+
+		A(m,n), B(m,n)
+	*/
+	double sum1 = 0., norm1 = 0., sum1g = 0.;
+	double sum2 = 0., norm2 = 0., sum2g = 0.;
+	#ifdef USE_OMP
+	#pragma omp parallel for shared(A,B) firstprivate(m,n)
+	#endif
+	for(int ii = 0; ii < n; ++ii) {
+		norm1 = 0.;
+		norm2 = 0.;
+		for(int jj = 0; jj < m; ++jj){
+			norm1 += POW2(AC_MAT(A,n,ii,jj) - AC_MAT(B,n,ii,jj));
+			norm2 += POW2(AC_MAT(A,n,ii,jj));
+		}
+		sum1 += norm1;
+		sum2 += norm2;
+	}
+	// Reduce MPI parallel run
+	MPI_Allreduce(&sum1,&sum1g,1,MPI_DOUBLE,MPI_SUM,comm); 
+	MPI_Allreduce(&sum2,&sum2g,1,MPI_DOUBLE,MPI_SUM,comm);
+	// Return
+	return sqrt(sum1g/sum2g);
 }
