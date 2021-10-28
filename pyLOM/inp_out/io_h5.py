@@ -100,9 +100,6 @@ def h5_save_mpio(fname,xyz,time,meshDict,varDict,pointOrder,cellOrder):
 	file = h5py.File(fname,'w',driver='mpio',comm=MPI_COMM)
 	# Compute the total number of points
 	npoints = mpi_reduce(xyz.shape[0],op='sum',all=True)
-	# Create a group to store the mesh details
-	mesh_group = file.create_group('MESH')
-	h5_save_mesh(mesh_group,meshDict)
 	# Store number of points and number of instants
 	dset = file.create_dataset('npoints',(1,),dtype='i',data=npoints)
 	dset = file.create_dataset('ninstants',(1,),dtype='i',data=time.shape[0])
@@ -116,6 +113,13 @@ def h5_save_mpio(fname,xyz,time,meshDict,varDict,pointOrder,cellOrder):
 	for var in varDict.keys():
 		h5_save_variable_mpio(data_group,var,varDict[var],pointOrder,cellOrder)
 	file.close()
+	# Append mesh in serial mode
+	if is_rank_or_serial(0):
+		file = h5py.File(fname,'a')
+		# Create a group to store the mesh details
+		mesh_group = file.create_group('MESH')
+		h5_save_mesh(mesh_group,meshDict)
+		file.close()
 
 
 def h5_load(fname,mpio=True):
