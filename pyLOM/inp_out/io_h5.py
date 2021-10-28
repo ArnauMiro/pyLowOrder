@@ -9,17 +9,20 @@ from __future__ import print_function, division
 
 import numpy as np, h5py
 
-from ..utils.parall import MPI_COMM, MPI_RANK, MPI_SIZE, worksplit
+from ..utils.parall import MPI_COMM, MPI_RANK, MPI_SIZE, worksplit, is_rank_or_serial, mpi_reduce
 from ..utils.errors import raiseError
 from ..utils.mesh   import STRUCT2D, STRUCT3D, UNSTRUCT, mesh_number_of_points
 
 
-def h5_save(fname,xyz,time,meshDict,varDict,mpio=True,write_master=False):
+def h5_save(fname,xyz,time,meshDict,varDict,**kwargs):
 	'''
 	Save a Dataset in HDF5
 	'''
-	if mpio and not MPI_SIZE == 1:
-		h5_save_mpio(fname,xyz,time,meshDict,varDict,write_master)
+	if not 'mpio' in kwargs.keys(): kwargs['mpio'] = True
+	if kwargs['mpio'] and not MPI_SIZE == 1:
+		if not 'pointOrder' in kwargs.keys() or not 'cellOrder' in kwargs.keys():
+			raiseError('H5IO mpio error! ordering arrays not provided!')
+		h5_save_mpio(fname,xyz,time,meshDict,varDict,kwargs['pointOrder'],kwargs['cellOrder'])
 	else:
 		h5_save_serial(fname,xyz,time,meshDict,varDict)
 
@@ -48,7 +51,7 @@ def h5_save_mesh(group,meshDict):
 	if 'partition' in meshDict.keys():
 		raiseError('Not implemented!')
 
-def h5_save_variable(group,varname,varDict):
+def h5_save_variable_serial(group,varname,varDict):
 	'''
 	Save a variable inside an HDF5 group
 	'''
@@ -67,65 +70,52 @@ def h5_save_serial(fname,xyz,time,meshDict,varDict):
 	mesh_group = file.create_group('MESH')
 	h5_save_mesh(mesh_group,meshDict)
 	# Store number of points and number of instants
-	dset    = file.create_dataset('npoints',(1,),dtype='i',data=xyz.shape[0])
-	dset    = file.create_dataset('ninstants',(1,),dtype='i',data=time.shape[0])
+	dset = file.create_dataset('npoints',(1,),dtype='i',data=xyz.shape[0])
+	dset = file.create_dataset('ninstants',(1,),dtype='i',data=time.shape[0])
 	# Store xyz coordinates
-	dset      = file.create_dataset('xyz',xyz.shape,dtype=xyz.dtype,data=xyz)
+	dset = file.create_dataset('xyz',xyz.shape,dtype=xyz.dtype,data=xyz)
 	# Store time instants
-	dset    = file.create_dataset('time',time.shape,dtype=time.dtype,data=time)
+	dset = file.create_dataset('time',time.shape,dtype=time.dtype,data=time)
 	# Store the DATA
 	data_group = file.create_group('DATA')
 	for var in varDict.keys():
-		h5_save_variable(data_group,var,varDict[var])
+		h5_save_variable_serial(data_group,var,varDict[var])
 	file.close()
 
-def h5_save_mpio(fname,xyz,time,meshDict,varDict,write_master=False):
+def h5_save_variable_mpio(group,varname,varDict,pointOrder,cellOrder):
+	'''
+	Save a variable inside an HDF5 group
+	'''
+	var_group = group.create_group(varname)
+	dset = var_group.create_dataset('point',(1,),dtype=int,data=varDict['point'])
+	dset = var_group.create_dataset('ndim',(1,),dtype=int,data=varDict['ndim'])
+	dset = var_group.create_dataset('value',varDict['value'].shape,dtype=varDict['value'].dtype)
+	dset[pointOrder if varDict['point'] else cellOrder,:] = varDict['value']
+
+def h5_save_mpio(fname,xyz,time,meshDict,varDict,pointOrder,cellOrder):
 	'''
 	Save a dataset in HDF5 in parallel mode
 	'''
-	raiseError('H5IO not implemented!')
-#	# Compute the total number of points
-#	npG  = int(comm.allreduce(xyz.shape[0] if not np.all(np.isnan(xyz)) else 0.,op=MPI.SUM))
-#	# Open file
-#	file = h5py.File(fname,'w',driver='mpio',comm=comm)
-#	# Create groups and datasets
-#	meta_group = file.create_group('metadata')
-#	dset_meta = {}
-#	dset_meta['npoints'] = meta_group.create_dataset('npoints',(1,),dtype='i')
-#	for var in metadata.keys():
-#		dset_meta[var] = meta_group.create_dataset(var,(1,),dtype=metadata[var][1])
-#	dset_file = {}
-#	dset_file['xyz'] = file.create_dataset('xyz',(npG,3),dtype='f')
-#	for var in varDict.keys():
-#		v = varDict[var]
-#		dset_file[var] = file.create_dataset(var,(npG,) if len(v.shape) == 1 else (npG,v.shape[1]),dtype='f')
-#	# Master writes the metadata
-#	if rank == 0:
-#		dset_meta['npoints'][:] = npG
-#		for var in metadata.keys():
-#			dset_meta[var][:] = metadata[var][0]
-#	if rank != 0 or write_master:
-#		rstart = 1 if not write_master else 0
-#		# Select in which order the processors will write
-#		if rank == rstart:
-#			istart, iend = 0, xyz.shape[0] if not np.all(np.isnan(xyz)) else 0
-#			comm.send(iend,dest=rank+1) # send to next where to start writing
-#		elif rank == MPIsize-1:
-#			istart = comm.recv(source=rank-1) # recive from the previous where to start writing
-#			iend   = istart + xyz.shape[0] if not np.all(np.isnan(xyz)) else istart
-#		else:
-#			istart = comm.recv(source=rank-1) # recive from the previous where to start writing
-#			iend   = istart + xyz.shape[0] if not np.all(np.isnan(xyz)) else istart
-#			comm.send(iend,dest=rank+1) # send to next where to start writing
-#		# Store the data
-#		dset_file['xyz'][istart:iend,:] = xyz
-#		for var in varDict.keys():
-#			v = varDict[var]
-#			if len(v.shape) == 1: # Scalar field
-#				dset_file[var][istart:iend] = v
-#			else: # Vectorial or tensorial field
-#				dset_file[var][istart:iend,:] = v
-#	file.close()
+	# Open file
+	file = h5py.File(fname,'w',driver='mpio',comm=comm)
+	# Compute the total number of points
+	npoints = mpi_reduce(xyz.shape[0],op='sum',all=True)
+	# Create a group to store the mesh details
+	mesh_group = file.create_group('MESH')
+	h5_save_mesh(mesh_group,meshDict)
+	# Store number of points and number of instants
+	dset = file.create_dataset('npoints',(1,),dtype='i',data=npoints)
+	dset = file.create_dataset('ninstants',(1,),dtype='i',data=time.shape[0])
+	# Store xyz coordinates
+	dset = file.create_dataset('xyz',xyz.shape,dtype=xyz.dtype)
+	dset[pointOrder,:] = xyz
+	# Store time instants
+	dset = file.create_dataset('time',time.shape,dtype=time.dtype,data=time)
+	# Store the DATA
+	data_group = file.create_group('DATA')
+	for var in varDict.keys():
+		h5_save_variable_mpio(data_group,var,varDict[var],pointOrder,cellOrder)
+	file.close()
 
 
 def h5_load(fname,mpio=True):
