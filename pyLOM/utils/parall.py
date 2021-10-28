@@ -82,7 +82,7 @@ def mpi_gather(sendbuff,root=0,all=False):
 	return sendbuff
 
 
-def mpi_reduce(sendbuff,root=0,op='sum'):
+def mpi_reduce(sendbuff,root=0,op='sum',all=False):
 	if MPI_SIZE > 1:
 		if isinstance(op,str):
 			if 'sum' in op: opf = MPI.SUM
@@ -90,8 +90,11 @@ def mpi_reduce(sendbuff,root=0,op='sum'):
 			if 'min' in op: opf = MPI.MIN
 		else:
 			opf = op
-		out = MPI_COMM.reduce(sendbuff,op=opf,root=root)
-		return out if root == MPI_RANK else sendbuff
+		if all:
+			return MPI_COMM.allreduce(sendbuff,op=opf)
+		else:
+			out = MPI_COMM.reduce(sendbuff,op=opf,root=root)
+			return out if root == MPI_RANK else sendbuff
 	else:
 		return sendbuff
 
