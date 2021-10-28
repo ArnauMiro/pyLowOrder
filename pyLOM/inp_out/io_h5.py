@@ -14,17 +14,14 @@ from ..utils.errors import raiseError
 from ..utils.mesh   import STRUCT2D, STRUCT3D, UNSTRUCT, mesh_number_of_points
 
 
-def h5_save(fname,xyz,time,meshDict,varDict,**kwargs):
+def h5_save(fname,xyz,time,pointOrder,cellOrder,meshDict,varDict,mpio=True,write_master=True):
 	'''
 	Save a Dataset in HDF5
 	'''
-	if not 'mpio' in kwargs.keys(): kwargs['mpio'] = True
-	if kwargs['mpio'] and not MPI_SIZE == 1:
-		if not 'pointOrder' in kwargs.keys() or not 'cellOrder' in kwargs.keys():
-			raiseError('H5IO mpio error! ordering arrays not provided!')
-		h5_save_mpio(fname,xyz,time,meshDict,varDict,kwargs['pointOrder'],kwargs['cellOrder'])
+	if mpio and not MPI_SIZE == 1:
+		h5_save_mpio(fname,xyz,time,pointOrder,cellOrder,meshDict,varDict,write_master)
 	else:
-		h5_save_serial(fname,xyz,time,meshDict,varDict)
+		h5_save_serial(fname,xyz,time,pointOrder,cellOrder,meshDict,varDict)
 
 def h5_save_mesh(group,meshDict):
 	'''
@@ -60,7 +57,7 @@ def h5_save_variable_serial(group,varname,varDict):
 	dset = var_group.create_dataset('ndim',(1,),dtype=int,data=varDict['ndim'])
 	dset = var_group.create_dataset('value',varDict['value'].shape,dtype=varDict['value'].dtype,data=varDict['value'])
 
-def h5_save_serial(fname,xyz,time,meshDict,varDict):
+def h5_save_serial(fname,xyz,time,pointOrder,cellOrder,meshDict,varDict):
 	'''
 	Save a dataset in HDF5 in serial mode
 	'''
@@ -76,6 +73,9 @@ def h5_save_serial(fname,xyz,time,meshDict,varDict):
 	dset = file.create_dataset('xyz',xyz.shape,dtype=xyz.dtype,data=xyz)
 	# Store time instants
 	dset = file.create_dataset('time',time.shape,dtype=time.dtype,data=time)
+	# Store ordering arrays
+	dset = file.create_dataset('pointOrder',pointOrder.shape,dtype=pointOrder.dtype,data=pointOrder)
+	dset = file.create_dataset('cellOrder',cellOrder.shape,dtype=cellOrder.dtype,data=cellOrder)
 	# Store the DATA
 	data_group = file.create_group('DATA')
 	for var in varDict.keys():
@@ -100,7 +100,7 @@ def h5_save_variable_mpio(group,varname,varDict,pointOrder,cellOrder):
 	else:
 		if not np.any(cellOrder) < 0: dset[cellOrder,:] = varDict['value']
 
-def h5_save_mpio(fname,xyz,time,meshDict,varDict,pointOrder,cellOrder):
+def h5_save_mpio(fname,xyz,time,pointOrder,cellOrder,meshDict,varDict,write_master):
 	'''
 	Save a dataset in HDF5 in parallel mode
 	'''
@@ -189,12 +189,15 @@ def h5_load_serial(fname):
 	xyz  = np.array(file['xyz'],dtype=np.double)
 	# Load time instants
 	time = np.array(file['time'],dtype=np.double)
+	# Load ordering arrays
+	pointOrder = np.array(file['pointOrder'],dtype=np.double)
+	cellOrder  = np.array(file['cellOrder'],dtype=np.double)
 	# Load the variables in the varDict
 	varDict = {}
 	for var in file['DATA'].keys():
 		varDict[var] = h5_load_variable_serial(file['DATA'][var])
 	file.close()
-	return xyz, time, meshDict, varDict
+	return xyz, time, pointOrder, cellOrder, meshDict, varDict
 
 def h5_load_variable_mpio(group,meshDict):
 	'''
@@ -231,6 +234,9 @@ def h5_load_mpio(fname):
 		istart,iend = worksplit(0,npoints,MPI_RANK,nWorkers=MPI_SIZE)
 		# Load node coordinates
 		xyz = np.array(file['xyz'][istart:iend,:],dtype=np.double)
+		# Load ordering arrays
+		pointOrder = np.array(file['pointOrder'][istart:iend],dtype=np.double)
+		cellOrder  = np.array(file['cellOrder'][istart:iend],dtype=np.double)
 		# Load the variables in the varDict
 		varDict = {}
 		for var in file['DATA'].keys():
@@ -238,4 +244,4 @@ def h5_load_mpio(fname):
 	else:
 		raiseError('H5IO not implemented!')
 	file.close()
-	return xyz, time, meshDict, varDict
+	return xyz, time, pointOrder, cellOrder, meshDict, varDict

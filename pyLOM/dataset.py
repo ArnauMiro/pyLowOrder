@@ -27,8 +27,8 @@ class Dataset(object):
 	with the number of variables and relates them so that the operations 
 	in parallel are easier.
 	'''
-	def __init__(self, mesh=None, xyz=np.array([[0.,0.,0.]],np.double), 
-		time=np.array([0.],np.double), **kwargs):
+	def __init__(self, mesh=None, xyz=np.array([[0.,0.,0.]],np.double), time=np.array([0.],np.double), 
+		pointOrder=np.array([],np.int32), cellOrder=np.array([],np.int32), **kwargs):
 		'''
 		Class constructor (self, mesh, xyz, time, **kwargs)
 
@@ -39,12 +39,15 @@ class Dataset(object):
 			> kwags: dictionary containin the variable name and values as a
 					 python dictionary.
 		'''
-		self._xyz      = xyz
-		self._xyzc     = None
-		self._time     = time
-		self._vardict  = kwargs
-		self._meshDict = mesh
-		#self._ismaster = True if rank == 0 else False
+		npoints          = mesh_number_of_points(True,mesh)
+		ncells           = mesh_number_of_points(False,mesh)
+		self._xyz        = xyz
+		self._xyzc       = None
+		self._time       = time
+		self._pointOrder = np.arange(npoints,dtype=np.int32) if len(pointOrder) == 0 else pointOrder
+		self._cellOrder  = np.arange(npoints,dtype=np.int32) if len(cellOrder)  == 0 else cellOrder
+		self._vardict    = kwargs
+		self._meshDict   = mesh
 
 	def __len__(self):
 		return self._xyz.shape[0]
@@ -165,7 +168,7 @@ class Dataset(object):
 			# Set default parameters
 			if not 'mpio'         in kwargs.keys(): kwargs['mpio']         = True
 			if not 'write_master' in kwargs.keys(): kwargs['write_master'] = False
-			io.h5_save(fname,self.xyz,self.time,self.mesh,self.var,**kwargs)
+			io.h5_save(fname,self.xyz,self.time,self._pointOrder,self._cellOrder,self.mesh,self.var,**kwargs)
 		cr_stop('Dataset.save',0)
 
 	@classmethod
@@ -183,9 +186,9 @@ class Dataset(object):
 		# H5 format
 		if fmt.lower() == 'h5':
 			if not 'mpio' in kwargs.keys(): kwargs['mpio'] = True
-			xyz, time, meshDict, varDict = io.h5_load(fname,**kwargs)
+			xyz, time, pointOrder, cellOrder, meshDict, varDict = io.h5_load(fname,**kwargs)
 			cr_stop('Dataset.load',0)
-			return cls(meshDict,xyz,time,**varDict)
+			return cls(meshDict,xyz,time,pointOrder,cellOrder,**varDict)
 		cr_stop('Dataset.load',0)
 		raiseError('Cannot load file <%s>!'%fname)
 
