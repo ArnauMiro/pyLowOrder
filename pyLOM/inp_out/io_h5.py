@@ -87,9 +87,10 @@ def h5_save_variable_mpio(group,varname,varDict,pointOrder,cellOrder):
 	Save a variable inside an HDF5 group
 	'''
 	var_group = group.create_group(varname)
+	npoints   = mpi_reduce(varDict['value'].shape[0],op='sum',all=True)
 	dset = var_group.create_dataset('point',(1,),dtype=int,data=varDict['point'])
 	dset = var_group.create_dataset('ndim',(1,),dtype=int,data=varDict['ndim'])
-	dset = var_group.create_dataset('value',varDict['value'].shape,dtype=varDict['value'].dtype)
+	dset = var_group.create_dataset('value',(npoints,varDict['value'].shape[1]),dtype=varDict['value'].dtype)
 	if varDict['point']:
 		if not np.any(pointOrder) < 0: dset[pointOrder,:] = varDict['value']
 	else:
@@ -107,7 +108,7 @@ def h5_save_mpio(fname,xyz,time,meshDict,varDict,pointOrder,cellOrder):
 	dset = file.create_dataset('npoints',(1,),dtype='i',data=npoints)
 	dset = file.create_dataset('ninstants',(1,),dtype='i',data=time.shape[0])
 	# Store xyz coordinates
-	dset = file.create_dataset('xyz',xyz.shape,dtype=xyz.dtype)
+	dset = file.create_dataset('xyz',(npoints,xyz.shape[1]),dtype=xyz.dtype)
 	if not np.any(pointOrder) < 0: dset[pointOrder,:] = xyz
 	# Store time instants
 	dset = file.create_dataset('time',time.shape,dtype=time.dtype,data=time)
