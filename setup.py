@@ -4,7 +4,7 @@
 #
 # Setup and cythonize code.
 #
-# Last rev: 07/07/2021
+# Last rev: 28/10/2021
 from __future__ import print_function, division
 
 import os, sys, numpy as np
@@ -25,7 +25,7 @@ with open('options.cfg') as f:
 
 
 ## Libraries and includes
-include_dirs  = ['pyLOM/POD/src','pyLOM/DMD/src','pyLOM/utils/src',np.get_include()]
+include_dirs  = []
 extra_objects = []
 libraries     = ['m']
 # OSX needs to also link with python3.8 for reasons...
@@ -60,48 +60,59 @@ else:
 
 
 ## Modules
-Module_matrix = Extension('pyLOM.utils.matrix',
-						sources       = ['pyLOM/utils/matrix.pyx',
-										 'pyLOM/utils/src/matrix.c',
+# vmmath module
+Module_math = Extension('pyLOM.vmmath.wrapper',
+						sources       = ['pyLOM/vmmath/wrapper.pyx',
+										 'pyLOM/vmmath/src/vector_matrix.c',
+										 'pyLOM/vmmath/src/averaging.c',
+										 'pyLOM/vmmath/src/svd.c',
+										 'pyLOM/vmmath/src/fft.c',
 									    ],
 						language      = 'c',
-						include_dirs  = include_dirs,
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include()],
 						extra_objects = extra_objects,
 						libraries     = libraries,
 					   )
-Module_POD = Extension('pyLOM.POD.wrapper',
-						sources       = ['pyLOM/POD/wrapper.pyx',
-										 'pyLOM/POD/src/pod.c',
-										 'pyLOM/utils/src/matrix.c',
-									    ],
-						language      = 'c',
-						include_dirs  = include_dirs,
-						extra_objects = extra_objects,
-						libraries     = libraries,
-					   )
-Module_DMD = Extension('pyLOM.DMD.wrapper',
-						sources       = ['pyLOM/DMD/wrapper.pyx',
-										 'pyLOM/DMD/src/dmd.c',
-										 'pyLOM/POD/src/pod.c',
-										 'pyLOM/utils/src/matrix.c',
-									    ],
-						language      = 'c',
-						include_dirs  = include_dirs,
-						extra_objects = extra_objects,
-						libraries     = libraries,
-					   )
+# input output module
 Module_IO_ensight  = Extension('pyLOM.inp_out.io_ensight',
 						sources      = ['pyLOM/inp_out/io_ensight.pyx'],
 						language     = 'c',
 						include_dirs = [np.get_include()],
 						libraries    = libraries,
 					   )
+# low-order modules
+Module_POD = Extension('pyLOM.POD.wrapper',
+						sources       = ['pyLOM/POD/wrapper.pyx',
+										 'pyLOM/vmmath/src/vector_matrix.c',
+										 'pyLOM/vmmath/src/averaging.c',
+										 'pyLOM/vmmath/src/svd.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
+#Module_DMD = Extension('pyLOM.DMD.wrapper',
+#						sources       = ['pyLOM/DMD/wrapper.pyx',
+#										 'pyLOM/DMD/src/dmd.c',
+#										 'pyLOM/POD/src/pod.c',
+#										 'pyLOM/utils/src/matrix.c',
+#									    ],
+#						language      = 'c',
+#						include_dirs  = include_dirs,
+#						extra_objects = extra_objects,
+#						libraries     = libraries,
+#					   )
 
 
 ## Decide which modules to compile
 modules_list = [
-	Module_matrix,Module_POD,Module_DMD,
+	# Math module
+	Module_math,
+	# IO module
 	Module_IO_ensight,
+	# Low order algorithms
+	Module_POD,#Module_DMD,
 ]
 
 
