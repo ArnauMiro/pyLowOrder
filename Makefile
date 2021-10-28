@@ -149,7 +149,7 @@ lapack: Deps/lapack
 openblas: Deps/lapack
 	@bash $</install_openblas.sh "${OPENBLAS_VERS}" "${PWD}/$<" "${CC}" "${CFLAGS}" "${FC}" "${FFLAGS}"
 mkl: Deps/oneAPI
-	@bash $</install_mkl.sh "${ONEAPI_VERS}" "${PWD}/$</mkl" "${CC}" "${CFLAGS}" "${FC}" "${FFLAGS}"
+	@bash $</install_mkl.sh "${PLATFORM}" "${ONEAPI_VERS}" "${PWD}/$</mkl" "${CC}" "${CFLAGS}" "${FC}" "${FFLAGS}"
 fftw: Deps/fftw
 	@bash $</install_fftw.sh "${FFTW_VERS}" "${PWD}/$<" "${CC}" "${CFLAGS}" "${FC}" "${FFLAGS}"
 
