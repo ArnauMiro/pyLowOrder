@@ -40,8 +40,8 @@ def plotFieldStruct2D(ax,nx,ny,ndim,xyz,field,dim,cmap,clear=False):
 	X = xyz[:,0].reshape((nx,ny),order='c').T
 	Y = xyz[:,1].reshape((nx,ny),order='c').T
 	# Obtain data matrix
-	Z = field.reshape((ndim,nx,ny),order='c').T if ndim > 1 else field.reshape((nx,ny),order='c').T
-	return ax.contourf(X,Y,Z[:,:,dim] if dim >= 0 else np.linalg.norm(Z,axis=2) if ndim > 1 else Z,cmap=cmap)
+	Z = field.reshape((nx,ny,ndim),order='c').T if ndim > 1 else field.reshape((nx,ny),order='c').T
+	return ax.contourf(X,Y,Z[ndim,:,:] if dim >= 0 else np.linalg.norm(Z,axis=0) if ndim > 1 else Z,cmap=cmap)
 
 
 def plotResidual(S,fig=None,ax=None):

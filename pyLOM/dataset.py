@@ -146,9 +146,9 @@ class Dataset(object):
 		# Allocate output array
 		out =np.zeros((npoints,len(modes)),np.double)
 		for m in modes:
-			out[:,m-1] = U[(ivar-1)*npoints:ivar*npoints,m-1]
+			out[:,m-1] = U[ivar-1:nvars*npoints:nvars,m-1]
 		# Return reshaped output
-		return out.reshape((len(modes)*npoints,),order='F')
+		return out.reshape((len(modes)*npoints,),order='C')
 
 	def save(self,fname,**kwargs):
 		'''

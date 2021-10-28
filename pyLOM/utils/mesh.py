@@ -146,7 +146,7 @@ def mesh_reshape_var(var,meshDict,info):
 	if meshDict['type'].lower() in UNSTRUCT:
 		npoints = meshDict['nnod'] if info['point'] else meshDict['nel']
 	# Only reshape the variable if ndim > 1
-	out = np.ascontiguousarray(var.reshape((npoints,info['ndim']),order='F') if info['ndim'] > 1 else var)
+	out = np.ascontiguousarray(var.reshape((npoints,info['ndim']),order='C') if info['ndim'] > 1 else var)
 	# Build 3D vector in case of 2D array
 	if meshDict['type'].lower() in STRUCT2D and info['ndim'] == 2:
 		out = np.hstack((out,np.zeros((npoints,1))))
