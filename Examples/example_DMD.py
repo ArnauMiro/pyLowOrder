@@ -54,11 +54,11 @@ bJov = pyLOM.DMD.amplitude_jovanovic(muReal, muImag, muReal.shape[0], X1.shape[1
 #Reconstruction according to Jovanovic 2014
 Xdmd = np.matmul(np.matmul(np.matmul(PSI, wComplex), np.diag(bJov)), Vand)
 
-#Order modes according to its amplitude (only for presentation purposes)
+#Order modes according to its amplitude (only for presentation purposes): classify them between the components
 delta, omega, Phi, bJov = pyLOM.DMD.order_modes(delta, omega, Phi, bJov)
 
 
-#Plots
+#Plots: separate the different modes according to the components
 
 #Ritz Spectrum
 theta = np.array(range(101))*2*np.pi/100

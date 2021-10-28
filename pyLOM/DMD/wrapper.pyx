@@ -12,6 +12,8 @@ cimport numpy as np
 
 import numpy as np
 
+from scipy.linalg import ldl
+
 from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy, memset
 from mpi4py.libmpi cimport MPI_Comm
@@ -140,8 +142,12 @@ def vandermonde(eigReal, eigImag, shape0, shape1):
 	return Vand
 
 def amplitude_jovanovic(eigReal, eigImag, shape0, shape1, wComplex, S, V, Vand):
+	#Confirm that ldl is possible!
 	P    = np.matmul(np.transpose(np.conj(wComplex)), wComplex)*np.conj(np.matmul(Vand, np.transpose(np.conj(Vand))))
-	Pl   = np.linalg.cholesky(P)
+	try:
+		Pl = np.linalg.cholesky(P)
+	except:
+		Pl, d, Pu   = ldl(P)
 	G    = np.matmul(np.diag(S), V)
 	q    = np.conj(np.diag(np.matmul(np.matmul(Vand, np.transpose(np.conj(G))), wComplex)))
 	bJov = np.matmul(np.linalg.inv(np.transpose(np.conj(Pl))), np.matmul(np.linalg.inv(Pl), q)) #Amplitudes according to Jovanovic 2014
