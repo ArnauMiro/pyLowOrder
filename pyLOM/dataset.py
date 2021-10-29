@@ -138,6 +138,33 @@ class Dataset(object):
 		'''
 		return mesh_compute_cellcenter(self._xyz,self._meshDict)
 
+	def X(variables=[]):
+		'''
+		Return the X matrix for the selected variables
+		'''
+		# Select all variables if none is provided
+		if len(variables) == 0: variables = self.varnames
+		# Compute the number of variables
+		nvars = 0
+		for var in variables:
+			nvars += self.var[var]['ndim']
+		# Create output array
+		npoints = mesh_number_of_points(self.var[variables[0]]['point'],self._meshDict)
+		ninst   = self._time.shape[0]
+		X = np.zeros((nvars*npoints,ninst),np.double)
+		# Populate output matrix
+		ivar = 0
+		for var in variables:
+			v = self.var[var]
+			if v['ndim'] == 1:
+				X[ivar:nvars*npoints:nvars] = v['value']
+				ivar += 1
+			else:
+				for idim in range(v['ndim']):
+					X[ivar:nvars*npoints:nvars] = v['value'][:,idim]
+					ivar += 1
+		return X
+
 	def save(self,fname,**kwargs):
 		'''
 		Store the field in various formats.
@@ -235,7 +262,7 @@ class Dataset(object):
 		return self._vardict
 	@property
 	def varnames(self):
-		return self._vardict.keys()
+		return list(self._vardict.keys())
 
 
 def EnsightWriter(dset,casestr,basedir,instants,varnames):
