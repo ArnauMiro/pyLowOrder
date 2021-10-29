@@ -156,13 +156,9 @@ class Dataset(object):
 		ivar = 0
 		for var in variables:
 			v = self.var[var]
-			if v['ndim'] == 1:
-				X[ivar:nvars*npoints:nvars,:] = v['value']
+			for idim in range(v['ndim']):
+				X[ivar:nvars*npoints:nvars,:] = v['value'][idim:v['ndim']*npoints:v['ndim'],:]
 				ivar += 1
-			else:
-				for idim in range(v['ndim']):
-					X[ivar:nvars*npoints:nvars,:] = v['value'][:,idim]
-					ivar += 1
 		return X
 
 	def save(self,fname,**kwargs):
