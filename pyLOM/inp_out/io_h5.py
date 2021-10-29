@@ -132,9 +132,9 @@ def h5_save_mpio(fname,xyz,time,pointOrder,cellOrder,meshDict,varDict,write_mast
 		for var in varDict.keys():
 			v = varDict[var]
 			if v['point']:
-				dset[var][istart_p:iend_p,:] = v['value']
+				dsetDict[var][istart_p:iend_p,:] = v['value']
 			else:
-				dset[var][istart_c:iend_c,:] = v['value']
+				dsetDict[var][istart_c:iend_c,:] = v['value']
 	file.close()
 	# Append mesh in serial mode
 	if is_rank_or_serial(0):
