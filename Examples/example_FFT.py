@@ -23,11 +23,12 @@ X = S + 2*np.random.randn(t.size)
 
 
 ## Compute FFT in different ways
-f,p = pyLOM.math.fft(t,X)
+f1,p1 = pyLOM.math.fft(t,X)
+f2,p2 = pyLOM.math.fft(t,X,equispaced=False)
 
 
 ## Plot
-fig, ax = plt.subplots(2,1,figsize=(8,6),dpi=100,facecolor='w',edgecolor='k',gridspec_kw={'hspace':0.25,'wspace':0.25})
+fig, ax = plt.subplots(3,1,figsize=(8,12),dpi=100,facecolor='w',edgecolor='k',gridspec_kw={'hspace':0.25,'wspace':0.25})
 
 # Signal plot
 ax[0].plot(1000*t,X,'k')
@@ -36,10 +37,16 @@ ax[0].set_xlabel('time [msec]')
 ax[0].set_ylabel('Y(t)')
 
 # FFT spectrum plot
-ax[1].plot(f,p,'k')
+ax[1].plot(f1,p1,'k')
 ax[1].set_xlim([0,150])
 ax[1].set_xlabel('f [Hz]')
 ax[1].set_ylabel('|P1(f)|')
+
+# FFT spectrum plot
+ax[2].plot(f2,p2,'k')
+ax[2].set_xlim([0,150])
+ax[2].set_xlabel('f [Hz]')
+ax[2].set_ylabel('|P1(f)|')
 
 
 pyLOM.cr_info()

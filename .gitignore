@@ -23,6 +23,8 @@ Deps/oneAPI/sys_check.sh
 Deps/oneAPI/tbb
 Deps/fftw/include
 Deps/fftw/lib
+Deps/nfft/include
+Deps/nfft/lib
 pyLOM/POD/wrapper.c
 pyLOM/POD/wrapper.html
 pyLOM/DMD/wrapper.c

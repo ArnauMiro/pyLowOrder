@@ -7,7 +7,7 @@
 # Last rev: 27/10/2021
 from __future__ import print_function, division
 
-import numpy as np, scipy
+import numpy as np, scipy, nfft
 
 from ..utils.cr     import cr_start, cr_stop
 from ..utils.parall import MPI_RANK, mpi_gather, mpi_reduce
@@ -125,18 +125,25 @@ def tsqr_svd(A):
 	cr_stop('math.tsqr_svd',0)
 	return U,S,V
 
-def fft(t,y):
+def fft(t,y,equispaced=True):
 	'''
 	Compute the PSD of a signal y.
 	'''
 	cr_start('math.fft',0)
-	ts = t[1] - t[0] # Sampling time
-	# Compute sampling frequency
-	f  = scipy.fft.fftfreq(y.size,ts)
-	# Compute power spectra using fft 
-	yf = scipy.fft.fft(y)
-	ps = np.real(yf*np.conj(yf))/y.shape[0]
-	# Rearrange the values
+	if equispaced:
+		ts = t[1] - t[0] # Sampling time
+		# Compute sampling frequency
+		f  = 1./ts/t.shape[0]*np.arange(t.shape[0],dtype=np.double)
+		# Compute power spectra using fft 
+		yf = scipy.fft.fft(y)
+	else:
+		# Compute sampling frequency
+		k_left = (t.shape[0]-1.)/2.
+		f      = (np.arange(t.shape[0],dtype=np.double)-k_left)/t[-1]
+		# Compute power spectra using fft
+		x  = (t-t[-1])/t[-1] + 0.5
+		yf = nfft.nfft_adjoint(x,y,len(t))
+	ps = np.real(yf*np.conj(yf))/y.shape[0] # np.abs(yf)/y.shape[0]
 	cr_stop('math.fft',0)
 	return f, ps
 

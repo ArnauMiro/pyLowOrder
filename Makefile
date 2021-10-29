@@ -121,7 +121,7 @@ ifeq ($(USE_MKL),ON)
 deps: mkl requirements
 
 else
-deps: lapack openblas fftw requirements
+deps: lapack openblas fftw nfft requirements
 
 endif
 
@@ -151,7 +151,9 @@ openblas: Deps/lapack
 mkl: Deps/oneAPI
 	@bash $</install_mkl.sh "${PLATFORM}" "${ONEAPI_VERS}" "${PWD}/$</mkl" "${CC}" "${CFLAGS}" "${FC}" "${FFLAGS}"
 fftw: Deps/fftw
-	@bash $</install_fftw.sh "${FFTW_VERS}" "${PWD}/$<" "${CC}" "${CFLAGS}" "${FC}" "${FFLAGS}"
+	@bash $</install_fftw.sh "${PLATFORM}" "${FFTW_VERS}" "${PWD}/$<" "${CC}" "${CFLAGS}" "${FC}" "${FFLAGS}"
+nfft: Deps/nfft
+	@bash $</install_nfft.sh "${PLATFORM}" "${NFFT_VERS}" "${PWD}/$<" "${CC}" "${CFLAGS}" "${FC}" "${FFLAGS}"
 
 
 # Generic object makers
@@ -187,7 +189,7 @@ ifeq ($(USE_MKL),ON)
 uninstall_deps: uninstall_mkl
 
 else
-uninstall_deps: uninstall_lapack uninstall_fftw
+uninstall_deps: uninstall_lapack uninstall_fftw uninstall_nfft
 
 endif
 
@@ -211,3 +213,8 @@ uninstall_mkl: Deps/oneAPI/mkl
 uninstall_fftw: Deps/fftw/lib
 	-@rm -rf Deps/fftw/include
 	-@rm -rf Deps/fftw/lib
+
+uninstall_nfft: Deps/nfft/lib
+	-@rm -rf Deps/nfft/include
+	-@rm -rf Deps/nfft/lib
+	-@rm -rf Deps/nfft/share

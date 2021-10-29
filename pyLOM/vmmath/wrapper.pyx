@@ -38,7 +38,7 @@ cdef extern from "svd.h":
 	cdef int c_tsqr_svd "tsqr_svd"(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm)
 cdef extern from "fft.h":
 	cdef void c_fft "fft"(double *psd, double *y, const double dt, const int n)
-
+	cdef void c_nfft "nfft"(double *psd, double *t, double* y, const int n)
 
 ## Cython functions
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -219,7 +219,7 @@ def tsqr_svd(double[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def fft(double [:] t, double[:] y):
+def fft(double [:] t, double[:] y, int equispaced=True):
 	'''
 	Compute the fft of a signal y that is sampled at a
 	constant timestep. Return the frequency and PSD
@@ -230,7 +230,10 @@ def fft(double [:] t, double[:] y):
 	cdef np.ndarray[np.double_t,ndim=1] f   = np.zeros((n,) ,dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=1] PSD = np.zeros((n,) ,dtype=np.double)
 	memcpy(&f[0],&y[0],n*sizeof(double))
-	c_fft(&PSD[0],&f[0],ts,n)
+	if equispaced:
+		c_fft(&PSD[0],&f[0],ts,n)
+	else:
+		c_nfft(&PSD[0],&f[0],&t[0],n)
 	cr_stop('math.fft',0)
 	return f, PSD
 

@@ -57,6 +57,9 @@ else:
 	include_dirs  += ['Deps/fftw/include']
 	extra_objects += ['Deps/fftw/lib/libfftw3.a']
 	if options['OPENMP_PARALL'] == 'ON': extra_objects += ['Deps/fftw/lib/libfftw3_omp.a']
+	# NFFT
+	include_dirs  += ['Deps/nfft/include']
+	extra_objects += ['Deps/nfft/lib/libnfft3.a']
 
 
 ## Modules
@@ -127,5 +130,5 @@ setup(
     long_description = readme,
     url              = 'https://github.com/ArnauMiro/UPM_BSC_LowOrder',
     packages         = find_packages(exclude=('Deps','Examples','Docs','Converters')),
-	install_requires = ['numpy','matplotlib','cython','h5py','mpi4py']
+	install_requires = ['numpy','matplotlib','cython','h5py','mpi4py','nfft']
 )
