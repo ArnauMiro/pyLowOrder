@@ -262,9 +262,15 @@ class Dataset(object):
 		self._meshDict = value
 	@property
 	def npoints(self):
-		return mpi_reduce(self._pointOrder.shape[0],op='sum',all=True)
+		return self._pointOrder.shape[0]
 	@property
 	def ncells(self):
+		return self._cellOrder.shape[0]
+	@property
+	def npointsG(self):
+		return mpi_reduce(self._pointOrder.shape[0],op='sum',all=True)
+	@property
+	def ncellsG(self):
 		return mpi_reduce(self._cellOrder.shape[0],op='sum',all=True)
 
 	@property
