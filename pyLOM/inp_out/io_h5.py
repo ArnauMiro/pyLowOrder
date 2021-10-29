@@ -121,8 +121,8 @@ def h5_save_mpio(fname,xyz,time,pointOrder,cellOrder,meshDict,varDict,write_mast
 	# Store datasets
 	if MPI_RANK != 0 or write_master:
 		# Obtain the write split for point and cell arrays
-		istart_p, iend_p = writesplit(npoints,write_master)
-		istart_c, iend_c = writesplit(ncells,write_master)
+		istart_p, iend_p = writesplit(pointOrder.shape[0],write_master)
+		istart_c, iend_c = writesplit(cellOrder.shape[0],write_master)
 		# Store xyz coordinates
 		dsetDict['xyz'][istart_p:iend_p,:] = xyz
 		# Store ordering arrays
@@ -130,10 +130,11 @@ def h5_save_mpio(fname,xyz,time,pointOrder,cellOrder,meshDict,varDict,write_mast
 		dsetDict['cellOrder'][istart_c:iend_c]  = cellOrder
 		# Store the DATA
 		for var in varDict.keys():
-			if varDict[var]['point']:
-				dset[var][istart_p:iend_p,:] = varDict[var]['value']
+			v = varDict[var]
+			if v['point']:
+				dset[var][istart_p:iend_p,:] = v['value']
 			else:
-				dset[var][istart_c:iend_c,:] = varDict[var]['value']
+				dset[var][istart_c:iend_c,:] = v['value']
 	file.close()
 	# Append mesh in serial mode
 	if is_rank_or_serial(0):
