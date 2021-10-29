@@ -34,9 +34,9 @@ print('RMSE = %.2e'%rmse)
 
 ## Dump to ParaView
 # Spatial modes
-d.add_variable('spatial_modes_U',d.info(VARIABLE)['point'],6,0,d.extract_modes(PSI,1,modes=[1,4,6,2,5,3],point=d.info(VARIABLE)['point']))
-d.add_variable('spatial_modes_V',d.info(VARIABLE)['point'],6,0,d.extract_modes(PSI,2,modes=[1,4,6,2,5,3],point=d.info(VARIABLE)['point']))
-d.add_variable('spatial_modes_W',d.info(VARIABLE)['point'],6,0,d.extract_modes(PSI,3,modes=[1,4,6,2,5,3],point=d.info(VARIABLE)['point']))
+d.add_variable('spatial_modes_U',d.info(VARIABLE)['point'],6,0,pyLOM.POD.extract_modes(PSI,1,d.mesh,modes=[1,4,6,2,5,3],point=d.info(VARIABLE)['point']))
+d.add_variable('spatial_modes_V',d.info(VARIABLE)['point'],6,0,pyLOM.POD.extract_modes(PSI,2,d.mesh,modes=[1,4,6,2,5,3],point=d.info(VARIABLE)['point']))
+d.add_variable('spatial_modes_W',d.info(VARIABLE)['point'],6,0,pyLOM.POD.extract_modes(PSI,3,d.mesh,modes=[1,4,6,2,5,3],point=d.info(VARIABLE)['point']))
 d.write('modes',basedir='out',instants=[0],vars=['spatial_modes_U','spatial_modes_V','spatial_modes_W'],fmt='ensi')
 pyLOM.io.Ensight_writeCase(os.path.join('out','modes.ensi.case'),'modes.ensi.geo',
 	[

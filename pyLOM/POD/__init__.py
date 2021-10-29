@@ -9,6 +9,7 @@
 __VERSION__ = '1.0.0'
 
 from .wrapper import run, truncate, reconstruct
+from .utils   import extract_modes
 from .plots   import plotResidual, plotMode, plotSnapshot, animateFlow
 
 

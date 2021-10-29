@@ -138,21 +138,6 @@ class Dataset(object):
 		'''
 		return mesh_compute_cellcenter(self._xyz,self._meshDict)
 
-	def extract_modes(self,U,ivar,modes=[],point=False):
-		'''
-		Extract modes for a certain variables
-		'''
-		npoints = mesh_number_of_points(point,self._meshDict)
-		nvars   = U.shape[0]//npoints
-		# Define modes to extract
-		if len(modes) == 0: modes = np.arange(U.shape[1],dtype=np.int32)
-		# Allocate output array
-		out =np.zeros((npoints,len(modes)),np.double)
-		for m in modes:
-			out[:,m-1] = U[ivar-1:nvars*npoints:nvars,m-1]
-		# Return reshaped output
-		return out.reshape((len(modes)*npoints,),order='C')
-
 	def save(self,fname,**kwargs):
 		'''
 		Store the field in various formats.
