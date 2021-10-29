@@ -90,7 +90,7 @@ def h5_dataset_variable_mpio(group,varname,varDict,nnod,ncells):
 	var_group = group.create_group(varname)
 	dset = var_group.create_dataset('point',(1,),dtype=int,data=varDict['point'])
 	dset = var_group.create_dataset('ndim',(1,),dtype=int,data=varDict['ndim'])
-	dset = var_group.create_dataset('value',(npoints,varDict['value'].shape[1]),dtype=varDict['value'].dtype)
+	dset = var_group.create_dataset('value',(varDict['ndim']*npoints,varDict['value'].shape[1]),dtype=varDict['value'].dtype)
 	return dset
 
 def h5_save_mpio(fname,xyz,time,pointOrder,cellOrder,meshDict,varDict,write_master):
@@ -132,9 +132,9 @@ def h5_save_mpio(fname,xyz,time,pointOrder,cellOrder,meshDict,varDict,write_mast
 		for var in varDict.keys():
 			v = varDict[var]
 			if v['point']:
-				dsetDict[var][istart_p:iend_p,:] = v['value']
+				dsetDict[var][v['ndim']*istart_p:v['ndim']*iend_p,:] = v['value']
 			else:
-				dsetDict[var][istart_c:iend_c,:] = v['value']
+				dsetDict[var][v['ndim']*istart_c:v['ndim']*iend_c,:] = v['value']
 	file.close()
 	# Append mesh in serial mode
 	if is_rank_or_serial(0):
