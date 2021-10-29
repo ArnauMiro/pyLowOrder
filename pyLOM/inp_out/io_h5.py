@@ -44,7 +44,7 @@ def h5_save_mesh(group,meshDict):
 		dset = group.create_dataset('nnod',(1,),dtype=int,data=meshDict['nnod'])
 		dset = group.create_dataset('nel',(1,),dtype=int,data=meshDict['nel'])
 		dset = group.create_dataset('elkind',(1,),dtype=h5py.special_dtype(vlen=str),data=meshDict['elkind'])
-		dset = group.create_dataset('conec',conec.shape,dtype=conec.dtype,data=meshDict['conec'])
+#		dset = group.create_dataset('conec',conec.shape,dtype=conec.dtype,data=meshDict['conec'])
 	if 'partition' in meshDict.keys():
 		raiseError('Not implemented!')
 
