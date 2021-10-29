@@ -138,7 +138,7 @@ class Dataset(object):
 		'''
 		return mesh_compute_cellcenter(self._xyz,self._meshDict)
 
-	def X(*args):
+	def X(self,*args):
 		'''
 		Return the X matrix for the selected variables
 		'''
