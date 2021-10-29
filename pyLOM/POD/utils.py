@@ -20,7 +20,7 @@ def extract_modes(U,ivar,npoints,modes=[],reshape=True):
 	cr_start('POD.extract_modes',0)
 	nvars = U.shape[0]//npoints
 	# Define modes to extract
-	if len(modes) == 0: modes = np.arange(U.shape[1],dtype=np.int32)
+	if len(modes) == 0: modes = np.arange(1,U.shape[1]+1,dtype=np.int32)
 	# Allocate output array
 	out =np.zeros((npoints,len(modes)),np.double)
 	for m in modes:
