@@ -138,12 +138,12 @@ class Dataset(object):
 		'''
 		return mesh_compute_cellcenter(self._xyz,self._meshDict)
 
-	def X(variables=[]):
+	def X(*args):
 		'''
 		Return the X matrix for the selected variables
 		'''
 		# Select all variables if none is provided
-		if len(variables) == 0: variables = self.varnames
+		variables = self.varnames if len(args) == 0 else args
 		# Compute the number of variables
 		nvars = 0
 		for var in variables:
