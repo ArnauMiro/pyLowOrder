@@ -20,16 +20,17 @@ SRC=https://www.fftw.org/${TAR}
 # Check if the FFTW libraries have been deployed
 # if not, compile
 if test -f "${INSTALL_PREFIX}/lib/libfftw3.a"; then
-    echo "FFTW already deployed!"
-    echo "Skipping build..."
+	echo "FFTW already deployed!"
+	echo "Skipping build..."
 else
-    echo "FFTW not deployed!"
-    echo "Starting build..."
+	echo "FFTW not deployed!"
+	echo "Starting build..."
 
-    echo "Version ${VERS}"
-    echo "C compiler '${CCOMPILER}' with flags '${CFLAGS}'"
-    echo "Fortran compiler '${FCOMPILER}' with flags '${FFLAGS}'"
-    echo "Install path ${INSTALL_PREFIX}"
+	echo "Platform ${PLATFORM}"
+	echo "Version ${VERS}"
+	echo "C compiler '${CCOMPILER}' with flags '${CFLAGS}'"
+	echo "Fortran compiler '${FCOMPILER}' with flags '${FFLAGS}'"
+	echo "Install path ${INSTALL_PREFIX}"
 
 	if [ "$PLATFORM" = "MN4" ]; then # MareNostrum4
 		# Symlink to MN4 installation directory
