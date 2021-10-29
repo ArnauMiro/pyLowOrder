@@ -149,7 +149,7 @@ class Dataset(object):
 		for var in variables:
 			nvars += self.var[var]['ndim']
 		# Create output array
-		npoints = mesh_number_of_points(self.var[variables[0]]['point'],self._meshDict)
+		npoints = self.pointOrder.shape[0] if self.var[variables[0]]['point'] else self.cellOrder.shape[0]
 		ninst   = self._time.shape[0]
 		X = np.zeros((nvars*npoints,ninst),np.double)
 		# Populate output matrix
@@ -239,6 +239,13 @@ class Dataset(object):
 	@time.setter
 	def time(self,value):
 		self._time = value
+
+	@property
+	def pointOrder(self):
+		return self._pointOrder
+	@property
+	def cellOrder(self):
+		return self._cellOrder
 
 	@property
 	def x(self):
