@@ -224,7 +224,7 @@ def h5_load_variable_mpio(group,nnod,ncell):
 		'ndim'  : group['ndim'][0]
 	}
 	# Compute the number of points per variable
-	npoints = nnod if if varDict['point'] else ncell
+	npoints = nnod if varDict['point'] else ncell
 	# Call the worksplit and only read a part of the data
 	istart,iend = worksplit(0,varDict['ndim']*npoints,MPI_RANK,nWorkers=MPI_SIZE)
 	varDict['value'] = np.array(group['value'][istart:iend,:],dtype=np.double)
