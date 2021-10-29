@@ -14,6 +14,7 @@ from mpi4py import MPI
 from .             import inp_out as io
 from .utils.cr     import cr_start, cr_stop
 from .utils.errors import raiseError
+from .utils.parall import mpi_reduce
 from .utils.mesh   import mesh_number_of_points, mesh_reshape_var, mesh_element_type, mesh_compute_connectivity, mesh_compute_cellcenter
 
 
@@ -259,6 +260,12 @@ class Dataset(object):
 	@mesh.setter
 	def mesh(self,value):
 		self._meshDict = value
+	@property
+	def npoints(self):
+		return mpi_reduce(self._pointOrder.shape[0],op='sum',all=True)
+	@property
+	def ncells(self):
+		return mpi_reduce(self._cellOrder.shape[0],op='sum',all=True)
 
 	@property
 	def var(self):

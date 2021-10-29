@@ -13,12 +13,11 @@ from ..utils.mesh import mesh_number_of_points
 from ..utils.cr   import cr_start, cr_stop
 
 
-def extract_modes(U,ivar,meshDict,modes=[],point=False):
+def extract_modes(U,ivar,npoints,modes=[]):
 	'''
 	Extract modes for a certain variables
 	'''
 	cr_start('POD.extract_modes',0)
-	npoints = mesh_number_of_points(point,meshDict)
 	nvars   = U.shape[0]//npoints
 	# Define modes to extract
 	if len(modes) == 0: modes = np.arange(U.shape[1],dtype=np.int32)
