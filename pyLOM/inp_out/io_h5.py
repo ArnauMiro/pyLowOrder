@@ -67,7 +67,8 @@ def h5_save_serial(fname,xyz,time,pointOrder,cellOrder,meshDict,varDict):
 	mesh_group = file.create_group('MESH')
 	h5_save_mesh(mesh_group,meshDict)
 	# Store number of points and number of instants
-	dset = file.create_dataset('npoints',(1,),dtype='i',data=xyz.shape[0])
+	dset = file.create_dataset('npoints',(1,),dtype='i',data=pointOrder.shape[0])
+	dset = file.create_dataset('ncells',(1,),dtype='i',data=cellOrder.shape[0])
 	dset = file.create_dataset('ninstants',(1,),dtype='i',data=time.shape[0])
 	# Store xyz coordinates
 	dset = file.create_dataset('xyz',xyz.shape,dtype=xyz.dtype,data=xyz)
@@ -106,6 +107,7 @@ def h5_save_mpio(fname,xyz,time,pointOrder,cellOrder,meshDict,varDict,write_mast
 	# Create datasets
 	# number of points and number of instants
 	dset = file.create_dataset('npoints',(1,),dtype='i',data=npoints)
+	dset = file.create_dataset('ncells',(1,),dtype='i',data=ncells)
 	dset = file.create_dataset('ninstants',(1,),dtype='i',data=time.shape[0])
 	# time instants
 	dset = file.create_dataset('time',time.shape,dtype=time.dtype,data=time)
@@ -212,7 +214,7 @@ def h5_load_serial(fname):
 	file.close()
 	return xyz, time, pointOrder, cellOrder, meshDict, varDict
 
-def h5_load_variable_mpio(group,meshDict):
+def h5_load_variable_mpio(group,nnod,ncell):
 	'''
 	Save a variable inside an HDF5 group
 	'''
@@ -222,9 +224,9 @@ def h5_load_variable_mpio(group,meshDict):
 		'ndim'  : group['ndim'][0]
 	}
 	# Compute the number of points per variable
-	npoints = varDict['ndim']*mesh_number_of_points(varDict['point'],meshDict)
+	npoints = nnod if if varDict['point'] else ncell
 	# Call the worksplit and only read a part of the data
-	istart,iend = worksplit(0,npoints,MPI_RANK,nWorkers=MPI_SIZE)
+	istart,iend = worksplit(0,varDict['ndim']*npoints,MPI_RANK,nWorkers=MPI_SIZE)
 	varDict['value'] = np.array(group['value'][istart:iend,:],dtype=np.double)
 	return varDict
 
@@ -238,23 +240,20 @@ def h5_load_mpio(fname):
 	meshDict = h5_load_mesh(file['MESH'])
 	# Load time instants
 	time = np.array(file['time'],dtype=np.double)
-	# If we do not have information on the partition stored in
-	# the file, generate a simple partition
-	if not 'partition' in file.keys():
-		# Read the number of points of the mesh
-		npoints = int(file['npoints'][0])
-		# Call the worksplit and only read a part of the data
-		istart,iend = worksplit(0,npoints,MPI_RANK,nWorkers=MPI_SIZE)
-		# Load node coordinates
-		xyz = np.array(file['xyz'][istart:iend,:],dtype=np.double)
-		# Load ordering arrays
-		pointOrder = np.array(file['pointOrder'][istart:iend],dtype=np.double)
-		cellOrder  = np.array(file['cellOrder'][istart:iend],dtype=np.double)
-		# Load the variables in the varDict
-		varDict = {}
-		for var in file['DATA'].keys():
-			varDict[var] = h5_load_variable_mpio(file['DATA'][var],meshDict)
-	else:
-		raiseError('H5IO not implemented!')
+	# Read the number of points of the mesh
+	npoints = int(file['npoints'][0])
+	ncells  = int(file['ncells'][0])
+	# Call the worksplit and only read a part of the data
+	istart_p,iend_p = worksplit(0,npoints,MPI_RANK,nWorkers=MPI_SIZE)
+	istart_c,iend_c = worksplit(0,ncells,MPI_RANK,nWorkers=MPI_SIZE)
+	# Load node coordinates
+	xyz = np.array(file['xyz'][istart_p:iend_p,:],dtype=np.double)
+	# Load ordering arrays
+	pointOrder = np.array(file['pointOrder'][istart_p:iend_p],dtype=np.double)
+	cellOrder  = np.array(file['cellOrder'][istart_c:iend_c],dtype=np.double)
+	# Load the variables in the varDict
+	varDict = {}
+	for var in file['DATA'].keys():
+		varDict[var] = h5_load_variable_mpio(file['DATA'][var],npoints,ncells)
 	file.close()
 	return xyz, time, pointOrder, cellOrder, meshDict, varDict
