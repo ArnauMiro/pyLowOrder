@@ -13,7 +13,7 @@ from ..utils.mesh import mesh_number_of_points
 from ..utils.cr   import cr_start, cr_stop
 
 
-def extract_modes(U,ivar,npoints,modes=[]):
+def extract_modes(U,ivar,npoints,modes=[],reshape=True):
 	'''
 	Extract modes for a certain variables
 	'''
@@ -27,4 +27,4 @@ def extract_modes(U,ivar,npoints,modes=[]):
 		out[:,m-1] = U[ivar-1:nvars*npoints:nvars,m-1]
 	# Return reshaped output
 	cr_stop('POD.extract_modes',0)
-	return out.reshape((len(modes)*npoints,),order='C')
+	return out.reshape((len(modes)*npoints,),order='C') if reshape else out
