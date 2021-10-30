@@ -96,7 +96,7 @@ else
 	endif
 endif
 # C standard
-CFLAGS   += -std=c99
+#CFLAGS   += -std=c99
 # C++ standard
 CXXFLAGS += -std=c++11
 # Header includes
@@ -208,7 +208,7 @@ uninstall_lapack: Deps/lapack/lib
 
 uninstall_mkl: Deps/oneAPI/mkl
 	-@Deps/oneAPI/l_BaseKit_p_${ONEAPI_VERS}.sh -a --silent --action remove --eula accept --components intel.oneapi.lin.mkl.devel --install-dir $(shell pwd)/Deps/oneAPI
-	-@rm -rf $< Deps/oneAPI/mkl
+	-@rm -rf Deps/oneAPI/l_BaseKit_p_${ONEAPI_VERS}.sh Deps/oneAPI/mkl
 
 uninstall_fftw: Deps/fftw/lib
 	-@rm -rf Deps/fftw/include

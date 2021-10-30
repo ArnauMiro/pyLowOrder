@@ -41,20 +41,21 @@ else
 		mkdir -p ${INSTALL_PREFIX}
 		cp -r $MKL_INSTALL_DIR/include ${INSTALL_PREFIX}
 	else
+		cd Deps/
 		# MKL path
-		MKL_LIBRARIES="${PWD}/Deps/oneAPI/mkl/latest/lib/intel64"
+		MKL_LIBRARIES="${PWD}/oneAPI/mkl/latest/lib/intel64"
 		# Download MKL binary
-		wget -O ${PWD}/Deps/oneAPI/l_BaseKit_p_${VERS}.sh ${SRC}
-		chmod +x ${PWD}/Deps/oneAPI/l_BaseKit_p_${VERS}.sh
+		wget -O ${PWD}/oneAPI/l_BaseKit_p_${VERS}.sh ${SRC}
+		chmod +x ${PWD}/oneAPI/l_BaseKit_p_${VERS}.sh
 
 		# Trigger build
-		${PWD}/Deps/oneAPI/l_BaseKit_p_${VERS}.sh \
+		${PWD}/oneAPI/l_BaseKit_p_${VERS}.sh \
 			-a \
 			--silent \
 			--action install \
 			--eula accept \
 			--components intel.oneapi.lin.mkl.devel \
-			--install-dir ${PWD}/Deps/oneAPI
+			--install-dir ${PWD}/oneAPI
 	fi
 	# Build intel and gcc MKL static libraries
 	ar -rcT ${INSTALL_PREFIX}/libmkl_intel_omp.a ${MKL_LIBRARIES}/libmkl_core.a ${MKL_LIBRARIES}/libmkl_intel_thread.a ${MKL_LIBRARIES}/libmkl_intel_lp64.a

@@ -44,6 +44,7 @@ else
 			ln -s "/apps/FFTW/${VERS}/GCC/OPENMPI/lib" "${INSTALL_PREFIX}/"
 		fi
 	else
+		cd Deps/
 		# Clone repository and checkout version tag
 		wget -O ${TAR} ${SRC}
 		tar xvzf ${TAR}
@@ -56,7 +57,8 @@ else
 			-DCMAKE_INSTALL_LIBDIR=$INSTALL_PREFIX/lib \
 			-DENABLE_THREADS=ON -DENABLE_OPENMP=ON -DENABLE_AVX2=ON -DBUILD_SHARED_LIBS=OFF \
 			-DCMAKE_C_COMPILER="${CCOMPILER}" -DCMAKE_C_FLAGS="${CFLAGS}" \
-			-DCMAKE_Fortran_COMPILER="${FCOMPILER}" -DCMAKE_Fortran_FLAGS="${FFLAGS}"
+			-DCMAKE_Fortran_COMPILER="${FCOMPILER}" -DCMAKE_Fortran_FLAGS="${FFLAGS}" \
+			-DCMAKE_REQUIRED_LIBRARIES="m"
 		# Build
 		make -j $(getconf _NPROCESSORS_ONLN)
 		make install

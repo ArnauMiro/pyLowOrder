@@ -9,7 +9,7 @@ PLATFORM=${1}
 VERS=${2}
 INSTALL_PREFIX=${3}
 CCOMPILER=${4}
-CFLAGS="${5} -std=gnu99"
+CFLAGS="${5}"
 FCOMPILER=${6}
 FFLAGS=${7}
 
@@ -33,13 +33,14 @@ else
 	echo "Install path ${INSTALL_PREFIX}"
 
 	# Clone repository and checkout version tag
+	cd Deps/
 	wget -O ${TAR} ${SRC}
 	tar xvzf ${TAR}
 	# Configure build
 	cd ${DIR}
 	./configure --prefix=${INSTALL_PREFIX} \
 				--with-fftw3=${INSTALL_PREFIX}/../fftw \
-				CC="${CCOMPILER}" CFLAGS="${CFLAGS}"
+				CC="${CCOMPILER}" CFLAGS="${CFLAGS}" LDFLAGS="-lm"
 	# Build
 	make -j $(getconf _NPROCESSORS_ONLN)
 	make install

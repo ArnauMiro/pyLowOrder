@@ -32,6 +32,7 @@ else
     echo "Install path ${INSTALL_PREFIX}"
 
 	# Clone repository and checkout version tag
+	cd Deps/
 	git clone ${SRC} lapack-src
 	cd lapack-src
 	git checkout tags/v${VERS}
