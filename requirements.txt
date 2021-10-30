@@ -1,0 +1,6 @@
+numpy
+cython
+mpi4py
+matplotlib
+h5py
+nfft
