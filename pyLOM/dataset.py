@@ -46,7 +46,7 @@ class Dataset(object):
 		self._xyzc       = None
 		self._time       = time
 		self._pointOrder = np.arange(npoints,dtype=np.int32) if len(pointOrder) == 0 else pointOrder
-		self._cellOrder  = np.arange(npoints,dtype=np.int32) if len(cellOrder)  == 0 else cellOrder
+		self._cellOrder  = np.arange(ncells,dtype=np.int32) if len(cellOrder)  == 0 else cellOrder
 		self._vardict    = kwargs
 		self._meshDict   = mesh
 
