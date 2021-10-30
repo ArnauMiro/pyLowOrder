@@ -118,7 +118,7 @@ all: deps python install
 	@echo "pyLOM deployed successfully"
 
 ifeq ($(USE_MKL),ON) 
-deps: mkl requirements
+deps: mkl fftw nfft requirements
 
 else
 deps: lapack openblas fftw nfft requirements
@@ -186,7 +186,7 @@ cleanall: clean
 	-@cd pyLOM; rm POD/*.so vmmath/*.so
 
 ifeq ($(USE_MKL),ON) 
-uninstall_deps: uninstall_mkl
+uninstall_deps: uninstall_mkl uninstall_fftw uninstall_nfft
 
 else
 uninstall_deps: uninstall_lapack uninstall_fftw uninstall_nfft
