@@ -25,6 +25,7 @@ Deps/fftw/include
 Deps/fftw/lib
 Deps/nfft/include
 Deps/nfft/lib
+Deps/nfft/share
 pyLOM/POD/wrapper.c
 pyLOM/POD/wrapper.html
 pyLOM/DMD/wrapper.c
