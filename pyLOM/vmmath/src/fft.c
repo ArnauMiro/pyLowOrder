@@ -26,15 +26,16 @@ void fft(double *psd, double *y, const double dt, const int n) {
 
 		PSD(n)  is the power spectrum of y and must come preallocated.
 	*/
+	int ii;
 	#ifdef USE_MKL
 	// Use Intel MKL
 	double complex *out;
 	out = (double complex*)malloc(n*sizeof(double complex));
 	// Copy y to out and store the frequency on y
 	#ifdef USE_OMP
-	#pragma omp parallel for shared(out,y) firstprivate(n)
+	#pragma omp parallel for private(ii) shared(out,y) firstprivate(n)
 	#endif
-	for (int ii=0; ii<n; ++ii)
+	for (ii=0; ii<n; ++ii)
 		out[ii] = y[ii] + 0.*I;
 	// Create descriptor
 	DFTI_DESCRIPTOR_HANDLE handle;
@@ -60,9 +61,9 @@ void fft(double *psd, double *y, const double dt, const int n) {
 	#endif
 	// Compute PSD and frequency
 	#ifdef USE_OMP
-	#pragma omp parallel for shared(out,psd) firstprivate(n)
+	#pragma omp parallel for private(ii) shared(out,psd) firstprivate(n)
 	#endif
-	for (int ii=0; ii<n; ++ii) {
+	for (ii=0; ii<n; ++ii) {
 		psd[ii] = (creal(out[ii])*creal(out[ii]) + cimag(out[ii])*cimag(out[ii]))/n; // out*conj(out)/n
 		y[ii]   = 1./dt/n*(double)(ii);
 	}
@@ -84,15 +85,16 @@ void nfft(double *psd, double *y, double* t, const int n) {
 
 		PSD(n)  is the power spectrum of y and must come preallocated.
 	*/
+	int ii;
 	double k_left = ((double)(n)-1.)/2.;
 	// Create the FFT plan
 	nfft_plan p;
 	nfft_init_1d(&p,n,n);
 	// Copy input arrays
 	#ifdef USE_OMP
-	#pragma omp parallel for shared(out,psd) firstprivate(n)
+	#pragma omp parallel for private(ii) hared(out,psd) firstprivate(n)
 	#endif
-	for (int ii=0; ii<n; ++ii) {
+	for (ii=0; ii<n; ++ii) {
 //		p.x[ii] = (t[ii]-t[n-1])/t[n-1] + 0.5;
 		p.x[ii] = -0.5 + (double)(ii)/n;
 		p.f[ii] = y[ii] + 0.*I;
@@ -104,9 +106,9 @@ void nfft(double *psd, double *y, double* t, const int n) {
 	nfft_adjoint(&p);
 	// Compute PSD and frequency
 	#ifdef USE_OMP
-	#pragma omp parallel for shared(out,psd) firstprivate(n)
+	#pragma omp parallel for private(ii) shared(out,psd) firstprivate(n)
 	#endif
-	for (int ii=0; ii<n; ++ii) {
+	for (ii=0; ii<n; ++ii) {
 		psd[ii] = (creal(p.f_hat[ii])*creal(p.f_hat[ii]) + cimag(p.f_hat[ii])*cimag(p.f_hat[ii]))/n; // out*conj(out)/n
 		y[ii]   = ((double)(ii)-k_left)/t[n-1];
 	}

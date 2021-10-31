@@ -98,7 +98,7 @@ int tsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const i
 		S(n)     singular values.
 		VT(n,n)  right singular vectors (transposed).
 	*/	
-	int info = 0, mn = MIN(m,n);
+	int info = 0, mn = MIN(m,n), ii, jj;
 	int mpi_rank, mpi_size;
 	// Recover rank and size
 	MPI_Comm_rank(comm,&mpi_rank);
@@ -126,8 +126,8 @@ int tsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const i
 	if (!(info==0)) return info;
 	// Copy Ri matrix
 	memset(R,0,n*n*sizeof(double));
-	for(int ii=0;ii<n;++ii)
-		for(int jj=ii;jj<n;++jj)
+	for(ii=0;ii<n;++ii)
+		for(jj=ii;jj<n;++jj)
 			AC_MAT(R,n,ii,jj) = AC_MAT(Atmp,n,ii,jj);
 	// Run LAPACK dorgqr - Generate Q matrix
 	info = LAPACKE_dorgqr(
@@ -154,8 +154,8 @@ int tsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const i
 	if (!(info==0)) return info;
 	// Copy R matrix - reusing R matrix
 	memset(R,0,n*n*sizeof(double));
-	for(int ii=0;ii<n;++ii)
-		for(int jj=ii;jj<n;++jj)
+	for(ii=0;ii<n;++ii)
+		for(jj=ii;jj<n;++jj)
 			AC_MAT(R,n,ii,jj) = AC_MAT(Rp,n,ii,jj);
 	// Run LAPACK dorgqr - Generate Q2 matrix
 	info = LAPACKE_dorgqr(
@@ -168,8 +168,8 @@ int tsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const i
 					 tau  // double * 	tau 
 	);
 	if (!(info==0)) return info;
-	for(int ii=0;ii<n;++ii)
-		for(int jj=0;jj<n;++jj)
+	for(ii=0;ii<n;++ii)
+		for(jj=0;jj<n;++jj)
 			AC_MAT(Rtmp,n,ii,jj) = AC_MAT(Rp,n,ii+mpi_rank*n,jj);
 	// Finally compute Qi = Atmp x Rp
 	matmul(Qi,Atmp,Rtmp,m,n,n);

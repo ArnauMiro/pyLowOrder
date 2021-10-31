@@ -24,9 +24,10 @@ void transpose(double *A, const int m, const int n) {
 		Naive approximation to matrix transpose.
 		Overwrites A matrix
 	*/
+	int ii, jj;
 	double swp;
-	for (int ii=0; ii<m; ++ii) {
-		for (int jj=0; jj<ii+1; ++jj) {
+	for (ii=0; ii<m; ++ii) {
+		for (jj=0; jj<ii+1; ++jj) {
 			swp = AC_MAT(A,n,ii,jj);
 			AC_MAT(A,n,ii,jj) = AC_MAT(A,n,jj,ii);
 			AC_MAT(A,n,jj,ii) = swp;
@@ -38,11 +39,12 @@ double vector_norm(double *v, int start, int n) {
 	/*
 		Compute the norm of the n-dim vector v from the position start
 	*/
+	int ii;
 	double norm = 0;
 	#ifdef USE_OMP
-	#pragma omp parallel for reduction(+:norm) shared(v) firstprivate(start,n)
+	#pragma omp parallel for reduction(+:norm) private(ii) shared(v) firstprivate(start,n)
 	#endif
-	for(int ii = start; ii < n; ++ii)
+	for(ii = start; ii < n; ++ii)
 		norm += POW2(v[ii]);
 	return sqrt(norm);
 }
@@ -54,9 +56,9 @@ void reorder(double *A, int m, int n, int N) {
 		
 		Memory has to be reallocated after using the function.
 	*/
-	int ii = 0;
-	for(int im = 0; im < m; ++im){
-		for(int in = 0; in < N; ++in){
+	int ii = 0, im, in;
+	for(im = 0; im < m; ++im){
+		for(in = 0; in < N; ++in){
 			A[ii] = AC_MAT(A,n,im,in);
 			++ii;
 		}
@@ -95,10 +97,11 @@ void vecmat(double *v, double *A, const int m, const int n) {
 
 		A(m,n), b(m)
 	*/
+	int ii;
 	#ifdef USE_OMP
-	#pragma omp parallel for shared(b,A) firstprivate(m,n)
+	#pragma omp parallel for private(ii) shared(b,A) firstprivate(m,n)
 	#endif
-	for(int ii=0; ii<m; ++ii) {
+	for(ii=0; ii<m; ++ii) {
 		cblas_dscal(n,v[ii],A+n*ii,1);
 	}
 }
@@ -145,15 +148,16 @@ double RMSE(double *A, double *B, const int m, const int n, MPI_Comm comm) {
 
 		A(m,n), B(m,n)
 	*/
+	int ii, jj;
 	double sum1 = 0., norm1 = 0., sum1g = 0.;
 	double sum2 = 0., norm2 = 0., sum2g = 0.;
 	#ifdef USE_OMP
-	#pragma omp parallel for shared(A,B) firstprivate(m,n)
+	#pragma omp parallel for private(ii,jj) shared(A,B) firstprivate(m,n)
 	#endif
-	for(int ii = 0; ii < n; ++ii) {
+	for(ii = 0; ii < n; ++ii) {
 		norm1 = 0.;
 		norm2 = 0.;
-		for(int jj = 0; jj < m; ++jj){
+		for(jj = 0; jj < m; ++jj){
 			norm1 += POW2(AC_MAT(A,n,ii,jj) - AC_MAT(B,n,ii,jj));
 			norm2 += POW2(AC_MAT(A,n,ii,jj));
 		}
