@@ -41,8 +41,8 @@ else
 			ln -s "/apps/FFTW/${VERS}/GCC/OPENMPI/lib" "${INSTALL_PREFIX}/"
 		else
 			# Intel compiler
-			ln -s "/apps/FFTW/${VERS}/GCC/OPENMPI/include" "${INSTALL_PREFIX}/"
-			ln -s "/apps/FFTW/${VERS}/GCC/OPENMPI/lib" "${INSTALL_PREFIX}/"
+			ln -s "/apps/FFTW/${VERS}/INTEL/IMPI/include" "${INSTALL_PREFIX}/"
+			ln -s "/apps/FFTW/${VERS}/INTEL/IMPI/lib" "${INSTALL_PREFIX}/"
 		fi
 	else
 		cd Deps/
