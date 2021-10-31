@@ -41,7 +41,7 @@ f.save('POD_modes.h5',write_master=True) # Only Alya has a master
 
 ## Plots
 if pyLOM.is_rank_or_serial(0): 
-	modes    = np.arange(PSI.shape[1],dtype=np.int32)
+	modes   = np.arange(PSI.shape[1],dtype=np.int32) + 1
 	fig,_,_ = pyLOM.POD.plotMode(PSI,d.xyz,V,d.time,d.mesh,d.info('VELOC'),dim=0,modes=modes)
 	for imode,mode in enumerate(modes): fig[imode].savefig('mode_%d.png'%mode)
 
