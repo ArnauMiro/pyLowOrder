@@ -28,11 +28,20 @@ with open('options.cfg') as f:
 include_dirs  = []
 extra_objects = []
 libraries     = ['m']
+
 # OSX needs to also link with python3.8 for reasons...
 if sys.platform == 'darwin': libraries += ['python3.8']
 
+# NFFT
+include_dirs  += ['Deps/nfft/include']
+extra_objects += ['Deps/nfft/lib/libnfft3.a']
 
-## Select which libraries to use depending on the compilation options
+# FFTW
+include_dirs  += ['Deps/fftw/include']
+extra_objects += ['Deps/fftw/lib/libfftw3.a']
+if options['OPENMP_PARALL'] == 'ON': extra_objects += ['Deps/fftw/lib/libfftw3_omp.a']
+
+# Select which libraries to use depending on the compilation options
 if options['USE_MKL'] == 'ON':
 	# Link with Intel MKL using the intel compilers
 	# this is the most performing option available
@@ -53,13 +62,6 @@ else:
 	#include_dirs  += ['Deps/lapack/include/']
 	#extra_objects += ['Deps/lapack/lib/liblapacke.a','Deps/lapack/lib/liblapack.a','Deps/lapack/lib/libcblas.a','Deps/lapack/lib/libblas.a']
 	#libraries     += ['gfortran']
-	# FFTW
-	include_dirs  += ['Deps/fftw/include']
-	extra_objects += ['Deps/fftw/lib/libfftw3.a']
-	if options['OPENMP_PARALL'] == 'ON': extra_objects += ['Deps/fftw/lib/libfftw3_omp.a']
-	# NFFT
-	include_dirs  += ['Deps/nfft/include']
-	extra_objects += ['Deps/nfft/lib/libnfft3.a']
 
 
 ## Modules
