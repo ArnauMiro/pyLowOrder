@@ -44,7 +44,7 @@ def plotMode(U,xyz,V,t,mesh,info,dim=0,modes=np.array([1],np.int32),scale_freq=1
 		freq,psd = fft(t,V[mode-1,:],equispaced=False)
 		freq *= scale_freq
 		L = int(np.floor(freq.shape[0]/2))
-		ax[imode][2].plot(freq[:L],psd[:L])
+		ax[imode][2].plot(freq[L:],psd[L:])
 		ax[imode][2].set_title('Power Spectrum')
 		ax[imode][2].set_xlabel('St')
 	return fig, ax, cf
