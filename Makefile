@@ -151,9 +151,9 @@ openblas: Deps/lapack
 mkl: Deps/oneAPI
 	@bash $</install_mkl.sh "${PLATFORM}" "${ONEAPI_VERS}" "${PWD}/$</mkl" "${CC}" "${CFLAGS}" "${FC}" "${FFLAGS}"
 fftw: Deps/fftw
-	@bash $</install_fftw.sh "${PLATFORM}" "${FFTW_VERS}" "${PWD}/$<" "${CC}" "${CFLAGS}" "${FC}" "${FFLAGS}"
+	@bash $</install_fftw.sh "${PLATFORM}" "${FFTW_VERS}" "${OPENMP_PARALL}" "${PWD}/$<" "${CC}" "${CFLAGS}" "${FC}" "${FFLAGS}"
 nfft: Deps/nfft
-	@bash $</install_nfft.sh "${PLATFORM}" "${NFFT_VERS}" "${PWD}/$<" "${CC}" "${CFLAGS}" "${FC}" "${FFLAGS}"
+	@bash $</install_nfft.sh "${PLATFORM}" "${NFFT_VERS}" "${OPENMP_PARALL}" "${PWD}/$<" "${CC}" "${CFLAGS}" "${FC}" "${FFLAGS}"
 
 
 # Generic object makers

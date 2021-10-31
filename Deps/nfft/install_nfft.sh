@@ -7,11 +7,12 @@
 
 PLATFORM=${1}
 VERS=${2}
-INSTALL_PREFIX=${3}
-CCOMPILER=${4}
-CFLAGS="${5}"
-FCOMPILER=${6}
-FFLAGS=${7}
+USE_OMP=${3}
+INSTALL_PREFIX=${4}
+CCOMPILER=${5}
+CFLAGS="${6}"
+FCOMPILER=${7}
+FFLAGS="${8}"
 
 # Web address (source)
 DIR=nfft-${VERS}
@@ -38,9 +39,16 @@ else
 	tar xvzf ${TAR}
 	# Configure build
 	cd ${DIR}
-	./configure --prefix=${INSTALL_PREFIX} \
-				--with-fftw3=${INSTALL_PREFIX}/../fftw \
-				CC="${CCOMPILER}" CFLAGS="${CFLAGS}" LDFLAGS="-lm"
+	if [ "$USE_OMP" = "ON" ]; then
+		./configure --prefix=${INSTALL_PREFIX} \
+					--enable-openmp \
+					--with-fftw3=${INSTALL_PREFIX}/../fftw \
+					CC="${CCOMPILER}" CFLAGS="${CFLAGS}" LDFLAGS="-lm"
+	else
+		./configure --prefix=${INSTALL_PREFIX} \
+					--with-fftw3=${INSTALL_PREFIX}/../fftw \
+					CC="${CCOMPILER}" CFLAGS="${CFLAGS}" LDFLAGS="-lm"
+	fi
 	# Build
 	make -j $(getconf _NPROCESSORS_ONLN)
 	make install
