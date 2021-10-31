@@ -2,8 +2,11 @@
 	FFT - Fast fourier transform and power density distribution
 */
 #include <stdlib.h>
+#include <stdio.h>
 #include <complex.h>
 #include <math.h>
+
+#undef USE_MKL
 
 #ifdef USE_MKL
 #include "mkl_dfti.h"
@@ -90,12 +93,14 @@ void nfft(double *psd, double *y, double* t, const int n) {
 	#pragma omp parallel for shared(out,psd) firstprivate(n)
 	#endif
 	for (int ii=0; ii<n; ++ii) {
-		p.x[ii]     = (t[ii]-t[n-1])/t[n-1] + 0.5;
-		p.f[ii] = y[ii];
+//		p.x[ii] = (t[ii]-t[n-1])/t[n-1] + 0.5;
+		p.x[ii] = -0.5 + (double)(ii)/n;
+		p.f[ii] = y[ii] + 0.*I;
 	}
 	// Run NFFT
 	if (p.flags & PRE_ONE_PSI) nfft_precompute_one_psi(&p);
-//	nfft_trafo(&p);
+//	const char *check_error_msg = nfft_check(&p);
+//	if (check_error_msg != 0) printf("Invalid nfft parameter: %s\n", check_error_msg);
 	nfft_adjoint(&p);
 	// Compute PSD and frequency
 	#ifdef USE_OMP

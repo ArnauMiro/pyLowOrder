@@ -141,7 +141,7 @@ def fft(t,y,equispaced=True):
 		k_left = (t.shape[0]-1.)/2.
 		f      = (np.arange(t.shape[0],dtype=np.double)-k_left)/t[-1]
 		# Compute power spectra using fft
-		x  = (t-t[-1])/t[-1] + 0.5
+		x  = -0.5 + np.arange(t.shape[0],dtype=np.double)/t.shape[0]
 		yf = nfft.nfft_adjoint(x,y,len(t))
 	ps = np.real(yf*np.conj(yf))/y.shape[0] # np.abs(yf)/y.shape[0]
 	cr_stop('math.fft',0)
