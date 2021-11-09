@@ -35,6 +35,7 @@ CFLAGS   = ''
 CXXFLAGS = ' -std=c++11'
 FFLAGS   = ''
 DFLAGS   = ' -DNPY_NO_DEPRECATED_API'
+if options['USE_MKL']: DFLAGS += ' -DUSE_MKL'
 if CC == 'mpicc':
 	# Using GCC as a compiler
 	CFLAGS   += ' -O0 -g -rdynamic -fPIC' if options['DEBUGGING'] else ' -O%s -ffast-math -fPIC' % options['OPTL']
@@ -63,6 +64,7 @@ else:
 	if options['OPENMP_PARALL']:
 		CFLAGS   += ' -qopenmp'
 		CXXFLAGS += ' -qopenmp'
+		DFLAGS   += ' -DUSE_OMP'
 
 
 ## Set up environment variables
