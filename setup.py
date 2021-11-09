@@ -22,6 +22,55 @@ with open('options.cfg') as f:
 		if '#' in line or len(line) == 1: continue # Skip comment
 		linep = line.split('=')
 		options[linep[0].strip()] = linep[1].strip()
+		if options[linep[0].strip()] == 'ON':  options[linep[0].strip()] = True
+		if options[linep[0].strip()] == 'OFF': options[linep[0].strip()] = False
+
+
+## Set up compiler options and flags
+CC  = 'mpicc'   if options['FORCE_GCC'] or not os.system('which icc > /dev/null') == 0 else 'mpiicc'
+CXX = 'mpicxx'  if options['FORCE_GCC'] or not os.system('which icc > /dev/null') == 0 else 'mpiicpc'
+FC  = 'mpifort' if options['FORCE_GCC'] or not os.system('which icc > /dev/null') == 0 else 'mpiifort'
+
+CFLAGS   = ''
+CXXFLAGS = ' -std=c++11'
+FFLAGS   = ''
+DFLAGS   = ' -DNPY_NO_DEPRECATED_API'
+if CC == 'mpicc':
+	# Using GCC as a compiler
+	CFLAGS   += ' -O0 -g -rdynamic -fPIC' if options['DEBUGGING'] else ' -O%s -ffast-math -fPIC' % options['OPTL']
+	CXXFLAGS += ' -O0 -g -rdynamic -fPIC' if options['DEBUGGING'] else ' -O%s -ffast-math -fPIC' % options['OPTL']
+	FFLAGS   += ' -O0 -g -rdynamic -fPIC' if options['DEBUGGING'] else ' -O%s -ffast-math -fPIC' % options['OPTL']
+	# Vectorization flags
+	if options['VECTORIZATION']:
+		CFLAGS   += ' -march=native -ftree-vectorize'
+		CXXFLAGS += ' -march=native -ftree-vectorize'
+		FFLAGS   += ' -march=native -ftree-vectorize'
+	# OpenMP flag
+	if options['OPENMP_PARALL']:
+		CFLAGS   += ' -fopenmp'
+		CXXFLAGS += ' -fopenmp'
+else:
+	# Using GCC as a compiler
+	CFLAGS   += ' -O0 -g -traceback -fPIC' if options['DEBUGGING'] else ' -O%s -fPIC' % options['OPTL']
+	CXXFLAGS += ' -O0 -g -traceback -fPIC' if options['DEBUGGING'] else ' -O%s -fPIC' % options['OPTL']
+	FFLAGS   += ' -O0 -g -traceback -fPIC' if options['DEBUGGING'] else ' -O%s -fPIC' % options['OPTL']
+	# Vectorization flags
+	if options['VECTORIZATION']:
+		CFLAGS   += ' -x%s -mtune=%s' % (options['HOST'],options['TUNE'])
+		CXXFLAGS += ' -x%s -mtune=%s' % (options['HOST'],options['TUNE'])
+		FFLAGS   += ' -x%s -mtune=%s' % (options['HOST'],options['TUNE'])
+	# OpenMP flag
+	if options['OPENMP_PARALL']:
+		CFLAGS   += ' -qopenmp'
+		CXXFLAGS += ' -qopenmp'
+
+
+## Set up environment variables
+os.environ['CC']       = CC
+os.environ['CXX']      = CXX
+os.environ['CFLAGS']   = CFLAGS + DFLAGS
+os.environ['CXXFLAGS'] = CXXFLAGS + DFLAGS
+os.environ['LDSHARED'] = CC + ' -shared'
 
 
 ## Libraries and includes
@@ -39,24 +88,24 @@ extra_objects += ['Deps/nfft/lib/libnfft3.a']
 # FFTW
 include_dirs  += ['Deps/fftw/include']
 extra_objects += ['Deps/fftw/lib/libfftw3.a']
-if options['OPENMP_PARALL'] == 'ON': extra_objects += ['Deps/fftw/lib/libfftw3_omp.a']
+if options['OPENMP_PARALL']: extra_objects += ['Deps/fftw/lib/libfftw3_omp.a']
 
 # Select which libraries to use depending on the compilation options
-if options['USE_MKL'] == 'ON':
+if options['USE_MKL']:
 	# Link with Intel MKL using the intel compilers
 	# this is the most performing option available
 	mklroot        = 'Deps/oneAPI/mkl'
 	include_dirs  += [os.path.join(mklroot,'latest/include')]
-	if options['OPENMP_PARALL'] == 'ON':
-		extra_objects += [os.path.join(mklroot,'libmkl_intel_thread.a' if os.environ['CC'] == 'mpiicc' else 'libmkl_gcc_thread.a')]
+	if options['OPENMP_PARALL']:
+		extra_objects += [os.path.join(mklroot,'libmkl_intel_thread.a' if CC == 'mpiicc' else 'libmkl_gcc_thread.a')]
 	else:
-		extra_objects += [os.path.join(mklroot,'libmkl_intel.a' if os.environ['CC'] == 'mpiicc' else 'libmkl_gcc.a')]
+		extra_objects += [os.path.join(mklroot,'libmkl_intel.a' if CC == 'mpiicc' else 'libmkl_gcc.a')]
 else:
 	# Link with OpenBLAS which has a decent performance but is not
 	# as fast as Intel MKL
 	include_dirs  += ['Deps/lapack/include/openblas']
 	extra_objects += ['Deps/lapack/lib/libopenblas.a']
-	libraries     += ['gfortran',]
+	libraries     += ['gfortran']
 	# Classical LAPACK & BLAS library has a very bad performance
 	# but is left here for nostalgia
 	#include_dirs  += ['Deps/lapack/include/']
