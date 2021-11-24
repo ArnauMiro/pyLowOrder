@@ -268,10 +268,10 @@ class Dataset(object):
 		return self._cellOrder.shape[0]
 	@property
 	def npointsG(self):
-		return mpi_reduce(self._pointOrder.shape[0],op='sum',all=True) - 1
+		return mpi_reduce(self._pointOrder.shape[0],op='sum',all=True)
 	@property
 	def ncellsG(self):
-		return mpi_reduce(self._cellOrder.shape[0],op='sum',all=True) - 1
+		return mpi_reduce(self._cellOrder.shape[0],op='sum',all=True)
 
 	@property
 	def var(self):
