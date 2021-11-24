@@ -104,6 +104,10 @@ def h5_save_mpio(fname,xyz,time,pointOrder,cellOrder,meshDict,varDict,write_mast
 	# Compute the total number of points
 	npoints = mpi_reduce(pointOrder.shape[0],op='sum',all=True)
 	ncells  = mpi_reduce(cellOrder.shape[0],op='sum',all=True)
+	# Correct for the master
+	if not write_master:
+		npoints -= 1
+		ncells -= 1
 	# Create datasets
 	# number of points and number of instants
 	dset = file.create_dataset('npoints',(1,),dtype='i',data=npoints)

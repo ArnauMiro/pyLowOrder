@@ -176,7 +176,7 @@ class Dataset(object):
 		if fmt.lower() == 'h5':
 			# Set default parameters
 			if not 'mpio'         in kwargs.keys(): kwargs['mpio']         = True
-			if not 'write_master' in kwargs.keys(): kwargs['write_master'] = False
+			if not 'write_master' in kwargs.keys(): kwargs['write_master'] = True
 			io.h5_save(fname,self.xyz,self.time,self._pointOrder,self._cellOrder,self.mesh,self.var,**kwargs)
 		cr_stop('Dataset.save',0)
 
