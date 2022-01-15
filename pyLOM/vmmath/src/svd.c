@@ -83,6 +83,50 @@ int svd(double *U, double *S, double *VT, double *Y, const int m, const int n) {
 }
 
 
+int qr(double *Q, double *R, double *A, const int m, const int n) {
+	/*
+		QR factorization using LAPACK.
+
+		Q(m,n) is the Q matrix and must come preallocated
+		R(n,n) is the R matrix and must come preallocated
+	*/
+	int info = 0, ii, jj;
+	double *tau;
+	// Allocate
+	tau  = (double*)malloc(n*n*sizeof(double));
+	// Copy A to Q
+	memcpy(Q,A,m*n*sizeof(double));
+	// Run LAPACK dgerqf - QR factorization on A
+	info = LAPACKE_dgeqrf(
+		LAPACK_ROW_MAJOR, // int  		matrix_layout
+					   m, // int  		m
+					   n, // int  		n
+					   Q, // double*  	a
+					   n, // int  		lda
+					 tau  // double * 	tau 
+	);
+	if (!(info==0)) {free(tau); return info;}
+	// Copy Ri matrix
+	memset(R,0,n*n*sizeof(double));
+	for(ii=0;ii<n;++ii)
+		for(jj=ii;jj<n;++jj)
+			AC_MAT(R,n,ii,jj) = AC_MAT(Q,n,ii,jj);
+	// Run LAPACK dorgqr - Generate Q matrix
+	info = LAPACKE_dorgqr(
+		LAPACK_ROW_MAJOR, // int  		matrix_layout
+					   m, // int  		m
+					   n, // int  		n		
+					   n, // int  		k
+					   Q, // double*  	a
+					   n, // int  		lda					   		
+					 tau  // double * 	tau 
+	);
+	if (!(info==0)) {free(tau); return info;}
+	free(tau);
+	return info;
+}
+
+
 int tsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm) {
 	/*
 		Single value decomposition (SVD) using TSQR algorithm from
@@ -98,90 +142,44 @@ int tsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const i
 		S(n)     singular values.
 		VT(n,n)  right singular vectors (transposed).
 	*/	
-	int info = 0, mn = MIN(m,n), ii, jj;
+	int info = 0, ii, jj, mm;
 	int mpi_rank, mpi_size;
 	// Recover rank and size
 	MPI_Comm_rank(comm,&mpi_rank);
 	MPI_Comm_size(comm,&mpi_size);
 	// Algorithm 1 from Sayadi and Schmid (2016) - Q and R matrices
-	// Allocate memory
-	double *Atmp, *tau, *R, *Rtmp, *Rp, *Qi;
-	Atmp = (double*)malloc(m*n*sizeof(double));
-	tau  = (double*)malloc(mn*sizeof(double));
+	// QR Factorization on Ai to obtain Q1i and Ri
+	double *Q1i, *R;
+	Q1i  = (double*)malloc(m*n*sizeof(double));
 	R    = (double*)malloc(n*n*sizeof(double));
-	Rtmp = (double*)malloc(n*n*sizeof(double));
-	Rp   = (double*)malloc(mpi_size*n*n*sizeof(double));
-	Qi   = (double*)malloc(m*n*sizeof(double));
-	// Copy A to Atmp
-	memcpy(Atmp,Ai,m*n*sizeof(double));
-	// Run LAPACK dgerqf - QR factorization on A
-	info = LAPACKE_dgeqrf(
-		LAPACK_ROW_MAJOR, // int  		matrix_layout
-					   m, // int  		m
-					   n, // int  		n
-					Atmp, // double*  	a
-					   n, // int  		lda
-					 tau  // double * 	tau 
-	);
-	if (!(info==0)) return info;
-	// Copy Ri matrix
-	memset(R,0,n*n*sizeof(double));
-	for(ii=0;ii<n;++ii)
-		for(jj=ii;jj<n;++jj)
-			AC_MAT(R,n,ii,jj) = AC_MAT(Atmp,n,ii,jj);
-	// Run LAPACK dorgqr - Generate Q matrix
-	info = LAPACKE_dorgqr(
-		LAPACK_ROW_MAJOR, // int  		matrix_layout
-					   m, // int  		m
-					   n, // int  		n		
-					   n, // int  		k
-					Atmp, // double*  	a
-					   n, // int  		lda					   		
-					 tau  // double * 	tau 
-	);
-	if (!(info==0)) return info;
-	// MPI_ALLGATHER to obtain R
+	info = qr(Q1i,R,Ai,m,n); if (!(info==0)) return info;
+	// MPI_ALLGATHER to obtain Rp
+	double *Rp;
+	mm = mpi_size*n;
+	Rp = (double*)malloc(mm*n*sizeof(double));
 	MPI_Allgather(R,n*n,MPI_DOUBLE,Rp,n*n,MPI_DOUBLE,comm);
-	// Run LAPACK dgerqf - QR factorization on Rp
-	info = LAPACKE_dgeqrf(
-		LAPACK_ROW_MAJOR, // int  		matrix_layout
-			  mpi_size*n, // int  		m
-					   n, // int  		n
-					  Rp, // double*  	a
-					   n, // int  		lda
-					 tau  // double * 	tau 
-	);
-	if (!(info==0)) return info;
-	// Copy R matrix - reusing R matrix
-	memset(R,0,n*n*sizeof(double));
-	for(ii=0;ii<n;++ii)
-		for(jj=ii;jj<n;++jj)
-			AC_MAT(R,n,ii,jj) = AC_MAT(Rp,n,ii,jj);
-	// Run LAPACK dorgqr - Generate Q2 matrix
-	info = LAPACKE_dorgqr(
-		LAPACK_ROW_MAJOR, // int  		matrix_layout
-			  mpi_size*n, // int  		m
-					   n, // int  		n		
-					   n, // int  		k
-					  Rp, // double*  	a
-					   n, // int  		lda					   		
-					 tau  // double * 	tau 
-	);
-	if (!(info==0)) return info;
+	// QR Factorization Rp to obtain Q2i and R (reusing R from above)
+	double *Q2i;
+	Q2i  = (double*)malloc(mm*n*sizeof(double));
+	info = qr(Q2i,R,Rp,mm,n); if (!(info==0)) return info;
+	free(Rp);
+	// Finally compute Qi = Q1i x Q2i
+	double *Qi, *Q2i_tmp;
+	Q2i_tmp = (double*)malloc(n*n*sizeof(double));
+	Qi      = (double*)malloc(m*n*sizeof(double));
 	for(ii=0;ii<n;++ii)
 		for(jj=0;jj<n;++jj)
-			AC_MAT(Rtmp,n,ii,jj) = AC_MAT(Rp,n,ii+mpi_rank*n,jj);
-	// Finally compute Qi = Atmp x Rp
-	matmul(Qi,Atmp,Rtmp,m,n,n);
-	// Free memory
-	free(Atmp); free(tau); free(Rp); free(Rtmp);
-	// At this point we have R and Qi scattered on the processors
+			AC_MAT(Q2i_tmp,n,ii,jj) = AC_MAT(Q2i,n,ii+mpi_rank*n,jj);
+	free(Q2i);
+	matmul(Qi,Q1i,Q2i_tmp,m,n,n);
+	free(Q1i); free(Q2i_tmp);
+
 	// Algorithm 2 from Sayadi and Schmid (2016) - Ui, S and VT
+	// At this point we have R and Qi scattered on the processors
 	double *Ur;
 	Ur = (double*)malloc(n*n*sizeof(double));
 	// Call SVD routine
-	info = svd(Ur,S,VT,R,n,n);
-	if (!(info==0)) return info;
+	info = svd(Ur,S,VT,R,n,n); if (!(info==0)) return info;
 	// Compute Ui = Qi x Ur
 	matmul(Ui,Qi,Ur,m,n,n);
 	// Free memory

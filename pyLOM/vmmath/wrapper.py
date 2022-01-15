@@ -87,6 +87,17 @@ def subtract_mean(X,X_mean):
 	cr_stop('math.subtract_mean',0)
 	return out
 
+def qr(A):
+	'''
+	QR factorization using Lapack
+		Q(m,n) is the Q matrix
+		R(n,n) is the R matrix
+	'''
+	cr_start('math.qr')
+	Q, R = np.linalg.qr(A)
+	cr_stop('math.qr')
+	return Q,R
+
 def svd(A):
 	'''
 	Single value decomposition (SVD) using numpy.
@@ -109,15 +120,16 @@ def tsqr_svd(A):
 	cr_start('math.tsqr_svd',0)
 	# Algorithm 1 from Sayadi and Schmid (2016) - Q and R matrices
 	# QR factorization on A
-	Q1, R1 = np.linalg.qr(A)
+	Q1i, R = qr(A)
 	# Gather all Rs into Rp
-	Rp = mpi_gather(R1,all=True)
+	Rp = mpi_gather(R,all=True)
 	# QR factorization on Rp
-	Q2, R = np.linalg.qr(Rp)
+	Q2i, R = np.linalg.qr(Rp)
 	# Compute Q = Q1 x Q2
-	Q = np.matmul(Q1,Q2[A.shape[1]*MPI_RANK:A.shape[1]*(MPI_RANK+1),:])
-	# At this point we have R and Qi scattered on the processors
+	Q = matmul(Q1i,Q2i[A.shape[1]*MPI_RANK:A.shape[1]*(MPI_RANK+1),:])
+	
 	# Algorithm 2 from Sayadi and Schmid (2016) - Ui, S and VT
+	# At this point we have R and Qi scattered on the processors
 	# Call SVD routine
 	Ur, S, V = np.linalg.svd(R)
 	# Compute U = Q x Ur

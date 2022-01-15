@@ -34,6 +34,7 @@ cdef extern from "averaging.h":
 	cdef void c_temporal_mean "temporal_mean"(double *out, double *X, const int m, const int n)
 	cdef void c_subtract_mean "subtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
 cdef extern from "svd.h":
+	cdef int c_qr       "qr"      (double *Q, double *R, double *A, const int m, const int n)
 	cdef int c_svd      "svd"     (double *U, double *S, double *V, double *Y, const int m, const int n)
 	cdef int c_tsqr_svd "tsqr_svd"(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm)
 cdef extern from "fft.h":
@@ -160,6 +161,25 @@ def subtract_mean(double[:,:] X, double[:] X_mean):
 	# Return
 	cr_stop('math.subtract_mean',0)
 	return out
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def qr(double[:,:] A):
+	'''
+	QR factorization using Lapack
+		Q(m,n) is the Q matrix
+		R(n,n) is the R matrix
+	'''
+	cr_start('math.qr')
+	cdef int retval, m = A.shape[0], n = A.shape[1]
+	cdef np.ndarray[np.double_t,ndim=2] Q = np.zeros((m,n),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] R = np.zeros((n,n),dtype=np.double)
+	retval = c_qr(&Q[0,0],&R[0,0],&A[0,0],m,n)
+	cr_stop('math.qr')
+	if not retval == 0: raiseError('Problems computing QR factorization!')
+	return Q,R
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
