@@ -26,13 +26,13 @@ print(V.shape,V)
 
 ## Run SVD from POD
 U, S, V = pyLOM.math.svd(A)
-print('pyLOM:')
+print('pyLOM SVD:')
 print(U.shape,U)
 print(S.shape,S)
 print(V.shape,V)
 
 U, S, V = pyLOM.math.tsqr_svd(A)
-print('pyLOM:')
+print('pyLOM TSQR SVD:')
 print(U.shape,U)
 print(S.shape,S)
 print(V.shape,V)
