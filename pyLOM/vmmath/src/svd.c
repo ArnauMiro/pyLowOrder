@@ -127,7 +127,7 @@ int qr(double *Q, double *R, double *A, const int m, const int n) {
 }
 
 
-int tsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm) {
+int tsqr_svd2(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm) {
 	/*
 		Single value decomposition (SVD) using TSQR algorithm from
 		T. Sayadi and P. J. Schmid, ‘Parallel data-driven decomposition algorithm 
@@ -135,6 +135,9 @@ int tsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const i
 		Theor. Comput. Fluid Dyn., vol. 30, no. 5, pp. 415–428, Oct. 2016
 		
 		doi: 10.1007/s00162-016-0385-x
+
+		This is the reduce-broadcast variant of the algorithm from:
+		https://cerfacs.fr/wp-content/uploads/2016/03/langou.pdf
 
 		Ai(m,n)  data matrix dispersed on each processor.
 
@@ -182,152 +185,135 @@ int tsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const i
 }
 
 
-//int nextPowerOf2(int n) {  
-//	int p = 1;  
-//	if (n && !(n & (n - 1))) return n;  
-//	while (p < n) p <<= 1;
-//	return p;  
-//}
-//
-//int tsqr_svd2(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm) {
-//	/*
-//		Single value decomposition (SVD) using TSQR algorithm from
-//		J. Demmel, L. Grigori, M. Hoemmen, and J. Langou, ‘Communication-optimal Parallel 
-//		and Sequential QR and LU Factorizations’, SIAM J. Sci. Comput., 
-//		vol. 34, no. 1, pp. A206–A239, Jan. 2012, 
-//
-//		doi: 10.1137/080731992.
-//
-//		Ai(m,n)  data matrix dispersed on each processor.
-//
-//		Ui(m,n)  POD modes dispersed on each processor (must come preallocated).
-//		S(n)     singular values.
-//		VT(n,n)  right singular vectors (transposed).
-//	*/	
-//	int info = 0, ii, jj, ilevel, icom;
-//	int mpi_rank, mpi_size, do_qr;
-//	// Recover rank and size
-//	MPI_Comm_rank(comm,&mpi_rank);
-//	MPI_Comm_size(comm,&mpi_size);
-//	int next_power = nextPowerOf2(mpi_size);
-//	int last_power = next_power >> 1;
-//	int strategy[next_power], comm_from[mpi_size], comm_to[mpi_size];
-//	// Algorithm 1 from Demmel et al (2012)
-//	// 1: QR Factorization on Ai to obtain Q1i and Ri
-//	double *Qi, *R, *R2, *Q1i, *Q2i, *C;
-//	Qi   = (double*)malloc(m*n*sizeof(double));
-//	R    = (double*)malloc(n*n*sizeof(double));
-//	R2   = (double*)malloc(n*n*sizeof(double));
-//	Q1i  = (double*)malloc(m*n*sizeof(double));
-//	Q2i  = (double*)malloc(2*n*n*sizeof(double));
-//	C    = (double*)malloc(2*n*n*sizeof(double));
-//	info = qr(Qi,R,Ai,m,n); if (!(info==0)) return info;
-//	// 2: Loop through the levels
-//	for(ilevel=1; ilevel < next_power; ilevel<<=1) {
-//		// Steps (not necessarily sequential):
-//		// 1. Each processor shares its current R matrix with its neighbor (butterfly all-reduction pattern).
-//		// 2. Combine adjacent (n x n) R matrices into (2n x n) matrices.
-//		// 3. Find the QR factorization of these new matrices.
-//		// 4. Extract R values.
-//		// 5. Store local implicit Q matrix.
-//		do_qr = 0;
-//
-//		// Find destination processors for butterfly all reduction
-//		icom = 0; 
-//		for (ii=0; ii<next_power; ++ii) {
-//			if (ii < mpi_size) {
-//				comm_from[ii] = -1;
-//				comm_to[ii]   = -1;
-//			}
-//			strategy[ii] = ii^ilevel;
-//		}
-//
-//		// Store previous R matrix - ordering so that the lower rank is above
-//		if (mpi_rank < strategy[mpi_rank]) {
-//			for(ii=0; ii<n; ++ii)
-//				for(jj=0; jj<n; ++jj)
-//					AC_MAT(C,n,ii,jj) = AC_MAT(R,n,ii,jj);
-//		} else {
-//			for(ii=n; ii<2*n; ++ii)
-//				for(jj=0; jj<n; ++jj)
-//					AC_MAT(C,n,ii,jj) = AC_MAT(R,n,ii-n,jj);
-//		}
-//
-//		if (strategy[mpi_rank] < mpi_size) {
-//			// Send & Receive matrices ( use R as a buffer )
-//			MPI_Sendrecv(R,n*n,MPI_DOUBLE,strategy[mpi_rank],0,
-//				R2,n*n,MPI_DOUBLE,strategy[mpi_rank],0,comm,MPI_STATUS_IGNORE);
-//			do_qr = 1;
-//		}
-//
-//		// Find out who did not communicate at this level
-//		for (ii=0; ii<mpi_size; ++ii) {
-//			if (strategy[ii] > mpi_size-1) {
-//				comm_to[icom]   = ii;
-//				comm_from[icom] = MIN(strategy[ii] -(next_power-mpi_size),mpi_size-1);
-//				icom++;
-//			}
-//		}
-//
-//		// Loop the remaining communications at this level
-//		for (ii=0; ii<icom; ++ii) {
-//			// Recieve from rank == comm_from[ii]
-//			if (mpi_rank == comm_to[ii] && mpi_rank != comm_from[ii]) {
-//				MPI_Recv(R2,n*n,MPI_DOUBLE,comm_from[ii],0,comm,MPI_STATUS_IGNORE);
-//				do_qr = 1;
-//				break;
-//			}
-//			// Send to rank == comm_to[ii]	
-//			if (mpi_rank != comm_to[ii] && mpi_rank == comm_from[ii]) {
-//				MPI_Send(R,n*n,MPI_DOUBLE,comm_to[ii],0,comm);
-//			}
-//		}
-//
-//		if (do_qr) {
-//			// Complete C matrix - ordering so that the lower rank is above
-//			if (mpi_rank < strategy[mpi_rank]) {
-//				for(ii=n; ii<2*n; ++ii)
-//					for(jj=0; jj<n; ++jj)
-//						AC_MAT(C,n,ii,jj) = AC_MAT(R2,n,ii-n,jj);
-//			} else {
-//				for(ii=0; ii<n; ++ii)
-//					for(jj=0; jj<n; ++jj)
-//						AC_MAT(C,n,ii,jj) = AC_MAT(R2,n,ii,jj);
-//			}
-//
-//			// Factor QR of C
-//			info = qr(Q2i,R,C,2*n,n); if (!(info==0)) return info;
-//		} else {
-//			// Ri,k = Ri,k-1
-//			// That is, do not change R at this level
-//			// Q2i is the identity matrix
-//			memset(Q2i,0,2*n*n*sizeof(double));
-//			for(ii=0; ii<n; ++ii) {
-//				AC_MAT(Q2i,n,ii,ii)   = 1.;
-//				AC_MAT(Q2i,n,ii+n,ii) = 1.;
-//			}
-//		}
-//		// Store Qi into Q1i for the next level
-//		for(ii=0; ii<m; ++ii)
-//			for(jj=0; jj<n; ++jj)
-//				AC_MAT(Q1i,n,ii,jj) = AC_MAT(Qi,n,ii,jj);
-//		// Accumulate Qi at this tree level
-//		if (mpi_rank < strategy[mpi_rank])
-//			matmul(Qi,Q1i,&AC_MAT(Q2i,n,0,0),m,n,n);
-//		else
-//			matmul(Qi,Q1i,&AC_MAT(Q2i,n,n,0),m,n,n);
-//	}
-//	free(C); free(R2); free(Q1i); free(Q2i);
-//
-//	// Algorithm 2 from Sayadi and Schmid (2016) - Ui, S and VT
-//	// At this point we have R and Qi scattered on the processors
-//	double *Ur;
-//	Ur = (double*)malloc(n*n*sizeof(double));
-//	// Call SVD routine
-//	info = svd(Ur,S,VT,R,n,n); if (!(info==0)) return info;
-//	// Compute Ui = Qi x Ur
-//	matmul(Ui,Qi,Ur,m,n,n);
-//	// Free memory
-//	free(Ur); free(R); free(Qi);
-//	return info;
-//}
+int nextPowerOf2(int n) {  
+	int p = 1;  
+	if (n && !(n & (n - 1))) return n;  
+	while (p < n) p <<= 1;
+	return p;  
+}
+
+
+int tsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm) {
+	/*
+		Single value decomposition (SVD) using TSQR algorithm from
+		J. Demmel, L. Grigori, M. Hoemmen, and J. Langou, ‘Communication-optimal Parallel 
+		and Sequential QR and LU Factorizations’, SIAM J. Sci. Comput., 
+		vol. 34, no. 1, pp. A206–A239, Jan. 2012, 
+
+		doi: 10.1137/080731992.
+
+		Ai(m,n)  data matrix dispersed on each processor.
+
+		Ui(m,n)  POD modes dispersed on each processor (must come preallocated).
+		S(n)     singular values.
+		VT(n,n)  right singular vectors (transposed).
+	*/	
+	int info = 0, ii, jj, n2 = n*2, ilevel, blevel, mask;
+	int mpi_rank, mpi_size;
+	double *Qi, *Q1i, *Q2i, *Q2l, *R, *QW, *C;
+	// Recover rank and size
+	MPI_Comm_rank(comm,&mpi_rank);
+	MPI_Comm_size(comm,&mpi_size);
+	// Memory allocation
+	Q1i = (double*)malloc(m*n*sizeof(double));
+	Q2i = (double*)malloc(n2*n*sizeof(double));
+	R   = (double*)malloc(n*n*sizeof(double));
+	QW  = (double*)malloc(n*n*sizeof(double));
+	C   = (double*)malloc(n2*n*sizeof(double));
+	// Preallocate QW to identity
+	memset(QW,0.,n*n*sizeof(double));
+	for (ii=0; ii<n; ++ii)
+		AC_MAT(QW,n,ii,ii) = 1.;
+	// Algorithm 1 from Demmel et al (2012)
+	// 1: QR Factorization on Ai to obtain Q1i and Ri
+	info = qr(Q1i,R,Ai,m,n); if (!(info==0)) return info;
+	// Reduction, every processor sends R and computes V2i
+	int next_power = nextPowerOf2(mpi_size);
+	int nlevels    = (int)(log2(next_power));
+	int prank;
+	Q2l = (double*)malloc(nlevels*n2*n*sizeof(double));
+	for (blevel=1,ilevel=0; blevel < next_power; blevel<<=1,++ilevel) {
+		// Store R in the upper part of the C matrix
+		for (ii=0; ii<n; ++ii)
+			for (jj=0; jj<n; ++jj)
+				AC_MAT(C,n,ii,jj) = AC_MAT(R,n,ii,jj);		
+		// Decide who sends and who recieves, use R as buffer
+		prank = mpi_rank^blevel;
+		if (mpi_rank&blevel) {
+			if (prank < mpi_size) MPI_Send(R,n*n,MPI_DOUBLE,prank,0,comm);
+		} else {
+			// Receive R
+			if (prank < mpi_size) {
+				MPI_Recv(R,n*n,MPI_DOUBLE,prank,0,comm,MPI_STATUS_IGNORE);
+				// Store R in the lower part of the C matrix
+				for (ii=0; ii<n; ++ii)
+					for (jj=0; jj<n; ++jj)
+						AC_MAT(C,n,ii+n,jj) = AC_MAT(R,n,ii,jj);			
+				// 2: QR from the C matrix, reuse C and R
+				info = qr(Q2i,R,C,n2,n); if (!(info==0)) return info;
+				// Store Q2i from this level
+//				matmul(Q2i,C,QW,n2,n,n);
+				for (ii=0; ii<n2; ++ii)
+					for (jj=0; jj<n; ++jj)
+						AC_MAT(Q2l,n,ii+ilevel*n2,jj) = AC_MAT(Q2i,n,ii,jj);
+			}
+		}
+	}
+	// At this point R is correct on processor 0
+	// Broadcast R and its part of the Q matrix
+	for (blevel = 1 << (nlevels-1),mask=blevel-1,ilevel=nlevels-1; blevel >= 1; blevel>>=1,mask>>=1,--ilevel) {
+		if ( ((mpi_rank^0)&mask) == 0 ) {
+			// Obtain Q2i for this level - use C as buffer
+			for (ii=0; ii<n2; ++ii)
+				for (jj=0; jj<n; ++jj)
+					AC_MAT(C,n,ii,jj) = AC_MAT(Q2l,n,ii+ilevel*n2,jj);
+			// Multiply by QW either set to identity or allocated to a value
+			// Store into Q2i
+			matmul(Q2i,C,QW,n2,n,n);
+			// Communications scheme
+			prank = mpi_rank^blevel;
+			if ( ((mpi_rank^0)&blevel)) {
+				if (prank < mpi_size) { // Recieve
+					MPI_Recv(C,n2*n,MPI_DOUBLE,prank,0,comm,MPI_STATUS_IGNORE);
+					// Recover R from the upper part of C and QW from the lower part
+					for (ii=0; ii<n; ++ii)
+						for (jj=0; jj<n; ++jj) {
+							AC_MAT(R,n,ii,jj)  = AC_MAT(C,n,ii,jj);
+							AC_MAT(QW,n,ii,jj) = AC_MAT(C,n,ii+n,jj);
+						}
+				}
+			} else {
+				if (prank < mpi_size) { // Send C
+					// Set up C matrix for sending
+					// Store R in the upper part and Q2i on the lower part
+					// Store Q2i of this rank to QW
+					for(ii=0;ii<n;++ii)
+						for(jj=ii;jj<n;++jj) {
+							AC_MAT(C,n,ii,jj)   = AC_MAT(R,n,ii,jj);      		
+							AC_MAT(C,n,ii+n,jj) = AC_MAT(Q2i,n,ii+n,jj);  
+							AC_MAT(QW,n,ii,jj)  = AC_MAT(Q2i,n,ii,jj);  		
+						}
+					MPI_Send(C,n2*n,MPI_DOUBLE,prank,0,comm);
+				}
+			}
+		}
+	}
+	// Free memory
+	free(Q2i); free(Q2l); free(C);
+	// Multiply Q1i and QW to obtain Qi
+	Qi = (double*)malloc(m*n*sizeof(double));
+	matmul(Qi,Q1i,QW,m,n,n);
+	free(Q1i); free(QW);
+
+	// Algorithm 2 from Sayadi and Schmid (2016) - Ui, S and VT
+	// At this point we have R and Qi scattered on the processors
+	double *Ur;
+	Ur = (double*)malloc(n*n*sizeof(double));
+	// Call SVD routine
+	info = svd(Ur,S,VT,R,n,n); if (!(info==0)) return info;
+	// Compute Ui = Qi x Ur
+	matmul(Ui,Qi,Ur,m,n,n);
+	// Free memory
+	free(Ur); free(R); free(Qi);
+	return info;
+}
