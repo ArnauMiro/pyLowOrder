@@ -173,8 +173,9 @@ def tsqr_svd(Ai):
     Q1i, R = qr(Ai)
     nextPower = next_power_of_2(MPI_SIZE)
     nlevels = np.log2(nextPower)
-    QW = np.eye(n, np.double)
-    C  = np.zeros((2*n, n), np.double)
+    QW  = np.eye(n, np.double)
+    C   = np.zeros((2*n, n), np.double)
+    Q2l = np.zeros((2*n*nlevels, n), np.double)
     belvel = 1
     for ilevel in range(nlevels):
 		# Store R in the upper part of the C matrix
