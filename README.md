@@ -53,7 +53,7 @@ Then just follow the instructions as stated above.
 
 ### A note on h5py and h5pyp
 
-The *h5py* package is needed in order to have most of the functionality of pyAlya, however, it is not included in the requirements of pyAlya since it is not an essential package. The following instructions are intended for users to compile and obtain the parallel *h5py* package for pyAlya. Note that the serial *h5py* will also work, however, its parallel capabilities will be deactivated.
+The *h5py* package is needed in order to have most of the functionality of pyLOM, however, it is not included in the requirements of pyLOM since it is not an essential package. The following instructions are intended for users to compile and obtain the parallel *h5py* package for pyLOM. Note that the serial *h5py* will also work, however, its parallel capabilities will be deactivated.
 
 #### Using PIP
 In order to obtain the serial *h5py* simply do:
