@@ -30,7 +30,7 @@ def vector_norm(v,start=0):
 	'''
 	cr_start('math.vector_norm',0)
 	norm = np.linalg.norm(v[start:],2)
-	cr_stop('math.vector_norm',0)	
+	cr_stop('math.vector_norm',0)
 	return norm
 
 def matmul(A,B):
@@ -39,7 +39,7 @@ def matmul(A,B):
 	'''
 	cr_start('math.matmul',0)
 	C = np.matmul(A,B)
-	cr_stop('math.matmul',0)	
+	cr_stop('math.matmul',0)
 	return C
 
 def vecmat(v,A):
@@ -50,8 +50,18 @@ def vecmat(v,A):
 	C = np.zeros_like(A)
 	for ii in range(v.shape[0]):
 		C[ii,:] = v[ii]*A[ii,:]
-	cr_stop('math.vecmat',0)	
+	cr_stop('math.vecmat',0)
 	return C
+
+def diag(A):
+	'''
+	If A is a matrix it returns its diagonal, if its a vector it returns
+	a diagonal matrix with A in its diagonal
+	'''
+	cr_start('math.diag',0)
+	B = np.diag(A)
+	cr_stop('math.diag',0)
+	return B
 
 def eigen(A):
 	'''
@@ -66,6 +76,34 @@ def eigen(A):
 	imag   = np.imag(w)
 	cr_stop('math.eigen',0)
 	return real,imag,vecs
+
+def build_complex_eigenvectors(vecs, imag):
+	'''
+	Reconstruction of the right eigenvectors in complex format
+	'''
+	cr_start('math.build_complex_eigenvectors', 0)
+	wComplex = np.zeros(vecs.shape, dtype = 'complex_')
+	ivec = 0
+	while ivec < vecs.shape[1] - 1:
+		if imag[ivec] > np.finfo(np.double).eps:
+			wComplex[:, ivec]     = vecs[:, ivec] + vecs[:, ivec + 1]*1j
+			wComplex[:, ivec + 1] = vecs[:, ivec] - vecs[:, ivec + 1]*1j
+			ivec += 2
+		else:
+			wComplex[:, ivec] = vecs[:, ivec] + 0*1j
+			ivec = ivec + 1
+	cr_stop('math.build_complex_eigenvectors', 0)
+	return wComplex
+
+def polar(real, imag):
+	'''
+	Present a complex number in its polar form given its real and imaginary part
+	'''
+	cr_start('math.polar', 0)
+	mod = np.sqrt(real*real + imag*imag)
+	arg = np.arctan2(imag, real)
+	cr_stop('math.polar', 0)
+	return mod, arg
 
 def temporal_mean(X):
 	'''
@@ -83,7 +121,7 @@ def subtract_mean(X,X_mean):
 	and n is the number of snapshots.
 	'''
 	cr_start('math.subtract_mean',0)
-	out = X - X_mean
+	out = X - np.tile(X_mean,(X.shape[1],1)).T
 	cr_stop('math.subtract_mean',0)
 	return out
 
@@ -134,7 +172,7 @@ def fft(t,y,equispaced=True):
 		ts = t[1] - t[0] # Sampling time
 		# Compute sampling frequency
 		f  = 1./ts/t.shape[0]*np.arange(t.shape[0],dtype=np.double)
-		# Compute power spectra using fft 
+		# Compute power spectra using fft
 		yf = scipy.fft.fft(y)
 	else:
 		# Compute sampling frequency
@@ -158,3 +196,17 @@ def RMSE(A,B):
 	rmse  = np.sqrt(sum1g/sum2g)
 	cr_stop('math.RMSE',0)
 	return rmse
+
+def vandermonde(real, imag, shape0, shape1):
+	'''
+	Builds a Vandermonde matrix of (shape0 x shape 1) with the real and imaginary parts of the eigenvalues
+	'''
+	cr.start('math.vandermonde', 0)
+	mod, arg = polar(real, imag)
+	Vand  = np.zeros((shape0, shape1), dtype = 'complex_')
+	for icol in range(shape1):
+		VandModulus   = mod**icol
+		VandArg       = arg*icol
+		Vand[:, icol] = mod*np.cos(arg) + mod*np.sin(arg)*1j
+	cr_stop('math.vandermonde', 0)
+	return Vand
