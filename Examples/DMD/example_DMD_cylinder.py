@@ -8,52 +8,48 @@ from __future__ import print_function, division
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import optimize
-
+import scipy.io
 import pyLOM
 
 ## Data loading
 d  = pyLOM.Dataset.load('Examples/Data/CYLINDER.h5')
-X  = d['VELOC']
-X  = X[:89351, :].copy()
+X  = d['VELOX']
 dt = 0.2
+#scipy.io.savemat('data.m', {'X' : X})
+validation = scipy.io.loadmat('/media/sf_TUAREG/TOOLS/DMD_algorithms_BSC/DMD/validation2.mat')
 
 #fig, ax = plt.subplots(3,1,figsize=(8,6),dpi=100,facecolor='w',edgecolor='k',gridspec_kw = {'hspace':0.5})
-pyLOM.cr_start('example',0)
+#pyLOM.cr_start('example',0)
 
 #Compute and substract temporal subtract_mean
-Xavg = pyLOM.DMD.temporal_mean(X)
-X_m  = pyLOM.DMD.subtract_mean(X, Xavg)
-
-# Separate X1 and X2
-X1, X2 = pyLOM.DMD.matrix_split(X_m)
-
-# Compute SVD
-PSI,S,V = pyLOM.DMD.svd(X_m, 0, X1.shape[1])
+Xavg = pyLOM.math.temporal_mean(X)
+X  = pyLOM.math.subtract_mean(X, Xavg)
+PSI, S, V = pyLOM.math.tsqr_svd(X[:, :-1])
 
 # Truncate according to residual
-PSI, S, V = pyLOM.DMD.truncate(PSI, S, V, r = 1e-6)
+PSI, S, V = pyLOM.POD.truncate(PSI, S, V, r = 1e-6)
 
 #Project A (Jacobian of the snapshots) into POD basis
-Atilde = pyLOM.DMD.project_POD_basis(PSI, X2, V, S)
+aux1 = pyLOM.math.matmul(pyLOM.math.transpose(PSI),X[:,1:])
+aux2 = pyLOM.math.transpose(pyLOM.math.vecmat(1./S,V))
+Atilde = pyLOM.math.matmul(aux1,aux2)
 
 #Eigendecomposition of Atilde
-muReal, muImag, w = pyLOM.DMD.eigen(Atilde)
-#Creation of a matrix containing the complex numbers of the eigenvectors
-wComplex = pyLOM.DMD.build_complex_eigenvectors(w, muImag)
+muReal, muImag, w = pyLOM.math.eigen(Atilde)
 
 #Compute frequency and damping ratio of the modes
-delta, omega, muModulus, muArg = pyLOM.DMD.frequency_damping(muReal, muImag, dt)
+delta, omega = pyLOM.DMD.frequency_damping(muReal, muImag, dt)
 
 #Computation of the modes
-Phi = pyLOM.DMD.mode_computation(X2, V, S, wComplex)
+Phi = pyLOM.DMD.mode_computation(X[:, 1:], V, S, w)
 
 #Computation of the amplitudes according to Jovanovic 2014
-Vand = pyLOM.DMD.vandermonde(muReal, muImag, muReal.shape[0], X1.shape[1])
-bJov = pyLOM.DMD.amplitude_jovanovic(muReal, muImag, muReal.shape[0], X1.shape[1], wComplex, S, V, Vand)
+bJov = pyLOM.DMD.amplitude_jovanovic(muReal, muImag, X[:, :-1], w, S, V)
 
 #Reconstruction according to Jovanovic 2014
-Xdmd = np.matmul(np.matmul(np.matmul(PSI, wComplex), np.diag(bJov)), Vand)
+#Xdmd = pyLOM.DMD.reconstruction_jovanovic(U, w, muReal, muImag, X[:, :-1], bJov)
 
+'''
 #Order modes according to its amplitude (only for presentation purposes): classify them between the components
 delta, omega, Phi, bJov = pyLOM.DMD.order_modes(delta, omega, Phi, bJov)
 
@@ -97,3 +93,4 @@ pyLOM.plotDMDMode(Phi, d.xyz, d.mesh, omega/(2*np.pi), modes = [1, 2, 3])
 pyLOM.cr_stop('example',0)
 pyLOM.cr_info()
 pyLOM.show_plots()
+'''
