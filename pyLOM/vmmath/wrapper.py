@@ -8,10 +8,12 @@
 from __future__ import print_function, division
 
 import numpy as np, scipy, nfft
+from mpi4py import MPI
 
 from ..utils.cr     import cr_start, cr_stop
-from ..utils.parall import MPI_RANK, mpi_gather, mpi_reduce,
+from ..utils.parall import mpi_gather, mpi_reduce, pprint, mpi_send, mpi_recv, is_rank_or_serial
 from ..utils.errors import raiseError
+import h5py
 
 
 ## Python functions
@@ -93,9 +95,9 @@ def qr(A):
 		Q(m,n) is the Q matrix
 		R(n,n) is the R matrix
 	'''
-	cr_start('math.qr')
+	cr_start('math.qr', 0)
 	Q, R = np.linalg.qr(A)
-	cr_stop('math.qr')
+	cr_stop('math.qr', 0)
 	return Q,R
 
 def svd(A):
@@ -142,11 +144,13 @@ def next_power_of_2(n):
 	Find the next power of 2 of n
 	'''
 	cr_start('math.next_power_of_2',0)
-    p = 1
-    if (n && !(n & (n - 1))): return n
-    while (p < n): p <<= 1
+	p = 1
+	if (n and not(n & (n - 1))):
+		cr_stop('math.next_power_of_2',0)
+		return n
+	while (p < n): p <<= 1
 	cr_stop('math.next_power_of_2',0)
-    return p
+	return p
 
 def tsqr_svd(Ai):
 	'''
@@ -165,75 +169,78 @@ def tsqr_svd(Ai):
 	'''
 	cr_start('math.tsqr_svd',0)
 	#Recover rank and size
-    MPI_RANK = MPI_COMM.Get_rank()
-    MPI_SIZE = MPI_COMM.Get_size()
-    m, n = Ai.shape
+	MPI_COMM = MPI.COMM_WORLD      # Communications macro
+	MPI_RANK = MPI_COMM.Get_rank() # Who are you? who? who?
+	MPI_SIZE = MPI_COMM.Get_size() # Total number of processors used (workers)
+	m, n = Ai.shape
 	# Algorithm 1 from Demmel et al (2012)
 	# 1: QR Factorization on Ai to obtain Q1i and Ri
-    Q1i, R = qr(Ai)
-    nextPower = next_power_of_2(MPI_SIZE)
-    nlevels = np.log2(nextPower)
-    QW  = np.eye(n, np.double)
-    C   = np.zeros((2*n, n), np.double)
-    Q2l = np.zeros((2*n*nlevels, n), np.double)
-    belvel = 1
-    for ilevel in range(nlevels):
+	Q1i, R = qr(Ai)
+	nextPower = next_power_of_2(MPI_SIZE)
+	nlevels = int(np.log2(nextPower))
+	QW  = np.eye(n, dtype = np.double)
+	C   = np.zeros((2*n, n), np.double)
+	Q2l = np.zeros((2*n*nlevels, n), np.double)
+	blevel = 1
+	for ilevel in range(nlevels):
 		# Store R in the upper part of the C matrix
-        C[:n, :] = R
+		C[:n, :] = R
 		# Decide who sends and who recieves, use R as buffer
-        prank = MPI_RANK ^ blevel
-        if myproc & blevel:
-            if prank < MPI_SIZE:
-                mpi_send(R, prank)
-        else:
-            if prank < MPI_SIZE:
-                mpi_recv(R, prank)
+		prank = MPI_RANK ^ blevel
+		if MPI_RANK & blevel:
+			if prank < MPI_SIZE:
+				mpi_send(R, prank)
+		else:
+			if prank < MPI_SIZE:
+				R = mpi_recv(source = prank)
 				# Store R in the lower part of the C matrix
-                C[n : -1, :] = R
+				C[n:, :] = R
 				# 2: QR from the C matrix, reuse C and R
-                Q2i, R = np.qr(C)
+				Q2i, R = qr(C)
 				# Store Q2i from this level
-                Q2l[2*n*ilevel : 2*n*ilevel + 2*n, :] = Q2i
-        blevel <<= 1
+				Q2l[2*n*ilevel:2*n*ilevel+2*n, :] = Q2i
+		blevel <<= 1
 	# At this point R is correct on processor 0
 	# Broadcast R and its part of the Q matrix
-    blevel = 1 << (nlevels - 1)
-    for ilevel in reversed(range(nlevels)):
-        mask = blevel - 1
-        if MPI_RANK & mask == 0:
+	blevel = 1 << (nlevels - 1)
+	mask   = blevel - 1
+	for ilevel in reversed(range(nlevels)):
+		if MPI_RANK & mask == 0:
 			# Obtain Q2i for this level - use C as buffer
-            C = Q2l[2*n*ilevel : 2*n*ilevel + 2*n, :]
+			C = Q2l[2*n*ilevel:2*n*ilevel+2*n, :]
 			# Multiply by QW either set to identity or allocated to a value
 			# Store into Q2i
-            Q2i = matmul(C, QW)
+			Q2i = matmul(C, QW)
 			# Communications scheme
-            prank = MPI_RANK^blevel
-            if MPI_RANK & blevel:
-                if prank < MPI_SIZE:
-                    mpi_recv(C, prank)
+			prank = MPI_RANK^blevel
+			if MPI_RANK & blevel:
+				if prank < MPI_SIZE:
+					C = mpi_recv(source = prank)
 					# Recover R from the upper part of C and QW from the lower part
-                    R = C[: n, :]
-                    QW = C[n : -1, :]
-            else:
-                if prank < MPI_SIZE:
+					R  = C[:n, :]
+					QW = C[n:, :]
+			else:
+				if prank < MPI_SIZE:
 					# Set up C matrix for sending
 					# Store R in the upper part and Q2i on the lower part
 					# Store Q2i of this rank to QW
-                    C[: n, :] = R
-                    C[n : -1, :] = Q2i[n : -1, :]
-                    QW = Q2i[: n, :]
-                    mpi_send(C, prank)
-        blevel >>= 1
+					C[:n, :] = R
+					C[n:, :] = Q2i[n:, :]
+					QW       = Q2i[:n, :]
+					mpi_send(C, prank)
+		blevel >>= 1
+		mask   >>= 1
 	# Multiply Q1i and QW to obtain Qi
 	Qi = matmul(Q1i, QW)
 	# Algorithm 2 from Sayadi and Schmid (2016) - Ui, S and VT
 	# At this point we have R and Qi scattered on the processors
 	# Call SVD routine
 	Ur, S, V = svd(R)
+
 	# Compute Ui = Qi x Ur
-    Ui = matmul(Qi, Ur)
+	Ui = matmul(Qi, Ur)
 	cr_stop('math.tsqr_svd',0)
-    return Ui S, V
+	return Ui, S, V
 
 def fft(t,y,equispaced=True):
 	'''
