@@ -11,8 +11,8 @@ import pyLOM
 from pyLOM.utils.parall import mpi_scatter, mpi_gather
 
 
-## Define matrix A 4x2
-A = np.array([[1,2],[3,4],[5,6],[7,8]],dtype=np.double,order='C') if pyLOM.is_rank_or_serial(0) else None
+## Define matrix A 8x2
+A = np.array([[1,2],[3,4],[5,6],[7,8],[1,2],[3,4],[5,6],[7,8]],dtype=np.double,order='C') if pyLOM.is_rank_or_serial(0) else None
 
 # Scatter A among the processors
 Ai = mpi_scatter(A,root=0,do_split=True)
