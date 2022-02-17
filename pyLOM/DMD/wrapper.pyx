@@ -21,25 +21,76 @@ from mpi4py.libmpi cimport MPI_Comm
 from ..utils.cr     import cr_start, cr_stop
 from ..utils.errors import raiseError
 
+cdef extern from "vector_matrix.h":
+	cdef double c_vector_norm "vector_norm"(double *v, int start, int n)
+	cdef void   c_matmul      "matmul"(double *C, double *A, double *B, const int m, const int n, const int k)
+	cdef void   c_vecmat      "vecmat"(double *v, double *A, const int m, const int n)
+cdef extern from "averaging.h":
+	cdef void c_temporal_mean "temporal_mean"(double *out, double *X, const int m, const int n)
+	cdef void c_subtract_mean "subtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
+cdef extern from "svd.h":
+	cdef int c_tsqr_svd "tsqr_svd"(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm)
 
-## Expose DMD C functions
-cdef extern from "pod.h":
-	cdef void   compute_temporal_mean(double *out, double *X, const int m, const int n)
-	cdef void   subtract_temporal_mean(double *out, double *X, double *X_mean, const int m, const int n)
-	cdef void   single_value_decomposition(double *U, double *S, double *V, double *Y, const int m, const int n)
-	cdef  int   compute_truncation_residual(double *S, double res, int n)
-	cdef void   compute_svd_truncation(double *Ur, double *Sr, double *VTr, double *U, double *S, double *VT, const int m, const int n, const int N)
-	cdef void   compute_reconstruct_svd(double *X, double *Ur, double *Sr, double *VTr, const int m, const int n, const int N)
-	cdef double compute_RMSE(double *X_POD, double *X, const int m, const int n)
+## DMD run method
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def run(double[:,:] X,int remove_mean=True):
+	'''
+	Run DMD analysis of a matrix X.
 
-cdef extern from "dmd.h":
-	cdef void compute_eigen(double *delta, double *w, double *veps, double *A, const int m, const int n)
+	Inputs:
+		- X[ndims*nmesh,n_temp_snapshots]: data matrix
+		- remove_mean:                     whether or not to remove the mean flow
 
-cdef extern from "matrix.h":
-	cdef void transpose(double *A, const int m, const int n, const int bsz)
-	cdef double compute_norm(double *A, int start, int n)
+	Returns:
+		- Phi:      DMD Modes
+		- muReal:   Real part of the eigenvalues
+		- muImag:   Imaginary part of the eigenvalues
+		- b:        Amplitude of the DMD modes
+		- wComplex: Eigenvectors as a complex number
+		- U:        From Single Value Decomposition
+		- Vand:     Vandermonde matrix
+	'''
+	cr_start('DMD.run',0)
+	# Variables
+	cdef int m = X.shape[0], n = X.shape[1], mn = min(m,n), retval
+	cdef double *X_mean
+	cdef double *Y
+	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
+	# TO DO: Output arrays
+	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,mn),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((mn,) ,dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((n,mn),dtype=np.double)
+	# Allocate memory
+	Y = <double*>malloc(m*n*sizeof(double))
+	if remove_mean:
+		X_mean = <double*>malloc(m*sizeof(double))
+		# Compute temporal mean
+		c_temporal_mean(X_mean,&X[0,0],m,n)
+		# Compute substract temporal mean
+		c_subtract_mean(Y,&X[0,0],X_mean,m,n)
+		free(X_mean)
+	else:
+		memcpy(Y,&X[0,0],m*n*sizeof(double))
+
+	# Compute SVD
+	retval = c_tsqr_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,MPI_COMM.ob_mpi)
+	free(Y)
+	# Return
+	cr_stop('DMD.run',0)
+	if not retval == 0: raiseError('Problems computing SVD!')
+
+	return U,S,V
 
 
+
+
+
+
+
+## OLD DMD FUNCTIONS
 def svd(double[:,:] Y,int n1,int n2,int do_copy=True,int bsz=-1):
 	'''
 	Single value decomposition (SVD) using Lapack.
