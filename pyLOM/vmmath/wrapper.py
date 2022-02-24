@@ -100,7 +100,7 @@ def qr(A):
 	cr_stop('math.qr', 0)
 	return Q,R
 
-def svd(A):
+def svd(A,method='gesdd'):
 	'''
 	Single value decomposition (SVD) using numpy.
 		U(m,n)   are the POD modes.
@@ -108,7 +108,7 @@ def svd(A):
 		V(n,n)   are the right singular vectors.
 	'''
 	cr_start('math.svd',0)
-	U, S, V = np.linalg.svd(A,full_matrices=False)
+	U, S, V = np.linalg.svd(A,lapack_driver=method,check_finite=False,full_matrices=False)
 	cr_stop('math.svd',0)
 	return U,S,V
 

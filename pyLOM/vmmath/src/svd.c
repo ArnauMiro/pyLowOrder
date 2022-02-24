@@ -1,7 +1,6 @@
 /*
 	SVD - Singular Value Decomposition of a matrix
 */
-#define USE_LAPACK_DGESVD
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
