@@ -112,6 +112,25 @@ def svd(A,method='gesdd'):
 	cr_stop('math.svd',0)
 	return U,S,V
 
+def tsqr2(A):
+	'''
+	Parallel QR factorization using Lapack
+		Q(m,n) is the Q matrix
+		R(n,n) is the R matrix
+	'''
+	cr_start('math.tsqr2',0)
+	# Algorithm 1 from Sayadi and Schmid (2016) - Q and R matrices
+	# QR factorization on A
+	Q1i, R = qr(A)
+	# Gather all Rs into Rp
+	Rp = mpi_gather(R,all=True)
+	# QR factorization on Rp
+	Q2i, R = qr(Rp)
+	# Compute Q = Q1 x Q2
+	Q = matmul(Q1i,Q2i[A.shape[1]*MPI_RANK:A.shape[1]*(MPI_RANK+1),:])
+	cr_stop('math.tsqr2',0)
+	return Q,R
+
 def tsqr_svd2(A):
 	'''
 	Single value decomposition (SVD) using Lapack.
@@ -122,13 +141,7 @@ def tsqr_svd2(A):
 	cr_start('math.tsqr_svd2',0)
 	# Algorithm 1 from Sayadi and Schmid (2016) - Q and R matrices
 	# QR factorization on A
-	Q1i, R = qr(A)
-	# Gather all Rs into Rp
-	Rp = mpi_gather(R,all=True)
-	# QR factorization on Rp
-	Q2i, R = qr(Rp)
-	# Compute Q = Q1 x Q2
-	Q = matmul(Q1i,Q2i[A.shape[1]*MPI_RANK:A.shape[1]*(MPI_RANK+1),:])
+	Q,R = tsqr2(A)
 
 	# Algorithm 2 from Sayadi and Schmid (2016) - Ui, S and VT
 	# At this point we have R and Qi scattered on the processors
@@ -152,22 +165,13 @@ def next_power_of_2(n):
 	cr_stop('math.next_power_of_2',0)
 	return p
 
-def tsqr_svd(Ai):
+def tsqr(A):
 	'''
-	Single value decomposition (SVD) using TSQR algorithm from
-	J. Demmel, L. Grigori, M. Hoemmen, and J. Langou, ‘Communication-optimal Parallel
-	and Sequential QR and LU Factorizations’, SIAM J. Sci. Comput.,
-	vol. 34, no. 1, pp. A206–A239, Jan. 2012,
-
-	doi: 10.1137/080731992.
-
-	Ai(m,n)  data matrix dispersed on each processor.
-
-	Ui(m,n)  POD modes dispersed on each processor (must come preallocated).
-	S(n)     singular values.
-	VT(n,n)  right singular vectors (transposed).
+	Parallel QR factorization using Lapack
+		Q(m,n) is the Q matrix
+		R(n,n) is the R matrix
 	'''
-	cr_start('math.tsqr_svd',0)
+	cr_start('math.tsqr',0)
 	#Recover rank and size
 	MPI_COMM = MPI.COMM_WORLD      # Communications macro
 	MPI_RANK = MPI_COMM.Get_rank() # Who are you? who? who?
@@ -175,13 +179,13 @@ def tsqr_svd(Ai):
 	m, n = Ai.shape
 	# Algorithm 1 from Demmel et al (2012)
 	# 1: QR Factorization on Ai to obtain Q1i and Ri
-	Q1i, R = qr(Ai)
+	Q1i, R    = qr(Ai)
 	nextPower = next_power_of_2(MPI_SIZE)
-	nlevels = int(np.log2(nextPower))
-	QW  = np.eye(n, dtype = np.double)
-	C   = np.zeros((2*n, n), np.double)
-	Q2l = np.zeros((2*n*nlevels, n), np.double)
-	blevel = 1
+	nlevels   = int(np.log2(nextPower))
+	QW        = np.eye(n, dtype = np.double)
+	C         = np.zeros((2*n, n), np.double)
+	Q2l       = np.zeros((2*n*nlevels, n), np.double)
+	blevel    = 1
 	for ilevel in range(nlevels):
 		# Store R in the upper part of the C matrix
 		C[:n, :] = R
@@ -232,11 +236,32 @@ def tsqr_svd(Ai):
 		mask   >>= 1
 	# Multiply Q1i and QW to obtain Qi
 	Qi = matmul(Q1i, QW)
+	cr_stop('math.tsqr',0)
+	return Qi,R
+
+def tsqr_svd(Ai):
+	'''
+	Single value decomposition (SVD) using TSQR algorithm from
+	J. Demmel, L. Grigori, M. Hoemmen, and J. Langou, ‘Communication-optimal Parallel
+	and Sequential QR and LU Factorizations’, SIAM J. Sci. Comput.,
+	vol. 34, no. 1, pp. A206–A239, Jan. 2012,
+
+	doi: 10.1137/080731992.
+
+	Ai(m,n)  data matrix dispersed on each processor.
+
+	Ui(m,n)  POD modes dispersed on each processor (must come preallocated).
+	S(n)     singular values.
+	VT(n,n)  right singular vectors (transposed).
+	'''
+	cr_start('math.tsqr_svd',0)
+	# QR factorization on A
+	Qi,R = tsqr(A)
+
 	# Algorithm 2 from Sayadi and Schmid (2016) - Ui, S and VT
 	# At this point we have R and Qi scattered on the processors
 	# Call SVD routine
 	Ur, S, V = svd(R)
-
 	# Compute Ui = Qi x Ur
 	Ui = matmul(Qi, Ur)
 	cr_stop('math.tsqr_svd',0)
