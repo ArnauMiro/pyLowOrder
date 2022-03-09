@@ -139,9 +139,14 @@ class Dataset(object):
 		'''
 		return mesh_compute_cellcenter(self._xyz,self._meshDict)
 
-	def X(self,*args):
+	def X(self,*args,time_slice=np.s_[:]):
 		'''
 		Return the X matrix for the selected variables
+
+		To define a slice in numpy use np.s_ so that:
+			X[:,:1000] -> X[:,np.s_[:1000]]
+		or
+			X[:,::5] -> X[:,np.s_[::5]]
 		'''
 		# Select all variables if none is provided
 		variables = self.varnames if len(args) == 0 else args
@@ -151,14 +156,14 @@ class Dataset(object):
 			nvars += self.var[var]['ndim']
 		# Create output array
 		npoints = self.pointOrder.shape[0] if self.var[variables[0]]['point'] else self.cellOrder.shape[0]
-		ninst   = self._time.shape[0]
+		ninst   = self._time[time_slice].shape[0]
 		X = np.zeros((nvars*npoints,ninst),np.double)
 		# Populate output matrix
 		ivar = 0
 		for var in variables:
 			v = self.var[var]
 			for idim in range(v['ndim']):
-				X[ivar:nvars*npoints:nvars,:] = v['value'][idim:v['ndim']*npoints:v['ndim'],:]
+				X[ivar:nvars*npoints:nvars,:] = v['value'][idim:v['ndim']*npoints:v['ndim'],time_slice]
 				ivar += 1
 		return X
 
