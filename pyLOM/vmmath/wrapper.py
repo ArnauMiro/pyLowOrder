@@ -206,8 +206,9 @@ def tsqr(A):
 		blevel <<= 1
 	# At this point R is correct on processor 0
 	# Broadcast R and its part of the Q matrix
-	blevel = 1 << (nlevels - 1)
-	mask   = blevel - 1
+	if MPI_SIZE > 1:	
+		blevel = 1 << (nlevels - 1)
+		mask   = blevel - 1
 	for ilevel in reversed(range(nlevels)):
 		if MPI_RANK & mask == 0:
 			# Obtain Q2i for this level - use C as buffer
