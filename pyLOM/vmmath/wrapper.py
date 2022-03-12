@@ -108,7 +108,8 @@ def svd(A,method='gesdd'):
 		V(n,n)   are the right singular vectors.
 	'''
 	cr_start('math.svd',0)
-	U, S, V = np.linalg.svd(A,lapack_driver=method,check_finite=False,full_matrices=False)
+#	U, S, V = np.linalg.svd(A,lapack_driver=method,check_finite=False,full_matrices=False)
+	U, S, V = np.linalg.svd(A,full_matrices=False)
 	cr_stop('math.svd',0)
 	return U,S,V
 
@@ -165,7 +166,7 @@ def next_power_of_2(n):
 	cr_stop('math.next_power_of_2',0)
 	return p
 
-def tsqr(A):
+def tsqr(Ai):
 	'''
 	Parallel QR factorization using Lapack
 		Q(m,n) is the Q matrix
@@ -257,7 +258,7 @@ def tsqr_svd(Ai):
 	'''
 	cr_start('math.tsqr_svd',0)
 	# QR factorization on A
-	Qi,R = tsqr(A)
+	Qi,R = tsqr(Ai)
 
 	# Algorithm 2 from Sayadi and Schmid (2016) - Ui, S and VT
 	# At this point we have R and Qi scattered on the processors
