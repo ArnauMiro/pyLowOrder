@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <stdio.h>
 #include "mpi.h"
 
 #ifdef USE_MKL
@@ -103,7 +104,7 @@ int qr(double *Q, double *R, double *A, const int m, const int n) {
 					   n, // int  		n
 					   Q, // double*  	a
 					   n, // int  		lda
-					 tau  // double * 	tau 
+					 tau  // double * 	tau
 	);
 	if (!(info==0)) {free(tau); return info;}
 	// Copy Ri matrix
@@ -115,11 +116,11 @@ int qr(double *Q, double *R, double *A, const int m, const int n) {
 	info = LAPACKE_dorgqr(
 		LAPACK_ROW_MAJOR, // int  		matrix_layout
 					   m, // int  		m
-					   n, // int  		n		
+					   n, // int  		n
 					   n, // int  		k
 					   Q, // double*  	a
-					   n, // int  		lda					   		
-					 tau  // double * 	tau 
+					   n, // int  		lda
+					 tau  // double * 	tau
 	);
 	if (!(info==0)) {free(tau); return info;}
 	free(tau);
@@ -130,10 +131,10 @@ int qr(double *Q, double *R, double *A, const int m, const int n) {
 int tsqr_svd2(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm) {
 	/*
 		Single value decomposition (SVD) using TSQR algorithm from
-		T. Sayadi and P. J. Schmid, ‘Parallel data-driven decomposition algorithm 
-		for large-scale datasets: with application to transitional boundary layers’, 
+		T. Sayadi and P. J. Schmid, ‘Parallel data-driven decomposition algorithm
+		for large-scale datasets: with application to transitional boundary layers’,
 		Theor. Comput. Fluid Dyn., vol. 30, no. 5, pp. 415–428, Oct. 2016
-		
+
 		doi: 10.1007/s00162-016-0385-x
 
 		This is the reduce-broadcast variant of the algorithm from:
@@ -144,7 +145,7 @@ int tsqr_svd2(double *Ui, double *S, double *VT, double *Ai, const int m, const 
 		Ui(m,n)  POD modes dispersed on each processor (must come preallocated).
 		S(n)     singular values.
 		VT(n,n)  right singular vectors (transposed).
-	*/	
+	*/
 	int info = 0, ii, jj, mm;
 	int mpi_rank, mpi_size;
 	double *Qi, *Q1i, *R, *Q2i_p, *Q2i;
@@ -185,20 +186,20 @@ int tsqr_svd2(double *Ui, double *S, double *VT, double *Ai, const int m, const 
 }
 
 
-int nextPowerOf2(int n) {  
-	int p = 1;  
-	if (n && !(n & (n - 1))) return n;  
+int nextPowerOf2(int n) {
+	int p = 1;
+	if (n && !(n & (n - 1))) return n;
 	while (p < n) p <<= 1;
-	return p;  
+	return p;
 }
 
 
 int tsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm) {
 	/*
 		Single value decomposition (SVD) using TSQR algorithm from
-		J. Demmel, L. Grigori, M. Hoemmen, and J. Langou, ‘Communication-optimal Parallel 
-		and Sequential QR and LU Factorizations’, SIAM J. Sci. Comput., 
-		vol. 34, no. 1, pp. A206–A239, Jan. 2012, 
+		J. Demmel, L. Grigori, M. Hoemmen, and J. Langou, ‘Communication-optimal Parallel
+		and Sequential QR and LU Factorizations’, SIAM J. Sci. Comput.,
+		vol. 34, no. 1, pp. A206–A239, Jan. 2012,
 
 		doi: 10.1137/080731992.
 
@@ -207,7 +208,7 @@ int tsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const i
 		Ui(m,n)  POD modes dispersed on each processor (must come preallocated).
 		S(n)     singular values.
 		VT(n,n)  right singular vectors (transposed).
-	*/	
+	*/
 	int info = 0, ii, jj, n2 = n*2, ilevel, blevel, mask;
 	int mpi_rank, mpi_size;
 	double *Qi, *Q1i, *Q2i, *Q2l, *R, *QW, *C;
@@ -236,7 +237,7 @@ int tsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const i
 		// Store R in the upper part of the C matrix
 		for (ii=0; ii<n; ++ii)
 			for (jj=0; jj<n; ++jj)
-				AC_MAT(C,n,ii,jj) = AC_MAT(R,n,ii,jj);		
+				AC_MAT(C,n,ii,jj) = AC_MAT(R,n,ii,jj);
 		// Decide who sends and who recieves, use R as buffer
 		prank = mpi_rank^blevel;
 		if (mpi_rank&blevel) {
@@ -248,7 +249,7 @@ int tsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const i
 				// Store R in the lower part of the C matrix
 				for (ii=0; ii<n; ++ii)
 					for (jj=0; jj<n; ++jj)
-						AC_MAT(C,n,ii+n,jj) = AC_MAT(R,n,ii,jj);			
+						AC_MAT(C,n,ii+n,jj) = AC_MAT(R,n,ii,jj);
 				// 2: QR from the C matrix, reuse C and R
 				info = qr(Q2i,R,C,n2,n); if (!(info==0)) return info;
 				// Store Q2i from this level
@@ -289,9 +290,9 @@ int tsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const i
 					// Store Q2i of this rank to QW
 					for(ii=0;ii<n;++ii)
 						for(jj=ii;jj<n;++jj) {
-							AC_MAT(C,n,ii,jj)   = AC_MAT(R,n,ii,jj);      		
-							AC_MAT(C,n,ii+n,jj) = AC_MAT(Q2i,n,ii+n,jj);  
-							AC_MAT(QW,n,ii,jj)  = AC_MAT(Q2i,n,ii,jj);  		
+							AC_MAT(C,n,ii,jj)   = AC_MAT(R,n,ii,jj);
+							AC_MAT(C,n,ii+n,jj) = AC_MAT(Q2i,n,ii+n,jj);
+							AC_MAT(QW,n,ii,jj)  = AC_MAT(Q2i,n,ii,jj);
 						}
 					MPI_Send(C,n2*n,MPI_DOUBLE,prank,0,comm);
 				}

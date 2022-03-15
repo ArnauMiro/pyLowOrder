@@ -6,11 +6,11 @@
 from __future__ import print_function, division
 
 import os, numpy as np
-
+import matplotlib.pyplot as plt
 import pyLOM
 
 ## Parameters
-DATAFILE = './DATA/CYLINDER.h5'
+DATAFILE = 'Examples/Data/CYLINDER.h5'
 VARIABLE = 'VELOC'
 
 
@@ -31,7 +31,7 @@ X_POD = pyLOM.POD.reconstruct(PSI,S,V)
 rmse = pyLOM.math.RMSE(X_POD,X)
 print('RMSE = %e'%rmse)
 
-
+'''
 ## Dump to ParaView
 # Spatial modes
 d.add_variable('spatial_modes_U',False,6,0,pyLOM.POD.extract_modes(PSI,1,d.ncells,modes=[1,4,6,2,5,3]))
@@ -55,7 +55,7 @@ pyLOM.io.Ensight_writeCase(os.path.join('out','flow.ensi.case'),'flow.ensi.geo',
 	],
 	t
 )
-
+'''
 
 ## Plots
 # POD mode: 0 - module, 1,2 - components

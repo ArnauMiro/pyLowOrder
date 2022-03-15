@@ -2,6 +2,7 @@
 	Vector and matrix math operations
 */
 #include <math.h>
+#include <complex.h>
 #include "mpi.h"
 
 #ifdef USE_MKL
@@ -15,7 +16,7 @@
 #include "vector_matrix.h"
 
 #define BLK_LIM         5000
-#define AC_MAT(A,n,i,j) *((A)+(n)*(i)+(j)) 
+#define AC_MAT(A,n,i,j) *((A)+(n)*(i)+(j))
 #define POW2(x)         ((x)*(x))
 
 
@@ -53,7 +54,7 @@ void reorder(double *A, int m, int n, int N) {
 	/*
 		Function which reorders the matrix A(m,n) to a matrix A(m,N)
 		in order to delete the values that do not belong to the first N columns.
-		
+
 		Memory has to be reallocated after using the function.
 	*/
 	int ii = 0, im, in;
@@ -87,7 +88,34 @@ void matmul(double *C, double *A, double *B, const int m, const int n, const int
 		           0., // const double 	          beta
  				    C, // double * 	              C
 		            n  // const CBLAS_INDEX 	  ldc
-	);	
+	);
+}
+
+void matmul_complex(complex_t *C, complex_t *A, complex_t *B, const int m, const int n, const int k) {
+	/*
+		Complex matrix multiplication C = A x B
+		using cblas routines.
+
+		C(m,n), A(m,k), B(k,n)
+	*/
+	double alpha = 1;
+	double beta  = 0;
+	cblas_zgemm(
+		CblasRowMajor, // const CBLAS_LAYOUT 	  layout
+		 CblasNoTrans, // const CBLAS_TRANSPOSE   TransA
+		 CblasNoTrans, // const CBLAS_TRANSPOSE   TransB
+		            m, // const CBLAS_INDEX 	  M
+		            n, // const CBLAS_INDEX 	  N
+		            k, // const CBLAS_INDEX 	  K
+		       &alpha, // const double 	          alpha
+		            A, // const complex_t * 	      A
+		            k, // const CBLAS_INDEX 	  lda
+	  			      B, // const complex_t * 	      B
+		            n, // const CBLAS_INDEX 	  ldb
+		        &beta, // const double 	          beta
+ 				        C, // complex_t * 	              C
+		            n  // const CBLAS_INDEX 	  ldc
+	);
 }
 
 void vecmat(double *v, double *A, const int m, const int n) {
@@ -106,7 +134,7 @@ void vecmat(double *v, double *A, const int m, const int n) {
 	}
 }
 
-int eigen(double *real, double *imag, double *vecs, double *A, 
+int eigen(double *real, double *imag, complex_t *w, double *A,
 	const int m, const int n) {
 	/*
 		Compute the eigenvalues and eigenvectors of a matrix A using
@@ -121,8 +149,10 @@ int eigen(double *real, double *imag, double *vecs, double *A,
 		A(m,n)   matrix to obtain eigenvalues and eigenvectors from
 	*/
 	int info;
-	double *vl; 
+	double *vl;
 	vl = (double*)malloc(1*sizeof(double));
+	double *vecs;
+	vecs = (double*)malloc(n*n*sizeof(double));
 	info = LAPACKE_dgeev(
 		LAPACK_ROW_MAJOR, // int  		matrix_layout
 		           'N',   // char       jobvl
@@ -137,6 +167,24 @@ int eigen(double *real, double *imag, double *vecs, double *A,
 		          vecs,   // double*    vr
 		             n    // int        ldvr
 	);
+	//Define and allocate memory for the complex array of eigenvectors
+	double tol = 1e-12;
+	//Change while for a for
+	for (int imod = 0; imod < n-1; imod++){
+		if (imag[imod] > tol){//If the imaginary part is greater than zero, the eigenmode has a conjugate.
+			for (int ivec = 0; ivec < n; ivec++){
+				AC_MAT(w,n,ivec,imod)   = AC_MAT(vecs,n,ivec,imod) + AC_MAT(vecs,n,ivec,imod+1)*I;
+				AC_MAT(w,n,ivec,imod+1) = AC_MAT(vecs,n,ivec,imod) - AC_MAT(vecs,n,ivec,imod+1)*I;
+			}
+			imod += 1;
+		}
+		else{
+			for (int ivec = 0; ivec < n; ivec++){
+				AC_MAT(w,n,ivec,imod)   = AC_MAT(vecs,n,ivec,imod) + 0*I;
+			}
+		}
+	}
+	free(vecs);
 	free(vl);
 	return info;
 }
@@ -165,8 +213,20 @@ double RMSE(double *A, double *B, const int m, const int n, MPI_Comm comm) {
 		sum2 += norm2;
 	}
 	// Reduce MPI parallel run
-	MPI_Allreduce(&sum1,&sum1g,1,MPI_DOUBLE,MPI_SUM,comm); 
+	MPI_Allreduce(&sum1,&sum1g,1,MPI_DOUBLE,MPI_SUM,comm);
 	MPI_Allreduce(&sum2,&sum2g,1,MPI_DOUBLE,MPI_SUM,comm);
 	// Return
 	return sqrt(sum1g/sum2g);
+}
+
+int cholesky(complex_t *A, int N){
+	int info;
+	info = LAPACKE_zpotrf(
+		LAPACK_ROW_MAJOR, // int  		matrix_layout
+		'L', //char			Decide if the Upper or the Lower triangle of A are stored
+		  N, //int			Order of matrix A
+			A, //complex	Matrix A to decompose (works as input and output)
+		  N //int			Leading dimension of A
+	);
+	return info;
 }

@@ -86,6 +86,7 @@ def build_complex_eigenvectors(vecs, imag):
 	cr_start('math.build_complex_eigenvectors', 0)
 	wComplex = np.zeros(vecs.shape, dtype = 'complex_')
 	ivec = 0
+	#TODO: explain here the while
 	while ivec < vecs.shape[1] - 1:
 		if imag[ivec] > np.finfo(np.double).eps:
 			wComplex[:, ivec]     = vecs[:, ivec] + vecs[:, ivec + 1]*1j
@@ -240,8 +241,9 @@ def tsqr_svd(Ai):
 		blevel <<= 1
 	# At this point R is correct on processor 0
 	# Broadcast R and its part of the Q matrix
-	blevel = 1 << (nlevels - 1)
-	mask   = blevel - 1
+	if MPI_SIZE > 1: #Check if we are running in more than one processor
+		blevel = 1 << (nlevels - 1)
+		mask   = blevel - 1
 	for ilevel in reversed(range(nlevels)):
 		if MPI_RANK & mask == 0:
 			# Obtain Q2i for this level - use C as buffer
@@ -298,7 +300,7 @@ def fft(t,y,equispaced=True):
 		# Compute power spectra using fft
 		x  = -0.5 + np.arange(t.shape[0],dtype=np.double)/t.shape[0]
 		yf = nfft.nfft_adjoint(x,y,len(t))
-	ps = np.real(yf*np.conj(yf))/y.shape[0] # np.abs(yf)/y.shape[0]
+	ps = np.real(yf*conj(yf))/y.shape[0] # np.abs(yf)/y.shape[0]
 	cr_stop('math.fft',0)
 	return f, ps
 
@@ -314,16 +316,52 @@ def RMSE(A,B):
 	cr_stop('math.RMSE',0)
 	return rmse
 
-def vandermonde(real, imag, shape0, shape1):
+def vandermonde(real, imag, m, n):
 	'''
-	Builds a Vandermonde matrix of (shape0 x shape 1) with the real and imaginary parts of the eigenvalues
+	Builds a Vandermonde matrix of (shape0 x shape 1) with the real and
+	imaginary parts of the eigenvalues
+
+	TODO: posa una cita collons!
 	'''
-	cr.start('math.vandermonde', 0)
-	mod, arg = polar(real, imag)
-	Vand  = np.zeros((shape0, shape1), dtype = 'complex_')
-	for icol in range(shape1):
-		VandModulus   = mod**icol
-		VandArg       = arg*icol
-		Vand[:, icol] = mod*np.cos(arg) + mod*np.sin(arg)*1j
+	cr_start('math.vandermonde', 0)
+	Vand  = np.zeros((m, n), dtype = 'complex_')
+	for icol in range(n):
+		Vand[:, icol] = (real + imag*1j)**icol
 	cr_stop('math.vandermonde', 0)
 	return Vand
+
+def cholesky(A):
+	'''
+	Returns the Cholesky decompositon of A
+	'''
+	cr_start('math.cholesky', 0)
+	B = np.linalg.cholesky(A)
+	cr_stop('math.cholesky', 0)
+	return B
+
+def conj(A):
+	'''
+	Conjugates complex number A
+	'''
+	cr_start('math.conj',0)
+	B = np.conj(A)
+	cr_stop('math.conj',0)
+	return B
+
+def inv(A):
+	'''
+	Computes the inverse matrix of A
+	'''
+	cr_start('math.inv',0)
+	B = np.linalg.inv(A)
+	cr_stop('math.inv',0)
+	return B
+
+def flip(A):
+	'''
+	Changes order of the vector
+	'''
+	cr_start('math.flip', 0)
+	B = np.flip(A)
+	cr_stop('math.flip', 0)
+	return B

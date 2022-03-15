@@ -30,53 +30,9 @@ cdef extern from "averaging.h":
 	cdef void c_subtract_mean "subtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
 cdef extern from "svd.h":
 	cdef int c_tsqr_svd "tsqr_svd"(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm)
-
-
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
-@cython.nonecheck(False)
-@cython.cdivision(True)    # turn off zero division check
-cdef int compute_truncation_residual(double *S, double res, const int n):
-	'''
-	Function which computes the accumulative residual of the vector S (of size n) and it
-	returns truncation instant according to the desired residual, res, imposed by the user.
-	'''
-	cdef int ii
-	cdef double accumulative
-	cdef double normS = c_vector_norm(S,0,n)
-
-	for ii in range(n):
-		accumulative = c_vector_norm(S,ii,n)/normS
-		if accumulative < res: return ii
-	return n
-
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
-@cython.nonecheck(False)
-@cython.cdivision(True)    # turn off zero division check
-cdef void compute_truncation(double *Ur, double *Sr, double *VTr, double *U, 
-	double *S, double *VT, const int m, const int n, const int N):
-	'''
-	U(m,n)   are the POD modes and must come preallocated.
-	S(n)     are the singular values.
-	VT(n,n)  are the right singular vectors (transposed).
-
-	U, S and VT are copied to (they come preallocated):
-
-	Ur(m,N)  are the POD modes and must come preallocated.
-	Sr(N)    are the singular values.
-	VTr(N,n) are the right singular vectors (transposed).
-	'''
-	cdef int ii, jj
-	for jj in range(N):
-		# Copy U into Ur
-		for ii in range(m):
-			Ur[N*ii+jj] = U[n*ii+jj]
-		# Copy S into Sr
-		Sr[jj] = S[jj]
-		# Copy VT into VTr
-		memcpy(VTr+n*jj,VT+n*jj,n*sizeof(double))
-
+cdef extern from "truncation.h":
+	cdef int  c_compute_truncation_residual "compute_truncation_residual"(double *S, double res, const int n)
+	cdef void c_compute_truncation          "compute_truncation"(double *Ur, double *Sr, double *VTr, double *U, double *S, double *VT, const int m, const int n, const int N)
 
 ## POD run method
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -125,7 +81,6 @@ def run(double[:,:] X,int remove_mean=True):
 	if not retval == 0: raiseError('Problems computing SVD!')
 	return U,S,V
 
-
 ## POD truncate method
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
@@ -148,21 +103,17 @@ def truncate(double[:,:] U, double[:] S, double[:,:] V, double r=1e-8):
 	'''
 	cr_start('POD.truncate',0)
 	cdef int m = U.shape[0], n = S.shape[0], N
-	# Output arrays
-	cdef np.ndarray[np.double_t,ndim=2] Ur, Vr
-	cdef np.ndarray[np.double_t,ndim=1] Sr
 	# Compute N using S
-	N  = compute_truncation_residual(&S[0],r,n)
+	N  = c_compute_truncation_residual(&S[0],r,n)
 	# Allocate output arrays
-	Ur = np.zeros((m,N),dtype=np.double)
-	Sr = np.zeros((N,) ,dtype=np.double)
-	Vr = np.zeros((N,n),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] Ur = np.zeros((m,N),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=1] Sr = np.zeros((N,),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] Vr = np.zeros((N,n),dtype=np.double)
 	# Truncate
-	compute_truncation(&Ur[0,0],&Sr[0],&Vr[0,0],&U[0,0],&S[0],&V[0,0],m,n,N)
+	c_compute_truncation(&Ur[0,0],&Sr[0],&Vr[0,0],&U[0,0],&S[0],&V[0,0],m,n,N)
 	# Return
 	cr_stop('POD.truncate',0)
 	return Ur, Sr, Vr
-
 
 ## POD reconstruct method
 def reconstruct(double[:,:] U, double[:] S, double[:,:] V):

@@ -5,13 +5,14 @@
 # Last revision: 19/07/2021
 from __future__ import print_function, division
 
-import os, numpy as np
+import os
+import numpy as np
+from pyLOM.utils.parall import mpi_gather
 
 import pyLOM
-from pyLOM.utils.parall import MPI_RANK, mpi_gather
 
 ## Parameters
-DATAFILE = './DATA/CYLINDER.h5'
+DATAFILE = './Examples/Data/CYLINDER.h5'
 VARIABLE = 'VELOC'
 
 
@@ -67,7 +68,7 @@ xyz   = mpi_gather(d.xyz,root=0)
 ## Plot POD mode
 if pyLOM.is_rank_or_serial(0):
 	# 0 - module, 1,2 - components
-	pyLOM.POD.plotMode(PSI,xyz,V,t,d.mesh,d.info(VARIABLE),dim=0,modes=[1,2,3,4])
+	pyLOM.POD.plotMode(PSI,xyz,V[:,:-1],t[:-1],d.mesh,d.info(VARIABLE),dim=0,modes=[1,2,3,4])
 
 	# Plot reconstructed flow
 	fig,ax,anim = pyLOM.POD.animateFlow(X,X_POD,xyz,d.mesh,d.info(VARIABLE),dim=0)

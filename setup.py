@@ -142,23 +142,25 @@ Module_POD = Extension('pyLOM.POD.wrapper',
 										 'pyLOM/vmmath/src/vector_matrix.c',
 										 'pyLOM/vmmath/src/averaging.c',
 										 'pyLOM/vmmath/src/svd.c',
+										 'pyLOM/vmmath/src/truncation.c',
 									    ],
 						language      = 'c',
 						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include()],
 						extra_objects = extra_objects,
 						libraries     = libraries,
 					   )
-#Module_DMD = Extension('pyLOM.DMD.wrapper',
-#						sources       = ['pyLOM/DMD/wrapper.pyx',
-#										 'pyLOM/DMD/src/dmd.c',
-#										 'pyLOM/POD/src/pod.c',
-#										 'pyLOM/utils/src/matrix.c',
-#									    ],
-#						language      = 'c',
-#						include_dirs  = include_dirs,
-#						extra_objects = extra_objects,
-#						libraries     = libraries,
-#					   )
+Module_DMD = Extension('pyLOM.DMD.wrapper',
+						sources       = ['pyLOM/DMD/wrapper.pyx',
+										 'pyLOM/vmmath/src/vector_matrix.c',
+										 'pyLOM/vmmath/src/averaging.c',
+										 'pyLOM/vmmath/src/svd.c',
+										 'pyLOM/vmmath/src/truncation.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
 
 
 ## Decide which modules to compile
@@ -168,7 +170,7 @@ modules_list = [
 	# IO module
 	Module_IO_ensight,
 	# Low order algorithms
-	Module_POD,#Module_DMD,
+	Module_POD,Module_DMD
 ]
 
 

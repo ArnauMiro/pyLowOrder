@@ -61,7 +61,7 @@ def truncate(U,S,V,r=1e-8):
 	'''
 	cr_start('POD.truncate',0)
 	# Compute N using S
-	N = 1
+	N = 0
 	normS = vector_norm(S,0)
 	for ii in range(S.shape[0]):
 		accumulative = vector_norm(S,ii)/normS

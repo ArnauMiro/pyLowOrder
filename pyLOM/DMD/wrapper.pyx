@@ -11,60 +11,69 @@ cimport cython
 cimport numpy as np
 
 import numpy as np
+from mpi4py  import MPI
 
 from scipy.linalg import ldl
 
 from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy, memset
 from mpi4py.libmpi cimport MPI_Comm
+from mpi4py        cimport MPI
 
 from ..utils.cr     import cr_start, cr_stop
 from ..utils.errors import raiseError
 
 cdef extern from "vector_matrix.h":
-	cdef double c_vector_norm "vector_norm"(double *v, int start, int n)
-	cdef void   c_matmul      "matmul"(double *C, double *A, double *B, const int m, const int n, const int k)
-	cdef void   c_vecmat      "vecmat"(double *v, double *A, const int m, const int n)
+	cdef void   c_transpose      "transpose"(double *A, const int m, const int n)
+	cdef double c_vector_norm    "vector_norm"(double *v, int start, int n)
+	cdef void   c_matmul         "matmul"(double *C, double *A, double *B, const int m, const int n, const int k)
+	cdef void   c_matmul_complex "matmul_complex"(np.complex128_t *C, np.complex128_t *A, np.complex128_t *B, const int m, const int n, const int k)
+	cdef void   c_vecmat         "vecmat"(double *v, double *A, const int m, const int n)
+	cdef int    c_eigen          "eigen"(double *real, double *imag, np.complex128_t *vecs, double *A, const int m, const int n)
 cdef extern from "averaging.h":
 	cdef void c_temporal_mean "temporal_mean"(double *out, double *X, const int m, const int n)
 	cdef void c_subtract_mean "subtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
 cdef extern from "svd.h":
 	cdef int c_tsqr_svd "tsqr_svd"(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm)
+	cdef int c_svd      "svd"(double *U, double *S, double *VT, double *Y, const int m, const int n)
+cdef extern from "truncation.h":
+	cdef int  c_compute_truncation_residual "compute_truncation_residual"(double *S, double res, const int n)
+	cdef void c_compute_truncation          "compute_truncation"(double *Ur, double *Sr, double *VTr, double *U, double *S, double *VT, const int m, const int n, const int N)
 
 ## DMD run method
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def run(double[:,:] X,int remove_mean=True):
+def run(double[:,:] X, double r, int remove_mean=True):
 	'''
 	Run DMD analysis of a matrix X.
 
 	Inputs:
 		- X[ndims*nmesh,n_temp_snapshots]: data matrix
 		- remove_mean:                     whether or not to remove the mean flow
+		- r:                               maximum truncation residual
 
 	Returns:
 		- Phi:      DMD Modes
 		- muReal:   Real part of the eigenvalues
 		- muImag:   Imaginary part of the eigenvalues
 		- b:        Amplitude of the DMD modes
-		- wComplex: Eigenvectors as a complex number
-		- U:        From Single Value Decomposition
-		- Vand:     Vandermonde matrix
+		- Variables needed to reconstruct flow
 	'''
 	cr_start('DMD.run',0)
-	# Variables
-	cdef int m = X.shape[0], n = X.shape[1], mn = min(m,n), retval
+	# V#ariables
+	cdef int m = X.shape[0], n = X.shape[1], mn = min(m,n-1), retval
 	cdef double *X_mean
 	cdef double *Y
+	cdef int iaux, icol, irow
 	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
-	# TO DO: Output arrays
-	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,mn),dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((mn,) ,dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((n,mn),dtype=np.double)
+
+	#Output arrays:
 	# Allocate memory
-	Y = <double*>malloc(m*n*sizeof(double))
+	Y  = <double*>malloc(m*n*sizeof(double))
+
+	#Remove mean if required
 	if remove_mean:
 		X_mean = <double*>malloc(m*sizeof(double))
 		# Compute temporal mean
@@ -75,138 +84,87 @@ def run(double[:,:] X,int remove_mean=True):
 	else:
 		memcpy(Y,&X[0,0],m*n*sizeof(double))
 
+	#Get the first N-1 snapshots: Y1 = Y[:,:-1]
+	cdef double *Y1
+	Y1 = <double*>malloc(m*(n-1)*sizeof(double))
+	for irow in range(m):
+		for icol in range(n-1):
+			Y1[irow*(n-1) + icol] = Y[irow*n + icol]
+
 	# Compute SVD
-	retval = c_tsqr_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,MPI_COMM.ob_mpi)
-	free(Y)
-	# Return
-	cr_stop('DMD.run',0)
+	cdef double *U
+	cdef double *S
+	cdef double *V
+	U  = <double*>malloc(m*mn*sizeof(double))
+	S  = <double*>malloc(mn*sizeof(double))
+	V  = <double*>malloc((n-1)*mn*sizeof(double))
+	retval = c_tsqr_svd(U, S, V, Y1, m, mn, MPI_COMM.ob_mpi)
 	if not retval == 0: raiseError('Problems computing SVD!')
 
-	return U,S,V
+	#Truncate
+	cdef int nr
+	cdef double *Ur
+	cdef double *Sr
+	cdef double *Vr
+	nr  = c_compute_truncation_residual(S,r,n-1)
+	Ur = <double*>malloc(m*nr*sizeof(double))
+	Sr = <double*>malloc(nr*sizeof(double))
+	Vr = <double*>malloc(nr*mn*sizeof(double))
+	c_compute_truncation(Ur,Sr,Vr,U,S,V,m,n-1,nr)
+	free(U)
+	free(V)
+	free(S)
 
+	#Project Jacobian of the snapshots into the POD basis
+	cdef double *aux1
+	cdef double *aux2
+	cdef double *aux3
+	cdef np.ndarray[np.double_t,ndim=2] Atilde = np.zeros((nr,nr),dtype=np.double)#Definir en C
+	aux1 = <double*>malloc((n-1)*sizeof(double))
+	aux2 = <double*>malloc(nr*(n-1)*sizeof(double))
+	aux3 = <double*>malloc(nr*sizeof(double))
+	for iaux in range(nr):
+		for icol in range(n-1):
+			aux1[icol] = 0
+			for irow in range(m):
+				aux1[icol] = aux1[icol] + Ur[irow*nr + iaux]*Y[irow*n + icol + 1]
+				if iaux == 0 and irow < nr:
+					aux2[icol*nr + irow] = Vr[irow*(n-1) + icol]/Sr[irow]
+		c_matmul(aux3, aux1, aux2, 1, nr, n-1)
+		memcpy(&Atilde[iaux, 0], aux3, nr*sizeof(double))#Posició concreta del punter en C?
+	free(aux1)
+	free(aux3)
 
+	#Compute eigenmodes
+	cdef np.ndarray[np.double_t,ndim=1] muReal = np.zeros((nr),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=1] muImag = np.zeros((nr),dtype=np.double)
+	cdef np.ndarray[np.complex128_t,ndim=2] w = np.zeros((nr, nr),dtype=np.complex128)
+	retval = c_eigen(&muReal[0],&muImag[0],&w[0,0],&Atilde[0,0],nr,nr)
 
+	#Computation of DMD modes
+	cdef np.ndarray[np.complex128_t,ndim=2] Phi   = np.zeros((m,nr),dtype=np.complex128)
+	cdef np.ndarray[np.complex128_t,ndim=1] aux1C = np.zeros((nr,),dtype=np.complex128)
+	cdef np.ndarray[np.complex128_t,ndim=1] aux3C = np.zeros((nr,),dtype=np.complex128)
+	for iaux in range(m):
+		for icol in range(nr):
+			aux1C[icol] = 0 + 0*1j
+			for irow in range(n-1):
+				aux1C[icol] = aux1C[icol] + Y[iaux*n + irow + 1]*aux2[irow*nr + icol]
+		c_matmul_complex(&aux3C[0], &aux1C[0], &w[0,0], 1, nr, nr)
+		memcpy(&Phi[iaux, 0], &aux3C[0], nr*sizeof(np.complex128_t))
+		aux3C = np.zeros((nr,),dtype=np.complex128)
+	#Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
 
+	#Order modes and eigenvalues according to its amplitude
 
+	#Free memory
+	free(aux2)
+	free(Ur)
+	free(Sr)
+	free(Vr)
+	free(Y)
+	free(Y1)
+	# Return
+	cr_stop('DMD.run',0)
 
-
-## OLD DMD FUNCTIONS
-def svd(double[:,:] Y,int n1,int n2,int do_copy=True,int bsz=-1):
-	'''
-	Single value decomposition (SVD) using Lapack.
-		U(m,n)   are the POD modes.
-		S(n)     are the singular values.
-		V(n,n)   are the right singular vectors.
-	'''
-	cr_start('POD.svd',0)
-	cdef int ii, jj, m = Y.shape[0], n = n2-n1, mn = min(m,n)
-	cdef double *Y_copy
-	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,mn),dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((mn,) ,dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((n,mn),dtype=np.double)
-	# Compute SVD
-	if do_copy:
-		Y_copy = <double*>malloc(m*n*sizeof(double))
-		for ii in range(m):
-			for jj in range(n1,n2):
-				Y_copy[n*ii+jj] = Y[ii,jj]
-		single_value_decomposition(&U[0,0],&S[0],&V[0,0],Y_copy,m,n)
-		free(Y_copy)
-	else:
-		single_value_decomposition(&U[0,0],&S[0],&V[0,0],&Y[0,0],m,n)
-	# Transpose V
-	if bsz >= 0: transpose(&V[0,0],n,mn,bsz)
-	cr_stop('POD.svd',0)
-	return U,S,V
-
-def eigen(double[:,:] Y):
-	'''
-	Eigenvalues and eigenvectors using Lapack.
-		delta(n)  are the real eigenvalues.
-		w(n)      are the imaginary eigenvalues.
-		v(n,n)    are the right eigenvectors.
-	'''
-	cr_start('DMD.eigen',0)
-	cdef int m = Y.shape[0], n = Y.shape[1]
-	cdef np.ndarray[np.double_t,ndim=1] delta = np.zeros((n,),dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=1] w     = np.zeros((n,),dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=2] v     = np.zeros((n,n),dtype=np.double)
-	# Compute eigenvalues and eigenvectors
-	compute_eigen(&delta[0],&w[0],&v[0,0],&Y[0,0],m,n)
-	cr_stop('DMD.eigen',0)
-	return delta,w,v
-
-def matrix_split(X):
-	'''
-	Splits a matrix into two:
-		X1 Excluding the last snapshot
-		X2 Excluding the first snapshot
-	'''
-	return X[:, :-1], X[:, 1:]
-
-def project_POD_basis(U, X, V, S):
-	'''
-	Projects matrix A (Jacobian of the snapshots) to the POD basis
-	'''
-	return np.matmul(np.matmul(np.matmul(np.transpose(U), X), np.transpose(V)), np.diag(1/S))
-
-def build_complex_eigenvectors(w, eigImag):
-	wComplex = np.zeros(w.shape, dtype = 'complex_')
-	ivec = 0
-	while ivec < w.shape[1] - 1:
-		if eigImag[ivec] > np.finfo(np.double).eps:
-			wComplex[:, ivec]     = w[:, ivec] + w[:, ivec + 1]*1j
-			wComplex[:, ivec + 1] = w[:, ivec] - w[:, ivec + 1]*1j
-			ivec += 2
-		else:
-			wComplex[:, ivec] = w[:, ivec] + 0*1j
-			ivec = ivec + 1
-	return wComplex
-
-def polar(real, imag):
-	modulus = np.sqrt(real*real + imag*imag)
-	arg     = np.arctan2(imag, real)
-	return modulus, arg
-
-def frequency_damping(eigReal, eigImag, dt):
-	#Compute modulus and argument of the eigenvalues
-	eigModulus, eigArg = polar(eigReal, eigImag)
-
-	#Computation of the damping ratio of the mode
-	delta = np.log(eigModulus)/dt
-
-	#Computation of the frequency of the mode
-	omega = eigArg/dt
-
-	return delta, omega, eigModulus, eigArg
-
-def mode_computation(X, V, S, W):
-	return np.matmul(np.matmul(np.matmul(X, np.transpose(V)), np.diag(1/S)), W)
-
-def vandermonde(eigReal, eigImag, shape0, shape1):
-	eigModulus, eigArg = polar(eigReal, eigImag)
-	Vand  = np.zeros((shape0, shape1), dtype = 'complex_')
-	for icol in range(shape1):
-		VandModulus   = eigModulus**icol
-		VandArg       = eigArg*icol
-		Vand[:, icol] = VandModulus*np.cos(VandArg) + VandModulus*np.sin(VandArg)*1j
-	return Vand
-
-def amplitude_jovanovic(eigReal, eigImag, shape0, shape1, wComplex, S, V, Vand):
-	#Confirm that ldl is possible!
-	P    = np.matmul(np.transpose(np.conj(wComplex)), wComplex)*np.conj(np.matmul(Vand, np.transpose(np.conj(Vand))))
-	try:
-		Pl = np.linalg.cholesky(P)
-	except:
-		Pl, d, Pu   = ldl(P)
-	G    = np.matmul(np.diag(S), V)
-	q    = np.conj(np.diag(np.matmul(np.matmul(Vand, np.transpose(np.conj(G))), wComplex)))
-	bJov = np.matmul(np.linalg.inv(np.transpose(np.conj(Pl))), np.matmul(np.linalg.inv(Pl), q)) #Amplitudes according to Jovanovic 2014
-	return bJov
-
-def order_modes(delta, omega, Phi, amp):
-	delta  = delta[np.flip(np.abs(amp).argsort())]
-	omega  = omega[np.flip(np.abs(amp).argsort())]
-	Phi    = np.transpose(np.transpose(Phi)[np.flip(np.abs(amp).argsort())])
-	amp   = amp[np.flip(np.abs(amp).argsort())]
-	return delta, omega, Phi, amp
+	return muReal, muImag, w, Phi#, b, X_DMD

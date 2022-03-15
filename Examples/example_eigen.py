@@ -11,6 +11,7 @@ import pyLOM
 
 
 ## Example 1
+''''
 A = np.array([
 	[1.0000,0.5000,0.3333,0.2500],
     [0.5000,1.0000,0.6667,0.5000],
@@ -32,10 +33,10 @@ print('pyLOM:')
 print(delta.shape,delta)
 print(w.shape,w)
 print(v.shape,v)
-
+'''
 
 ## Example 2
-A = np.array([[5, 4, 3, 2], [8, 6, 2, 1], [9, 4, 3, 6], [7, 5, 3, 0]],dtype=np.double)
+A = np.array([[-5, 4, -3, 2], [-8, -6, 2, 1], [-9, 4, 3, 6], [7, 5, 3, -1]],dtype=np.double)
 print('A:\n',A)
 
 # Run eigenvalues from numpy
