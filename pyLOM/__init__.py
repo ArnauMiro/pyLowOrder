@@ -14,7 +14,7 @@ from .        import inp_out as io, vmmath as math
 from .dataset import Dataset
 
 # Import utilities
-from .utils.cr     import cr_start, cr_stop, cr_info
+from .utils.cr     import cr_start, cr_stop, cr_reset, cr_info
 from .utils.parall import pprint, is_rank_or_serial
 from .utils.plots  import show_plots, close_plots
 
