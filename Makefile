@@ -104,6 +104,9 @@ CXXFLAGS += -I${INC_PATH}
 # Defines
 #
 DFLAGS = -DNPY_NO_DEPRECATED_API
+ifeq ($(USE_GESVF),ON)
+	DFLAGS += -DUSE_LAPACK_DGESVD
+endif
 ifeq ($(USE_MKL),ON)
 	DFLAGS += -DUSE_MKL
 endif

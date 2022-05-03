@@ -2,5 +2,5 @@ numpy
 cython
 mpi4py
 matplotlib
-h5py
+h5py >= 3.0.0
 nfft

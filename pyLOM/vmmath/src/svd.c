@@ -1,7 +1,6 @@
 /*
 	SVD - Singular Value Decomposition of a matrix
 */
-#define USE_LAPACK_DGESVD
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -127,6 +126,48 @@ int qr(double *Q, double *R, double *A, const int m, const int n) {
 	return info;
 }
 
+int tsqr2(double *Qi, double *R, double *Ai, const int m, const int n, MPI_Comm comm) {
+	/*
+		Single value decomposition (SVD) using TSQR algorithm from
+		T. Sayadi and P. J. Schmid, ‘Parallel data-driven decomposition algorithm
+		for large-scale datasets: with application to transitional boundary layers’,
+		Theor. Comput. Fluid Dyn., vol. 30, no. 5, pp. 415–428, Oct. 2016
+
+		doi: 10.1007/s00162-016-0385-x
+
+		This is the reduce-broadcast variant of the algorithm from:
+		https://cerfacs.fr/wp-content/uploads/2016/03/langou.pdf
+
+		Ai(m,n)  data matrix dispersed on each processor.
+
+		Qi(m,n)  Q matrix per processor.
+		R(n,n)   R matrix.
+	*/
+	int info = 0, ii, jj, mm;
+	int mpi_rank, mpi_size;
+	double *Q1i, *Q2i_p, *Q2i;
+	// Recover rank and size
+	MPI_Comm_rank(comm,&mpi_rank);
+	MPI_Comm_size(comm,&mpi_size);
+	// Algorithm 1 from Sayadi and Schmid (2016) - Q and R matrices
+	// QR Factorization on Ai to obtain Q1i and Ri
+	Q1i = (double*)malloc(m*n*sizeof(double));
+	info = qr(Q1i,R,Ai,m,n); if (!(info==0)) return info;
+	// MPI_ALLGATHER to obtain Rp
+	mm    = mpi_size*n;
+	Q2i_p = (double*)malloc(mm*n*sizeof(double));
+	MPI_Allgather(R,n*n,MPI_DOUBLE,Q2i_p,n*n,MPI_DOUBLE,comm);
+	// QR Factorization Rp to obtain Q2i_p and R (reusing R from above)
+	info = qr(Q2i_p,R,Q2i_p,mm,n); if (!(info==0)) return info;
+	// Finally compute Qi = Q1i x Q2i
+	Q2i = (double*)malloc(n*n*sizeof(double));
+	for(ii=0;ii<n;++ii)
+		for(jj=0;jj<n;++jj)
+			AC_MAT(Q2i,n,ii,jj) = AC_MAT(Q2i_p,n,ii+mpi_rank*n,jj);
+	matmul(Qi,Q1i,Q2i,m,n,n);
+	free(Q2i_p); free(Q1i); free(Q2i);
+	return info;
+}
 
 int tsqr_svd2(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm) {
 	/*
@@ -146,31 +187,13 @@ int tsqr_svd2(double *Ui, double *S, double *VT, double *Ai, const int m, const 
 		S(n)     singular values.
 		VT(n,n)  right singular vectors (transposed).
 	*/
-	int info = 0, ii, jj, mm;
-	int mpi_rank, mpi_size;
-	double *Qi, *Q1i, *R, *Q2i_p, *Q2i;
-	// Recover rank and size
-	MPI_Comm_rank(comm,&mpi_rank);
-	MPI_Comm_size(comm,&mpi_size);
-	// Algorithm 1 from Sayadi and Schmid (2016) - Q and R matrices
-	// QR Factorization on Ai to obtain Q1i and Ri
-	Q1i = (double*)malloc(m*n*sizeof(double));
-	R   = (double*)malloc(n*n*sizeof(double));
-	info = qr(Q1i,R,Ai,m,n); if (!(info==0)) return info;
-	// MPI_ALLGATHER to obtain Rp
-	mm    = mpi_size*n;
-	Q2i_p = (double*)malloc(mm*n*sizeof(double));
-	MPI_Allgather(R,n*n,MPI_DOUBLE,Q2i_p,n*n,MPI_DOUBLE,comm);
-	// QR Factorization Rp to obtain Q2i_p and R (reusing R from above)
-	info = qr(Q2i_p,R,Q2i_p,mm,n); if (!(info==0)) return info;
-	// Finally compute Qi = Q1i x Q2i
-	Q2i = (double*)malloc(n*n*sizeof(double));
-	Qi  = (double*)malloc(m*n*sizeof(double));
-	for(ii=0;ii<n;++ii)
-		for(jj=0;jj<n;++jj)
-			AC_MAT(Q2i,n,ii,jj) = AC_MAT(Q2i_p,n,ii+mpi_rank*n,jj);
-	matmul(Qi,Q1i,Q2i,m,n,n);
-	free(Q2i_p); free(Q1i); free(Q2i);
+	int info = 0;
+	// Algorithm 1 parallel QR decomposition
+	double *Qi, *R;
+	R    = (double*)malloc(n*n*sizeof(double));
+	Qi   = (double*)malloc(m*n*sizeof(double));
+	// Call TSQR routine
+	info = tsqr2(Qi,R,Ai,m,n,comm);
 
 	// Algorithm 2 from Sayadi and Schmid (2016) - Ui, S and VT
 	// At this point we have R and Qi scattered on the processors
@@ -193,8 +216,7 @@ int nextPowerOf2(int n) {
 	return p;
 }
 
-
-int tsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm) {
+int tsqr(double *Qi, double *R, double *Ai, const int m, const int n, MPI_Comm comm) {
 	/*
 		Single value decomposition (SVD) using TSQR algorithm from
 		J. Demmel, L. Grigori, M. Hoemmen, and J. Langou, ‘Communication-optimal Parallel
@@ -205,20 +227,18 @@ int tsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const i
 
 		Ai(m,n)  data matrix dispersed on each processor.
 
-		Ui(m,n)  POD modes dispersed on each processor (must come preallocated).
-		S(n)     singular values.
-		VT(n,n)  right singular vectors (transposed).
+		Qi(m,n)  Q matrix per processor.
+		R(n,n)   R matrix.
 	*/
 	int info = 0, ii, jj, n2 = n*2, ilevel, blevel, mask;
 	int mpi_rank, mpi_size;
-	double *Qi, *Q1i, *Q2i, *Q2l, *R, *QW, *C;
+	double *Q1i, *Q2i, *Q2l, *QW, *C;
 	// Recover rank and size
 	MPI_Comm_rank(comm,&mpi_rank);
 	MPI_Comm_size(comm,&mpi_size);
 	// Memory allocation
 	Q1i = (double*)malloc(m*n*sizeof(double));
 	Q2i = (double*)malloc(n2*n*sizeof(double));
-	R   = (double*)malloc(n*n*sizeof(double));
 	QW  = (double*)malloc(n*n*sizeof(double));
 	C   = (double*)malloc(n2*n*sizeof(double));
 	// Preallocate QW to identity
@@ -302,9 +322,33 @@ int tsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const i
 	// Free memory
 	free(Q2i); free(Q2l); free(C);
 	// Multiply Q1i and QW to obtain Qi
-	Qi = (double*)malloc(m*n*sizeof(double));
 	matmul(Qi,Q1i,QW,m,n,n);
 	free(Q1i); free(QW);
+	return info;
+}
+
+int tsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm) {
+	/*
+		Single value decomposition (SVD) using TSQR algorithm from
+		J. Demmel, L. Grigori, M. Hoemmen, and J. Langou, ‘Communication-optimal Parallel
+		and Sequential QR and LU Factorizations’, SIAM J. Sci. Comput.,
+		vol. 34, no. 1, pp. A206–A239, Jan. 2012,
+
+		doi: 10.1137/080731992.
+
+		Ai(m,n)  data matrix dispersed on each processor.
+
+		Ui(m,n)  POD modes dispersed on each processor (must come preallocated).
+		S(n)     singular values.
+		VT(n,n)  right singular vectors (transposed).
+	*/
+	int info = 0;
+	// Algorithm 1 parallel QR decomposition
+	double *Qi, *R;
+	R    = (double*)malloc(n*n*sizeof(double));
+	Qi   = (double*)malloc(m*n*sizeof(double));
+	// Call TSQR routine
+	info = tsqr(Qi,R,Ai,m,n,comm);
 
 	// Algorithm 2 from Sayadi and Schmid (2016) - Ui, S and VT
 	// At this point we have R and Qi scattered on the processors

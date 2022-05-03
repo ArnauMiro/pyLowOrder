@@ -41,6 +41,7 @@ cdef extern from "averaging.h":
 cdef extern from "svd.h":
 	cdef int c_qr       "qr"      (double *Q, double *R, double *A, const int m, const int n)
 	cdef int c_svd      "svd"     (double *U, double *S, double *V, double *Y, const int m, const int n)
+	cdef int c_tsqr     "tsqr"    (double *Qi, double *R, double *Ai, const int m, const int n, MPI_Comm comm)
 	cdef int c_tsqr_svd "tsqr_svd"(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm)
 cdef extern from "fft.h":
 	cdef void c_fft "fft"(double *psd, double *y, const double dt, const int n)
@@ -268,9 +269,31 @@ def svd(double[:,:] A, int do_copy=True):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
+def tsqr(double[:,:] A):
+	'''
+	Parallel QR factorization using Lapack
+		Q(m,n) is the Q matrix
+		R(n,n) is the R matrix
+	'''
+	cr_start('math.tsqr',0)
+	cdef int retval
+	cdef int m = A.shape[0], n = A.shape[1]
+	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
+	cdef np.ndarray[np.double_t,ndim=2] Qi = np.zeros((m,n),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] R  = np.zeros((n,n),dtype=np.double)
+	# Compute SVD using TSQR algorithm
+	retval = c_tsqr(&Qi[0,0],&R[0,0],&A[0,0],m,n,MPI_COMM.ob_mpi)
+	cr_stop('math.tsqr',0)
+	if not retval == 0: raiseError('Problems computing TSQR!')
+	return Qi,R
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
 def tsqr_svd(double[:,:] A):
 	'''
-	Single value decomposition (SVD) using Lapack.
+	Parallel Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
 		S(n)     are the singular values.
 		V(n,n)   are the right singular vectors.

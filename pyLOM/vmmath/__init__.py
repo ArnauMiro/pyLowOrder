@@ -13,7 +13,7 @@ from .wrapper import transpose, vector_norm, matmul, complex_matmul, matmul_para
 # Averaging routines
 from .wrapper import temporal_mean, subtract_mean, RMSE
 # SVD routines
-from .wrapper import qr, svd, tsqr_svd
+from .wrapper import qr, svd, tsqr, tsqr_svd
 # FFT routines
 from .wrapper import fft
 
