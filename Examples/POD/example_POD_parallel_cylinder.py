@@ -7,20 +7,16 @@ from __future__ import print_function, division
 
 import os
 import numpy as np
-from pyLOM.utils.parall import mpi_gather
-
 import pyLOM
-
+from pyLOM.utils.parall import mpi_gather
 ## Parameters
 DATAFILE = './Examples/Data/CYLINDER.h5'
 VARIABLE = 'VELOC'
-
 
 ## Data loading
 d = pyLOM.Dataset.load(DATAFILE)
 X  = d[VARIABLE]
 t  = d.time
-
 
 ## Run POD
 PSI,S,V = pyLOM.POD.run(X,remove_mean=False) # PSI are POD modes
