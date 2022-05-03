@@ -44,6 +44,25 @@ def matmul(A,B):
 	cr_stop('math.matmul',0)
 	return C
 
+def complex_matmul(A,B):
+	'''
+	Matrix multiplication C = A x B
+	'''
+	cr_start('math.matmul',0)
+	C = np.matmul(A,B)
+	cr_stop('math.matmul',0)
+	return C
+
+def matmul_paral(A,B):
+	'''
+	Matrix multiplication C = A x B where A and B are distributed along the processors and C is the same for all of them
+	'''
+	cr_start('math.matmul_paral',0)
+	aux = np.matmul(A,B)
+	C   = mpi_reduce(aux, root = 0, op = 'sum', all = True)
+	cr_stop('math.matmul_paral',0)
+	return C
+
 def vecmat(v,A):
 	'''
 	Vector times a matrix C = v x A
@@ -318,7 +337,7 @@ def RMSE(A,B):
 
 def vandermonde(real, imag, m, n):
 	'''
-	Builds a Vandermonde matrix of (shape0 x shape 1) with the real and
+	Builds a Vandermonde matrix of (m x n) with the real and
 	imaginary parts of the eigenvalues
 
 	TODO: posa una cita collons!

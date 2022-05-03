@@ -25,14 +25,16 @@ from ..utils.errors import raiseError
 
 ## Expose C functions
 cdef extern from "vector_matrix.h" nogil:
-	cdef void   c_transpose      "transpose"(double *A, const int m, const int n)
-	cdef double c_vector_norm    "vector_norm"(double *v, int start, int n)
-	cdef void   c_matmul         "matmul"(double *C, double *A, double *B, const int m, const int n, const int k)
-	cdef void   c_matmul_complex "matmul_complex"(np.complex128_t *C, np.complex128_t *A, np.complex128_t *B, const int m, const int n, const int k)
-	cdef void   c_vecmat         "vecmat"(double *v, double *A, const int m, const int n)
-	cdef int    c_eigen          "eigen"(double *real, double *imag, np.complex128_t *vecs, double *A, const int m, const int n)
-	cdef double c_RMSE           "RMSE"(double *A, double *B, const int m, const int n, MPI_Comm comm)
-	cdef int    c_cholesky       "cholesky"(np.complex128_t *A, int N);
+	cdef void   c_transpose        "transpose"(double *A, double *B, const int m, const int n)
+	cdef double c_vector_norm      "vector_norm"(double *v, int start, int n)
+	cdef void   c_matmul           "matmul"(double *C, double *A, double *B, const int m, const int n, const int k)
+	cdef void   c_matmul_paral     "matmul_paral"(double *C, double *A, double *B, const int m, const int n, const int k)
+	cdef void   c_matmul_complex   "matmul_complex"(np.complex128_t *C, np.complex128_t *A, np.complex128_t *B, const int m, const int n, const int k, char *TransA, char *TransB)
+	cdef void   c_vecmat           "vecmat"(double *v, double *A, const int m, const int n)
+	cdef int    c_eigen            "eigen"(double *real, double *imag, np.complex128_t *vecs, double *A, const int m, const int n)
+	cdef double c_RMSE             "RMSE"(double *A, double *B, const int m, const int n, MPI_Comm comm)
+	cdef int    c_cholesky         "cholesky"(np.complex128_t *A, int N)
+	cdef void   c_vandermonde      "vandermonde"(np.complex128_t *Vand, double *real, double *imag, int m, int n)
 cdef extern from "averaging.h":
 	cdef void c_temporal_mean "temporal_mean"(double *out, double *X, const int m, const int n)
 	cdef void c_subtract_mean "subtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
@@ -55,9 +57,8 @@ def transpose(double[:,:] A):
 	'''
 	cr_start('math.transpose',0)
 	cdef int m = A.shape[0], n = A.shape[1]
-	cdef np.ndarray[np.double_t,ndim=2] At = np.zeros((m,n),dtype=np.double)
-	memcpy(&At[0,0],&A[0,0],m*n*sizeof(double))
-	c_transpose(&At[0,0],m,n)
+	cdef np.ndarray[np.double_t,ndim=2] At = np.zeros((n,m),dtype=np.double)
+	c_transpose(&A[0,0], &At[0,0], m,n)
 	cr_stop('math.transpose',0)
 	return At
 
@@ -95,14 +96,29 @@ def matmul(double[:,:] A, double[:,:] B):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def complex_matmul(np.complex128_t[:,:] A, np.complex128_t[:,:] B):
+def matmul_paral(double[:,:] A, double[:,:] B):
+	'''
+	Matrix multiplication C = A x B
+	'''
+	cr_start('math.matmul',0)
+	cdef int m = A.shape[0], k = A.shape[1], n = B.shape[1]
+	cdef np.ndarray[np.double_t,ndim=2] C = np.zeros((m,n),dtype=np.double)
+	c_matmul_paral(&C[0,0],&A[0,0],&B[0,0],m,n,k)
+	cr_stop('math.matmul',0)
+	return C
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def complex_matmul(np.complex128_t[:,:] A, np.complex128_t[:,:] B, char TransA, char TransB):
 	'''
 	Matrix multiplication C = A x B
 	'''
 	cr_start('math.complex_matmul',0)
 	cdef int m = A.shape[0], k = A.shape[1], n = B.shape[1]
 	cdef np.ndarray[np.complex128_t,ndim=2] C = np.zeros((m,n),dtype=np.complex128)
-	c_matmul_complex(&C[0,0],&A[0,0],&B[0,0],m,n,k)
+	c_matmul_complex(&C[0,0],&A[0,0],&B[0,0],m,n,k, &TransA, &TransB)
 	cr_stop('math.complex_matmul',0)
 	return C
 
@@ -323,4 +339,86 @@ def cholesky(np.complex128_t[:,:] A):
 	retval = c_cholesky(&A[0,0], n)
 	if not retval == 0: raiseError('Problems computing Cholesky factorization!')
 	cr_stop('math.cholesky',0)
+	return np.asarray(A)
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def vandermonde(double [:] real, double [:] imag, int m, int n):
+	'''
+	Builds a Vandermonde matrix of (m x n) with the real and
+	imaginary parts of the eigenvalues
+
+	TODO: posa una cita collons!
+	'''
+	cr_start('math.vandermonde',0)
+	cdef np.ndarray[np.complex128_t,ndim=2] Vand = np.zeros((m,n),dtype=np.complex128)
+	c_vandermonde(&Vand[0,0], &real[0], &imag[0], m, n)
+	cr_stop('math.vandermonde',0)
+	return np.asarray(Vand)
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def diag(double[:,:] A):
+	'''
+	Returns the diagonal of A (A is a square matrix)
+	'''
+	cr_start('math.diag',0)
+	cdef int m = A.shape[0]
+	cdef int ii
+	cdef int jj
+	cdef np.ndarray[np.double_t,ndim=1] B = np.zeros((m,),dtype=np.double)
+	for ii in range(m):
+		for jj in range(m):
+			B[ii] = A[ii][jj]
+	cr_stop('math.diag',0)
+	return B
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def conj(double[:,:] A):
+	'''
+	Returns the pointwise conjugate of A
+	'''
+	cr_start('math.conj',0)
+	cdef int m = A.shape[0]
+	cdef int n = A.shape[1]
+	cdef int ii
+	cdef int jj
+	cdef np.ndarray[np.complex128_t,ndim=1] B = np.zeros((m,n),dtype=np.complex128)
+	for ii in range(m):
+		for jj in range(n):
+			B[ii, jj] = A[ii][jj].real - A[ii][jj].imag*1j
+	cr_stop('math.conj',0)
+	return B
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def inv(double[:,:] A):
+	'''
+	Returns the pointwise conjugate of A
+	'''
+	cr_start('math.inv',0)
+	raiseError('Function not implemented in Cython!')
+	cr_stop('math.inv',0)
+	return A
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def flip(double[:,:] A):
+	'''
+	Returns the pointwise conjugate of A
+	'''
+	cr_start('math.flip',0)
+	raiseError('Function not implemented in Cython!')
+	cr_stop('math.flip',0)
 	return A
