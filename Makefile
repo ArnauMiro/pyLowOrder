@@ -178,10 +178,11 @@ clean:
 	-@cd pyLOM; rm -f POD/*.c POD/*.cpp POD/*.html
 	-@cd pyLOM; rm -f DMD/*.c DMD/*.cpp DMD/*.html
 	-@cd pyLOM; rm -f vmmath/*.c vmmath/*.cpp vmmath/*.html
+	-@cd pyLOM; rm -f inp_out/*.c inp_out/*.cpp inp_out/*.html
 
 cleanall: clean
 	-@rm -rf build
-	-@cd pyLOM; rm POD/*.so vmmath/*.so DMD/*.so
+	-@cd pyLOM; rm POD/*.so vmmath/*.so DMD/*.so inp_out/*.so
 
 ifeq ($(USE_MKL),ON)
 uninstall_deps: uninstall_mkl uninstall_fftw uninstall_nfft
