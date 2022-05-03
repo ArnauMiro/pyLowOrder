@@ -19,19 +19,21 @@
 #define AC_MAT(A,n,i,j) *((A)+(n)*(i)+(j))
 #define POW2(x)         ((x)*(x))
 
+struct array_index
+{
+    double value;
+    int index;
+};
 
-void transpose(double *A, const int m, const int n) {
+
+void transpose(double *A, double *B, const int m, const int n) {
 	/*
 		Naive approximation to matrix transpose.
-		Overwrites A matrix
 	*/
 	int ii, jj;
-	double swp;
 	for (ii=0; ii<m; ++ii) {
-		for (jj=0; jj<ii+1; ++jj) {
-			swp = AC_MAT(A,n,ii,jj);
-			AC_MAT(A,n,ii,jj) = AC_MAT(A,n,jj,ii);
-			AC_MAT(A,n,jj,ii) = swp;
+		for (jj=0; jj<n; ++jj) {
+			AC_MAT(B,m,jj,ii) = AC_MAT(A,n,ii,jj);
 		}
 	}
 }
@@ -91,30 +93,72 @@ void matmul(double *C, double *A, double *B, const int m, const int n, const int
 	);
 }
 
-void matmul_complex(complex_t *C, complex_t *A, complex_t *B, const int m, const int n, const int k) {
+void matmul_paral(double *C, double *A, double *B, const int m, const int n, const int k) {
 	/*
-		Complex matrix multiplication C = A x B
+		Matrix multiplication C = A x B
 		using cblas routines.
 
 		C(m,n), A(m,k), B(k,n)
 	*/
-	double alpha = 1;
-	double beta  = 0;
-	cblas_zgemm(
+  double *Cmine;
+  Cmine = (double*)malloc(m*n*sizeof(double));
+	cblas_dgemm(
 		CblasRowMajor, // const CBLAS_LAYOUT 	  layout
 		 CblasNoTrans, // const CBLAS_TRANSPOSE   TransA
 		 CblasNoTrans, // const CBLAS_TRANSPOSE   TransB
 		            m, // const CBLAS_INDEX 	  M
 		            n, // const CBLAS_INDEX 	  N
 		            k, // const CBLAS_INDEX 	  K
+		          1.0, // const double 	          alpha
+		            A, // const double * 	      A
+		            k, // const CBLAS_INDEX 	  lda
+	  			    B, // const double * 	      B
+		            n, // const CBLAS_INDEX 	  ldb
+		           0., // const double 	          beta
+ 				    Cmine, // double * 	              C
+		            n  // const CBLAS_INDEX 	  ldc
+	);
+
+  MPI_Allreduce(Cmine, C, m*n, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  free(Cmine);
+}
+
+void matmul_complex(complex_t *C, complex_t *A, complex_t *B, const int m, const int n, const int k, char *TransA, char *TransB) {
+	/*
+		Complex matrix multiplication C = A x B
+		using cblas routines.
+
+		C(m,n), A(m,k), B(k,n)
+		TRANSA: 0 - NoTrans; 1 - Trans; 2 - Hermitian
+	*/
+	complex_t alpha = 1 + 0*I;
+	complex_t beta  = 0 + 0*I;
+	CBLAS_TRANSPOSE transa;
+	CBLAS_TRANSPOSE transb;
+	CBLAS_INDEX lda;
+	CBLAS_INDEX ldb;
+	CBLAS_INDEX ldc;
+	if(*TransA == 'N'){transa = CblasNoTrans;   lda = k; ldc = n;}
+	if(*TransA == 'T'){transa = CblasTrans;     lda = m; ldc = n;}
+	if(*TransA == 'C'){transa = CblasConjTrans; lda = m; ldc = n;}
+	if(*TransB == 'N'){transb = CblasNoTrans;   ldb = n; ldc = n;}
+	if(*TransB == 'T'){transb = CblasTrans;     ldb = k; ldc = n;}
+	if(*TransB == 'C'){transb = CblasConjTrans; ldb = k; ldc = n;}
+	cblas_zgemm(
+		CblasRowMajor, // const CBLAS_LAYOUT 	  layout
+		      transa, // const CBLAS_TRANSPOSE   TransA
+		      transb, // const CBLAS_TRANSPOSE   TransB
+		            m, // const CBLAS_INDEX 	  M
+		            n, // const CBLAS_INDEX 	  N
+		            k, // const CBLAS_INDEX 	  K
 		       &alpha, // const double 	          alpha
 		            A, // const complex_t * 	      A
-		            k, // const CBLAS_INDEX 	  lda
+		          lda, // const CBLAS_INDEX 	  lda
 	  			      B, // const complex_t * 	      B
-		            n, // const CBLAS_INDEX 	  ldb
+		          ldb, // const CBLAS_INDEX 	  ldb
 		        &beta, // const double 	          beta
  				        C, // complex_t * 	              C
-		            n  // const CBLAS_INDEX 	  ldc
+		          ldc  // const CBLAS_INDEX 	  ldc
 	);
 }
 
@@ -131,6 +175,22 @@ void vecmat(double *v, double *A, const int m, const int n) {
 	#endif
 	for(ii=0; ii<m; ++ii) {
 		cblas_dscal(n,v[ii],A+n*ii,1);
+	}
+}
+
+void vecmat_complex(complex_t *v, complex_t *A, const int m, const int n) {
+	/*
+		Computes the product of b x A
+		using cblas routines.
+
+		A(m,n), b(m)
+	*/
+	int ii;
+	#ifdef USE_OMP
+	#pragma omp parallel for private(ii) shared(b,A) firstprivate(m,n)
+	#endif
+	for(ii=0; ii<m; ++ii) {
+		cblas_zscal(n,&v[ii],A+n*ii,1);
 	}
 }
 
@@ -220,6 +280,9 @@ double RMSE(double *A, double *B, const int m, const int n, MPI_Comm comm) {
 }
 
 int cholesky(complex_t *A, int N){
+	/*
+	Compute the lower Cholesky factorization of A
+	*/
 	int info;
 	info = LAPACKE_zpotrf(
 		LAPACK_ROW_MAJOR, // int  		matrix_layout
@@ -228,5 +291,75 @@ int cholesky(complex_t *A, int N){
 			A, //complex	Matrix A to decompose (works as input and output)
 		  N //int			Leading dimension of A
 	);
+	for(int ii = 0; ii < N; ++ii){
+		for(int jj = ii+1; jj < N; ++jj){
+			AC_MAT(A,N,ii,jj) = 0 + 0*I;
+		}
+	}
 	return info;
+}
+
+void vandermonde(complex_t *Vand, double *real, double *imag, int m, int n){
+	/*
+	Computes the Vandermonde matrix of a complex vector formed by real + imag*I
+	*/
+	for(int ii = 0; ii < m; ++ii){
+		for(int jj = 0; jj < n; ++jj){
+			AC_MAT(Vand, n, ii, jj) = cpow((real[ii] + imag[ii]*I), jj);
+		}
+	}
+}
+
+int inverse(complex_t *A, int N, int UoL){
+	/*
+	Compute the lower Cholesky factorization of A
+	*/
+	int info;
+	if(UoL == 0){
+		info = LAPACKE_ztrtri(
+			LAPACK_ROW_MAJOR, // int  		matrix_layout
+		 	'U', //char			Decide if the Upper or the Lower triangle of A are stored
+			'N', //int			Decide if is non Unitary or Unitary A
+		  	N, //int			Order of A
+				A, //complex	Matrix A to decompose (works as input and output)
+				N //int			Leading dimension of A
+			);
+	}
+	else{
+		info = LAPACKE_ztrtri(
+			LAPACK_ROW_MAJOR, // int  		matrix_layout
+		 	'L', //char			Decide if the Upper or the Lower triangle of A are stored
+			'N', //int			Decide if is non Unitary or Unitary A
+		  	N, //int			Order of A
+				A, //complex	Matrix A to decompose (works as input and output)
+				N //int			Leading dimension of A
+			);
+	}
+	return info;
+}
+
+int cmp(const void *a, const void *b)
+{
+    struct array_index *a1 = (struct array_index *)a;
+    struct array_index *a2 = (struct array_index *)b;
+    if ((*a1).value > (*a2).value)
+        return -1;
+    else if ((*a1).value < (*a2).value)
+        return 1;
+    else
+        return 0;
+}
+
+void index_sort(double *v, int *index, int n){
+		struct array_index *objects = malloc(n*sizeof(struct array_index));
+		for (int i = 0; i < n; ++i){
+        objects[i].value = v[i];
+        objects[i].index = i;
+    }
+		qsort(objects, n, sizeof(objects[0]), cmp);
+		for(int i = 0; i < n; ++i){
+			v[i]     = objects[i].value;
+			index[i] = objects[i].index;
+		}
+		free(objects);
 }
