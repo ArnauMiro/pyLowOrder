@@ -9,11 +9,11 @@
 __VERSION__ = '1.0.0'
 
 # Vector matrix routines
-from .wrapper import transpose, vector_norm, matmul, vecmat, RMSE, eigen, diag#, complex_matmul, cholesky#, diag#, polar, diag, vandermonde, conj, cholesky, inv, flip
+from .wrapper import transpose, vector_norm, matmul, complex_matmul, matmul_paral, vecmat, eigen, polar, cholesky, vandermonde, conj, diag, inv, flip
 # Averaging routines
-from .wrapper import temporal_mean, subtract_mean
+from .wrapper import temporal_mean, subtract_mean, RMSE
 # SVD routines
-from .wrapper import svd, tsqr_svd
+from .wrapper import qr, svd, tsqr_svd
 # FFT routines
 from .wrapper import fft
 
