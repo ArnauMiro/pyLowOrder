@@ -17,35 +17,34 @@ d  = pyLOM.Dataset.load('Examples/Data/CYLINDER.h5')
 VARIABLE = 'VELOX'
 X  = d[VARIABLE]
 dt = 0.2
-remove_mean = True
-r = 1e-6
-validation = scipy.io.loadmat('/media/sf_TUAREG/TOOLS/DMD_algorithms_BSC/DMD/validation.mat')
+remove_mean = False
+r = 5e-6
+validation = scipy.io.loadmat('../DMD_algorithms_BSC/DMD/amplitudeValidation.mat')
 pyLOM.cr_start('example',0)
+
 #Run DMD routine
-muReal, muImag, w, Phi = pyLOM.DMD.run(X, r, remove_mean)
+Ur, muReal, muImag, w, Phi, bJov = pyLOM.DMD.run(X, r, remove_mean)
 
 #Compute frequency and damping ratio of the modes
-#delta, omega = pyLOM.DMD.frequency_damping(muReal, muImag, dt)
+delta, omega = pyLOM.DMD.frequency_damping(muReal, muImag, dt)
 
 #Reconstruction according to Jovanovic 2014
-'''
-Y_DMD = pyLOM.DMD.reconstruction_jovanovic(PSI, w, muReal, muImag, Y[:, :-1], bJov)
-rmse  = pyLOM.math.RMSE(Y_DMD.real, Y[:, :-1])
+X_DMD = pyLOM.DMD.reconstruction_jovanovic(Ur, w, muReal, muImag, X, bJov)
+rmse  = pyLOM.math.RMSE(X_DMD.real, X[:, :-1])
 print('RMSE = %e' % rmse)
-'''
 
 #Ritz Spectrum
 pyLOM.DMD.ritzSpectrum(muReal, muImag)
 
 #Amplitude vs frequency
-#pyLOM.DMD.amplitudeFrequency(omega, bJov, norm = False)
+pyLOM.DMD.amplitudeFrequency(omega, bJov, norm = False)
 
 #Damping ratio vs frequency
-#pyLOM.DMD.dampingFrequency(omega, delta)
+pyLOM.DMD.dampingFrequency(omega, delta)
 
 #Plot modes and reconstructed flow
-pyLOM.DMD.plotMode(Phi, muImag/dt, d.xyz, d.mesh, d.info(VARIABLE), modes = [1, 3, 17, 112, 114]) #MATLAB: modes 17, 112 and 144
-#fig,ax,anim = pyLOM.DMD.animateFlow(Y,Y_DMD.real,d.xyz,d.mesh,d.info(VARIABLE),dim=0)
+pyLOM.DMD.plotMode(Phi, muImag/dt, d.xyz, d.mesh, d.info(VARIABLE), modes = [0, 1, 2, 3, 4, 5]) #MATLAB: modes 17, 112 and 144
+fig,ax,anim = pyLOM.DMD.animateFlow(X,X_DMD.real,d.xyz,d.mesh,d.info(VARIABLE),dim=0)
 
 ## Show and print timings
 pyLOM.cr_stop('example',0)
