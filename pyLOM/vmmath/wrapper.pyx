@@ -101,11 +101,11 @@ def matmul_paral(double[:,:] A, double[:,:] B):
 	'''
 	Matrix multiplication C = A x B
 	'''
-	cr_start('math.matmul',0)
+	cr_start('math.matmul_paral',0)
 	cdef int m = A.shape[0], k = A.shape[1], n = B.shape[1]
 	cdef np.ndarray[np.double_t,ndim=2] C = np.zeros((m,n),dtype=np.double)
 	c_matmul_paral(&C[0,0],&A[0,0],&B[0,0],m,n,k)
-	cr_stop('math.matmul',0)
+	cr_stop('math.matmul_paral',0)
 	return C
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
