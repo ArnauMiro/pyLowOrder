@@ -404,7 +404,7 @@ def diag(double[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def conj(double[:,:] A):
+def conj(np.complex128_t[:,:] A):
 	'''
 	Returns the pointwise conjugate of A
 	'''
