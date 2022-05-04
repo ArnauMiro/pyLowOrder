@@ -16,8 +16,8 @@ int compute_truncation_residual(double *S, double res, const int n){
 	*/
 	double accumulative;
 	double normS = vector_norm(S,0,n);
-
-	for(int ii = 0; ii < n; ++ii){
+	int ii;
+	for(ii = 0; ii < n; ++ii){
 		accumulative = vector_norm(S,ii,n)/normS;
 		if(accumulative < res){
       return ii;
@@ -39,9 +39,10 @@ void compute_truncation(double *Ur, double *Sr, double *VTr, double *U,
 	Sr(N)    are the singular values.
 	VTr(N,n) are the right singular vectors (transposed).
 	*/
-	for(int jj = 0; jj < N; ++jj){
+	int jj, ii;
+	for(jj = 0; jj < N; ++jj){
 		//Copy U into Ur
-		for(int ii = 0; ii < m; ++ii){
+		for(ii = 0; ii < m; ++ii){
 			AC_MAT(Ur,N,ii,jj) = AC_MAT(U,n,ii,jj);
     }
 		//Copy S into Sr
