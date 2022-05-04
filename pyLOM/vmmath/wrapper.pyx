@@ -413,7 +413,7 @@ def conj(np.complex128_t[:,:] A):
 	cdef int n = A.shape[1]
 	cdef int ii
 	cdef int jj
-	cdef np.ndarray[np.complex128_t,ndim=1] B = np.zeros((m,n),dtype=np.complex128)
+	cdef np.ndarray[np.complex128_t,ndim=2] B = np.zeros((m,n),dtype=np.complex128)
 	for ii in range(m):
 		for jj in range(n):
 			B[ii, jj] = A[ii][jj].real - A[ii][jj].imag*1j
