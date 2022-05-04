@@ -67,7 +67,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 		- b:        Amplitude of the DMD modes
 		- Variables needed to reconstruct flow
 	'''
-	cr_start('DMD.run_paral',0)
+	cr_start('DMD.run',0)
 	# V#ariables
 	cdef int m = X.shape[0], n = X.shape[1], mn = min(m,n-1), retval
 	cdef double *X_mean
@@ -238,7 +238,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	Phi    = Phi[:, np.flip(np.abs(bJov).argsort())]
 	bJov   = bJov[np.flip(np.abs(bJov).argsort())]
 	# Return
-	cr_stop('DMD.run_paral',0)
+	cr_stop('DMD.run',0)
 
 	return Ur, muReal, muImag, w, Phi, bJov
 
