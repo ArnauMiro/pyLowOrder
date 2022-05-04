@@ -208,10 +208,11 @@ int eigen(double *real, double *imag, complex_t *w, double *A,
 
 		A(m,n)   matrix to obtain eigenvalues and eigenvectors from
 	*/
-	int info;
+	int info, ivec, imod;
 	double *vl;
 	vl = (double*)malloc(1*sizeof(double));
 	double *vecs;
+  double tol = 1e-12;
 	vecs = (double*)malloc(n*n*sizeof(double));
 	info = LAPACKE_dgeev(
 		LAPACK_ROW_MAJOR, // int  		matrix_layout
@@ -228,18 +229,17 @@ int eigen(double *real, double *imag, complex_t *w, double *A,
 		             n    // int        ldvr
 	);
 	//Define and allocate memory for the complex array of eigenvectors
-	double tol = 1e-12;
 	//Change while for a for
-	for (int imod = 0; imod < n-1; imod++){
+	for (imod = 0; imod < n-1; imod++){
 		if (imag[imod] > tol){//If the imaginary part is greater than zero, the eigenmode has a conjugate.
-			for (int ivec = 0; ivec < n; ivec++){
+			for (ivec = 0; ivec < n; ivec++){
 				AC_MAT(w,n,ivec,imod)   = AC_MAT(vecs,n,ivec,imod) + AC_MAT(vecs,n,ivec,imod+1)*I;
 				AC_MAT(w,n,ivec,imod+1) = AC_MAT(vecs,n,ivec,imod) - AC_MAT(vecs,n,ivec,imod+1)*I;
 			}
 			imod += 1;
 		}
 		else{
-			for (int ivec = 0; ivec < n; ivec++){
+			for (ivec = 0; ivec < n; ivec++){
 				AC_MAT(w,n,ivec,imod)   = AC_MAT(vecs,n,ivec,imod) + 0*I;
 			}
 		}
@@ -283,7 +283,7 @@ int cholesky(complex_t *A, int N){
 	/*
 	Compute the lower Cholesky factorization of A
 	*/
-	int info;
+	int info, ii, jj;
 	info = LAPACKE_zpotrf(
 		LAPACK_ROW_MAJOR, // int  		matrix_layout
 		'L', //char			Decide if the Upper or the Lower triangle of A are stored
@@ -291,8 +291,8 @@ int cholesky(complex_t *A, int N){
 			A, //complex	Matrix A to decompose (works as input and output)
 		  N //int			Leading dimension of A
 	);
-	for(int ii = 0; ii < N; ++ii){
-		for(int jj = ii+1; jj < N; ++jj){
+	for(ii = 0; ii < N; ++ii){
+		for(jj = ii+1; jj < N; ++jj){
 			AC_MAT(A,N,ii,jj) = 0 + 0*I;
 		}
 	}
@@ -303,8 +303,9 @@ void vandermonde(complex_t *Vand, double *real, double *imag, int m, int n){
 	/*
 	Computes the Vandermonde matrix of a complex vector formed by real + imag*I
 	*/
-	for(int ii = 0; ii < m; ++ii){
-		for(int jj = 0; jj < n; ++jj){
+  int ii, jj;
+	for(ii = 0; ii < m; ++ii){
+		for(jj = 0; jj < n; ++jj){
 			AC_MAT(Vand, n, ii, jj) = cpow((real[ii] + imag[ii]*I), jj);
 		}
 	}
@@ -351,13 +352,14 @@ int cmp(const void *a, const void *b)
 }
 
 void index_sort(double *v, int *index, int n){
+    int i;
 		struct array_index *objects = malloc(n*sizeof(struct array_index));
-		for (int i = 0; i < n; ++i){
+		for (i = 0; i < n; ++i){
         objects[i].value = v[i];
         objects[i].index = i;
     }
 		qsort(objects, n, sizeof(objects[0]), cmp);
-		for(int i = 0; i < n; ++i){
+		for(i = 0; i < n; ++i){
 			v[i]     = objects[i].value;
 			index[i] = objects[i].index;
 		}
