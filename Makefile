@@ -17,7 +17,7 @@ include options.cfg
 #
 # Automatically detect if the intel compilers are installed and use
 # them, otherwise default to the GNU compilers
-ifeq ($(FORCE_GCC),ON) 
+ifeq ($(FORCE_GCC),ON)
 	# Forcing the use of GCC
 	# C Compiler
 	CC  = mpicc
@@ -103,11 +103,11 @@ CXXFLAGS += -I${INC_PATH}
 
 # Defines
 #
-DFLAGS = -DNPY_NO_DEPRECATED_API 
-ifeq ($(USE_GESVF),ON) 
+DFLAGS = -DNPY_NO_DEPRECATED_API
+ifeq ($(USE_GESVF),ON)
 	DFLAGS += -DUSE_LAPACK_DGESVD
 endif
-ifeq ($(USE_MKL),ON) 
+ifeq ($(USE_MKL),ON)
 	DFLAGS += -DUSE_MKL
 endif
 
@@ -118,7 +118,7 @@ all: deps python install
 	@echo ""
 	@echo "pyLOM deployed successfully"
 
-ifeq ($(USE_MKL),ON) 
+ifeq ($(USE_MKL),ON)
 deps: mkl fftw nfft requirements
 
 else
@@ -178,15 +178,16 @@ clean:
 	-@cd pyLOM; rm -f *.o $(wildcard **/*.o)
 	-@cd pyLOM; rm -f *.pyc $(wildcard **/*.pyc)
 	-@cd pyLOM; rm -rf __pycache__ POD/__pycache__ utils/__pycache__ vmmath/__pycache__ inp_out/__pycache__
-	-@cd pyLOM; rm -f POD/*.c POD/*.cpp POD/*.html 
-	-@cd pyLOM; rm -f DMD/*.c DMD/*.cpp DMD/*.html 
-	-@cd pyLOM; rm -f vmmath/*.c vmmath/*.cpp vmmath/*.html 
+	-@cd pyLOM; rm -f POD/*.c POD/*.cpp POD/*.html
+	-@cd pyLOM; rm -f DMD/*.c DMD/*.cpp DMD/*.html
+	-@cd pyLOM; rm -f vmmath/*.c vmmath/*.cpp vmmath/*.html
+	-@cd pyLOM; rm -f inp_out/*.c inp_out/*.cpp inp_out/*.html
 
 cleanall: clean
 	-@rm -rf build
-	-@cd pyLOM; rm POD/*.so vmmath/*.so
+	-@cd pyLOM; rm POD/*.so vmmath/*.so DMD/*.so inp_out/*.so
 
-ifeq ($(USE_MKL),ON) 
+ifeq ($(USE_MKL),ON)
 uninstall_deps: uninstall_mkl uninstall_fftw uninstall_nfft
 
 else
@@ -198,7 +199,7 @@ uninstall: cleanall uninstall_deps uninstall_python
 	@${PIP} uninstall pyLOM
 	-@rm -rf pyLOM.egg-info
 
-uninstall_python: 
+uninstall_python:
 	@${PIP} uninstall pyLOM
 	-@rm -rf pyLOM.egg-info
 

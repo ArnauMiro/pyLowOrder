@@ -6,11 +6,12 @@
 from __future__ import print_function, division
 
 import os, numpy as np
-
+import matplotlib.pyplot as plt
+import h5py
 import pyLOM
 
 ## Parameters
-DATAFILE = './DATA/CYLINDER.h5'
+DATAFILE = 'Examples/Data/CYLINDER.h5'
 VARIABLE = 'VELOC'
 
 
@@ -21,7 +22,7 @@ t  = d.time
 
 
 ## Run POD
-PSI,S,V = pyLOM.POD.run(X,remove_mean=False) # PSI are POD modes
+PSI,S,V = pyLOM.POD.run(X,remove_mean=True) # PSI are POD modes
 pyLOM.POD.plotResidual(S)
 # Truncate according to a residual
 PSI,S,V = pyLOM.POD.truncate(PSI,S,V,r=5e-6)
@@ -30,7 +31,6 @@ X_POD = pyLOM.POD.reconstruct(PSI,S,V)
 # Compute RMSE
 rmse = pyLOM.math.RMSE(X_POD,X)
 print('RMSE = %e'%rmse)
-
 
 ## Dump to ParaView
 # Spatial modes
@@ -55,7 +55,6 @@ pyLOM.io.Ensight_writeCase(os.path.join('out','flow.ensi.case'),'flow.ensi.geo',
 	],
 	t
 )
-
 
 ## Plots
 # POD mode: 0 - module, 1,2 - components

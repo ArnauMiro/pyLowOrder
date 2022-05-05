@@ -44,6 +44,25 @@ def matmul(A,B):
 	cr_stop('math.matmul',0)
 	return C
 
+def complex_matmul(A,B):
+	'''
+	Matrix multiplication C = A x B
+	'''
+	cr_start('math.matmul',0)
+	C = np.matmul(A,B)
+	cr_stop('math.matmul',0)
+	return C
+
+def matmul_paral(A,B):
+	'''
+	Matrix multiplication C = A x B where A and B are distributed along the processors and C is the same for all of them
+	'''
+	cr_start('math.matmul_paral',0)
+	aux = np.matmul(A,B)
+	C   = mpi_reduce(aux, root = 0, op = 'sum', all = True)
+	cr_stop('math.matmul_paral',0)
+	return C
+
 def vecmat(v,A):
 	'''
 	Vector times a matrix C = v x A
@@ -54,6 +73,16 @@ def vecmat(v,A):
 		C[ii,:] = v[ii]*A[ii,:]
 	cr_stop('math.vecmat',0)
 	return C
+
+def diag(A):
+	'''
+	If A is a matrix it returns its diagonal, if its a vector it returns
+	a diagonal matrix with A in its diagonal
+	'''
+	cr_start('math.diag',0)
+	B = np.diag(A)
+	cr_stop('math.diag',0)
+	return B
 
 def eigen(A):
 	'''
@@ -68,6 +97,35 @@ def eigen(A):
 	imag   = np.imag(w)
 	cr_stop('math.eigen',0)
 	return real,imag,vecs
+
+def build_complex_eigenvectors(vecs, imag):
+	'''
+	Reconstruction of the right eigenvectors in complex format
+	'''
+	cr_start('math.build_complex_eigenvectors', 0)
+	wComplex = np.zeros(vecs.shape, dtype = 'complex_')
+	ivec = 0
+	#TODO: explain here the while
+	while ivec < vecs.shape[1] - 1:
+		if imag[ivec] > np.finfo(np.double).eps:
+			wComplex[:, ivec]     = vecs[:, ivec] + vecs[:, ivec + 1]*1j
+			wComplex[:, ivec + 1] = vecs[:, ivec] - vecs[:, ivec + 1]*1j
+			ivec += 2
+		else:
+			wComplex[:, ivec] = vecs[:, ivec] + 0*1j
+			ivec = ivec + 1
+	cr_stop('math.build_complex_eigenvectors', 0)
+	return wComplex
+
+def polar(real, imag):
+	'''
+	Present a complex number in its polar form given its real and imaginary part
+	'''
+	cr_start('math.polar', 0)
+	mod = np.sqrt(real*real + imag*imag)
+	arg = np.arctan2(imag, real)
+	cr_stop('math.polar', 0)
+	return mod, arg
 
 def temporal_mean(X):
 	'''
@@ -85,7 +143,7 @@ def subtract_mean(X,X_mean):
 	and n is the number of snapshots.
 	'''
 	cr_start('math.subtract_mean',0)
-	out = X - X_mean
+	out = X - np.tile(X_mean,(X.shape[1],1)).T
 	cr_stop('math.subtract_mean',0)
 	return out
 
@@ -207,7 +265,7 @@ def tsqr(Ai):
 		blevel <<= 1
 	# At this point R is correct on processor 0
 	# Broadcast R and its part of the Q matrix
-	if MPI_SIZE > 1:	
+	if MPI_SIZE > 1:
 		blevel = 1 << (nlevels - 1)
 		mask   = blevel - 1
 	for ilevel in reversed(range(nlevels)):
@@ -287,7 +345,7 @@ def fft(t,y,equispaced=True):
 		# Compute power spectra using fft
 		x  = -0.5 + np.arange(t.shape[0],dtype=np.double)/t.shape[0]
 		yf = nfft.nfft_adjoint(x,y,len(t))
-	ps = np.real(yf*np.conj(yf))/y.shape[0] # np.abs(yf)/y.shape[0]
+	ps = np.real(yf*conj(yf))/y.shape[0] # np.abs(yf)/y.shape[0]
 	cr_stop('math.fft',0)
 	return f, ps
 
@@ -302,3 +360,53 @@ def RMSE(A,B):
 	rmse  = np.sqrt(sum1g/sum2g)
 	cr_stop('math.RMSE',0)
 	return rmse
+
+def vandermonde(real, imag, m, n):
+	'''
+	Builds a Vandermonde matrix of (m x n) with the real and
+	imaginary parts of the eigenvalues
+
+	TODO: posa una cita collons!
+	'''
+	cr_start('math.vandermonde', 0)
+	Vand  = np.zeros((m, n), dtype = 'complex_')
+	for icol in range(n):
+		Vand[:, icol] = (real + imag*1j)**icol
+	cr_stop('math.vandermonde', 0)
+	return Vand
+
+def cholesky(A):
+	'''
+	Returns the Cholesky decompositon of A
+	'''
+	cr_start('math.cholesky', 0)
+	B = np.linalg.cholesky(A)
+	cr_stop('math.cholesky', 0)
+	return B
+
+def conj(A):
+	'''
+	Conjugates complex number A
+	'''
+	cr_start('math.conj',0)
+	B = np.conj(A)
+	cr_stop('math.conj',0)
+	return B
+
+def inv(A):
+	'''
+	Computes the inverse matrix of A
+	'''
+	cr_start('math.inv',0)
+	B = np.linalg.inv(A)
+	cr_stop('math.inv',0)
+	return B
+
+def flip(A):
+	'''
+	Changes order of the vector
+	'''
+	cr_start('math.flip', 0)
+	B = np.flip(A)
+	cr_stop('math.flip', 0)
+	return B

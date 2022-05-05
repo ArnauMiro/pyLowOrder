@@ -1,16 +1,19 @@
 import numpy as np
-import pyLOM
 from scipy.linalg import ldl
+import pyLOM
 
 #Test matrix
 A = np.array([
-	[1.0000,0.5000,0.3333,0.2500],
-    [0.5000,1.0000,0.6667,0.5000],
-    [0.3333,0.6667,1.0000,0.7500],
-    [0.2500,0.5000,0.7500,-1.000]])
+	[1 + 1*1j, 1 + 6*1j, 1 + 2*1j],
+    [-5 + 3*1j, 2 + 3*1j, 4 + 1*1j],
+    [1 + 4*1j, 5 + 7*1j, 3 + 8*1j]])
+B = np.matmul(A, np.transpose(np.conjugate(A)))
+print('Matrix to factorize: \n', B)
 
 #Cholesky decomposition from NumPy
-try:
-	print(np.linalg.cholesky(A))
-except:
-	print(ldl(A))
+Bchol = np.linalg.cholesky(B)
+print('Cholesky NumPy: \n', Bchol)
+
+#Cholesky decomposition from pyLOM:
+BpyLOM = pyLOM.math.cholesky(B)
+print('Cholesky pyLOM: \n', BpyLOM)
