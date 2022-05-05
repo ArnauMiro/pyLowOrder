@@ -139,7 +139,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	c_matmul_paral(aux1, Urt, Y2, nr, n-1, m)
 	for icol in range(n-1):
 		for irow in range(m):
-			if iaux == 0 and irow < nr:
+			if irow < nr:
 				aux2[icol*nr + irow] = Vr[irow*(n-1) + icol]/Sr[irow]
 	c_matmul(Atilde, aux1, aux2, nr, nr, n-1)
 	free(aux1)
