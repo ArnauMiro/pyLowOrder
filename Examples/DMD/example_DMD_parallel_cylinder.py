@@ -15,12 +15,11 @@ import sys
 
 ## Data loading
 d  = pyLOM.Dataset.load('Examples/Data/CYLINDER.h5')
-VARIABLE = 'VELOX'
+VARIABLE = 'VELOC'
 X  = d[VARIABLE]
 dt = 0.2
 remove_mean = False
 r = 5e-6
-validation = scipy.io.loadmat('../DMD_algorithms_BSC/DMD/amplitudeValidation.mat')
 pyLOM.cr_start('example',0)
 
 #Run DMD routine

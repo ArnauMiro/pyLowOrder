@@ -6,7 +6,7 @@
 #
 # Last rev: 27/10/2021
 
-__VERSION__ = '1.0.0'
+__VERSION__ = '1.5.0'
 
 # Vector matrix routines
 from .wrapper import transpose, vector_norm, matmul, complex_matmul, matmul_paral, vecmat, eigen, polar, cholesky, vandermonde, conj, diag, inv, flip

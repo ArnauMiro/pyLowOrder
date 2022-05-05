@@ -17,5 +17,5 @@ Cnp = np.matmul(A, np.transpose(np.conj(B)))
 print('NumPy: \n', Cnp)
 
 #Cholesky decomposition from pyLOM:
-C = pyLOM.math.complex_matmul(A, B, ord(TransA), ord(TransB))
+C = pyLOM.math.complex_matmul(A, B, TransA, TransB)
 print('pyLOM: \n', C)

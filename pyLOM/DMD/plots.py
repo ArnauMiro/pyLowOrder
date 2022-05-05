@@ -2,7 +2,7 @@
 #
 # pyLOM - Python Low Order Modeling.
 #
-# POD plotting utilities.
+# DMD plotting utilities.
 #
 # Last rev: 27/10/2021
 from __future__ import print_function, division

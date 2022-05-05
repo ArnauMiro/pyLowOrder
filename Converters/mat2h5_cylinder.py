@@ -12,8 +12,8 @@ import pyLOM
 
 
 ## Parameters
-MATFILE = './Examples/Data/CYLINDER_ALL.mat'
-OUTFILE = './Examples/Data/CYLINDER.h5'
+MATFILE = './DATA/CYLINDER_ALL.mat'
+OUTFILE = './DATA/CYLINDER.h5'
 DT      = 0.2
 DIMSX   = -1., 8.
 DIMSY   = -2., 2.
@@ -45,9 +45,6 @@ VELOC = np.zeros((2*nnx*nny,time.shape[0]),dtype=np.double)
 VELOC[:2*nnx*nny:2,:]  = np.ascontiguousarray(mat['UALL'].astype(np.double))
 VELOC[1:2*nnx*nny:2,:] = np.ascontiguousarray(mat['VALL'].astype(np.double))
 
-VELOX = np.zeros((1*nnx*nny,time.shape[0]),dtype=np.double)
-VELOX[:,:]  = np.ascontiguousarray(mat['UALL'].astype(np.double))
-
 VORTI = np.zeros((1*nnx*nny,time.shape[0]),dtype=np.double)
 VORTI[:,:] = np.ascontiguousarray(mat['VORTALL'].astype(np.double))
 
@@ -57,7 +54,6 @@ d = pyLOM.Dataset(mesh=mesh, xyz=xy, time=time,
 	# Now add all the arrays to be stored in the dataset
 	# It is important to convert them as C contiguous arrays
 	VELOC = {'point':False,'ndim':2,'value':VELOC},
-	VELOX = {'point':False,'ndim':1,'value':VELOX},
 	VORTI = {'point':False,'ndim':1,'value':VORTI},
 )
 print(d)
