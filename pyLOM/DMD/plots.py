@@ -30,12 +30,12 @@ def plotMode(Phi, omega, xyz,mesh,info,dim=0,modes=np.array([1],np.int32),scale_
 		if mesh['type'] == 'struct2D':
 			c = None
 			if info['point']:
-				c = plotFieldStruct2D(ax[imode][0],mesh['nx'],mesh['ny'],info['ndim']-1,xyz,Phi[:,mode-1].real,dim-1,cmap)
-				c = plotFieldStruct2D(ax[imode][1],mesh['nx'],mesh['ny'],info['ndim']-1,xyz,Phi[:,mode-1].imag,dim-1,cmap)
+				c = plotFieldStruct2D(ax[imode][0],mesh['nx'],mesh['ny'],info['ndim'],xyz,Phi[:,mode-1].real,dim-1,cmap)
+				c = plotFieldStruct2D(ax[imode][1],mesh['nx'],mesh['ny'],info['ndim'],xyz,Phi[:,mode-1].imag,dim-1,cmap)
 			else:
 				xyzc = mesh_compute_cellcenter(xyz,mesh)
-				c = plotFieldStruct2D(ax[imode][0],mesh['nx']-1,mesh['ny']-1,info['ndim']-1,xyzc,Phi[:,mode-1].real,dim-1,cmap)
-				c = plotFieldStruct2D(ax[imode][1],mesh['nx']-1,mesh['ny']-1,info['ndim']-1,xyzc,Phi[:,mode-1].imag,dim-1,cmap)
+				c = plotFieldStruct2D(ax[imode][0],mesh['nx']-1,mesh['ny']-1,info['ndim'],xyzc,Phi[:,mode-1].real,dim-1,cmap)
+				c = plotFieldStruct2D(ax[imode][1],mesh['nx']-1,mesh['ny']-1,info['ndim'],xyzc,Phi[:,mode-1].imag,dim-1,cmap)
 			cf.append(c)
 		ax[imode][0].set_title('Real mode')
 		ax[imode][1].set_title('Imaginary mode')
