@@ -15,7 +15,6 @@ from mpi4py  import MPI
 
 from libc.stdlib   cimport malloc, free
 from libc.string   cimport memcpy, memset
-#from libc.complex  cimport complex_t
 from mpi4py        cimport MPI
 from mpi4py.libmpi cimport MPI_Comm
 
