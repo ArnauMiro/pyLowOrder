@@ -74,3 +74,4 @@ sudo apt install libhdf5-mpi-dev
 or make sure that the environment variable **HDF5_DIR** is pointing to your *hdf5* installation. Then install *h5py* from pip (or the [github package](https://github.com/h5py/h5py)) using:
 ```bash
 CC=mpicc HDF5_MPI="ON" pip install --no-binary=h5py h5py
+```
