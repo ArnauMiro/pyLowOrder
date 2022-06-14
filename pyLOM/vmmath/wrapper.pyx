@@ -111,14 +111,16 @@ def matmul_paral(double[:,:] A, double[:,:] B):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def complex_matmul(np.complex128_t[:,:] A, np.complex128_t[:,:] B, object TransA, object TransB):
+def complex_matmul(np.complex128_t[:,:] A, np.complex128_t[:,:] B):
 	'''
 	Matrix multiplication C = A x B
+
+	By default will transpose and conjugate B
 	'''
 	cr_start('math.complex_matmul',0)
 	cdef int m = A.shape[0], k = A.shape[1], n = B.shape[1]
 	cdef np.ndarray[np.complex128_t,ndim=2] C = np.zeros((m,n),dtype=np.complex128)
-	c_matmul_complex(&C[0,0],&A[0,0],&B[0,0],m,n,k, TransA.encode('utf-8'), TransB.encode('utf-8'))
+	c_matmul_complex(&C[0,0],&A[0,0],&B[0,0],m,n,k,'N','C')
 	cr_stop('math.complex_matmul',0)
 	return C
 
