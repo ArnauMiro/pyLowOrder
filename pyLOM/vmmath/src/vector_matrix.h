@@ -2,9 +2,11 @@
 	Vector and matrix math operations
 */
 #include <complex.h>
-#include "mkl.h"
 typedef double _Complex complex_t;
+#ifdef USE_MKL
+#include "mkl.h"
 #define MKL_Complex16 complex_t
+#endif
 void   transpose(double *A, double *B, const int m, const int n);
 double vector_norm(double *v, int start, int n);
 void   reorder(double *A, int m, int n, int N);
