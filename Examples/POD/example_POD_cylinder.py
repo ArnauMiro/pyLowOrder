@@ -22,7 +22,7 @@ t  = d.time
 
 
 ## Run POD
-PSI,S,V = pyLOM.POD.run(X,remove_mean=True) # PSI are POD modes
+PSI,S,V = pyLOM.POD.run(X,remove_mean=False) # PSI are POD modes
 pyLOM.POD.plotResidual(S)
 # Truncate according to a residual
 PSI,S,V = pyLOM.POD.truncate(PSI,S,V,r=5e-6)
