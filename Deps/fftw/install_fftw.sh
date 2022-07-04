@@ -44,6 +44,10 @@ else
 			ln -s "/apps/FFTW/${VERS}/INTEL/IMPI/include" "${INSTALL_PREFIX}/"
 			ln -s "/apps/FFTW/${VERS}/INTEL/IMPI/lib" "${INSTALL_PREFIX}/"
 		fi
+	elif [[ "$PLATFORM" == "VEGA" ]]; then # VEGA
+		# GCC compiler
+		ln -s "/cvmfs/sling.si/modules/el7/software/FFTW/${VERS}-gompi-2020b/include" "${INSTALL_PREFIX}/"
+		ln -s "/cvmfs/sling.si/modules/el7/software/FFTW/${VERS}-gompi-2020b/lib" "${INSTALL_PREFIX}/"
 	else
 		cd Deps/
 		# Clone repository and checkout version tag
