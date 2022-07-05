@@ -138,9 +138,8 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	c_transpose(&Ur[0,0], Urt, m, nr)
 	c_matmul_paral(aux1, Urt, Y2, nr, n-1, m)
 	for icol in range(n-1):
-		for irow in range(m):
-			if iaux == 0 and irow < nr:
-				aux2[icol*nr + irow] = Vr[irow*(n-1) + icol]/Sr[irow]
+		for irow in range(nr):
+			aux2[icol*nr + irow] = Vr[irow*(n-1) + icol]/Sr[irow]
 	c_matmul(Atilde, aux1, aux2, nr, nr, n-1)
 	free(aux1)
 	free(aux3)
@@ -177,6 +176,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	cdef np.complex128_t *q
 
 	aux3C = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
+	aux4C = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
 	Vand  = <np.complex128_t*>malloc((nr*(n-1))*sizeof(np.complex128_t))
 	P     = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
 	Pinv  = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
@@ -184,13 +184,11 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	cdef np.ndarray[np.complex128_t,ndim=1] bJov = np.zeros((nr,),dtype=np.complex128)
 
 	c_vandermonde(Vand, &muReal[0], &muImag[0], nr, n-1)
-	c_matmul_complex(aux3C, Vand, Vand, nr, nr, n-1, 'N', 'C')
-	for iaux in range(nr):
+	c_matmul_complex(aux3C, &w[0,0], &w[0,0], nr, nr, nr, 'C', 'N')
+	c_matmul_complex(aux4C, Vand, Vand, nr, nr, n-1, 'N', 'C')
+	for irow in range(nr):
 		for icol in range(nr): #Loop on the columns of the Vandermonde matrix
-			aux1C[icol] = w[icol, iaux].real - w[icol, iaux].imag*1j
-		c_matmul_complex(aux2C, aux1C, &w[0,0], 1, nr, nr, 'N', 'N')
-		for icol in range(nr):
-			P[iaux*nr + icol] = aux2C[icol].real*aux3C[iaux*nr+icol].real - aux2C[icol].real*aux3C[iaux*nr+icol].imag*1j + aux2C[icol].imag*aux3C[iaux*nr+icol].real*1j + aux2C[icol].imag*aux3C[iaux*nr+icol].imag
+			P[irow*nr + icol] = aux3C[irow*nr + icol].real*aux4C[irow*nr + icol].real + aux3C[irow*nr + icol].real*aux4C[irow*nr + icol].imag*1j + aux3C[irow*nr + icol].imag*aux4C[irow*nr + icol].real*1j - aux3C[irow*nr + icol].imag*aux4C[irow*nr + icol].imag
 
 	retval = c_cholesky(P, nr)
 	if not retval == 0: raiseError('Problems computing Cholesky factorization!')
@@ -227,6 +225,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	free(aux1C)
 	free(aux2C)
 	free(aux3C)
+	free(aux4C)
 	free(Vand)
 	free(q)
 	free(P)
