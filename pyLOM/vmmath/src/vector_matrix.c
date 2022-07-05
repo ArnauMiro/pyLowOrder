@@ -311,6 +311,18 @@ void vandermonde(complex_t *Vand, double *real, double *imag, int m, int n){
 	}
 }
 
+void vandermondeTime(complex_t *Vand, double *real, double *imag, int m, int n, double *t){
+	/*
+	Computes the Vandermonde matrix of a complex vector formed by real + imag*I
+	*/
+  int ii, jj;
+	for(ii = 0; ii < m; ++ii){
+		for(jj = 0; jj < n; ++jj){
+			AC_MAT(Vand, n, ii, jj) = cpow((real[ii] + imag[ii]*I), t[jj]);
+		}
+	}
+}
+
 int inverse(complex_t *A, int N, int UoL){
 	/*
 	Compute the lower Cholesky factorization of A
