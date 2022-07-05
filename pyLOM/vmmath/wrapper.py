@@ -365,13 +365,26 @@ def vandermonde(real, imag, m, n):
 	'''
 	Builds a Vandermonde matrix of (m x n) with the real and
 	imaginary parts of the eigenvalues
-
-	TODO: posa una cita collons!
 	'''
 	cr_start('math.vandermonde', 0)
 	Vand  = np.zeros((m, n), dtype = 'complex_')
 	for icol in range(n):
 		Vand[:, icol] = (real + imag*1j)**icol
+	cr_stop('math.vandermonde', 0)
+	return Vand
+
+def vandermondeTime(real, imag, m, time):
+	'''
+	Builds a Vandermonde matrix of (m x n) with the real and
+	imaginary parts of the eigenvalues
+
+	TODO: posa una cita collons!
+	'''
+	cr_start('math.vandermonde', 0)
+	n = time.shape[0]
+	Vand  = np.zeros((m, n), dtype = 'complex_')
+	for it, t in enumerate(time):
+		Vand[:, it] = (real + imag*1j)**t
 	cr_stop('math.vandermonde', 0)
 	return Vand
 
