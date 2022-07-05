@@ -24,18 +24,19 @@ from ..utils.cr     import cr_start, cr_stop
 from ..utils.errors import raiseError
 
 cdef extern from "vector_matrix.h":
-	cdef void   c_transpose      "transpose"(double *A, double *B, const int m, const int n)
-	cdef double c_vector_norm    "vector_norm"(double *v, int start, int n)
-	cdef void   c_matmul         "matmul"(double *C, double *A, double *B, const int m, const int n, const int k)
-	cdef void   c_matmul_paral   "matmul_paral"(double *C, double *A, double *B, const int m, const int n, const int k)
-	cdef void   c_matmul_complex "matmul_complex"(np.complex128_t *C, np.complex128_t *A, np.complex128_t *B, const int m, const int n, const int k, char *TransA, char *TransB)
-	cdef void   c_vecmat         "vecmat"(double *v, double *A, const int m, const int n)
-	cdef void   c_vecmat_complex "vecmat_complex"(np.complex128_t *v, np.complex128_t *A, const int m, const int n)
-	cdef int    c_eigen          "eigen"(double *real, double *imag, np.complex128_t *vecs, double *A, const int m, const int n)
-	cdef int    c_cholesky       "cholesky"(np.complex128_t *A, int N)
-	cdef void   c_vandermonde    "vandermonde"(np.complex128_t *Vand, double *real, double *imag, int m, int n)
-	cdef int    c_inverse        "inverse"(np.complex128_t *A, int N, int UoL)
-	cdef void   c_index_sort     "index_sort"(double *v, int *index, int n)
+	cdef void   c_transpose           "transpose"(double *A, double *B, const int m, const int n)
+	cdef double c_vector_norm         "vector_norm"(double *v, int start, int n)
+	cdef void   c_matmul              "matmul"(double *C, double *A, double *B, const int m, const int n, const int k)
+	cdef void   c_matmul_paral        "matmul_paral"(double *C, double *A, double *B, const int m, const int n, const int k)
+	cdef void   c_matmul_complex      "matmul_complex"(np.complex128_t *C, np.complex128_t *A, np.complex128_t *B, const int m, const int n, const int k, char *TransA, char *TransB)
+	cdef void   c_vecmat              "vecmat"(double *v, double *A, const int m, const int n)
+	cdef void   c_vecmat_complex      "vecmat_complex"(np.complex128_t *v, np.complex128_t *A, const int m, const int n)
+	cdef int    c_eigen               "eigen"(double *real, double *imag, np.complex128_t *vecs, double *A, const int m, const int n)
+	cdef int    c_cholesky            "cholesky"(np.complex128_t *A, int N)
+	cdef void   c_vandermonde         "vandermonde"(np.complex128_t *Vand, double *real, double *imag, int m, int n)
+	cdef void   c_vandermonde_time    "vandermondeTime"(np.complex128_t *Vand, double *real, double *imag, int m, int n, double* t)
+	cdef int    c_inverse             "inverse"(np.complex128_t *A, int N, int UoL)
+	cdef void   c_index_sort          "index_sort"(double *v, int *index, int n)
 cdef extern from "averaging.h":
 	cdef void c_temporal_mean "temporal_mean"(double *out, double *X, const int m, const int n)
 	cdef void c_subtract_mean "subtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
@@ -271,28 +272,28 @@ def frequency_damping(double[:] real, double[:] imag, double dt):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def reconstruction_jovanovic(double[:,:] U, np.complex128_t[:,:] w, double[:] muReal, double[:] muImag, double[:,:] X, np.complex128_t[:] bJov):
+def reconstruction_jovanovic(double[:,:] U, np.complex128_t[:,:] w, double[:] muReal, double[:] muImag, double[:] t, np.complex128_t[:] bJov):
 	'''
 	Computation of the reconstructed flow from the DMD computations
 	'''
 	cr_start('DMD.reconstruction_jovanovic', 0)
-	cdef int m  = X.shape[0]
-	cdef int n  = X.shape[1]
+	cdef int m  = U.shape[0]
+	cdef int n  = t.shape[0]
 	cdef int nr = U.shape[1]
-	cdef np.ndarray[np.double_t,ndim=2] Xdmd = np.zeros((m, n-1),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] Xdmd = np.zeros((m, n),dtype=np.double)
 	cdef np.complex128_t *Vand
-	Vand  = <np.complex128_t*>malloc((nr*(n-1))*sizeof(np.complex128_t))
+	Vand  = <np.complex128_t*>malloc(nr*n*sizeof(np.complex128_t))
 	cdef double *aux
-	aux = <np.double_t*>malloc((nr*(n-1))*sizeof(np.double))
+	aux = <np.double_t*>malloc(nr*n*sizeof(np.double))
 
-	c_vandermonde(Vand, &muReal[0], &muImag[0], nr, n-1)
-	c_vecmat_complex(&bJov[0], Vand, nr, n-1)
-	c_matmul_complex(Vand, &w[0,0], Vand, nr, n-1, nr, 'N', 'N')
+	c_vandermonde_time(Vand, &muReal[0], &muImag[0], nr, n, &t[0])
+	c_vecmat_complex(&bJov[0], Vand, nr, n)
+	c_matmul_complex(Vand, &w[0,0], Vand, nr, n, nr, 'N', 'N')
 	cdef int ii
 	cdef int jj
 	for ii in range(nr):
-		for jj in range(n-1):
-			aux[ii*(n-1) + jj] = Vand[ii*(n-1) + jj].real
-	c_matmul(&Xdmd[0,0], &U[0,0], aux, m, n-1, nr)
+		for jj in range(n):
+			aux[ii*n + jj] = Vand[ii*n + jj].real
+	c_matmul(&Xdmd[0,0], &U[0,0], aux, m, n, nr)
 	cr_stop('DMD.reconstruction_jovanovic', 0)
 	return Xdmd
