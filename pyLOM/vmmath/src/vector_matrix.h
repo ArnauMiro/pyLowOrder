@@ -17,5 +17,6 @@ int    eigen(double *real, double *imag, complex_t *vecs, double *A, const int m
 double RMSE(double *A, double *B, const int m, const int n, MPI_Comm comm);
 int    cholesky(complex_t *A, int N);
 void   vandermonde(complex_t *Vand, double *real, double *imag, int m, int n);
+void   vandermondeTime(complex_t *Vand, double *real, double *imag, int m, int n, double *t);
 int    inverse(complex_t *A, int N, int UoL);
 void   index_sort(double *v, int *index, int n);
