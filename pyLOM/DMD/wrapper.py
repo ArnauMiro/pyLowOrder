@@ -8,8 +8,8 @@
 from __future__ import print_function
 
 import numpy as np
-
-from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, matmul_paral
+import pyLOM
+from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, matmul_paral, vandermondeTime
 from ..POD          import truncate
 from ..utils.cr     import cr_start, cr_stop
 from ..utils.errors import raiseError
@@ -41,6 +41,7 @@ def run(X, r, remove_mean = True):
 
 	#Compute SVD
 	U, S, VT = tsqr_svd(Y[:, :-1])
+	pyLOM.POD.plotResidual(S)
 	# Truncate according to residual
 	U, S, VT = truncate(U, S, VT, r)
 
@@ -108,12 +109,12 @@ def amplitude_jovanovic(real, imag, X1, wComplex, S, V):
 	cr_stop('DMD.amplitude_jovanovic', 0)
 	return bJov
 
-def reconstruction_jovanovic(U, w, real, imag, X, bJov):
+def reconstruction_jovanovic(U, w, real, imag, t, bJov):
 	'''
     Reconstruction of the DMD modes according to the Jovanovic method
 	'''
 	cr_start('DMD.reconstruction_jovanovic', 0)
-	Vand = vandermonde(real, imag, real.shape[0], X.shape[1] - 1)
+	Vand = vandermondeTime(real, imag, real.shape[0], t)
 	Xdmd = matmul(matmul(matmul(U, w), diag(bJov)), Vand)
 	cr_stop('DMD.reconstruction_jovanovic', 0)
 	return Xdmd
