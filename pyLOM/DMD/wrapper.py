@@ -86,7 +86,7 @@ def frequency_damping(real, imag, dt):
 	cr_stop('DMD.frequency_damping', 0)
 	return delta, omega
 
-def mode_computation(X, V, S, W):#FORA??
+def mode_computation(X, V, S, W):
 	'''
 	Computation of DMD Modes
 	'''
