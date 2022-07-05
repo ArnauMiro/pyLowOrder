@@ -34,6 +34,7 @@ cdef extern from "vector_matrix.h" nogil:
 	cdef double c_RMSE             "RMSE"(double *A, double *B, const int m, const int n, MPI_Comm comm)
 	cdef int    c_cholesky         "cholesky"(np.complex128_t *A, int N)
 	cdef void   c_vandermonde      "vandermonde"(np.complex128_t *Vand, double *real, double *imag, int m, int n)
+	cdef void   c_vandermonde_time "vandermondeTime"(np.complex128_t *Vand, double *real, double *imag, int m, int n, double* t)
 cdef extern from "averaging.h":
 	cdef void c_temporal_mean "temporal_mean"(double *out, double *X, const int m, const int n)
 	cdef void c_subtract_mean "subtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
@@ -371,13 +372,27 @@ def vandermonde(double [:] real, double [:] imag, int m, int n):
 	'''
 	Builds a Vandermonde matrix of (m x n) with the real and
 	imaginary parts of the eigenvalues
-
-	TODO: posa una cita collons!
 	'''
 	cr_start('math.vandermonde',0)
 	cdef np.ndarray[np.complex128_t,ndim=2] Vand = np.zeros((m,n),dtype=np.complex128)
 	c_vandermonde(&Vand[0,0], &real[0], &imag[0], m, n)
 	cr_stop('math.vandermonde',0)
+	return np.asarray(Vand)
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def vandermondeTime(double [:] real, double [:] imag, int m, double [:] t):
+	'''
+	Builds a Vandermonde matrix of (m x n) with the real and
+	imaginary parts of the eigenvalues for a certain timesteps
+	'''
+	cr_start('math.vandermonde_time',0)
+	cdef n = t.shape[0]
+	cdef np.ndarray[np.complex128_t,ndim=2] Vand = np.zeros((m,n),dtype=np.complex128)
+	c_vandermonde_time(&Vand[0,0], &real[0], &imag[0], m, n, &t[0])
+	cr_stop('math.vandermonde_time',0)
 	return np.asarray(Vand)
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
