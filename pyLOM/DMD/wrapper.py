@@ -8,7 +8,6 @@
 from __future__ import print_function
 
 import numpy as np
-import pyLOM
 from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, matmul_paral, vandermondeTime
 from ..POD          import truncate
 from ..utils.cr     import cr_start, cr_stop
@@ -41,7 +40,6 @@ def run(X, r, remove_mean = True):
 
 	#Compute SVD
 	U, S, VT = tsqr_svd(Y[:, :-1])
-	pyLOM.POD.plotResidual(S)
 	# Truncate according to residual
 	U, S, VT = truncate(U, S, VT, r)
 
