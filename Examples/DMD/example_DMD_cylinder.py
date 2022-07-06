@@ -7,7 +7,6 @@ from __future__ import print_function, division
 
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 from scipy import optimize
 import scipy.io
 import pyLOM
@@ -33,7 +32,7 @@ delta, omega = pyLOM.DMD.frequency_damping(muReal, muImag, dt)
 #Reconstruction according to Jovanovic 2014
 X_DMD = pyLOM.DMD.reconstruction_jovanovic(Ur, w, muReal, muImag, t, bJov)
 rmse = pyLOM.math.RMSE(X_DMD.real, X[:, :-1])
-print('Max RMSE = %e' % rmse)
+print('RMSE = %e' % rmse)
 
 #Ritz Spectrum
 pyLOM.DMD.ritzSpectrum(muReal, muImag)
@@ -47,8 +46,6 @@ pyLOM.DMD.dampingFrequency(omega, delta)
 #Plot modes and reconstructed flow
 pyLOM.DMD.plotMode(Phi, muImag/dt, d.xyz, d.mesh, d.info(VARIABLE), modes = [1, 2, 3]) #MATLAB: modes 17, 112 and 144
 fig,ax,anim = pyLOM.DMD.animateFlow(X,X_DMD.real,d.xyz,d.mesh,d.info(VARIABLE),dim=0)
-#writervideo = animation.FFMpegWriter(fps=5)
-#anim.save('Reco.mp4', writer=writervideo)
 
 ## Show and print timings
 pyLOM.cr_stop('example',0)
