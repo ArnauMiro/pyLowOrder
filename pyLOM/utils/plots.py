@@ -8,6 +8,7 @@
 from __future__ import print_function, division
 
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
@@ -41,6 +42,7 @@ def plotFieldStruct2D(ax,nx,ny,ndim,xyz,field,dim,cmap,clear=False):
 	Y = xyz[:,1].reshape((nx,ny),order='c').T
 	# Obtain data matrix
 	Z = field.reshape((nx,ny,ndim),order='c').T if ndim > 1 else field.reshape((nx,ny),order='c').T
+	levels = np.linspace(-1e-2, 1e-2, 11)
 	return ax.contourf(X,Y,Z[ndim,:,:] if dim >= 0 else np.linalg.norm(Z,axis=0) if ndim > 1 else Z,cmap=cmap)
 
 
@@ -90,22 +92,35 @@ def animateFlow(X,X_R,xyz,mesh,info,dim=0,t=None,fig=None,ax=None,cmap=None):
 	'''
 	# Build figure and axes
 	if fig is None:
-		fig = plt.figure(figsize=(8,6),dpi=100)
+		fig = plt.figure()
 	if ax is None:
 		ax = fig.subplots(2,1,gridspec_kw = {'hspace':0.5})
     	# Select frames to animate
-	nframes = X.shape[1]
+	nframes = X_R.shape[1]
 	xyzc = None if info['point'] else mesh_compute_cellcenter(xyz,mesh)
+	circ0 = plt.Circle((0,0), 0.5, color = 'white')
+	circ1 = plt.Circle((0,0), 0.5, color = 'white')
 	# Function to animate
 	def update(iframe):
 		fig.suptitle('Snapshot no %d'%iframe)
 		if info['point']:
-			plotFieldStruct2D(ax[0],mesh['nx'],mesh['ny'],info['ndim'],xyz,X[:,iframe],dim-1,cmap)
-			plotFieldStruct2D(ax[1],mesh['nx'],mesh['ny'],info['ndim'],xyz,X_R[:,iframe],dim-1,cmap)
+			c1 = plotFieldStruct2D(ax[0],mesh['nx'],mesh['ny'],info['ndim'],xyz,X[:,iframe],dim-1,cmap)
+			c2 = plotFieldStruct2D(ax[1],mesh['nx'],mesh['ny'],info['ndim'],xyz,X_R[:,iframe],dim-1,cmap)
 		else:
-			plotFieldStruct2D(ax[0],mesh['nx']-1,mesh['ny']-1,info['ndim'],xyzc,X[:,iframe],dim-1,cmap)
-			plotFieldStruct2D(ax[1],mesh['nx']-1,mesh['ny']-1,info['ndim'],xyzc,X_R[:,iframe],dim-1,cmap)
-		ax[0].set_title('Real flow')
+			c1 = plotFieldStruct2D(ax[0],mesh['nx']-1,mesh['ny']-1,info['ndim'],xyzc,X[:,iframe],dim-1,cmap)
+			c2 = plotFieldStruct2D(ax[1],mesh['nx']-1,mesh['ny']-1,info['ndim'],xyzc,X_R[:,iframe],dim-1,cmap)
+		ax[0].set_title('Numerical simulation')
+		ax[0].add_patch(circ0)
+		ax[0].set_aspect('equal')
+		ax[0].set_xlabel('x/D')
+		ax[0].set_ylabel('y/D')
 		ax[1].set_title('Reconstructed flow')
+		ax[1].add_patch(circ1)
+		ax[1].set_aspect('equal')
+		ax[1].set_xlabel('x/D')
+		ax[1].set_ylabel('y/D')
+		if iframe == 1:
+			plt.colorbar(mappable = c1, ax=ax[0])
+			plt.colorbar(mappable = c2, ax=ax[1])
 	anim = FuncAnimation(fig,update,frames=np.arange(nframes,dtype=np.int32),blit=False)
 	return fig, ax, anim
