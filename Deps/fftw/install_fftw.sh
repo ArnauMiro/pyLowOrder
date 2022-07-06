@@ -48,6 +48,10 @@ else
 		# GCC compiler
 		ln -s "/cvmfs/sling.si/modules/el7/software/FFTW/${VERS}-gompi-2020b/include" "${INSTALL_PREFIX}/"
 		ln -s "/cvmfs/sling.si/modules/el7/software/FFTW/${VERS}-gompi-2020b/lib" "${INSTALL_PREFIX}/"
+	elif [[ "$PLATFORM" == "FT3" ]]; then # Finisterre 3
+		# Intel compiler
+		ln -s "/opt/cesga/2020/software/MPI/intel/2021.3.0/impi/2021.3.0/fftw/${VERS}/include" "${INSTALL_PREFIX}/"
+		ln -s "/opt/cesga/2020/software/MPI/intel/2021.3.0/impi/2021.3.0/fftw/${VERS}/lib" "${INSTALL_PREFIX}/"
 	else
 		cd Deps/
 		# Clone repository and checkout version tag

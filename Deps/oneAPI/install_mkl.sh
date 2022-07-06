@@ -54,6 +54,13 @@ else
 		# Create install directory and copy includes
 		mkdir -p ${INSTALL_PREFIX}
 		cp -r $MKL_INSTALL_DIR/include ${INSTALL_PREFIX}
+	elif [ "$PLATFORM" = "FT3" ]; then # Finisterre 3
+		# MKL path
+		MKL_INSTALL_DIR="/opt/cesga/2020/software/MPI/intel/${VERS}/impi/${VERS}/imkl/${VERS}/mkl"
+		MKL_LIBRARIES="${MKL_INSTALL_DIR}/lib/intel64/"
+		# Create install directory and copy includes
+		mkdir -p ${INSTALL_PREFIX}
+		cp -r $MKL_INSTALL_DIR/include ${INSTALL_PREFIX}
 	else
 		cd Deps/
 		# MKL path
