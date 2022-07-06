@@ -9,7 +9,7 @@
 __VERSION__ = '1.5.0'
 
 # Vector matrix routines
-from .wrapper import transpose, vector_norm, matmul, complex_matmul, matmul_paral, vecmat, eigen, polar, cholesky, vandermonde, conj, diag, inv, flip
+from .wrapper import transpose, vector_norm, matmul, complex_matmul, matmul_paral, vecmat, eigen, polar, cholesky, vandermonde, conj, diag, inv, flip, vandermondeTime
 # Averaging routines
 from .wrapper import temporal_mean, subtract_mean, RMSE
 # SVD routines
