@@ -8,8 +8,7 @@
 from __future__ import print_function
 
 import numpy as np
-
-from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, matmul_paral
+from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, matmul_paral, vandermondeTime
 from ..POD          import truncate
 from ..utils.cr     import cr_start, cr_stop
 from ..utils.errors import raiseError
@@ -85,7 +84,7 @@ def frequency_damping(real, imag, dt):
 	cr_stop('DMD.frequency_damping', 0)
 	return delta, omega
 
-def mode_computation(X, V, S, W):#FORA??
+def mode_computation(X, V, S, W):
 	'''
 	Computation of DMD Modes
 	'''
@@ -108,12 +107,12 @@ def amplitude_jovanovic(real, imag, X1, wComplex, S, V):
 	cr_stop('DMD.amplitude_jovanovic', 0)
 	return bJov
 
-def reconstruction_jovanovic(U, w, real, imag, X, bJov):
+def reconstruction_jovanovic(U, w, real, imag, t, bJov):
 	'''
     Reconstruction of the DMD modes according to the Jovanovic method
 	'''
 	cr_start('DMD.reconstruction_jovanovic', 0)
-	Vand = vandermonde(real, imag, real.shape[0], X.shape[1] - 1)
+	Vand = vandermondeTime(real, imag, real.shape[0], t)
 	Xdmd = matmul(matmul(matmul(U, w), diag(bJov)), Vand)
 	cr_stop('DMD.reconstruction_jovanovic', 0)
 	return Xdmd
