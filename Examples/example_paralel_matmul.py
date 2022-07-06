@@ -20,8 +20,8 @@ Bi = mpi_scatter(B, root = 0, do_split = True)
 Caux = np.matmul(Ai, Bi)
 Cnp  = mpi_reduce(Caux, root = 0, op = 'sum', all = True)
 
-print('NumPy: \n', Cnp)
+pyLOM.pprint(0,'NumPy: \n', Cnp)
 
 #Paralel matmul from pyLOM:
 C = pyLOM.math.matmul_paral(Ai, Bi)
-print('pyLOM: \n', C)
+pyLOM.pprint(0,'pyLOM: \n', C)

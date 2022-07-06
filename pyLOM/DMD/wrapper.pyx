@@ -139,8 +139,14 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	c_transpose(&Ur[0,0], Urt, m, nr)
 	c_matmul_paral(aux1, Urt, Y2, nr, n-1, m)
 	for icol in range(n-1):
+<<<<<<< HEAD
 		for irow in range(nr):
 			aux2[icol*nr + irow] = Vr[irow*(n-1) + icol]/Sr[irow]
+=======
+		for irow in range(m):
+			if irow < nr:
+				aux2[icol*nr + irow] = Vr[irow*(n-1) + icol]/Sr[irow]
+>>>>>>> 2f1e0b7a8a25ebba085eb5a7eb85a7c728b0f99b
 	c_matmul(Atilde, aux1, aux2, nr, nr, n-1)
 	free(aux1)
 	free(aux3)

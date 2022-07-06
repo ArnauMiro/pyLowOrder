@@ -47,9 +47,11 @@ def matmul(A,B):
 def complex_matmul(A,B):
 	'''
 	Matrix multiplication C = A x B
+
+	By default will transpose and conjugate B
 	'''
 	cr_start('math.matmul',0)
-	C = np.matmul(A,B)
+	C = np.matmul(A,np.transpose(np.conj(B)))
 	cr_stop('math.matmul',0)
 	return C
 
