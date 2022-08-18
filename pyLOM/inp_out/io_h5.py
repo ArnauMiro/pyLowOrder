@@ -9,7 +9,7 @@ from __future__ import print_function, division
 
 import numpy as np, h5py
 
-from ..utils.parall import MPI_COMM, MPI_RANK, MPI_SIZE, worksplit, writesplit, is_rank_or_serial, mpi_reduce
+from ..utils.parall import MPI_COMM, MPI_RANK, MPI_SIZE, worksplit, writesplit, is_rank_or_serial, mpi_reduce, mpi_gather
 from ..utils.errors import raiseError
 from ..utils.mesh   import STRUCT2D, STRUCT3D, UNSTRUCT, mesh_number_of_points
 
@@ -150,6 +150,49 @@ def h5_save_mpio(fname,xyz,time,pointOrder,cellOrder,meshDict,varDict,write_mast
 		h5_save_mesh(mesh_group,meshDict)
 		file.close()
 
+def h5_save_part(fname,varDict):
+	'''
+	Save a set of variables in a partitioned HDF5.
+	'''
+	file = h5py.File(fname,'w',driver='mpio',comm=MPI_COMM)
+	# Loop the variables to be saved
+	for v in varDict.keys():
+		# Check if we need to do a parallel storage or not
+		isParallel = True if '_p' in v else False
+		# Create a group for the variable
+		var_group = file.create_group(v.replace('_p',''))
+		# Create dataset for sizes
+		var_group.create_dataset('partitioned',(1,),dtype='i',data=isParallel)
+		# Store the number of parts, i.e., number of processors
+		var_group.create_dataset('num_partitions',(1,),dtype='i',data=MPI_SIZE if isParallel else 1)
+		# Create the groups
+		dset_n = var_group.create_dataset('n',(MPI_SIZE if isParallel else 1,),dtype='i')
+		dset_m = var_group.create_dataset('m',(1,),dtype='i')
+		# Store sizes
+		if isParallel:
+			dset_n[MPI_RANK] = varDict[v].shape[0]
+			if MPI_RANK == 0: dset_m[0] = varDict[v].shape[1] if len(varDict[v].shape) > 1 else 0
+		else:
+			if MPI_RANK == 0:
+				dset_n[0] = varDict[v].shape[0]
+				dset_m[0] = varDict[v].shape[1] if len(varDict[v].shape) > 1 else 0		
+		# Obtain global size for the variable
+		if isParallel:
+			npoinall = mpi_gather(varDict[v].shape[0],all=True)
+			npoints  = np.sum(npoinall)
+			nstart   = np.sum(npoinall[:max(MPI_RANK,0)]) if MPI_SIZE > 1 else 0
+		else:
+			npoints  = varDict[v].shape[0]
+		ndims  = varDict[v].shape[1] if len(varDict[v].shape) > 1 else 0
+		# Create a partition group for each variable
+		dset_d = var_group.create_dataset('data',(npoints,ndims) if ndims > 0 else (npoints,),dtype=varDict[v].dtype)
+		# Each rank stores at each own memory place
+		if isParallel:
+			dset_d[nstart:nstart+varDict[v].shape[0]] = varDict[v]
+		else:
+			if MPI_RANK == 0: dset_d[:] = varDict[v]
+	file.close()
+
 
 def h5_load(fname,mpio=True):
 	'''
@@ -261,3 +304,28 @@ def h5_load_mpio(fname):
 		varDict[var] = h5_load_variable_mpio(file['DATA'][var],npoints,ncells)
 	file.close()
 	return xyz, time, pointOrder, cellOrder, meshDict, varDict
+
+def h5_load_part(fname):
+	'''
+	Load a set of variables in a partitioned HDF5.
+	'''
+	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM)
+	varDict = {}
+	# Loop the variables to be saved
+	for v in file.keys():
+		# Check how the variable has been stored
+		isParallel = bool(file[v]['partitioned'][0])
+		nparts     = int(file[v]['num_partitions'][0])
+		if isParallel and nparts != MPI_SIZE: raiseError('Invalid partition for %s, expected %d got %d! Aborting...'%(v,MPI_SIZE,nparts))
+		# Read the variables in the file
+		if isParallel:
+			# Only read the part that corresponds
+			n       = np.array(file[v]['n'])
+			npoints = n[MPI_RANK]
+			nstart  = np.sum(n[:max(MPI_RANK,0)])
+			varDict[v] = np.array(file[v]['data'][nstart:nstart+npoints])
+		else:
+			# Everyone reads the whole variable
+			varDict[v] = np.array(file[v]['data'])
+	file.close()
+	return varDict
