@@ -94,11 +94,9 @@ def animateFlow(X,X_R,xyz,mesh,info,dim=0,t=None,fig=None,ax=None,cmap=None):
 		fig = plt.figure()
 	if ax is None:
 		ax = fig.subplots(2,1,gridspec_kw = {'hspace':0.5})
-    	# Select frames to animate
+	# Select frames to animate
 	nframes = X_R.shape[1]
-	xyzc = None if info['point'] else mesh_compute_cellcenter(xyz,mesh)
-	circ0 = plt.Circle((0,0), 0.5, color = 'white')
-	circ1 = plt.Circle((0,0), 0.5, color = 'white')
+	xyzc    = None if info['point'] else mesh_compute_cellcenter(xyz,mesh)
 	# Function to animate
 	def update(iframe):
 		fig.suptitle('Snapshot no %d'%iframe)
@@ -109,17 +107,16 @@ def animateFlow(X,X_R,xyz,mesh,info,dim=0,t=None,fig=None,ax=None,cmap=None):
 			c1 = plotFieldStruct2D(ax[0],mesh['nx']-1,mesh['ny']-1,info['ndim'],xyzc,X[:,iframe],dim-1,cmap)
 			c2 = plotFieldStruct2D(ax[1],mesh['nx']-1,mesh['ny']-1,info['ndim'],xyzc,X_R[:,iframe],dim-1,cmap)
 		ax[0].set_title('Numerical simulation')
-		ax[0].add_patch(circ0)
 		ax[0].set_aspect('equal')
 		ax[0].set_xlabel('x/D')
 		ax[0].set_ylabel('y/D')
 		ax[1].set_title('Reconstructed flow')
-		ax[1].add_patch(circ1)
 		ax[1].set_aspect('equal')
 		ax[1].set_xlabel('x/D')
 		ax[1].set_ylabel('y/D')
-		if iframe == 1:
-			plt.colorbar(mappable = c1, ax=ax[0])
-			plt.colorbar(mappable = c2, ax=ax[1])
+		if iframe == 0 and not hasattr(update,'cbar'):
+			fig.colorbar(mappable = c1, ax=ax[0])
+			fig.colorbar(mappable = c2, ax=ax[1])
+			update.cbar = True
 	anim = FuncAnimation(fig,update,frames=np.arange(nframes,dtype=np.int32),blit=False)
 	return fig, ax, anim
