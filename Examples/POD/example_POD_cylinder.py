@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import h5py
 import pyLOM
 
+
 ## Parameters
 DATAFILE = 'Examples/Data/CYLINDER.h5'
 VARIABLE = 'VELOC'
@@ -31,6 +32,7 @@ X_POD = pyLOM.POD.reconstruct(PSI,S,V)
 # Compute RMSE
 rmse = pyLOM.math.RMSE(X_POD,X)
 print('RMSE = %e'%rmse)
+
 
 ## Dump to ParaView
 # Spatial modes
@@ -55,6 +57,7 @@ pyLOM.io.Ensight_writeCase(os.path.join('out','flow.ensi.case'),'flow.ensi.geo',
 	],
 	t
 )
+
 
 ## Plots
 # POD mode: 0 - module, 1,2 - components
