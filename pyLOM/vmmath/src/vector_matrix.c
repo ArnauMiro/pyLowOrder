@@ -210,7 +210,7 @@ int eigen(double *real, double *imag, complex_t *w, double *A,
 	*/
 	int info, ivec, imod;
 	double *vl;
-	vl = (double*)malloc(1*sizeof(double));
+	vl = (double*)malloc(n*n*sizeof(double));
 	double *vecs;
   double tol = 1e-12;
 	vecs = (double*)malloc(n*n*sizeof(double));
@@ -230,7 +230,7 @@ int eigen(double *real, double *imag, complex_t *w, double *A,
 	);
 	//Define and allocate memory for the complex array of eigenvectors
 	//Change while for a for
-	for (imod = 0; imod < n-1; imod++){
+	for (imod = 0; imod < n; imod++){
 		if (imag[imod] > tol){//If the imaginary part is greater than zero, the eigenmode has a conjugate.
 			for (ivec = 0; ivec < n; ivec++){
 				AC_MAT(w,n,ivec,imod)   = AC_MAT(vecs,n,ivec,imod) + AC_MAT(vecs,n,ivec,imod+1)*I;
