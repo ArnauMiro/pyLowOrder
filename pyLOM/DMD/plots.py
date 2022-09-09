@@ -26,19 +26,27 @@ def plotMode(Phi, omega, xyz,mesh,info,dim=0,modes=np.array([1],np.int32),scale_
 			fig.append( plt.figure(figsize=(8,6),dpi=100) )
 		if len(ax) < imode + 1:
 			ax.append( fig[imode].subplots(2,1,gridspec_kw = {'hspace':0.5}) )
-		fig[imode].suptitle('Mode %d St = %.3f' % (mode, np.abs(omega[mode-1])/(2*np.pi)))
+		fig[imode].suptitle('Mode %d St = %.3f' % (mode-1, np.abs(omega[mode-1])/(2*np.pi)))
 		if mesh['type'] == 'struct2D':
 			c = None
 			if info['point']:
-				c = plotFieldStruct2D(ax[imode][0],mesh['nx'],mesh['ny'],info['ndim'],xyz,Phi[:,mode-1].real,dim-1,cmap)
-				c = plotFieldStruct2D(ax[imode][1],mesh['nx'],mesh['ny'],info['ndim'],xyz,Phi[:,mode-1].imag,dim-1,cmap)
+				c1 = plotFieldStruct2D(ax[imode][0],mesh['nx'],mesh['ny'],info['ndim'],xyz,Phi[:,mode-1].real,dim-1,cmap)
+				c2 = plotFieldStruct2D(ax[imode][1],mesh['nx'],mesh['ny'],info['ndim'],xyz,Phi[:,mode-1].imag,dim-1,cmap)
 			else:
 				xyzc = mesh_compute_cellcenter(xyz,mesh)
-				c = plotFieldStruct2D(ax[imode][0],mesh['nx']-1,mesh['ny']-1,info['ndim'],xyzc,Phi[:,mode-1].real,dim-1,cmap)
-				c = plotFieldStruct2D(ax[imode][1],mesh['nx']-1,mesh['ny']-1,info['ndim'],xyzc,Phi[:,mode-1].imag,dim-1,cmap)
+				c1 = plotFieldStruct2D(ax[imode][0],mesh['nx']-1,mesh['ny']-1,info['ndim'],xyzc,Phi[:,mode-1].real,dim-1,cmap)
+				c2 = plotFieldStruct2D(ax[imode][1],mesh['nx']-1,mesh['ny']-1,info['ndim'],xyzc,Phi[:,mode-1].imag,dim-1,cmap)
 			cf.append(c)
 		ax[imode][0].set_title('Real mode')
 		ax[imode][1].set_title('Imaginary mode')
+		ax[imode][0].set_xlabel('x/D')
+		ax[imode][0].set_ylabel('y/D')
+		ax[imode][1].set_xlabel('x/D')
+		ax[imode][1].set_ylabel('y/D')
+		ax[imode][0].set_aspect('equal')
+		ax[imode][1].set_aspect('equal')
+		cbar1 = plt.colorbar(mappable = c1, ax=ax[imode][0])
+		plt.colorbar(mappable = c2, ax=ax[imode][1])
 	return fig, ax, cf
 
 def ritzSpectrum(real, imag, fig = None, ax = None, cmap = None):

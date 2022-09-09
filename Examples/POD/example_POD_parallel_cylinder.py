@@ -9,6 +9,8 @@ import os
 import numpy as np
 import pyLOM
 from pyLOM.utils.parall import mpi_gather
+
+
 ## Parameters
 DATAFILE = './Examples/Data/CYLINDER.h5'
 VARIABLE = 'VELOC'
@@ -32,8 +34,8 @@ pyLOM.pprint(0,'RMSE = %e'%rmse)
 
 ## Dump to ParaView
 # Spatial modes
-d.add_variable('spatial_modes_U',False,6,0,d.extract_modes(PSI,1,modes=[1,4,6,2,5,3],point=d.info(VARIABLE)['point']))
-d.add_variable('spatial_modes_V',False,6,0,d.extract_modes(PSI,2,modes=[1,4,6,2,5,3],point=d.info(VARIABLE)['point']))
+d.add_variable('spatial_modes_U',False,6,0,pyLOM.POD.extract_modes(PSI,1,d.ncells,modes=[1,4,6,2,5,3]))
+d.add_variable('spatial_modes_V',False,6,0,pyLOM.POD.extract_modes(PSI,2,d.ncells,modes=[1,4,6,2,5,3]))
 d.write('modes',basedir='out',instants=[0],vars=['spatial_modes_U','spatial_modes_V'],fmt='ensi')
 pyLOM.io.Ensight_writeCase(os.path.join('out','modes.ensi.case'),'modes.ensi.geo',
 	[
@@ -55,13 +57,13 @@ pyLOM.io.Ensight_writeCase(os.path.join('out','flow.ensi.case'),'flow.ensi.geo',
 )
 
 
-# Gather to rank 0 for plotting reasons
+## Gather to rank 0 for plotting reasons
 PSI   = mpi_gather(PSI,root=0)
 X     = mpi_gather(X,root=0)
 X_POD = mpi_gather(X_POD,root=0)
 xyz   = mpi_gather(d.xyz,root=0)
 
-## Plot POD mode
+# Plot POD mode
 if pyLOM.is_rank_or_serial(0):
 	# 0 - module, 1,2 - components
 	pyLOM.POD.plotMode(PSI,xyz,V[:,:-1],t[:-1],d.mesh,d.info(VARIABLE),dim=0,modes=[1,2,3,4])

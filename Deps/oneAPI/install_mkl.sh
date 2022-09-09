@@ -47,14 +47,28 @@ else
 		# Create install directory and copy includes
 		mkdir -p ${INSTALL_PREFIX}
 		cp -r $MKL_INSTALL_DIR/include ${INSTALL_PREFIX}
+	elif [ "$PLATFORM" = "VEGA" ]; then # VEGA
+		# MKL path
+		MKL_INSTALL_DIR="/ceph/hpc/software/intel/oneapi/mkl/${VERS}/"
+		MKL_LIBRARIES="${MKL_INSTALL_DIR}/lib/intel64/"
+		# Create install directory and copy includes
+		mkdir -p ${INSTALL_PREFIX}
+		cp -r $MKL_INSTALL_DIR/include ${INSTALL_PREFIX}
+	elif [ "$PLATFORM" = "FT3" ]; then # Finisterre 3
+		# MKL path
+		MKL_INSTALL_DIR="/opt/cesga/2020/software/MPI/intel/${VERS}/impi/${VERS}/imkl/${VERS}/mkl"
+		MKL_LIBRARIES="${MKL_INSTALL_DIR}/lib/intel64/"
+		# Create install directory and copy includes
+		mkdir -p ${INSTALL_PREFIX}
+		cp -r $MKL_INSTALL_DIR/include ${INSTALL_PREFIX}
 	else
 		cd Deps/
 		# MKL path
 		MKL_LIBRARIES="${PWD}/oneAPI/mkl/latest/lib/intel64"
+		MKL_INCLUDES="${PWD}/oneAPI/mkl/latest/include"
 		# Download MKL binary
 		wget -O ${PWD}/oneAPI/l_BaseKit_p_${VERS}.sh ${SRC}
 		chmod +x ${PWD}/oneAPI/l_BaseKit_p_${VERS}.sh
-
 		# Trigger build
 		${PWD}/oneAPI/l_BaseKit_p_${VERS}.sh \
 			-a \
@@ -63,6 +77,8 @@ else
 			--eula accept \
 			--components intel.oneapi.lin.mkl.devel \
 			--install-dir ${PWD}/oneAPI
+		# Symlink include folder
+		ln -s ${MKL_INCLUDES} ${INSTALL_PREFIX}/include
 	fi
 	# Build intel and gcc MKL static libraries
 	ar -rcT ${INSTALL_PREFIX}/libmkl_intel_omp.a ${MKL_LIBRARIES}/libmkl_core.a ${MKL_LIBRARIES}/libmkl_intel_thread.a ${MKL_LIBRARIES}/libmkl_intel_lp64.a

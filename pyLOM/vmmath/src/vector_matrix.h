@@ -2,9 +2,11 @@
 	Vector and matrix math operations
 */
 #include <complex.h>
-#include "mkl.h"
 typedef double _Complex complex_t;
+#ifdef USE_MKL
+#include "mkl.h"
 #define MKL_Complex16 complex_t
+#endif
 void   transpose(double *A, double *B, const int m, const int n);
 double vector_norm(double *v, int start, int n);
 void   reorder(double *A, int m, int n, int N);
@@ -17,5 +19,6 @@ int    eigen(double *real, double *imag, complex_t *vecs, double *A, const int m
 double RMSE(double *A, double *B, const int m, const int n, MPI_Comm comm);
 int    cholesky(complex_t *A, int N);
 void   vandermonde(complex_t *Vand, double *real, double *imag, int m, int n);
+void   vandermondeTime(complex_t *Vand, double *real, double *imag, int m, int n, double *t);
 int    inverse(complex_t *A, int N, int UoL);
 void   index_sort(double *v, int *index, int n);

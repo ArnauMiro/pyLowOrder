@@ -100,8 +100,8 @@ void matmul_paral(double *C, double *A, double *B, const int m, const int n, con
 
 		C(m,n), A(m,k), B(k,n)
 	*/
-  double *Cmine;
-  Cmine = (double*)malloc(m*n*sizeof(double));
+	double *Cmine;
+	Cmine = (double*)malloc(m*n*sizeof(double));
 	cblas_dgemm(
 		CblasRowMajor, // const CBLAS_LAYOUT 	  layout
 		 CblasNoTrans, // const CBLAS_TRANSPOSE   TransA
@@ -112,15 +112,15 @@ void matmul_paral(double *C, double *A, double *B, const int m, const int n, con
 		          1.0, // const double 	          alpha
 		            A, // const double * 	      A
 		            k, // const CBLAS_INDEX 	  lda
-	  			    B, // const double * 	      B
+				    B, // const double * 	      B
 		            n, // const CBLAS_INDEX 	  ldb
 		           0., // const double 	          beta
- 				    Cmine, // double * 	              C
+				Cmine, // double * 	              C
 		            n  // const CBLAS_INDEX 	  ldc
 	);
 
-  MPI_Allreduce(Cmine, C, m*n, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-  free(Cmine);
+	MPI_Allreduce(Cmine, C, m*n, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+	free(Cmine);
 }
 
 void matmul_complex(complex_t *C, complex_t *A, complex_t *B, const int m, const int n, const int k, char *TransA, char *TransB) {
@@ -131,33 +131,29 @@ void matmul_complex(complex_t *C, complex_t *A, complex_t *B, const int m, const
 		C(m,n), A(m,k), B(k,n)
 		TRANSA: 0 - NoTrans; 1 - Trans; 2 - Hermitian
 	*/
-	complex_t alpha = 1 + 0*I;
-	complex_t beta  = 0 + 0*I;
-	CBLAS_TRANSPOSE transa;
-	CBLAS_TRANSPOSE transb;
-	CBLAS_INDEX lda;
-	CBLAS_INDEX ldb;
-	CBLAS_INDEX ldc;
-	if(*TransA == 'N'){transa = CblasNoTrans;   lda = k; ldc = n;}
-	if(*TransA == 'T'){transa = CblasTrans;     lda = m; ldc = n;}
-	if(*TransA == 'C'){transa = CblasConjTrans; lda = m; ldc = n;}
-	if(*TransB == 'N'){transb = CblasNoTrans;   ldb = n; ldc = n;}
-	if(*TransB == 'T'){transb = CblasTrans;     ldb = k; ldc = n;}
-	if(*TransB == 'C'){transb = CblasConjTrans; ldb = k; ldc = n;}
+	complex_t alpha = 1 + 0*I, beta  = 0 + 0*I;
+	CBLAS_TRANSPOSE transa = CblasNoTrans, transb = CblasConjTrans;
+	CBLAS_INDEX lda = k, ldb = k, ldc = n;
+	
+	if(*TransA == 'T'){transa = CblasTrans;     lda = m;}
+	if(*TransA == 'C'){transa = CblasConjTrans; lda = m;}
+	if(*TransB == 'N'){transb = CblasNoTrans;   ldb = n;}
+	if(*TransB == 'T'){transb = CblasTrans;     ldb = k;}
+
 	cblas_zgemm(
 		CblasRowMajor, // const CBLAS_LAYOUT 	  layout
-		      transa, // const CBLAS_TRANSPOSE   TransA
-		      transb, // const CBLAS_TRANSPOSE   TransB
+		       transa, // const CBLAS_TRANSPOSE   TransA
+		       transb, // const CBLAS_TRANSPOSE   TransB
 		            m, // const CBLAS_INDEX 	  M
 		            n, // const CBLAS_INDEX 	  N
 		            k, // const CBLAS_INDEX 	  K
 		       &alpha, // const double 	          alpha
-		            A, // const complex_t * 	      A
+		            A, // const complex_t * 	  A
 		          lda, // const CBLAS_INDEX 	  lda
-	  			      B, // const complex_t * 	      B
+	  			    B, // const complex_t * 	  B
 		          ldb, // const CBLAS_INDEX 	  ldb
 		        &beta, // const double 	          beta
- 				        C, // complex_t * 	              C
+ 				    C, // complex_t * 	          C
 		          ldc  // const CBLAS_INDEX 	  ldc
 	);
 }
@@ -307,6 +303,18 @@ void vandermonde(complex_t *Vand, double *real, double *imag, int m, int n){
 	for(ii = 0; ii < m; ++ii){
 		for(jj = 0; jj < n; ++jj){
 			AC_MAT(Vand, n, ii, jj) = cpow((real[ii] + imag[ii]*I), jj);
+		}
+	}
+}
+
+void vandermondeTime(complex_t *Vand, double *real, double *imag, int m, int n, double *t){
+	/*
+	Computes the Vandermonde matrix of a complex vector formed by real + imag*I
+	*/
+  int ii, jj;
+	for(ii = 0; ii < m; ++ii){
+		for(jj = 0; jj < n; ++jj){
+			AC_MAT(Vand, n, ii, jj) = cpow((real[ii] + imag[ii]*I), t[jj]);
 		}
 	}
 }

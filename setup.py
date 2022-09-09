@@ -98,7 +98,7 @@ if options['USE_MKL']:
 	# Link with Intel MKL using the intel compilers
 	# this is the most performing option available
 	mklroot        = 'Deps/oneAPI/mkl'
-	include_dirs  += [os.path.join(mklroot,'latest/include')]
+	include_dirs  += [os.path.join(mklroot,'include')]
 	if options['OPENMP_PARALL']:
 		extra_objects += [os.path.join(mklroot,'libmkl_intel_thread.a' if CC == 'mpiicc' else 'libmkl_gcc_thread.a')]
 	else:
