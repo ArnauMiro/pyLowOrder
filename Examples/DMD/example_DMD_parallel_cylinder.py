@@ -19,14 +19,16 @@ VARIABLE = 'VELOC'
 X  = d[VARIABLE]
 dt = 0.2
 remove_mean = False
-r = 5e-6
+r = 1e-6
 pyLOM.cr_start('example',0)
+t = np.arange(0, 150, dtype = np.double)
 
 #Run DMD routine
-Ur, muReal, muImag, w, Phi, bJov = pyLOM.DMD.run(X, r, remove_mean)
+Y = X[:,:100].copy()
+muReal, muImag, Phi, bJov = pyLOM.DMD.run(X, r, remove_mean)
 
 #Reconstruction according to Jovanovic 2014
-X_DMD = pyLOM.DMD.reconstruction_jovanovic(Ur, w, muReal, muImag, X, bJov)
+X_DMD = pyLOM.DMD.reconstruction_jovanovic(Phi, muReal, muImag, t, bJov)
 
 #Gather results
 phi    = mpi_gather(Phi,root=0)
@@ -48,7 +50,7 @@ if pyLOM.is_rank_or_serial(0):
     pyLOM.DMD.dampingFrequency(omega, delta)
 
     #Plot modes and reconstructed flow
-    pyLOM.DMD.plotMode(phi, muImag/dt, xyz, d.mesh, d.info(VARIABLE), modes = [0, 1, 2, 3, 4, 5]) #MATLAB: modes 17, 112 and 144
+    pyLOM.DMD.plotMode(phi, muImag/dt, xyz, d.mesh, d.info(VARIABLE), modes = [1, 2, 3, 4, 5]) #MATLAB: modes 17, 112 and 144
     fig,ax,anim = pyLOM.DMD.animateFlow(XG[:, :-1],X_DMDG,xyz,d.mesh,d.info(VARIABLE),dim=0)
 
     ## Show and print timings

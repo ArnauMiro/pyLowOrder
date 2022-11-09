@@ -12,7 +12,7 @@ from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_
 from ..POD          import truncate
 from ..utils.cr     import cr_start, cr_stop
 from ..utils.errors import raiseError
-from ..utils.parall import mpi_gather, mpi_reduce
+from ..utils.parall import mpi_gather, mpi_reduce, pprint
 
 def run(X, r, remove_mean = True):
 	'''
