@@ -46,13 +46,13 @@ def run(X,remove_mean=True):
 ## POD truncate method
 def truncate(U,S,V,r=1e-8):
 	'''
-	Truncate POD matrices (U,S,V) given a residual r.
+	Truncate POD matrices (U,S,V) given a residual or number of modes r.
 
 	Inputs:
 		- U(m,n)  are the POD modes.
 		- S(n)    are the singular values.
 		- V(n,n)  are the right singular vectors.
-		- r       target residual (default 1e-8)
+		- r       target residual or number of modes (default 1e-8)
 
 	Returns:
 		- U(m,N)  are the POD modes (truncated at N).
@@ -61,12 +61,15 @@ def truncate(U,S,V,r=1e-8):
 	'''
 	cr_start('POD.truncate',0)
 	# Compute N using S
-	N = 0
-	normS = vector_norm(S,0)
-	for ii in range(S.shape[0]):
-		accumulative = vector_norm(S,ii)/normS
-		if accumulative < r: break
-		N += 1
+	if r > 0:
+		N = r
+	else:
+		N = 0
+		normS = vector_norm(S,0)
+		for ii in range(S.shape[0]):
+			accumulative = vector_norm(S,ii)/normS
+			if accumulative < r: break
+			N += 1
 	# Truncate
 	Ur = U[:,:N]
 	Sr = S[:N]
