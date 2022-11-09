@@ -31,12 +31,12 @@ def run(X, r, remove_mean = True):
 	cr_start('DMD.run', 0)
 	#Remove temporal mean or not, depending on the user choice
 	if remove_mean:
-	    #Compute temporal mean
-	    X_mean = temporal_mean(X)
-	    #Subtract temporal mean
-	    Y = subtract_mean(X, X_mean)
+		#Compute temporal mean
+		X_mean = temporal_mean(X)
+		#Subtract temporal mean
+		Y = subtract_mean(X, X_mean)
 	else:
-	    Y = X.copy()
+		Y = X.copy()
 
 	#Compute SVD
 	U, S, VT = tsqr_svd(Y[:, :-1])
@@ -52,7 +52,7 @@ def run(X, r, remove_mean = True):
 	muReal, muImag, w = eigen(Atilde)
 
 	#Mode computation
-	Phi =  matmul(matmul(matmul(Y[:, 1:], transpose(VT)), diag(1/S)), w)
+	Phi =  matmul(matmul(matmul(Y[:, 1:], transpose(VT)), diag(1/S)), w)/(muReal + muImag*1J)
 
 	#Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
 	Vand = vandermonde(muReal, muImag, muReal.shape[0], Y.shape[1]-1)
@@ -63,13 +63,13 @@ def run(X, r, remove_mean = True):
 	bJov = matmul(inv(transpose(conj(Pl))), matmul(inv(Pl), q)) #Amplitudes according to Jovanovic 2014
 
 	#Order modes and eigenvalues according to its amplitude
-	muReal  = muReal[flip(np.abs(bJov).argsort())]
-	muImag  = muImag[flip(np.abs(bJov).argsort())]
+	muReal = muReal[flip(np.abs(bJov).argsort())]
+	muImag = muImag[flip(np.abs(bJov).argsort())]
 	Phi    = transpose(transpose(Phi)[flip(np.abs(bJov).argsort())])
-	bJov    = bJov[flip(np.abs(bJov).argsort())]
+	bJov   = bJov[flip(np.abs(bJov).argsort())]
 	cr_stop('DMD.run', 0)
 
-	return U, muReal, muImag, w, Phi, bJov
+	return muReal, muImag, Phi, bJov
 
 def frequency_damping(real, imag, dt):
 	'''
@@ -107,13 +107,13 @@ def amplitude_jovanovic(real, imag, X1, wComplex, S, V):
 	cr_stop('DMD.amplitude_jovanovic', 0)
 	return bJov
 
-def reconstruction_jovanovic(U, w, real, imag, t, bJov):
+def reconstruction_jovanovic(Phi, real, imag, t, bJov):
 	'''
     Reconstruction of the DMD modes according to the Jovanovic method
 	'''
 	cr_start('DMD.reconstruction_jovanovic', 0)
 	Vand = vandermondeTime(real, imag, real.shape[0], t)
-	Xdmd = matmul(matmul(matmul(U, w), diag(bJov)), Vand)
+	Xdmd = matmul(matmul(Phi, diag(bJov)), Vand)
 	cr_stop('DMD.reconstruction_jovanovic', 0)
 	return Xdmd
 
