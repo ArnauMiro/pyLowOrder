@@ -30,7 +30,7 @@ Returns:
 ## Data loading
 DATAFILE = '../UPM_BSC_LowOrder/Examples/Data/CYLINDER.h5'
 VARIABLE = 'VELOX'
-beka     = loadmat('../SPOD_DEMO/spod_re100_results.mat')
+#beka     = loadmat('../SPOD_DEMO/spod_re100_results.mat')
 d        = pyLOM.Dataset.load(DATAFILE)
 X        = d[VARIABLE]
 M        = X.shape[0]
@@ -85,8 +85,8 @@ for ifreq in range(nf):
     L[ifreq, :] = np.sqrt(mur*mur + mui*mui)
     P[ifreq*M:(ifreq+1)*M, :] = pyLOM.math.matmul(pyLOM.math.matmul(Qf, w), np.diag(1/np.sqrt(nBlks*(mur+mui*1j))))
 
-for iblk in range(nBlks):
-    plt.loglog(f, beka['L'][:,iblk], '*', label = iblk)
-    plt.loglog(f, L[:,iblk], 'o', label = iblk)
+#for iblk in range(nBlks):
+#    plt.loglog(f, beka['L'][:,iblk], '*', label = iblk)
+#    plt.loglog(f, L[:,iblk], 'o', label = iblk)
 plt.legend()
 plt.show()
