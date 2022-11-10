@@ -33,6 +33,7 @@ cdef extern from "vector_matrix.h" nogil:
 	cdef int    c_eigen            "eigen"(double *real, double *imag, np.complex128_t *vecs, double *A, const int m, const int n)
 	cdef double c_RMSE             "RMSE"(double *A, double *B, const int m, const int n, MPI_Comm comm)
 	cdef int    c_cholesky         "cholesky"(np.complex128_t *A, int N)
+	cdef int    c_inverse          "inverse"(np.complex128_t *A, int N, char *UoL)
 	cdef void   c_vandermonde      "vandermonde"(np.complex128_t *Vand, double *real, double *imag, int m, int n)
 	cdef void   c_vandermonde_time "vandermondeTime"(np.complex128_t *Vand, double *real, double *imag, int m, int n, double* t)
 cdef extern from "averaging.h":
@@ -440,14 +441,14 @@ def conj(np.complex128_t[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def inv(double[:,:] A):
+def inv(np.complex128_t[:,:] A):
 	'''
-	Returns the pointwise conjugate of A
+	Returns the inverse of A
 	'''
 	cr_start('math.inv',0)
-	raiseError('Function not implemented in Cython!')
+	retval = c_inverse(&A[0,0], A.shape[0], 'L')
 	cr_stop('math.inv',0)
-	return A
+	return np.asarray(A)
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
