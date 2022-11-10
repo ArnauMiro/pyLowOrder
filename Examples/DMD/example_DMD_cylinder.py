@@ -18,9 +18,9 @@ VARIABLE = 'VELOX'
 X  = d[VARIABLE]
 dt = 0.2
 remove_mean = False
-r = 1e-6
+r = 20
 pyLOM.cr_start('example',0)
-t = np.arange(0, 150, dtype = np.double)
+t = np.arange(0, 151, dtype = np.double)
 
 #Run DMD routine
 Y = X[:,:100].copy()
@@ -30,9 +30,8 @@ muReal, muImag, Phi, bJov = pyLOM.DMD.run(Y, r, remove_mean)
 delta, omega = pyLOM.DMD.frequency_damping(muReal, muImag, dt)
 
 #Reconstruction according to Jovanovic 2014
-X2 = X[:, :-1].copy()
 X_DMD = pyLOM.DMD.reconstruction_jovanovic(Phi, muReal, muImag, t, bJov)
-rmse = pyLOM.math.RMSE(X_DMD.copy(), X2)
+rmse = pyLOM.math.RMSE(X_DMD.copy(), X.copy())
 print('RMSE = %e' % rmse)
 
 #Ritz Spectrum

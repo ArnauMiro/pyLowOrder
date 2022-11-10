@@ -113,9 +113,9 @@ def reconstruction_jovanovic(Phi, real, imag, t, bJov):
 	'''
 	cr_start('DMD.reconstruction_jovanovic', 0)
 	Vand = vandermondeTime(real, imag, real.shape[0], t)
-	Xdmd = matmul(matmul(Phi, diag(bJov)), Vand)
+	Xdmd = matmul(Phi, matmul(diag(bJov), Vand))
 	cr_stop('DMD.reconstruction_jovanovic', 0)
-	return Xdmd
+	return Xdmd.real
 
 def order_modes(delta, omega, Phi, amp):
 	'''
