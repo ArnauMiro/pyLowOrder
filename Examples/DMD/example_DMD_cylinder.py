@@ -18,7 +18,7 @@ VARIABLE = 'VELOX'
 X  = d[VARIABLE]
 dt = 0.2
 remove_mean = False
-r = 20
+r = 1e-6
 pyLOM.cr_start('example',0)
 t = np.arange(0, 151, dtype = np.double)
 

@@ -15,13 +15,13 @@ import sys
 
 ## Data loading
 d  = pyLOM.Dataset.load('Examples/Data/CYLINDER.h5')
-VARIABLE = 'VELOC'
+VARIABLE = 'VELOX'
 X  = d[VARIABLE]
 dt = 0.2
 remove_mean = False
 r = 1e-6
 pyLOM.cr_start('example',0)
-t = np.arange(0, 150, dtype = np.double)
+t = np.arange(0, 151, dtype = np.double)
 
 #Run DMD routine
 Y = X[:,:100].copy()
@@ -29,6 +29,8 @@ muReal, muImag, Phi, bJov = pyLOM.DMD.run(X, r, remove_mean)
 
 #Reconstruction according to Jovanovic 2014
 X_DMD = pyLOM.DMD.reconstruction_jovanovic(Phi, muReal, muImag, t, bJov)
+rmse = pyLOM.math.RMSE(X_DMD.copy(), X.copy())
+pyLOM.pprint(0, 'RMSE = %e' % rmse, flush = True)
 
 #Gather results
 phi    = mpi_gather(Phi,root=0)
