@@ -8,4 +8,5 @@
 
 __VERSION__ = '1.0.0'
 
-from .wrapper import run
+from .wrapper import run, parser
+from .plots import plotMode
