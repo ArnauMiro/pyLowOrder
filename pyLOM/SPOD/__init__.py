@@ -8,5 +8,5 @@
 
 __VERSION__ = '1.0.0'
 
-from .wrapper import run, parser
-from .plots import plotMode
+from .wrapper import run
+from .plots import plotMode, plotSpectra

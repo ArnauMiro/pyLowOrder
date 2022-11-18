@@ -41,14 +41,13 @@ def run(X, t, nDFT=0, window = 0, nolap=0, weight = 1, remove_mean=True):
     
     if window == 0:
         if nDFT == 0:
-            nDFT = 2^np.floor(np.log2(N/10))
+            nDFT = int(np.power(2,np.floor(np.log2(N/10))))
         window = hammwin(nDFT)
     if nolap == 0:
         nolap = int(np.floor(nDFT/2))
     if weight == 0:
         weight = np.ones((M,))
     nBlks = int(np.floor((N-nolap)/(nDFT-nolap)))
-
     #Correction for FFT window gain
     winWeight = 1/np.mean(window)
 
@@ -82,6 +81,10 @@ def run(X, t, nDFT=0, window = 0, nolap=0, weight = 1, remove_mean=True):
         P[:,ifreq] = np.real(U.reshape((M*nBlks), order='F'))
         L[ifreq,:] = S*S
 
+    order = np.argsort(L[:,0])[::-1]
+    P = P[:, order]
+    f = f[order]
+    L = L[order,:]
       
     cr_stop('SPOD.run', 0)
     return L, P, f    
