@@ -3,7 +3,6 @@ from scipy.linalg import ldl
 import pyLOM
 
 #Test matrix
-#A = np.array([[1 + 0*1j, 2 + 0*1j, 3 + 0*1j]])
 A = np.array([
 	[1  + 5*1j, 1 + 6*1j, 1 + 3*1j],
     [-5 + 3*1j, 2 + 2*1j, 4 + 9*1j],
@@ -14,14 +13,12 @@ B = np.array([
 	[1  + 5*1j, 1 + 6*1j, 1 + 3*1j, 2 + 6*1j],
     [-5 + 3*1j, 2 + 2*1j, 4 + 9*1j, 5 + 7*1j],
     [1  + 2*1j, 5 + 7*1j, 3 + 4*1j, 4 + 8*1j]], order = 'C')
-#B = np.array(B, order = 'C')
 
 #NumPy matmul
-#Cnp = np.matmul(A, np.transpose(np.conj(B)))
 Cnp = np.matmul(A, B)
 print('NumPy: \n', Cnp)
 
-#Cholesky decomposition from pyLOM:
+#Complex matmul from pyLOM:
 C = pyLOM.math.complex_matmul(A, B)
 print('pyLOM: \n', C)
 
