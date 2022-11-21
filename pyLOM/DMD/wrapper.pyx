@@ -159,7 +159,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	free(Atilde)
 
 	#Computation of DMD modes
-	cdef np.ndarray[np.complex128_t,ndim=2] Phi = np.zeros((m,nr),dtype=np.complex128)
+	cdef np.ndarray[np.complex128_t,ndim=2] Phi = np.zeros((m,nr),order='C',dtype=np.complex128)
 	cdef np.complex128_t *aux1C
 	cdef np.complex128_t *aux2C
 	aux1C = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
@@ -258,7 +258,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	#Order modes and eigenvalues according to its amplitude
 	muReal = muReal[np.flip(np.abs(bJov).argsort())]
 	muImag = muImag[np.flip(np.abs(bJov).argsort())]
-	Phi    = Phi[:, np.flip(np.abs(bJov).argsort())]
+	Phi    = Phi[:, np.flip(np.abs(bJov).argsort())].astype(np.complex128,order='C')
 	bJov   = bJov[np.flip(np.abs(bJov).argsort())]
 	# Return
 	cr_stop('DMD.run',0)
@@ -304,14 +304,13 @@ def reconstruction_jovanovic(np.complex128_t[:,:] Phi, double[:] muReal, double[
 	cdef int n  = t.shape[0]
 	cdef int nr = Phi.shape[1]
 	cdef np.ndarray[np.complex128_t,ndim=2] Xdmd = np.zeros((m, n),dtype=np.complex128)
-	cdef np.ndarray[np.complex128_t,ndim=2] Vand = np.zeros((nr, n),dtype=np.complex128)
-	#cdef np.complex128_t *Vand
-	#Vand  = <np.complex128_t*>malloc(nr*n*sizeof(np.complex128_t))
-	
-	c_vandermonde_time(&Vand[0,0], &muReal[0], &muImag[0], nr, n, &t[0])
-	c_vecmat_complex(&bJov[0], &Vand[0,0], nr, n)
-	#c_matmul_complex(&Xdmd[0,0], &Phi[0,0], &Vand[0,0], m, n, nr, 'N', 'N')
-	Xdmd = np.matmul(Phi, Vand)
-	#free(Vand)
+	cdef np.complex128_t *Vand
+	cdef np.complex128_t *Phi2
+	Vand = <np.complex128_t*>malloc(nr*n*sizeof(np.complex128_t))
+
+	c_vandermonde_time(Vand, &muReal[0], &muImag[0], nr, n, &t[0])
+	c_vecmat_complex(&bJov[0], Vand, nr, n)
+	c_matmul_complex(&Xdmd[0,0], &Phi[0,0], Vand, m, n, nr, 'N', 'N')
+	free(Vand)
 	cr_stop('DMD.reconstruction_jovanovic', 0)
 	return Xdmd.real
