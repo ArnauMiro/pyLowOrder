@@ -258,10 +258,10 @@ double RMSE(double *A, double *B, const int m, const int n, MPI_Comm comm) {
 	#ifdef USE_OMP
 	#pragma omp parallel for private(ii,jj) shared(A,B) firstprivate(m,n)
 	#endif
-	for(ii = 0; ii < n; ++ii) {
+	for(ii = 0; ii < m; ++ii) {
 		norm1 = 0.;
 		norm2 = 0.;
-		for(jj = 0; jj < m; ++jj){
+		for(jj = 0; jj < n; ++jj){
 			norm1 += POW2(AC_MAT(A,n,ii,jj) - AC_MAT(B,n,ii,jj));
 			norm2 += POW2(AC_MAT(A,n,ii,jj));
 		}
@@ -319,31 +319,19 @@ void vandermondeTime(complex_t *Vand, double *real, double *imag, int m, int n, 
 	}
 }
 
-int inverse(complex_t *A, int N, int UoL){
+int inverse(complex_t *A, int N, char *UoL){
 	/*
-	Compute the lower Cholesky factorization of A
+	Compute the inverse of A
 	*/
 	int info;
-	if(UoL == 0){
-		info = LAPACKE_ztrtri(
-			LAPACK_ROW_MAJOR, // int  		matrix_layout
-		 	'U', //char			Decide if the Upper or the Lower triangle of A are stored
-			'N', //int			Decide if is non Unitary or Unitary A
-		  	N, //int			Order of A
-				A, //complex	Matrix A to decompose (works as input and output)
-				N //int			Leading dimension of A
-			);
-	}
-	else{
-		info = LAPACKE_ztrtri(
-			LAPACK_ROW_MAJOR, // int  		matrix_layout
-		 	'L', //char			Decide if the Upper or the Lower triangle of A are stored
-			'N', //int			Decide if is non Unitary or Unitary A
-		  	N, //int			Order of A
-				A, //complex	Matrix A to decompose (works as input and output)
-				N //int			Leading dimension of A
-			);
-	}
+	info = LAPACKE_ztrtri(
+		LAPACK_ROW_MAJOR, // int  		matrix_layout
+		*UoL,             //char		Decide if the Upper or the Lower triangle of A are stored
+		'N', 			  //int			Decide if is non Unitary or Unitary A
+		N, 				  //int			Order of A
+		A, 				  //complex		Matrix A to decompose (works as input and output)
+		N 				  //int			Leading dimension of A
+	);
 	return info;
 }
 
