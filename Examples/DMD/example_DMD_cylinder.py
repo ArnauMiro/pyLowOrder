@@ -30,7 +30,6 @@ muReal, muImag, Phi, bJov = pyLOM.DMD.run(Y, r, remove_mean)
 delta, omega = pyLOM.DMD.frequency_damping(muReal, muImag, dt)
 
 #Reconstruction according to Jovanovic 2014
-print(Phi.flags)
 X_DMD = pyLOM.DMD.reconstruction_jovanovic(Phi, muReal, muImag, t, bJov)
 rmse = pyLOM.math.RMSE(X_DMD.copy(), X.copy())
 print('RMSE = %e' % rmse)
