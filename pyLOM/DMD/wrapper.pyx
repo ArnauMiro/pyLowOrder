@@ -13,10 +13,9 @@ cimport numpy as np
 import numpy as np
 from mpi4py  import MPI
 
-from scipy.linalg import ldl
-
-from libc.stdlib cimport malloc, free
-from libc.string cimport memcpy, memset
+from libc.stdlib   cimport malloc, free
+from libc.string   cimport memcpy, memset
+from libc.math     cimport sqrt, log, atan2
 from mpi4py.libmpi cimport MPI_Comm
 from mpi4py        cimport MPI
 
@@ -117,14 +116,13 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	cdef double *Ur
 	cdef double *Sr
 	cdef double *Vr
-	if r > 1:
-		nr = int(r)
-	else:
-		nr  = c_compute_truncation_residual(S,r,n-1)
-	Ur  = <double*>malloc(m*nr*sizeof(double))
+
+	nr = int(r) if r > 1 else c_compute_truncation_residual(S,r,n-1)
+	Ur = <double*>malloc(m*nr*sizeof(double))
 	Sr = <double*>malloc(nr*sizeof(double))
 	Vr = <double*>malloc(nr*mn*sizeof(double))
 	c_compute_truncation(Ur,Sr,Vr,U,S,V,m,n-1,nr)
+	
 	free(U)
 	free(V)
 	free(S)
@@ -283,9 +281,9 @@ def frequency_damping(double[:] real, double[:] imag, double dt):
 	cdef double mod
 	cdef double arg
 	for ii in range(n):
-		mod       = np.sqrt(real[ii]*real[ii] + imag[ii]*imag[ii])
-		delta[ii] = np.log(mod)/dt
-		arg       = np.arctan2(imag[ii], real[ii])
+		mod       = sqrt(real[ii]*real[ii] + imag[ii]*imag[ii])
+		delta[ii] = log(mod)/dt
+		arg       = atan2(imag[ii], real[ii])
 		omega[ii] = arg/dt
 	cr_stop('DMD.frequency_damping', 0)
 	return delta, omega
@@ -300,17 +298,20 @@ def reconstruction_jovanovic(np.complex128_t[:,:] Phi, double[:] muReal, double[
 	Computation of the reconstructed flow from the DMD computations
 	'''
 	cr_start('DMD.reconstruction_jovanovic', 0)
+	cdef int ii
 	cdef int m  = Phi.shape[0]
 	cdef int n  = t.shape[0]
 	cdef int nr = Phi.shape[1]
-	cdef np.ndarray[np.complex128_t,ndim=2] Xdmd = np.zeros((m, n),dtype=np.complex128)
 	cdef np.complex128_t *Vand
-	cdef np.complex128_t *Phi2
+	cdef np.ndarray[np.complex128_t,ndim=2] Zdmd = np.zeros((m,n),order='C',dtype=np.complex128)
+
 	Vand = <np.complex128_t*>malloc(nr*n*sizeof(np.complex128_t))
 
 	c_vandermonde_time(Vand, &muReal[0], &muImag[0], nr, n, &t[0])
 	c_vecmat_complex(&bJov[0], Vand, nr, n)
-	c_matmul_complex(&Xdmd[0,0], &Phi[0,0], Vand, m, n, nr, 'N', 'N')
+	c_matmul_complex(&Zdmd[0,0], &Phi[0,0], Vand, m, n, nr, 'N', 'N')
+	
 	free(Vand)
+
 	cr_stop('DMD.reconstruction_jovanovic', 0)
-	return Xdmd.real
+	return Zdmd.real
