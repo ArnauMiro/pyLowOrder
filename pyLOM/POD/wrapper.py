@@ -53,7 +53,7 @@ def _compute_truncation_residual(S, r):
 		accumulative = vector_norm(S,ii)/normS
 		if accumulative < r: break
 		N += 1
-	return nr
+	return N
 
 def truncate(U,S,V,r=1e-8):
 	'''
