@@ -50,4 +50,4 @@ fig,ax,anim = pyLOM.DMD.animateFlow(X,X_DMD,d.xyz,d.mesh,d.info(VARIABLE),dim=0)
 ## Show and print timings
 pyLOM.cr_stop('example',0)
 pyLOM.cr_info()
-#pyLOM.show_plots()
+pyLOM.show_plots()

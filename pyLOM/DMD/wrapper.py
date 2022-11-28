@@ -62,11 +62,32 @@ def run(X, r, remove_mean = True):
 	q    = conj(diag(matmul(matmul(Vand, transpose(conj(G))), w)))
 	bJov = matmul(inv(transpose(conj(Pl))), matmul(inv(Pl), q)) #Amplitudes according to Jovanovic 2014
 
-	#Order modes and eigenvalues according to its amplitude
+	#Order modes and eigenvalues according to its amplitude 
 	muReal = muReal[flip(np.abs(bJov).argsort())]
 	muImag = muImag[flip(np.abs(bJov).argsort())]
 	Phi    = transpose(transpose(Phi)[flip(np.abs(bJov).argsort())])
 	bJov   = bJov[flip(np.abs(bJov).argsort())]
+	ii = 0
+	for iimag in muImag:
+		if ii == muImag.shape[0]:
+			break
+		iimag = muImag[ii]
+		if iimag < 0:
+			muImag[ii]        =  muImag[ii+1]
+			muImag[ii+1]      = -muImag[ii]
+			bJov.imag[ii]     =  bJov.imag[ii+1]
+			bJov.imag[ii+1]   = -bJov.imag[ii]
+			Phi.imag[:,ii]    =  Phi.imag[:,ii+1]
+			Phi.imag[:,ii+1]  = -Phi.imag[:,ii+1]
+			ii += 2
+			continue
+		if iimag > 0:
+			ii += 2
+			continue
+		if iimag == 0:
+			ii += 1
+			continue
+
 	cr_stop('DMD.run', 0)
 
 	return muReal, muImag, Phi, bJov
