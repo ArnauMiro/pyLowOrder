@@ -67,10 +67,11 @@ def run(X, r, remove_mean = True):
 	muImag = muImag[flip(np.abs(bJov).argsort())]
 	Phi    = transpose(transpose(Phi)[flip(np.abs(bJov).argsort())])
 	bJov   = bJov[flip(np.abs(bJov).argsort())]
-	ii = 0
-	for iimag in muImag:
-		if ii == muImag.shape[0]:
-			break
+	p = 0
+	for ii in range(muImag.shape[0]):
+		if p == 1:
+			p = 0
+			continue
 		iimag = muImag[ii]
 		if iimag < 0:
 			muImag[ii]        =  muImag[ii+1]
@@ -79,13 +80,10 @@ def run(X, r, remove_mean = True):
 			bJov.imag[ii+1]   = -bJov.imag[ii]
 			Phi.imag[:,ii]    =  Phi.imag[:,ii+1]
 			Phi.imag[:,ii+1]  = -Phi.imag[:,ii+1]
-			ii += 2
+			p = 1
 			continue
 		if iimag > 0:
-			ii += 2
-			continue
-		if iimag == 0:
-			ii += 1
+			p = 1
 			continue
 
 	cr_stop('DMD.run', 0)
