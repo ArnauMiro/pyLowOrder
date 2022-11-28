@@ -258,6 +258,28 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	muImag = muImag[np.flip(np.abs(bJov).argsort())]
 	Phi    = Phi[:, np.flip(np.abs(bJov).argsort())].astype(np.complex128,order='C')
 	bJov   = bJov[np.flip(np.abs(bJov).argsort())]
+	
+	cdef int p = 0
+	cdef double iimag
+	for ii in range(nr):
+		if p == 1:
+			p = 0
+			continue
+		iimag = muImag[ii]
+		if iimag < 0:
+			muImag[ii]        =  muImag[ii+1]
+			muImag[ii+1]      = -muImag[ii]
+			bJov.imag[ii]     =  bJov.imag[ii+1]
+			bJov.imag[ii+1]   = -bJov.imag[ii]
+			for jj in range(m):
+				Phi.imag[jj,ii]   =  Phi.imag[jj,ii+1]
+				Phi.imag[jj,ii+1] = -Phi.imag[jj,ii+1]
+			p = 1
+			continue
+		if iimag > 0:
+			p = 1
+			continue
+	
 	# Return
 	cr_stop('DMD.run',0)
 
