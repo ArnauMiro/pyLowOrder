@@ -149,26 +149,29 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	free(Urt)
 
 	#Compute eigenmodes
-	cdef np.ndarray[np.double_t,ndim=1] muReal = np.zeros((nr),dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=1] muImag = np.zeros((nr),dtype=np.double)
+	cdef double *auxmuReal
+	cdef double *auxmuImag
 	cdef np.complex128_t *w
-	w = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
-	retval = c_eigen(&muReal[0],&muImag[0],w,Atilde,nr,nr)
+	auxmuReal = <double*>malloc(nr*sizeof(double))
+	auxmuImag = <double*>malloc(nr*sizeof(double))
+	w         = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
+	retval = c_eigen(auxmuReal,auxmuImag,w,Atilde,nr,nr)
 	free(Atilde)
 
 	#Computation of DMD modes
-	cdef np.ndarray[np.complex128_t,ndim=2] Phi = np.zeros((m,nr),order='C',dtype=np.complex128)
+	cdef np.complex128_t *auxPhi
 	cdef np.complex128_t *aux1C
 	cdef np.complex128_t *aux2C
-	aux1C = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
-	aux2C = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
+	auxPhi = <np.complex128_t*>malloc(m*nr*sizeof(np.complex128_t))
+	aux1C  = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
+	aux2C  = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
 	for iaux in range(m):
 		for icol in range(nr):
 			aux1C[icol] = 0 + 0*1j
 			for irow in range(n-1):
 				aux1C[icol] += Y2[iaux*(n-1) + irow]*aux2[irow*nr + icol]
 		c_matmul_complex(aux2C, aux1C, w, 1, nr, nr, 'N', 'N')
-		memcpy(&Phi[iaux, 0], aux2C, nr*sizeof(np.complex128_t))
+		memcpy(&auxPhi[iaux*m], aux2C, nr*sizeof(np.complex128_t))
 	free(aux2)
 	free(Y2)
 
@@ -178,37 +181,37 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	cdef double d
 	cdef double div
 	for icol in range(nr):
-		c = muReal[icol]
-		d = muImag[icol]
+		c = auxmuReal[icol]
+		d = auxmuImag[icol]
 		div = c*c + d*d
 		for iaux in range(m):
-			a = Phi[iaux, icol].real
-			b = Phi[iaux, icol].imag
-			Phi[iaux, icol].real = (a*c + b*d)/div
-			Phi[iaux, icol].imag = (b*c - a*d)/div
+			a = auxPhi[iaux + m*icol].real
+			b = auxPhi[iaux + m*icol].imag
+			auxPhi[iaux + m*icol].real = (a*c + b*d)/div
+			auxPhi[iaux + m*icol].imag = (b*c - a*d)/div
 
 	#Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
+	cdef np.complex128_t *auxbJov
 	cdef np.complex128_t *aux3C
 	cdef np.complex128_t *Vand
 	cdef np.complex128_t *P
 	cdef np.complex128_t *Pinv
 	cdef np.complex128_t *q
 
-	aux3C = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
-	aux4C = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
-	Vand  = <np.complex128_t*>malloc((nr*(n-1))*sizeof(np.complex128_t))
-	P     = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
-	Pinv  = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
-	q     = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
-	cdef np.ndarray[np.complex128_t,ndim=1] bJov = np.zeros((nr,),dtype=np.complex128)
+	auxbJov = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
+	aux3C   = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
+	aux4C   = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
+	Vand    = <np.complex128_t*>malloc((nr*(n-1))*sizeof(np.complex128_t))
+	P       = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
+	Pinv    = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
+	q       = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
 
-	c_vandermonde(Vand, &muReal[0], &muImag[0], nr, n-1)
+	c_vandermonde(Vand, auxmuReal, auxmuImag, nr, n-1)
 	c_matmul_complex(aux3C, w, w, nr, nr, nr, 'C', 'N')
 	c_matmul_complex(aux4C, Vand, Vand, nr, nr, n-1, 'N', 'C')
 
 	for irow in range(nr):
 		for icol in range(nr): #Loop on the columns of the Vandermonde matrix
-			#P[irow*nr + icol] = aux3C[irow*nr + icol].real*aux4C[irow*nr + icol].real - aux3C[irow*nr + icol].real*aux4C[irow*nr + icol].imag*1j + aux3C[irow*nr + icol].imag*aux4C[irow*nr + icol].real*1j + aux3C[irow*nr + icol].imag*aux4C[irow*nr + icol].imag
 			P[irow*nr + icol]  = aux3C[irow*nr + icol].real*aux4C[irow*nr + icol].real
 			P[irow*nr + icol] += -aux3C[irow*nr + icol].real*aux4C[irow*nr + icol].imag*1j 
 			P[irow*nr + icol] += aux3C[irow*nr + icol].imag*aux4C[irow*nr + icol].real*1j
@@ -241,8 +244,9 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	retval = c_inverse(P, nr, 'U')
 	if not retval == 0: raiseError('Problems computing the Inverse!')
 
-	c_matmul_complex(&bJov[0], P, aux1C, nr, 1, nr, 'N', 'N')
+	c_matmul_complex(auxbJov, P, aux1C, nr, 1, nr, 'N', 'N')
 
+	# Free allocated arrays before reordering
 	free(Ur)
 	free(Sr)
 	free(Vr)
@@ -257,11 +261,30 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	free(Pinv)
 
 	#Order modes and eigenvalues according to its amplitude
-	muReal = muReal[np.flip(abs(bJov).argsort())]
-	muImag = muImag[np.flip(abs(bJov).argsort())]
-	Phi    = Phi[:, np.flip(abs(bJov).argsort())].astype(np.complex128,order='C')
-	bJov   = bJov[np.flip(abs(bJov).argsort())]
+	cdef int *auxOrd
+	auxOrd = <int*>malloc(nr*sizeof(int))
+	cdef np.ndarray[np.double_t,ndim=1] muReal = np.zeros((nr),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=1] muImag = np.zeros((nr),dtype=np.double)
+	cdef np.ndarray[np.complex128_t,ndim=2] Phi = np.zeros((m,nr),order='C',dtype=np.complex128)
+	cdef np.ndarray[np.complex128_t,ndim=1] bJov = np.zeros((nr,),dtype=np.complex128)
 	
+	order  = abs(bJov).argsort()
+	for ii in range(nr):
+		auxOrd[ii] = order[ii]
+	for ii in range(nr):
+		muReal[ii] = auxmuReal[auxOrd[nr-ii]]
+		muImag[ii] = auxmuImag[auxOrd[nr-ii]]
+		bJov[ii]   = auxbJov[auxOrd[nr-ii]]
+		for jj in range(m):
+			Phi[jj,ii]  = auxPhi[jj + m*auxOrd[nr-ii]]
+	
+	#Free the variables that had to be ordered
+	free(auxmuReal)
+	free(auxmuImag)
+	free(auxbJov)
+	free(auxPhi)
+
+	#Ensure that all conjugate modes are in the same order
 	cdef bint p = 0
 	cdef double iimag
 	for ii in range(nr):
