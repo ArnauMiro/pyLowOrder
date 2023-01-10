@@ -208,8 +208,11 @@ def run(double[:,:] X, double r, int remove_mean=True):
 
 	for irow in range(nr):
 		for icol in range(nr): #Loop on the columns of the Vandermonde matrix
-			P[irow*nr + icol] = aux3C[irow*nr + icol].real*aux4C[irow*nr + icol].real - aux3C[irow*nr + icol].real*aux4C[irow*nr + icol].imag*1j + aux3C[irow*nr + icol].imag*aux4C[irow*nr + icol].real*1j + aux3C[irow*nr + icol].imag*aux4C[irow*nr + icol].imag
-
+			#P[irow*nr + icol] = aux3C[irow*nr + icol].real*aux4C[irow*nr + icol].real - aux3C[irow*nr + icol].real*aux4C[irow*nr + icol].imag*1j + aux3C[irow*nr + icol].imag*aux4C[irow*nr + icol].real*1j + aux3C[irow*nr + icol].imag*aux4C[irow*nr + icol].imag
+			P[irow*nr + icol]  = aux3C[irow*nr + icol].real*aux4C[irow*nr + icol].real
+			P[irow*nr + icol] += -aux3C[irow*nr + icol].real*aux4C[irow*nr + icol].imag*1j 
+			P[irow*nr + icol] += aux3C[irow*nr + icol].imag*aux4C[irow*nr + icol].real*1j
+			P[irow*nr + icol] += aux3C[irow*nr + icol].imag*aux4C[irow*nr + icol].imag
 	retval = c_cholesky(P, nr)
 	if not retval == 0: raiseError('Problems computing Cholesky factorization!')
 
@@ -254,12 +257,12 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	free(Pinv)
 
 	#Order modes and eigenvalues according to its amplitude
-	muReal = muReal[np.flip(np.abs(bJov).argsort())]
-	muImag = muImag[np.flip(np.abs(bJov).argsort())]
-	Phi    = Phi[:, np.flip(np.abs(bJov).argsort())].astype(np.complex128,order='C')
-	bJov   = bJov[np.flip(np.abs(bJov).argsort())]
+	muReal = muReal[np.flip(abs(bJov).argsort())]
+	muImag = muImag[np.flip(abs(bJov).argsort())]
+	Phi    = Phi[:, np.flip(abs(bJov).argsort())].astype(np.complex128,order='C')
+	bJov   = bJov[np.flip(abs(bJov).argsort())]
 	
-	cdef int p = 0
+	cdef bint p = 0
 	cdef double iimag
 	for ii in range(nr):
 		if p == 1:
@@ -269,11 +272,11 @@ def run(double[:,:] X, double r, int remove_mean=True):
 		if iimag < 0:
 			muImag[ii]        =  muImag[ii+1]
 			muImag[ii+1]      = -muImag[ii]
-			bJov.imag[ii]     =  bJov.imag[ii+1]
-			bJov.imag[ii+1]   = -bJov.imag[ii]
+			bJov[ii].imag     =  bJov[ii+1].imag
+			bJov[ii+1].imag   = -bJov[ii].imag
 			for jj in range(m):
-				Phi.imag[jj,ii]   =  Phi.imag[jj,ii+1]
-				Phi.imag[jj,ii+1] = -Phi.imag[jj,ii+1]
+				Phi[jj,ii].imag   =  Phi[jj,ii+1].imag
+				Phi[jj,ii+1].imag = -Phi[jj,ii+1].imag
 			p = 1
 			continue
 		if iimag > 0:
