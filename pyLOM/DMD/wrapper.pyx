@@ -171,7 +171,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 			for irow in range(n-1):
 				aux1C[icol] += Y2[iaux*(n-1) + irow]*aux2[irow*nr + icol]
 		c_matmul_complex(aux2C, aux1C, w, 1, nr, nr, 'N', 'N')
-		memcpy(&auxPhi[iaux*m], aux2C, nr*sizeof(np.complex128_t))
+		memcpy(&auxPhi[iaux*nr], aux2C, nr*sizeof(np.complex128_t))
 	free(aux2)
 	free(Y2)
 
