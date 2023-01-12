@@ -35,7 +35,7 @@ cdef extern from "vector_matrix.h":
 	cdef void   c_vandermonde         "vandermonde"(np.complex128_t *Vand, double *real, double *imag, int m, int n)
 	cdef void   c_vandermonde_time    "vandermondeTime"(np.complex128_t *Vand, double *real, double *imag, int m, int n, double* t)
 	cdef int    c_inverse             "inverse"(np.complex128_t *A, int N, char *UoL)
-	cdef void   c_index_sort          "index_sort"(double *v, int *index, int n)
+	cdef void   c_sort_complex_array  "sort_complex_array"(np.complex128_t *v, int *index, int n)
 cdef extern from "averaging.h":
 	cdef void c_temporal_mean "temporal_mean"(double *out, double *X, const int m, const int n)
 	cdef void c_subtract_mean "subtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
@@ -268,9 +268,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	cdef np.ndarray[np.complex128_t,ndim=2] Phi = np.zeros((m,nr),order='C',dtype=np.complex128)
 	cdef np.ndarray[np.complex128_t,ndim=1] bJov = np.zeros((nr,),dtype=np.complex128)
 	
-	order  = abs(bJov).argsort()
-	for ii in range(nr):
-		auxOrd[ii] = order[ii]
+	c_sort_complex_array(auxbJov, auxOrd, n)
 	for ii in range(nr):
 		muReal[ii] = auxmuReal[auxOrd[nr-ii]]
 		muImag[ii] = auxmuImag[auxOrd[nr-ii]]
