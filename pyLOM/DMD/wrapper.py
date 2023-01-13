@@ -143,4 +143,4 @@ def order_modes(muReal, muImag, Phi, bJov):
 			p = True
 			continue
 	cr_stop('DMD.order_modes', 0)
-	return muReal, muImag, Phi, abJov
+	return muReal, muImag, Phi, bJov

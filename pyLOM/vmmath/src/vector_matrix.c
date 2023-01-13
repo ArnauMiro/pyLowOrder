@@ -3,6 +3,8 @@
 */
 #include <math.h>
 #include <complex.h>
+#include <stdio.h>
+#include <string.h>
 #include "mpi.h"
 
 #ifdef USE_MKL
@@ -351,18 +353,17 @@ void sort_complex_array(complex_t *v, int *index, int n){
 	complex_t *w;
 	int i;
 	int j;
-	int k;
 	w = (complex_t*)malloc(n*sizeof(complex_t));
 	memcpy(w, v, n*sizeof(complex_t));
     qsort(w, n, sizeof(complex_t), compare_complex);
-	j = 0;
+	
     for (i = 0; i < n; i++) {
-        for (k = j; k < n; k++) {
-            if (v[i] == w[k]) {
-                index[i] = k;
-                j = k + 1;
+		for (j = 0; j < n; j++) {
+            if ((creal(v[i]) == creal(w[j])) & (cimag(v[i]) == cimag(w[j]))) {
+                index[i] = j;
                 break;
             }
         }
     }
+	free(w);
 }

@@ -174,7 +174,6 @@ def run(double[:,:] X, double r, int remove_mean=True):
 		memcpy(&auxPhi[iaux*nr], aux2C, nr*sizeof(np.complex128_t))
 	free(aux2)
 	free(Y2)
-
 	cdef double a
 	cdef double b
 	cdef double c
@@ -185,10 +184,10 @@ def run(double[:,:] X, double r, int remove_mean=True):
 		d = auxmuImag[icol]
 		div = c*c + d*d
 		for iaux in range(m):
-			a = auxPhi[iaux + m*icol].real
-			b = auxPhi[iaux + m*icol].imag
-			auxPhi[iaux + m*icol].real = (a*c + b*d)/div
-			auxPhi[iaux + m*icol].imag = (b*c - a*d)/div
+			a = auxPhi[iaux*nr + icol].real
+			b = auxPhi[iaux*nr + icol].imag
+			auxPhi[iaux*nr + icol].real = (a*c + b*d)/div
+			auxPhi[iaux*nr + icol].imag = (b*c - a*d)/div
 
 	#Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
 	cdef np.complex128_t *auxbJov
@@ -268,19 +267,20 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	cdef np.ndarray[np.complex128_t,ndim=2] Phi = np.zeros((m,nr),order='C',dtype=np.complex128)
 	cdef np.ndarray[np.complex128_t,ndim=1] bJov = np.zeros((nr,),dtype=np.complex128)
 	
-	c_sort_complex_array(auxbJov, auxOrd, n)
+	c_sort_complex_array(auxbJov, auxOrd, nr)
 	for ii in range(nr):
-		muReal[ii] = auxmuReal[auxOrd[nr-ii]]
-		muImag[ii] = auxmuImag[auxOrd[nr-ii]]
-		bJov[ii]   = auxbJov[auxOrd[nr-ii]]
+		muReal[nr-(auxOrd[ii]+1)] = auxmuReal[ii]
+		muImag[nr-(auxOrd[ii]+1)] = auxmuImag[ii]
+		bJov[nr-(auxOrd[ii]+1)]   = auxbJov[ii]
 		for jj in range(m):
-			Phi[jj,ii]  = auxPhi[jj + m*auxOrd[nr-ii]]
-	
+			Phi[jj,nr-(auxOrd[ii]+1)]  = auxPhi[jj*nr + ii]
+
 	#Free the variables that had to be ordered
 	free(auxmuReal)
 	free(auxmuImag)
 	free(auxbJov)
 	free(auxPhi)
+	free(auxOrd)
 
 	#Ensure that all conjugate modes are in the same order
 	cdef bint p = 0
