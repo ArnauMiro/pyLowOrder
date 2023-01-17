@@ -1,5 +1,5 @@
 name: Build Intel
-run-name: Building pyLOM on branch <${{ github.head_ref }}> to <${{ github.base_ref }}> by @${{ github.actor }}
+run-name: Building pyLOM Intel on branch <${{ github.head_ref }}> to <${{ github.base_ref }}> by @${{ github.actor }}
 
 on:
   push:
@@ -45,7 +45,7 @@ jobs:
       - name: Set up configuration
         run: |
           sed -i 's/USE_MKL       = OFF/USE_MKL       = ON/g' options.cfg
-          sed -i 's/USE_MKL       = OFF/USE_MKL       = ON/g' options.cfg
+          sed -i 's/FORCE_GCC     = ON/FORCE_GCC     = OFF/g' options.cfg
       - name: Set up dependencies
         run: make deps requirements
 #      - name: Fix h5py
