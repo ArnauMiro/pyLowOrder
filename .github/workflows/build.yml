@@ -12,9 +12,8 @@ defaults:
     shell: bash
 
 jobs:    
-  # Build SA3
-  build_and_run_tests:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-20.04
     strategy:
       max-parallel: 16
 
