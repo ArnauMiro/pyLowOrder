@@ -1,6 +1,6 @@
 # UPM-BSC Low Order Modelling library
 
-This tool is a port of the POD/DMD of the tools from UPM in MATLAB to C/C++ using a python interface.
+This tool is a port of the POD/DMD of the tools from UPM in MATLAB to C/C++ using a python interface. So far POD and DMD are fully implemented and work is being done to bring sPOD and hoDMD inside the tool.
 
 ## Deployment
 
@@ -74,4 +74,17 @@ sudo apt install libhdf5-mpi-dev
 or make sure that the environment variable **HDF5_DIR** is pointing to your *hdf5* installation. Then install *h5py* from pip (or the [github package](https://github.com/h5py/h5py)) using:
 ```bash
 CC=mpicc HDF5_MPI="ON" pip install --no-binary=h5py h5py
+```
+
+## Cite the repo!
+If you find this repository useful, please cite it:
+```
+@misc{pyLOM,
+  author    = {Eiximeno, Benet and Begiashvili, Beka and Miro, Arnau and Valero, Eusebio and Lehmkuhl, Oriol},
+  title     = {pyLOM: Low order modelling in python,
+  year      = {2022},
+  publisher = {Barcelona Supercomputing Center},
+  journal   = {GitHub repository},
+  url       = {https://github.com/ArnauMiro/UPM_BSC_LowOrder},
+}
 ```
