@@ -14,27 +14,29 @@ defaults:
 jobs:    
   build_intel:
     runs-on: ubuntu-20.04
+    env:
+      CC: mpiicc
+      CXX: mpiicpc
+      FC: mpiifort
     steps:
       - uses: actions/checkout@v3
       # Setup Intel MPI and Python for this job
-      - name: setup repo
+      - name: Intel Apt repository
+        timeout-minutes: 1
         run: |
-          wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
-          sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
-          rm GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
-          sudo echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
+          wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+          sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+          rm GPG-PUB-KEY-INTEL-SW-PRODUCTS-2023.PUB
+          echo "deb https://apt.repos.intel.com/oneapi all main" | sudo tee /etc/apt/sources.list.d/oneAPI.list
           sudo apt-get update
-      - name: install repo
+      - name: Install Intel oneAPI
+        timeout-minutes: 5
+        run: sudo apt-get install intel-oneapi-compiler-fortran intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic intel-oneapi-mpi intel-oneapi-mpi-devel 
+        #intel-oneapi-mkl
+      - name: Setup Intel oneAPI environment
         run: |
-          sudo apt-get install -y intel-oneapi-common-vars
-          sudo apt-get install -y intel-oneapi-compiler-fortran
-          sudo apt-get install -y intel-oneapi-mkl
-          sudo apt-get install -y intel-oneapi-mpi
-          sudo apt-get install -y intel-oneapi-mpi-devel
-      - name: Setup MPI
-        uses: mpi4py/setup-mpi@v1
-        with:
-          mpi: openmpi
+          source /opt/intel/oneapi/setvars.sh
+          printenv >> $GITHUB_ENV
       - name: Set up Python 3.8.5
         uses: actions/setup-python@v3
         with:
@@ -44,8 +46,8 @@ jobs:
         run: |
           sed -i 's/USE_MKL       = OFF/USE_MKL       = ON/g' options.cfg
           sed -i 's/USE_MKL       = OFF/USE_MKL       = ON/g' options.cfg
-      - name: Set up python dependencies
-        run: make requirements
+      - name: Set up dependencies
+        run: make deps requirements
 #      - name: Fix h5py
 #        run: CC=mpicc HDF5_MPI="ON" pip install --no-binary=h5py h5py
       - name: Build compiled code
