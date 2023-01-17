@@ -2,8 +2,8 @@ name: Build GNU
 run-name: Building pyLOM GCC on branch <${{ github.head_ref }}> to <${{ github.base_ref }}> by @${{ github.actor }}
 
 on:
-#  push:
-#    branches: [ "main" ]
+  push:
+    branches: [ "main" ]
   pull_request:
     branches: [ "main", "develop" ]
 
