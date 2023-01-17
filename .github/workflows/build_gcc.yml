@@ -1,0 +1,44 @@
+name: Build GNU
+run-name: Building pyLOM GCC on branch <${{ github.head_ref }}> to <${{ github.base_ref }}> by @${{ github.actor }}
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:    
+  build_intel:
+    runs-on: ubuntu-20.04
+    env:
+      CC: mpicc
+      CXX: mpc++
+      FC: mpif90
+    steps:
+      - uses: actions/checkout@v3
+      # Setup MPI and Python for this job
+      - name: Setup MPI
+        uses: mpi4py/setup-mpi@v1
+        with:
+          mpi: openmpi
+      - name: Set up Python 3.8.5
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.8.5
+      # Run pyLOM compilation and deployment
+      - name: Set up configuration
+        run: |
+          sed -i 's/USE_MKL       = ON/USE_MKL       = OFF/g' options.cfg
+          sed -i 's/FORCE_GCC     = OFF/FORCE_GCC     = ON/g' options.cfg
+      - name: Set up dependencies
+        run: make deps requirements
+#      - name: Fix h5py
+#        run: CC=mpicc HDF5_MPI="ON" pip install --no-binary=h5py h5py
+      - name: Build compiled code
+        run: make python
+      - name: Install
+        run: make install
