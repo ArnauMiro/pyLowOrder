@@ -1,3 +1,5 @@
+[![License](https://img.shields.io/badge/license-GPL--3.0-orange)](https://opensource.org/licenses/GPL-3.0)
+
 # UPM-BSC Low Order Modelling library
 
 This tool is a port of the POD/DMD of the tools from UPM in MATLAB to C/C++ using a python interface. So far POD and DMD are fully implemented and work is being done to bring sPOD and hoDMD inside the tool.
