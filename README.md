@@ -1,4 +1,5 @@
-[![Build status](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions/workflows/build.yml/badge.svg)](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions)
+[![Build status](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions/workflows/build_intel.yml/badge.svg)](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions)
+[![Build status](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions/workflows/build_gcc.yml/badge.svg)](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions)
 [![License](https://img.shields.io/badge/license-GPL--3.0-orange)](https://opensource.org/licenses/GPL-3.0)
 
 # UPM-BSC Low Order Modelling library
