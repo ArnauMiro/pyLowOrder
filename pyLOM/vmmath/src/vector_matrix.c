@@ -3,6 +3,8 @@
 */
 #include <math.h>
 #include <complex.h>
+#include <stdio.h>
+#include <string.h>
 #include "mpi.h"
 
 #ifdef USE_MKL
@@ -335,29 +337,33 @@ int inverse(complex_t *A, int N, char *UoL){
 	return info;
 }
 
-int cmp(const void *a, const void *b)
-{
-    struct array_index *a1 = (struct array_index *)a;
-    struct array_index *a2 = (struct array_index *)b;
-    if ((*a1).value > (*a2).value)
-        return -1;
-    else if ((*a1).value < (*a2).value)
-        return 1;
-    else
-        return 0;
+int compare_complex(const void* a, const void* b) {
+    complex_t c1 = *(complex_t*)a;
+    complex_t c2 = *(complex_t*)b;
+    double diff = cabs(c1) - cabs(c2);
+    if (diff > 0) return 1;
+    else if (diff < 0) return -1;
+    else return 0;
 }
 
-void index_sort(double *v, int *index, int n){
-    int i;
-		struct array_index *objects = malloc(n*sizeof(struct array_index));
-		for (i = 0; i < n; ++i){
-        objects[i].value = v[i];
-        objects[i].index = i;
+void sort_complex_array(complex_t *v, int *index, int n){
+	/*
+	Returns the ordered indexes of a complex array according to the absolute value of its elements
+	*/
+	complex_t *w;
+	int i;
+	int j;
+	w = (complex_t*)malloc(n*sizeof(complex_t));
+	memcpy(w, v, n*sizeof(complex_t));
+    qsort(w, n, sizeof(complex_t), compare_complex);
+	
+    for (i = 0; i < n; i++) {
+		for (j = 0; j < n; j++) {
+            if ((creal(v[i]) == creal(w[j])) & (cimag(v[i]) == cimag(w[j]))) {
+                index[i] = j;
+                break;
+            }
+        }
     }
-		qsort(objects, n, sizeof(objects[0]), cmp);
-		for(i = 0; i < n; ++i){
-			v[i]     = objects[i].value;
-			index[i] = objects[i].index;
-		}
-		free(objects);
+	free(w);
 }

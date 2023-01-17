@@ -62,11 +62,9 @@ def run(X, r, remove_mean = True):
 	q    = conj(diag(matmul(matmul(Vand, transpose(conj(G))), w)))
 	bJov = matmul(inv(transpose(conj(Pl))), matmul(inv(Pl), q)) #Amplitudes according to Jovanovic 2014
 
-	#Order modes and eigenvalues according to its amplitude
-	muReal = muReal[flip(np.abs(bJov).argsort())]
-	muImag = muImag[flip(np.abs(bJov).argsort())]
-	Phi    = transpose(transpose(Phi)[flip(np.abs(bJov).argsort())])
-	bJov   = bJov[flip(np.abs(bJov).argsort())]
+	#Order modes and eigenvalues according to its amplitude 
+	muReal, muImag, Phi, bJov = order_modes(muReal, muImag, Phi, bJov)
+
 	cr_stop('DMD.run', 0)
 
 	return muReal, muImag, Phi, bJov
@@ -117,14 +115,32 @@ def reconstruction_jovanovic(Phi, real, imag, t, bJov):
 	cr_stop('DMD.reconstruction_jovanovic', 0)
 	return Xdmd.real
 
-def order_modes(delta, omega, Phi, amp):
+def order_modes(muReal, muImag, Phi, bJov):
 	'''
-    Order the modes according to its amplitude
+    Order the modes according to its amplitude, forcing that in case of a conjugate eigenvalue, the positive part always is the first one
 	'''
 	cr_start('DMD.order_modes', 0)
-	delta  = delta[flip(np.abs(amp).argsort())]
-	omega  = omega[flip(np.abs(amp).argsort())]
-	Phi    = transpose(transpose(Phi)[flip(np.abs(amp).argsort())])
-	amp    = amp[flip(np.abs(amp).argsort())]
+	muReal = muReal[flip(np.abs(bJov).argsort())]
+	muImag = muImag[flip(np.abs(bJov).argsort())]
+	Phi    = transpose(transpose(Phi)[flip(np.abs(bJov).argsort())])
+	bJov   = bJov[flip(np.abs(bJov).argsort())]
+	p = False
+	for ii in range(muImag.shape[0]):
+		if p == True:
+			p = False
+			continue
+		iimag = muImag[ii]
+		if iimag < 0:
+			muImag[ii]        =  muImag[ii+1]
+			muImag[ii+1]      = -muImag[ii]
+			bJov.imag[ii]     =  bJov.imag[ii+1]
+			bJov.imag[ii+1]   = -bJov.imag[ii]
+			Phi.imag[:,ii]    =  Phi.imag[:,ii+1]
+			Phi.imag[:,ii+1]  = -Phi.imag[:,ii+1]
+			p = True
+			continue
+		if iimag > 0:
+			p = True
+			continue
 	cr_stop('DMD.order_modes', 0)
-	return delta, omega, Phi, amp
+	return muReal, muImag, Phi, bJov
