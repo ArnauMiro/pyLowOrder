@@ -1,3 +1,4 @@
+[![Build status](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions/workflows/build.yml/badge.svg)
 [![License](https://img.shields.io/badge/license-GPL--3.0-orange)](https://opensource.org/licenses/GPL-3.0)
 
 # UPM-BSC Low Order Modelling library
