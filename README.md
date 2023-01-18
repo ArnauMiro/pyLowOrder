@@ -98,6 +98,7 @@ Eiximeno, B., Miró, A., Cajas, J.C., Lehmkuhl, O., Rodriguez, I., 2022. On the 
 
 <details><summary>Bibtex</summary>
 <p>
+	
 ```
 @article{eiximeno_wake_2022,
 	title = {On the {Wake} {Dynamics} of an {Oscillating} {Cylinder} via {Proper} {Orthogonal} {Decomposition}},
@@ -111,5 +112,6 @@ Eiximeno, B., Miró, A., Cajas, J.C., Lehmkuhl, O., Rodriguez, I., 2022. On the 
 	pages = {292},
 }
 ```
+	
 </p>
 </details>
