@@ -13,10 +13,9 @@ cimport numpy as np
 import numpy as np
 from mpi4py  import MPI
 
-from scipy.linalg import ldl
-
-from libc.stdlib cimport malloc, free
-from libc.string cimport memcpy, memset
+from libc.stdlib   cimport malloc, free
+from libc.string   cimport memcpy, memset
+from libc.math     cimport sqrt, log, atan2
 from mpi4py.libmpi cimport MPI_Comm
 from mpi4py        cimport MPI
 
@@ -35,8 +34,8 @@ cdef extern from "vector_matrix.h":
 	cdef int    c_cholesky            "cholesky"(np.complex128_t *A, int N)
 	cdef void   c_vandermonde         "vandermonde"(np.complex128_t *Vand, double *real, double *imag, int m, int n)
 	cdef void   c_vandermonde_time    "vandermondeTime"(np.complex128_t *Vand, double *real, double *imag, int m, int n, double* t)
-	cdef int    c_inverse             "inverse"(np.complex128_t *A, int N, int UoL)
-	cdef void   c_index_sort          "index_sort"(double *v, int *index, int n)
+	cdef int    c_inverse             "inverse"(np.complex128_t *A, int N, char *UoL)
+	cdef void   c_sort_complex_array  "sort_complex_array"(np.complex128_t *v, int *index, int n)
 cdef extern from "averaging.h":
 	cdef void c_temporal_mean "temporal_mean"(double *out, double *X, const int m, const int n)
 	cdef void c_subtract_mean "subtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
@@ -69,7 +68,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 		- Variables needed to reconstruct flow
 	'''
 	cr_start('DMD.run',0)
-	# V#ariables
+	# Variables
 	cdef int m = X.shape[0], n = X.shape[1], mn = min(m,n-1), retval
 	cdef double *X_mean
 	cdef double *Y
@@ -114,13 +113,16 @@ def run(double[:,:] X, double r, int remove_mean=True):
 
 	#Truncate
 	cdef int nr
+	cdef double *Ur
 	cdef double *Sr
 	cdef double *Vr
-	nr  = c_compute_truncation_residual(S,r,n-1)
-	cdef np.ndarray[np.double_t,ndim=2] Ur = np.zeros((m,nr),dtype=np.double)
+
+	nr = int(r) if r > 1 else c_compute_truncation_residual(S,r,n-1)
+	Ur = <double*>malloc(m*nr*sizeof(double))
 	Sr = <double*>malloc(nr*sizeof(double))
 	Vr = <double*>malloc(nr*mn*sizeof(double))
-	c_compute_truncation(&Ur[0,0],Sr,Vr,U,S,V,m,n-1,nr)
+	c_compute_truncation(Ur,Sr,Vr,U,S,V,m,n-1,nr)
+	
 	free(U)
 	free(V)
 	free(S)
@@ -136,7 +138,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	aux3   = <double*>malloc(nr*sizeof(double))
 	Atilde = <double*>malloc(nr*nr*sizeof(double))
 	Urt    = <double*>malloc(nr*m*sizeof(double))
-	c_transpose(&Ur[0,0], Urt, m, nr)
+	c_transpose(Ur, Urt, m, nr)
 	c_matmul_paral(aux1, Urt, Y2, nr, n-1, m)
 	for icol in range(n-1):
 		for irow in range(nr):
@@ -147,50 +149,72 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	free(Urt)
 
 	#Compute eigenmodes
-	cdef np.ndarray[np.double_t,ndim=1]     muReal = np.zeros((nr),dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=1]     muImag = np.zeros((nr),dtype=np.double)
-	cdef np.ndarray[np.complex128_t,ndim=2] w      = np.zeros((nr, nr),dtype=np.complex128)
-	retval = c_eigen(&muReal[0],&muImag[0],&w[0,0],Atilde,nr,nr)
+	cdef double *auxmuReal
+	cdef double *auxmuImag
+	cdef np.complex128_t *w
+	auxmuReal = <double*>malloc(nr*sizeof(double))
+	auxmuImag = <double*>malloc(nr*sizeof(double))
+	w         = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
+	retval = c_eigen(auxmuReal,auxmuImag,w,Atilde,nr,nr)
 	free(Atilde)
 
 	#Computation of DMD modes
-	cdef np.ndarray[np.complex128_t,ndim=2] Phi = np.zeros((m,nr),dtype=np.complex128)
+	cdef np.complex128_t *auxPhi
 	cdef np.complex128_t *aux1C
 	cdef np.complex128_t *aux2C
-	aux1C = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
-	aux2C = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
+	auxPhi = <np.complex128_t*>malloc(m*nr*sizeof(np.complex128_t))
+	aux1C  = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
+	aux2C  = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
 	for iaux in range(m):
 		for icol in range(nr):
 			aux1C[icol] = 0 + 0*1j
 			for irow in range(n-1):
 				aux1C[icol] += Y2[iaux*(n-1) + irow]*aux2[irow*nr + icol]
-		c_matmul_complex(aux2C, aux1C, &w[0,0], 1, nr, nr, 'N', 'N')
-		memcpy(&Phi[iaux, 0], aux2C, nr*sizeof(np.complex128_t))
+		c_matmul_complex(aux2C, aux1C, w, 1, nr, nr, 'N', 'N')
+		memcpy(&auxPhi[iaux*nr], aux2C, nr*sizeof(np.complex128_t))
 	free(aux2)
 	free(Y2)
+	cdef double a
+	cdef double b
+	cdef double c
+	cdef double d
+	cdef double div
+	for icol in range(nr):
+		c = auxmuReal[icol]
+		d = auxmuImag[icol]
+		div = c*c + d*d
+		for iaux in range(m):
+			a = auxPhi[iaux*nr + icol].real
+			b = auxPhi[iaux*nr + icol].imag
+			auxPhi[iaux*nr + icol].real = (a*c + b*d)/div
+			auxPhi[iaux*nr + icol].imag = (b*c - a*d)/div
 
 	#Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
+	cdef np.complex128_t *auxbJov
 	cdef np.complex128_t *aux3C
 	cdef np.complex128_t *Vand
 	cdef np.complex128_t *P
 	cdef np.complex128_t *Pinv
 	cdef np.complex128_t *q
 
-	aux3C = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
-	aux4C = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
-	Vand  = <np.complex128_t*>malloc((nr*(n-1))*sizeof(np.complex128_t))
-	P     = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
-	Pinv  = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
-	q     = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
-	cdef np.ndarray[np.complex128_t,ndim=1] bJov = np.zeros((nr,),dtype=np.complex128)
+	auxbJov = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
+	aux3C   = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
+	aux4C   = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
+	Vand    = <np.complex128_t*>malloc((nr*(n-1))*sizeof(np.complex128_t))
+	P       = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
+	Pinv    = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
+	q       = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
 
-	c_vandermonde(Vand, &muReal[0], &muImag[0], nr, n-1)
-	c_matmul_complex(aux3C, &w[0,0], &w[0,0], nr, nr, nr, 'C', 'N')
+	c_vandermonde(Vand, auxmuReal, auxmuImag, nr, n-1)
+	c_matmul_complex(aux3C, w, w, nr, nr, nr, 'C', 'N')
 	c_matmul_complex(aux4C, Vand, Vand, nr, nr, n-1, 'N', 'C')
+
 	for irow in range(nr):
 		for icol in range(nr): #Loop on the columns of the Vandermonde matrix
-			P[irow*nr + icol] = aux3C[irow*nr + icol].real*aux4C[irow*nr + icol].real + aux3C[irow*nr + icol].real*aux4C[irow*nr + icol].imag*1j + aux3C[irow*nr + icol].imag*aux4C[irow*nr + icol].real*1j - aux3C[irow*nr + icol].imag*aux4C[irow*nr + icol].imag
-
+			P[irow*nr + icol]  = aux3C[irow*nr + icol].real*aux4C[irow*nr + icol].real
+			P[irow*nr + icol] += -aux3C[irow*nr + icol].real*aux4C[irow*nr + icol].imag*1j 
+			P[irow*nr + icol] += aux3C[irow*nr + icol].imag*aux4C[irow*nr + icol].real*1j
+			P[irow*nr + icol] += aux3C[irow*nr + icol].imag*aux4C[irow*nr + icol].imag
 	retval = c_cholesky(P, nr)
 	if not retval == 0: raiseError('Problems computing Cholesky factorization!')
 
@@ -199,7 +223,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 			aux1C[irow] = 0 + 0*1j
 			for icol in range(n-1):#casting Vr to a complex, at the same time, it is multipilied per S and Vand
 				aux1C[irow] += Sr[irow]*Vr[irow*(n-1) + icol]*(Vand[iaux*(n-1) + icol].real+Vand[iaux*(n-1) + icol].imag*1j)
-			aux2C[irow] = w[irow, iaux]
+			aux2C[irow] = w[irow*nr + iaux]
 		c_matmul_complex(&q[iaux], aux1C, aux2C, 1, 1, nr, 'N', 'N')
 
 	memcpy(Pinv, P, nr*nr*sizeof(np.complex128_t))
@@ -211,36 +235,79 @@ def run(double[:,:] X, double r, int remove_mean=True):
 			P[ii*nr + ii+jj]   = P[(ii+jj)*nr + ii].real - P[(ii+jj)*nr + ii].imag*1j
 			P[(ii+jj)*nr + ii] = Pinv[ii*nr + ii+jj].real - Pinv[ii*nr + ii+jj].imag*1j
 
-	retval = c_inverse(Pinv, nr, 1)
+	retval = c_inverse(Pinv, nr, 'L')
 	if not retval == 0: raiseError('Problems computing the Inverse!')
 
 	c_matmul_complex(aux1C, Pinv, q, nr, 1, nr, 'N', 'N')
 
-	retval = c_inverse(P, nr, 0)
+	retval = c_inverse(P, nr, 'U')
 	if not retval == 0: raiseError('Problems computing the Inverse!')
 
-	c_matmul_complex(&bJov[0], P, aux1C, nr, 1, nr, 'N', 'N')
+	c_matmul_complex(auxbJov, P, aux1C, nr, 1, nr, 'N', 'N')
 
+	# Free allocated arrays before reordering
+	free(Ur)
 	free(Sr)
 	free(Vr)
 	free(aux1C)
 	free(aux2C)
 	free(aux3C)
 	free(aux4C)
+	free(w)
 	free(Vand)
 	free(q)
 	free(P)
 	free(Pinv)
 
 	#Order modes and eigenvalues according to its amplitude
-	muReal = muReal[np.flip(np.abs(bJov).argsort())]
-	muImag = muImag[np.flip(np.abs(bJov).argsort())]
-	Phi    = Phi[:, np.flip(np.abs(bJov).argsort())]
-	bJov   = bJov[np.flip(np.abs(bJov).argsort())]
+	cdef int *auxOrd
+	auxOrd = <int*>malloc(nr*sizeof(int))
+	cdef np.ndarray[np.double_t,ndim=1] muReal = np.zeros((nr),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=1] muImag = np.zeros((nr),dtype=np.double)
+	cdef np.ndarray[np.complex128_t,ndim=2] Phi = np.zeros((m,nr),order='C',dtype=np.complex128)
+	cdef np.ndarray[np.complex128_t,ndim=1] bJov = np.zeros((nr,),dtype=np.complex128)
+	
+	c_sort_complex_array(auxbJov, auxOrd, nr)
+	for ii in range(nr):
+		muReal[nr-(auxOrd[ii]+1)] = auxmuReal[ii]
+		muImag[nr-(auxOrd[ii]+1)] = auxmuImag[ii]
+		bJov[nr-(auxOrd[ii]+1)]   = auxbJov[ii]
+		for jj in range(m):
+			Phi[jj,nr-(auxOrd[ii]+1)]  = auxPhi[jj*nr + ii]
+
+	#Free the variables that had to be ordered
+	free(auxmuReal)
+	free(auxmuImag)
+	free(auxbJov)
+	free(auxPhi)
+	free(auxOrd)
+
+	#Ensure that all conjugate modes are in the same order
+	cdef bint p = 0
+	cdef double iimag
+	for ii in range(nr):
+		if p == 1:
+			p = 0
+			continue
+		iimag = muImag[ii]
+		if iimag < 0:
+			muImag[ii]        =  muImag[ii+1]
+			muImag[ii+1]      = -muImag[ii]
+			bJov[ii].imag     =  bJov[ii+1].imag
+			bJov[ii+1].imag   = -bJov[ii].imag
+			for jj in range(m):
+				Phi[jj,ii].imag   =  Phi[jj,ii+1].imag
+				Phi[jj,ii+1].imag = -Phi[jj,ii+1].imag
+			p = 1
+			continue
+		if iimag > 0:
+			p = 1
+			continue
+	
 	# Return
 	cr_stop('DMD.run',0)
 
-	return Ur, muReal, muImag, w, Phi, bJov
+	return muReal, muImag, Phi, bJov
 
 
 ## DMD frequency damping
@@ -260,9 +327,9 @@ def frequency_damping(double[:] real, double[:] imag, double dt):
 	cdef double mod
 	cdef double arg
 	for ii in range(n):
-		mod       = np.sqrt(real[ii]*real[ii] + imag[ii]*imag[ii])
-		delta[ii] = np.log(mod)/dt
-		arg       = np.arctan2(imag[ii], real[ii])
+		mod       = sqrt(real[ii]*real[ii] + imag[ii]*imag[ii])
+		delta[ii] = log(mod)/dt
+		arg       = atan2(imag[ii], real[ii])
 		omega[ii] = arg/dt
 	cr_stop('DMD.frequency_damping', 0)
 	return delta, omega
@@ -272,28 +339,25 @@ def frequency_damping(double[:] real, double[:] imag, double dt):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def reconstruction_jovanovic(double[:,:] U, np.complex128_t[:,:] w, double[:] muReal, double[:] muImag, double[:] t, np.complex128_t[:] bJov):
+def reconstruction_jovanovic(np.complex128_t[:,:] Phi, double[:] muReal, double[:] muImag, double[:] t, np.complex128_t[:] bJov):
 	'''
 	Computation of the reconstructed flow from the DMD computations
 	'''
 	cr_start('DMD.reconstruction_jovanovic', 0)
-	cdef int m  = U.shape[0]
+	cdef int ii
+	cdef int m  = Phi.shape[0]
 	cdef int n  = t.shape[0]
-	cdef int nr = U.shape[1]
-	cdef np.ndarray[np.double_t,ndim=2] Xdmd = np.zeros((m, n),dtype=np.double)
+	cdef int nr = Phi.shape[1]
 	cdef np.complex128_t *Vand
-	Vand  = <np.complex128_t*>malloc(nr*n*sizeof(np.complex128_t))
-	cdef double *aux
-	aux = <np.double_t*>malloc(nr*n*sizeof(np.double))
+	cdef np.ndarray[np.complex128_t,ndim=2] Zdmd = np.zeros((m,n),order='C',dtype=np.complex128)
+
+	Vand = <np.complex128_t*>malloc(nr*n*sizeof(np.complex128_t))
 
 	c_vandermonde_time(Vand, &muReal[0], &muImag[0], nr, n, &t[0])
 	c_vecmat_complex(&bJov[0], Vand, nr, n)
-	c_matmul_complex(Vand, &w[0,0], Vand, nr, n, nr, 'N', 'N')
-	cdef int ii
-	cdef int jj
-	for ii in range(nr):
-		for jj in range(n):
-			aux[ii*n + jj] = Vand[ii*n + jj].real
-	c_matmul(&Xdmd[0,0], &U[0,0], aux, m, n, nr)
+	c_matmul_complex(&Zdmd[0,0], &Phi[0,0], Vand, m, n, nr, 'N', 'N')
+	
+	free(Vand)
+
 	cr_stop('DMD.reconstruction_jovanovic', 0)
-	return Xdmd
+	return Zdmd.real

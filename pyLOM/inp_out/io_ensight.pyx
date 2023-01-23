@@ -18,6 +18,8 @@ from libc.string cimport memchr, strtok, memcpy
 
 from ..utils.cr     import cr_start, cr_stop
 from ..utils.errors import raiseError
+from ..utils.parall import MPI_RANK, MPI_SIZE, MPI_COMM, MPI_RDONLY, MPI_WRONLY, MPI_CREATE
+from ..utils.parall import mpi_file_open, worksplit, mpi_reduce, mpi_bcast
 
 
 ## HELPER FUNCTIONS ##
@@ -30,6 +32,12 @@ cdef char *reads(char *line, int size, FILE *fin):
 	cdef char *l
 	cdef int ii
 	return fgets(line,size,fin)
+#	if l != NULL:
+#		for ii in range(size):
+#			if line[ii] == 10:
+#				line[ii] = '\0'.encode('utf-8')
+#				break
+#	return l
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
@@ -65,70 +73,102 @@ cdef int isBinary(object fname):
 	# If a endline is not found, file is binary
 	return False if '\n'.encode('utf-8') in buff else True
 
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def str_to_bin(string):
+	return ('%-80s'%(string)).encode('utf-8')
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def bin_to_str(binary):
+	return binary[:-1].decode('utf-8').strip()
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def int_to_bin(integer,b=4):
+	return int(integer).to_bytes(b,'little')
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def bin_to_int(integer):
+	return int.from_bytes(integer,'little')
+
 
 ## FUNCTIONS ##
 
-def Ensight_readCase(fname):
+def Ensight_readCase(fname,rank=MPI_RANK):
 	'''
 	Read an Ensight Gold case file.
 	'''
 	cr_start('EnsightIO.readCase',0)
-	# Open file for reading
-	f     = open(fname,'r')
-	lines = [line.strip() for line in f.readlines() if not '#' in line and not len(line.strip())==0]
-	# Variables section
-	idstart = lines.index('VARIABLE')+1
-	idend   = lines.index('TIME')
-	varList = []
-	for ii in range(idstart,idend):
-		varList.append({})
-		# Name
-		varList[-1]['name'] = lines[ii].split()[-2]
-		# Dimensions
-		varList[-1]['dims'] = -1 
-		if 'scalar'      in lines[ii]: varList[-1]['dims'] = 1
-		if 'vector'      in lines[ii]: varList[-1]['dims'] = 3
-		if 'tensor symm' in lines[ii]: varList[-1]['dims'] = 6
-		if 'tensor asym' in lines[ii]: varList[-1]['dims'] = 9
-		# File
-		varList[-1]['file'] = lines[ii].split()[-1]
-	# Timesteps
-	idstart   = lines.index('TIME') + 6
-	idend     = len(lines)
-	timesteps = np.array([float(l) for ii in range(idstart,idend) for l in lines[ii].split()],dtype=np.double) 
-	# Close file
-	f.close()
+	# Only one rank reads the file
+	if MPI_RANK == rank or MPI_SIZE == 1:
+		# Open file for reading
+		f     = open(fname,'r')
+		lines = [line.strip() for line in f.readlines() if not '#' in line and not len(line.strip())==0]
+		# Variables section
+		idstart = lines.index('VARIABLE')+1
+		idend   = lines.index('TIME')
+		varList = []
+		for ii in range(idstart,idend):
+			varList.append({})
+			# Name
+			varList[-1]['name'] = lines[ii].split()[-2]
+			# Dimensions
+			varList[-1]['dims'] = -1 
+			if 'scalar'      in lines[ii]: varList[-1]['dims'] = 1
+			if 'vector'      in lines[ii]: varList[-1]['dims'] = 3
+			if 'tensor symm' in lines[ii]: varList[-1]['dims'] = 6
+			if 'tensor asym' in lines[ii]: varList[-1]['dims'] = 9
+			# File
+			varList[-1]['file'] = lines[ii].split()[-1]
+		# Timesteps
+		idstart   = lines.index('TIME') + 6
+		idend     = len(lines)
+		timesteps = np.array([float(l) for ii in range(idstart,idend) for l in lines[ii].split()],dtype=np.double) 
+		# Close file
+		f.close()
+	# Broadcast to other ranks if needed
+	if MPI_SIZE > 1:
+		varList, timesteps = mpi_bcast((varList,timesteps),rank=rank)
 	# Return
 	cr_stop('EnsightIO.readCase',0)
 	return varList, timesteps
 
-def Ensight_writeCase(fname,geofile,varList,timesteps):
+def Ensight_writeCase(fname,geofile,varList,timesteps,rank=MPI_RANK):
 	'''
 	Write an Ensight Gold case file.
 	'''
 	cr_start('EnsightIO.writeCase',0)
-	# Open file for writing
-	f = open(fname,'w')
-	f.write('FORMAT\ntype: ensight gold\n\nGEOMETRY\nmodel: 1  %s\n\nVARIABLE\n'%geofile)
-	# Variables section
-	for var in varList:
-		dims = 'scalar' if var['dims'] == 1 else 'vector'
-		if var['dims'] == 6: dims = 'tensor symm' 
-		if var['dims'] == 9: dims = 'tensor asym' 
-		f.write('%s per %s:  1   %s  %s\n'%(dims,'node' if var['point'] else 'element',var['name'],var['file']))
-	# Timesteps
-	f.write('\nTIME\n')
-	f.write('time set:              1\n')
-	f.write('number of steps:       %d\n'%timesteps.shape[0])
-	f.write('filename start number: 1\n')
-	f.write('filename increment:    1\n')
-	f.write('time values:\n')
-	timesteps.tofile(f,sep='\n',format='%f')
-	# Close file
-	f.close()
-	# Return
+	# Only one rank writes the file
+	if MPI_RANK == rank or MPI_SIZE == 1:
+		# Open file for writing
+		f = open(fname,'w')
+		f.write('FORMAT\ntype: ensight gold\n\nGEOMETRY\nmodel: 1  %s\n\nVARIABLE\n'%geofile)
+		# Variables section
+		for var in varList:
+			dims = 'scalar' if var['dims'] == 1 else 'vector'
+			if var['dims'] == 6: dims = 'tensor symm' 
+			if var['dims'] == 9: dims = 'tensor asym' 
+			f.write('%s per node:  1   %s  %s\n'%(dims,var['name'],var['file']))
+		# Timesteps
+		f.write('\nTIME\n')
+		f.write('time set:              1\n')
+		f.write('number of steps:       %d\n'%timesteps.shape[0])
+		f.write('filename start number: 1\n')
+		f.write('filename increment:    1\n')
+		f.write('time values:\n')
+		timesteps.tofile(f,sep='\n',format='%f')
+		# Close file
+		f.close()
 	cr_stop('EnsightIO.writeCase',0)
-	return varList, timesteps
 
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -538,12 +578,16 @@ def Ensight_writeGeo(object fname, double[:,:] xyz, int[:,:] conec, dict header)
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def Ensight_readField(object fname, int dims=1, int nnod=-1):
+def Ensight_readField(object fname, int dims=1, int nnod=-1, int parallel=False):
 	'''
 	Read an Ensight Gold field file in either
 	ASCII or binary format.
 	'''
-	return Ensight_readFieldBIN(fname,dims,nnod) if isBinary(fname) else Ensight_readFieldASCII(fname,dims,nnod)
+	cdef object
+	if parallel and isBinary(fname):
+		return Ensight_readFieldMPIO(fname,dims,nnod)
+	else:
+		return Ensight_readFieldBIN(fname,dims,nnod) if isBinary(fname) else Ensight_readFieldASCII(fname,dims,nnod)
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
@@ -726,7 +770,72 @@ def Ensight_readFieldASCII(object fname,int dims=1,int nnod=-1):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def Ensight_writeField(object fname,np.ndarray field,dict header):
+def Ensight_readFieldMPIO(object fname, int dims=1, int nnod=-1):
+	'''
+	ENSIGHT GOLD SCALAR
+	from: http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf
+	
+	BEGIN TIME STEP
+	description line 1          80 chars
+	part                        80 chars
+	#                            1 int
+	block                       80 chars
+	s_n1 s_n2 ... s_nn          nn floats	
+	'''
+	cr_start('EnsightIO.readField',0)
+	cdef object f, shp
+	cdef int idim, istart, iend, header_sz = 80*3+4  # 3 80 bytes char + 4 byte integer
+	cdef dict header   = {'descr':'','partID':0}
+	cdef bytes header_bin
+	cdef np.ndarray header_np, field, aux
+	# Open file for reading
+	f = mpi_file_open(MPI_COMM,fname,MPI_RDONLY)
+	# Read Ensight header
+	header_np = np.ndarray((header_sz,),dtype='b')
+	f.Read_at_all(0,header_np)
+	header_bin = bytes(header_np.view('S%d'%header_sz))
+	# Parse the header
+	header = {}
+	header['descr']  = bin_to_str(header_bin[:80])         # Description
+	header['partID'] = bin_to_int(header_bin[2*80:2*80+4]) # Part ID
+#	header['partNM'] = bin_to_str(header_bin[2*80+4:3*80]) # Part name 
+	# Use a simple worksplit to see where everyone reads
+	istart,iend = worksplit(0,nnod,MPI_RANK,nWorkers=MPI_SIZE)
+	# Create flattened output array
+	shp = (iend-istart)
+	if dims > 1: shp = ((iend-istart),dims)
+	field = np.ndarray(shp,np.double)
+	# Read the field
+	if dims > 1:
+		for idim in range(dims):
+			aux = np.ndarray((iend-istart,),np.float32)
+			f.Read_at(header_sz+(istart+idim*nnod)*4,aux)
+			field[:,idim] = np.ascontiguousarray(aux)
+	else:
+		f.Read_at(header_sz+istart*4,field)
+		field = np.ascontiguousarray(field)		
+	# Close the field
+	f.Close()
+	# Return
+	cr_stop('EnsightIO.readField',0)
+	return field, header
+
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def Ensight_writeField(object fname,np.ndarray field,dict header,int parallel=False):
+	'''
+	Write an Ensight Gold field file in binary format.
+	'''
+	return Ensight_writeFieldBIN(fname,field,header) if not parallel else Ensight_writeFieldMPIO(fname,field,header)
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def Ensight_writeFieldBIN(object fname,np.ndarray field,dict header):
 	'''
 	ENSIGHT GOLD SCALAR
 	from: http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf
@@ -766,7 +875,7 @@ def Ensight_writeField(object fname,np.ndarray field,dict header):
 		raiseError("Error writing <%s>!"%(fname))	
 	
 	# Write coordinates
-	buff = ("%-80s"%header['eltype']).encode('utf-8')
+	buff = ("%-80s"%"coordinates").encode('utf-8')
 	if not fwrite(buff,sizeof(char),80,myfile) == 80: 
 		raiseError("Error writing <%s>!"%(fname))		
 
@@ -786,4 +895,47 @@ def Ensight_writeField(object fname,np.ndarray field,dict header):
 	free(data)
 
 	fclose(myfile)
+	cr_stop('EnsightIO.writeField',0)
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def Ensight_writeFieldMPIO(object fname,np.ndarray field,dict header):
+	'''
+	ENSIGHT GOLD SCALAR
+	from: http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf
+	
+	BEGIN TIME STEP
+	description line 1          80 chars
+	part                        80 chars
+	#                            1 int
+	block                       80 chars
+	s_n1 s_n2 ... s_nn          nn floats	
+	'''
+	cr_start('EnsightIO.writeField',0)
+	cdef object f, header_bin
+	cdef int istart, iend, icol, nrows, ncols, nrowsT, header_sz = 80*3+4  # 3 80 bytes char + 4 byte integer
+	# Open file for writing
+	f = mpi_file_open(MPI_COMM,fname,MPI_WRONLY|MPI_CREATE)
+	# Write Ensight header
+	header_bin  = str_to_bin(header['descr'])
+	header_bin += str_to_bin('part')
+	header_bin += int_to_bin(header['partID'])
+	header_bin += str_to_bin('coordinates')
+	f.Write_at_all(0,np.frombuffer(header_bin,np.int8))
+	# Obtain the total number of nodes
+	nrows  = field.shape[0]
+	ncols  = 1 if len((<object>field).shape) == 1 else field.shape[1]
+	nrowsT = mpi_reduce(nrows,op='sum',all=True)
+	# Worksplit
+	istart, iend = worksplit(0,nrowsT,MPI_RANK,nWorkers=MPI_SIZE)
+	# Write the field
+	if ncols == 1:
+		f.Write_at(header_sz+istart*4,field.astype(np.float32))
+	else:
+		for icol in range(ncols):
+			f.Write_at(header_sz+(istart+icol*ncols)*4,field[:,icol].astype(np.float32))
+	# Close the field
+	f.Close()
 	cr_stop('EnsightIO.writeField',0)

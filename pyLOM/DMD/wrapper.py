@@ -12,7 +12,7 @@ from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_
 from ..POD          import truncate
 from ..utils.cr     import cr_start, cr_stop
 from ..utils.errors import raiseError
-from ..utils.parall import mpi_gather, mpi_reduce
+from ..utils.parall import mpi_gather, mpi_reduce, pprint
 
 def run(X, r, remove_mean = True):
 	'''
@@ -31,12 +31,12 @@ def run(X, r, remove_mean = True):
 	cr_start('DMD.run', 0)
 	#Remove temporal mean or not, depending on the user choice
 	if remove_mean:
-	    #Compute temporal mean
-	    X_mean = temporal_mean(X)
-	    #Subtract temporal mean
-	    Y = subtract_mean(X, X_mean)
+		#Compute temporal mean
+		X_mean = temporal_mean(X)
+		#Subtract temporal mean
+		Y = subtract_mean(X, X_mean)
 	else:
-	    Y = X.copy()
+		Y = X.copy()
 
 	#Compute SVD
 	U, S, VT = tsqr_svd(Y[:, :-1])
@@ -52,7 +52,7 @@ def run(X, r, remove_mean = True):
 	muReal, muImag, w = eigen(Atilde)
 
 	#Mode computation
-	Phi =  matmul(matmul(matmul(Y[:, 1:], transpose(VT)), diag(1/S)), w)
+	Phi =  matmul(matmul(matmul(Y[:, 1:], transpose(VT)), diag(1/S)), w)/(muReal + muImag*1J)
 
 	#Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
 	Vand = vandermonde(muReal, muImag, muReal.shape[0], Y.shape[1]-1)
@@ -62,14 +62,12 @@ def run(X, r, remove_mean = True):
 	q    = conj(diag(matmul(matmul(Vand, transpose(conj(G))), w)))
 	bJov = matmul(inv(transpose(conj(Pl))), matmul(inv(Pl), q)) #Amplitudes according to Jovanovic 2014
 
-	#Order modes and eigenvalues according to its amplitude
-	muReal  = muReal[flip(np.abs(bJov).argsort())]
-	muImag  = muImag[flip(np.abs(bJov).argsort())]
-	Phi    = transpose(transpose(Phi)[flip(np.abs(bJov).argsort())])
-	bJov    = bJov[flip(np.abs(bJov).argsort())]
+	#Order modes and eigenvalues according to its amplitude 
+	muReal, muImag, Phi, bJov = order_modes(muReal, muImag, Phi, bJov)
+
 	cr_stop('DMD.run', 0)
 
-	return U, muReal, muImag, w, Phi, bJov
+	return muReal, muImag, Phi, bJov
 
 def frequency_damping(real, imag, dt):
 	'''
@@ -107,24 +105,42 @@ def amplitude_jovanovic(real, imag, X1, wComplex, S, V):
 	cr_stop('DMD.amplitude_jovanovic', 0)
 	return bJov
 
-def reconstruction_jovanovic(U, w, real, imag, t, bJov):
+def reconstruction_jovanovic(Phi, real, imag, t, bJov):
 	'''
     Reconstruction of the DMD modes according to the Jovanovic method
 	'''
 	cr_start('DMD.reconstruction_jovanovic', 0)
 	Vand = vandermondeTime(real, imag, real.shape[0], t)
-	Xdmd = matmul(matmul(matmul(U, w), diag(bJov)), Vand)
+	Xdmd = matmul(Phi, matmul(diag(bJov), Vand))
 	cr_stop('DMD.reconstruction_jovanovic', 0)
-	return Xdmd
+	return Xdmd.real
 
-def order_modes(delta, omega, Phi, amp):
+def order_modes(muReal, muImag, Phi, bJov):
 	'''
-    Order the modes according to its amplitude
+    Order the modes according to its amplitude, forcing that in case of a conjugate eigenvalue, the positive part always is the first one
 	'''
 	cr_start('DMD.order_modes', 0)
-	delta  = delta[flip(np.abs(amp).argsort())]
-	omega  = omega[flip(np.abs(amp).argsort())]
-	Phi    = transpose(transpose(Phi)[flip(np.abs(amp).argsort())])
-	amp    = amp[flip(np.abs(amp).argsort())]
+	muReal = muReal[flip(np.abs(bJov).argsort())]
+	muImag = muImag[flip(np.abs(bJov).argsort())]
+	Phi    = transpose(transpose(Phi)[flip(np.abs(bJov).argsort())])
+	bJov   = bJov[flip(np.abs(bJov).argsort())]
+	p = False
+	for ii in range(muImag.shape[0]):
+		if p == True:
+			p = False
+			continue
+		iimag = muImag[ii]
+		if iimag < 0:
+			muImag[ii]        =  muImag[ii+1]
+			muImag[ii+1]      = -muImag[ii]
+			bJov.imag[ii]     =  bJov.imag[ii+1]
+			bJov.imag[ii+1]   = -bJov.imag[ii]
+			Phi.imag[:,ii]    =  Phi.imag[:,ii+1]
+			Phi.imag[:,ii+1]  = -Phi.imag[:,ii+1]
+			p = True
+			continue
+		if iimag > 0:
+			p = True
+			continue
 	cr_stop('DMD.order_modes', 0)
-	return delta, omega, Phi, amp
+	return muReal, muImag, Phi, bJov

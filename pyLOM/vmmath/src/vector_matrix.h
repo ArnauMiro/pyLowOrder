@@ -20,5 +20,5 @@ double RMSE(double *A, double *B, const int m, const int n, MPI_Comm comm);
 int    cholesky(complex_t *A, int N);
 void   vandermonde(complex_t *Vand, double *real, double *imag, int m, int n);
 void   vandermondeTime(complex_t *Vand, double *real, double *imag, int m, int n, double *t);
-int    inverse(complex_t *A, int N, int UoL);
-void   index_sort(double *v, int *index, int n);
+int    inverse(complex_t *A, int N, char *UoL);
+void   sort_complex_array(complex_t *v, int *index, int n);

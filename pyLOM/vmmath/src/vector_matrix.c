@@ -3,6 +3,8 @@
 */
 #include <math.h>
 #include <complex.h>
+#include <stdio.h>
+#include <string.h>
 #include "mpi.h"
 
 #ifdef USE_MKL
@@ -206,7 +208,7 @@ int eigen(double *real, double *imag, complex_t *w, double *A,
 	*/
 	int info, ivec, imod;
 	double *vl;
-	vl = (double*)malloc(1*sizeof(double));
+	vl = (double*)malloc(n*n*sizeof(double));
 	double *vecs;
   double tol = 1e-12;
 	vecs = (double*)malloc(n*n*sizeof(double));
@@ -226,7 +228,7 @@ int eigen(double *real, double *imag, complex_t *w, double *A,
 	);
 	//Define and allocate memory for the complex array of eigenvectors
 	//Change while for a for
-	for (imod = 0; imod < n-1; imod++){
+	for (imod = 0; imod < n; imod++){
 		if (imag[imod] > tol){//If the imaginary part is greater than zero, the eigenmode has a conjugate.
 			for (ivec = 0; ivec < n; ivec++){
 				AC_MAT(w,n,ivec,imod)   = AC_MAT(vecs,n,ivec,imod) + AC_MAT(vecs,n,ivec,imod+1)*I;
@@ -258,10 +260,10 @@ double RMSE(double *A, double *B, const int m, const int n, MPI_Comm comm) {
 	#ifdef USE_OMP
 	#pragma omp parallel for private(ii,jj) shared(A,B) firstprivate(m,n)
 	#endif
-	for(ii = 0; ii < n; ++ii) {
+	for(ii = 0; ii < m; ++ii) {
 		norm1 = 0.;
 		norm2 = 0.;
-		for(jj = 0; jj < m; ++jj){
+		for(jj = 0; jj < n; ++jj){
 			norm1 += POW2(AC_MAT(A,n,ii,jj) - AC_MAT(B,n,ii,jj));
 			norm2 += POW2(AC_MAT(A,n,ii,jj));
 		}
@@ -319,57 +321,49 @@ void vandermondeTime(complex_t *Vand, double *real, double *imag, int m, int n, 
 	}
 }
 
-int inverse(complex_t *A, int N, int UoL){
+int inverse(complex_t *A, int N, char *UoL){
 	/*
-	Compute the lower Cholesky factorization of A
+	Compute the inverse of A
 	*/
 	int info;
-	if(UoL == 0){
-		info = LAPACKE_ztrtri(
-			LAPACK_ROW_MAJOR, // int  		matrix_layout
-		 	'U', //char			Decide if the Upper or the Lower triangle of A are stored
-			'N', //int			Decide if is non Unitary or Unitary A
-		  	N, //int			Order of A
-				A, //complex	Matrix A to decompose (works as input and output)
-				N //int			Leading dimension of A
-			);
-	}
-	else{
-		info = LAPACKE_ztrtri(
-			LAPACK_ROW_MAJOR, // int  		matrix_layout
-		 	'L', //char			Decide if the Upper or the Lower triangle of A are stored
-			'N', //int			Decide if is non Unitary or Unitary A
-		  	N, //int			Order of A
-				A, //complex	Matrix A to decompose (works as input and output)
-				N //int			Leading dimension of A
-			);
-	}
+	info = LAPACKE_ztrtri(
+		LAPACK_ROW_MAJOR, // int  		matrix_layout
+		*UoL,             //char		Decide if the Upper or the Lower triangle of A are stored
+		'N', 			  //int			Decide if is non Unitary or Unitary A
+		N, 				  //int			Order of A
+		A, 				  //complex		Matrix A to decompose (works as input and output)
+		N 				  //int			Leading dimension of A
+	);
 	return info;
 }
 
-int cmp(const void *a, const void *b)
-{
-    struct array_index *a1 = (struct array_index *)a;
-    struct array_index *a2 = (struct array_index *)b;
-    if ((*a1).value > (*a2).value)
-        return -1;
-    else if ((*a1).value < (*a2).value)
-        return 1;
-    else
-        return 0;
+int compare_complex(const void* a, const void* b) {
+    complex_t c1 = *(complex_t*)a;
+    complex_t c2 = *(complex_t*)b;
+    double diff = cabs(c1) - cabs(c2);
+    if (diff > 0) return 1;
+    else if (diff < 0) return -1;
+    else return 0;
 }
 
-void index_sort(double *v, int *index, int n){
-    int i;
-		struct array_index *objects = malloc(n*sizeof(struct array_index));
-		for (i = 0; i < n; ++i){
-        objects[i].value = v[i];
-        objects[i].index = i;
+void sort_complex_array(complex_t *v, int *index, int n){
+	/*
+	Returns the ordered indexes of a complex array according to the absolute value of its elements
+	*/
+	complex_t *w;
+	int i;
+	int j;
+	w = (complex_t*)malloc(n*sizeof(complex_t));
+	memcpy(w, v, n*sizeof(complex_t));
+    qsort(w, n, sizeof(complex_t), compare_complex);
+	
+    for (i = 0; i < n; i++) {
+		for (j = 0; j < n; j++) {
+            if ((creal(v[i]) == creal(w[j])) & (cimag(v[i]) == cimag(w[j]))) {
+                index[i] = j;
+                break;
+            }
+        }
     }
-		qsort(objects, n, sizeof(objects[0]), cmp);
-		for(i = 0; i < n; ++i){
-			v[i]     = objects[i].value;
-			index[i] = objects[i].index;
-		}
-		free(objects);
+	free(w);
 }

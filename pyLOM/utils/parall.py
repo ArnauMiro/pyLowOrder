@@ -11,10 +11,23 @@ import sys, mpi4py, numpy as np
 mpi4py.rc.recv_mprobe = False
 from mpi4py import MPI
 
-# MPI basics
-MPI_COMM = MPI.COMM_WORLD      # Communications macro
-MPI_RANK = MPI_COMM.Get_rank() # Who are you? who? who?
-MPI_SIZE = MPI_COMM.Get_size() # Total number of processors used (workers)
+MPI_COMM = MPI.COMM_WORLD
+MPI_RANK = MPI_COMM.Get_rank()
+MPI_SIZE = MPI_COMM.Get_size()
+
+MPI_RDONLY = MPI.MODE_RDONLY
+MPI_WRONLY = MPI.MODE_WRONLY
+MPI_CREATE = MPI.MODE_CREATE
+
+
+# Expose functions from MPI library
+mpi_create_op = MPI.Op.Create
+mpi_wtime     = MPI.Wtime
+mpi_file_open = MPI.File.Open
+
+mpi_nanmin = mpi_create_op(lambda v1,v2,dtype : np.nanmin([v1,v2]),commute=True)
+mpi_nanmax = mpi_create_op(lambda v1,v2,dtype : np.nanmax([v1,v2]),commute=True)
+mpi_nansum = mpi_create_op(lambda v1,v2,dtype : np.nansum([v1,v2]),commute=True)
 
 
 def worksplit(istart,iend,whoAmI,nWorkers=MPI_SIZE):
@@ -53,7 +66,8 @@ def writesplit(npoints,write_master):
 	if MPI_RANK == rstart:
 		# send to next where to start writing
 		istart, iend = 0, npoints
-		mpi_send(iend,dest=MPI_RANK+1) 
+		offset = 0
+		mpi_send(iend,dest=MPI_RANK+1)
 	elif MPI_RANK == MPI_SIZE-1:
 		# recive from the previous where to start writing
 		istart = mpi_recv(source=MPI_RANK-1) 
@@ -71,7 +85,7 @@ def split(array,root=0):
 	'''
 	Split an array among the processors
 	'''
-	return np.vsplit(array,MPI_SIZE) if MPI_RANK==root else None
+	return np.vsplit(array,[worksplit(0,array.shape[0],i)[1] for i in range(MPI_SIZE-1)]) if MPI_RANK==root else None
 
 
 def is_rank_or_serial(root=0):
@@ -80,6 +94,13 @@ def is_rank_or_serial(root=0):
 	in case of a serial run
 	'''
 	return MPI_RANK == root or MPI_SIZE == 1
+
+
+def mpi_barrier():
+	'''
+	Implements the barrier
+	'''
+	MPI_COMM.Barrier()
 
 
 def mpi_send(f,dest,tag=0):
@@ -118,20 +139,28 @@ def mpi_gather(sendbuff,root=0,all=False):
 	Gather an array from all the processors.
 	'''
 	if MPI_SIZE > 1:
+		if not isinstance(sendbuff,np.ndarray) and not isinstance(sendbuff,list): sendbuff = [sendbuff]
 		if all:
-			return np.vstack(MPI_COMM.allgather(sendbuff))
+			out = np.array(MPI_COMM.allgather(sendbuff))
+			return np.concatenate(out,axis=0)
 		else:
-			out = MPI_COMM.gather(sendbuff,root=root)
-			return np.vstack(out) if MPI_RANK == root else None
+			out = np.array(MPI_COMM.gather(sendbuff,root=root))
+			return np.concatenate(out,axis=0) if MPI_RANK == root else None
 	return sendbuff
 
 
 def mpi_reduce(sendbuff,root=0,op='sum',all=False):
+	'''
+	Reduce an array from all the processors.
+	'''
 	if MPI_SIZE > 1:
 		if isinstance(op,str):
-			if 'sum' in op: opf = MPI.SUM
-			if 'max' in op: opf = MPI.MAX
-			if 'min' in op: opf = MPI.MIN
+			if 'sum'    in op: opf = MPI.SUM
+			if 'max'    in op: opf = MPI.MAX
+			if 'min'    in op: opf = MPI.MIN
+			if 'nanmin' in op: opf = mpi_nanmin
+			if 'nanmax' in op: opf = mpi_nanmax
+			if 'nansum' in op: opf = mpi_nansum
 		else:
 			opf = op
 		if all:
@@ -141,6 +170,13 @@ def mpi_reduce(sendbuff,root=0,op='sum',all=False):
 			return out if root == MPI_RANK else sendbuff
 	else:
 		return sendbuff
+
+
+def mpi_bcast(sendbuff,root=0):
+	'''
+	Implements the broadcast operation
+	'''
+	return MPI_COMM.bcast(sendbuff,root=root)
 
 
 def pprint(rank,*args,**kwargs):

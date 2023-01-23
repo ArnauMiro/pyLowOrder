@@ -9,7 +9,9 @@ from __future__ import print_function, division
 
 import numpy as np
 
-from ..utils.cr  import cr_start, cr_stop
+from ..utils.cr     import cr_start, cr_stop
+from ..utils.parall import MPI_RANK, MPI_SIZE, MPI_COMM, MPI_RDONLY, MPI_WRONLY, MPI_CREATE
+from ..utils.parall import mpi_file_open, worksplit, mpi_reduce, mpi_bcast
 
 
 ## HELPER FUNCTIONS ##
@@ -39,9 +41,9 @@ def elnod(eltype):
 def isBinary(fname):
 	f = open(fname,'r')
 	try:
-		f.readline()
+		a = f.readline()
 		f.close()
-		return False
+		return True if '\x00' in a else False
 	except:
 		f.close()
 		return True
@@ -49,67 +51,72 @@ def isBinary(fname):
 
 ## FUNCTIONS ##
 
-def Ensight_readCase(fname):
+def Ensight_readCase(fname,rank=MPI_RANK):
 	'''
 	Read an Ensight Gold case file.
 	'''
 	cr_start('EnsightIO.readCase',0)
-	# Open file for reading
-	f     = open(fname,'r')
-	lines = [line.strip() for line in f.readlines() if not '#' in line and not len(line.strip())==0]
-	# Variables section
-	idstart = lines.index('VARIABLE')+1
-	idend   = lines.index('TIME')
-	varList = []
-	for ii in range(idstart,idend):
-		varList.append({})
-		# Name
-		varList[-1]['name'] = lines[ii].split()[-2]
-		# Dimensions
-		varList[-1]['dims'] = -1 
-		if 'scalar'      in lines[ii]: varList[-1]['dims'] = 1
-		if 'vector'      in lines[ii]: varList[-1]['dims'] = 3
-		if 'tensor symm' in lines[ii]: varList[-1]['dims'] = 6
-		if 'tensor asym' in lines[ii]: varList[-1]['dims'] = 9
-		# File
-		varList[-1]['file'] = lines[ii].split()[-1]
-	# Timesteps
-	idstart   = lines.index('TIME') + 6
-	idend     = len(lines)
-	timesteps = np.array([float(l) for ii in range(idstart,idend) for l in lines[ii].split()],dtype=np.double) 
-	# Close file
-	f.close()
+	# Only one rank reads the file
+	if MPI_RANK == rank or MPI_SIZE == 1:
+		# Open file for reading
+		f     = open(fname,'r')
+		lines = [line.strip() for line in f.readlines() if not '#' in line and not len(line.strip())==0]
+		# Variables section
+		idstart = lines.index('VARIABLE')+1
+		idend   = lines.index('TIME')
+		varList = []
+		for ii in range(idstart,idend):
+			varList.append({})
+			# Name
+			varList[-1]['name'] = lines[ii].split()[-2]
+			# Dimensions
+			varList[-1]['dims'] = -1 
+			if 'scalar'      in lines[ii]: varList[-1]['dims'] = 1
+			if 'vector'      in lines[ii]: varList[-1]['dims'] = 3
+			if 'tensor symm' in lines[ii]: varList[-1]['dims'] = 6
+			if 'tensor asym' in lines[ii]: varList[-1]['dims'] = 9
+			# File
+			varList[-1]['file'] = lines[ii].split()[-1]
+		# Timesteps
+		idstart   = lines.index('TIME') + 6
+		idend     = len(lines)
+		timesteps = np.array([float(l) for ii in range(idstart,idend) for l in lines[ii].split()],dtype=np.double) 
+		# Close file
+		f.close()
+	# Broadcast to other ranks if needed
+	if MPI_SIZE > 1:
+		varList, timesteps = mpi_bcast((varList,timesteps),rank=rank)
 	# Return
 	cr_stop('EnsightIO.readCase',0)
 	return varList, timesteps
 
-def Ensight_writeCase(fname,geofile,varList,timesteps):
+def Ensight_writeCase(fname,geofile,varList,timesteps,rank=MPI_RANK):
 	'''
 	Write an Ensight Gold case file.
 	'''
 	cr_start('EnsightIO.writeCase',0)
-	# Open file for writing
-	f = open(fname,'w')
-	f.write('FORMAT\ntype: ensight gold\n\nGEOMETRY\nmodel: 1  %s\n\nVARIABLE\n'%geofile)
-	# Variables section
-	for var in varList:
-		dims = 'scalar' if var['dims'] == 1 else 'vector'
-		if var['dims'] == 6: dims = 'tensor symm' 
-		if var['dims'] == 9: dims = 'tensor asym' 
-		f.write('%s per %s:  1   %s  %s\n'%(dims,'node' if var['point'] else 'element',var['name'],var['file']))
-	# Timesteps
-	f.write('\nTIME\n')
-	f.write('time set:              1\n')
-	f.write('number of steps:       %d\n'%timesteps.shape[0])
-	f.write('filename start number: 1\n')
-	f.write('filename increment:    1\n')
-	f.write('time values:\n')
-	timesteps.tofile(f,sep='\n',format='%f')
-	# Close file
-	f.close()
-	# Return
+	# Only one rank writes the file
+	if MPI_RANK == rank or MPI_SIZE == 1:
+		# Open file for writing
+		f = open(fname,'w')
+		f.write('FORMAT\ntype: ensight gold\n\nGEOMETRY\nmodel: 1  %s\n\nVARIABLE\n'%geofile)
+		# Variables section
+		for var in varList:
+			dims = 'scalar' if var['dims'] == 1 else 'vector'
+			if var['dims'] == 6: dims = 'tensor symm' 
+			if var['dims'] == 9: dims = 'tensor asym' 
+			f.write('%s per node:  1   %s  %s\n'%(dims,var['name'],var['file']))
+		# Timesteps
+		f.write('\nTIME\n')
+		f.write('time set:              1\n')
+		f.write('number of steps:       %d\n'%timesteps.shape[0])
+		f.write('filename start number: 1\n')
+		f.write('filename increment:    1\n')
+		f.write('time values:\n')
+		timesteps.tofile(f,sep='\n',format='%f')
+		# Close file
+		f.close()
 	cr_stop('EnsightIO.writeCase',0)
-	return varList, timesteps
 
 
 def Ensight_readGeo(fname):
@@ -117,7 +124,10 @@ def Ensight_readGeo(fname):
 	Read an Ensight Gold Geometry file in either
 	ASCII or binary format.
 	'''
-	return Ensight_readGeoBIN(fname) if isBinary(fname) else Ensight_readGeoASCII(fname)
+	# Select which function to run
+	readGeo = Ensight_readGeoBIN if isBinary(fname) else Ensight_readGeoASCII
+	# Run function
+	return readGeo(fname)
 
 def Ensight_readGeoBIN(fname):
 	'''
@@ -293,12 +303,16 @@ def Ensight_writeGeo(fname,xyz,conec,header):
 	cr_stop('EnsightIO.writeGeo',0)
 
 
-def Ensight_readField(fname,dims=1,nnod=-1):
+def Ensight_readField(fname,dims=1,nnod=-1,parallel=False):
 	'''
 	Read an Ensight Gold field file in either
 	ASCII or binary format.
 	'''
-	return Ensight_readFieldBIN(fname,dims,nnod) if isBinary(fname) else Ensight_readFieldASCII(fname,dims,nnod)
+	if parallel and isBinary(fname):
+		readField = Ensight_readFieldMPIO
+	else:
+		readField = Ensight_readFieldBIN if isBinary(fname) else Ensight_readFieldASCII
+	return readField(fname,dims,nnod)
 
 def Ensight_readFieldBIN(fname,dims=1,nnod=-1):
 	'''
@@ -360,7 +374,59 @@ def Ensight_readFieldASCII(fname,dims=1,nnod=-1):
 	cr_stop('EnsightIO.readField',0)
 	return np.ascontiguousarray(field) if dims == 1 else np.ascontiguousarray(field.reshape((field.shape[0]//dims,dims),order='F')), header
 
-def Ensight_writeField(fname,field,header):
+def Ensight_readFieldMPIO(fname,dims=1,nnod=-1):
+	'''
+	ENSIGHT GOLD SCALAR
+	from: http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf
+	
+	BEGIN TIME STEP
+	description line 1          80 chars
+	part                        80 chars
+	#                            1 int
+	block                       80 chars
+	s_n1 s_n2 ... s_nn          nn floats	
+	'''
+	cr_start('EnsightIO.readField',0)
+	# Open file for reading
+	f = mpi_file_open(MPI_COMM,fname,MPI_RDONLY)
+	# Read Ensight header
+	header_sz  = 80*3+4  # 3 80 bytes char + 4 byte integer
+	header_bin = np.ndarray((header_sz,),dtype='b')
+	f.Read_at_all(0,header_bin)
+	header_bin = bytes(header_bin.view('S%d'%header_sz))
+	# Parse the header
+	header = {}
+	header['descr']  = bin_to_str(header_bin[:80])         # Description
+	header['partID'] = bin_to_int(header_bin[2*80:2*80+4]) # Part ID
+#	header['partNM'] = bin_to_str(header_bin[2*80+4:3*80]) # Part name 
+	# Use a simple worksplit to see where everyone reads
+	istart,iend = worksplit(0,nnod,MPI_RANK,nWorkers=MPI_SIZE)
+	# Create flattened output array
+	field = np.ndarray(((iend-istart),dims) if dims > 1 else ((iend-istart),),np.double)
+	# Read the field
+	if dims > 1:
+		for idim in range(dims):
+			aux = np.ndarray((iend-istart,),np.float32)
+			f.Read_at(header_sz+(istart+idim*nnod)*4,aux)
+			field[:,idim] = np.ascontiguousarray(aux)
+	else:
+		f.Read_at(header_sz+istart*4,field)
+		field = np.ascontiguousarray(field)		
+	# Close the field
+	f.Close()
+	# Return
+	cr_stop('EnsightIO.readField',0)
+	return field, header
+
+
+def Ensight_writeField(fname,field,header,parallel=False):
+	'''
+	Write an Ensight Gold field file in binary format.
+	'''
+	writeField = Ensight_writeFieldBIN if not parallel else Ensight_writeFieldMPIO
+	return writeField(fname,field,header)
+
+def Ensight_writeFieldBIN(fname,field,header):
 	'''
 	ENSIGHT GOLD SCALAR
 	from: http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf
@@ -379,7 +445,7 @@ def Ensight_writeField(fname,field,header):
 	header_bin  = str_to_bin(header['descr'])
 	header_bin += str_to_bin('part')
 	header_bin += int_to_bin(header['partID'])
-	header_bin += str_to_bin(header['eltype'])
+	header_bin += str_to_bin('coordinates')
 	f.write(header_bin)
 	# Write the field
 	nrows = field.shape[0]
@@ -387,4 +453,42 @@ def Ensight_writeField(fname,field,header):
 	field.astype(np.float32).reshape((ncols*nrows,),order='F').tofile(f)
 	# Close the field
 	f.close()
+	cr_stop('EnsightIO.writeField',0)
+
+def Ensight_writeFieldMPIO(fname,field,header):
+	'''
+	ENSIGHT GOLD SCALAR
+	from: http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf
+	
+	BEGIN TIME STEP
+	description line 1          80 chars
+	part                        80 chars
+	#                            1 int
+	block                       80 chars
+	s_n1 s_n2 ... s_nn          nn floats	
+	'''
+	cr_start('EnsightIO.writeField',0)
+	# Open file for writing
+	f = mpi_file_open(MPI_COMM,fname,MPI_WRONLY|MPI_CREATE)
+	# Write Ensight header
+	header_sz   = 80*3+4  # 3 80 bytes char + 4 byte integer
+	header_bin  = str_to_bin(header['descr'])
+	header_bin += str_to_bin('part')
+	header_bin += int_to_bin(header['partID'])
+	header_bin += str_to_bin('coordinates')
+	f.Write_at_all(0,np.frombuffer(header_bin,np.int8))
+	# Obtain the total number of nodes
+	nrows  = field.shape[0]
+	ncols  = 1 if len(field.shape) == 1 else field.shape[1]
+	nrowsT = mpi_reduce(nrows,op='sum',all=True)
+	# Worksplit
+	istart, iend = worksplit(0,nrowsT,MPI_RANK,nWorkers=MPI_SIZE)
+	# Write the field
+	if ncols == 1:
+		f.Write_at(header_sz+istart*4,field.astype(np.float32))
+	else:
+		for icol in range(ncols):
+			f.Write_at(header_sz+(istart+icol*ncols)*4,field[:,icol].astype(np.float32))
+	# Close the field
+	f.Close()
 	cr_stop('EnsightIO.writeField',0)

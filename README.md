@@ -1,6 +1,10 @@
+[![Build status](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions/workflows/build_intel.yml/badge.svg)](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions)
+[![Build status](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions/workflows/build_gcc.yml/badge.svg)](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions)
+[![License](https://img.shields.io/badge/license-GPL--3.0-orange)](https://opensource.org/licenses/GPL-3.0)
+
 # UPM-BSC Low Order Modelling library
 
-This tool is a port of the POD/DMD of the tools from UPM in MATLAB to C/C++ using a python interface.
+This tool is a port of the POD/DMD of the tools from UPM in MATLAB to C/C++ using a python interface. So far POD and DMD are fully implemented and work is being done to bring sPOD and hoDMD inside the tool.
 
 ## Deployment
 
@@ -75,3 +79,39 @@ or make sure that the environment variable **HDF5_DIR** is pointing to your *hdf
 ```bash
 CC=mpicc HDF5_MPI="ON" pip install --no-binary=h5py h5py
 ```
+
+## Cite the repo!
+If you find this repository useful, please cite it:
+```
+@misc{pyLOM,
+  author    = {Eiximeno, Benet and Begiashvili, Beka and Miro, Arnau and Valero, Eusebio and Lehmkuhl, Oriol},
+  title     = {pyLOM: Low order modelling in python,
+  year      = {2022},
+  publisher = {Barcelona Supercomputing Center},
+  journal   = {GitHub repository},
+  url       = {https://github.com/ArnauMiro/UPM_BSC_LowOrder},
+}
+```
+The POD formulation used in this tool can be found in the following paper:
+
+Eiximeno, B., Miró, A., Cajas, J.C., Lehmkuhl, O., Rodriguez, I., 2022. On the Wake Dynamics of an Oscillating Cylinder via Proper Orthogonal Decomposition. Fluids 7, 292. https://doi.org/10.3390/fluids7090292
+
+<details><summary>Bibtex</summary>
+<p>
+	
+```
+@article{eiximeno_wake_2022,
+	title = {On the {Wake} {Dynamics} of an {Oscillating} {Cylinder} via {Proper} {Orthogonal} {Decomposition}},
+	volume = {7},
+	issn = {2311-5521},
+	doi = {10.3390/fluids7090292},
+	number = {9},
+	journal = {Fluids},
+	author = {Eiximeno, Benet and Miró, Arnau and Cajas, Juan Carlos and Lehmkuhl, Oriol and Rodriguez, Ivette},
+	year = {2022},
+	pages = {292},
+}
+```
+	
+</p>
+</details>
