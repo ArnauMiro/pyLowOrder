@@ -24,8 +24,14 @@ ELTYPE2ENSI = {
 	'HEX08' : 'hexa8'
 }
 ELTYPE2VTK = {
+	'NONE0' : 0,
+	'TRI03' : 5,
+	'QUA04' : 9,
+	'TET04' : 10,
+	'PEN06' : 13,
+	'PYR05' : 14,
+	'HEX08' : 12
 }
-
 
 def mesh_number_of_points(point,meshDict):
 	'''
@@ -46,7 +52,11 @@ def mesh_element_type(meshDict,fmt):
 	'''
 	if meshDict['type'].lower() in STRUCT2D: return 'quad4'
 	if meshDict['type'].lower() in STRUCT3D: return 'hexa8'
-	if meshDict['type'].lower() in UNSTRUCT: return ELTYPE2VTK[meshDict['eltype']] if 'vtk' in fmt else ELTYPE2ENSI[meshDict['eltype']]
+	if meshDict['type'].lower() in UNSTRUCT:
+		if isinstance(meshDict['eltype'],np.ndarray) or isinstance(meshDict['eltype'],list):
+			return np.array([ELTYPE2VTK[t] for t in meshDict['eltype']],np.uint8)
+		else:
+			return ELTYPE2VTK[meshDict['eltype']] if 'vtk' in fmt else ELTYPE2ENSI[meshDict['eltype']]
 
 
 def mesh_compute_connectivity(xyz,meshDict):
@@ -68,7 +78,6 @@ def mesh_compute_connectivity(xyz,meshDict):
 		conec[:,1] = idx2[:-1,1:].ravel()
 		conec[:,2] = idx2[1:,1:].ravel()
 		conec[:,3] = idx2[1:,:-1].ravel()
-		conec     += 1 # Python index start at 0
 	# Connectivity for a 3D mesh
 	if meshDict['type'].lower() in STRUCT3D: 
 		nx, ny, nz = meshDict['nx'], meshDict['ny'], meshDict['nz']
@@ -85,12 +94,11 @@ def mesh_compute_connectivity(xyz,meshDict):
 		conec[:,5] = idx2[1:,:-1,1:].ravel()
 		conec[:,6] = idx2[1:,1:,1:].ravel()
 		conec[:,7] = idx2[1:,1:,:-1].ravel()
-		conec     += 1 # Python index start at 0
 	# Connectivity for a unstructured mesh
 	if meshDict['type'].lower() in UNSTRUCT: 
 		idx   = np.arange(meshDict['nnod'],dtype=np.int32)
 		conec = meshDict['conec']
-	return conec#, idx
+	return conec
 
 
 def mesh_compute_cellcenter(xyz,meshDict):

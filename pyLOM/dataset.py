@@ -301,7 +301,7 @@ def EnsightWriter(dset,casestr,basedir,instants,varnames):
 		'eltype' : mesh_element_type(dset.mesh,'ensi')
 	}
 	# Write geometry file
-	conec = mesh_compute_connectivity(dset.xyz,dset.mesh)
+	conec = mesh_compute_connectivity(dset.xyz,dset.mesh) + 1 # Python index start at 0
 	io.Ensight_writeGeo(geofile,dset.xyz,conec,header)
 	# Write instantaneous fields
 	binfile_fmt = '%s.ensi.%s-%06d'
@@ -331,3 +331,38 @@ def EnsightWriter(dset,casestr,basedir,instants,varnames):
 			# Reshape variable for Ensight file
 			f = mesh_reshape_var(field,dset.mesh,info)
 			io.Ensight_writeField(filename,f,header)
+
+def VTKHDF5Writer(dset,casestr,basedir,instants,varnames):
+	'''
+	Ensight dataset writer
+	'''
+	# Create the filename 
+	filename = os.path.join(basedir,'%s-%08d-vtk.hdf')
+	# Compute connectivity and element type
+	conec  = mesh_compute_connectivity(dset.xyz,dset.mesh)
+	eltype = mesh_element_type(dset.mesh,'vtk')
+	if len(eltype) == 1: eltype = eltype*np.ones((conec.shape[0],),np.int32)
+	# Write the mesh on the file
+	io.vtkh5_save_mesh(filename,dset.xyz,conec,eltype)
+
+
+#
+#	# Loop the selected instants
+#	for var in varnames:
+#		# Recover variable information
+#		info  = dset.info(var)
+#		field = dset[var]
+#		# Variable has temporal evolution
+#		header['eltype'] = 'coordinates' if info['point'] else mesh_element_type(dset.mesh,'ensi')
+#		if len(field.shape) > 1:
+#			# Loop requested instants
+#			for instant in instants:
+#				filename = os.path.join(basedir,binfile_fmt % (casestr,var,instant+1))
+#				# Reshape variable for Ensight file
+#				f = mesh_reshape_var(field[:,instant],dset.mesh,info)
+#				io.Ensight_writeField(filename,f,header)
+#		else:
+#			filename = os.path.join(basedir,binfile_fmt % (casestr,var,1))
+#			# Reshape variable for Ensight file
+#			f = mesh_reshape_var(field,dset.mesh,info)
+#			io.Ensight_writeField(filename,f,header)

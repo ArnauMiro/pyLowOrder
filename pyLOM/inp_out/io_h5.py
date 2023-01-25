@@ -11,7 +11,7 @@ import numpy as np, h5py
 
 from ..utils.parall import MPI_COMM, MPI_RANK, MPI_SIZE, worksplit, writesplit, is_rank_or_serial, mpi_reduce, mpi_gather
 from ..utils.errors import raiseError
-from ..utils.mesh   import STRUCT2D, STRUCT3D, UNSTRUCT, mesh_number_of_points
+from ..utils.mesh   import STRUCT2D, STRUCT3D, UNSTRUCT
 
 
 def h5_save(fname,xyz,time,pointOrder,cellOrder,meshDict,varDict,mpio=True,write_master=True):
