@@ -381,6 +381,7 @@ def tsqr(Ai):
 		Q(m,n) is the Q matrix
 		R(n,n) is the R matrix
 	'''
+	#TO DO: Arnau arreglar data types
 	cr_start('math.tsqr',0)
 	if np.iscomplex(Ai).any():
 		Qi, R = _complex_tsqr(Ai)
