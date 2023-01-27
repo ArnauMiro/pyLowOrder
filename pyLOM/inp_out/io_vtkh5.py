@@ -64,23 +64,20 @@ def _vtkh5_write_mesh_serial(file,xyz,lnods,ltype):
 	# Return some parameters
 	return npoints, ncells 
 
-def _vtkh5_write_mesh_mpio(file,xyz,lnods,ltype):
+def _vtkh5_write_mesh_mpio(file,xyz,lnods,ltype, ptable):
 	'''
 	Write the mesh and the connectivity to the VTKH5 file.
 	'''
 	myrank, nparts  = MPI_RANK, MPI_SIZE
 	# Create datasets for point data
-	istartp, iendp = writesplit(xyz.shape[0],True)
-	npoints = xyz.shape[0]                                # Number of points of this partition
-	npG     = int(mpi_reduce(npoints,op='sum',all=True)) # Total number of points
+	npoints      = xyz.shape[0]                               # Number of points of this partition
+	npG          = int(mpi_reduce(npoints,op='sum',all=True)) # Total number of points
 	npoints_dset = file.create_dataset('NumberOfPoints',(nparts,),dtype=int)
 	points_dset  = file.create_dataset('Points',(npG,3),dtype=np.double)
 	# Create datasets for cell data
 	lnods, offsets  = _vtkh5_connectivity_and_offsets(lnods)
 	ncells, ncsize  = ltype.shape[0], lnods.shape[0]
-	ncG, nsG  = int(mpi_reduce(ncells,op='sum',all=True)), int(mpi_reduce(ncsize,op='sum',all=True))
-	istartc,iendc = writesplit(ltype.shape[0],True)
-	istarts,iends = writesplit(lnods.shape[0],True)
+	ncG, nsG    = int(mpi_reduce(ncells,op='sum',all=True)), int(mpi_reduce(ncsize,op='sum',all=True))
 	ncells_dset = file.create_dataset('NumberOfCells',(nparts,),dtype=int)
 	nids_dset   = file.create_dataset('NumberOfConnectivityIds',(nparts,),dtype=int)
 	conec_dset  = file.create_dataset('Connectivity',(nsG,),dtype=int)
@@ -88,25 +85,29 @@ def _vtkh5_write_mesh_mpio(file,xyz,lnods,ltype):
 	types_dset  = file.create_dataset('Types',(ncG,),dtype=np.uint8)
 	# Each partition writes its own part
 	# Point data
-	npoints_dset[myrank]         = npoints
-	points_dset[istartp:iendp,:] = xyz
+	istart, iend = ptable.partition_bounds(myrank,points=True)
+	npoints_dset[myrank]       = npoints
+	points_dset[istart:iend,:] = xyz
 	# Cell data
+	istart, iend = ptable.partition_bounds(myrank,points=False)
 	ncells_dset[myrank] = ncells
 	nids_dset[myrank]   = ncsize
-	conec_dset[istarts:iends] = lnods
-	offst_dset[istartc+myrank:iendc+(myrank+1)] = offsets
-	types_dset[istartc:iendc] = ltype
+	offst_dset[istart+myrank:iend+(myrank+1)] = offsets
+	types_dset[istart:iend] = ltype
+	# Connectivity
+	istart,iend = writesplit(lnods.shape[0],True)
+	conec_dset[istart:iend] = lnods
 	# Return some parameters
 	return npG, ncG
 
-def vtkh5_save_mesh(fname,xyz,lnods,ltype,mpio=True):
+def vtkh5_save_mesh(fname,mesh,ptable,mpio=True):
 	'''
 	Save the mesh component into a VTKH5 file
 	'''
 	if mpio and not MPI_SIZE == 1:
-		vtkh5_save_mesh_mpio(fname,xyz,lnods,ltype)
+		vtkh5_save_mesh_mpio(fname,mesh.xyz,mesh.connectivity,mesh.eltype2VTK,ptable)
 	else:
-		vtkh5_save_mesh_serial(fname,xyz,lnods,ltype)
+		vtkh5_save_mesh_serial(fname,mesh.xyz,mesh.connectivity,mesh.eltype2VTK)
 
 def vtkh5_save_mesh_serial(fname,xyz,lnods,ltype):
 	'''
@@ -121,26 +122,26 @@ def vtkh5_save_mesh_serial(fname,xyz,lnods,ltype):
 	# Close file
 	file.close()
 
-def vtkh5_save_mesh_mpio(fname,xyz,lnods,ltype,write_master):
+def vtkh5_save_mesh_mpio(fname,xyz,lnods,ltype,ptable):
 	'''
 	Save the mesh component into a VTKH5 file (serial)
 	'''
 	# Open file for writing
 	file = h5py.File(fname,'w',driver='mpio',comm=MPI_COMM)
 	# Create the file structure
-	main, _, _, _ = _vtkh5_create_structure(file)
+	main = _vtkh5_create_structure(file)
 	# Write the mesh
-	_vtkh5_write_mesh_mpio(main,xyz,lnods,ltype,write_master)
+	_vtkh5_write_mesh_mpio(main,xyz,lnods,ltype,ptable)
 	# Close file
 	file.close()
 
 
-def vtkh5_save_field(fname,instant,time,varDict,mpio=True,write_master=False):
+def vtkh5_save_field(fname,instant,time,varDict,ptable,mpio=True):
 	'''
 	Save the mesh component into a VTKH5 file
 	'''
 	if mpio and not MPI_SIZE == 1:
-		vtkh5_save_field_mpio(fname,instant,time,varDict,write_master)
+		vtkh5_save_field_mpio(fname,instant,time,varDict,ptable)
 	else:
 		vtkh5_save_field_serial(fname,instant,time,varDict)
 
@@ -164,11 +165,11 @@ def vtkh5_save_field_serial(fname,instant,time,varDict):
 	# Close file
 	file.close()
 
-def vtkh5_save_field_mpio(fname,instant,time,varDict,write_master):
+def vtkh5_save_field_mpio(fname,instant,time,varDict,ptable):
 	'''
 	Save the mesh component into a VTKH5 file (serial)
 	'''
-	myrank = MPI_RANK - 1 if not write_master else MPI_RANK     # Discard the master if needed
+	myrank = MPI_RANK
 	# Open file for writing
 	file = h5py.File(fname,'a',driver='mpio',comm=MPI_COMM)
 	main = file['VTKHDF']
@@ -180,18 +181,15 @@ def vtkh5_save_field_mpio(fname,instant,time,varDict,write_master):
 	dsets = {}
 	for var in varDict.keys():
 		group   = mpi_bcast('PointData' if varDict[var].shape[0] == npoints else 'CellData',root=1)
-		npoints = 0 if MPI_RANK == 0 and not write_master else varDict[var].shape[0] # Number of points of this partition
-		npG     = int(mpi_reduce(npoints,op='sum',all=True)) # Total number of points
-		nsize   = 0 if len(varDict[var].shape) == 1 or (MPI_RANK == 0 and not write_master) else varDict[var].shape[1]
-		nsizeG  = int(mpi_reduce(nsize,op='max',all=True))
-		dsets[var] = main[group].create_dataset(var,(npG,) if nsizeG == 0 else (npG,nsizeG),dtype=varDict[var].dtype)
+		npG     = int(mpi_reduce(varDict[var].shape[0],op='sum',all=True)) # Total number of points
+		nsizeG  = int(mpi_reduce(varDict[var].shape[1] if len(varDict[var].shape) > 1 else 0,op='max',all=True))
+		dsets[var] = main[group].create_dataset(var,(npG,) if nsizeG == 0 else (npG,nsizeG) if nsizeG > 0 else (npG,),dtype=varDict[var].dtype)
 	# Write the variables
-	if MPI_RANK != 0 or write_master:
-		for var in varDict.keys():
-			istart,iend = writesplit(varDict[var].shape[0],write_master)
-			if len(varDict[var].shape) == 1: # Scalar field
-				dsets[var][istart:iend] = varDict[var]
-			else: # Vectorial or tensorial field
-				dsets[var][istart:iend,:] = varDict[var]
+	for var in varDict.keys():
+		istart, iend = ptable.partition_bounds(myrank,points=True if varDict[var].shape[0] == npoints else False)
+		if len(varDict[var].shape) == 1: # Scalar field
+			dsets[var][istart:iend] = varDict[var]
+		else: # Vectorial or tensorial field
+			dsets[var][istart:iend,:] = varDict[var]
 	# Close file
 	file.close()
