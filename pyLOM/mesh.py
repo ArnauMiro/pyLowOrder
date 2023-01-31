@@ -140,6 +140,7 @@ class Mesh(object):
 		'''
 		Reshape a variable according to the mesh
 		'''
+		cr_start('mesh reshape',0)
 		# Obtain number of points from the mesh
 		npoints = self.size(info['point'])
 		# Only reshape the variable if ndim > 1
@@ -147,6 +148,7 @@ class Mesh(object):
 		# Build 3D vector in case of 2D array
 		if self.type == 'STRUCT2D' and info['ndim'] == 2:
 			out = np.hstack((out,np.zeros((npoints,1))))
+		cr_stop('mesh reshape',0)
 		return out
 
 	@classmethod
