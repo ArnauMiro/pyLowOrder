@@ -322,7 +322,7 @@ def h5_load_POD(fname,vars,ptable=None):
 	return varList
 
 
-def h5_save_DMD(fname,muReal,muImag,Phi,bJov,delta,omega,ptable,nvars=1,pointData=True,mode='w'):
+def h5_save_DMD(fname,muReal,muImag,Phi,bJov,ptable,nvars=1,pointData=True,mode='w'):
 	'''
 	Store DMD variables into an HDF5 file.
 	Can be appended to another HDF by setting the
@@ -343,16 +343,12 @@ def h5_save_DMD(fname,muReal,muImag,Phi,bJov,delta,omega,ptable,nvars=1,pointDat
 	dsPhi = group.create_dataset('Phi',Phisz,dtype=Phi.dtype)
 	dsMu  = group.create_dataset('Mu',(muReal.shape[0],2),dtype='f8')
 	dsJov = group.create_dataset('bJov',bJov.shape,dtype=bJov.dtype)
-	dsDel = group.create_dataset('Delta',delta.shape,dtype=delta.dtype)
-	dsOme = group.create_dataset('Omega',omega.shape,dtype=omega.dtype)
 	# Store S and U that are repeated across the ranks
 	# So it is enough that one rank stores them
 	if is_rank_or_serial(0):
 		dsMu[:,0] = muReal
 		dsMu[:,1] = muImag
 		dsJov[:]  = bJov
-		dsDel[:]  = delta
-		dsOme[:]  = omega
 	# Store U in parallel
 	istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=pointData)
 	dsPhi[istart:iend,:] = Phi
@@ -381,8 +377,6 @@ def h5_load_DMD(fname,vars,ptable=None):
 		varList.append( np.array(file['DMD']['Mu'][:,0]) ) # Real
 		varList.append( np.array(file['DMD']['Mu'][:,1]) ) # Imag
 	if 'bJov' in vars: varList.append( np.array(file['DMD']['bJov'][:,:]) )
-	if 'delta' in vars: varList.append( np.array(file['DMD']['Delta'][:]) )
-	if 'omega' in vars: varList.append( np.array(file['DMD']['Omega'][:]) )
 	# Return
 	file.close()
 	return varList

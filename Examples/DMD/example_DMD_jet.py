@@ -26,11 +26,11 @@ Y = X[:,:100].copy()
 muReal,muImag,Phi,bJov = pyLOM.DMD.run(Y,1e-6,remove_mean=False)
 # Compute frequency and damping ratio of the modes
 delta, omega = pyLOM.DMD.frequency_damping(muReal,muImag,dt)
-pyLOM.DMD.save('results.h5',muReal,muImag,Phi,bJov,delta,omega,d.partition_table,nvars=1,pointData=True)
+pyLOM.DMD.save('results.h5',muReal,muImag,Phi,bJov,d.partition_table,nvars=1,pointData=True)
 # Reconstruction according to Jovanovic 2014
 X_DMD = pyLOM.DMD.reconstruction_jovanovic(Phi,muReal,muImag,t,bJov)
 rmse  = pyLOM.math.RMSE(X_DMD.copy(),X.copy())
-print('RMSE = %e' % rmse)
+pyLOM.pprint(0,'RMSE = %e'%rmse)
 
 
 ## DMD plots

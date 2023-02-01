@@ -30,13 +30,13 @@ def extract_modes(Phi,ivar,npoints,real=True,modes=[],reshape=True):
 	return out.reshape((len(modes)*npoints,),order='C') if reshape else out
 
 
-def save(fname,muReal,muImag,Phi,bJov,delta,omega,ptable,nvars=1,pointData=True,mode='w'):
+def save(fname,muReal,muImag,Phi,bJov,ptable,nvars=1,pointData=True,mode='w'):
 	'''
 	Store DMD variables in serial or parallel
 	according to the partition used to compute the DMD.
 	'''
 	cr_start('DMD.save',0)
-	io.h5_save_DMD(fname,muReal,muImag,Phi,bJov,delta,omega,ptable,nvars=nvars,pointData=pointData,mode=mode)
+	io.h5_save_DMD(fname,muReal,muImag,Phi,bJov,ptable,nvars=nvars,pointData=pointData,mode=mode)
 	cr_stop('DMD.save',0)
 
 

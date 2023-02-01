@@ -22,15 +22,16 @@ dt = t[1] - t[0]
 
 
 ## Run DMD
-Y = X[:,:100].copy()
+Y = X[:,:100].copy() # Grab the first 100 and run DMD
 muReal,muImag,Phi,bJov = pyLOM.DMD.run(Y,1e-6,remove_mean=False)
 # Compute frequency and damping ratio of the modes
 delta, omega = pyLOM.DMD.frequency_damping(muReal,muImag,dt)
-pyLOM.DMD.save('results.h5',muReal,muImag,Phi,bJov,delta,omega,d.partition_table,nvars=1,pointData=False)
+pyLOM.DMD.save('results.h5',muReal,muImag,Phi,bJov,d.partition_table,nvars=1,pointData=False)
 # Reconstruction according to Jovanovic 2014
+# Last 50 snapshots are predicted
 X_DMD = pyLOM.DMD.reconstruction_jovanovic(Phi,muReal,muImag,t,bJov)
 rmse  = pyLOM.math.RMSE(X_DMD.copy(),X.copy())
-print('RMSE = %e' % rmse)
+pyLOM.pprint(0,'RMSE = %e'%rmse)
 
 
 ## DMD plots
@@ -51,13 +52,6 @@ pyLOM.DMD.plotMode(Phi,omega,d,1,pointData=False,modes=[1,2,3,4,5,6,7],cpos='xy'
 d.add_variable('VELXR',False,1,t.shape[0],X_DMD)
 d.write('flow',basedir='out/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t,vars=['VELOX','VELXR'],fmt='vtkh5')
 pyLOM.DMD.plotSnapshot(d,vars=['VELXR'],instant=0,cmap='jet',cpos='xy')
-
-# Prediction
-t_new = t[-1] + dt*np.arange(0,100,1,np.double)
-X_DMD = pyLOM.DMD.reconstruction_jovanovic(Phi,muReal,muImag,t_new,bJov)
-d.add_variable('VELNR',False,1,t_new.shape[0],X_DMD)
-d.write('pred',basedir='out/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t_new,vars=['VELNR'],fmt='vtkh5')
-pyLOM.DMD.plotSnapshot(d,vars=['VELNR'],instant=40,cmap='jet',cpos='xy')
 
 
 ## Show and print timings
