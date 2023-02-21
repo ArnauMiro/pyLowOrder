@@ -109,6 +109,20 @@ class PartitionTable(object):
 		cr_stop('ptable new',0)
 		return cls(nparts,ids,elements,points)
 
+	@classmethod
+	def from_pyAlya(cls,ptable):
+		'''
+		Create a partition table from a partition table coming
+		from Alya
+		'''
+		cr_start('ptable fromAlya',0)
+		nparts   = ptable.n_partitions
+		ids      = np.arange(1,nparts+1,np.int32)
+		points   = ptable.Points
+		elements = ptable.Elements
+		cr_stop('ptable fromAlya',0)
+		return cls(nparts,ids,elements,points)		
+
 	@property
 	def n_partitions(self):
 		return self._nparts
