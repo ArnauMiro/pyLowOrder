@@ -92,3 +92,26 @@ If you find this repository useful, please cite it:
   url       = {https://github.com/ArnauMiro/UPM_BSC_LowOrder},
 }
 ```
+The POD formulation used in this tool can be found in the following paper:
+
+Eiximeno, B., Miró, A., Cajas, J.C., Lehmkuhl, O., Rodriguez, I., 2022. On the Wake Dynamics of an Oscillating Cylinder via Proper Orthogonal Decomposition. Fluids 7, 292. https://doi.org/10.3390/fluids7090292
+
+<details><summary>Bibtex</summary>
+<p>
+	
+```
+@article{eiximeno_wake_2022,
+	title = {On the {Wake} {Dynamics} of an {Oscillating} {Cylinder} via {Proper} {Orthogonal} {Decomposition}},
+	volume = {7},
+	issn = {2311-5521},
+	doi = {10.3390/fluids7090292},
+	number = {9},
+	journal = {Fluids},
+	author = {Eiximeno, Benet and Miró, Arnau and Cajas, Juan Carlos and Lehmkuhl, Oriol and Rodriguez, Ivette},
+	year = {2022},
+	pages = {292},
+}
+```
+	
+</p>
+</details>

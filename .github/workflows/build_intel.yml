@@ -3,9 +3,9 @@ run-name: Building pyLOM Intel on branch <${{ github.head_ref }}> to <${{ github
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main", "develop" ]
 
 defaults:
   run:

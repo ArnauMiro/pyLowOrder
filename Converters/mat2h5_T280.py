@@ -28,24 +28,22 @@ tensor = np.ascontiguousarray(np.transpose(mat['Tensor'],(4,3,2,1,0)))
 
 
 ## Build mesh information dictionary
-mesh = {'type':'struct3D','nx':nx,'ny':ny, 'nz':nz}
+mesh = pyLOM.Mesh.new_struct3D(nx+1,ny+1,nz+1,None,None,None,DIMSX,DIMSY,DIMSZ) 
+print(mesh)
 
-# Build node positions
-x = np.linspace(DIMSX[0], DIMSX[1], mesh['nx'])
-y = np.linspace(DIMSY[0], DIMSY[1], mesh['ny'])
-z = np.linspace(DIMSZ[0], DIMSZ[1], mesh['nz'])
-xx, yy, zz = np.meshgrid(x,y,z,indexing='ij')
-xyz = np.zeros((mesh['nx']*mesh['ny']*mesh['nz'],3),dtype=np.double)
-xyz[:,0] = xx.reshape((mesh['nx']*mesh['ny']*mesh['nz'],),order='C')
-xyz[:,1] = yy.reshape((mesh['nx']*mesh['ny']*mesh['nz'],),order='C')
-xyz[:,2] = zz.reshape((mesh['nx']*mesh['ny']*mesh['nz'],),order='C')
 
-# Build time instants
+## Create partition table
+ptable = pyLOM.PartitionTable.new(1,mesh.ncells,mesh.npoints)
+print(ptable)
+
+
+## Build time instants
 time = DT*np.arange(nt) + DT
 time = time[280:400]
 nt   = time.shape[0]
 
-# Obtain 3D velocity field
+
+## Obtain 3D velocity field
 npoints = nx*ny*nz
 VELOC = np.zeros((3*nx*ny*nz,nt),dtype=np.double)
 VELOC[:3*npoints:3,:]  = tensor[0,:,:,:,280:400].reshape((nx*ny*nz,nt),order='C')
@@ -54,10 +52,10 @@ VELOC[2:3*npoints:3,:] = tensor[2,:,:,:,280:400].reshape((nx*ny*nz,nt),order='C'
 
 
 ## Create dataset for pyLOM
-d = pyLOM.Dataset(mesh=mesh, xyz=xyz, time=time,
+d = pyLOM.Dataset(ptable=ptable, mesh=mesh, time=time,
 	# Now add all the arrays to be stored in the dataset
 	# It is important to convert them as C contiguous arrays
-	VELOC = {'point':True,'ndim':3,'value':VELOC},
+	VELOC = {'point':False,'ndim':3,'value':VELOC},
 )
 print(d)
 
