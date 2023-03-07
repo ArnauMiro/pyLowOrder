@@ -19,7 +19,7 @@ make uninstall
 
 The previous operations can be done one step at a time using
 ```bash
-make requirements
+make deps requirements
 ```
 to install all the requirements;
 ```bash
