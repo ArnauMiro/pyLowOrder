@@ -27,8 +27,11 @@ def plotMode(Phi, omega, dset, ivar, pointData=True, modes=np.array([1],np.int32
 	dset.add_variable('PHI_REAL',pointData,len(modes),0,Phi_real)
 	dset.add_variable('PHI_IMAG',pointData,len(modes),0,Phi_imag)	
 	# Loop over the modes
+	screenshot = kwargs.pop('screenshot',None)
+	off_screen = kwargs.pop('off_screen',False)
 	for imode, mode in enumerate(modes):
-		plotLayout(dset,2,1,mode-1,vars=['PHI_REAL','PHI_IMAG'],title='Mode %d St = %.3f' % (mode-1, np.abs(omega[mode-1])/(2*np.pi)),**kwargs)
+		if screenshot is not None: kwargs['screenshot'] = screenshot % imode
+		plotLayout(dset,2,1,mode-1,vars=['PHI_REAL','PHI_IMAG'],title='Mode %d St = %.3f' % (mode-1, np.abs(omega[mode-1])/(2*np.pi)),off_screen=off_screen,**kwargs)
 	# Remove from dataset
 	dset.delete('PHI_REAL')
 	dset.delete('PHI_IMAG')

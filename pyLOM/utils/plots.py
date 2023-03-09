@@ -109,7 +109,7 @@ try:
 		cr_stop('pyvista plot',0)
 		return ugrid.plot(**kwargs)
 
-	def plotLayout(dset,nrows,ncols,imode,vars=[],cmap='jet',title='',**kwargs):
+	def plotLayout(dset,nrows,ncols,imode,vars=[],cmap='jet',title='',off_screen=False,**kwargs):
 		'''
 		Plot using pyVista
 		'''
@@ -120,7 +120,7 @@ try:
 		# Create the unstructured grid
 		ugrid =  pv.UnstructuredGrid(offsets,cells,mesh.eltype2VTK,mesh.xyz) if pv.vtk_version_info < (9,) else pv.UnstructuredGrid(cells,mesh.eltype2VTK,mesh.xyz)
 		# Load the variables inside the unstructured grid
-		plotter = pv.Plotter(shape=(nrows,ncols))
+		plotter = pv.Plotter(shape=(nrows,ncols),off_screen=off_screen)
 		irow, icol = 0, 0
 		for ivar, v in enumerate(vars):
 			# Add variable to mesh
