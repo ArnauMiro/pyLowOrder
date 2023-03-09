@@ -77,7 +77,7 @@ jobs:
           tar cvzf jetDMD_serial.tar.gz jetDMD/
           rm -rf jetDMD
           mpirun -np 4 python tsuite_DMD_jet.py
-          tar cvzf jetPOD_parallel.tar.gz jetDMD/
+          tar cvzf jetDMD_parallel.tar.gz jetDMD/
           rm -rf jetDMD
         uses: actions/upload-artifact@v3
         with:
