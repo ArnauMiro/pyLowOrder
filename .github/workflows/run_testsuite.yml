@@ -10,7 +10,7 @@ defaults:
     shell: bash
 
 jobs:    
-  build:
+  run-testsuite:
     runs-on: ubuntu-20.04
     env:
       CC: mpicc
