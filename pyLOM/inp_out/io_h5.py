@@ -123,7 +123,7 @@ def h5_save_serial(fname,time,varDict,mesh,ptable):
 	h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict),varDict,ptable)
 	file.close()
 
-def h5_save_mpio(fname,xyz,time,pointOrder,cellOrder,meshDict,varDict):
+def h5_save_mpio(fname,xyz,time,meshDict,varDict):
 	'''
 	Save a dataset in HDF5 in parallel mode
 	'''
