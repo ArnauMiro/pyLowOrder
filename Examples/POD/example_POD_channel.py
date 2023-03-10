@@ -33,7 +33,7 @@ pyLOM.POD.save('results.h5',PSI,S,V,d.partition_table,nvars=3,pointData=True)
 d.add_variable('spatial_modes_P',True,PSI.shape[1],0,pyLOM.POD.extract_modes(PSI,1,d.mesh.npoints))
 d.add_variable('spatial_modes_U',True,PSI.shape[1],0,pyLOM.POD.extract_modes(PSI,2,d.mesh.npoints))
 d.add_variable('spatial_modes_V',True,PSI.shape[1],0,pyLOM.POD.extract_modes(PSI,3,d.mesh.npoints))
-d.add_variable('spatial_modes_W',True,PSI.shape[1],0,pyLOM.POD.extract_modes(PSI,4,d.mesh.ncells))
+d.add_variable('spatial_modes_W',True,PSI.shape[1],0,pyLOM.POD.extract_modes(PSI,4,d.mesh.npoints))
 d.write('modes',basedir='modes',instants=[0],times=[0.],vars=['spatial_modes_P','spatial_modes_U','spatial_modes_V','spatial_modes_W'],fmt='vtkh5')
 
 # Plot POD modes
