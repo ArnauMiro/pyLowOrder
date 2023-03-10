@@ -9,7 +9,7 @@ from __future__ import print_function, division
 
 import numpy as np
 
-from .utils.parall import worksplit, mpi_gather
+from .utils.parall import MPI_SIZE, worksplit, mpi_gather
 from .utils.cr     import cr_start, cr_stop
 
 
@@ -19,13 +19,14 @@ class PartitionTable(object):
 	partition used for the given dataset or  it can generate
 	a new partition
 	'''
-	def __init__(self,nparts,ids,elements,points):
+	def __init__(self,nparts,ids,elements,points,has_master=False):
 		'''
 		Class constructor
 		'''
 		self._nparts      = nparts
 		self._ids         = ids
 		self._elements    = elements
+		self._master      = has_master if MPI_SIZE > 1 else False
 		self._points      = points
 
 	def __str__(self):
@@ -40,8 +41,12 @@ class PartitionTable(object):
 		Compute the partition bounds for a given rank
 		'''
 		cr_start('ptable part bound',0)
-		mask_idx = self.Ids < rank + 1
-		this_idx = self.Ids == rank + 1
+		if self._master and rank == 0 and not MPI_SIZE == 1: 
+			cr_stop('ptable part bound',0)
+			return 0, 1
+		offst    = 1 if not self._master else 0
+		mask_idx = self.Ids < rank + offst
+		this_idx = self.Ids == rank + offst
 		table    = self.Points if points else self.Elements
 		istart   = np.sum(table[mask_idx])*ndim
 		iend     = istart + table[this_idx][0]*ndim
@@ -110,7 +115,7 @@ class PartitionTable(object):
 		return cls(nparts,ids,elements,points)
 
 	@classmethod
-	def from_pyAlya(cls,ptable):
+	def from_pyAlya(cls,ptable,has_master=True):
 		'''
 		Create a partition table from a partition table coming
 		from Alya
@@ -121,7 +126,7 @@ class PartitionTable(object):
 		points   = ptable.Points
 		elements = ptable.Elements
 		cr_stop('ptable fromAlya',0)
-		return cls(nparts,ids,elements,points)		
+		return cls(nparts,ids,elements,points,has_master=has_master)		
 
 	@property
 	def n_partitions(self):
@@ -135,3 +140,6 @@ class PartitionTable(object):
 	@property
 	def Points(self):
 		return self._points
+	@property
+	def has_master(self):
+		return self._master

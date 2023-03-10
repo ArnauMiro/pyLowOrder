@@ -59,6 +59,8 @@ def h5_save_mesh(file,mesh,ptable):
 		deltyp = group.create_dataset('eltype',(ncellG,),dtype='u1')
 		dcellO = group.create_dataset('cellOrder',(ncellG,),dtype='i4')
 		dpoinO = group.create_dataset('pointOrder',(npointG,),dtype='i4')
+		# Skip master if needed
+		if ptable.has_master and MPI_RANK == 0: return
 		# Point dataset
 		# Compute start and end of read, node data
 		istart, iend = ptable.partition_bounds(MPI_RANK,points=True)
@@ -93,6 +95,8 @@ def h5_fill_variable_datasets(dsetDict,varDict,ptable):
 	'''
 	Fill in the variable datasets inside an HDF5 file
 	'''
+	# Skip master if needed
+	if ptable.has_master and MPI_RANK == 0: return
 	for var in dsetDict.keys():
 		# Compute start and end bounds for the variable
 		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=varDict[var]['ndim'],points=varDict[var]['point'])
