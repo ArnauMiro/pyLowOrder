@@ -7,7 +7,7 @@ from __future__ import print_function, division
 
 import numpy as np, h5py
 
-from ..utils.parall import MPI_RANK, MPI_SIZE, MPI_COMM, writesplit, mpi_reduce, mpi_bcast
+from ..utils.parall import MPI_RANK, MPI_SIZE, MPI_COMM, mpi_reduce, mpi_bcast
 
 VTKTYPE = 'UnstructuredGrid'
 VTKVERS = np.array([1,0],np.int32)
@@ -35,13 +35,13 @@ def _vtkh5_connectivity_and_offsets(lnods):
 	'''
 	# Compute the number of points per cell
 	ppcell = np.sum(lnods >= 0,axis=1)
-	# First we flatten the connectivity array
+	# Compute the number of zeros per cell
+	zpcell = np.sum(lnods < 0,axis=1)
+	# Flatten the connectivity array
 	lnodsf = lnods.flatten('c')
-	# Now we get rid of any -1 entries for mixed meshes
-	lnodsf = lnodsf[lnodsf>=0]
 	# Now build the offsets vector
 	offset = np.zeros((ppcell.shape[0]+1,),np.int32)
-	offset[1:] = np.cumsum(ppcell)
+	offset[1:] = np.cumsum(ppcell) + np.cumsum(zpcell)
 	return lnodsf, offset
 
 def _vtkh5_write_mesh_serial(file,xyz,lnods,ltype):
@@ -75,8 +75,9 @@ def _vtkh5_write_mesh_mpio(file,xyz,lnods,ltype, ptable):
 	npoints_dset = file.create_dataset('NumberOfPoints',(nparts,),dtype=int)
 	points_dset  = file.create_dataset('Points',(npG,3),dtype=np.double)
 	# Create datasets for cell data
+	ncells, npcells = ltype.shape[0], lnods.shape[1]
 	lnods, offsets  = _vtkh5_connectivity_and_offsets(lnods)
-	ncells, ncsize  = ltype.shape[0], lnods.shape[0]
+	ncsize      = ncells*npcells
 	ncG, nsG    = int(mpi_reduce(ncells,op='sum',all=True)), int(mpi_reduce(ncsize,op='sum',all=True))
 	ncells_dset = file.create_dataset('NumberOfCells',(nparts,),dtype=int)
 	nids_dset   = file.create_dataset('NumberOfConnectivityIds',(nparts,),dtype=int)
@@ -95,7 +96,7 @@ def _vtkh5_write_mesh_mpio(file,xyz,lnods,ltype, ptable):
 	offst_dset[istart+myrank:iend+(myrank+1)] = offsets
 	types_dset[istart:iend] = ltype
 	# Connectivity
-	istart,iend = writesplit(lnods.shape[0],True)
+	istart, iend = ptable.partition_bounds(myrank,ndim=npcells,points=False)
 	conec_dset[istart:iend] = lnods
 	# Return some parameters
 	return npG, ncG
