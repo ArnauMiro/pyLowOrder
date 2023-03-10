@@ -122,7 +122,7 @@ class PartitionTable(object):
 		'''
 		cr_start('ptable fromAlya',0)
 		nparts   = ptable.n_partitions
-		ids      = np.arange(1,nparts+1,np.int32)
+		ids      = np.arange(1,nparts+1,dtype=np.int32)
 		points   = ptable.Points
 		elements = ptable.Elements
 		cr_stop('ptable fromAlya',0)
