@@ -48,14 +48,14 @@ d.write('modes',basedir='out/modes',instants=[0],times=[0.],vars=['P_MODES_REAL'
 pyLOM.DMD.plotMode(Phi,omega,d,1,pointData=True,modes=[1,2,3,4,5,6,7],cpos='xy')
 
 # Temporal evolution
-d.add_variable('PRESR',True,1,t.shape[0],X_DMD)
+d.add_variable('PRESR',True,1,X_DMD)
 d.write('flow',basedir='out/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t,vars=['PRESS','PRESR'],fmt='vtkh5')
 pyLOM.DMD.plotSnapshot(d,vars=['PRESR'],instant=0,cmap='jet',cpos='xy')
 
 # Prediction
 t_new = t[-1] + dt*np.arange(0,100,1,np.double)
 X_DMD = pyLOM.DMD.reconstruction_jovanovic(Phi,muReal,muImag,t_new,bJov)
-d.add_variable('PRENR',True,1,t_new.shape[0],X_DMD)
+d.add_variable('PRENR',True,1,X_DMD)
 d.write('pred',basedir='out/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t_new,vars=['PRENR'],fmt='vtkh5')
 pyLOM.DMD.plotSnapshot(d,vars=['PRENR'],instant=40,cmap='jet',cpos='xy')
 

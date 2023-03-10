@@ -35,12 +35,12 @@ pyLOM.pprint(0,'RMSE = %e'%rmse)
 
 ## Dump to ParaView
 # Spatial modes
-d.add_variable('spatial_modes_P',True,6,0,pyLOM.POD.extract_modes(PSI,1,d.mesh.npoints,modes=[1,4,6,2,5,3]))
+d.add_variable('spatial_modes_P',True,6,pyLOM.POD.extract_modes(PSI,1,d.mesh.npoints,modes=[1,4,6,2,5,3]))
 d.write('modes',basedir='out/modes',instants=[0],times=[0.],vars=['spatial_modes_P'],fmt='vtkh5')
 pyLOM.POD.plotSnapshot(d,vars=['spatial_modes_P'],instant=0,component=0,cmap='jet',cpos='xy')
 
 # Temporal evolution
-d.add_variable('PRESR',True,1,t.shape[0],X_POD)
+d.add_variable('PRESR',True,1,X_POD)
 d.write('flow',basedir='out/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t,vars=['PRESS','PRESR'],fmt='vtkh5')
 pyLOM.POD.plotSnapshot(d,vars=['PRESR'],instant=0,component=0,cmap='jet',cpos='xy')
 

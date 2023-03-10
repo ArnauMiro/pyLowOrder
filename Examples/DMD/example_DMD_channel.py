@@ -35,15 +35,15 @@ if pyLOM.utils.is_rank_or_serial(0):
 	fig.savefig('dampingFrequency.png',dpi=300)
 
 # Spatial modes
-d.add_variable('U_MODES_REAL',True,Phi.shape[1],0,pyLOM.DMD.extract_modes(Phi,1,d.mesh.npoints,real=True))
-d.add_variable('U_MODES_IMAG',True,Phi.shape[1],0,pyLOM.DMD.extract_modes(Phi,1,d.mesh.npoints,real=False))
+d.add_variable('U_MODES_REAL',True,Phi.shape[1],pyLOM.DMD.extract_modes(Phi,1,d.mesh.npoints,real=True))
+d.add_variable('U_MODES_IMAG',True,Phi.shape[1],pyLOM.DMD.extract_modes(Phi,1,d.mesh.npoints,real=False))
 d.write('modes',basedir='modes',instants=[0],times=[0.],vars=['P_MODES_REAL','P_MODES_IMAG'],fmt='vtkh5')
 
 
 ## Prediction
 t_new = d.time[-1] + dt*np.arange(0,100,1,np.double)
 X_DMD = pyLOM.DMD.reconstruction_jovanovic(Phi,muReal,muImag,t_new,bJov)
-d.add_variable('VELXP',True,1,t_new.shape[0],X_DMD)
+d.add_variable('VELXP',True,1,X_DMD)
 d.write('pred',basedir='flow',instants=np.arange(t_new.shape[0],dtype=np.int32),times=t_new,vars=['VELXP'],fmt='vtkh5')
 
 

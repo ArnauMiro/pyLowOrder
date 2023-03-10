@@ -34,14 +34,14 @@ pyLOM.pprint(0,'RMSE = %e'%rmse)
 
 
 ## Dump to ParaView
-d.add_variable('spatial_modes_U',d.info(VARIABLE)['point'],6,0,pyLOM.POD.extract_modes(PSI,1,d.mesh.ncells,modes=[1,4,6,2,5,3]))
-d.add_variable('spatial_modes_V',d.info(VARIABLE)['point'],6,0,pyLOM.POD.extract_modes(PSI,2,d.mesh.ncells,modes=[1,4,6,2,5,3]))
-d.add_variable('spatial_modes_W',d.info(VARIABLE)['point'],6,0,pyLOM.POD.extract_modes(PSI,3,d.mesh.ncells,modes=[1,4,6,2,5,3]))
+d.add_variable('spatial_modes_U',d.info(VARIABLE)['point'],6,pyLOM.POD.extract_modes(PSI,1,d.mesh.ncells,modes=[1,4,6,2,5,3]))
+d.add_variable('spatial_modes_V',d.info(VARIABLE)['point'],6,pyLOM.POD.extract_modes(PSI,2,d.mesh.ncells,modes=[1,4,6,2,5,3]))
+d.add_variable('spatial_modes_W',d.info(VARIABLE)['point'],6,pyLOM.POD.extract_modes(PSI,3,d.mesh.ncells,modes=[1,4,6,2,5,3]))
 d.write('modes',basedir='out/modes',instants=[0],times=[0.],vars=['spatial_modes_U','spatial_modes_V','spatial_modes_W'],fmt='vtkh5')
 pyLOM.POD.plotSnapshot(d,vars=['spatial_modes_U'],instant=0,component=0,cmap='jet')
 
 # Temporal evolution
-d.add_variable('VELOR',d.info(VARIABLE)['point'],3,t.shape[0],X_POD)
+d.add_variable('VELOR',d.info(VARIABLE)['point'],3,X_POD)
 d.write('flow',basedir='out/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t,vars=['VELOC','VELOR'],fmt='vtkh5')
 pyLOM.POD.plotSnapshot(d,vars=['VELOR'],instant=0,component=0,cmap='jet')
 

@@ -94,7 +94,7 @@ class Dataset(object):
 		'''
 		return {'point':self._vardict[var]['point'],'ndim':self._vardict[var]['ndim']}
 
-	def add_variable(self,varname,point,ndim,ninst,var):
+	def add_variable(self,varname,point,ndim,var):
 		'''
 		Add a variable to the dataset
 		'''

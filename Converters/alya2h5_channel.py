@@ -44,8 +44,8 @@ for ii,instant in enumerate(listOfInstants):
 
 
 ## Add variables to the dataset
-d.add_variable('PRESS',True,1,ni,X_PRESS)
-d.add_variable('VELOC',True,3,ni,X_VELOC)
+d.add_variable('PRESS',True,1,X_PRESS)
+d.add_variable('VELOC',True,3,X_VELOC)
 
 
 ## Store dataset

@@ -39,13 +39,13 @@ pyLOM.pprint(0,'RMSE = %e'%rmse)
 
 ## Dump to ParaView
 # Spatial modes
-d.add_variable('spatial_modes_U',False,6,0,pyLOM.POD.extract_modes(PSI,1,d.mesh.ncells,modes=[1,4,6,2,5,3]))
+d.add_variable('spatial_modes_U',False,6,pyLOM.POD.extract_modes(PSI,1,d.mesh.ncells,modes=[1,4,6,2,5,3]))
 d.write('modes',basedir='cylinderPOD/modes',instants=[0],times=[0.],vars=['spatial_modes_U'],fmt='vtkh5')
 #for imode in [0,1,2,3,4]:
 #	pyLOM.POD.plotSnapshot(d,vars=['spatial_modes_U'],instant=0,component=imode,cmap='jet',cpos='xy',off_screen=True,screenshot='cylinderPOD/mode_U_%d_%d.png'%(pyLOM.utils.MPI_RANK,imode))
 
 # Temporal evolution
-d.add_variable('VELXR',False,1,t.shape[0],X_POD)
+d.add_variable('VELXR',False,1,X_POD)
 d.write('flow',basedir='cylinderPOD/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t,vars=['VELOX','VELXR'],fmt='vtkh5')
 #pyLOM.POD.plotSnapshot(d,vars=['VELXR'],instant=0,component=0,cmap='jet',cpos='xy',off_screen=True,screenshot='cylinderPOD/U_%d.png'%pyLOM.utils.MPI_RANK)
 

@@ -24,16 +24,16 @@ if pyLOM.utils.is_rank_or_serial(root=0):
 	fig.savefig('residuals.png',dpi=300)
 
 # Truncate according to a residual
-PSI,S,V = pyLOM.POD.truncate(PSI,S,V,r=5e-6)
+PSI,S,V = pyLOM.POD.truncate(PSI,S,V,r=3e-2)
 
 # Store results
 pyLOM.POD.save('results.h5',PSI,S,V,d.partition_table,nvars=4,pointData=True)
 
 # Spatial modes
-d.add_variable('spatial_modes_P',True,PSI.shape[1],0,pyLOM.POD.extract_modes(PSI,1,d.mesh.npoints))
-d.add_variable('spatial_modes_U',True,PSI.shape[1],0,pyLOM.POD.extract_modes(PSI,2,d.mesh.npoints))
-d.add_variable('spatial_modes_V',True,PSI.shape[1],0,pyLOM.POD.extract_modes(PSI,3,d.mesh.npoints))
-d.add_variable('spatial_modes_W',True,PSI.shape[1],0,pyLOM.POD.extract_modes(PSI,4,d.mesh.npoints))
+d.add_variable('spatial_modes_P',True,PSI.shape[1],pyLOM.POD.extract_modes(PSI,1,d.mesh.npoints))
+d.add_variable('spatial_modes_U',True,PSI.shape[1],pyLOM.POD.extract_modes(PSI,2,d.mesh.npoints))
+d.add_variable('spatial_modes_V',True,PSI.shape[1],pyLOM.POD.extract_modes(PSI,3,d.mesh.npoints))
+d.add_variable('spatial_modes_W',True,PSI.shape[1],pyLOM.POD.extract_modes(PSI,4,d.mesh.npoints))
 d.write('modes',basedir='modes',instants=[0],times=[0.],vars=['spatial_modes_P','spatial_modes_U','spatial_modes_V','spatial_modes_W'],fmt='vtkh5')
 
 # Plot POD modes
@@ -54,12 +54,12 @@ pyLOM.pprint(0,'RMSE = %e'%rmse)
 # Create a dataset to store the last 500 instants from the simulation
 # and the reconstructed flow
 d2   = pyLOM.Dataset(ptable=d.partition_table, mesh=d.mesh, time=time)
-d2.add_variable('PRESS',True,1,500,d.X('PRESS',time_slice=np.s_[-500:]))
-d2.add_variable('VELOC',True,3,500,d.X('VELOC',time_slice=np.s_[-500:]))
-d2.add_variable('PRESR',True,1,500,X_POD[0:4*d.mesh.npoints:4,:])
-d2.add_variable('VELXR',True,1,500,X_POD[1:4*d.mesh.npoints:4,:])
-d2.add_variable('VELYR',True,1,500,X_POD[2:4*d.mesh.npoints:4,:])
-d2.add_variable('VELZR',True,1,500,X_POD[3:4*d.mesh.npoints:4,:])
+d2.add_variable('PRESS',True,1,d.X('PRESS',time_slice=np.s_[-500:]))
+d2.add_variable('VELOC',True,3,d.X('VELOC',time_slice=np.s_[-500:]))
+d2.add_variable('PRESR',True,1,X_POD[0:4*d.mesh.npoints:4,:])
+d2.add_variable('VELXR',True,1,X_POD[1:4*d.mesh.npoints:4,:])
+d2.add_variable('VELYR',True,1,X_POD[2:4*d.mesh.npoints:4,:])
+d2.add_variable('VELZR',True,1,X_POD[3:4*d.mesh.npoints:4,:])
 d2.write('flow',basedir='flow',instants=np.arange(d2.time.shape[0],dtype=np.int32),times=d2.time,vars=['PRESS','VELOC','PRESR','VELXR','VELYR','VELZR'],fmt='vtkh5')
 
 
