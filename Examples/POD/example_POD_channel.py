@@ -60,7 +60,7 @@ d2.add_variable('PRESR',True,1,500,X_POD[0:4*d.mesh.npoints:4,:])
 d2.add_variable('VELXR',True,1,500,X_POD[1:4*d.mesh.npoints:4,:])
 d2.add_variable('VELYR',True,1,500,X_POD[2:4*d.mesh.npoints:4,:])
 d2.add_variable('VELZR',True,1,500,X_POD[3:4*d.mesh.npoints:4,:])
-d2.write('flow',basedir='flow',instants=np.arange(d2.t.shape[0],dtype=np.int32),times=d2.time,vars=['PRESS','VELOC','PRESR','VELXR','VELYR','VELZR'],fmt='vtkh5')
+d2.write('flow',basedir='flow',instants=np.arange(d2.time.shape[0],dtype=np.int32),times=d2.time,vars=['PRESS','VELOC','PRESR','VELXR','VELYR','VELZR'],fmt='vtkh5')
 
 
 ## Show and print timings
