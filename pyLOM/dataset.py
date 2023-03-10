@@ -134,7 +134,7 @@ class Dataset(object):
 		for var in variables:
 			nvars += self.var[var]['ndim']
 		# Create output array
-		npoints = self.pointOrder.shape[0] if self.var[variables[0]]['point'] else self.cellOrder.shape[0]
+		npoints = self.mesh.npoints if self.var[variables[0]]['point'] else self.mesh.ncells
 		ninst   = self._time[time_slice].shape[0]
 		X = np.zeros((nvars*npoints,ninst),np.double)
 		# Populate output matrix
