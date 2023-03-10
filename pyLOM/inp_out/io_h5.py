@@ -68,7 +68,7 @@ def h5_save_mesh(file,mesh,ptable):
 		dpoinO[istart:iend]   = mesh.pointOrder
 		# Compute start and end of read, cell data
 		istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
-		dconec[istart:iend,:] = mesh.connectivity
+		dconec[istart:iend,:] = mesh.connectivity + istart
 		deltyp[istart:iend]   = mesh.eltype
 		dcellO[istart:iend]   = mesh.cellOrder
 
