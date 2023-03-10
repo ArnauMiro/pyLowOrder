@@ -125,6 +125,9 @@ dependencies = [
 # Similar to `dependencies` above, these must be valid existing
 # projects.
 [project.optional-dependencies] 
+full = [
+  "pyvista",
+]
 
 # List URLs that are relevant to your project
 #
