@@ -51,6 +51,9 @@ def h5_save_mesh(file,mesh,ptable):
 		# Write the total number of cells and the total number of points
 		# Assume we might be dealing with a parallel mesh
 		npointG, ncellG = mesh.npointsG, mesh.ncellsG
+		if ptable.has_master: 
+			npointG -= 1
+			ncellG  -= 1
 		group.create_dataset('npoints',(1,),dtype='i4',data=npointG)
 		group.create_dataset('ncells' ,(1,),dtype='i4',data=ncellG)
 		# Create the rest of the datasets for parallel storage
@@ -72,7 +75,7 @@ def h5_save_mesh(file,mesh,ptable):
 		deltyp[istart:iend]   = mesh.eltype
 		dcellO[istart:iend]   = mesh.cellOrder
 
-def h5_create_variable_datasets(file,time,varDict):
+def h5_create_variable_datasets(file,time,varDict,ptable):
 	'''
 	Create the variable datasets inside an HDF5 file
 	'''
@@ -83,11 +86,12 @@ def h5_create_variable_datasets(file,time,varDict):
 	dsetDict = {}
 	for var in varDict.keys():
 		vargroup = group.create_group(var)
-		size  = (mpi_reduce(varDict[var]['value'].shape[0],op='sum',all=True), time.shape[0])
+		n = mpi_reduce(varDict[var]['value'].shape[0],op='sum',all=True)
+		if ptable.has_master: n -= 1
 		dsetDict[var] = {
 			'point' : vargroup.create_dataset('point',(1,),dtype='u1'),
 			'ndim'  : vargroup.create_dataset('ndim' ,(1,),dtype='i4'),
-			'value' : vargroup.create_dataset('value',size,dtype=varDict[var]['value'].dtype),
+			'value' : vargroup.create_dataset('value',(n,time.shape[0]),dtype=varDict[var]['value'].dtype),
 		}
 	return dsetDict
 
@@ -120,7 +124,7 @@ def h5_save_serial(fname,time,varDict,mesh,ptable):
 	# Store the mesh
 	h5_save_mesh(file,mesh,ptable)
 	# Store the variables
-	h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict),varDict,ptable)
+	h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable),varDict,ptable)
 	file.close()
 
 def h5_save_mpio(fname,time,varDict,mesh,ptable):
@@ -135,7 +139,7 @@ def h5_save_mpio(fname,time,varDict,mesh,ptable):
 	# Store the mesh
 	h5_save_mesh(file,mesh,ptable)
 	# Store the variables
-	h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict),varDict,ptable)
+	h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable),varDict,ptable)
 	file.close()
 
 
