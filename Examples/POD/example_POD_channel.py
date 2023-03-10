@@ -40,7 +40,7 @@ d.write('modes',basedir='modes',instants=[0],times=[0.],vars=['spatial_modes_P',
 if pyLOM.utils.is_rank_or_serial(0):
 	# 0 - module, 1,2 - components
 	os.makedirs('modes',exist_ok=True)
-	figs,_ = pyLOM.POD.plotMode(V[:,:-1],t[:-1],modes=[1,2,3,4])
+	figs,_ = pyLOM.POD.plotMode(V[:,:-1],d.time[:-1],modes=[1,2,3,4])
 	for ifig,fig in enumerate(figs): fig.savefig('modes/mode_%d.png'%ifig) 
 
 
