@@ -193,7 +193,7 @@ class Mesh(object):
 		Create the mesh structure from a pyAlya mesh structure
 		'''
 		eltype = np.array([ALYA2ELTYP[t] for t in mesh.eltype],np.uint8)
-		return cls('UNSTRUCT',mesh.xyz,mesh.connectivity,eltype,mesh.lninv,mesh.leinv)
+		return cls('UNSTRUCT',mesh.xyz,mesh.connectivity,eltype,mesh.leinv,mesh.lninv)
 
 	@property
 	def type(self):
