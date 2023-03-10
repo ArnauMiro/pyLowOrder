@@ -51,12 +51,12 @@ if pyLOM.utils.is_rank_or_serial(0):
 d.add_variable('U_MODES_REAL',False,6,0,pyLOM.DMD.extract_modes(Phi,1,d.mesh.ncells,real=True,modes=[1,4,6,2,5,3]))
 d.add_variable('U_MODES_IMAG',False,6,0,pyLOM.DMD.extract_modes(Phi,1,d.mesh.ncells,real=False,modes=[1,4,6,2,5,3]))
 d.write('modes',basedir='cylinderDMD/modes',instants=[0],times=[0.],vars=['U_MODES_REAL','U_MODES_IMAG'],fmt='vtkh5')
-pyLOM.DMD.plotMode(Phi,omega,d,1,pointData=False,modes=[1,2,3,4,5,6,7],cpos='xy',off_screen=True,screenshot='cylinderDMD/mode_U_%d'%(pyLOM.utils.MPI_RANK)+'_%d.png')
+#pyLOM.DMD.plotMode(Phi,omega,d,1,pointData=False,modes=[1,2,3,4,5,6,7],cpos='xy',off_screen=True,screenshot='cylinderDMD/mode_U_%d'%(pyLOM.utils.MPI_RANK)+'_%d.png')
 
 # Temporal evolution
 d.add_variable('VELXR',False,1,t.shape[0],X_DMD)
 d.write('flow',basedir='cylinderDMD/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t,vars=['VELOX','VELXR'],fmt='vtkh5')
-pyLOM.DMD.plotSnapshot(d,vars=['VELXR'],instant=0,cmap='jet',cpos='xy',off_screen=True,screenshot='cylinderDMD/U_%d.png'%pyLOM.utils.MPI_RANK)
+#pyLOM.DMD.plotSnapshot(d,vars=['VELXR'],instant=0,cmap='jet',cpos='xy',off_screen=True,screenshot='cylinderDMD/U_%d.png'%pyLOM.utils.MPI_RANK)
 
 
 ## Show and print timings

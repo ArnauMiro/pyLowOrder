@@ -51,19 +51,19 @@ if pyLOM.utils.is_rank_or_serial(0):
 d.add_variable('P_MODES_REAL',True,6,0,pyLOM.DMD.extract_modes(Phi,1,d.mesh.npoints,real=True,modes=[1,4,6,2,5,3]))
 d.add_variable('P_MODES_IMAG',True,6,0,pyLOM.DMD.extract_modes(Phi,1,d.mesh.npoints,real=False,modes=[1,4,6,2,5,3]))
 d.write('modes',basedir='jetDMD/modes',instants=[0],times=[0.],vars=['P_MODES_REAL','P_MODES_IMAG'],fmt='vtkh5')
-pyLOM.DMD.plotMode(Phi,omega,d,1,pointData=True,modes=[1,2,3,4,5,6,7],cpos='xy',off_screen=True,screenshot='jetDMD/mode_P_%d'%(pyLOM.utils.MPI_RANK)+'_%d.png')
+#pyLOM.DMD.plotMode(Phi,omega,d,1,pointData=True,modes=[1,2,3,4,5,6,7],cpos='xy',off_screen=True,screenshot='jetDMD/mode_P_%d'%(pyLOM.utils.MPI_RANK)+'_%d.png')
 
 # Temporal evolution
 d.add_variable('PRESR',True,1,t.shape[0],X_DMD)
 d.write('flow',basedir='jetDMD/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t,vars=['PRESS','PRESR'],fmt='vtkh5')
-pyLOM.DMD.plotSnapshot(d,vars=['PRESR'],instant=0,cmap='jet',cpos='xy',off_screen=True,screenshot='jetDMD/P_%d.png'%pyLOM.utils.MPI_RANK)
+#pyLOM.DMD.plotSnapshot(d,vars=['PRESR'],instant=0,cmap='jet',cpos='xy',off_screen=True,screenshot='jetDMD/P_%d.png'%pyLOM.utils.MPI_RANK)
 
 # Prediction
 t_new = t[-1] + dt*np.arange(0,100,1,np.double)
 X_DMD = pyLOM.DMD.reconstruction_jovanovic(Phi,muReal,muImag,t_new,bJov)
 d.add_variable('PRENR',True,1,t_new.shape[0],X_DMD)
 d.write('pred',basedir='jetDMD/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t_new,vars=['PRENR'],fmt='vtkh5')
-pyLOM.DMD.plotSnapshot(d,vars=['PRENR'],instant=0,cmap='jet',cpos='xy',off_screen=True,screenshot='jetDMD/P_new_%d.png'%pyLOM.utils.MPI_RANK)
+#pyLOM.DMD.plotSnapshot(d,vars=['PRENR'],instant=0,cmap='jet',cpos='xy',off_screen=True,screenshot='jetDMD/P_new_%d.png'%pyLOM.utils.MPI_RANK)
 
 
 ## Show and print timings
