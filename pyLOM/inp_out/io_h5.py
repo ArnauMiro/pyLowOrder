@@ -10,7 +10,7 @@ from __future__ import print_function, division
 import numpy as np, h5py
 
 from ..partition_table import PartitionTable
-from ..mesh            import Mesh
+from ..mesh            import MTYPE2ID, ID2MTYPE, Mesh
 from ..utils.parall    import MPI_COMM, MPI_RANK, MPI_SIZE, worksplit, writesplit, is_rank_or_serial, mpi_reduce, mpi_gather
 from ..utils.errors    import raiseError
 
@@ -47,7 +47,7 @@ def h5_save_mesh(file,mesh,ptable):
 		# Create a group for the mesh
 		group = file.create_group('MESH')
 		# Save the mesh type
-		dset = group.create_dataset('type',(1,),dtype=h5py.special_dtype(vlen=str),data=mesh.type)
+		dset = group.create_dataset('type',(1,),dtype='i4',data=MTYPE2ID[mesh.type])
 		# Write the total number of cells and the total number of points
 		# Assume we might be dealing with a parallel mesh
 		npointG, ncellG = mesh.npointsG, mesh.ncellsG
@@ -178,7 +178,7 @@ def h5_load_mesh(file,ptable):
 	'''
 	if not 'MESH' in file.keys(): return None
 	# Read mesh type
-	mtype  = [c.decode('utf-8') for c in file['MESH']['type'][:]][0]
+	mtype  = ID2MTYPE[int(file['MESH']['type'][0])]
 	# Read cell related variables
 	istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
 	conec  = np.array(file['MESH']['connectivity'][istart:iend,:],np.int32)

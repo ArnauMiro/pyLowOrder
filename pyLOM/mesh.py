@@ -50,6 +50,17 @@ ELTYPE2ENSI = {
 	5 : 'hexa8',  # Hexahedron
 }
 
+MTYPE2ID = {
+	'STRUCT2D' : 1,
+	'STRUCT3D' : 2,
+	'UNSTRUCT' : 3,
+}
+
+ID2MTYPE = {
+	1 : 'STRUCT2D',
+	2 : 'STRUCT3D',
+	3 : 'UNSTRUCT',
+}
 
 class Mesh(object):
 	'''
