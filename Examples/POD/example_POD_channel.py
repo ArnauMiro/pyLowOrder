@@ -27,7 +27,7 @@ if pyLOM.utils.is_rank_or_serial(root=0):
 PSI,S,V = pyLOM.POD.truncate(PSI,S,V,r=5e-6)
 
 # Store results
-pyLOM.POD.save('results.h5',PSI,S,V,d.partition_table,nvars=3,pointData=True)
+pyLOM.POD.save('results.h5',PSI,S,V,d.partition_table,nvars=4,pointData=True)
 
 # Spatial modes
 d.add_variable('spatial_modes_P',True,PSI.shape[1],0,pyLOM.POD.extract_modes(PSI,1,d.mesh.npoints))
