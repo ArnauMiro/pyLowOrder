@@ -204,20 +204,17 @@ def h5_load_variables(file,mesh,ptable,inods):
 	varDict = {}
 	for v in file['VARIABLES'].keys():
 		# Load point and ndim
-		point = bool(file['VARIABLES'][v]['point'][0])
-		ndim  = int(file['VARIABLES'][v]['ndim'][0])
+		point   = bool(file['VARIABLES'][v]['point'][0])
+		ndim    = int(file['VARIABLES'][v]['ndim'][0])
+		npoints = mesh.npoints if point else mesh.ncells
+		value   = np.zeros((ndim*npoints,len(time)),np.double) 
 		# Read the values
-		if point:
-			# Dealing with point data
-			if mesh is None:
-				istart, iend = ptable.partition_bounds(MPI_RANK,ndim=ndim,points=True)
-				value = np.array( file['VARIABLES'][v]['value'][istart:iend,:])
-			else:
-				value = np.array(file['VARIABLES'][v]['value'][inods,:])
+		if mesh is None or not point:
+			istart, iend = ptable.partition_bounds(MPI_RANK,ndim=ndim,points=point)
+			value[:,:]   = np.array(file['VARIABLES'][v]['value'][istart:iend,:])
 		else:
-			# Dealing with cell data
-			istart, iend = ptable.partition_bounds(MPI_RANK,ndim=ndim,points=False)
-			value = np.array(file['VARIABLES'][v]['value'][istart:iend,:])
+			for idim in range(ndim):
+				value[idim:ndim*npoints:ndim,:] = np.array(file['VARIABLES'][v]['value'][inods+idim*npoints,:])
 		# Generate dictionary
 		varDict[v] = {'point':point,'ndim':ndim,'value':value}
 	# Return
