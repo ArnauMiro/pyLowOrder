@@ -26,7 +26,8 @@ pyAlya.pprint(0,'Run (%d instants)...' % len(listOfInstants),flush=True)
 
 ## Create POD dataset
 m = pyLOM.Mesh.from_pyAlya(mesh)
-d = pyLOM.Dataset(ptable=mesh._ptable, mesh=m, time=np.zeros((ni,),dtype=np.double))
+p = pyLOM.PartitionTable.from_pyAlya(mesh.partition_table,has_master=True)
+d = pyLOM.Dataset(ptable=p, mesh=m, time=np.zeros((ni,),dtype=np.double))
 
 
 ## Loop time instants
