@@ -92,6 +92,15 @@ class PartitionTable(object):
 		p = mpi_gather(npoints_new,all=True)
 		self._points = p if isinstance(p,np.ndarray) else np.array([p],np.int32)
 
+	def check_split(self):
+		'''
+		See if a table has the same number of subdomains
+		than the number of mpi ranks
+		'''
+		# Deal with master and serial
+		offst = 1 if self._master and not MPI_SIZE == 1 else 0
+		return self._nparts + offst == MPI_SIZE
+
 	@classmethod
 	def new(cls,nparts,nelems,npoints):
 		'''

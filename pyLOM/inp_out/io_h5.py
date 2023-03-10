@@ -176,7 +176,7 @@ def h5_load_size(file):
 	ncells  = int(file['MESH']['ncells'][0])
 	return npoints, ncells
 
-def h5_load_mesh(file,ptable):
+def h5_load_mesh(file,ptable,repart):
 	'''
 	Load the mesh inside the HDF5 file
 	'''
@@ -189,8 +189,14 @@ def h5_load_mesh(file,ptable):
 	eltype = np.array(file['MESH']['eltype'][istart:iend],np.int32) 
 	cellO  = np.array(file['MESH']['cellOrder'][istart:iend],np.int32)
 	# Read point related variables
-	inods  = ptable.partition_points(MPI_RANK,1,conec)
-	ptable.update_points(inods.shape[0])
+	if repart:
+		# Warning! Repartition will only work if the input file is serial
+		# i.e., it does not have any repeated nodes, otherwise it wont work
+		inods  = ptable.partition_points(MPI_RANK,1,conec)
+		ptable.update_points(inods.shape[0])
+	else:
+		istart, iend = ptable.partition_bounds(MPI_RANK,points=True)
+		inods = np.arange(istart,iend,dtype=np.int32)
 	xyz    = np.array(file['MESH']['xyz'][inods,:],np.double) 
 	pointO = np.array(file['MESH']['pointOrder'][inods],np.int32)
 	# Fix the connectivity to start at zero
@@ -237,7 +243,7 @@ def h5_load_serial(fname):
 	# Read partition table
 	ptable = h5_load_partition(file)
 	# Read the mesh
-	mesh, inods = h5_load_mesh(file,ptable)
+	mesh, inods = h5_load_mesh(file,ptable,False)
 	# Read the variables
 	time, varDict = h5_load_variables(file,mesh,ptable,inods)
 	file.close()
@@ -255,15 +261,17 @@ def h5_load_mpio(fname):
 		raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
 	# Read partition table
 	ptable = h5_load_partition(file)
+	repart = False
 	# Are we reading for the same number of partitions?
-	if not ptable.n_partitions == MPI_SIZE:
+	if not ptable.check_split():
 		# Read the number of elements and points to compute
 		# the new partition table
 		npoints, ncells = h5_load_size(file)
 		# Redo the partitions table
 		ptable = PartitionTable.new(MPI_SIZE,ncells,npoints)
+		repart = True
 	# Read the mesh
-	mesh, inods = h5_load_mesh(file,ptable)
+	mesh, inods = h5_load_mesh(file,ptable,repart)
 	# Read the variables
 	time, varDict = h5_load_variables(file,mesh,ptable,inods)
 	file.close()
