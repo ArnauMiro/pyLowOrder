@@ -17,26 +17,29 @@ from .utils.parall import mpi_reduce
 
 ALYA2ELTYP = {
 	# Linear cells
-	0  : -1, # Empty cell
-	1  :  3, # Line element
-	2  : 10, # Triangular cell
-	3  : 12, # Quadrangular cell
-	4  : 30, # Tetrahedral cell
-	5  : 37, # Hexahedron
-	6  : 34, # Linear prism
-	7  : 32, # Pyramid
+	-1 :  0, # Empty cell
+	 3 :  1, # Line element
+	10 :  2, # Triangular cell
+	12 :  3, # Quadrangular cell
+	30 :  4, # Tetrahedral cell
+	37 :  5, # Hexahedron
+	34 :  6, # Linear prism
+	32 :  7, # Pyramid
 	# Quadratic, isoparametric cells
-	15 : 39, # HEX27
+	39 : 15, # HEX27
+	# Lagrangian cells
+	40 : 25, # HEX64
 }
 
 ELTYPE2VTK = {
-	0 : 0,  # Empty cell
-	2 : 5,  # Triangular cell
-	3 : 9,  # Quadrangular cell
-	4 : 10, # Tetrahedral cell
-	6 : 13, # Linear prism
-	7 : 14, # Pyramid
-	5 : 12, # Hexahedron
+	 0 : 0,  # Empty cell
+	 2 : 5,  # Triangular cell
+	 3 : 9,  # Quadrangular cell
+	 4 : 10, # Tetrahedral cell
+	 6 : 13, # Linear prism
+	 7 : 14, # Pyramid
+	 5 : 12, # Hexahedron
+	25 : 72, # Lagrangian Hexahedron
 }
 
 ELTYPE2ENSI = {
