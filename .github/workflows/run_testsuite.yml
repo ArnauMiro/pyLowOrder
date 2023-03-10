@@ -57,7 +57,7 @@ jobs:
           mpirun -np 4 python tsuite_POD_jet.py
           tar cvzf jetPOD_parallel.tar.gz jetPOD/
           rm -rf jetPOD
-        - name: upload results POD
+      - name: upload results POD
         uses: actions/upload-artifact@v3
         with:
           name: output_POD
@@ -80,7 +80,7 @@ jobs:
           mpirun -np 4 python tsuite_DMD_jet.py
           tar cvzf jetDMD_parallel.tar.gz jetDMD/
           rm -rf jetDMD
-        - name: Upload results DMD
+      - name: Upload results DMD
         uses: actions/upload-artifact@v3
         with:
           name: output_DMD
