@@ -74,7 +74,7 @@ def h5_save_mesh(file,mesh,ptable):
 		dconec[istart:iend,:] = mesh.connectivity + istart
 		deltyp[istart:iend]   = mesh.eltype
 		dcellO[istart:iend]   = mesh.cellOrder
-	return None
+	return None,None
 
 def h5_save_mesh_nopartition(file,mesh,ptable):
 	'''
@@ -104,15 +104,15 @@ def h5_save_mesh_nopartition(file,mesh,ptable):
 		if ptable.has_master and MPI_RANK == 0: return
 		# Point dataset
 		# Get the position where the points should be stored
-		_,idx = np.unique(mesh.pointOrder,return_index=True)
-		dxyz[idx,:] = mesh.xyz
-		dpoinO[idx] = mesh.pointOrder
+		inods,idx = np.unique(mesh.pointOrder,return_index=True)
+		dxyz[inods,:] = mesh.xyz[idx]
+		dpoinO[inods] = mesh.pointOrder[idx]
 		# Compute start and end of read, cell data
 		istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
 		dconec[istart:iend,:] = mesh.connectivity + istart
 		deltyp[istart:iend]   = mesh.eltype
 		dcellO[istart:iend]   = mesh.cellOrder
-	return idx
+	return inods,idx
 
 def h5_create_variable_datasets(file,time,varDict,ptable):
 	'''
@@ -134,7 +134,7 @@ def h5_create_variable_datasets(file,time,varDict,ptable):
 		}
 	return dsetDict
 
-def h5_fill_variable_datasets(dsetDict,varDict,ptable,idx):
+def h5_fill_variable_datasets(dsetDict,varDict,ptable,inods,idx):
 	'''
 	Fill in the variable datasets inside an HDF5 file
 	'''
@@ -144,7 +144,7 @@ def h5_fill_variable_datasets(dsetDict,varDict,ptable,idx):
 		# Fill dataset
 		dsetDict[var]['point'][:] = varDict[var]['point']
 		dsetDict[var]['ndim'][:]  = varDict[var]['ndim']
-		if idx is None or not varDict[var]['point']:
+		if inods is None or not varDict[var]['point']:
 			# Compute start and end bounds for the variable
 			istart, iend = ptable.partition_bounds(MPI_RANK,ndim=varDict[var]['ndim'],points=varDict[var]['point'])
 			if varDict[var]['ndim'] > 1:
@@ -153,9 +153,9 @@ def h5_fill_variable_datasets(dsetDict,varDict,ptable,idx):
 				dsetDict[var]['value'][istart:iend]  = varDict[var]['value']
 		else:
 			if varDict[var]['ndim'] > 1:
-				dsetDict[var]['value'][idx,:]  = varDict[var]['value']
+				dsetDict[var]['value'][inods,:]  = varDict[var]['value'][idx,:]
 			else:
-				dsetDict[var]['value'][idx]  = varDict[var]['value']			
+				dsetDict[var]['value'][inods]  = varDict[var]['value'][idx]
 
 def h5_save_serial(fname,time,varDict,mesh,ptable):
 	'''
@@ -169,7 +169,7 @@ def h5_save_serial(fname,time,varDict,mesh,ptable):
 	# Store the mesh
 	h5_save_mesh(file,mesh,ptable)
 	# Store the variables
-	h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable),varDict,ptable)
+	h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable),varDict,ptable,None,None)
 	file.close()
 
 def h5_save_mpio(fname,time,varDict,mesh,ptable,nopartition):
@@ -182,9 +182,9 @@ def h5_save_mpio(fname,time,varDict,mesh,ptable,nopartition):
 	# Store partition table
 	h5_save_partition(file,ptable)
 	# Store the mesh
-	idx = h5_save_mesh(file,mesh,ptable) if not nopartition else h5_save_mesh_nopartition(file,mesh,ptable)
+	inods,idx = h5_save_mesh(file,mesh,ptable) if not nopartition else h5_save_mesh_nopartition(file,mesh,ptable)
 	# Store the variables
-	h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable),varDict,ptable)
+	h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable),varDict,ptable,inods,idx)
 	file.close()
 
 
