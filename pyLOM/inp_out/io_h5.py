@@ -195,7 +195,8 @@ def h5_load_mesh(file,ptable,repart):
 		inods  = ptable.partition_points(MPI_RANK,1,conec)
 		ptable.update_points(inods.shape[0])
 	else:
-		inods = None
+		istart, iend = ptable.partition_bounds(MPI_RANK,points=True)
+		inods = np.arange(istart,iend,dtype=np.int32)
 	xyz    = np.array(file['MESH']['xyz'][inods,:],np.double) 
 	pointO = np.array(file['MESH']['pointOrder'][inods],np.int32)
 	# Fix the connectivity to start at zero
