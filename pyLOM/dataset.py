@@ -159,7 +159,8 @@ class Dataset(object):
 		# H5 format
 		if fmt.lower() == 'h5':
 			# Set default parameters
-			if not 'mpio' in kwargs.keys(): kwargs['mpio'] = True
+			if not 'mpio' in kwargs.keys():        kwargs['mpio']        = True
+			if not 'nopartition' in kwargs.keys(): kwargs['nopartition'] = True
 			io.h5_save(fname,self.time,self.var,self.mesh,self.partition_table,**kwargs)
 		cr_stop('Dataset.save',0)
 

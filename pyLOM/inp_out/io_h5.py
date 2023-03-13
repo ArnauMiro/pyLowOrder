@@ -18,12 +18,12 @@ from ..utils.errors    import raiseError
 PYLOM_H5_VERSION = (2,0)
 
 
-def h5_save(fname,time,varDict,mesh,ptable,mpio=True):
+def h5_save(fname,time,varDict,mesh,ptable,mpio=True,nopartition=False):
 	'''
 	Save a Dataset in HDF5
 	'''
 	if mpio and not MPI_SIZE == 1:
-		h5_save_mpio(fname,time,varDict,mesh,ptable)
+		h5_save_mpio(fname,time,varDict,mesh,ptable,nopartition)
 	else:
 		h5_save_serial(fname,time,varDict,mesh,ptable)
 
@@ -74,6 +74,45 @@ def h5_save_mesh(file,mesh,ptable):
 		dconec[istart:iend,:] = mesh.connectivity + istart
 		deltyp[istart:iend]   = mesh.eltype
 		dcellO[istart:iend]   = mesh.cellOrder
+	return None
+
+def h5_save_mesh_nopartition(file,mesh,ptable):
+	'''
+	Save the mesh inside the HDF5 file
+	'''
+	# Skip the whole process if the mesh is not there
+	if mesh is not None:
+		# Create a group for the mesh
+		group = file.create_group('MESH')
+		# Save the mesh type
+		dset = group.create_dataset('type',(1,),dtype='i4',data=MTYPE2ID[mesh.type])
+		# Write the total number of cells and the total number of points
+		# Assume we might be dealing with a parallel mesh
+		npointG, ncellG = mesh.npointsT, mesh.ncellsT
+		if ptable.has_master: 
+			npointG -= 1
+			ncellG  -= 1
+		group.create_dataset('npoints',(1,),dtype='i4',data=npointG)
+		group.create_dataset('ncells' ,(1,),dtype='i4',data=ncellG)
+		# Create the rest of the datasets for parallel storage
+		dxyz   = group.create_dataset('xyz',(npointG,mesh.ndim),dtype='f8')
+		dconec = group.create_dataset('connectivity',(ncellG,mesh.nnodcell),dtype='i4')
+		deltyp = group.create_dataset('eltype',(ncellG,),dtype='u1')
+		dcellO = group.create_dataset('cellOrder',(ncellG,),dtype='i4')
+		dpoinO = group.create_dataset('pointOrder',(npointG,),dtype='i4')
+		# Skip master if needed
+		if ptable.has_master and MPI_RANK == 0: return
+		# Point dataset
+		# Get the position where the points should be stored
+		_,idx = np.unique(mesh.pointOrder,return_index=True)
+		dxyz[idx,:] = mesh.xyz
+		dpoinO[idx] = mesh.pointOrder
+		# Compute start and end of read, cell data
+		istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
+		dconec[istart:iend,:] = mesh.connectivity + istart
+		deltyp[istart:iend]   = mesh.eltype
+		dcellO[istart:iend]   = mesh.cellOrder
+	return idx
 
 def h5_create_variable_datasets(file,time,varDict,ptable):
 	'''
@@ -95,22 +134,28 @@ def h5_create_variable_datasets(file,time,varDict,ptable):
 		}
 	return dsetDict
 
-def h5_fill_variable_datasets(dsetDict,varDict,ptable):
+def h5_fill_variable_datasets(dsetDict,varDict,ptable,idx):
 	'''
 	Fill in the variable datasets inside an HDF5 file
 	'''
 	# Skip master if needed
 	if ptable.has_master and MPI_RANK == 0: return
 	for var in dsetDict.keys():
-		# Compute start and end bounds for the variable
-		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=varDict[var]['ndim'],points=varDict[var]['point'])
 		# Fill dataset
 		dsetDict[var]['point'][:] = varDict[var]['point']
 		dsetDict[var]['ndim'][:]  = varDict[var]['ndim']
-		if varDict[var]['ndim'] > 1:
-			dsetDict[var]['value'][istart:iend,:]  = varDict[var]['value']
+		if idx is None or not varDict[var]['point']:
+			# Compute start and end bounds for the variable
+			istart, iend = ptable.partition_bounds(MPI_RANK,ndim=varDict[var]['ndim'],points=varDict[var]['point'])
+			if varDict[var]['ndim'] > 1:
+				dsetDict[var]['value'][istart:iend,:]  = varDict[var]['value']
+			else:
+				dsetDict[var]['value'][istart:iend]  = varDict[var]['value']
 		else:
-			dsetDict[var]['value'][istart:iend]  = varDict[var]['value']
+			if varDict[var]['ndim'] > 1:
+				dsetDict[var]['value'][idx,:]  = varDict[var]['value']
+			else:
+				dsetDict[var]['value'][idx]  = varDict[var]['value']			
 
 def h5_save_serial(fname,time,varDict,mesh,ptable):
 	'''
@@ -127,7 +172,7 @@ def h5_save_serial(fname,time,varDict,mesh,ptable):
 	h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable),varDict,ptable)
 	file.close()
 
-def h5_save_mpio(fname,time,varDict,mesh,ptable):
+def h5_save_mpio(fname,time,varDict,mesh,ptable,nopartition):
 	'''
 	Save a dataset in HDF5 in parallel mode
 	'''
@@ -137,7 +182,7 @@ def h5_save_mpio(fname,time,varDict,mesh,ptable):
 	# Store partition table
 	h5_save_partition(file,ptable)
 	# Store the mesh
-	h5_save_mesh(file,mesh,ptable)
+	idx = h5_save_mesh(file,mesh,ptable) if not nopartition else h5_save_mesh_nopartition(file,mesh,ptable)
 	# Store the variables
 	h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable),varDict,ptable)
 	file.close()

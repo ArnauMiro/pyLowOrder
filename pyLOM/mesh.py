@@ -205,6 +205,9 @@ class Mesh(object):
 	def npointsG(self):
 		return mpi_reduce(self.npoints,op='sum',all=True)
 	@property
+	def npointsT(self):
+		return mpi_reduce(self.pointOrder,op='max',all=True)
+	@property
 	def ndim(self):
 		return self._xyz.shape[1]
 	@property
@@ -213,6 +216,9 @@ class Mesh(object):
 	@property
 	def ncellsG(self):
 		return mpi_reduce(self.ncells,op='sum',all=True)
+	@property
+	def ncellsT(self):
+		return mpi_reduce(self.cellOrder,op='max',all=True)
 	@property
 	def nnodcell(self):
 		return self._conec.shape[1]
