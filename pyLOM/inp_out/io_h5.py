@@ -195,8 +195,7 @@ def h5_load_mesh(file,ptable,repart):
 		inods  = ptable.partition_points(MPI_RANK,1,conec)
 		ptable.update_points(inods.shape[0])
 	else:
-		istart, iend = ptable.partition_bounds(MPI_RANK,points=True)
-		inods = np.arange(istart,iend,dtype=np.int32)
+		inods = None
 	xyz    = np.array(file['MESH']['xyz'][inods,:],np.double) 
 	pointO = np.array(file['MESH']['pointOrder'][inods],np.int32)
 	# Fix the connectivity to start at zero
@@ -204,7 +203,7 @@ def h5_load_mesh(file,ptable,repart):
 	# Return
 	return Mesh(mtype,xyz,conec,eltype,cellO,pointO),inods
 
-def h5_load_variables(file,mesh,ptable,inods):
+def h5_load_variables(file,mesh,ptable,inods,repart):
 	'''
 	Load the variables inside the HDF5 file
 	'''
@@ -223,8 +222,14 @@ def h5_load_variables(file,mesh,ptable,inods):
 			istart, iend = ptable.partition_bounds(MPI_RANK,ndim=ndim,points=point)
 			value[:,:]   = np.array(file['VARIABLES'][v]['value'][istart:iend,:])
 		else:
-			for idim in range(ndim):
-				value[idim:ndim*npoints:ndim,:] = np.array(file['VARIABLES'][v]['value'][inods+idim*npoints,:])
+			if repart:
+				# We are repartitioning, then use inods to read the array
+				for idim in range(ndim):
+					value[idim:ndim*npoints:ndim,:] = np.array(file['VARIABLES'][v]['value'][inods+idim*npoints,:])
+			else:
+				# Just use the partition bounds to recover the array
+				istart, iend = ptable.partition_bounds(MPI_RANK,ndim=ndim,points=point)
+				value[:,:]   = np.array(file['VARIABLES'][v]['value'][istart:iend,:])
 		# Generate dictionary
 		varDict[v] = {'point':point,'ndim':ndim,'value':value}
 	# Return
@@ -245,7 +250,7 @@ def h5_load_serial(fname):
 	# Read the mesh
 	mesh, inods = h5_load_mesh(file,ptable,False)
 	# Read the variables
-	time, varDict = h5_load_variables(file,mesh,ptable,inods)
+	time, varDict = h5_load_variables(file,mesh,ptable,inods,False)
 	file.close()
 	return ptable, mesh, time, varDict
 
@@ -273,7 +278,7 @@ def h5_load_mpio(fname):
 	# Read the mesh
 	mesh, inods = h5_load_mesh(file,ptable,repart)
 	# Read the variables
-	time, varDict = h5_load_variables(file,mesh,ptable,inods)
+	time, varDict = h5_load_variables(file,mesh,ptable,inods,repart)
 	file.close()
 	return ptable, mesh, time, varDict
 
