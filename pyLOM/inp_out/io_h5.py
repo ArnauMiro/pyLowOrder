@@ -63,7 +63,7 @@ def h5_save_mesh(file,mesh,ptable):
 		dcellO = group.create_dataset('cellOrder',(ncellG,),dtype='i4')
 		dpoinO = group.create_dataset('pointOrder',(npointG,),dtype='i4')
 		# Skip master if needed
-		if ptable.has_master and MPI_RANK == 0: return
+		if ptable.has_master and MPI_RANK == 0: return None, None
 		# Point dataset
 		# Compute start and end of read, node data
 		istart, iend = ptable.partition_bounds(MPI_RANK,points=True)
@@ -74,7 +74,7 @@ def h5_save_mesh(file,mesh,ptable):
 		dconec[istart:iend,:] = mesh.connectivity + istart
 		deltyp[istart:iend]   = mesh.eltype
 		dcellO[istart:iend]   = mesh.cellOrder
-	return None,None
+	return None, None
 
 def h5_save_mesh_nopartition(file,mesh,ptable):
 	'''
@@ -88,7 +88,7 @@ def h5_save_mesh_nopartition(file,mesh,ptable):
 		dset = group.create_dataset('type',(1,),dtype='i4',data=MTYPE2ID[mesh.type])
 		# Write the total number of cells and the total number of points
 		# Assume we might be dealing with a parallel mesh
-		npointG, ncellG = mesh.npointsT, mesh.ncellsT
+		npointG, ncellG = mesh.npointsT, mesh.ncellsG
 		if ptable.has_master: 
 			npointG -= 1
 			ncellG  -= 1
@@ -101,11 +101,11 @@ def h5_save_mesh_nopartition(file,mesh,ptable):
 		dcellO = group.create_dataset('cellOrder',(ncellG,),dtype='i4')
 		dpoinO = group.create_dataset('pointOrder',(npointG,),dtype='i4')
 		# Skip master if needed
-		if ptable.has_master and MPI_RANK == 0: return
+		if ptable.has_master and MPI_RANK == 0: return None, None
 		# Point dataset
 		# Get the position where the points should be stored
 		inods,idx = np.unique(mesh.pointOrder,return_index=True)
-		dxyz[inods,:] = mesh.xyz[idx]
+		dxyz[inods,:] = mesh.xyz[idx,:]
 		dpoinO[inods] = mesh.pointOrder[idx]
 		# Compute start and end of read, cell data
 		istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
