@@ -88,10 +88,7 @@ def h5_save_mesh_nopartition(file,mesh,ptable):
 		dset = group.create_dataset('type',(1,),dtype='i4',data=MTYPE2ID[mesh.type])
 		# Write the total number of cells and the total number of points
 		# Assume we might be dealing with a parallel mesh
-		npointG, ncellG = mesh.npointsT, mesh.ncellsG
-		if ptable.has_master: 
-			npointG -= 1
-			ncellG  -= 1
+		npointG, ncellG = mesh.npointsG2, mesh.ncellsG2
 		group.create_dataset('npoints',(1,),dtype='i4',data=npointG)
 		group.create_dataset('ncells' ,(1,),dtype='i4',data=ncellG)
 		# Create the rest of the datasets for parallel storage
