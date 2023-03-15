@@ -144,7 +144,7 @@ class Mesh(object):
 			xyzc[:,1]  = yy.reshape((self.ncells,),order='C')		
 			xyzc[:,2]  = zz.reshape((self.ncells,),order='C')		
 		# Connectivity for a unstructured mesh
-		if meshDict['type'].lower() in UNSTRUCT:
+		if self.type == 'UNSTRUCT':
 			cr_stop('mesh cellcenters',0)
 			raiseError('Not yet implemented!')
 		cr_stop('mesh cellcenters',0)
