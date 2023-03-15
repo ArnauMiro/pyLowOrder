@@ -49,7 +49,7 @@ d.add_variable('VELOC',True,3,X_VELOC)
 
 
 ## Store dataset
-d.save('%s.h5'%CASESTR) 
+d.save('%s.h5'%CASESTR,nopartition=True) 
 
 pyAlya.cr_info()
 pyLOM.cr_info()
