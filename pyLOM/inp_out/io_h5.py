@@ -66,12 +66,12 @@ def h5_save_mesh(file,mesh,ptable):
 		if ptable.has_master and MPI_RANK == 0: return None, None
 		# Point dataset
 		# Compute start and end of read, node data
-		istart, iend = ptable.partition_bounds(MPI_RANK,points=True)
-		dxyz[istart:iend,:]   = mesh.xyz
-		dpoinO[istart:iend]   = mesh.pointOrder
+		istartp, iend = ptable.partition_bounds(MPI_RANK,points=True)
+		dxyz[istartp:iend,:]  = mesh.xyz
+		dpoinO[istartp:iend]  = mesh.pointOrder
 		# Compute start and end of read, cell data
 		istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
-		dconec[istart:iend,:] = mesh.connectivity + istart
+		dconec[istart:iend,:] = mesh.connectivity + istartp
 		deltyp[istart:iend]   = mesh.eltype
 		dcellO[istart:iend]   = mesh.cellOrder
 	return None, None
@@ -99,14 +99,15 @@ def h5_save_mesh_nopartition(file,mesh,ptable):
 		dpoinO = group.create_dataset('pointOrder',(npointG,),dtype='i4')
 		# Skip master if needed
 		if ptable.has_master and MPI_RANK == 0: return None, None
-		# Point dataset
 		# Get the position where the points should be stored
 		inods,idx = np.unique(mesh.pointOrder,return_index=True)
+		# Write dataset - points
 		dxyz[inods,:] = mesh.xyz[idx,:]
 		dpoinO[inods] = mesh.pointOrder[idx]
 		# Compute start and end of read, cell data
 		istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
-		dconec[istart:iend,:] = mesh.connectivity + istart
+		# Write dataset - cells
+		dconec[istart:iend,:] = mesh.pointOrder[mesh.connectivity]
 		deltyp[istart:iend]   = mesh.eltype
 		dcellO[istart:iend]   = mesh.cellOrder
 	return inods,idx
@@ -122,12 +123,14 @@ def h5_create_variable_datasets(file,time,varDict,ptable):
 	dsetDict = {}
 	for var in varDict.keys():
 		vargroup = group.create_group(var)
-		n = mpi_reduce(varDict[var]['value'].shape[0],op='sum',all=True)
+		n     = mpi_reduce(varDict[var]['value'].shape[0],op='sum',all=True)
 		if ptable.has_master: n -= 1
+		npoin = int(file['MESH']['npoints'][0]) if varDict[var]['point'] else int(file['MESH']['cells'][0])
+		ndim  = n//npoin
 		dsetDict[var] = {
 			'point' : vargroup.create_dataset('point',(1,),dtype='u1'),
 			'ndim'  : vargroup.create_dataset('ndim' ,(1,),dtype='i4'),
-			'value' : vargroup.create_dataset('value',(n,time.shape[0]),dtype=varDict[var]['value'].dtype),
+			'value' : vargroup.create_dataset('value',(ndim*npoin,time.shape[0]),dtype=varDict[var]['value'].dtype),
 		}
 	return dsetDict
 
@@ -177,7 +180,7 @@ def h5_save_mpio(fname,time,varDict,mesh,ptable,nopartition):
 	file = h5py.File(fname,'w',driver='mpio',comm=MPI_COMM)
 	file.attrs['Version'] = PYLOM_H5_VERSION
 	# Store partition table
-	h5_save_partition(file,ptable)
+	h5_save_partition(file,PartitionTable.new(1,mesh.ncellsG2,mesh.npointsG2))
 	# Store the mesh
 	inods,idx = h5_save_mesh(file,mesh,ptable) if not nopartition else h5_save_mesh_nopartition(file,mesh,ptable)
 	# Store the variables
@@ -290,10 +293,19 @@ def h5_load_serial(fname):
 		raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
 	# Read partition table
 	ptable = h5_load_partition(file)
+	repart = False
+	# Are we reading for the same number of partitions?
+	if not ptable.check_split():
+		# Read the number of elements and points to compute
+		# the new partition table
+		npoints, ncells = h5_load_size(file)
+		# Redo the partitions table
+		ptable = PartitionTable.new(MPI_SIZE,ncells,npoints)
+		repart = True
 	# Read the mesh
-	mesh, inods = h5_load_mesh(file,ptable,False)
+	mesh, inods = h5_load_mesh(file,ptable,repart)
 	# Read the variables
-	time, varDict = h5_load_variables(file,mesh,ptable,inods,False)
+	time, varDict = h5_load_variables(file,mesh,ptable,inods,repart)
 	file.close()
 	return ptable, mesh, time, varDict
 
