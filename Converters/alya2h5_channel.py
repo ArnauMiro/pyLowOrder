@@ -37,7 +37,7 @@ X_VELOX = np.zeros((mesh.nnod,ni),dtype=np.double) # POD matrix, VELOC and PRESS
 X_VELOY = np.zeros((mesh.nnod,ni),dtype=np.double) # POD matrix, VELOC and PRESS
 X_VELOZ = np.zeros((mesh.nnod,ni),dtype=np.double) # POD matrix, VELOC and PRESS
 for ii,instant in enumerate(listOfInstants):
-	if ii%10 == 0: pyAlya.pprint(1,'Processing instant %d...'%instant,flush=True)
+	if ii%100 == 0: pyAlya.pprint(1,'Processing instant %d...'%instant,flush=True)
 	# Read data
 	field, header = pyAlya.Field.read(CASESTR,VARLIST,instant,mesh.xyz,basedir=BASEDIR)
 	# Store time
