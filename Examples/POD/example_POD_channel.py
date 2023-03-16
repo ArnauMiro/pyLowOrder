@@ -11,11 +11,10 @@ import pyLOM
 
 ## Data loading
 DATAFILE  = '../channel.h5'
-VARIABLES = ['PRESS','VELOC']
+VARIABLES = ['PRESS','VELOX','VELOY','VELOZ']
 
 d = pyLOM.Dataset.load(DATAFILE)
 X = d.X(*VARIABLES)
-
 
 ## Run POD
 PSI,S,V = pyLOM.POD.run(X,remove_mean=False) # PSI are POD modes
@@ -46,23 +45,29 @@ if pyLOM.utils.is_rank_or_serial(0):
 
 
 ## Reconstruct the flow
-time  = d.time[-500:]
-X_POD = pyLOM.POD.reconstruct(PSI[:,-500:],S,V)
+X_POD = pyLOM.POD.reconstruct(PSI,S,V)
 # Compute RMSE
-rmse = pyLOM.math.RMSE(X_POD,X[:,-500:])
+rmse = pyLOM.math.RMSE(X_POD,X)
 pyLOM.pprint(0,'RMSE = %e'%rmse)
 
 # Create a dataset to store the last 500 instants from the simulation
 # and the reconstructed flow
-X_PRESR = X_POD[0:4*d.mesh.npoints:4,:]
-X_VELOR = np.zeros((3*d.mesh.npoints,len(time)),dtype=np.double)
-X_VELOR[0:3*d.mesh.npoints:3,:] = X_POD[1:4*d.mesh.npoints:4,-500:]
-X_VELOR[1:3*d.mesh.npoints:3,:] = X_POD[2:4*d.mesh.npoints:4,-500:]
-X_VELOR[2:3*d.mesh.npoints:3,:] = X_POD[3:4*d.mesh.npoints:4,-500:]
+idx     = 100
+time    = d.time[idx:]
+X_PRESS = X[0:4*d.mesh.npoints:4,-idx:]
+X_PRESR = X_POD[0:4*d.mesh.npoints:4,-idx:]
+X_VELOC = np.zeros((3*d.mesh.npoints,idx),dtype=np.double)
+X_VELOC[0:3*d.mesh.npoints:3,:] = X[1:4*d.mesh.npoints:4,-idx:]
+X_VELOC[1:3*d.mesh.npoints:3,:] = X[2:4*d.mesh.npoints:4,-idx:]
+X_VELOC[2:3*d.mesh.npoints:3,:] = X[3:4*d.mesh.npoints:4,-idx:]
+X_VELOR = np.zeros((3*d.mesh.npoints,idx),dtype=np.double)
+X_VELOR[0:3*d.mesh.npoints:3,:] = X_POD[1:4*d.mesh.npoints:4,-idx:]
+X_VELOR[1:3*d.mesh.npoints:3,:] = X_POD[2:4*d.mesh.npoints:4,-idx:]
+X_VELOR[2:3*d.mesh.npoints:3,:] = X_POD[3:4*d.mesh.npoints:4,-idx:]
 
-d2   = pyLOM.Dataset(ptable=d.partition_table, mesh=d.mesh, time=time)
-d2.add_variable('PRESS',True,1,d.X('PRESS',time_slice=np.s_[-500:]))
-d2.add_variable('VELOC',True,3,d.X('VELOC',time_slice=np.s_[-500:]))
+d2 = pyLOM.Dataset(ptable=d.partition_table, mesh=d.mesh, time=time)
+d2.add_variable('PRESS',True,1,X_PRESS)
+d2.add_variable('VELOC',True,3,X_VELOC)
 d2.add_variable('PRESR',True,1,X_PRESR)
 d2.add_variable('VELOR',True,3,X_VELOR)
 d2.write('flow',basedir='flow',instants=np.arange(d2.time.shape[0],dtype=np.int32),times=d2.time,vars=['PRESS','VELOC','PRESR','VELOR'],fmt='vtkh5')

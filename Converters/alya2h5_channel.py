@@ -10,16 +10,17 @@ import pyAlya, pyLOM
 
 
 BASEDIR        = '../'
-CASESTR        = 'chan'
+DSETDIR        = './'
+CASESTR        = 'channel'
 VARLIST        = ['VELOC','PRESS']
-START, DT, END = 1,1,415+1
+START, DT, END = 500000, 500, 1000000
 
 # In case of restart, load the previous data
 listOfInstants = [ii for ii in range(START,END,DT)]
 ni = len(listOfInstants)
 
 
-## Create the subdomain mesh
+## Load pyAlya mesh
 mesh = pyAlya.Mesh.read(CASESTR,basedir=BASEDIR,read_commu=False,read_massm=False)
 pyAlya.pprint(0,'Run (%d instants)...' % len(listOfInstants),flush=True)
 
@@ -30,25 +31,35 @@ p = pyLOM.PartitionTable.from_pyAlya(mesh.partition_table,has_master=True)
 d = pyLOM.Dataset(ptable=p, mesh=m, time=np.zeros((ni,),dtype=np.double))
 
 
-## Loop time instants
-X_PRESS = np.zeros((mesh.nnod,  ni),dtype=np.double) # POD matrix, VELOC and PRESS
-X_VELOC = np.zeros((3*mesh.nnod,ni),dtype=np.double) # POD matrix, VELOC and PRESS
+## Build dataset from the instants
+X_PRESS = np.zeros((mesh.nnod,ni),dtype=np.double) # POD matrix, VELOC and PRESS
+X_VELOX = np.zeros((mesh.nnod,ni),dtype=np.double) # POD matrix, VELOC and PRESS
+X_VELOY = np.zeros((mesh.nnod,ni),dtype=np.double) # POD matrix, VELOC and PRESS
+X_VELOZ = np.zeros((mesh.nnod,ni),dtype=np.double) # POD matrix, VELOC and PRESS
 for ii,instant in enumerate(listOfInstants):
+	if ii%10 == 0: pyAlya.pprint(1,'Processing instant %d...'%instant,flush=True)
 	# Read data
 	field, header = pyAlya.Field.read(CASESTR,VARLIST,instant,mesh.xyz,basedir=BASEDIR)
 	# Store time
 	d.time[ii] = header.time
 	# Store the POD matrix
 	X_PRESS[:,ii] = field['PRESS']
-	X_VELOC[:,ii] = field['VELOC'].reshape((3*mesh.nnod,),order='C')
+	X_VELOX[:,ii] = field['VELOC'][:,0]
+	X_VELOY[:,ii] = field['VELOC'][:,1]
+	X_VELOZ[:,ii] = field['VELOC'][:,2]
 
 
 ## Add variables to the dataset
 d.add_variable('PRESS',True,1,X_PRESS)
-d.add_variable('VELOC',True,3,X_VELOC)
+d.add_variable('VELOX',True,1,X_VELOX)
+d.add_variable('VELOY',True,1,X_VELOY)
+d.add_variable('VELOZ',True,1,X_VELOZ)
 
 
 ## Store dataset
+# Nopartition will eliminate the partition of alya and allow the dataset to be run
+# with any number of processors but will increase the save time to the disk
+# Use with great care!!
 d.save('%s.h5'%CASESTR,nopartition=True) 
 
 pyAlya.cr_info()
