@@ -104,7 +104,7 @@ def h5_save_mesh_nopartition(file,mesh,ptable):
 		# Write dataset - points
 		dxyz[inods,:] = mesh.xyz[idx,:]
 		dpoinO[inods] = mesh.pointOrder[idx]
-		# Compute start and end of read, cell data
+                # Compute start and end of read, cell data
 		istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
 		# Write dataset - cells
 		dconec[istart:iend,:] = mesh.pointOrder[mesh.connectivity]
@@ -152,11 +152,10 @@ def h5_fill_variable_datasets(dsetDict,varDict,ptable,npoints,inods,idx):
 			else:
 				dsetDict[var]['value'][istart:iend]  = varDict[var]['value']
 		else:
-			iinods = np.hstack([inods + idim*len(inods) for idim in range(varDict[var]['ndim'])])#.flatten('C')
-			iidx   = np.hstack([idx   + idim*len(idx)   for idim in range(varDict[var]['ndim'])])#.flatten('C')
-			isort  = np.argsort(iinods)
-			print(iinods.shape,iidx.shape,iinods,iinods[isort],flush=True)
-			dsetDict[var]['value'][iinods[isort],:]  = varDict[var]['value'][iidx[isort],:]
+			if varDict[var]['ndim'] > 1:
+				raiseError('Cannot deal with multi-dimensional arrays in no partition mode!')
+			else:
+				dsetDict[var]['value'][inods,:]  = varDict[var]['value'][idx,:]
 
 def h5_save_serial(fname,time,varDict,mesh,ptable):
 	'''
