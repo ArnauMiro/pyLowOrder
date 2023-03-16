@@ -44,47 +44,19 @@ jobs:
         run: make install
       # POD test suite
       - name: Run test-suite POD
-        run: |
-          cd Testsuite
-          rm -rf *.tar.gz
-          python tsuite_POD_cylinder.py
-          tar cvzf cylinderPOD_serial.tar.gz cylinderPOD/
-          rm -rf cylinderPOD
-          mpirun -np 4 python tsuite_POD_cylinder.py
-          tar cvzf cylinderPOD_parallel.tar.gz cylinderPOD/
-          rm -rf cylinderPOD
-          python tsuite_POD_jet.py
-          tar cvzf jetPOD_serial.tar.gz jetPOD/
-          rm -rf jetPOD
-          mpirun -np 4 python tsuite_POD_jet.py
-          tar cvzf jetPOD_parallel.tar.gz jetPOD/
-          rm -rf jetPOD
-      - name: upload results POD
-        uses: actions/upload-artifact@v3
-        with:
-          name: output_POD
-          path: Testsuite/*.tar.gz
-          retention-days: 1
+        run: bash Testsuite/run_POD_testsuite.sh
+#      - name: upload results POD
+#        uses: actions/upload-artifact@v3
+#        with:
+#          name: output_POD
+#          path: Testsuite/*.tar.gz
+#          retention-days: 1
       # DMD test suite
       - name: Run test-suite DMD
-        run: |
-          cd Testsuite
-          rm -rf *.tar.gz
-          python tsuite_DMD_cylinder.py
-          tar cvzf cylinderDMD_serial.tar.gz cylinderDMD/
-          rm -rf cylinderDMD
-          mpirun -np 4 python tsuite_DMD_cylinder.py
-          tar cvzf cylinderDMD_parallel.tar.gz cylinderDMD/
-          rm -rf cylinderDMD
-          python tsuite_DMD_jet.py
-          tar cvzf jetDMD_serial.tar.gz jetDMD/
-          rm -rf jetDMD
-          mpirun -np 4 python tsuite_DMD_jet.py
-          tar cvzf jetDMD_parallel.tar.gz jetDMD/
-          rm -rf jetDMD
-      - name: Upload results DMD
-        uses: actions/upload-artifact@v3
-        with:
-          name: output_DMD
-          path: Testsuite/*.tar.gz
-          retention-days: 1      
+        run: bash Testsuite/run_DMD_testsuite.sh
+#      - name: Upload results DMD
+#        uses: actions/upload-artifact@v3
+#        with:
+#          name: output_DMD
+#          path: Testsuite/*.tar.gz
+#          retention-days: 1      
