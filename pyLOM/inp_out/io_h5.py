@@ -125,7 +125,7 @@ def h5_create_variable_datasets(file,time,varDict,ptable):
 		vargroup = group.create_group(var)
 		n     = mpi_reduce(varDict[var]['value'].shape[0],op='sum',all=True)
 		if ptable.has_master: n -= 1
-		npoin = int(file['MESH']['npoints'][0]) if varDict[var]['point'] else int(file['MESH']['cells'][0])
+		npoin = int(file['MESH']['npoints'][0]) if varDict[var]['point'] else int(file['MESH']['ncells'][0])
 		ndim  = n//npoin
 		dsetDict[var] = {
 			'point' : vargroup.create_dataset('point',(1,),dtype='u1'),
@@ -167,9 +167,9 @@ def h5_save_serial(fname,time,varDict,mesh,ptable):
 	# Store partition table
 	h5_save_partition(file,ptable)
 	# Store the mesh
-	h5_save_mesh(file,mesh,ptable)
+	inods,idx,npoints = h5_save_mesh(file,mesh,ptable)
 	# Store the variables
-	h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable),varDict,ptable,None,None)
+	h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable),varDict,ptable,npoints,inods,idx)
 	file.close()
 
 def h5_save_mpio(fname,time,varDict,mesh,ptable,nopartition):
