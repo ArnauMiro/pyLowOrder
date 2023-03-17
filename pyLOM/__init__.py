@@ -10,13 +10,15 @@ __VERSION__ = '1.5.0'
 from . import POD, DMD, SPOD
 
 # Import essential tools
-from .        import inp_out as io, vmmath as math
-from .dataset import Dataset
+from .                import inp_out as io, vmmath as math, utils
+from .dataset         import Dataset
+from .partition_table import PartitionTable
+from .mesh            import Mesh
 
 # Import utilities
 from .utils.cr     import cr_start, cr_stop, cr_reset, cr_info
-from .utils.parall import pprint, is_rank_or_serial
+from .utils.parall import pprint
 from .utils.plots  import show_plots, close_plots
 
 
-del utils, dataset
+del dataset, partition_table, mesh

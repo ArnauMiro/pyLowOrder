@@ -10,7 +10,10 @@ __VERSION__ = '1.0.0'
 
 # Pickle and HDF5 exchange format
 from .io_pkl  import pkl_load, pkl_save
-from .io_h5   import h5_load, h5_save, h5_save_part, h5_load_part
+from .io_h5   import h5_load, h5_save, h5_save_POD, h5_load_POD, h5_save_DMD, h5_load_DMD
+
+# VTK HDF5 3D format
+from .io_vtkh5 import vtkh5_save_mesh, vtkh5_save_field
 
 # Ensight 3D format
 from .io_ensight import Ensight_readCase, Ensight_writeCase, Ensight_readGeo, Ensight_writeGeo, Ensight_readField, Ensight_writeField

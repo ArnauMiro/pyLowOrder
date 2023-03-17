@@ -1,0 +1,62 @@
+name: Run test-suite
+run-name: Running test suite of pyLOM by @${{ github.actor }}
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:    
+  run-testsuite:
+    runs-on: ubuntu-20.04
+    env:
+      CC: mpicc
+      CXX: mpc++
+      FC: mpif90
+    steps:
+      - uses: actions/checkout@v3
+      # Setup MPI and Python for this job
+      - name: Setup MPI
+        uses: mpi4py/setup-mpi@v1
+        with:
+          mpi: openmpi
+      - name: Set up Python 3.8.5
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.8.5
+      # Run pyLOM compilation and deployment
+      - name: Set up configuration
+        run: |
+          sed -i 's/USE_MKL       = ON/USE_MKL       = OFF/g' options.cfg
+          sed -i 's/FORCE_GCC     = OFF/FORCE_GCC     = ON/g' options.cfg
+      - name: Fix h5py
+        run: |
+          sudo apt install libhdf5-mpi-dev
+          CC=mpicc HDF5_MPI="ON" pip install --no-binary=h5py h5py
+      - name: Set up dependencies
+        run: make deps requirements
+      - name: Build compiled code
+        run: make python
+      - name: Install
+        run: make install
+      # POD test suite
+      - name: Run test-suite POD
+        run: bash Testsuite/run_POD_testsuite.sh
+#      - name: upload results POD
+#        uses: actions/upload-artifact@v3
+#        with:
+#          name: output_POD
+#          path: Testsuite/*.tar.gz
+#          retention-days: 1
+      # DMD test suite
+      - name: Run test-suite DMD
+        run: bash Testsuite/run_DMD_testsuite.sh
+#      - name: Upload results DMD
+#        uses: actions/upload-artifact@v3
+#        with:
+#          name: output_DMD
+#          path: Testsuite/*.tar.gz
+#          retention-days: 1      

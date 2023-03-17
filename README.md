@@ -1,6 +1,7 @@
 [![Build status](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions/workflows/build_intel.yml/badge.svg)](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions)
 [![Build status](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions/workflows/build_gcc.yml/badge.svg)](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions)
-[![License](https://img.shields.io/badge/license-GPL--3.0-orange)](https://opensource.org/licenses/GPL-3.0)
+[![Test-suite](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions/workflows/run_testsuite.yml/badge.svg)](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions)
+[![License](https://img.shields.io/badge/license-MIT-orange)](https://opensource.org/licenses/mit)
 
 # UPM-BSC Low Order Modelling library
 
@@ -19,7 +20,7 @@ make uninstall
 
 The previous operations can be done one step at a time using
 ```bash
-make requirements
+make deps requirements
 ```
 to install all the requirements;
 ```bash

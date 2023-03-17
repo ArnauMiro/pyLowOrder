@@ -22,26 +22,23 @@ DT  = float(mat['dt'])
 
 
 ## Build mesh information dictionary
-mesh  = {'type':'struct2D','nx':int(mat['nx']),'ny':int(mat['nr'])}
-PRESS = np.ascontiguousarray(mat['p'].reshape((mesh['nx']*mesh['ny'], 5000)).astype(np.double))
-
-# Build node positions
+nx, ny = int(mat['nx']),int(mat['nr']) 
 x = np.unique(mat['x'])
 y = np.unique(mat['r'])
-xx, yy = np.meshgrid(x,y,indexing='ij')
-xyz = np.zeros((mesh['nx']*mesh['ny'],3),dtype=np.double)
-xyz[:,0] = xx.reshape((mesh['nx']*mesh['ny'],),order='C')
-xyz[:,1] = yy.reshape((mesh['nx']*mesh['ny'],),order='C')
+mesh = pyLOM.Mesh.new_struct2D(nx,ny,x,y,None,None) 
+print(mesh)
 
-# Build time instants
-time = DT*np.arange(mat['p'].shape[2])+0.04
+
+## Create partition table
+ptable = pyLOM.PartitionTable.new(1,mesh.ncells,mesh.npoints)
+print(ptable)
 
 
 ## Create dataset for pyLOM
-d = pyLOM.Dataset(mesh=mesh, xyz=xyz, time=time,
+d = pyLOM.Dataset(ptable=ptable, mesh=mesh, time=DT*np.arange(mat['p'].shape[2])+0.04,
 	# Now add all the arrays to be stored in the dataset
 	# It is important to convert them as C contiguous arrays
-	PRESS = {'point':True,'ndim':1,'value':PRESS},
+	PRESS = {'point':True,'ndim':1,'value':np.ascontiguousarray(mat['p'].reshape((mesh.npoints, 5000)).astype(np.double))},
 )
 print(d)
 

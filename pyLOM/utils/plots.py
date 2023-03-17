@@ -9,10 +9,10 @@ from __future__ import print_function, division
 
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
 
-from ..vmmath     import vector_norm
-from ..utils.mesh import mesh_compute_cellcenter
+from ..vmmath       import vector_norm
+from ..utils.cr     import cr_start, cr_stop
+from ..utils.errors import raiseWarning
 
 
 def show_plots():
@@ -67,56 +67,90 @@ def plotResidual(S,fig=None,ax=None):
 	# Return
 	return fig, ax
 
-def plotSnapshot(X,xyz,mesh,info,dim=0,fig=None,ax=None,cmap=None):
-	'''
-	Given X and the mesh plot a time instant
-	'''
-	# Build figure and axes
-	if fig is None:
-		fig = plt.figure(figsize=(8,6),dpi=100)
-	if ax is None:
-		ax = fig.add_subplot(1,1,1)
-	# Contour plot
-	cf = None
-	if info['point']:
-		cf = plotFieldStruct2D(ax,mesh['nx'],mesh['ny'],info['ndim'],xyz,X,dim-1,cmap)
-	else:
-		xyzc = mesh_compute_cellcenter(xyz,mesh)
-		cf = plotFieldStruct2D(ax,mesh['nx']-1,mesh['ny']-1,info['ndim'],xyzc,X,dim-1,cmap)
-	return fig, ax, cf
 
-def animateFlow(X,X_R,xyz,mesh,info,dim=0,t=None,fig=None,ax=None,cmap=None):
-	'''
-	Given X and the mesh plot a time instant
-	'''
-	# Build figure and axes
-	if fig is None:
-		fig = plt.figure()
-	if ax is None:
-		ax = fig.subplots(2,1,gridspec_kw = {'hspace':0.5})
-	# Select frames to animate
-	nframes = X_R.shape[1]
-	xyzc    = None if info['point'] else mesh_compute_cellcenter(xyz,mesh)
-	# Function to animate
-	def update(iframe):
-		fig.suptitle('Snapshot no %d'%iframe)
-		if info['point']:
-			c1 = plotFieldStruct2D(ax[0],mesh['nx'],mesh['ny'],info['ndim'],xyz,X[:,iframe],dim-1,cmap)
-			c2 = plotFieldStruct2D(ax[1],mesh['nx'],mesh['ny'],info['ndim'],xyz,X_R[:,iframe],dim-1,cmap)
-		else:
-			c1 = plotFieldStruct2D(ax[0],mesh['nx']-1,mesh['ny']-1,info['ndim'],xyzc,X[:,iframe],dim-1,cmap)
-			c2 = plotFieldStruct2D(ax[1],mesh['nx']-1,mesh['ny']-1,info['ndim'],xyzc,X_R[:,iframe],dim-1,cmap)
-		ax[0].set_title('Numerical simulation')
-		ax[0].set_aspect('equal')
-		ax[0].set_xlabel('x/D')
-		ax[0].set_ylabel('y/D')
-		ax[1].set_title('Reconstructed flow')
-		ax[1].set_aspect('equal')
-		ax[1].set_xlabel('x/D')
-		ax[1].set_ylabel('y/D')
-		if iframe == 0 and not hasattr(update,'cbar'):
-			fig.colorbar(mappable = c1, ax=ax[0])
-			fig.colorbar(mappable = c2, ax=ax[1])
-			update.cbar = True
-	anim = FuncAnimation(fig,update,frames=np.arange(nframes,dtype=np.int32),blit=False)
-	return fig, ax, anim
+try:
+	import pyvista as pv
+
+	def _cells_and_offsets(conec):
+		'''
+		Build the offsets and cells array to create am
+		UnstructuredGrid
+		'''
+		# Compute points per cell
+		ppcell = np.sum(conec >= 0,axis=1)
+		# Compute cells for pyVista, with the number of points per cell on front
+		cells = np.c_[ppcell,conec]
+		# Now we get rid of any -1 entries for mixed meshes
+		cellsf = cells.flatten('c')
+		cellsf = cellsf[cellsf>=0]
+		# Now build the offsets vector
+		offset = np.zeros((ppcell.shape[0]+1,),np.int32)
+		offset[1:] = np.cumsum(ppcell)
+		return cellsf, offset
+
+	def plotSnapshot(dset,vars=[],instant=0,**kwargs):
+		'''
+		Plot using pyVista
+		'''
+		cr_start('pyvista plot',0)
+		mesh = dset.mesh
+		# First create the unstructured grid
+		cells, offsets = _cells_and_offsets(mesh.connectivity)
+		# Create the unstructured grid
+		ugrid =  pv.UnstructuredGrid(offsets,cells,mesh.eltype2VTK,mesh.xyz) if pv.vtk_version_info < (9,) else pv.UnstructuredGrid(cells,mesh.eltype2VTK,mesh.xyz)
+		# Load the variables inside the unstructured grid
+		for v in vars:
+			info = dset.info(v)
+			if info['point']:
+				ugrid.point_data[v] = dset.mesh.reshape_var(dset[v][:,instant] if len(dset[v].shape) > 1 else dset[v],info)
+			else:
+				ugrid.cell_data[v]  = dset.mesh.reshape_var(dset[v][:,instant] if len(dset[v].shape) > 1 else dset[v],info)
+		# Launch plot
+		cr_stop('pyvista plot',0)
+		return ugrid.plot(**kwargs)
+
+	def plotLayout(dset,nrows,ncols,imode,vars=[],cmap='jet',title='',off_screen=False,**kwargs):
+		'''
+		Plot using pyVista
+		'''
+		cr_start('pyvista plot',0)
+		mesh = dset.mesh
+		# First create the unstructured grid
+		cells, offsets = _cells_and_offsets(mesh.connectivity)
+		# Create the unstructured grid
+		ugrid =  pv.UnstructuredGrid(offsets,cells,mesh.eltype2VTK,mesh.xyz) if pv.vtk_version_info < (9,) else pv.UnstructuredGrid(cells,mesh.eltype2VTK,mesh.xyz)
+		# Load the variables inside the unstructured grid
+		plotter = pv.Plotter(shape=(nrows,ncols),off_screen=off_screen)
+		irow, icol = 0, 0
+		for ivar, v in enumerate(vars):
+			# Add variable to mesh
+			info = dset.info(v)
+			if info['point']:
+				ugrid.point_data[v] = dset.mesh.reshape_var(dset[v],info)
+			else:
+				ugrid.cell_data[v]  = dset.mesh.reshape_var(dset[v],info)
+			# Plot
+			plotter.subplot(irow,icol)
+			if ivar == 0: plotter.add_text(title)
+			plotter.add_mesh(ugrid,scalars=v,cmap=cmap,component=imode,copy_mesh=True)
+			# Check irow, icol bounds
+			icol += 1
+			if icol == ncols:
+				icol  = 0
+				irow += 1
+		# Launch plot
+		cr_stop('pyvista plot',0)
+		return plotter.show(**kwargs)
+
+except:
+	def plotSnapshot(dset,vars=[],instant=0,**kwargs):
+		'''
+		Plot using pyVista
+		'''
+		raiseWarning('Import - Problems loading pyVista!',False)
+
+	def plotLayout(Phi,mesh,nrows,ncols,vars=[],title='',**kwargs):
+		'''
+		Plot using pyVista
+		'''
+		raiseWarning('Import - Problems loading pyVista!',False)
