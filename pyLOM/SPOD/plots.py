@@ -10,39 +10,28 @@ from __future__ import print_function, division
 import numpy as np
 import matplotlib.pyplot as plt
 
+from .utils        import extract_modes
 from ..vmmath      import fft
-from ..utils.plots import plotResidual, plotFieldStruct2D, plotSnapshot, animateFlow
-from ..utils.mesh  import mesh_compute_cellcenter
+from ..utils.plots import plotResidual, plotFieldStruct2D, plotSnapshot, plotLayout
 
 
-def plotMode(P, freqs, xyz,mesh,info,dim=0, f2plot = np.array([1],np.int32), modes=np.array([1],np.int32),scale_freq=1.,fig=[],ax=[],cmap=None):
+def plotMode(L, P, freqs, dset, ivar, pointData=True, modes=np.array([1],np.int32),**kwargs):
 	'''
-	Given P and the frequencies, plot the requested modes
+	Plot the real and imaginary parts of a mode
 	'''
-	cf = []
-	for iif, f in enumerate(f2plot):
-		if len(fig) < iif + 1:
-			fig.append( plt.figure(figsize=(8,6),dpi=100) )
-		if len(ax) < iif + 1:
-			ax.append( fig[iif].subplots(modes.shape[0],1,gridspec_kw = {'hspace':0.5}) )
-			fig[iif].suptitle('St = %.3f' % (np.abs(freqs[f-1])))
-		for imode, mode in enumerate(modes):
-			if mesh['type'] == 'struct2D':
-				c = None
-				if info['point']:
-					M  = mesh['nx']*mesh['ny']
-					c1 = plotFieldStruct2D(ax[iif][imode],mesh['nx'],mesh['ny'],info['ndim'],xyz,P[(mode-1)*M:mode*M,f-1],dim-1,cmap)
-				else:
-					xyzc = mesh_compute_cellcenter(xyz,mesh)
-					M  = (mesh['nx']-1)*(mesh['ny']-1)
-					c1 = plotFieldStruct2D(ax[iif][imode],mesh['nx']-1,mesh['ny']-1,info['ndim'],xyzc,P[(mode-1)*M:mode*M,f-1],dim-1,cmap)
-				cf.append(c)
-			plt.colorbar(mappable = c1, ax=ax[iif][imode])
-			ax[iif][imode].set_title('Mode %i' % (mode))
-			ax[iif][imode].set_xlabel('x/D')
-			ax[iif][imode].set_ylabel('y/D')
-			ax[iif][imode].set_aspect('equal')
-	return fig, ax, cf
+	# Extract the modes to be plotted
+	npoints = dset.mesh.size(pointData)
+	P_modes = extract_modes(L,P,ivar,npoints,modes=modes)
+	# Add to the dataset
+	dset.add_variable('P_MODES',pointData,len(modes),P_modes)
+	# Loop over the modes
+	screenshot = kwargs.pop('screenshot',None)
+	off_screen = kwargs.pop('off_screen',False)
+	for imode, mode in enumerate(modes):
+		if screenshot is not None: kwargs['screenshot'] = screenshot % imode
+		plotLayout(dset,1,1,mode-1,vars=['P_MODES'],title='Mode %d St = %.3f' % (mode-1, np.abs(freqs[mode-1])),off_screen=off_screen,**kwargs)
+	# Remove from dataset
+	dset.delete('P_MODES')
 
 def plotSpectra(f, L):
 	for ii in range(L.shape[1]):

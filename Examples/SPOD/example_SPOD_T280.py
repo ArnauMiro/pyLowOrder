@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 #
-# Example of SPOD.
+# Example of POD.
 #
-# Last revision: 17/03/2023
+# Last revision: 19/07/2021
 from __future__ import print_function, division
 
 import os, numpy as np
 import pyLOM
 
-## Parameters
-DATAFILE = 'Examples/Data/CYLINDER.h5'
-VARIABLE = 'VELOC'
 
+## Parameters
+DATAFILE = 'Examples/Data/Tensor_re280.h5'
+VARIABLE = 'VELOC'
 
 ## Data loading
 d     = pyLOM.Dataset.load(DATAFILE)
@@ -32,8 +32,3 @@ if pyLOM.utils.is_rank_or_serial(root=0): pyLOM.SPOD.plotSpectra(f, L)
 d.add_variable('spatial_modes_U',False,6,pyLOM.SPOD.extract_modes(L,P,1,d.mesh.ncells,modes=[1,2,3,4,5,6]))
 d.write('modes',basedir='out/modes',instants=[0],times=[0.],vars=['spatial_modes_U'],fmt='vtkh5')
 pyLOM.SPOD.plotMode(L,P,f,d,1,pointData=False,modes=[1,2,3,4,5,6],cpos='xy')
-
-
-## Show and print timings
-pyLOM.cr_info()
-pyLOM.show_plots()

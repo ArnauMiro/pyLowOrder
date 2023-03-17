@@ -9,4 +9,5 @@
 __VERSION__ = '1.0.0'
 
 from .wrapper import run
+from .utils   import extract_modes#, save, load
 from .plots import plotMode, plotSpectra
