@@ -24,7 +24,7 @@ nolap = 50 #Number of overlapping snapshots between windows
 
 ## Run SPOD
 L, P, f = pyLOM.SPOD.run(X,t,nDFT=npwin,nolap=nolap,remove_mean=True)
-#pyLOM.SPOD.save('results.h5',L,P,f,d.partition_table,nvars=2,pointData=False)
+pyLOM.SPOD.save('results.h5',L,P,f,d.partition_table,nvars=1,pointData=True)
 if pyLOM.utils.is_rank_or_serial(root=0): pyLOM.SPOD.plotSpectra(f, L)
 
 
