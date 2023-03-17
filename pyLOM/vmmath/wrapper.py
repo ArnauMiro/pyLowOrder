@@ -225,13 +225,13 @@ def next_power_of_2(n):
 	cr_stop('math.next_power_of_2',0)
 	return p
 
-def tsqr(Ai):
+def _real_tsqr(Ai):
 	'''
-	Parallel QR factorization using Lapack
+	Parallel QR factorization of a real array using Lapack
 		Q(m,n) is the Q matrix
 		R(n,n) is the R matrix
 	'''
-	cr_start('math.tsqr',0)
+	cr_start('math.tsqr_real',0)
 	#Recover rank and size
 	MPI_COMM = MPI.COMM_WORLD      # Communications macro
 	MPI_RANK = MPI_COMM.Get_rank() # Who are you? who? who?
@@ -297,8 +297,98 @@ def tsqr(Ai):
 		mask   >>= 1
 	# Multiply Q1i and QW to obtain Qi
 	Qi = matmul(Q1i, QW)
-	cr_stop('math.tsqr',0)
+	cr_stop('math.tsqr_real',0)
 	return Qi,R
+
+def _complex_tsqr(Ai):
+	'''
+	Parallel QR factorization of a complex array using Lapack
+		Q(m,n) is the Q matrix
+		R(n,n) is the R matrix
+	'''
+	cr_start('math.tsqr_complex',0)
+	#Recover rank and size
+	MPI_COMM = MPI.COMM_WORLD      # Communications macro
+	MPI_RANK = MPI_COMM.Get_rank() # Who are you? who? who?
+	MPI_SIZE = MPI_COMM.Get_size() # Total number of processors used (workers)
+	m, n = Ai.shape
+	# Algorithm 1 from Demmel et al (2012)
+	# 1: QR Factorization on Ai to obtain Q1i and Ri
+	Q1i, R    = qr(Ai)
+	nextPower = next_power_of_2(MPI_SIZE)
+	nlevels   = int(np.log2(nextPower))
+	QW        = np.eye(n, dtype = np.complex128)
+	C         = np.zeros((2*n, n), np.complex128)
+	Q2l       = np.zeros((2*n*nlevels, n), np.complex128)
+	blevel    = 1
+	for ilevel in range(nlevels):
+		# Store R in the upper part of the C matrix
+		C[:n, :] = R
+		# Decide who sends and who recieves, use R as buffer
+		prank = MPI_RANK ^ blevel
+		if MPI_RANK & blevel:
+			if prank < MPI_SIZE:
+				mpi_send(R, prank)
+		else:
+			if prank < MPI_SIZE:
+				R = mpi_recv(source = prank)
+				# Store R in the lower part of the C matrix
+				C[n:, :] = R
+				# 2: QR from the C matrix, reuse C and R
+				Q2i, R = qr(C)
+				# Store Q2i from this level
+				Q2l[2*n*ilevel:2*n*ilevel+2*n, :] = Q2i
+		blevel <<= 1
+	# At this point R is correct on processor 0
+	# Broadcast R and its part of the Q matrix
+	if MPI_SIZE > 1:
+		blevel = 1 << (nlevels - 1)
+		mask   = blevel - 1
+	for ilevel in reversed(range(nlevels)):
+		if MPI_RANK & mask == 0:
+			# Obtain Q2i for this level - use C as buffer
+			C = Q2l[2*n*ilevel:2*n*ilevel+2*n, :]
+			# Multiply by QW either set to identity or allocated to a value
+			# Store into Q2i
+			Q2i = matmul(C, QW)
+			# Communications scheme
+			prank = MPI_RANK^blevel
+			if MPI_RANK & blevel:
+				if prank < MPI_SIZE:
+					C = mpi_recv(source = prank)
+					# Recover R from the upper part of C and QW from the lower part
+					R  = C[:n, :]
+					QW = C[n:, :]
+			else:
+				if prank < MPI_SIZE:
+					# Set up C matrix for sending
+					# Store R in the upper part and Q2i on the lower part
+					# Store Q2i of this rank to QW
+					C[:n, :] = R
+					C[n:, :] = Q2i[n:, :]
+					QW       = Q2i[:n, :]
+					mpi_send(C, prank)
+		blevel >>= 1
+		mask   >>= 1
+	# Multiply Q1i and QW to obtain Qi
+	Qi = matmul(Q1i, QW)
+	cr_stop('math.tsqr_complex',0)
+	return Qi,R
+
+def tsqr(Ai):
+	'''
+	Parallel QR factorization using Lapack
+		Q(m,n) is the Q matrix
+		R(n,n) is the R matrix
+	'''
+	#TO DO: Arnau arreglar data types
+	cr_start('math.tsqr',0)
+	if np.iscomplex(Ai).any():
+		Qi, R = _complex_tsqr(Ai)
+	else:
+		Qi, R = _real_tsqr(Ai)
+	cr_stop('math.tsqr',0)
+	return Qi, R
 
 def tsqr_svd(Ai):
 	'''
