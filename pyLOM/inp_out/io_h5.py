@@ -453,3 +453,66 @@ def h5_load_DMD(fname,vars,ptable=None):
 	# Return
 	file.close()
 	return varList
+
+
+def h5_save_SPOD(fname,L,P,f,ptable,nvars=1,pointData=True,mode='w'):
+	'''
+	Store SPOD variables into an HDF5 file.
+	Can be appended to another HDF by setting the
+	mode to 'a'. Then no partition table will be saved.
+	'''
+	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM)
+	# Store attributes and partition table
+	if not mode == 'a':
+		file.attrs['Version'] = PYLOM_H5_VERSION
+		# Store partition table
+		h5_save_partition(file,ptable)
+	# Get number of blocks
+	nblocks = L.shape[1]
+	# Now create a POD group
+	group = file.create_group('SPOD')
+	# Create the datasets for U, S and V
+	group.create_dataset('pointData',(1,),dtype='u1',data=pointData)
+	group.create_dataset('n_variables',(1,),dtype='u1',data=nvars)
+	group.create_dataset('n_blocks',(1,),dtype='u1',data=nblocks)
+	Psz = (mpi_reduce(P.shape[0],op='sum',all=True),P.shape[1])
+	dsP = group.create_dataset('P',Psz,dtype=P.dtype)
+	dsL = group.create_dataset('L',L.size,dtype=L.dtype)
+	dsf = group.create_dataset('f',f.shape,dtype=f.dtype)
+	# Store L and f that are repeated across the ranks (nblocks,nfreq)
+	# So it is enough that one rank stores them
+	if is_rank_or_serial(0):
+		dsL[:,:] = L
+		dsf[:,:] = f
+	# Store P in parallel (nblocks*nvars*npoints,nfreq)
+	istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars*nblocks,points=pointData)
+	dsP[istart:iend,:] = P
+	file.close()
+
+def h5_load_SPOD(fname,vars,ptable=None):
+	'''
+	Load SPOD variables from an HDF5 file.
+	'''
+	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM)
+	# Check the file version
+	version = tuple(file.attrs['Version'])
+	if not version == PYLOM_H5_VERSION:
+		raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
+	# Read the requested variables S, V
+	varList = []
+	if 'P' in vars:
+		# Check if we need to read the partition table
+		if ptable is None: ptable = h5_load_partition(file)
+		# Read
+		nvars   = int(file['SPOD']['n_variables'][0])
+		nblocks = int(file['SPOD']['n_blocks'][0])
+		point = bool(file['SPOD']['pointData'][0])
+		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars*nblocks,point=point)
+		varList.append( np.array(file['SPOD']['P'][istart:iend,:]) )
+	if 'L' in vars: 
+		varList.append( np.array(file['SPOD']['L'][:,:]) )
+	if 'f' in vars: 
+		varList.append( np.array(file['SPOD']['f'][:,:]) )
+	# Return
+	file.close()
+	return varList
