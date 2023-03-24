@@ -33,8 +33,15 @@ def plotMode(L, P, freqs, dset, ivar, pointData=True, modes=np.array([1],np.int3
 	# Remove from dataset
 	dset.delete('P_MODES')
 
-def plotSpectra(f, L):
+def plotSpectra(f, L, fig=None, ax=None):
+	# Get or recover axis and figure
+	if fig is None:
+		fig = plt.figure(figsize=(8,6),dpi=100)
+	if ax is None:
+		ax = fig.add_subplot(1,1,1)
+	# Plot
 	for ii in range(L.shape[1]):
-		plt.loglog(np.sort(f), L[np.argsort(f),ii], 'o-')
-	plt.xlabel('St')
-	plt.ylabel(r'$\lambda_i$')
+		ax.loglog(np.sort(f), L[np.argsort(f),ii], 'o-')
+	ax.set_xlabel('St')
+	ax.set_ylabel(r'$\lambda_i$')
+	return fig, ax

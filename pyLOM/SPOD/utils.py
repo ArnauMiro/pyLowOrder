@@ -31,3 +31,24 @@ def extract_modes(L,P,ivar,npoints,iblock=1,modes=[],reshape=True):
 	# Return reshaped output
 	cr_stop('SPOD.extract_modes',0)
 	return out.reshape((len(modes)*npoints,),order='C') if reshape else out
+
+
+def save(fname,L,P,f,ptable,nvars=1,pointData=True,mode='w'):
+	'''
+	Store SPOD variables in serial or parallel
+	according to the partition used to compute the SPOD.
+	'''
+	cr_start('SPOD.save',0)
+	io.h5_save_SPOD(fname,L,P,f,ptable,nvars=nvars,pointData=pointData,mode=mode)
+	cr_stop('SPOD.save',0)
+
+
+def load(fname,vars=['L','P','f'],ptable=None):
+	'''
+	Load SPOD variables in serial or parallel
+	according to the partition used to compute the SPOD.
+	'''
+	cr_start('SPOD.load',0)
+	varList = io.h5_load_SPOD(fname,vars,ptable)
+	cr_stop('SPOD.load',0)
+	return varList

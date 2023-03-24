@@ -24,8 +24,8 @@ def plotMode(Phi, omega, dset, ivar, pointData=True, modes=np.array([1],np.int32
 	Phi_real = extract_modes(Phi,ivar,npoints,real=True,modes=modes)
 	Phi_imag = extract_modes(Phi,ivar,npoints,real=False,modes=modes)
 	# Add to the dataset
-	dset.add_variable('PHI_REAL',pointData,len(modes),0,Phi_real)
-	dset.add_variable('PHI_IMAG',pointData,len(modes),0,Phi_imag)	
+	dset.add_variable('PHI_REAL',pointData,len(modes),Phi_real)
+	dset.add_variable('PHI_IMAG',pointData,len(modes),Phi_imag)	
 	# Loop over the modes
 	screenshot = kwargs.pop('screenshot',None)
 	off_screen = kwargs.pop('off_screen',False)

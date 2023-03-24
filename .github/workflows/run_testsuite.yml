@@ -60,3 +60,12 @@ jobs:
 #          name: output_DMD
 #          path: Testsuite/*.tar.gz
 #          retention-days: 1      
+      # SPOD test suite
+      - name: Run test-suite SPOD
+        run: bash Testsuite/run_SPOD_testsuite.sh
+#      - name: Upload results SPOD
+#        uses: actions/upload-artifact@v3
+#        with:
+#          name: output_SPOD
+#          path: Testsuite/*.tar.gz
+#          retention-days: 1   
