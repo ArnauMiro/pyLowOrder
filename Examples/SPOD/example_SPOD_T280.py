@@ -23,12 +23,12 @@ nolap = 15 #Number of overlapping snapshots between windows
 
 ## Run SPOD
 L, P, f = pyLOM.SPOD.run(X,t,nDFT=npwin,nolap=nolap,remove_mean=True)
-pyLOM.SPOD.save('results.h5',L,P,f,d.partition_table,nvars=3,pointData=True)
+pyLOM.SPOD.save('results.h5',L,P,f,d.partition_table,nvars=3,pointData=d.info(VARIABLE)['point'])
 if pyLOM.utils.is_rank_or_serial(root=0): pyLOM.SPOD.plotSpectra(f, L)
 
 
 ## Dump to ParaView
 # Spatial modes
-d.add_variable('spatial_modes_U',True,6,pyLOM.SPOD.extract_modes(L,P,1,d.mesh.ncells,modes=[1,2,3,4,5,6]))
+d.add_variable('spatial_modes_U',d.info(VARIABLE)['point'],6,pyLOM.SPOD.extract_modes(L,P,1,d.mesh.ncells,modes=[1,2,3,4,5,6]))
 d.write('modes',basedir='out/modes',instants=[0],times=[0.],vars=['spatial_modes_U'],fmt='vtkh5')
-pyLOM.SPOD.plotMode(L,P,f,d,1,pointData=True,modes=[1,2,3,4,5,6],cpos='xy')
+pyLOM.SPOD.plotMode(L,P,f,d,1,pointData=d.info(VARIABLE)['point'],modes=[1,2,3,4,5,6],cpos='xy')

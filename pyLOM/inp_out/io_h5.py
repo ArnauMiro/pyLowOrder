@@ -477,13 +477,13 @@ def h5_save_SPOD(fname,L,P,f,ptable,nvars=1,pointData=True,mode='w'):
 	group.create_dataset('n_blocks',(1,),dtype='u1',data=nblocks)
 	Psz = (mpi_reduce(P.shape[0],op='sum',all=True),P.shape[1])
 	dsP = group.create_dataset('P',Psz,dtype=P.dtype)
-	dsL = group.create_dataset('L',L.size,dtype=L.dtype)
+	dsL = group.create_dataset('L',L.shape,dtype=L.dtype)
 	dsf = group.create_dataset('f',f.shape,dtype=f.dtype)
 	# Store L and f that are repeated across the ranks (nblocks,nfreq)
 	# So it is enough that one rank stores them
 	if is_rank_or_serial(0):
 		dsL[:,:] = L
-		dsf[:,:] = f
+		dsf[:]   = f
 	# Store P in parallel (nblocks*nvars*npoints,nfreq)
 	istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars*nblocks,points=pointData)
 	dsP[istart:iend,:] = P

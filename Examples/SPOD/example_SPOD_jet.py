@@ -32,7 +32,7 @@ if pyLOM.utils.is_rank_or_serial(root=0): pyLOM.SPOD.plotSpectra(f, L)
 # Spatial modes
 d.add_variable('spatial_modes_U',True,6,pyLOM.SPOD.extract_modes(L,P,1,d.mesh.npoints,modes=[1,2,3,4,5,6]))
 d.write('modes',basedir='out/modes',instants=[0],times=[0.],vars=['spatial_modes_U'],fmt='vtkh5')
-#pyLOM.SPOD.plotMode(L,P,f,d,1,pointData=True,modes=[1,2,3,4,5,6],cpos='xy')
+pyLOM.SPOD.plotMode(L,P,f,d,1,pointData=True,modes=[1,2,3,4,5,6],cpos='xy')
 
 
 ## Show and print timings
