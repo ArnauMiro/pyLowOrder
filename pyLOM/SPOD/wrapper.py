@@ -90,15 +90,4 @@ def run(X, t, nDFT=0, window = 0, nolap=0, weight = 1, remove_mean=True):
     return L, P, f    
         
 def hammwin(N):
-
-    win = np.transpose(0.54-0.46*np.cos(2*np.pi*np.arange(N)/(N-1)))
-    
-    return win
-
-
-
-
-
-
-
-  
+    return np.transpose(0.54-0.46*np.cos(2*np.pi*np.arange(N)/(N-1)))
