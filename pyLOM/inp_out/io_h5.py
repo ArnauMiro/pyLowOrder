@@ -7,7 +7,7 @@
 # Last rev: 31/07/2021
 from __future__ import print_function, division
 
-import numpy as np, h5py
+import os, numpy as np, h5py
 
 from ..partition_table import PartitionTable
 from ..mesh            import MTYPE2ID, ID2MTYPE, Mesh
@@ -26,6 +26,15 @@ def h5_save(fname,time,varDict,mesh,ptable,mpio=True,nopartition=False):
 		h5_save_mpio(fname,time,varDict,mesh,ptable,nopartition)
 	else:
 		h5_save_serial(fname,time,varDict,mesh,ptable)
+
+def h5_append(fname,time,instant,varDict,mesh,ptable,mpio=True,nopartition=False):
+	'''
+	Save a Dataset in HDF5
+	'''
+	if mpio and not MPI_SIZE == 1:
+		h5_append_mpio(fname,time,instant,varDict,mesh,ptable,nopartition)
+	else:
+		h5_append_serial(fname,time,instant,varDict,mesh,ptable)
 
 def h5_save_partition(file,ptable):
 	'''
@@ -150,12 +159,35 @@ def h5_fill_variable_datasets(dsetDict,varDict,ptable,npoints,inods,idx):
 			if varDict[var]['ndim'] > 1:
 				dsetDict[var]['value'][istart:iend,:]  = varDict[var]['value']
 			else:
-				dsetDict[var]['value'][istart:iend]  = varDict[var]['value']
+				dsetDict[var]['value'][istart:iend,:]  = varDict[var]['value']
 		else:
 			if varDict[var]['ndim'] > 1:
 				raiseError('Cannot deal with multi-dimensional arrays in no partition mode!')
 			else:
 				dsetDict[var]['value'][inods,:]  = varDict[var]['value'][idx,:]
+
+def h5_append_variable_datasets(dsetDict,varDict,ptable,instant,npoints,inods,idx):
+	'''
+	Fill in the variable datasets inside an HDF5 file
+	'''
+	# Skip master if needed
+	if ptable.has_master and MPI_RANK == 0: return
+	for var in dsetDict.keys():
+		# Fill dataset
+		dsetDict[var]['point'][:] = varDict[var]['point']
+		dsetDict[var]['ndim'][:]  = varDict[var]['ndim']
+		if inods is None or not varDict[var]['point']:
+			# Compute start and end bounds for the variable
+			istart, iend = ptable.partition_bounds(MPI_RANK,ndim=varDict[var]['ndim'],points=varDict[var]['point'])
+			if varDict[var]['ndim'] > 1:
+				dsetDict[var]['value'][istart:iend,instant]  = varDict[var]['value']
+			else:
+				dsetDict[var]['value'][istart:iend,instant]  = varDict[var]['value']
+		else:
+			if varDict[var]['ndim'] > 1:
+				raiseError('Cannot deal with multi-dimensional arrays in no partition mode!')
+			else:
+				dsetDict[var]['value'][inods,instant]  = varDict[var]['value'][idx]
 
 def h5_save_serial(fname,time,varDict,mesh,ptable):
 	'''
@@ -185,6 +217,64 @@ def h5_save_mpio(fname,time,varDict,mesh,ptable,nopartition):
 	inods,idx,npoints = h5_save_mesh(file,mesh,ptable) if not nopartition else h5_save_mesh_nopartition(file,mesh,ptable)
 	# Store the variables
 	h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable),varDict,ptable,npoints,inods,idx)
+	file.close()
+
+def h5_append_serial(fname,time,instant,varDict,mesh,ptable):
+	'''
+	Save a dataset in HDF5 in serial mode
+	'''
+	if not os.path.exists(file):
+		# Input file does not exist, we create it with the whole structure
+		file = h5py.File(fname,'w')
+		file.attrs['Version'] = PYLOM_H5_VERSION
+		# Store partition table
+		h5_save_partition(file,ptable)
+		# Store the mesh
+		h5_save_mesh(file,mesh,ptable)
+		# Create the variable datasets
+		h5_create_variable_datasets(file,time,varDict,ptable)
+	else:
+		# Input file exists, append on the file
+		file = h5py.File(fname,'a')
+		# Check the file version
+		version = tuple(file.attrs['Version'])
+		if not version == PYLOM_H5_VERSION:
+			raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
+		# Obtain npoints, inods and idx
+		npoints   = mesh.npointsG2
+		inods,idx = np.unique(mesh.pointOrder,return_index=True)
+		# Obtain dataset dictionary
+		dsetDict  = file['VARIABLES']
+		h5_append_variable_datasets(dsetDict,varDict,ptable,instant,npoints,inods,idx)
+	file.close()
+
+def h5_append_mpio(fname,time,instant,varDict,mesh,ptable,nopartition):
+	'''
+	Save a dataset in HDF5 in serial mode
+	'''
+	if not os.path.exists(file):
+		# Input file does not exist, we create it with the whole structure
+		file = h5py.File(fname,'w',driver='mpio',comm=MPI_COMM)
+		file.attrs['Version'] = PYLOM_H5_VERSION
+		# Store partition table
+		h5_save_partition(file,ptable)
+		# Store the mesh
+		inods,idx,npoints = h5_save_mesh(file,mesh,ptable) if not nopartition else h5_save_mesh_nopartition(file,mesh,ptable)
+		# Create the variable datasets
+		h5_create_variable_datasets(file,time,varDict,ptable)
+	else:
+		# Input file exists, append on the file
+		file = h5py.File(fname,'a',driver='mpio',comm=MPI_COMM)
+		# Check the file version
+		version = tuple(file.attrs['Version'])
+		if not version == PYLOM_H5_VERSION:
+			raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
+		# Obtain npoints, inods and idx
+		npoints   = mesh.npointsG2
+		inods,idx = np.unique(mesh.pointOrder,return_index=True)
+		# Obtain dataset dictionary
+		dsetDict  = file['VARIABLES']
+		h5_append_variable_datasets(dsetDict,varDict,ptable,instant,npoints,inods,idx)
 	file.close()
 
 
