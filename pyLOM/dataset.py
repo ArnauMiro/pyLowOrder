@@ -162,10 +162,10 @@ class Dataset(object):
 			if not 'mpio' in kwargs.keys():        kwargs['mpio']        = True
 			if not 'nopartition' in kwargs.keys(): kwargs['nopartition'] = False
 			# Append or save
-			if kwargs.pop('append',False):
+			if not kwargs.pop('append',False):
 				io.h5_save(fname,self.time,self.var,self.mesh,self.partition_table,**kwargs)
 			else:
-				io.h5_append(fname,self.time,kwargs.pop('instant',0),self.var,self.mesh,self.partition_table,**kwargs)
+				io.h5_append(fname,self.time,kwargs.pop('instant',-1),self.var,self.mesh,self.partition_table,**kwargs)
 		cr_stop('Dataset.save',0)
 
 	@classmethod
