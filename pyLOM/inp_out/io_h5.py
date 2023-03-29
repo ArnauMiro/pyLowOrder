@@ -121,14 +121,14 @@ def h5_save_mesh_nopartition(file,mesh,ptable):
 		dcellO[istart:iend]   = mesh.cellOrder
 	return inods,idx,npointG
 
-def h5_create_variable_datasets(file,time,varDict,ptable,ipart=-1,chunks=True):
+def h5_create_variable_datasets(file,time,varDict,ptable,ipart=-1):
 	'''
 	Create the variable datasets inside an HDF5 file
 	'''
 	# Store time array (common for all processes)
-	file.create_dataset('time',time.shape,dtype=time.dtype,data=time)
+	if not 'time' in file.keys(): file.create_dataset('time',time.shape,dtype=time.dtype,data=time)
 	# Create group for variables
-	group = file.create_group('VARIABLES'%ipart if ipart > 0 else 'VARIABLES')
+	group = file.create_group('VARIABLES_%d'%ipart if ipart >= 0 else 'VARIABLES')
 	dsetDict = {}
 	for var in varDict.keys():
 		vargroup = group.create_group(var)
@@ -136,10 +136,11 @@ def h5_create_variable_datasets(file,time,varDict,ptable,ipart=-1,chunks=True):
 		if ptable.has_master: n -= 1
 		npoin = int(file['MESH']['npoints'][0]) if varDict[var]['point'] else int(file['MESH']['ncells'][0])
 		ndim  = n//npoin
+		ntime = varDict[var]['value'].shape[1]
 		dsetDict[var] = {
 			'point' : vargroup.create_dataset('point',(1,),dtype='u1'),
 			'ndim'  : vargroup.create_dataset('ndim' ,(1,),dtype='i4'),
-			'value' : vargroup.create_dataset('value',(ndim*npoin,time.shape[0]),chunks=chunks,dtype=varDict[var]['value'].dtype),
+			'value' : vargroup.create_dataset('value',(ndim*npoin,ntime),dtype=varDict[var]['value'].dtype),
 		}
 	return dsetDict
 
@@ -178,7 +179,7 @@ def h5_save_serial(fname,time,varDict,mesh,ptable):
 	# Store the mesh
 	inods,idx,npoints = h5_save_mesh(file,mesh,ptable)
 	# Store the variables
-	h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable),varDict,ptable,npoints,inods,idx)
+	h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable),varDict,ptable,inods,idx)
 	file.close()
 
 def h5_save_mpio(fname,time,varDict,mesh,ptable,nopartition):
@@ -193,7 +194,7 @@ def h5_save_mpio(fname,time,varDict,mesh,ptable,nopartition):
 	# Store the mesh
 	inods,idx,npoints = h5_save_mesh(file,mesh,ptable) if not nopartition else h5_save_mesh_nopartition(file,mesh,ptable)
 	# Store the variables
-	h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable),varDict,ptable,npoints,inods,idx)
+	h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable),varDict,ptable,inods,idx)
 	file.close()
 
 def h5_append_serial(fname,time,varDict,mesh,ptable):
@@ -218,12 +219,13 @@ def h5_append_serial(fname,time,varDict,mesh,ptable):
 		if not version == PYLOM_H5_VERSION:
 			raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
 		# Obtain npoints, inods and idx
-		npoints   = mesh.npointsG2
 		inods,idx = np.unique(mesh.pointOrder,return_index=True)
+		# Write the time partition on the file
+		h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable,ipart=h5_append_serial.ipart),varDict,ptable,inods,idx)
 		# Update time
 		file['time'][:] = time
-		# Write the time partition on the file
-		h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable,ipart=h5_append_serial.ipart),varDict,ptable,npoints,inods,idx)
+		# Increase the partition counter
+		h5_append_serial.ipart += 1
 	file.close()
 
 def h5_append_mpio(fname,time,varDict,mesh,ptable,nopartition):
@@ -238,8 +240,6 @@ def h5_append_mpio(fname,time,varDict,mesh,ptable,nopartition):
 		h5_save_partition(file,ptable)
 		# Store the mesh
 		inods,idx,npoints = h5_save_mesh(file,mesh,ptable) if not nopartition else h5_save_mesh_nopartition(file,mesh,ptable)
-		# Create the variable datasets
-		h5_create_variable_datasets(file,time,varDict,ptable,chunks=(1,len(time)))
 		# Start the partition counter
 		h5_append_serial.ipart = 0
 	else:
@@ -250,12 +250,13 @@ def h5_append_mpio(fname,time,varDict,mesh,ptable,nopartition):
 		if not version == PYLOM_H5_VERSION:
 			raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
 		# Obtain npoints, inods and idx
-		npoints   = mesh.npointsG2
 		inods,idx = np.unique(mesh.pointOrder,return_index=True)
+		# Write the time partition on the file
+		h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable,ipart=h5_append_serial.ipart),varDict,ptable,inods,idx)
 		# Update time
 		file['time'][:] = time
-		# Write the time partition on the file
-		h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable,ipart=h5_append_serial.ipart),varDict,ptable,npoints,inods,idx)
+		# Increase the partition counter
+		h5_append_serial.ipart += 1
 	file.close()
 
 
@@ -376,7 +377,10 @@ def h5_load_variables_multi(file,mesh,ptable,inods,repart,npart):
 		pname  = 'VARIABLES_%d'%ipart
 		# Read the partition
 		for v in file[pname].keys():
-		# Read the values
+			point   = bool(file[pname][v]['point'][0])
+			ndim    = int(file[pname][v]['ndim'][0])
+			npoints = mesh.npoints if point else mesh.ncells
+			# Read the values
 			if mesh is None or not point:
 				istart, iend = ptable.partition_bounds(MPI_RANK,ndim=ndim,points=point)
 				varDict[v]['value'][:,pstart:pend] = np.array(file[pname][v]['value'][istart:iend,:])
