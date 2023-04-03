@@ -14,6 +14,12 @@ from ..vmmath       import temporal_mean, subtract_mean, tsqr_svd
 from ..utils.cr     import cr_start, cr_stop
 from ..utils.errors import raiseError
 
+def _hammwin(N):
+    return np.transpose(0.54-0.46*np.cos(2*np.pi*np.arange(N)/(N-1)))
+
+def _fft(Xf, winWeight, nDFT, nf):
+    return (winWeight/nDFT)*scipy.fft.fft(Xf, axis=0, workers=-1)[:nf]
+
 ## SPOD run method
 def run(X, t, nDFT=0, window = 0, nolap=0, weight = 1, remove_mean=True):
     '''
@@ -42,7 +48,7 @@ def run(X, t, nDFT=0, window = 0, nolap=0, weight = 1, remove_mean=True):
     if window == 0:
         if nDFT == 0:
             nDFT = int(np.power(2,np.floor(np.log2(N/10))))
-        window = hammwin(nDFT)
+        window = _hammwin(nDFT)
     if nolap == 0:
         nolap = int(np.floor(nDFT/2))
     if weight == 0:
@@ -70,8 +76,8 @@ def run(X, t, nDFT=0, window = 0, nolap=0, weight = 1, remove_mean=True):
         i0 = iblk*(nDFT - nolap)
         ix = np.arange(nDFT) + i0
         for ip in range(M):
-            Xf        = Y[ip, ix].copy()*window
-            qk[ip, :] = (winWeight/nDFT)*scipy.fft.fft(Xf, axis=0, workers=-1)[:nf]
+            Xf = Y[ip, ix].copy()*window
+            qk[ip, :] = _fft(Xf, winWeight, nDFT, nf)
         qk[:,1:-1] *= 2
         Q[:, iblk] = qk.reshape((M*nf), order='F')
 
@@ -87,7 +93,4 @@ def run(X, t, nDFT=0, window = 0, nolap=0, weight = 1, remove_mean=True):
     L = L[order,:]
       
     cr_stop('SPOD.run', 0)
-    return L, P, f    
-        
-def hammwin(N):
-    return np.transpose(0.54-0.46*np.cos(2*np.pi*np.arange(N)/(N-1)))
+    return L, P, f

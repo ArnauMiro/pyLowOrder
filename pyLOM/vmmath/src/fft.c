@@ -16,8 +16,44 @@
 #include "nfft3.h"
 #include "fft.h"
 
+void fft(double complex *out, double *y, const double dt, const int n) {
+	/*
+		Compute FFT and power spectral density (PSD) of an array y of size n.
+		Uses MKL or FFTW libraries depending on compilation settings.
 
-void fft(double *psd, double *y, const double dt, const int n) {
+		y(n)      is the vector where to compute the PSD (a mode).
+
+		out(n)    is the output of the fft and must come preallocated.
+	*/
+	#ifdef USE_MKL
+	// Copy y to out and store the frequency on y
+	#ifdef USE_OMP
+	#pragma omp parallel for private(ii) shared(out,y) firstprivate(n)
+	#endif
+	for (int ii=0; ii<n; ++ii)
+		out[ii] = y[ii] + 0.*I;
+	// Create descriptor
+	DFTI_DESCRIPTOR_HANDLE handle;
+	DftiCreateDescriptor(&handle,DFTI_DOUBLE,DFTI_COMPLEX,1,n);
+	DftiSetValue(handle,DFTI_PLACEMENT,DFTI_INPLACE);
+	DftiCommitDescriptor(handle);
+	DftiComputeForward(handle,out);
+	DftiFreeDescriptor(&handle);
+	#else
+	// Use FFTW libraries
+	fftw_plan     p;
+	// Create the FFT plan
+	// If your program performs many transforms of the same size and initialization time
+	// is not important, use FFTW_MEASURE; otherwise use  FFTW_ESTIMATE.
+	p = fftw_plan_dft_r2c_1d(n,y,out,FFTW_ESTIMATE);
+	// Execute the plan
+	fftw_execute(p);
+	// Clean-up
+	fftw_destroy_plan(p);
+	#endif
+}
+
+void fft_psd(double *psd, double *y, const double dt, const int n) {
 	/*
 		Compute FFT and power spectral density (PSD) of an array y of size n.
 		Uses MKL or FFTW libraries depending on compilation settings.
@@ -31,34 +67,13 @@ void fft(double *psd, double *y, const double dt, const int n) {
 	// Use Intel MKL
 	double complex *out;
 	out = (double complex*)malloc(n*sizeof(double complex));
-	// Copy y to out and store the frequency on y
-	#ifdef USE_OMP
-	#pragma omp parallel for private(ii) shared(out,y) firstprivate(n)
-	#endif
-	for (ii=0; ii<n; ++ii)
-		out[ii] = y[ii] + 0.*I;
-	// Create descriptor
-	DFTI_DESCRIPTOR_HANDLE handle;
-	DftiCreateDescriptor(&handle,DFTI_DOUBLE,DFTI_COMPLEX,1,n);
-	DftiSetValue(handle,DFTI_PLACEMENT,DFTI_INPLACE);
-	DftiCommitDescriptor(handle);
-	DftiComputeForward(handle,out);
-	DftiFreeDescriptor(&handle);
 	#else
 	// Use FFTW libraries
 	fftw_complex *out;
-	fftw_plan     p;
 	// Allocate output complex array
 	out = (fftw_complex*)fftw_malloc(n*sizeof(fftw_complex));
-	// Create the FFT plan
-	// If your program performs many transforms of the same size and initialization time
-	// is not important, use FFTW_MEASURE; otherwise use  FFTW_ESTIMATE.
-	p = fftw_plan_dft_r2c_1d(n,y,out,FFTW_ESTIMATE);
-	// Execute the plan
-	fftw_execute(p);
-	// Clean-up
-	fftw_destroy_plan(p);
 	#endif
+	fft(out, y, dt, n);
 	// Compute PSD and frequency
 	#ifdef USE_OMP
 	#pragma omp parallel for private(ii) shared(out,psd) firstprivate(n)
