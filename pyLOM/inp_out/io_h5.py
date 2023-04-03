@@ -157,15 +157,10 @@ def h5_fill_variable_datasets(dsetDict,varDict,ptable,inods,idx):
 		if inods is None or not varDict[var]['point']:
 			# Compute start and end bounds for the variable
 			istart, iend = ptable.partition_bounds(MPI_RANK,ndim=varDict[var]['ndim'],points=varDict[var]['point'])
-			if varDict[var]['ndim'] > 1:
-				dsetDict[var]['value'][istart:iend,:]  = varDict[var]['value']
-			else:
-				dsetDict[var]['value'][istart:iend,:]  = varDict[var]['value']
+			dsetDict[var]['value'][istart:iend,:]  = varDict[var]['value']
 		else:
-			if varDict[var]['ndim'] > 1:
-				raiseError('Cannot deal with multi-dimensional arrays in no partition mode!')
-			else:
-				dsetDict[var]['value'][inods,:]  = varDict[var]['value'][idx,:]
+			if varDict[var]['ndim'] > 1: raiseError('Cannot deal with multi-dimensional arrays in no partition mode!')
+			dsetDict[var]['value'][inods,:] = varDict[var]['value'][idx,:]
 
 def h5_save_serial(fname,time,varDict,mesh,ptable):
 	'''
@@ -201,27 +196,31 @@ def h5_append_serial(fname,time,varDict,mesh,ptable):
 	'''
 	Save a dataset in HDF5 in serial mode
 	'''
-	if not os.path.exists(fname):
+	file = h5py.File(fname,'a')
+	if not hasattr(h5_append_serial,'ipart'):
 		# Input file does not exist, we create it with the whole structure
-		file = h5py.File(fname,'w')
 		file.attrs['Version'] = PYLOM_H5_VERSION
 		# Store partition table
 		h5_save_partition(file,ptable)
 		# Store the mesh
-		h5_save_mesh(file,mesh,ptable)
+		inods,idx,npoints = h5_save_mesh(file,mesh,ptable)
 		# Start the partition counter
-		h5_append_serial.ipart = 0
+		h5_append_serial.ipart   = 0
+		h5_append_serial.inods   = inods
+		h5_append_serial.idx     = idx
+		h5_append_serial.npoints = npoints
 	else:
-		# Input file exists, append on the file
-		file = h5py.File(fname,'a')
 		# Check the file version
 		version = tuple(file.attrs['Version'])
 		if not version == PYLOM_H5_VERSION:
 			raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
-		# Obtain npoints, inods and idx
-		inods,idx = np.unique(mesh.pointOrder,return_index=True)
+		# Obtain from function
+		ipart   = h5_append_serial.ipart
+		inods   = h5_append_serial.inods
+		idx     = h5_append_serial.idx
+		npoints = h5_append_serial.npoints 
 		# Write the time partition on the file
-		h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable,ipart=h5_append_serial.ipart),varDict,ptable,inods,idx)
+		h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable,ipart=ipart),varDict,ptable,inods,idx)
 		# Update time
 		file['time'][:] = time
 		# Increase the partition counter
@@ -232,31 +231,35 @@ def h5_append_mpio(fname,time,varDict,mesh,ptable,nopartition):
 	'''
 	Save a dataset in HDF5 in serial mode
 	'''
-	if not os.path.exists(fname):
+	file = h5py.File(fname,'a',driver='mpio',comm=MPI_COMM)
+	if not hasattr(h5_append_mpio,'ipart'):
 		# Input file does not exist, we create it with the whole structure
-		file = h5py.File(fname,'w',driver='mpio',comm=MPI_COMM)
 		file.attrs['Version'] = PYLOM_H5_VERSION
 		# Store partition table
 		h5_save_partition(file,ptable)
 		# Store the mesh
 		inods,idx,npoints = h5_save_mesh(file,mesh,ptable) if not nopartition else h5_save_mesh_nopartition(file,mesh,ptable)
 		# Start the partition counter
-		h5_append_serial.ipart = 0
+		h5_append_mpio.ipart   = 0
+		h5_append_mpio.inods   = inods
+		h5_append_mpio.idx     = idx
+		h5_append_mpio.npoints = npoints
 	else:
-		# Input file exists, append on the file
-		file = h5py.File(fname,'a')
 		# Check the file version
 		version = tuple(file.attrs['Version'])
 		if not version == PYLOM_H5_VERSION:
 			raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
-		# Obtain npoints, inods and idx
-		inods,idx = np.unique(mesh.pointOrder,return_index=True)
+		# Obtain from function
+		ipart   = h5_append_mpio.ipart
+		inods   = h5_append_mpio.inods
+		idx     = h5_append_mpio.idx
+		npoints = h5_append_mpio.npoints 
 		# Write the time partition on the file
-		h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable,ipart=h5_append_serial.ipart),varDict,ptable,inods,idx)
+		h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable,ipart=ipart),varDict,ptable,inods,idx)
 		# Update time
 		file['time'][:] = time
 		# Increase the partition counter
-		h5_append_serial.ipart += 1
+		h5_append_mpio.ipart += 1
 	file.close()
 
 
