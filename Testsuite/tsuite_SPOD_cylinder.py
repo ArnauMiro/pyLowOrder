@@ -29,12 +29,12 @@ if pyLOM.utils.is_rank_or_serial(root=0):
     fig,_ = pyLOM.SPOD.plotSpectra(f, L)
     os.makedirs('cylinderSPOD',exist_ok=True)
     fig.savefig('cylinderSPOD/spectra.png',dpi=300)
-pyLOM.SPOD.save('cylinderSPOD/results.h5',L,P,f,d.partition_table,nvars=2,pointData=False)
+pyLOM.SPOD.save('cylinderSPOD/results.h5',L,P,f,d.partition_table,nvars=1,pointData=False)
 
 
 ## Dump to ParaView
 # Spatial modes
-d.add_variable('spatial_modes_U',False,6,pyLOM.SPOD.extract_modes(L,P,1,d.mesh.ncells,modes=[1,2,3,4,5,6]))
+d.add_variable('spatial_modes_U',False,3,pyLOM.SPOD.extract_modes(L,P,1,d.mesh.ncells,modes=[1,2,3]))
 d.write('modes',basedir='cylinderSPOD/modes',instants=[0],times=[0.],vars=['spatial_modes_U'],fmt='vtkh5')
 
 
