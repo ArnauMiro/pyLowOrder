@@ -7,7 +7,7 @@
 # Last rev: 09/07/2021
 from __future__ import print_function, division
 
-import numpy as np, mpi4py, copy
+import numpy as np, mpi4py, copy, functools
 mpi4py.rc.recv_mprobe = False
 from mpi4py import MPI
 
@@ -33,7 +33,7 @@ class channel(object):
 		self._tini = tini # Initial instant (if == 0 channel is not being take into account)
 
 	def __str__(self):
-		return 'name %-20s n %9d tmin %e tmax %e tavg %e tsum %e' % (self.name,self.nop,self.tmin,self.tmax,self.tavg,self.tsum)
+		return 'name %-30s n %9d tmin %e tmax %e tavg %e tsum %e' % (self.name,self.nop,self.tmin,self.tmax,self.tavg,self.tsum)
 
 	def __add__(self, other):
 		new = copy.deepcopy(self)
@@ -234,3 +234,14 @@ def cr_time(ch_name,suff):
 	name_tmp = _addsuff(ch_name,suff)
 	channel  = _findch_crash(name_tmp)
 	return channel.elapsed(end)
+
+def cr(ch_name,suff=0):
+	def decorator(func):
+		@functools.wraps(func)
+		def wrapper(*args,**kwargs):
+			cr_start(ch_name,suff)
+			out = func(*args,**kwargs)
+			cr_stop(ch_name,suff)
+			return out
+		return wrapper
+	return decorator

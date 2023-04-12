@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from ..vmmath       import vector_norm
-from ..utils.cr     import cr_start, cr_stop
+from ..utils.cr     import cr
 from ..utils.errors import raiseWarning
 
 
@@ -88,11 +88,11 @@ try:
 		offset[1:] = np.cumsum(ppcell)
 		return cellsf, offset
 
+	@cr('plots.pyvista_snap')
 	def plotSnapshot(dset,vars=[],instant=0,**kwargs):
 		'''
 		Plot using pyVista
 		'''
-		cr_start('pyvista plot',0)
 		mesh = dset.mesh
 		# First create the unstructured grid
 		cells, offsets = _cells_and_offsets(mesh.connectivity)
@@ -106,14 +106,13 @@ try:
 			else:
 				ugrid.cell_data[v]  = dset.mesh.reshape_var(dset[v][:,instant] if len(dset[v].shape) > 1 else dset[v],info)
 		# Launch plot
-		cr_stop('pyvista plot',0)
 		return ugrid.plot(**kwargs)
 
+	@cr('plots.pyvista_layout')
 	def plotLayout(dset,nrows,ncols,imode,vars=[],cmap='jet',title='',off_screen=False,**kwargs):
 		'''
 		Plot using pyVista
 		'''
-		cr_start('pyvista plot',0)
 		mesh = dset.mesh
 		# First create the unstructured grid
 		cells, offsets = _cells_and_offsets(mesh.connectivity)
@@ -139,7 +138,6 @@ try:
 				icol  = 0
 				irow += 1
 		# Launch plot
-		cr_stop('pyvista plot',0)
 		return plotter.show(**kwargs)
 
 except:

@@ -11,6 +11,7 @@ import os, numpy as np, h5py
 
 from ..partition_table import PartitionTable
 from ..mesh            import MTYPE2ID, ID2MTYPE, Mesh
+from ..utils.cr        import cr
 from ..utils.parall    import MPI_COMM, MPI_RANK, MPI_SIZE, worksplit, writesplit, is_rank_or_serial, mpi_reduce, mpi_gather
 from ..utils.errors    import raiseError
 
@@ -18,6 +19,7 @@ from ..utils.errors    import raiseError
 PYLOM_H5_VERSION = (2,0)
 
 
+@cr('h5IO.save')
 def h5_save(fname,time,varDict,mesh,ptable,mpio=True,nopartition=False):
 	'''
 	Save a Dataset in HDF5
@@ -27,6 +29,7 @@ def h5_save(fname,time,varDict,mesh,ptable,mpio=True,nopartition=False):
 	else:
 		h5_save_serial(fname,time,varDict,mesh,ptable)
 
+@cr('h5IO.append')
 def h5_append(fname,time,varDict,mesh,ptable,mpio=True,nopartition=False):
 	'''
 	Save a Dataset in HDF5
@@ -263,6 +266,7 @@ def h5_append_mpio(fname,time,varDict,mesh,ptable,nopartition):
 	file.close()
 
 
+@cr('h5IO.load')
 def h5_load(fname,mpio=True):
 	'''
 	Load a dataset in HDF5
@@ -460,6 +464,7 @@ def h5_load_mpio(fname):
 	return ptable, mesh, time, varDict
 
 
+@cr('h5IO.save_POD')
 def h5_save_POD(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
 	'''
 	Store POD variables into an HDF5 file.
@@ -491,6 +496,7 @@ def h5_save_POD(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
 	dsetU[istart:iend,:] = U
 	file.close()
 
+@cr('h5IO.load_POD')
 def h5_load_POD(fname,vars,ptable=None):
 	'''
 	Load POD variables from an HDF5 file.
@@ -517,6 +523,7 @@ def h5_load_POD(fname,vars,ptable=None):
 	return varList
 
 
+@cr('h5IO.save_DMD')
 def h5_save_DMD(fname,muReal,muImag,Phi,bJov,ptable,nvars=1,pointData=True,mode='w'):
 	'''
 	Store DMD variables into an HDF5 file.
@@ -549,6 +556,7 @@ def h5_save_DMD(fname,muReal,muImag,Phi,bJov,ptable,nvars=1,pointData=True,mode=
 	dsPhi[istart:iend,:] = Phi
 	file.close()
 
+@cr('h5IO.load_DMD')
 def h5_load_DMD(fname,vars,ptable=None):
 	'''
 	Load DMD variables from an HDF5 file.

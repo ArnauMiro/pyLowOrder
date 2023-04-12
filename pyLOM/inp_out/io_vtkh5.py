@@ -7,6 +7,7 @@ from __future__ import print_function, division
 
 import numpy as np, h5py
 
+from ..utils.cr     import cr
 from ..utils.parall import MPI_RANK, MPI_SIZE, MPI_COMM, mpi_reduce, mpi_bcast
 
 VTKTYPE = 'UnstructuredGrid'
@@ -101,6 +102,7 @@ def _vtkh5_write_mesh_mpio(file,xyz,lnods,ltype, ptable):
 	# Return some parameters
 	return npG, ncG
 
+@cr('vtkh5IO.save_mesh')
 def vtkh5_save_mesh(fname,mesh,ptable,mpio=True):
 	'''
 	Save the mesh component into a VTKH5 file
@@ -137,6 +139,7 @@ def vtkh5_save_mesh_mpio(fname,xyz,lnods,ltype,ptable):
 	file.close()
 
 
+@cr('vtkh5IO.save_field')
 def vtkh5_save_field(fname,instant,time,varDict,ptable,mpio=True):
 	'''
 	Save the mesh component into a VTKH5 file
