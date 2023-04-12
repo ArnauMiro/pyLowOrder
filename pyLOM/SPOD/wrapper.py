@@ -11,10 +11,11 @@ import numpy as np
 import scipy
 
 from ..vmmath       import temporal_mean, subtract_mean, tsqr_svd
-from ..utils.cr     import cr_start, cr_stop
+from ..utils.cr     import cr
 from ..utils.errors import raiseError
 
 ## SPOD run method
+@cr('SPOD.run')
 def run(X, t, nDFT=0, window = 0, nolap=0, weight = 1, remove_mean=True):
     '''
 	Run SPOD analysis of a matrix X.
@@ -33,8 +34,6 @@ def run(X, t, nDFT=0, window = 0, nolap=0, weight = 1, remove_mean=True):
 	    - P:  SPOD modes, whose spatial dimensions are identical to those of X.
 	    - f:  frequency vector.
     ''' 
-    cr_start('SPOD.run', 0)
-
     M = X.shape[0]
     N = X.shape[1]
     dt = t[1] - t[0]
@@ -86,7 +85,6 @@ def run(X, t, nDFT=0, window = 0, nolap=0, weight = 1, remove_mean=True):
     f = f[order]
     L = L[order,:]
       
-    cr_stop('SPOD.run', 0)
     return L, P, f    
         
 def hammwin(N):
