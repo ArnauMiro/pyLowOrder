@@ -18,7 +18,7 @@ from libc.string   cimport memcpy, memset
 from mpi4py.libmpi cimport MPI_Comm
 from mpi4py        cimport MPI
 
-from ..utils.cr     import cr_start, cr_stop
+from ..utils.cr     import cr
 from ..utils.errors import raiseError
 
 cdef extern from "vector_matrix.h":
@@ -35,6 +35,7 @@ cdef extern from "truncation.h":
 	cdef void c_compute_truncation          "compute_truncation"(double *Ur, double *Sr, double *VTr, double *U, double *S, double *VT, const int m, const int n, const int N)
 
 ## POD run method
+@cr('POD.run')
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -52,7 +53,6 @@ def run(double[:,:] X,int remove_mean=True):
 		- S:  are the singular values.
 		- V:  are the right singular vectors.
 	'''
-	cr_start('POD.run',0)
 	# Variables
 	cdef int m = X.shape[0], n = X.shape[1], mn = min(m,n), retval
 	cdef double *X_mean
@@ -77,11 +77,11 @@ def run(double[:,:] X,int remove_mean=True):
 	retval = c_tsqr_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,MPI_COMM.ob_mpi)
 	free(Y)
 	# Return
-	cr_stop('POD.run',0)
 	if not retval == 0: raiseError('Problems computing SVD!')
 	return U,S,V
 
 ## POD truncate method
+@cr('POD.truncate')
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -101,7 +101,6 @@ def truncate(double[:,:] U, double[:] S, double[:,:] V, double r=1e-8):
 		- S(N)    are the singular values (truncated at N).
 		- V(N,n)  are the right singular vectors (truncated at N).
 	'''
-	cr_start('POD.truncate',0)
 	cdef int m = U.shape[0], n = S.shape[0], N
 	# Compute N using S
 	N  = c_compute_truncation_residual(&S[0],r,n)
@@ -112,10 +111,14 @@ def truncate(double[:,:] U, double[:] S, double[:,:] V, double r=1e-8):
 	# Truncate
 	c_compute_truncation(&Ur[0,0],&Sr[0],&Vr[0,0],&U[0,0],&S[0],&V[0,0],m,n,N)
 	# Return
-	cr_stop('POD.truncate',0)
 	return Ur, Sr, Vr
 
 ## POD reconstruct method
+@cr('POD.reconstruct')
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
 def reconstruct(double[:,:] U, double[:] S, double[:,:] V):
 	'''
 	Reconstruct the flow given the POD decomposition matrices
@@ -131,7 +134,6 @@ def reconstruct(double[:,:] U, double[:] S, double[:,:] V):
 	Outputs
 		- X(m,n)  is the reconstructed flow.
 	'''
-	cr_start('POD.reconstruct',0)
 	cdef int m = U.shape[0], N = S.shape[0], n = V.shape[1]
 	cdef np.ndarray[np.double_t,ndim=2] X = np.zeros((m,n),dtype=np.double)
 	cdef double *Vtmp
@@ -144,5 +146,4 @@ def reconstruct(double[:,:] U, double[:] S, double[:,:] V):
 	c_matmul(&X[0,0],&U[0,0],Vtmp,m,n,N)
 	# Return
 	free(Vtmp)
-	cr_stop('POD.reconstruct',0)
 	return X

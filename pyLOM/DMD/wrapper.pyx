@@ -19,7 +19,7 @@ from libc.math     cimport sqrt, log, atan2
 from mpi4py.libmpi cimport MPI_Comm
 from mpi4py        cimport MPI
 
-from ..utils.cr     import cr_start, cr_stop
+from ..utils.cr     import cr
 from ..utils.errors import raiseError
 
 cdef extern from "vector_matrix.h":
@@ -47,6 +47,7 @@ cdef extern from "truncation.h":
 	cdef void c_compute_truncation          "compute_truncation"(double *Ur, double *Sr, double *VTr, double *U, double *S, double *VT, const int m, const int n, const int N)
 
 ## DMD run method
+@cr('DMD.run')
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -67,7 +68,6 @@ def run(double[:,:] X, double r, int remove_mean=True):
 		- b:        Amplitude of the DMD modes
 		- Variables needed to reconstruct flow
 	'''
-	cr_start('DMD.run',0)
 	# Variables
 	cdef int m = X.shape[0], n = X.shape[1], mn = min(m,n-1), retval
 	cdef double *X_mean
@@ -305,12 +305,11 @@ def run(double[:,:] X, double r, int remove_mean=True):
 			continue
 	
 	# Return
-	cr_stop('DMD.run',0)
-
 	return muReal, muImag, Phi, bJov
 
 
 ## DMD frequency damping
+@cr('DMD.frequency_damping')
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -319,7 +318,6 @@ def frequency_damping(double[:] real, double[:] imag, double dt):
 	'''
 	Computation of the damping ratio and the frequency of each mode
 	'''
-	cr_start('DMD.frequency_damping', 0)
 	n = real.shape[0]
 	cdef np.ndarray[np.double_t,ndim=1] delta = np.zeros((n),dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=1] omega = np.zeros((n),dtype=np.double)
@@ -331,10 +329,10 @@ def frequency_damping(double[:] real, double[:] imag, double dt):
 		delta[ii] = log(mod)/dt
 		arg       = atan2(imag[ii], real[ii])
 		omega[ii] = arg/dt
-	cr_stop('DMD.frequency_damping', 0)
 	return delta, omega
 
 ## Flow reconstruction
+@cr('DMD.reconstruction_jovanovic')
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -343,7 +341,6 @@ def reconstruction_jovanovic(np.complex128_t[:,:] Phi, double[:] muReal, double[
 	'''
 	Computation of the reconstructed flow from the DMD computations
 	'''
-	cr_start('DMD.reconstruction_jovanovic', 0)
 	cdef int ii
 	cdef int m  = Phi.shape[0]
 	cdef int n  = t.shape[0]
@@ -359,5 +356,4 @@ def reconstruction_jovanovic(np.complex128_t[:,:] Phi, double[:] muReal, double[
 	
 	free(Vand)
 
-	cr_stop('DMD.reconstruction_jovanovic', 0)
 	return Zdmd.real

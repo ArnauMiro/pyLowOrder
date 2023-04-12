@@ -10,7 +10,8 @@ from __future__ import print_function, division
 import numpy as np
 
 
-from .utils.cr     import cr_start, cr_stop
+from .utils.cr     import cr
+from .utils.mem    import mem
 from .utils.errors import raiseError
 from .utils.parall import mpi_reduce
 
@@ -66,6 +67,7 @@ class Mesh(object):
 	'''
 	The Mesh class wraps the mesh details of the case.
 	'''
+	@mem('Mesh')
 	def __init__(self,mtype,xyz,connectivity,eltype,cellOrder,pointOrder):
 		'''
 		Class constructor
@@ -110,11 +112,11 @@ class Mesh(object):
 		'''
 		return self.npoints if pointData else self.ncells
 
+	@cr('Mesh.cellcenters')
 	def cellcenters(self):
 		'''
 		Computes and returns the cell centers
 		'''
-		cr_start('mesh cellcenters',0)
 		if self.type == 'STRUCT2D':
 			# Recover unique X, Y coordinates
 			x = np.unique(self.x)
@@ -145,16 +147,14 @@ class Mesh(object):
 			xyzc[:,2]  = zz.reshape((self.ncells,),order='C')		
 		# Connectivity for a unstructured mesh
 		if self.type == 'UNSTRUCT':
-			cr_stop('mesh cellcenters',0)
 			raiseError('Not yet implemented!')
-		cr_stop('mesh cellcenters',0)
 		return xyzc
 
+	@cr('Mesh.reshape')
 	def reshape_var(self,var,info):
 		'''
 		Reshape a variable according to the mesh
 		'''
-		cr_start('mesh reshape',0)
 		# Obtain number of points from the mesh
 		npoints = self.size(info['point'])
 		# Only reshape the variable if ndim > 1
@@ -162,32 +162,30 @@ class Mesh(object):
 		# Build 3D vector in case of 2D array
 		if self.type == 'STRUCT2D' and info['ndim'] == 2:
 			out = np.hstack((out,np.zeros((npoints,1))))
-		cr_stop('mesh reshape',0)
 		return out
 
 	@classmethod
+	@cr('Mesh.new_struct2D')
 	def new_struct2D(cls,nx,ny,x,y,dimsx,dimsy):
-		cr_start('mesh new_struct2D',0)
 		xyz    = _struct2d_compute_xyz(nx,ny,x,y,dimsx,dimsy)
 		conec  = _struct2d_compute_conec(nx,ny,xyz)
 		eltype = 3*np.ones(((nx-1)*(ny-1),),np.uint8)
 		cellO  = np.arange((nx-1)*(ny-1),dtype=np.int32)
 		pointO = np.arange(nx*ny,dtype=np.int32)
-		cr_stop('mesh new_struct2D',0)
 		return cls('STRUCT2D',xyz,conec,eltype,cellO,pointO)
 
 	@classmethod
+	@cr('Mesh.new_struct3D')
 	def new_struct3D(cls,nx,ny,nz,x,y,z,dimsx,dimsy,dimsz):
-		cr_start('mesh new_struct3D',0)
 		xyz    = _struct3d_compute_xyz(nx,ny,nz,x,y,z,dimsx,dimsy,dimsz)
 		conec  = _struct3d_compute_conec(nx,ny,nz,xyz)
 		eltype = 5*np.ones(((nx-1)*(ny-1)*(nz-1),),np.uint8)
 		cellO  = np.arange((nx-1)*(ny-1)*(nz-1),dtype=np.int32)
 		pointO = np.arange(nx*ny*nz,dtype=np.int32)
-		cr_stop('mesh new_struct3D',0)
 		return cls('STRUCT3D',xyz,conec,eltype,cellO,pointO)
 
 	@classmethod
+	@cr('Mesh.from_pyAlya')
 	def from_pyAlya(cls,mesh):
 		'''
 		Create the mesh structure from a pyAlya mesh structure

@@ -12,7 +12,8 @@ mpi4py.rc.recv_mprobe = False
 from mpi4py import MPI
 
 from .             import inp_out as io
-from .utils.cr     import cr_start, cr_stop
+from .utils.cr     import cr
+from .utils.mem    import mem
 from .utils.errors import raiseError
 from .utils.parall import mpi_reduce
 
@@ -23,6 +24,7 @@ class Dataset(object):
 	with the number of variables and relates them so that the operations 
 	in parallel are easier.
 	'''
+	@mem('Dataset')
 	def __init__(self, ptable=None, mesh=None, time=np.array([0.],np.double), **kwargs):
 		'''
 		Class constructor
@@ -118,6 +120,7 @@ class Dataset(object):
 		for v in varDict:
 			self[v] = np.concatenate((self[v],varDict[v]),axis=1)[:,idx]
 
+	@cr('Dataset.X')
 	def X(self,*args,time_slice=np.s_[:]):
 		'''
 		Return the X matrix for the selected variables
@@ -146,11 +149,11 @@ class Dataset(object):
 				ivar += 1
 		return X
 
+	@cr('Dataset.save')
 	def save(self,fname,**kwargs):
 		'''
 		Store the field in various formats.
 		'''
-		cr_start('Dataset.save',0)
 		# Guess format from extension
 		fmt = os.path.splitext(fname)[1][1:] # skip the .
 		# Pickle format
@@ -161,49 +164,46 @@ class Dataset(object):
 			# Set default parameters
 			if not 'mpio' in kwargs.keys():        kwargs['mpio']        = True
 			if not 'nopartition' in kwargs.keys(): kwargs['nopartition'] = False
-			io.h5_save(fname,self.time,self.var,self.mesh,self.partition_table,**kwargs)
-		cr_stop('Dataset.save',0)
+			# Append or save
+			if not kwargs.pop('append',False):
+				io.h5_save(fname,self.time,self.var,self.mesh,self.partition_table,**kwargs)
+			else:
+				io.h5_append(fname,self.time,self.var,self.mesh,self.partition_table,**kwargs)
 
 	@classmethod
+	@cr('Dataset.load')
 	def load(cls,fname,**kwargs):
 		'''
 		Load a field from various formats
 		'''
-		cr_start('Dataset.load',0)
 		# Guess format from extension
 		fmt = os.path.splitext(fname)[1][1:] # skip the .
 		# Pickle format
 		if fmt.lower() == 'pkl': 
-			cr_stop('Dataset.load',0)
 			return io.pkl_load(fname)
 		# H5 format
 		if fmt.lower() == 'h5':
 			if not 'mpio' in kwargs.keys(): kwargs['mpio'] = True
 			ptable, mesh, time, varDict = io.h5_load(fname,**kwargs)
-			cr_stop('Dataset.load',0)
 			return cls(ptable,mesh,time,**varDict)
-		cr_stop('Dataset.load',0)
 		raiseError('Cannot load file <%s>!'%fname)
 
+	@cr('Dataset.write')
 	def write(self,casestr,basedir='./',instants=[0],times=[0.],vars=[],fmt='vtk'):
 		'''
 		Store the data using various formats.
 		This method differs from save in the fact that save is used 
 		to recover the field, write only outputs the data.
 		'''
-		cr_start('Dataset.write',0)
 		os.makedirs(basedir,exist_ok=True)
 		if fmt.lower() in ['vtk']:
-			cr_stop('Dataset.write',0)
 			raiseError('VTK format not yet implemented!')
 		elif fmt.lower() in ['ensi','ensight']:
 			EnsightWriter(self,casestr,basedir,instants,vars)
 		elif fmt.lower() in ['vtkh5','vtkhdf']:
 			VTKHDF5Writer(self,casestr,basedir,instants,times,vars)
 		else:
-			cr_stop('Dataset.write',0)
 			raiseError('Format <%s> not implemented!'%fmt)
-		cr_stop('Dataset.write',0)
 
 	# Properties
 	@property

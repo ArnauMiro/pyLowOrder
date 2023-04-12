@@ -5,6 +5,9 @@
 # Last revision: 29/10/2021
 from __future__ import print_function, division
 
+import mpi4py
+mpi4py.rc.recv_mprobe = False
+
 import os, numpy as np
 import pyLOM
 
@@ -53,7 +56,7 @@ pyLOM.pprint(0,'RMSE = %e'%rmse)
 # Create a dataset to store the last 500 instants from the simulation
 # and the reconstructed flow
 idx     = 100
-time    = d.time[idx:]
+time    = d.time[-idx:]
 X_PRESS = X[0:4*d.mesh.npoints:4,-idx:]
 X_PRESR = X_POD[0:4*d.mesh.npoints:4,-idx:]
 X_VELOC = np.zeros((3*d.mesh.npoints,idx),dtype=np.double)

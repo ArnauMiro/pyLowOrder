@@ -10,82 +10,70 @@ from __future__ import print_function, division
 import numpy as np, scipy, nfft
 from mpi4py import MPI
 
-from ..utils.cr     import cr_start, cr_stop
+from ..utils.cr     import cr
 from ..utils.parall import mpi_gather, mpi_reduce, pprint, mpi_send, mpi_recv, is_rank_or_serial
 from ..utils.errors import raiseError
 import h5py
 
 
 ## Python functions
+@cr('math.transpose')
 def transpose(A):
 	'''
 	Transposed of matrix A
 	'''
-	cr_start('math.transpose',0)
-	At = np.transpose(A)
-	cr_stop('math.transpose',0)
-	return At
+	return np.transpose(A)
 
+@cr('math.vector_norm')
 def vector_norm(v,start=0):
 	'''
 	L2 norm of a vector
 	'''
-	cr_start('math.vector_norm',0)
-	norm = np.linalg.norm(v[start:],2)
-	cr_stop('math.vector_norm',0)
-	return norm
+	return np.linalg.norm(v[start:],2)
 
+@cr('math.matmul')
 def matmul(A,B):
 	'''
 	Matrix multiplication C = A x B
 	'''
-	cr_start('math.matmul',0)
-	C = np.matmul(A,B)
-	cr_stop('math.matmul',0)
-	return C
+	return np.matmul(A,B)
 
+@cr('math.cmatmul')
 def complex_matmul(A,B):
 	'''
 	Matrix multiplication C = A x B
 
 	By default will transpose and conjugate B
 	'''
-	cr_start('math.matmul',0)
-	C = np.matmul(A,np.transpose(np.conj(B)))
-	cr_stop('math.matmul',0)
-	return C
+	return np.matmul(A,np.transpose(np.conj(B)))
 
+@cr('math.matmul_paral')
 def matmul_paral(A,B):
 	'''
 	Matrix multiplication C = A x B where A and B are distributed along the processors and C is the same for all of them
 	'''
-	cr_start('math.matmul_paral',0)
 	aux = np.matmul(A,B)
-	C   = mpi_reduce(aux, root = 0, op = 'sum', all = True)
-	cr_stop('math.matmul_paral',0)
-	return C
+	return mpi_reduce(aux, root = 0, op = 'sum', all = True)
 
+@cr('math.vecmat')
 def vecmat(v,A):
 	'''
 	Vector times a matrix C = v x A
 	'''
-	cr_start('math.vecmat',0)
 	C = np.zeros_like(A)
 	for ii in range(v.shape[0]):
 		C[ii,:] = v[ii]*A[ii,:]
-	cr_stop('math.vecmat',0)
 	return C
 
+@cr('math.diag')
 def diag(A):
 	'''
 	If A is a matrix it returns its diagonal, if its a vector it returns
 	a diagonal matrix with A in its diagonal
 	'''
-	cr_start('math.diag',0)
-	B = np.diag(A)
-	cr_stop('math.diag',0)
-	return B
+	return np.diag(A)
 
+@cr('math.eigen')
 def eigen(A):
 	'''
 	Eigenvalues and eigenvectors using numpy.
@@ -93,18 +81,16 @@ def eigen(A):
 		imag(n)   are the imaginary eigenvalues.
 		vecs(n,n) are the right eigenvectors.
 	'''
-	cr_start('math.eigen',0)
 	w,vecs = np.linalg.eig(A)
 	real   = np.real(w)
 	imag   = np.imag(w)
-	cr_stop('math.eigen',0)
 	return real,imag,vecs
 
+@cr('math.ceigenvectors')
 def build_complex_eigenvectors(vecs, imag):
 	'''
 	Reconstruction of the right eigenvectors in complex format
 	'''
-	cr_start('math.build_complex_eigenvectors', 0)
 	wComplex = np.zeros(vecs.shape, dtype = 'complex_')
 	ivec = 0
 	while ivec < vecs.shape[1] - 1:
@@ -115,50 +101,43 @@ def build_complex_eigenvectors(vecs, imag):
 		else:
 			wComplex[:, ivec] = vecs[:, ivec] + 0*1j
 			ivec = ivec + 1
-	cr_stop('math.build_complex_eigenvectors', 0)
 	return wComplex
 
+@cr('math.polar')
 def polar(real, imag):
 	'''
 	Present a complex number in its polar form given its real and imaginary part
 	'''
-	cr_start('math.polar', 0)
 	mod = np.sqrt(real*real + imag*imag)
 	arg = np.arctan2(imag, real)
-	cr_stop('math.polar', 0)
 	return mod, arg
 
+@cr('math.temporal_mean')
 def temporal_mean(X):
 	'''
 	Temporal mean of matrix X(m,n) where m is the spatial coordinates
 	and n is the number of snapshots.
 	'''
-	cr_start('math.temporal_mean',0)
-	out = np.mean(X,axis=1)
-	cr_stop('math.temporal_mean',0)
-	return out
+	return np.mean(X,axis=1)
 
+@cr('math.subtract_mean')
 def subtract_mean(X,X_mean):
 	'''
 	Computes out(m,n) = X(m,n) - X_mean(m) where m is the spatial coordinates
 	and n is the number of snapshots.
 	'''
-	cr_start('math.subtract_mean',0)
-	out = X - np.tile(X_mean,(X.shape[1],1)).T
-	cr_stop('math.subtract_mean',0)
-	return out
+	return X - np.tile(X_mean,(X.shape[1],1)).T
 
+@cr('math.qr')
 def qr(A):
 	'''
 	QR factorization using Lapack
 		Q(m,n) is the Q matrix
 		R(n,n) is the R matrix
 	'''
-	cr_start('math.qr', 0)
-	Q, R = np.linalg.qr(A)
-	cr_stop('math.qr', 0)
-	return Q,R
+	return np.linalg.qr(A)
 
+@cr('math.svd')
 def svd(A,method='gesdd'):
 	'''
 	Single value decomposition (SVD) using numpy.
@@ -166,19 +145,16 @@ def svd(A,method='gesdd'):
 		S(n)     are the singular values.
 		V(n,n)   are the right singular vectors.
 	'''
-	cr_start('math.svd',0)
-#	U, S, V = np.linalg.svd(A,lapack_driver=method,check_finite=False,full_matrices=False)
-	U, S, V = np.linalg.svd(A,full_matrices=False)
-	cr_stop('math.svd',0)
-	return U,S,V
+#	return np.linalg.svd(A,lapack_driver=method,check_finite=False,full_matrices=False)
+	return np.linalg.svd(A,full_matrices=False)
 
+@cr('math.tsqr2')
 def tsqr2(A):
 	'''
 	Parallel QR factorization using Lapack
 		Q(m,n) is the Q matrix
 		R(n,n) is the R matrix
 	'''
-	cr_start('math.tsqr2',0)
 	# Algorithm 1 from Sayadi and Schmid (2016) - Q and R matrices
 	# QR factorization on A
 	Q1i, R = qr(A)
@@ -188,9 +164,9 @@ def tsqr2(A):
 	Q2i, R = qr(Rp)
 	# Compute Q = Q1 x Q2
 	Q = matmul(Q1i,Q2i[A.shape[1]*MPI_RANK:A.shape[1]*(MPI_RANK+1),:])
-	cr_stop('math.tsqr2',0)
 	return Q,R
 
+@cr('math.tsqr_svd2')
 def tsqr_svd2(A):
 	'''
 	Single value decomposition (SVD) using Lapack.
@@ -198,7 +174,6 @@ def tsqr_svd2(A):
 		S(n)     are the singular values.
 		V(n,n)   are the right singular vectors.
 	'''
-	cr_start('math.tsqr_svd2',0)
 	# Algorithm 1 from Sayadi and Schmid (2016) - Q and R matrices
 	# QR factorization on A
 	Q,R = tsqr2(A)
@@ -209,29 +184,25 @@ def tsqr_svd2(A):
 	Ur, S, V = svd(R)
 	# Compute U = Q x Ur
 	U = matmul(Q,Ur)
-	cr_stop('math.tsqr_svd2',0)
 	return U,S,V
 
 def next_power_of_2(n):
 	'''
 	Find the next power of 2 of n
 	'''
-	cr_start('math.next_power_of_2',0)
 	p = 1
 	if (n and not(n & (n - 1))):
-		cr_stop('math.next_power_of_2',0)
 		return n
 	while (p < n): p <<= 1
-	cr_stop('math.next_power_of_2',0)
 	return p
 
+@cr('math.tsqr')
 def tsqr(Ai):
 	'''
 	Parallel QR factorization of a real array using Lapack
 		Q(m,n) is the Q matrix
 		R(n,n) is the R matrix
 	'''
-	cr_start('math.tsqr',0)
 	#Recover rank and size
 	MPI_COMM = MPI.COMM_WORLD      # Communications macro
 	MPI_RANK = MPI_COMM.Get_rank() # Who are you? who? who?
@@ -297,9 +268,9 @@ def tsqr(Ai):
 		mask   >>= 1
 	# Multiply Q1i and QW to obtain Qi
 	Qi = matmul(Q1i, QW)
-	cr_stop('math.tsqr',0)
 	return Qi,R
 
+@cr('math.tsqr_svd')
 def tsqr_svd(Ai):
 	'''
 	Single value decomposition (SVD) using TSQR algorithm from
@@ -315,7 +286,6 @@ def tsqr_svd(Ai):
 	S(n)     singular values.
 	VT(n,n)  right singular vectors (transposed).
 	'''
-	cr_start('math.tsqr_svd',0)
 	# QR factorization on A
 	Qi,R = tsqr(Ai)
 
@@ -325,14 +295,13 @@ def tsqr_svd(Ai):
 	Ur, S, V = svd(R)
 	# Compute Ui = Qi x Ur
 	Ui = matmul(Qi, Ur)
-	cr_stop('math.tsqr_svd',0)
 	return Ui, S, V
 
+@cr('math.fft')
 def fft(t,y,equispaced=True):
 	'''
 	Compute the PSD of a signal y.
 	'''
-	cr_start('math.fft',0)
 	if equispaced:
 		ts = t[1] - t[0] # Sampling time
 		# Compute sampling frequency
@@ -347,78 +316,66 @@ def fft(t,y,equispaced=True):
 		x  = -0.5 + np.arange(t.shape[0],dtype=np.double)/t.shape[0]
 		yf = nfft.nfft_adjoint(x,y,len(t))
 	ps = np.real(yf*conj(yf))/y.shape[0] # np.abs(yf)/y.shape[0]
-	cr_stop('math.fft',0)
 	return f, ps
 
+@cr('math.RMSE')
 def RMSE(A,B):
 	'''
 	Compute RMSE between X_POD and X
 	'''
-	cr_start('math.RMSE',0)
 	diff  = (A-B)
 	sum1g = mpi_reduce(np.sum(diff*diff),op='sum',all=True)
 	sum2g = mpi_reduce(np.sum(A*A),op='sum',all=True)
 	rmse  = np.sqrt(sum1g/sum2g)
-	cr_stop('math.RMSE',0)
 	return rmse
 
+@cr('math.vandermonde')
 def vandermonde(real, imag, m, n):
 	'''
 	Builds a Vandermonde matrix of (m x n) with the real and
 	imaginary parts of the eigenvalues
 	'''
-	cr_start('math.vandermonde', 0)
 	Vand  = np.zeros((m, n), dtype = 'complex_')
 	for icol in range(n):
 		Vand[:, icol] = (real + imag*1j)**icol
-	cr_stop('math.vandermonde', 0)
 	return Vand
 
+@cr('math.vandermondeTime')
 def vandermondeTime(real, imag, m, time):
 	'''
 	Builds a Vandermonde matrix of (m x n) with the real and
 	imaginary parts of the eigenvalues
 	'''
-	cr_start('math.vandermondeTime', 0)
 	n = time.shape[0]
 	Vand  = np.zeros((m, n), dtype = 'complex_')
 	for it, t in enumerate(time):
 		Vand[:, it] = (real + imag*1j)**t
-	cr_stop('math.vandermondeTime', 0)
 	return Vand
 
+@cr('math.cholesky')
 def cholesky(A):
 	'''
 	Returns the Cholesky decompositon of A
 	'''
-	cr_start('math.cholesky', 0)
-	B = np.linalg.cholesky(A)
-	cr_stop('math.cholesky', 0)
-	return B
+	return np.linalg.cholesky(A)
 
+@cr('math.conj')
 def conj(A):
 	'''
 	Conjugates complex number A
 	'''
-	cr_start('math.conj',0)
-	B = np.conj(A)
-	cr_stop('math.conj',0)
-	return B
+	return np.conj(A)
 
+@cr('math.inv')
 def inv(A):
 	'''
 	Computes the inverse matrix of A
 	'''
-	cr_start('math.inv',0)
-	B = np.linalg.inv(A)
-	cr_stop('math.inv',0)
-	return B
+	return np.linalg.inv(A)
 
+@cr('math.flip')
 def flip(A):
 	'''
 	Changes order of the vector
 	'''
-	cr_start('math.flip', 0)
-	B = np.flip(A)
-	cr_stop('math.flip', 0)
-	return B
+	return np.flip(A)
