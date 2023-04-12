@@ -5,6 +5,9 @@
 # Last revision: 17/03/2023
 from __future__ import print_function, division
 
+import mpi4py
+mpi4py.rc.recv_mprobe = False
+
 import os, numpy as np
 import pyLOM
 
