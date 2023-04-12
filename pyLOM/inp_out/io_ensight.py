@@ -9,7 +9,7 @@ from __future__ import print_function, division
 
 import numpy as np
 
-from ..utils.cr     import cr_start, cr_stop
+from ..utils.cr     import cr
 from ..utils.parall import MPI_RANK, MPI_SIZE, MPI_COMM, MPI_RDONLY, MPI_WRONLY, MPI_CREATE
 from ..utils.parall import mpi_file_open, worksplit, mpi_reduce, mpi_bcast
 
@@ -50,12 +50,11 @@ def isBinary(fname):
 
 
 ## FUNCTIONS ##
-
+@cr('EnsightIO.readCase')
 def Ensight_readCase(fname,rank=MPI_RANK):
 	'''
 	Read an Ensight Gold case file.
 	'''
-	cr_start('EnsightIO.readCase',0)
 	# Only one rank reads the file
 	if MPI_RANK == rank or MPI_SIZE == 1:
 		# Open file for reading
@@ -87,14 +86,13 @@ def Ensight_readCase(fname,rank=MPI_RANK):
 	if MPI_SIZE > 1:
 		varList, timesteps = mpi_bcast((varList,timesteps),rank=rank)
 	# Return
-	cr_stop('EnsightIO.readCase',0)
 	return varList, timesteps
 
+@cr('EnsightIO.writeCase')
 def Ensight_writeCase(fname,geofile,varList,timesteps,rank=MPI_RANK):
 	'''
 	Write an Ensight Gold case file.
 	'''
-	cr_start('EnsightIO.writeCase',0)
 	# Only one rank writes the file
 	if MPI_RANK == rank or MPI_SIZE == 1:
 		# Open file for writing
@@ -116,9 +114,9 @@ def Ensight_writeCase(fname,geofile,varList,timesteps,rank=MPI_RANK):
 		timesteps.tofile(f,sep='\n',format='%f')
 		# Close file
 		f.close()
-	cr_stop('EnsightIO.writeCase',0)
 
 
+@cr('EnsightIO.readGeo')
 def Ensight_readGeo(fname):
 	'''
 	Read an Ensight Gold Geometry file in either
@@ -156,7 +154,6 @@ def Ensight_readGeoBIN(fname):
 	 .
 	n1_ne n2_ne ... np_ne                            ne*np ints
 	'''
-	cr_start('EnsightIO.readGeo',0)
 	# Open file for reading
 	f = open(fname,'rb')
 	# Read Ensight header
@@ -182,7 +179,6 @@ def Ensight_readGeoBIN(fname):
 	# Close the field
 	f.close()
 	# Return
-	cr_stop('EnsightIO.readGeo',0)
 	return xyz, conec, header
 
 def Ensight_readGeoASCII(fname):
@@ -211,7 +207,6 @@ def Ensight_readGeoASCII(fname):
 	 .
 	n1_ne n2_ne ... np_ne                            ne*np ints
 	'''
-	cr_start('EnsightIO.readGeo',0)
 	# Open file for reading
 	f = open(fname,'r')
 	# Read Ensight header
@@ -245,9 +240,9 @@ def Ensight_readGeoASCII(fname):
 	# Close the field
 	f.close()
 	# Return
-	cr_stop('EnsightIO.readGeo',0)
 	return xyz, conec, header
 
+@cr('EnsightIO.readGeo')
 def Ensight_writeGeo(fname,xyz,conec,header):
 	'''
 	SOURCE OF GEO FILE FORMAT
@@ -275,7 +270,6 @@ def Ensight_writeGeo(fname,xyz,conec,header):
 	 .
 	n1_ne n2_ne ... np_ne                            ne*np ints
 	'''
-	cr_start('EnsightIO.writeGeo',0)
 	# Open file for writing
 	f = open(fname,'wb')
 	# Write Ensight header
@@ -300,9 +294,9 @@ def Ensight_writeGeo(fname,xyz,conec,header):
 	conec.astype(np.int32).reshape((nnel*nel,),order='C').tofile(f)
 	# Close the field
 	f.close()
-	cr_stop('EnsightIO.writeGeo',0)
 
 
+@cr('EnsightIO.readField')
 def Ensight_readField(fname,dims=1,nnod=-1,parallel=False):
 	'''
 	Read an Ensight Gold field file in either
@@ -326,7 +320,6 @@ def Ensight_readFieldBIN(fname,dims=1,nnod=-1):
 	block                       80 chars
 	s_n1 s_n2 ... s_nn          nn floats	
 	'''
-	cr_start('EnsightIO.readField',0)
 	# Open file for reading
 	f = open(fname,'rb')
 	# Read Ensight header
@@ -341,7 +334,6 @@ def Ensight_readFieldBIN(fname,dims=1,nnod=-1):
 	# Close the field
 	f.close()
 	# Return
-	cr_stop('EnsightIO.readField',0)
 	return np.ascontiguousarray(field) if dims == 1 else np.ascontiguousarray(field.reshape((field.shape[0]//dims,dims),order='F')), header
 
 def Ensight_readFieldASCII(fname,dims=1,nnod=-1):
@@ -356,7 +348,6 @@ def Ensight_readFieldASCII(fname,dims=1,nnod=-1):
 	block                       80 chars
 	s_n1 s_n2 ... s_nn          nn floats	
 	'''
-	cr_start('EnsightIO.readField',0)
 	# Open file for reading
 	f = open(fname,'r')
 	# Read Ensight header
@@ -371,7 +362,6 @@ def Ensight_readFieldASCII(fname,dims=1,nnod=-1):
 	# Close the field
 	f.close()
 	# Return
-	cr_stop('EnsightIO.readField',0)
 	return np.ascontiguousarray(field) if dims == 1 else np.ascontiguousarray(field.reshape((field.shape[0]//dims,dims),order='F')), header
 
 def Ensight_readFieldMPIO(fname,dims=1,nnod=-1):
@@ -386,7 +376,6 @@ def Ensight_readFieldMPIO(fname,dims=1,nnod=-1):
 	block                       80 chars
 	s_n1 s_n2 ... s_nn          nn floats	
 	'''
-	cr_start('EnsightIO.readField',0)
 	# Open file for reading
 	f = mpi_file_open(MPI_COMM,fname,MPI_RDONLY)
 	# Read Ensight header
@@ -415,10 +404,10 @@ def Ensight_readFieldMPIO(fname,dims=1,nnod=-1):
 	# Close the field
 	f.Close()
 	# Return
-	cr_stop('EnsightIO.readField',0)
 	return field, header
 
 
+@cr('EnsightIO.writeField')
 def Ensight_writeField(fname,field,header,parallel=False):
 	'''
 	Write an Ensight Gold field file in binary format.
@@ -438,7 +427,6 @@ def Ensight_writeFieldBIN(fname,field,header):
 	block                       80 chars
 	s_n1 s_n2 ... s_nn          nn floats	
 	'''
-	cr_start('EnsightIO.writeField',0)
 	# Open file for writing
 	f = open(fname,'wb')
 	# Write Ensight header
@@ -453,7 +441,6 @@ def Ensight_writeFieldBIN(fname,field,header):
 	field.astype(np.float32).reshape((ncols*nrows,),order='F').tofile(f)
 	# Close the field
 	f.close()
-	cr_stop('EnsightIO.writeField',0)
 
 def Ensight_writeFieldMPIO(fname,field,header):
 	'''
@@ -467,7 +454,6 @@ def Ensight_writeFieldMPIO(fname,field,header):
 	block                       80 chars
 	s_n1 s_n2 ... s_nn          nn floats	
 	'''
-	cr_start('EnsightIO.writeField',0)
 	# Open file for writing
 	f = mpi_file_open(MPI_COMM,fname,MPI_WRONLY|MPI_CREATE)
 	# Write Ensight header
@@ -491,4 +477,3 @@ def Ensight_writeFieldMPIO(fname,field,header):
 			f.Write_at(header_sz+(istart+icol*ncols)*4,field[:,icol].astype(np.float32))
 	# Close the field
 	f.Close()
-	cr_stop('EnsightIO.writeField',0)

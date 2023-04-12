@@ -16,7 +16,7 @@ from libc.stdio  cimport FILE, fopen, fclose, fread, fwrite, fgets, feof
 from libc.stdlib cimport malloc, realloc, free, atoi, atof
 from libc.string cimport memchr, strtok, memcpy
 
-from ..utils.cr     import cr_start, cr_stop
+from ..utils.cr     import cr
 from ..utils.errors import raiseError
 from ..utils.parall import MPI_RANK, MPI_SIZE, MPI_COMM, MPI_RDONLY, MPI_WRONLY, MPI_CREATE
 from ..utils.parall import mpi_file_open, worksplit, mpi_reduce, mpi_bcast
@@ -102,12 +102,11 @@ def bin_to_int(integer):
 
 
 ## FUNCTIONS ##
-
+@cr('EnsightIO.readCase')
 def Ensight_readCase(fname,rank=MPI_RANK):
 	'''
 	Read an Ensight Gold case file.
 	'''
-	cr_start('EnsightIO.readCase',0)
 	# Only one rank reads the file
 	if MPI_RANK == rank or MPI_SIZE == 1:
 		# Open file for reading
@@ -139,14 +138,13 @@ def Ensight_readCase(fname,rank=MPI_RANK):
 	if MPI_SIZE > 1:
 		varList, timesteps = mpi_bcast((varList,timesteps),rank=rank)
 	# Return
-	cr_stop('EnsightIO.readCase',0)
 	return varList, timesteps
 
+@cr('EnsightIO.writeCase')
 def Ensight_writeCase(fname,geofile,varList,timesteps,rank=MPI_RANK):
 	'''
 	Write an Ensight Gold case file.
 	'''
-	cr_start('EnsightIO.writeCase',0)
 	# Only one rank writes the file
 	if MPI_RANK == rank or MPI_SIZE == 1:
 		# Open file for writing
@@ -168,9 +166,9 @@ def Ensight_writeCase(fname,geofile,varList,timesteps,rank=MPI_RANK):
 		timesteps.tofile(f,sep='\n',format='%f')
 		# Close file
 		f.close()
-	cr_stop('EnsightIO.writeCase',0)
 
 
+@cr('EnsightIO.readGeo')
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -225,7 +223,6 @@ def Ensight_readGeoBIN(object fname):
 	cdef np.ndarray[np.double_t,ndim=2] xyz
 	cdef np.ndarray[np.int32_t,ndim=2]   conec
 
-	cr_start('EnsightIO.readGeo',0)
 	# Open file for reading
 	myfile = fopen(fname.encode('utf-8'),"rb")
 	if myfile == NULL: raiseError("file: <%s> not found!"%(fname))
@@ -305,7 +302,6 @@ def Ensight_readGeoBIN(object fname):
 	fclose(myfile)
 
 	# Return
-	cr_stop('EnsightIO.readGeo',0)
 	return xyz, conec, header
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -346,8 +342,6 @@ def Ensight_readGeoASCII(object fname):
 
 	cdef np.ndarray[np.double_t,ndim=2] xyz
 	cdef np.ndarray[np.int32_t,ndim=2]   conec
-	
-	cr_start('EnsightIO.readGeo',0)
 	
 	# Open file for reading
 	myfile = fopen(fname.encode('utf-8'),"r")
@@ -449,9 +443,9 @@ def Ensight_readGeoASCII(object fname):
 	fclose(myfile)
 
 	# Return
-	cr_stop('EnsightIO.readGeo',0)
 	return xyz, conec, header
 
+@cr('EnsightIO.readGeo')
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -491,8 +485,6 @@ def Ensight_writeGeo(object fname, double[:,:] xyz, int[:,:] conec, dict header)
 	cdef float *x
 	cdef float *y
 	cdef float *z
-
-	cr_start('EnsightIO.writeGeo',0)
 
 	# Open file for writing
 	myfile = fopen(fname.encode('utf-8'),"wb")
@@ -571,9 +563,9 @@ def Ensight_writeGeo(object fname, double[:,:] xyz, int[:,:] conec, dict header)
 		
 	# Close file
 	fclose(myfile);
-	cr_stop('EnsightIO.writeGeo',0)
 
 
+@cr('EnsightIO.readField')
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -612,8 +604,6 @@ def Ensight_readFieldBIN(object fname, int dims=1, int nnod=-1):
 
 	cdef float     *data
 	cdef np.ndarray field
-
-	cr_start('EnsightIO.readField',0)
 
 	# Open file for reading
 	myfile = fopen(fname.encode('utf-8'),"rb")
@@ -672,7 +662,6 @@ def Ensight_readFieldBIN(object fname, int dims=1, int nnod=-1):
 	fclose(myfile)
 
 	# Return
-	cr_stop('EnsightIO.readField',0)
 	return field, header
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -699,8 +688,6 @@ def Ensight_readFieldASCII(object fname,int dims=1,int nnod=-1):
 	cdef float     *data
 	cdef np.ndarray field
 
-	cr_start('EnsightIO.readField',0)
-	
 	# Open file for reading
 	myfile = fopen(fname.encode('utf-8'),"r")
 	if myfile == NULL: raiseError("file: <%s> not found!"%(fname))
@@ -763,7 +750,6 @@ def Ensight_readFieldASCII(object fname,int dims=1,int nnod=-1):
 	fclose(myfile)
 
 	# Return
-	cr_stop('EnsightIO.readField',0)
 	return field, header
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -782,7 +768,6 @@ def Ensight_readFieldMPIO(object fname, int dims=1, int nnod=-1):
 	block                       80 chars
 	s_n1 s_n2 ... s_nn          nn floats	
 	'''
-	cr_start('EnsightIO.readField',0)
 	cdef object f, shp
 	cdef int idim, istart, iend, header_sz = 80*3+4  # 3 80 bytes char + 4 byte integer
 	cdef dict header   = {'descr':'','partID':0}
@@ -817,10 +802,10 @@ def Ensight_readFieldMPIO(object fname, int dims=1, int nnod=-1):
 	# Close the field
 	f.Close()
 	# Return
-	cr_stop('EnsightIO.readField',0)
 	return field, header
 
 
+@cr('EnsightIO.writeField')
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -853,8 +838,6 @@ def Ensight_writeFieldBIN(object fname,np.ndarray field,dict header):
 
 	cdef float *data
 
-	cr_start('EnsightIO.writeField',0)
-	
 	dims = 1 if len((<object> field).shape) == 1 else field.shape[1]
 
 	# Open file for writing
@@ -895,7 +878,6 @@ def Ensight_writeFieldBIN(object fname,np.ndarray field,dict header):
 	free(data)
 
 	fclose(myfile)
-	cr_stop('EnsightIO.writeField',0)
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
@@ -913,7 +895,6 @@ def Ensight_writeFieldMPIO(object fname,np.ndarray field,dict header):
 	block                       80 chars
 	s_n1 s_n2 ... s_nn          nn floats	
 	'''
-	cr_start('EnsightIO.writeField',0)
 	cdef object f, header_bin
 	cdef int istart, iend, icol, nrows, ncols, nrowsT, header_sz = 80*3+4  # 3 80 bytes char + 4 byte integer
 	# Open file for writing
@@ -938,4 +919,3 @@ def Ensight_writeFieldMPIO(object fname,np.ndarray field,dict header):
 			f.Write_at(header_sz+(istart+icol*ncols)*4,field[:,icol].astype(np.float32))
 	# Close the field
 	f.Close()
-	cr_stop('EnsightIO.writeField',0)
