@@ -10,7 +10,7 @@ from __future__ import print_function
 import numpy as np
 
 from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd
-from ..utils.cr     import cr_start, cr_stop
+from ..utils.cr     import cr
 from ..utils.errors import raiseError
 
 
