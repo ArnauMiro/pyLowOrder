@@ -192,7 +192,6 @@ def next_power_of_2(n):
 	'''
 	p = 1
 	if (n and not(n & (n - 1))):
-		cr_stop('math.next_power_of_2',0)
 		return n
 	while (p < n): p <<= 1
 	return p
