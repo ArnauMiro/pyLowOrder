@@ -471,7 +471,7 @@ def h5_save_POD(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
 	Can be appended to another HDF by setting the
 	mode to 'a'. Then no partition table will be saved.
 	'''
-	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM)
+	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,mode)
 	# Store attributes and partition table
 	if not mode == 'a':
 		file.attrs['Version'] = PYLOM_H5_VERSION
@@ -501,7 +501,7 @@ def h5_load_POD(fname,vars,ptable=None):
 	'''
 	Load POD variables from an HDF5 file.
 	'''
-	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM)
+	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,'r')
 	# Check the file version
 	version = tuple(file.attrs['Version'])
 	if not version == PYLOM_H5_VERSION:
@@ -530,7 +530,7 @@ def h5_save_DMD(fname,muReal,muImag,Phi,bJov,ptable,nvars=1,pointData=True,mode=
 	Can be appended to another HDF by setting the
 	mode to 'a'. Then no partition table will be saved.
 	'''
-	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM)
+	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,mode)
 	# Store attributes and partition table
 	if not mode == 'a':
 		file.attrs['Version'] = PYLOM_H5_VERSION
@@ -561,7 +561,7 @@ def h5_load_DMD(fname,vars,ptable=None):
 	'''
 	Load DMD variables from an HDF5 file.
 	'''
-	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM)
+	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,'r')
 	# Check the file version
 	version = tuple(file.attrs['Version'])
 	if not version == PYLOM_H5_VERSION:
@@ -591,7 +591,7 @@ def h5_save_SPOD(fname,L,P,f,ptable,nvars=1,pointData=True,mode='w'):
 	Can be appended to another HDF by setting the
 	mode to 'a'. Then no partition table will be saved.
 	'''
-	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM)
+	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,mode)
 	# Store attributes and partition table
 	if not mode == 'a':
 		file.attrs['Version'] = PYLOM_H5_VERSION
@@ -623,7 +623,7 @@ def h5_load_SPOD(fname,vars,ptable=None):
 	'''
 	Load SPOD variables from an HDF5 file.
 	'''
-	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM)
+	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,'r')
 	# Check the file version
 	version = tuple(file.attrs['Version'])
 	if not version == PYLOM_H5_VERSION:
