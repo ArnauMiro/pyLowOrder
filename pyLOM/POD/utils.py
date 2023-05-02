@@ -23,8 +23,8 @@ def extract_modes(U,ivar,npoints,modes=[],reshape=True):
 	if len(modes) == 0: modes = np.arange(1,U.shape[1]+1,dtype=np.int32)
 	# Allocate output array
 	out =np.zeros((npoints,len(modes)),np.double)
-	for m in modes:
-		out[:,m-1] = U[ivar-1:nvars*npoints:nvars,m-1]
+	for i,m in enumerate(modes):
+		out[:,i] = U[ivar-1:nvars*npoints:nvars,m-1]
 	# Return reshaped output
 	return out.reshape((len(modes)*npoints,),order='C') if reshape else out
 
