@@ -23,8 +23,8 @@ def extract_modes(Phi,ivar,npoints,real=True,modes=[],reshape=True):
 	if len(modes) == 0: modes = np.arange(1,Phi.shape[1]+1,dtype=np.int32)
 	# Allocate output array
 	out =np.zeros((npoints,len(modes)),np.double)
-	for m in modes:
-		out[:,m-1] = Phi[ivar-1:nvars*npoints:nvars,m-1].real if real else Phi[ivar-1:nvars*npoints:nvars,m-1].imag
+	for i,m in enumerate(modes):
+		out[:,i] = Phi[ivar-1:nvars*npoints:nvars,m-1].real if real else Phi[ivar-1:nvars*npoints:nvars,m-1].imag
 	# Return reshaped output
 	return out.reshape((len(modes)*npoints,),order='C') if reshape else out
 
