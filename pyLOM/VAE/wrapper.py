@@ -188,28 +188,50 @@ class VariationalAutoencoder(nn.Module):
             corr = np.corrcoef(z,rowvar=False)
         return corr.reshape((self.lat_dim*self.lat_dim,)), np.linalg.det(corr)*100
     
-    #def train_model(self):
-
-    
-      
-## Early stopper callback
-class EarlyStopper:
-    def __init__(self, patience=1, min_delta=0):
-        self.patience = patience
-        self.min_delta = min_delta
-        self.counter = 0
-        self.min_validation_loss = np.inf
-       
-    def early_stop(self, validation_loss, prev_train, train):
-        if validation_loss < self.min_validation_loss:
-            self.min_validation_loss = validation_loss
-            self.counter = 0
-        elif validation_loss > (self.min_validation_loss + self.min_delta):
-            self.counter += 1
-            if self.counter >= self.patience:
-                return True
-        elif prev_train < train:
-            self.counter += 1
-            if self.counter >= self.patience:
-                return True
-        return False
+    def train_model(self, train_data, vali_data, beta, nepochs, callback=None, learning_rate=3e-4):
+        self.train()
+        prev_train_loss = 1e99
+        train_loss_avg  = [] #Build numpy array as nepoch*num_batches
+        val_loss        = [] #Build numpy array as nepoch*num_batches*vali_batches
+        mse             = [] #Build numpy array as nepoch*num_batches
+        kld             = [] #Build numpy array as nepoch*num_batches
+        for epoch in range(nepochs):
+            mse.append(0)
+            kld.append(0)
+            train_loss_avg.append(0)
+            num_batches = 0 
+            learning_rate = learning_rate * 1/(1 + 0.001 * epoch)               #HARDCODED!!
+            optimizer = torch.optim.Adam(self.parameters(), lr= learning_rate)  #HARDCODED!!
+            for batch in train_data:     
+                recon, mu, logvar, _ = self(batch)
+                mse_i  = self.lossfunc(batch, recon)
+                bkld_i = self.kld(mu,logvar)*beta
+                loss   = mse_i - bkld_i
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                train_loss_avg[-1] += loss.item()
+                mse[-1] = self.lossfunc(batch, recon).item()
+                kld[-1] = self.kld(mu,logvar).item()*beta
+                num_batches += 1
+            with torch.no_grad():
+                val_batches = 0
+                val_loss.append(0)
+                for val_batch in vali_data:
+                    val_recon, val_mu, val_logvar , _ = self(val_batch)
+                    mse_i     = self.lossfunc(val_batch, val_recon)
+                    bkld_i    = self.kld(val_mu,val_logvar)*beta
+                    vali_loss = mse_i - bkld_i
+                    val_loss[-1] += vali_loss.item()
+                    val_batches += 1
+                val_loss[-1] /= num_batches
+                mse[-1]      /= num_batches
+                kld[-1]      /= num_batches
+                train_loss_avg[-1] /= num_batches
+            if callback.early_stop(val_loss[-1], prev_train_loss, train_loss_avg[-1]):
+                print('Early Stopper Activated at epoch %i' %epoch)
+                break
+            prev_train_loss = train_loss_avg[-1]   
+            print('Epoch [%d / %d] average training error: %.5e' % (epoch+1, nepochs, train_loss_avg[-1]))
+            
+        return np.array(train_loss_avg), np.array(val_loss), np.array(mse), np.array(kld)

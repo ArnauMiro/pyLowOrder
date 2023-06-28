@@ -19,7 +19,7 @@ batch_size    = 32
 nepochs       = 200
 channels      = 16
 lat_dim       = 5
-beta          = 0.1
+beta          = 1e-3
 learning_rate = 3e-4 #Karpathy Constant
 kernel_size   = 4
 stride        = 2
@@ -36,56 +36,7 @@ trloader, valoader = tordtset.split(ptrain, pvali, batch_size)
 ## Set and train the variational autoencoder
 vae           = pyLOM.VAE.VariationalAutoencoder(channels, lat_dim, tordtset.nx, tordtset.ny, kernel_size, stride, padding)
 early_stopper = pyLOM.VAE.EarlyStopper(patience=5, min_delta=0.02)
-
-vae.train()
-prev_train_loss = 1e99
-train_loss_avg  = [] #Build numpy array as nepoch*num_batches
-val_loss        = [] #Build numpy array as nepoch*num_batches*vali_batches
-mse             = [] #Build numpy array as nepoch*num_batches
-kld             = [] #Build numpy array as nepoch*num_batches
-for epoch in range(nepochs):
-    mse.append(0)
-    kld.append(0)
-    train_loss_avg.append(0)
-    num_batches = 0 
-    learning_rate = learning_rate * 1/(1 + 0.001 * epoch)   #learnign rate scheduled 
-    optimizer = torch.optim.Adam(vae.parameters(), lr= learning_rate)
-    for batch in trloader:     
-        recon, mu, logvar, _ = vae(batch)
-        mse_i  = vae.lossfunc(batch, recon)
-        bkld_i = vae.kld(mu,logvar)*beta
-        loss   = mse_i - bkld_i
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        train_loss_avg[-1] += loss.item()
-        mse[-1] = vae.lossfunc(batch, recon).item()
-        kld[-1] = vae.kld(mu,logvar).item()*beta
-        num_batches += 1
-    with torch.no_grad():
-        val_batches = 0
-        val_loss.append(0)
-        for val_batch in valoader:
-            val_recon, val_mu, val_logvar , _ = vae(val_batch)
-            mse_i     = vae.lossfunc(val_batch, val_recon)
-            bkld_i    = vae.kld(mu,logvar)*beta
-            vali_loss = mse_i - bkld_i
-            val_loss[-1] += vali_loss.item()
-            val_batches += 1
-        val_loss[-1] /= num_batches
-        mse[-1]      /= num_batches
-        kld[-1]      /= num_batches
-        train_loss_avg[-1] /= num_batches
-    if early_stopper.early_stop(val_loss[-1], prev_train_loss, train_loss_avg[-1]):
-        print('Early Stopper Activated at epoch %i' %epoch)
-        break
-    prev_train_loss = train_loss_avg[-1]   
-    print('Epoch [%d / %d] average training error: %.5e' % (epoch+1, nepochs, train_loss_avg[-1]))
-
-train_loss_avg = np.array(train_loss_avg)
-val_loss       = np.array(val_loss)
-mse            = np.array(mse)
-kld            = np.array(kld)
+kld, mse, val_loss, train_loss_avg = vae.train_model(trloader, valoader, beta, nepochs, callback=early_stopper, learning_rate=learning_rate)
     
 ## Reconstruct dataset and compute accuracy
 rec, energy = vae.reconstruct(tordtset)
