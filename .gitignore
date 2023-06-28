@@ -163,3 +163,7 @@ dmypy.json
 # Examples data
 Examples/Data/*
 l_BaseKit_p_2021.3.0.3219/
+
+# VTK HDF outputs
+*-vtk.hdf
+flow/*
