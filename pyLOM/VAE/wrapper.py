@@ -20,35 +20,25 @@ class VariationalEncoder(nn.Module):
         self.drop1 = nn.Dropout1d()
         self.drop2 = nn.Dropout2d()
         
-        self.conv1  = nn.Conv2d(in_channels=1, out_channels=self.channels*1<<0, kernel_size=kernel_size, stride=stride, padding=padding)
-        nn.init.xavier_uniform_(self.conv1.weight)
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=self.channels*1<<0, kernel_size=kernel_size, stride=stride, padding=padding)       
+        self.conv2 = nn.Conv2d(in_channels=self.channels, out_channels=self.channels*1<<1, kernel_size=kernel_size, stride=stride, padding=padding)
+        self.conv3 = nn.Conv2d(in_channels=self.channels*1<<1, out_channels=self.channels*1<<2, kernel_size=kernel_size, stride=stride, padding=padding)
+        self.conv4 = nn.Conv2d(in_channels=self.channels*1<<2, out_channels= self.channels*1<<3, kernel_size=kernel_size, stride=stride, padding=padding)
+        self.conv5 = nn.Conv2d(in_channels=self.channels*1<<3, out_channels=self.channels*1<<4, kernel_size=kernel_size, stride=stride, padding=padding)
         
-        self.conv2  = nn.Conv2d(in_channels=self.channels, out_channels=self.channels*1<<1, kernel_size=kernel_size, stride=stride, padding=padding)
-        nn.init.xavier_uniform_(self.conv2.weight)
-        
-        self.conv3  = nn.Conv2d(in_channels=self.channels*1<<1, out_channels=self.channels*1<<2, kernel_size=kernel_size, stride=stride, padding=padding)
-        nn.init.xavier_uniform_(self.conv3.weight)
-        
-        self.conv4  = nn.Conv2d(in_channels=self.channels*1<<2, out_channels= self.channels*1<<3, kernel_size=kernel_size, stride=stride, padding=padding)
-        nn.init.xavier_uniform_(self.conv4.weight)
-        
-        self.conv5  = nn.Conv2d(in_channels=self.channels*1<<3, out_channels=self.channels*1<<4, kernel_size=kernel_size, stride=stride, padding=padding)
-        nn.init.xavier_uniform_(self.conv5.weight)
-        
-        self.flat = nn.Flatten()
-
-        self.fc1 = nn.Linear(in_features = int((self.channels*1<<4)*(self._nx/(1<<self.nlayers))*self._ny/(1<<self.nlayers)), out_features=128)
-        nn.init.xavier_uniform_(self.fc1.weight)
-        
-        self.mu = nn.Linear(in_features = 128, out_features = self._lat_dim)
-        nn.init.xavier_uniform_(self.mu.weight)
-        
+        self.flat   = nn.Flatten()
+        self.fc1    = nn.Linear(in_features = int((self.channels*1<<4)*(self._nx/(1<<self.nlayers))*self._ny/(1<<self.nlayers)), out_features=128)       
+        self.mu     = nn.Linear(in_features = 128, out_features = self._lat_dim)
         self.logvar = nn.Linear(in_features = 128, out_features = self._lat_dim)
-        nn.init.xavier_uniform_(self.logvar.weight)
+
+        self._reset_parameters()
     
-    def reset_parameters(self):
+    def _reset_parameters(self):
         for layer in self.modules():
-            nn.init.xavier_uniform_(layer.weight)
+            if isinstance(layer, nn.Conv2d):
+                nn.init.xavier_uniform_(layer.weight)
+            elif isinstance(layer, nn.Linear):
+                nn.init.xavier_uniform_(layer.weight)
 
     def forward(self, x):        
         out    = torch.tanh(self.conv1(x))
@@ -76,31 +66,22 @@ class VariationalDecoder(nn.Module):
         self.drop1 = nn.Dropout1d()
         
         self.fc1 = nn.Linear(in_features = self._lat_dim, out_features = 128)
-        nn.init.xavier_uniform_(self.fc1.weight)
-        self.batch6 = nn.BatchNorm1d(128)
-        
         self.fc2 = nn.Linear(in_features = 128, out_features = int((self.channels*1<<4)*self._nx/(1<<self.nlayers)*self._ny/(1<<self.nlayers)))
-        nn.init.xavier_uniform_(self.fc2.weight)
-        self.batch5 = nn.BatchNorm1d(int((self.channels*1<<4)*self._nx/(1<<self.nlayers)*self._ny/(1<<self.nlayers)))
         
         self.conv5 = nn.ConvTranspose2d(in_channels = self.channels*1<<4, out_channels = self.channels*1<<3, kernel_size=kernel_size, stride=stride, padding=padding)
-        nn.init.xavier_uniform_(self.conv5.weight)
-        self.batch4 = nn.BatchNorm2d(self.channels*1<<3)
-        
         self.conv4 = nn.ConvTranspose2d(in_channels = self.channels*1<<3, out_channels = self.channels*1<<2, kernel_size=kernel_size, stride=stride, padding=padding)
-        nn.init.xavier_uniform_(self.conv4.weight)
-        self.batch3 = nn.BatchNorm2d(self.channels*1<<2)
-        
         self.conv3 = nn.ConvTranspose2d(in_channels = self.channels*1<<2, out_channels = self.channels*2, kernel_size=kernel_size, stride=stride, padding=padding)
-        nn.init.xavier_uniform_(self.conv3.weight)
-        self.batch2 = nn.BatchNorm2d(self.channels*2)
-        
         self.conv2 = nn.ConvTranspose2d(in_channels = self.channels*2, out_channels = self.channels, kernel_size=kernel_size, stride=stride, padding=padding)
-        nn.init.xavier_uniform_(self.conv2.weight)
-        self.batch1 = nn.BatchNorm2d(self.channels)
-        
         self.conv1 = nn.ConvTranspose2d(in_channels = self.channels, out_channels = 1 , kernel_size=kernel_size, stride=stride, padding=padding)
-        nn.init.xavier_uniform_(self.conv1.weight)
+
+        self._reset_parameters()
+
+    def _reset_parameters(self):
+        for layer in self.modules():
+            if isinstance(layer, nn.ConvTranspose2d):
+                nn.init.xavier_uniform_(layer.weight)
+            elif isinstance(layer, nn.Linear):
+                nn.init.xavier_uniform_(layer.weight)
         
     @property
     def nx(self):
@@ -158,7 +139,7 @@ class VariationalAutoencoder(nn.Module):
     def lat_dim(self):
         return self._lat_dim
     
-    def reparamatrizate(self, mu, logvar):
+    def _reparamatrizate(self, mu, logvar):
         std = torch.exp(0.5*logvar)
         epsilon = torch.rand_like(std)  #we create a normal distribution (0 ,1 ) with the dimensions of std        
         sample = mu + std*epsilon
@@ -166,10 +147,10 @@ class VariationalAutoencoder(nn.Module):
     
     def forward(self, x):
         mu, logvar = self.encoder(x)
-        z = self.reparamatrizate(mu, logvar)
+        z = self._reparamatrizate(mu, logvar)
         recon = self.decoder(z)
         return recon, mu, logvar, z
-      
+                  
     def lossfunc(self, x, recon_x):
         return F.mse_loss(recon_x.view(-1, self.nx*self.ny), x.view(-1, self.nx*self.ny),reduction='mean')
         
@@ -206,6 +187,9 @@ class VariationalAutoencoder(nn.Module):
             _,_,_, z = self(batch)
             corr = np.corrcoef(z,rowvar=False)
         return corr.reshape((self.lat_dim*self.lat_dim,)), np.linalg.det(corr)*100
+    
+    #def train_model(self):
+
     
       
 ## Early stopper callback
