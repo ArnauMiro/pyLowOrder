@@ -60,12 +60,12 @@ class Dataset(torch_dataset):
         mean = temporal_mean(var)
         fluc = subtract_mean(var, mean)
         maxi = fluc.max()
-        return fluc/fluc.max(), mean, maxi
+        return np.array(fluc/fluc.max()), mean, maxi
     
     def recover(self, var):
         return var*self.max + np.tile(self.mean,(var.shape[1],1)).T
     
-    def split(self, ptrain, pvali, batch_size):
+    def split(self, ptrain, pvali, batch_size=1):
         #Compute number of snapshots
         len_train = int(ptrain*len(self))
         len_vali  = int(pvali*len(self))

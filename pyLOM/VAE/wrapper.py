@@ -36,13 +36,13 @@ class VariationalAutoencoder(nn.Module):
         return recon, mu, logvar, z
        
     def train_model(self, train_data, vali_data, beta, nepochs, callback=None, learning_rate=3e-4):
-        self.train()
         prev_train_loss = 1e99
         train_loss_avg  = [] #Build numpy array as nepoch*num_batches
         val_loss        = [] #Build numpy array as nepoch*num_batches*vali_batches
         mse             = [] #Build numpy array as nepoch*num_batches
         kld             = [] #Build numpy array as nepoch*num_batches
         for epoch in range(nepochs):
+            self.train()
             mse.append(0)
             kld.append(0)
             train_loss_avg.append(0)
