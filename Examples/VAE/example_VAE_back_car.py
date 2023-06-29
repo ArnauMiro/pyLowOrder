@@ -1,4 +1,3 @@
-import torch
 import pyLOM
 import numpy as np
 
@@ -18,11 +17,9 @@ pvali         = 0.2
 batch_size    = 32
 nepochs       = 200
 channels      = 16
-lat_dim       = 5
-beta          = 1e-6
-learning_rate = 3e-4 #Karpathy Constant
-kernel_size   = 4
-stride        = 2
+lat_dim       = 20
+beta          = 0
+kernel_size   = 3
 padding       = 1
 results_file  = 'vae_beta_%.2e_ld_%i' % (beta, lat_dim)
 
@@ -34,9 +31,11 @@ tordtset = pyLOM.VAE.Dataset(pyldtset['Cp'], nx, ny, pyldtset.time)
 trloader, valoader = tordtset.split(ptrain, pvali, batch_size)
 
 ## Set and train the variational autoencoder
-vae           = pyLOM.VAE.VariationalAutoencoder(channels, lat_dim, tordtset.nx, tordtset.ny, kernel_size, stride, padding)
-early_stopper = pyLOM.VAE.EarlyStopper(patience=5, min_delta=0.02)
-kld, mse, val_loss, train_loss_avg = vae.train_model(trloader, valoader, beta, nepochs, callback=early_stopper, learning_rate=learning_rate)
+encarch    = pyLOM.VAE.EncoderMaxPool(lat_dim, nx, ny, channels, kernel_size, padding)
+decarch    = pyLOM.VAE.DecoderMaxPool(lat_dim, nx, ny, channels, kernel_size, padding)
+vae        = pyLOM.VAE.VariationalAutoencoder(lat_dim, nx, ny, encarch, decarch)
+early_stop = pyLOM.VAE.EarlyStopper(patience=5, min_delta=0.02)
+kld, mse, val_loss, train_loss_avg = vae.train_model(trloader, valoader, beta, nepochs, callback=early_stop)
     
 ## Reconstruct dataset and compute accuracy
 rec    = vae.reconstruct(tordtset)

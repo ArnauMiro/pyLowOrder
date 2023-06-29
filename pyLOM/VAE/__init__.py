@@ -8,8 +8,9 @@
 
 __VERSION__ = '2.0.1'
 
-from .wrapper   import VariationalAutoencoder, VariationalDecoder, VariationalEncoder
-from .callbacks import EarlyStopper
-from .utils     import Dataset, save
+from .wrapper       import VariationalAutoencoder
+from .architectures import EncoderNoPool, DecoderNoPool, EncoderMaxPool, DecoderMaxPool
+from .callbacks     import EarlyStopper
+from .utils         import Dataset, save
 
 del wrapper

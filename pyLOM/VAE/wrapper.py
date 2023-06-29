@@ -6,114 +6,15 @@ import numpy as np
 from   torchsummary import summary
 
 
-## Definition of a variational autoencoder
-class VariationalEncoder(nn.Module):
-    def __init__(self, channels, latent_dim, nx, ny, kernel_size, stride, padding):
-        super(VariationalEncoder, self).__init__()
-
-        self.nlayers  = 5   
-        self.channels = np.int(channels)
-        self._lat_dim = np.int(latent_dim)
-        self._nx      = np.int(nx)
-        self._ny      = np.int(ny)
-
-        self.drop1 = nn.Dropout1d()
-        self.drop2 = nn.Dropout2d()
-        
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=self.channels*1<<0, kernel_size=kernel_size, stride=stride, padding=padding)       
-        self.conv2 = nn.Conv2d(in_channels=self.channels, out_channels=self.channels*1<<1, kernel_size=kernel_size, stride=stride, padding=padding)
-        self.conv3 = nn.Conv2d(in_channels=self.channels*1<<1, out_channels=self.channels*1<<2, kernel_size=kernel_size, stride=stride, padding=padding)
-        self.conv4 = nn.Conv2d(in_channels=self.channels*1<<2, out_channels= self.channels*1<<3, kernel_size=kernel_size, stride=stride, padding=padding)
-        self.conv5 = nn.Conv2d(in_channels=self.channels*1<<3, out_channels=self.channels*1<<4, kernel_size=kernel_size, stride=stride, padding=padding)
-        
-        self.flat   = nn.Flatten()
-        self.fc1    = nn.Linear(in_features = int((self.channels*1<<4)*(self._nx/(1<<self.nlayers))*self._ny/(1<<self.nlayers)), out_features=128)       
-        self.mu     = nn.Linear(in_features = 128, out_features = self._lat_dim)
-        self.logvar = nn.Linear(in_features = 128, out_features = self._lat_dim)
-
-        self._reset_parameters()
-    
-    def _reset_parameters(self):
-        for layer in self.modules():
-            if isinstance(layer, nn.Conv2d):
-                nn.init.xavier_uniform_(layer.weight)
-            elif isinstance(layer, nn.Linear):
-                nn.init.xavier_uniform_(layer.weight)
-
-    def forward(self, x):        
-        out    = torch.tanh(self.conv1(x))
-        out    = torch.nn.functional.elu(self.conv2(out))
-        out    = torch.nn.functional.elu(self.conv3(out))
-        out    = torch.nn.functional.elu(self.conv4(out))
-        out    = torch.nn.functional.elu(self.conv5(out))
-        out    = self.flat(out)
-        out    = torch.nn.functional.elu(self.fc1(out))
-        mu     = self.mu(out)
-        logvar = self.logvar(out)
-        return  mu, logvar
-    
-class VariationalDecoder(nn.Module):
-    def __init__(self, channels, latent_dim, nx, ny, kernel_size, stride, padding):
-        super(VariationalDecoder , self).__init__()       
-        
-        self.nlayers   = 5
-        self.channels  = channels
-        self._lat_dim  = latent_dim
-        self._nx       = nx
-        self._ny       = ny
-
-        self.drop2 = nn.Dropout2d()
-        self.drop1 = nn.Dropout1d()
-        
-        self.fc1 = nn.Linear(in_features = self._lat_dim, out_features = 128)
-        self.fc2 = nn.Linear(in_features = 128, out_features = int((self.channels*1<<4)*self._nx/(1<<self.nlayers)*self._ny/(1<<self.nlayers)))
-        
-        self.conv5 = nn.ConvTranspose2d(in_channels = self.channels*1<<4, out_channels = self.channels*1<<3, kernel_size=kernel_size, stride=stride, padding=padding)
-        self.conv4 = nn.ConvTranspose2d(in_channels = self.channels*1<<3, out_channels = self.channels*1<<2, kernel_size=kernel_size, stride=stride, padding=padding)
-        self.conv3 = nn.ConvTranspose2d(in_channels = self.channels*1<<2, out_channels = self.channels*2, kernel_size=kernel_size, stride=stride, padding=padding)
-        self.conv2 = nn.ConvTranspose2d(in_channels = self.channels*2, out_channels = self.channels, kernel_size=kernel_size, stride=stride, padding=padding)
-        self.conv1 = nn.ConvTranspose2d(in_channels = self.channels, out_channels = 1 , kernel_size=kernel_size, stride=stride, padding=padding)
-
-        self._reset_parameters()
-
-    def _reset_parameters(self):
-        for layer in self.modules():
-            if isinstance(layer, nn.ConvTranspose2d):
-                nn.init.xavier_uniform_(layer.weight)
-            elif isinstance(layer, nn.Linear):
-                nn.init.xavier_uniform_(layer.weight)
-        
-    @property
-    def nx(self):
-        return self._nx
-    
-    @property
-    def ny(self):
-        return self._ny
-    
-    @property
-    def lat_dim(self):
-        return self._lat_dim
-
-    def forward(self, x):
-        out = torch.nn.functional.elu(self.fc1(x))      
-        out = torch.nn.functional.elu(self.fc2(out))
-        out = out.view(out.size(0),self.channels*1<<4, int(self._nx/(1<<self.nlayers)), int(self._ny/(1<<self.nlayers)))
-        out = torch.nn.functional.elu(self.conv5(out))
-        out = torch.nn.functional.elu(self.conv4(out))
-        out = torch.nn.functional.elu(self.conv3(out))
-        out = torch.nn.functional.elu(self.conv2(out))
-        out = torch.tanh(self.conv1(out))
-        return out
-
+## Wrapper of a variational autoencoder
 class VariationalAutoencoder(nn.Module):
-    def __init__(self, channels, latent_dim, nx, ny, kernel_size, stride, padding):
+    def __init__(self, latent_dim, nx, ny, encoder, decoder):
         super(VariationalAutoencoder, self).__init__()
         self.lat_dim = np.int(latent_dim)
         self.nx      = nx
         self.ny      = ny
-        self.encoder  = VariationalEncoder(channels, latent_dim, self.nx, self.ny, kernel_size, stride, padding)
-        self.decoder  = VariationalDecoder(channels, latent_dim, self.nx, self.ny, kernel_size, stride, padding)
+        self.encoder = encoder
+        self.decoder = decoder
         summary(self, input_size=(1, self.nx, self.ny))
    
     def _reparamatrizate(self, mu, logvar):
