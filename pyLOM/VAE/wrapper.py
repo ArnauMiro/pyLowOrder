@@ -1,9 +1,10 @@
 import torch
-import torch.nn as nn
+import torch.nn            as nn
 import torch.nn.functional as F
-import numpy as np
+import numpy               as np
 
-from   torchsummary import summary
+from   torch.utils.tensorboard import SummaryWriter
+from   torchsummary            import summary
 
 
 ## Wrapper of a variational autoencoder
@@ -35,20 +36,17 @@ class VariationalAutoencoder(nn.Module):
         recon = self.decoder(z)
         return recon, mu, logvar, z
        
-    def train_model(self, train_data, vali_data, beta, nepochs, callback=None, learning_rate=3e-4):
+    def train_model(self, train_data, vali_data, beta, nepochs, callback=None, learning_rate=3e-4, BASEDIR='./'):
         prev_train_loss = 1e99
-        train_loss_avg  = [] #Build numpy array as nepoch*num_batches
-        val_loss        = [] #Build numpy array as nepoch*num_batches*vali_batches
-        mse             = [] #Build numpy array as nepoch*num_batches
-        kld             = [] #Build numpy array as nepoch*num_batches
+        writer = SummaryWriter(BASEDIR)
         for epoch in range(nepochs):
             self.train()
-            mse.append(0)
-            kld.append(0)
-            train_loss_avg.append(0)
             num_batches = 0 
             learning_rate = learning_rate * 1/(1 + 0.001 * epoch)               #HARDCODED!!
             optimizer = torch.optim.Adam(self.parameters(), lr= learning_rate)  #HARDCODED!!
+            tr_loss = 0
+            mse     = 0
+            kld     = 0
             for batch in train_data:     
                 recon, mu, logvar, _ = self(batch)
                 mse_i  = self._lossfunc(batch, recon)
@@ -57,32 +55,39 @@ class VariationalAutoencoder(nn.Module):
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-                train_loss_avg[-1] += loss.item()
-                mse[-1] = self._lossfunc(batch, recon).item()
-                kld[-1] = self._kld(mu,logvar).item()*beta
+                tr_loss += loss.item()
+                mse     += self._lossfunc(batch, recon).item()
+                kld     += self._kld(mu,logvar).item()*beta
                 num_batches += 1
             with torch.no_grad():
                 val_batches = 0
-                val_loss.append(0)
+                va_loss     = 0
                 for val_batch in vali_data:
                     val_recon, val_mu, val_logvar , _ = self(val_batch)
                     mse_i     = self._lossfunc(val_batch, val_recon)
                     bkld_i    = self._kld(val_mu,val_logvar)*beta
                     vali_loss = mse_i - bkld_i
-                    val_loss[-1] += vali_loss.item()
+                    va_loss += vali_loss.item()
                     val_batches += 1
-                val_loss[-1] /= num_batches
-                mse[-1]      /= num_batches
-                kld[-1]      /= num_batches
-                train_loss_avg[-1] /= num_batches
-            if callback.early_stop(val_loss[-1], prev_train_loss, train_loss_avg[-1]):
+                tr_loss/=num_batches
+                va_loss/=num_batches
+                mse /= num_batches
+                kld /= num_batches
+                writer.add_scalar("Loss/train",tr_loss,epoch+1)
+                writer.add_scalar("Loss/vali", va_loss,epoch+1)
+                writer.add_scalar("Loss/mse",  mse,    epoch+1)
+                writer.add_scalar("Loss/kld",  kld,    epoch+1)
+
+            if callback.early_stop(va_loss, prev_train_loss, tr_loss):
                 print('Early Stopper Activated at epoch %i' %epoch)
                 break
-            prev_train_loss = train_loss_avg[-1]   
-            print('Epoch [%d / %d] average training error: %.5e' % (epoch+1, nepochs, train_loss_avg[-1]))
+            prev_train_loss = tr_loss   
+            print('Epoch [%d / %d] average training error: %.5e' % (epoch+1, nepochs, tr_loss))
+        writer.flush()
+        writer.close()
+        torch.save(self.state_dict(), '%s/model_state' % BASEDIR)
+
             
-        return np.array(train_loss_avg), np.array(val_loss), np.array(mse), np.array(kld)
-    
     def reconstruct(self, dataset):
         ##  Compute reconstruction and its accuracy
         ek     = np.zeros((len(dataset),))

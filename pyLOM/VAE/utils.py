@@ -1,19 +1,17 @@
 import torch
 import numpy as np
+import os
 
 from torch.utils.data import Dataset as torch_dataset
 from ..vmmath         import temporal_mean, subtract_mean
 from ..utils.cr       import cr
-from ..               import inp_out as io
 
-
-def save(state, fname, kld, mse, val_loss, train_loss_avg, corrcoef):
-    '''
-	Store VAE variables and state.
-	'''
-    torch.save(state, fname)
-    io.h5_save_VAE(fname, kld, mse, val_loss, train_loss_avg, corrcoef)
-
+def create_results_folder(RESUDIR):
+    if not os.path.exists(RESUDIR):
+        os.makedirs(RESUDIR)
+        print(f"Folder created: {RESUDIR}")
+    else:
+        print(f"Folder already exists: {RESUDIR}")
 
 class Dataset(torch_dataset):
     @cr("Init VAE dataset")

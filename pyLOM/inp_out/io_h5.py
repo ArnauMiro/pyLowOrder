@@ -589,10 +589,11 @@ def h5_save_VAE(fname, kld, mse, val_loss, train_loss_avg, corrcoef, mode='w'):
 	'''
 	Store VAE results.
 	'''
-	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,mode)
+	file = h5py.File('%s.h5'%fname,mode,driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,mode)
 	# Now create a VAE group
 	group = file.create_group('VAE')
 	# Create the datasets for U, S and V
+	
 	group.create_dataset('kld',(kld.shape[0],),dtype='u1',data=kld)
 	group.create_dataset('mse',(mse.shape[0],),dtype='u1',data=mse)
 	group.create_dataset('val_loss',(val_loss.shape[0],),dtype='u1',data=val_loss)
