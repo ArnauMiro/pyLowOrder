@@ -186,12 +186,12 @@ class Mesh(object):
 
 	@classmethod
 	@cr('Mesh.from_pyAlya')
-	def from_pyAlya(cls,mesh):
+	def from_pyAlya(cls,mesh,sod=False):
 		'''
 		Create the mesh structure from a pyAlya mesh structure
 		'''
 		eltype = np.array([ALYA2ELTYP[t] for t in mesh.eltype],np.uint8)
-		return cls('UNSTRUCT',mesh.xyz,mesh.connectivity_vtk,eltype,mesh.leinv,mesh.lninv)
+		return cls('UNSTRUCT',mesh.xyz,mesh.connectivity_vtk if sod else mesh.connectivity,eltype,mesh.leinv,mesh.lninv)
 
 	@property
 	def type(self):
