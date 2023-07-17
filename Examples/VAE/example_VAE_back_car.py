@@ -4,11 +4,11 @@ import numpy as np
 ## Specify autoencoder parameters
 ptrain      = 0.8
 pvali       = 0.2
-batch_size  = 2
+batch_size  = 4
 nepochs     = 200
-channels    = 32
-lat_dim     = 5
-beta        = 1e-4
+channels    = 40
+lat_dim     = 10
+beta        = 1e-3
 kernel_size = 4
 padding     = 1
 

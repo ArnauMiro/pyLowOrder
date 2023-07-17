@@ -64,13 +64,13 @@ class VariationalAutoencoder(nn.Module):
                 va_loss     = 0
                 for val_batch in vali_data:
                     val_recon, val_mu, val_logvar , _ = self(val_batch)
-                    mse_i     = self._lossfunc(val_batch, val_recon)
-                    bkld_i    = self._kld(val_mu,val_logvar)*beta
-                    vali_loss = mse_i - bkld_i
-                    va_loss += vali_loss.item()
+                    mse_i       = self._lossfunc(val_batch, val_recon)
+                    bkld_i      = self._kld(val_mu,val_logvar)*beta
+                    vali_loss   = mse_i - bkld_i
+                    va_loss     += vali_loss.item()
                     val_batches += 1
                 tr_loss/=num_batches
-                va_loss/=num_batches
+                va_loss/=val_batches
                 mse /= num_batches
                 kld /= num_batches
                 writer.add_scalar("Loss/train",tr_loss,epoch+1)
