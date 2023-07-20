@@ -112,7 +112,7 @@ dependencies = [
     "cython",
     "mpi4py",
     "matplotlib",
-    "h5py >= 3.0.0",
+    "h5py>=3.0.0",
     "nfft",
 ]
 
@@ -161,7 +161,7 @@ requires = [
   "cython",
   "mpi4py",
   "matplotlib",
-  "h5py >= 3.0.0",
+  "h5py>=3.0.0",
   "nfft",
 ]
 build-backend = "setuptools.build_meta"
