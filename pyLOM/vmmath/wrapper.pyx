@@ -15,6 +15,7 @@ from mpi4py  import MPI
 
 from libc.stdlib   cimport malloc, free
 from libc.string   cimport memcpy, memset
+from libc.math     cimport sqrt, atan2
 from mpi4py        cimport MPI
 from mpi4py.libmpi cimport MPI_Comm
 
@@ -179,17 +180,16 @@ def temporal_mean(double[:,:] X):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def polar(real, imag):
+def polar(double[:] real, double[:] imag):
 	'''
 	Present a complex number in its polar form given its real and imaginary part
-	Cal fer-ho en C? Les operacions es criden amb np igual?
 	'''
-	cdef int n = real.shape[0]
+	cdef int i, n = real.shape[0]
 	cdef np.ndarray[np.double_t,ndim=1] mod = np.zeros((n,),dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=1] arg = np.zeros((n,),dtype=np.double)
 	for i in range(n):
-		mod[i] = np.sqrt(real[i]*real[i] + imag[i]*imag[i])
-		arg[i] = np.arctan2(imag[i], real[i])
+		mod[i] = sqrt(real[i]*real[i] + imag[i]*imag[i])
+		arg[i] = atan2(imag[i], real[i])
 	return mod, arg
 
 @cr('math.subtract_mean')
@@ -374,7 +374,7 @@ def vandermondeTime(double [:] real, double [:] imag, int m, double [:] t):
 	Builds a Vandermonde matrix of (m x n) with the real and
 	imaginary parts of the eigenvalues for a certain timesteps
 	'''
-	cdef n = t.shape[0]
+	cdef int n = t.shape[0]
 	cdef np.ndarray[np.complex128_t,ndim=2] Vand = np.zeros((m,n),dtype=np.complex128)
 	c_vandermonde_time(&Vand[0,0], &real[0], &imag[0], m, n, &t[0])
 	return np.asarray(Vand)
