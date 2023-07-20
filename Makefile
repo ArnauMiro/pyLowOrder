@@ -177,15 +177,16 @@ nfft: Deps/nfft
 clean:
 	-@cd pyLOM; rm -f *.o $(wildcard **/*.o)
 	-@cd pyLOM; rm -f *.pyc $(wildcard **/*.pyc)
-	-@cd pyLOM; rm -rf __pycache__ POD/__pycache__ utils/__pycache__ vmmath/__pycache__ inp_out/__pycache__
-	-@cd pyLOM; rm -f POD/*.c POD/*.cpp POD/*.html
-	-@cd pyLOM; rm -f DMD/*.c DMD/*.cpp DMD/*.html
+	-@cd pyLOM; rm -rf __pycache__ utils/__pycache__ vmmath/__pycache__ inp_out/__pycache__
+	-@cd pyLOM; rm -f POD/__pycache__ POD/*.c POD/*.cpp POD/*.html
+	-@cd pyLOM; rm -f DMD/__pycache__ DMD/*.c DMD/*.cpp DMD/*.html
+	-@cd pyLOM; rm -f SPOD/__pycache__ SPOD/*.c SPOD/*.cpp SPOD/*.html
 	-@cd pyLOM; rm -f vmmath/*.c vmmath/*.cpp vmmath/*.html
 	-@cd pyLOM; rm -f inp_out/*.c inp_out/*.cpp inp_out/*.html
 
 cleanall: clean
 	-@rm -rf build
-	-@cd pyLOM; rm POD/*.so vmmath/*.so DMD/*.so inp_out/*.so
+	-@cd pyLOM; rm vmmath/*.so inp_out/*.so POD/*.so DMD/*.so SPOD/*.so
 
 ifeq ($(USE_MKL),ON)
 uninstall_deps: uninstall_mkl uninstall_fftw uninstall_nfft

@@ -30,6 +30,8 @@ pyLOM/POD/wrapper.c
 pyLOM/POD/wrapper.html
 pyLOM/DMD/wrapper.c
 pyLOM/DMD/wrapper.html
+pyLOM/SPOD/wrapper.c
+pyLOM/SPOD/wrapper.html
 pyLOM/vmmath/wrapper.c
 pyLOM/vmmath/wrapper.html
 pyLOM/inp_out/*.c
