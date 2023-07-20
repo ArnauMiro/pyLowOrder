@@ -579,7 +579,7 @@ def h5_load_DMD(fname,vars,ptable=None):
 	if 'mu' in vars: 
 		varList.append( np.array(file['DMD']['Mu'][:,0]) ) # Real
 		varList.append( np.array(file['DMD']['Mu'][:,1]) ) # Imag
-	if 'bJov' in vars: varList.append( np.array(file['DMD']['bJov'][:,:]) )
+	if 'bJov' in vars: varList.append( np.array(file['DMD']['bJov'][:]) )
 	# Return
 	file.close()
 	return varList
