@@ -63,10 +63,10 @@ def run(X, t, nDFT=0, nolap=0, remove_mean=True):
 	#Set frequency axis
 	f  = np.arange(np.ceil(nDFT / 2) + 1) / dt / nDFT
 	nf = f.shape[0]
-	qk = np.zeros((M, nf), dtype = np.complex128)
-	Q  = np.zeros((M*nf, nBlks), dtype = np.complex128)
-	L  = np.zeros((nf, nBlks))
-	P  = np.zeros((M*nBlks, nf))
+	qk = np.zeros((M,nf),np.complex128)
+	Q  = np.zeros((M*nf,nBlks),np.complex128)
+	L  = np.zeros((nf,nBlks),np.double)
+	P  = np.zeros((M*nBlks,nf),np.double)
 	for iblk in range(nBlks):
 		# Get time index for present block
 		i0 = iblk*(nDFT - nolap)
