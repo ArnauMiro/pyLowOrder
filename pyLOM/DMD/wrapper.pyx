@@ -16,6 +16,7 @@ from mpi4py  import MPI
 from libc.stdlib   cimport malloc, free
 from libc.string   cimport memcpy, memset
 from libc.math     cimport sqrt, log, atan2
+from libc.complex  cimport creal, cimag
 from mpi4py.libmpi cimport MPI_Comm
 from mpi4py        cimport MPI
 
@@ -185,10 +186,9 @@ def run(double[:,:] X, double r, int remove_mean=True):
 		d = auxmuImag[icol]
 		div = c*c + d*d
 		for iaux in range(m):
-			a = auxPhi[iaux*nr + icol].real
-			b = auxPhi[iaux*nr + icol].imag
-			auxPhi[iaux*nr + icol].real = (a*c + b*d)/div
-			auxPhi[iaux*nr + icol].imag = (b*c - a*d)/div
+			a = creal(auxPhi[iaux*nr + icol])
+			b = cimag(auxPhi[iaux*nr + icol])
+			auxPhi[iaux*nr + icol] = (a*c + b*d)/div + (b*c - a*d)/div*1j
 
 	#Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
 	cdef np.complex128_t *auxbJov
@@ -212,10 +212,10 @@ def run(double[:,:] X, double r, int remove_mean=True):
 
 	for irow in range(nr):
 		for icol in range(nr): #Loop on the columns of the Vandermonde matrix
-			P[irow*nr + icol]  = aux3C[irow*nr + icol].real*aux4C[irow*nr + icol].real
-			P[irow*nr + icol] += -aux3C[irow*nr + icol].real*aux4C[irow*nr + icol].imag*1j 
-			P[irow*nr + icol] += aux3C[irow*nr + icol].imag*aux4C[irow*nr + icol].real*1j
-			P[irow*nr + icol] += aux3C[irow*nr + icol].imag*aux4C[irow*nr + icol].imag
+			P[irow*nr + icol]  = creal(aux3C[irow*nr + icol])*creal(aux4C[irow*nr + icol])
+			P[irow*nr + icol] += -creal(aux3C[irow*nr + icol])*cimag(aux4C[irow*nr + icol])*1j 
+			P[irow*nr + icol] += cimag(aux3C[irow*nr + icol])*creal(aux4C[irow*nr + icol])*1j
+			P[irow*nr + icol] += cimag(aux3C[irow*nr + icol])*cimag(aux4C[irow*nr + icol])
 	retval = c_cholesky(P, nr)
 	if not retval == 0: raiseError('Problems computing Cholesky factorization!')
 
@@ -223,7 +223,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 		for irow in range(nr):
 			aux1C[irow] = 0 + 0*1j
 			for icol in range(n-1):#casting Vr to a complex, at the same time, it is multipilied per S and Vand
-				aux1C[irow] += Sr[irow]*Vr[irow*(n-1) + icol]*(Vand[iaux*(n-1) + icol].real+Vand[iaux*(n-1) + icol].imag*1j)
+				aux1C[irow] += Sr[irow]*Vr[irow*(n-1) + icol]*(creal(Vand[iaux*(n-1) + icol])+cimag(Vand[iaux*(n-1) + icol])*1j)
 			aux2C[irow] = w[irow*nr + iaux]
 		c_zmatmult(&q[iaux], aux1C, aux2C, 1, 1, nr, 'N', 'N')
 
@@ -231,10 +231,10 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	cdef int ii
 	cdef int jj
 	for ii in range(nr):
-		q[ii] = q[ii].real - q[ii].imag*1j
+		q[ii] = creal(q[ii]) - cimag(q[ii])*1j
 		for jj in range(nr - ii):
-			P[ii*nr + ii+jj]   = P[(ii+jj)*nr + ii].real - P[(ii+jj)*nr + ii].imag*1j
-			P[(ii+jj)*nr + ii] = Pinv[ii*nr + ii+jj].real - Pinv[ii*nr + ii+jj].imag*1j
+			P[ii*nr + ii+jj]   = creal(P[(ii+jj)*nr + ii])  - cimag(P[(ii+jj)*nr + ii])*1j
+			P[(ii+jj)*nr + ii] = creal(Pinv[ii*nr + ii+jj]) - cimag(Pinv[ii*nr + ii+jj])*1j
 
 	retval = c_zinverse(Pinv, nr, 'L')
 	if not retval == 0: raiseError('Problems computing the Inverse!')
@@ -263,9 +263,9 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	#Order modes and eigenvalues according to its amplitude
 	cdef int *auxOrd
 	auxOrd = <int*>malloc(nr*sizeof(int))
-	cdef np.ndarray[np.double_t,ndim=1] muReal = np.zeros((nr),dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=1] muImag = np.zeros((nr),dtype=np.double)
-	cdef np.ndarray[np.complex128_t,ndim=2] Phi = np.zeros((m,nr),order='C',dtype=np.complex128)
+	cdef np.ndarray[np.double_t,ndim=1] muReal   = np.zeros((nr),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=1] muImag   = np.zeros((nr),dtype=np.double)
+	cdef np.ndarray[np.complex128_t,ndim=2] Phi  = np.zeros((m,nr),order='C',dtype=np.complex128)
 	cdef np.ndarray[np.complex128_t,ndim=1] bJov = np.zeros((nr,),dtype=np.complex128)
 	
 	c_zsort(auxbJov, auxOrd, nr)
@@ -292,13 +292,13 @@ def run(double[:,:] X, double r, int remove_mean=True):
 			continue
 		iimag = muImag[ii]
 		if iimag < 0:
-			muImag[ii]        =  muImag[ii+1]
-			muImag[ii+1]      = -muImag[ii]
-			bJov[ii].imag     =  bJov[ii+1].imag
-			bJov[ii+1].imag   = -bJov[ii].imag
+			muImag[ii]   =  muImag[ii+1]
+			muImag[ii+1] = -muImag[ii]
+			bJov[ii]     = creal(bJov[ii])   + cimag(bJov[ii+1])*1j
+			bJov[ii+1]   = creal(bJov[ii+1]) - cimag(bJov[ii])*1j
 			for jj in range(m):
-				Phi[jj,ii].imag   =  Phi[jj,ii+1].imag
-				Phi[jj,ii+1].imag = -Phi[jj,ii+1].imag
+				Phi[jj,ii]   = creal(Phi[jj,ii])   + cimag(Phi[jj,ii+1])*1j
+				Phi[jj,ii+1] = creal(Phi[jj,ii+1]) - cimag(Phi[jj,ii+1])*1j
 			p = 1
 			continue
 		if iimag > 0:
@@ -319,12 +319,13 @@ def frequency_damping(double[:] real, double[:] imag, double dt):
 	'''
 	Computation of the damping ratio and the frequency of each mode
 	'''
-	n = real.shape[0]
-	cdef np.ndarray[np.double_t,ndim=1] delta = np.zeros((n),dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=1] omega = np.zeros((n),dtype=np.double)
-	cdef int ii
+	cdef int ii, n = real.shape[0]
 	cdef double mod
 	cdef double arg
+
+	cdef np.ndarray[np.double_t,ndim=1] delta = np.zeros((n),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=1] omega = np.zeros((n),dtype=np.double)
+
 	for ii in range(n):
 		mod       = sqrt(real[ii]*real[ii] + imag[ii]*imag[ii])
 		delta[ii] = log(mod)/dt
@@ -342,10 +343,7 @@ def reconstruction_jovanovic(np.complex128_t[:,:] Phi, double[:] muReal, double[
 	'''
 	Computation of the reconstructed flow from the DMD computations
 	'''
-	cdef int ii
-	cdef int m  = Phi.shape[0]
-	cdef int n  = t.shape[0]
-	cdef int nr = Phi.shape[1]
+	cdef int m  = Phi.shape[0], n  = t.shape[0], nr = Phi.shape[1]
 	cdef np.complex128_t *Vand
 	cdef np.ndarray[np.complex128_t,ndim=2] Zdmd = np.zeros((m,n),order='C',dtype=np.complex128)
 
