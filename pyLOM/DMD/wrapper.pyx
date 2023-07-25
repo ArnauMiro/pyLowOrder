@@ -26,16 +26,17 @@ cdef extern from "vector_matrix.h":
 	cdef void   c_transpose           "transpose"(double *A, double *B, const int m, const int n)
 	cdef double c_vector_norm         "vector_norm"(double *v, int start, int n)
 	cdef void   c_matmul              "matmul"(double *C, double *A, double *B, const int m, const int n, const int k)
-	cdef void   c_matmul_paral        "matmul_paral"(double *C, double *A, double *B, const int m, const int n, const int k)
-	cdef void   c_matmul_complex      "matmul_complex"(np.complex128_t *C, np.complex128_t *A, np.complex128_t *B, const int m, const int n, const int k, char *TransA, char *TransB)
+	cdef void   c_matmulp             "matmulp"(double *C, double *A, double *B, const int m, const int n, const int k)
 	cdef void   c_vecmat              "vecmat"(double *v, double *A, const int m, const int n)
-	cdef void   c_vecmat_complex      "vecmat_complex"(np.complex128_t *v, np.complex128_t *A, const int m, const int n)
-	cdef int    c_eigen               "eigen"(double *real, double *imag, np.complex128_t *vecs, double *A, const int m, const int n)
+	# Double complex precision
+	cdef void   c_zmatmult            "zmatmult"(np.complex128_t *C, np.complex128_t *A, np.complex128_t *B, const int m, const int n, const int k, const char *TA, const char *TB)
+	cdef void   c_zvecmat             "zvecmat"(np.complex128_t *v, np.complex128_t *A, const int m, const int n)
+	cdef int    c_zinverse            "zinverse"(np.complex128_t *A, int N, char *UoL)
 	cdef int    c_cholesky            "cholesky"(np.complex128_t *A, int N)
+	cdef int    c_eigen               "eigen"(double *real, double *imag, np.complex128_t *vecs, double *A, const int m, const int n)
 	cdef void   c_vandermonde         "vandermonde"(np.complex128_t *Vand, double *real, double *imag, int m, int n)
 	cdef void   c_vandermonde_time    "vandermondeTime"(np.complex128_t *Vand, double *real, double *imag, int m, int n, double* t)
-	cdef int    c_inverse             "inverse"(np.complex128_t *A, int N, char *UoL)
-	cdef void   c_sort_complex_array  "sort_complex_array"(np.complex128_t *v, int *index, int n)
+	cdef void   c_zsort               "zsort"(np.complex128_t *v, int *index, int n)
 cdef extern from "averaging.h":
 	cdef void c_temporal_mean "temporal_mean"(double *out, double *X, const int m, const int n)
 	cdef void c_subtract_mean "subtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
@@ -139,7 +140,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	Atilde = <double*>malloc(nr*nr*sizeof(double))
 	Urt    = <double*>malloc(nr*m*sizeof(double))
 	c_transpose(Ur, Urt, m, nr)
-	c_matmul_paral(aux1, Urt, Y2, nr, n-1, m)
+	c_matmulp(aux1, Urt, Y2, nr, n-1, m)
 	for icol in range(n-1):
 		for irow in range(nr):
 			aux2[icol*nr + irow] = Vr[irow*(n-1) + icol]/Sr[irow]
@@ -170,7 +171,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 			aux1C[icol] = 0 + 0*1j
 			for irow in range(n-1):
 				aux1C[icol] += Y2[iaux*(n-1) + irow]*aux2[irow*nr + icol]
-		c_matmul_complex(aux2C, aux1C, w, 1, nr, nr, 'N', 'N')
+		c_zmatmult(aux2C, aux1C, w, 1, nr, nr, 'N', 'N')
 		memcpy(&auxPhi[iaux*nr], aux2C, nr*sizeof(np.complex128_t))
 	free(aux2)
 	free(Y2)
@@ -206,8 +207,8 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	q       = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
 
 	c_vandermonde(Vand, auxmuReal, auxmuImag, nr, n-1)
-	c_matmul_complex(aux3C, w, w, nr, nr, nr, 'C', 'N')
-	c_matmul_complex(aux4C, Vand, Vand, nr, nr, n-1, 'N', 'C')
+	c_zmatmult(aux3C, w, w, nr, nr, nr, 'C', 'N')
+	c_zmatmult(aux4C, Vand, Vand, nr, nr, n-1, 'N', 'C')
 
 	for irow in range(nr):
 		for icol in range(nr): #Loop on the columns of the Vandermonde matrix
@@ -224,7 +225,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 			for icol in range(n-1):#casting Vr to a complex, at the same time, it is multipilied per S and Vand
 				aux1C[irow] += Sr[irow]*Vr[irow*(n-1) + icol]*(Vand[iaux*(n-1) + icol].real+Vand[iaux*(n-1) + icol].imag*1j)
 			aux2C[irow] = w[irow*nr + iaux]
-		c_matmul_complex(&q[iaux], aux1C, aux2C, 1, 1, nr, 'N', 'N')
+		c_zmatmult(&q[iaux], aux1C, aux2C, 1, 1, nr, 'N', 'N')
 
 	memcpy(Pinv, P, nr*nr*sizeof(np.complex128_t))
 	cdef int ii
@@ -235,15 +236,15 @@ def run(double[:,:] X, double r, int remove_mean=True):
 			P[ii*nr + ii+jj]   = P[(ii+jj)*nr + ii].real - P[(ii+jj)*nr + ii].imag*1j
 			P[(ii+jj)*nr + ii] = Pinv[ii*nr + ii+jj].real - Pinv[ii*nr + ii+jj].imag*1j
 
-	retval = c_inverse(Pinv, nr, 'L')
+	retval = c_zinverse(Pinv, nr, 'L')
 	if not retval == 0: raiseError('Problems computing the Inverse!')
 
-	c_matmul_complex(aux1C, Pinv, q, nr, 1, nr, 'N', 'N')
+	c_zmatmult(aux1C, Pinv, q, nr, 1, nr, 'N', 'N')
 
-	retval = c_inverse(P, nr, 'U')
+	retval = c_zinverse(P, nr, 'U')
 	if not retval == 0: raiseError('Problems computing the Inverse!')
 
-	c_matmul_complex(auxbJov, P, aux1C, nr, 1, nr, 'N', 'N')
+	c_zmatmult(auxbJov, P, aux1C, nr, 1, nr, 'N', 'N')
 
 	# Free allocated arrays before reordering
 	free(Ur)
@@ -267,7 +268,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	cdef np.ndarray[np.complex128_t,ndim=2] Phi = np.zeros((m,nr),order='C',dtype=np.complex128)
 	cdef np.ndarray[np.complex128_t,ndim=1] bJov = np.zeros((nr,),dtype=np.complex128)
 	
-	c_sort_complex_array(auxbJov, auxOrd, nr)
+	c_zsort(auxbJov, auxOrd, nr)
 	for ii in range(nr):
 		muReal[nr-(auxOrd[ii]+1)] = auxmuReal[ii]
 		muImag[nr-(auxOrd[ii]+1)] = auxmuImag[ii]
@@ -351,8 +352,8 @@ def reconstruction_jovanovic(np.complex128_t[:,:] Phi, double[:] muReal, double[
 	Vand = <np.complex128_t*>malloc(nr*n*sizeof(np.complex128_t))
 
 	c_vandermonde_time(Vand, &muReal[0], &muImag[0], nr, n, &t[0])
-	c_vecmat_complex(&bJov[0], Vand, nr, n)
-	c_matmul_complex(&Zdmd[0,0], &Phi[0,0], Vand, m, n, nr, 'N', 'N')
+	c_zvecmat(&bJov[0], Vand, nr, n)
+	c_zmatmult(&Zdmd[0,0], &Phi[0,0], Vand, m, n, nr, 'N', 'N')
 	
 	free(Vand)
 

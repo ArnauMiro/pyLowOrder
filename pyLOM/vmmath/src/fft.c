@@ -16,14 +16,15 @@
 #include "nfft3.h"
 #include "fft.h"
 
-void fft(double complex *out, double *y, const double dt, const int n) {
+
+void fft1D(double complex *out, double *y, const int n) {
 	/*
-		Compute FFT and power spectral density (PSD) of an array y of size n.
+		Compute FFT of an array y of size n.
 		Uses MKL or FFTW libraries depending on compilation settings.
 
-		y(n)      is the vector where to compute the PSD (a mode).
+		y(n)    is the vector where to compute the FFT.
 
-		out(n)    is the output of the fft and must come preallocated.
+		out(n)  is the FFT of y and must come preallocated.
 	*/
 	#ifdef USE_MKL
 	// Copy y to out and store the frequency on y
@@ -53,7 +54,8 @@ void fft(double complex *out, double *y, const double dt, const int n) {
 	#endif
 }
 
-void fft_psd(double *psd, double *y, const double dt, const int n) {
+
+void fft(double *psd, double *y, const double dt, const int n) {
 	/*
 		Compute FFT and power spectral density (PSD) of an array y of size n.
 		Uses MKL or FFTW libraries depending on compilation settings.
@@ -73,7 +75,7 @@ void fft_psd(double *psd, double *y, const double dt, const int n) {
 	// Allocate output complex array
 	out = (fftw_complex*)fftw_malloc(n*sizeof(fftw_complex));
 	#endif
-	fft(out, y, dt, n);
+	fft1D(out, y, n);
 	// Compute PSD and frequency
 	#ifdef USE_OMP
 	#pragma omp parallel for private(ii) shared(out,psd) firstprivate(n)
