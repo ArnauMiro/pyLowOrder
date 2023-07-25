@@ -89,10 +89,10 @@ void matmult(double *C, double *A, double *B, const int m, const int n, const in
 		        alpha, // const double 	          alpha
 		            A, // const double * 	      A
 		          lda, // const CBLAS_INDEX 	  lda
-	  			    B, // const double * 	      B
+		            B, // const double * 	      B
 		          ldb, // const CBLAS_INDEX 	  ldb
 		         beta, // const double 	          beta
- 				    C, // double * 	              C
+		            C, // double * 	              C
 		          ldc  // const CBLAS_INDEX 	  ldc
 	);
 }
@@ -120,22 +120,23 @@ void zmatmult(complex_t *C, complex_t *A, complex_t *B, const int m, const int n
 	// Transpose options
 	if (*TA == 'T'){ TransA = CblasTrans;     lda = m; }
 	if (*TA == 'C'){ TransA = CblasConjTrans; lda = m; }
-	if (*TB == 'T') {TransB = CblasTrans;      ldb = k;}
+	if (*TB == 'T'){ TransB = CblasTrans;     ldb = k; }
+	if (*TB == 'C'){ TransB = CblasConjTrans; ldb = k; }
 	cblas_zgemm(
 		CblasRowMajor, // const CBLAS_LAYOUT 	  layout
-		 CblasNoTrans, // const CBLAS_TRANSPOSE   TransA
-		 CblasNoTrans, // const CBLAS_TRANSPOSE   TransB
+		       TransA, // const CBLAS_TRANSPOSE   TransA
+		       TransB, // const CBLAS_TRANSPOSE   TransB
 		            m, // const CBLAS_INDEX 	  M
 		            n, // const CBLAS_INDEX 	  N
 		            k, // const CBLAS_INDEX 	  K
 		       &alpha, // const complex_t 	      alpha
 		            A, // const complex_t * 	  A
-		            k, // const CBLAS_INDEX 	  lda
+		          lda, // const CBLAS_INDEX 	  lda
 		            B, // const complex_t * 	  B
-		            n, // const CBLAS_INDEX 	  ldb
+		          ldb, // const CBLAS_INDEX 	  ldb
 		        &beta, // const complex_t 	      beta
 		            C, // complex_t * 	          C
-		            n  // const CBLAS_INDEX 	  ldc
+		          ldc  // const CBLAS_INDEX 	  ldc
 	);
 }
 
@@ -158,9 +159,7 @@ void matmulp(double *C, double *A, double *B, const int m, const int n, const in
 	*/
 	double *Cmine;
 	Cmine = (double*)malloc(m*n*sizeof(double));
-
 	matmul(Cmine,A,B,m,n,k);
-
 	MPI_Allreduce(Cmine, C, m*n, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 	free(Cmine);
 }
@@ -174,9 +173,7 @@ void zmatmulp(complex_t *C, complex_t *A, complex_t *B, const int m, const int n
 	*/
 	complex_t *Cmine;
 	Cmine = (complex_t*)malloc(m*n*sizeof(complex_t));
-
 	zmatmul(Cmine,A,B,m,n,k);
-
 	MPI_Allreduce(Cmine, C, m*n, MPI_C_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
 	free(Cmine);
 }
@@ -226,10 +223,9 @@ int eigen(double *real, double *imag, complex_t *w, double *A,
 		A(m,n)   matrix to obtain eigenvalues and eigenvectors from
 	*/
 	int info, ivec, imod;
-	double *vl;
-	vl = (double*)malloc(n*n*sizeof(double));
-	double *vecs;
-  double tol = 1e-12;
+	double *vl, *vecs;
+	double tol = 1e-12;
+	vl   = (double*)malloc(n*n*sizeof(double));
 	vecs = (double*)malloc(n*n*sizeof(double));
 	info = LAPACKE_dgeev(
 		LAPACK_ROW_MAJOR, // int  		matrix_layout
@@ -385,7 +381,7 @@ int zinverse(complex_t *A, int N, char *UoL){
 int compare(const void* a, const void* b) {
 	double c1 = *(double*)a;
 	double c2 = *(double*)b;
-	double diff = cabs(c1) - cabs(c2);
+	double diff = fabs(c1) - fabs(c2);
 	if (diff > 0.) return 1;
 	else if (diff < 0.) return -1;
 	else return 0;
