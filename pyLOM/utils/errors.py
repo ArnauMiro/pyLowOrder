@@ -26,6 +26,6 @@ def raiseWarning(warnmsg,allranks=False):
 	all processes.
 	'''
 	if allranks:
-		pprint(-1,'Warning! %d - %s' % (MPI_RANK,warnmsg),file=sys.stderr,flush=True)
+		print('Warning! %d - %s' % (MPI_RANK,warnmsg),file=sys.stderr,flush=True)
 	else:
-		pprint(0,'Warning! %s' % (warnmsg),file=sys.stderr,flush=True)
+		if MPI_RANK == 0: print(0,'Warning! %s' % (warnmsg),file=sys.stderr,flush=True)

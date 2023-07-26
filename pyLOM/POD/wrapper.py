@@ -10,11 +10,12 @@ from __future__ import print_function
 import numpy as np
 
 from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd
-from ..utils.cr     import cr_start, cr_stop
+from ..utils.cr     import cr
 from ..utils.errors import raiseError
 
 
 ## POD run method
+@cr('POD.run')
 def run(X,remove_mean=True):
 	'''
 	Run POD analysis of a matrix X.
@@ -28,7 +29,6 @@ def run(X,remove_mean=True):
 		- S:  are the singular values.
 		- V:  are the right singular vectors.
 	'''
-	cr_start('POD.run',0)
 	if remove_mean:
 		# Compute temporal mean
 		X_mean = temporal_mean(X)
@@ -39,7 +39,6 @@ def run(X,remove_mean=True):
 	# Compute SVD
 	U,S,V = tsqr_svd(Y)
 	# Return
-	cr_stop('POD.run',0)
 	return U,S,V
 
 
@@ -55,6 +54,7 @@ def _compute_truncation_residual(S, r):
 		N += 1
 	return N
 
+@cr('POD.truncate')
 def truncate(U,S,V,r=1e-8):
 	'''
 	Truncate POD matrices (U,S,V) given a residual or number of modes r.
@@ -70,7 +70,6 @@ def truncate(U,S,V,r=1e-8):
 		- S(N)    are the singular values (truncated at N).
 		- V(N,n)  are the right singular vectors (truncated at N).
 	'''
-	cr_start('POD.truncate',0)
 	# Compute N using S
 	N = int(r) if r >= 1 else _compute_truncation_residual(S, r)
 
@@ -79,11 +78,11 @@ def truncate(U,S,V,r=1e-8):
 	Sr = S[:N]
 	Vr = V[:N,:]
 	# Return
-	cr_stop('POD.truncate',0)
 	return Ur, Sr, Vr
 
 
 ## POD reconstruct method
+@cr('POD.reconstruct')
 def reconstruct(U,S,V):
 	'''
 	Reconstruct the flow given the POD decomposition matrices
@@ -99,8 +98,5 @@ def reconstruct(U,S,V):
 	Outputs
 		- X(m,n)  is the reconstructed flow.
 	'''
-	cr_start('POD.reconstruct',0)
 	# Compute X = U x S x VT
-	X = matmul(U,vecmat(S,V))
-	cr_stop('POD.reconstruct',0)
-	return X
+	return matmul(U,vecmat(S,V))

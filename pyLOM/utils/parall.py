@@ -62,11 +62,11 @@ def writesplit(npoints,write_master):
 	Divide the write array between the processors
 	'''
 	rstart = 1 if not write_master else 0
+	istart, iend = 0, 0 
 	# Select in which order the processors will write
 	if MPI_RANK == rstart:
 		# send to next where to start writing
 		istart, iend = 0, npoints
-		offset = 0
 		mpi_send(iend,dest=MPI_RANK+1)
 	elif MPI_RANK == MPI_SIZE-1:
 		# recive from the previous where to start writing

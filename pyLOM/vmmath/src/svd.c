@@ -282,39 +282,41 @@ int tsqr(double *Qi, double *R, double *Ai, const int m, const int n, MPI_Comm c
 	}
 	// At this point R is correct on processor 0
 	// Broadcast R and its part of the Q matrix
-	for (blevel = 1 << (nlevels-1),mask=blevel-1,ilevel=nlevels-1; blevel >= 1; blevel>>=1,mask>>=1,--ilevel) {
-		if ( ((mpi_rank^0)&mask) == 0 ) {
-			// Obtain Q2i for this level - use C as buffer
-			for (ii=0; ii<n2; ++ii)
-				for (jj=0; jj<n; ++jj)
-					AC_MAT(C,n,ii,jj) = AC_MAT(Q2l,n,ii+ilevel*n2,jj);
-			// Multiply by QW either set to identity or allocated to a value
-			// Store into Q2i
-			matmul(Q2i,C,QW,n2,n,n);
-			// Communications scheme
-			prank = mpi_rank^blevel;
-			if ( ((mpi_rank^0)&blevel)) {
-				if (prank < mpi_size) { // Recieve
-					MPI_Recv(C,n2*n,MPI_DOUBLE,prank,0,comm,MPI_STATUS_IGNORE);
-					// Recover R from the upper part of C and QW from the lower part
-					for (ii=0; ii<n; ++ii)
-						for (jj=0; jj<n; ++jj) {
-							AC_MAT(R,n,ii,jj)  = AC_MAT(C,n,ii,jj);
-							AC_MAT(QW,n,ii,jj) = AC_MAT(C,n,ii+n,jj);
-						}
-				}
-			} else {
-				if (prank < mpi_size) { // Send C
-					// Set up C matrix for sending
-					// Store R in the upper part and Q2i on the lower part
-					// Store Q2i of this rank to QW
-					for(ii=0;ii<n;++ii)
-						for(jj=ii;jj<n;++jj) {
-							AC_MAT(C,n,ii,jj)   = AC_MAT(R,n,ii,jj);
-							AC_MAT(C,n,ii+n,jj) = AC_MAT(Q2i,n,ii+n,jj);
-							AC_MAT(QW,n,ii,jj)  = AC_MAT(Q2i,n,ii,jj);
-						}
-					MPI_Send(C,n2*n,MPI_DOUBLE,prank,0,comm);
+	if (mpi_size > 1) {
+		for (blevel = 1 << (nlevels-1),mask=blevel-1,ilevel=nlevels-1; blevel >= 1; blevel>>=1,mask>>=1,--ilevel) {
+			if ( ((mpi_rank^0)&mask) == 0 ) {
+				// Obtain Q2i for this level - use C as buffer
+				for (ii=0; ii<n2; ++ii)
+					for (jj=0; jj<n; ++jj)
+						AC_MAT(C,n,ii,jj) = AC_MAT(Q2l,n,ii+ilevel*n2,jj);
+				// Multiply by QW either set to identity or allocated to a value
+				// Store into Q2i
+				matmul(Q2i,C,QW,n2,n,n);
+				// Communications scheme
+				prank = mpi_rank^blevel;
+				if ( ((mpi_rank^0)&blevel)) {
+					if (prank < mpi_size) { // Recieve
+						MPI_Recv(C,n2*n,MPI_DOUBLE,prank,0,comm,MPI_STATUS_IGNORE);
+						// Recover R from the upper part of C and QW from the lower part
+						for (ii=0; ii<n; ++ii)
+							for (jj=0; jj<n; ++jj) {
+								AC_MAT(R,n,ii,jj)  = AC_MAT(C,n,ii,jj);
+								AC_MAT(QW,n,ii,jj) = AC_MAT(C,n,ii+n,jj);
+							}
+					}
+				} else {
+					if (prank < mpi_size) { // Send C
+						// Set up C matrix for sending
+						// Store R in the upper part and Q2i on the lower part
+						// Store Q2i of this rank to QW
+						for(ii=0;ii<n;++ii)
+							for(jj=ii;jj<n;++jj) {
+								AC_MAT(C,n,ii,jj)   = AC_MAT(R,n,ii,jj);
+								AC_MAT(C,n,ii+n,jj) = AC_MAT(Q2i,n,ii+n,jj);
+								AC_MAT(QW,n,ii,jj)  = AC_MAT(Q2i,n,ii,jj);
+							}
+						MPI_Send(C,n2*n,MPI_DOUBLE,prank,0,comm);
+					}
 				}
 			}
 		}

@@ -10,44 +10,32 @@ from __future__ import print_function, division
 import numpy as np
 import matplotlib.pyplot as plt
 
+from .utils        import extract_modes
 from ..vmmath      import fft
-from ..utils.plots import plotResidual, plotFieldStruct2D, plotSnapshot, animateFlow
-from ..utils.mesh  import mesh_compute_cellcenter
+from ..utils.plots import plotResidual, plotFieldStruct2D, plotSnapshot, plotLayout
 
 
-def plotMode(Phi, omega, xyz,mesh,info,dim=0,modes=np.array([1],np.int32),scale_freq=1.,fig=[],ax=[],cmap=None):
+def plotMode(Phi, omega, dset, ivar, pointData=True, modes=np.array([1],np.int32),**kwargs):
 	'''
-	Given U, VT and a mode, plot their
-	representation in a figure.
+	Plot the real and imaginary parts of a mode
 	'''
-	cf = []
+	# Extract the modes to be plotted
+	npoints = dset.mesh.size(pointData)
+	Phi_real = extract_modes(Phi,ivar,npoints,real=True,modes=modes)
+	Phi_imag = extract_modes(Phi,ivar,npoints,real=False,modes=modes)
+	# Add to the dataset
+	dset.add_variable('PHI_REAL',pointData,len(modes),Phi_real)
+	dset.add_variable('PHI_IMAG',pointData,len(modes),Phi_imag)	
+	# Loop over the modes
+	screenshot = kwargs.pop('screenshot',None)
+	off_screen = kwargs.pop('off_screen',False)
 	for imode, mode in enumerate(modes):
-		if len(fig) < imode + 1:
-			fig.append( plt.figure(figsize=(8,6),dpi=100) )
-		if len(ax) < imode + 1:
-			ax.append( fig[imode].subplots(2,1,gridspec_kw = {'hspace':0.5}) )
-		fig[imode].suptitle('Mode %d St = %.3f' % (mode-1, np.abs(omega[mode-1])/(2*np.pi)))
-		if mesh['type'] == 'struct2D':
-			c = None
-			if info['point']:
-				c1 = plotFieldStruct2D(ax[imode][0],mesh['nx'],mesh['ny'],info['ndim'],xyz,Phi[:,mode-1].real,dim-1,cmap)
-				c2 = plotFieldStruct2D(ax[imode][1],mesh['nx'],mesh['ny'],info['ndim'],xyz,Phi[:,mode-1].imag,dim-1,cmap)
-			else:
-				xyzc = mesh_compute_cellcenter(xyz,mesh)
-				c1 = plotFieldStruct2D(ax[imode][0],mesh['nx']-1,mesh['ny']-1,info['ndim'],xyzc,Phi[:,mode-1].real,dim-1,cmap)
-				c2 = plotFieldStruct2D(ax[imode][1],mesh['nx']-1,mesh['ny']-1,info['ndim'],xyzc,Phi[:,mode-1].imag,dim-1,cmap)
-			cf.append(c)
-		ax[imode][0].set_title('Real mode')
-		ax[imode][1].set_title('Imaginary mode')
-		ax[imode][0].set_xlabel('x/D')
-		ax[imode][0].set_ylabel('y/D')
-		ax[imode][1].set_xlabel('x/D')
-		ax[imode][1].set_ylabel('y/D')
-		ax[imode][0].set_aspect('equal')
-		ax[imode][1].set_aspect('equal')
-		cbar1 = plt.colorbar(mappable = c1, ax=ax[imode][0])
-		plt.colorbar(mappable = c2, ax=ax[imode][1])
-	return fig, ax, cf
+		if screenshot is not None: kwargs['screenshot'] = screenshot % imode
+		plotLayout(dset,2,1,mode-1,vars=['PHI_REAL','PHI_IMAG'],title='Mode %d St = %.3f' % (mode-1, np.abs(omega[mode-1])/(2*np.pi)),off_screen=off_screen,**kwargs)
+	# Remove from dataset
+	dset.delete('PHI_REAL')
+	dset.delete('PHI_IMAG')
+
 
 def ritzSpectrum(real, imag, fig = None, ax = None, cmap = None):
 	'''
