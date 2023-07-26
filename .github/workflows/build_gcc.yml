@@ -12,7 +12,7 @@ defaults:
     shell: bash
 
 jobs:    
-  build_intel:
+  build_gcc:
     runs-on: ubuntu-20.04
     env:
       CC: mpicc
