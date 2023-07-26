@@ -19,7 +19,7 @@ def _hammwin(N):
 	return np.transpose(0.54-0.46*np.cos(2*np.pi*np.arange(N)/(N-1)))
 
 def _fft(Xf, winWeight, nDFT, nf):
-	return (winWeight/nDFT)*scipy.fft.fft(Xf, axis=0, workers=-1)[:nf]
+	return (winWeight/nDFT)*scipy.fft.fft(Xf)[:nf]
 
 
 ## SPOD run method
@@ -78,10 +78,10 @@ def run(X, t, nDFT=0, nolap=0, remove_mean=True):
 		Q[:, iblk] = qk.reshape((M*nf), order='F')
 
 	for ifreq, freq in enumerate(f):
-		qf         = Q[ifreq*M:(ifreq+1)*M, :].copy()
-		U, S, V    = tsqr_svd(qf/np.sqrt(nBlks))
+		qf         = Q[ifreq*M:(ifreq+1)*M, :].copy()/np.sqrt(nBlks)
+		U, S, V    = tsqr_svd(qf)
 		P[:,ifreq] = np.real(U.reshape((M*nBlks), order='F'))
-		L[ifreq,:] = S*S
+		L[ifreq,:] = np.abs(S*S)
 
 	order = np.argsort(L[:,0])[::-1]
 	P = P[:, order]
