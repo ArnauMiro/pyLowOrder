@@ -162,6 +162,18 @@ Module_DMD = Extension('pyLOM.DMD.wrapper',
 						extra_objects = extra_objects,
 						libraries     = libraries,
 					   )
+Module_SPOD = Extension('pyLOM.SPOD.wrapper',
+						sources       = ['pyLOM/SPOD/wrapper.pyx',
+										 'pyLOM/vmmath/src/vector_matrix.c',
+										 'pyLOM/vmmath/src/averaging.c',
+										 'pyLOM/vmmath/src/svd.c',
+										 'pyLOM/vmmath/src/fft.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
 
 
 ## Decide which modules to compile
@@ -171,7 +183,7 @@ modules_list = [
 	# IO module
 	Module_IO_ensight,
 	# Low order algorithms
-	Module_POD,Module_DMD
+	Module_POD,Module_DMD,Module_SPOD
 ]
 
 
