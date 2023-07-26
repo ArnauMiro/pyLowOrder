@@ -426,7 +426,7 @@ void zsort(complex_t *v, int *index, int n){
 	w = (complex_t*)malloc(n*sizeof(complex_t));
 
 	memcpy(w,v,n*sizeof(complex_t));
-	qsort(w,n,sizeof(complex_t),compare);
+	qsort(w,n,sizeof(complex_t),zcompare);
 
 	for (ii = 0; ii < n; ++ii) {
 		for (jj = 0; jj < n; ++jj) {
