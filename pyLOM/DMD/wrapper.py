@@ -8,7 +8,7 @@
 from __future__ import print_function
 
 import numpy as np
-from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, matmul_paral, vandermondeTime
+from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, matmulp, vandermondeTime
 from ..POD          import truncate
 from ..utils.cr     import cr
 from ..utils.errors import raiseError
@@ -74,7 +74,7 @@ def run(X, r, remove_mean = True):
 	U, S, VT = truncate(U, S, VT, r)
 
 	#Project A (Jacobian of the snapshots) into POD basis
-	aux1   = matmul_paral(transpose(U), Y[:, 1:])
+	aux1   = matmulp(transpose(U), Y[:, 1:])
 	aux2   = transpose(vecmat(1./S, VT))
 	Atilde = matmul(aux1, aux2)
 

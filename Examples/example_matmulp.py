@@ -28,7 +28,7 @@ Cnp  = pyLOM.utils.mpi_reduce(Caux, root = 0, op = 'sum', all = True)
 pyLOM.pprint(0,'NumPy: \n', Cnp)
 
 # Paralel matmul from pyLOM:
-C = pyLOM.math.matmul_paral(Ai, Bi)
+C = pyLOM.math.matmulp(Ai, Bi)
 pyLOM.pprint(0,'pyLOM: \n', C)
 
 pyLOM.cr_info()
