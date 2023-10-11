@@ -57,11 +57,11 @@ keywords = ["low-order", "modeling", "POD", "DMD"]
 # authored the project, and a valid email address corresponding to the name
 # listed.
 authors = [
-  {name = "Benet Eiximeno", email = "benet.eiximeno@bsc.es" },
+  {name = "Benet Eiximeno",   email = "benet.eiximeno@bsc.es" },
   {name = "Beka Begiashvili", email = "beka.begiashvili@alumnos.upm.es" },
-  {name = "Arnau Miro", email = "arnau.mirojane@bsc.es" },
-  {name = "Eusebio Valero", email = "eusebio.valero@upm.es" },
-  {name = "Oriol Lehmkuhl", email = "oriol.lehmkuhl@bsc.es" },
+  {name = "Arnau Miro",       email = "arnau.mirojane@bsc.es" },
+  {name = "Eusebio Valero",   email = "eusebio.valero@upm.es" },
+  {name = "Oriol Lehmkuhl",   email = "oriol.lehmkuhl@bsc.es" },
 ]
 
 # This should be your name or the names of the organization who currently
@@ -69,7 +69,7 @@ authors = [
 # listed.
 maintainers = [
   {name = "Benet Eiximeno", email = "benet.eiximeno@bsc.es" },
-  {name = "Arnau Miro", email = "arnau.mirojane@bsc.es" },
+  {name = "Arnau Miro",     email = "arnau.mirojane@bsc.es" },
 ]
 
 # Classifiers help users find your project by categorizing it.
@@ -83,8 +83,8 @@ classifiers = [  # Optional
   "Development Status :: 5 - Production/Stable",
 
   # Indicate who your project is intended for
-  "Intended Audience :: Developers",
-  "Topic :: Software Development :: Build Tools",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering",
 
   # Pick your license as you wish
   "License :: OSI Approved :: MIT License",
@@ -140,9 +140,9 @@ full = [
 # maintainers, and where to support the project financially. The key is
 # what's used to render the link text on PyPI.
 [project.urls]  # Optional
-"Homepage" = "https://ArnauMiro@github.com/ArnauMiro/MEP"
-"Bug Reports" = "https://ArnauMiro@github.com/ArnauMiro/MEP/issues"
-"Source" = "https://ArnauMiro@github.com/ArnauMiro/MEP"
+"Homepage"    = "https://ArnauMiro@github.com/ArnauMiro/pyLOM"
+"Bug Reports" = "https://ArnauMiro@github.com/ArnauMiro/pyLOM/issues"
+"Source"      = "https://ArnauMiro@github.com/ArnauMiro/pyLOM"
 
 # This is configuration specific to the `setuptools` build backend.
 # If you are using a different build backend, you will need to change this.
