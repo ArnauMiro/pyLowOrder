@@ -17,15 +17,23 @@ permissions:
 
 jobs:
   deploy:
-
     runs-on: ubuntu-latest
-
+    env:
+      CC: mpicc
+      CXX: mpc++
+      FC: mpif90
     steps:
     - uses: actions/checkout@v3
+    # Setup MPI and Python for this job
+    - name: Setup MPI
+        uses: mpi4py/setup-mpi@v1
+        with:
+          mpi: openmpi
     - name: Set up Python
       uses: actions/setup-python@v3
       with:
         python-version: '3.x'
+    # Install dependencies, build and install
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
