@@ -191,28 +191,10 @@ modules_list = [
 setup(
 	name             = 'pyLOM',
 	version          = '1.0.0',
-	author           = [
-		'Benet Eiximeno',
-		'Beka Begiashvili',
-		'Arnau Miro',
-		'Eusebio Valero',
-		'Oriol Lehmkuhl',
-	],
-	author_email     = [
-		'benet.eiximeno@bsc.es',
-		'beka.begiashvili@alumnos.upm.es',
-		'arnau.mirojane@bsc.es',
-		'eusebio.valero@upm.es',
-		'oriol.lehmkuhl@bsc.es',
-	],
-	maintainer       = [
-		'Benet Eiximeno',
-		'Arnau Miro',
-	],
-	maintainer_email = [
-		'benet.eiximeno@bsc.es',
-		'arnau.mirojane@bsc.es',
-	],
+	author           = 'Benet Eiximeno, Beka Begiashvili, Arnau Miro, Eusebio Valero, Oriol Lehmkuhl',
+	author_email     = 'benet.eiximeno@bsc.es, beka.begiashvili@alumnos.upm.es, arnau.mirojane@bsc.es, eusebio.valero@upm.es, oriol.lehmkuhl@bsc.es',
+	maintainer       = 'Benet Eiximeno, Arnau Miro',
+	maintainer_email = 'benet.eiximeno@bsc.es, arnau.mirojane@bsc.es',
 	ext_modules      = cythonize(modules_list,
 		language_level = str(sys.version_info[0]), # This is to specify python 3 synthax
 		annotate       = True                      # This is to generate a report on the conversion to C code
