@@ -190,7 +190,7 @@ modules_list = [
 ## Main setup
 setup(
 	name             = 'pyLOM',
-	version          = '1.0.0',
+	version          = '1.2.0',
 	author           = 'Benet Eiximeno, Beka Begiashvili, Arnau Miro, Eusebio Valero, Oriol Lehmkuhl',
 	author_email     = 'benet.eiximeno@bsc.es, beka.begiashvili@alumnos.upm.es, arnau.mirojane@bsc.es, eusebio.valero@upm.es, oriol.lehmkuhl@bsc.es',
 	maintainer       = 'Benet Eiximeno, Arnau Miro',
