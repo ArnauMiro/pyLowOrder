@@ -41,7 +41,7 @@ jobs:
     - name: Build package
       run: |
         make requirements
-        sed -i 's/USE_COMPILED   = ON/USE_COMPILED   = OFF/g' options.cfg
+        sed -i 's/USE_COMPILED  = ON/USE_COMPILED  = OFF/g' options.cfg
         make package-build
         make install
     # POD test suite
