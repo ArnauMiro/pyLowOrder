@@ -200,12 +200,12 @@ uninstall_deps: uninstall_lapack uninstall_fftw uninstall_nfft
 endif
 
 uninstall: cleanall uninstall_deps uninstall_python
-	@${PIP} uninstall pyLOM
-	-@rm -rf pyLOM.egg-info
+	@${PIP} uninstall pyLowOrder
+	-@rm -rf pyLowOrder.egg-info
 
 uninstall_python:
-	@${PIP} uninstall pyLOM
-	-@rm -rf pyLOM.egg-info
+	@${PIP} uninstall pyLowOrder
+	-@rm -rf pyLowOrder.egg-info
 
 uninstall_lapack: Deps/lapack/lib
 	-@rm -rf Deps/lapack/include
