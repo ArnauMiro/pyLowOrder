@@ -189,7 +189,7 @@ modules_list = [
 
 ## Main setup
 setup(
-	name             = 'pyLOM',
+	name             = 'pyLowOrder',
 	version          = '1.2.0',
 	author           = 'Benet Eiximeno, Beka Begiashvili, Arnau Miro, Eusebio Valero, Oriol Lehmkuhl',
 	author_email     = 'benet.eiximeno@bsc.es, beka.begiashvili@alumnos.upm.es, arnau.mirojane@bsc.es, eusebio.valero@upm.es, oriol.lehmkuhl@bsc.es',
@@ -200,7 +200,7 @@ setup(
 		annotate       = True                      # This is to generate a report on the conversion to C code
 	),
     long_description = readme,
-    url              = 'https://github.com/ArnauMiro/pyLOM',
+    url              = 'https://github.com/ArnauMiro/pyLowOrder',
     packages         = find_packages(exclude=('Deps','Examples','Docs','Converters')),
 	install_requires = ['numpy','matplotlib','cython>=3.0.0','h5py>=3.0.0','mpi4py','nfft']
 )

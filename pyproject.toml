@@ -10,7 +10,7 @@
 # There are some restrictions on what makes a valid project name
 # specification here:
 # https://packaging.python.org/specifications/core-metadata/#name
-name = "pyLOM"
+name = "pyLowOrder"
 
 # Versions should comply with PEP 440:
 # https://www.python.org/dev/peps/pep-0440/
@@ -140,9 +140,9 @@ full = [
 # maintainers, and where to support the project financially. The key is
 # what's used to render the link text on PyPI.
 [project.urls]  # Optional
-"Homepage"    = "https://ArnauMiro@github.com/ArnauMiro/pyLOM"
-"Bug Reports" = "https://ArnauMiro@github.com/ArnauMiro/pyLOM/issues"
-"Source"      = "https://ArnauMiro@github.com/ArnauMiro/pyLOM"
+"Homepage"    = "https://ArnauMiro@github.com/ArnauMiro/pyLowOrder"
+"Bug Reports" = "https://ArnauMiro@github.com/ArnauMiro/pyLowOrder/issues"
+"Source"      = "https://ArnauMiro@github.com/ArnauMiro/pyLowOrder"
 
 # This is configuration specific to the `setuptools` build backend.
 # If you are using a different build backend, you will need to change this.
