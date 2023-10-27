@@ -20,7 +20,7 @@ from libc.complex  cimport creal, cimag
 from mpi4py.libmpi cimport MPI_Comm
 from mpi4py        cimport MPI
 
-from ..utils.cr     import cr
+from ..utils.cr     import cr, cr_start, cr_stop
 from ..utils.errors import raiseError
 
 cdef extern from "vector_matrix.h" nogil:
@@ -171,12 +171,14 @@ def run(double[:,:] X, double[:] t, int nDFT=0, int nolap=0, int remove_mean=Tru
 	# Remove temporal mean
 	Y = <double*>malloc(M*N*sizeof(double))
 	if remove_mean:
+		cr_start('profiling_temporal_mean', 0)
 		X_mean = <double*>malloc(M*sizeof(double))
 		# Compute temporal mean
 		c_temporal_mean(X_mean,&X[0,0],M,N)
 		# Compute substract temporal mean
 		c_subtract_mean(Y,&X[0,0],X_mean,M,N)
 		free(X_mean)
+		cr_stop('profiling_temporal_mean', 0)
 	else:
 		memcpy(Y,&X[0,0],M*N*sizeof(double))
 
@@ -195,7 +197,7 @@ def run(double[:,:] X, double[:] t, int nDFT=0, int nolap=0, int remove_mean=Tru
 	Xf = <double*>malloc(nDFT*sizeof(double))
 	qk = <np.complex128_t*>malloc(M*nf*sizeof(np.complex128_t))
 	Q  = <np.complex128_t*>malloc(M*nf*nBlks*sizeof(np.complex128_t))
-
+	cr_start('profiling_fft', 0)
 	for iblk in range(nBlks):
 		i0 = iblk*(nDFT - nolap)
 		for ip in range(M):
@@ -211,6 +213,7 @@ def run(double[:,:] X, double[:] t, int nDFT=0, int nolap=0, int remove_mean=Tru
 		for ip in range(M):
 			for i in range(nf):
 				Q[nf*nBlks*ip + nBlks*i + iblk] = qk[nf*ip + i]
+	cr_stop('profiling_fft', 0)
 
 	free(qk)
 	free(window)
@@ -222,6 +225,7 @@ def run(double[:,:] X, double[:] t, int nDFT=0, int nolap=0, int remove_mean=Tru
 	S  = <np.complex128_t*>malloc(M*nBlks*sizeof(np.complex128_t))
 	V  = <np.complex128_t*>malloc(M*nBlks*sizeof(np.complex128_t))
 
+	cr_start('profiling_SVD', 0)
 	for ifreq in range(nf):
 		# Load block in qf
 		for i in range(M):
@@ -236,6 +240,7 @@ def run(double[:,:] X, double[:] t, int nDFT=0, int nolap=0, int remove_mean=Tru
 		# Store L
 		for iblk in range(nBlks):
 			L[ifreq,iblk] = creal(S[iblk])*creal(S[iblk]) + cimag(S[iblk])*cimag(S[iblk])
+	cr_stop('profiling_SVD', 0)
 
 	free(qf)
 	free(Q)
