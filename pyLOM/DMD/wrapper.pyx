@@ -82,14 +82,14 @@ def run(double[:,:] X, double r, int remove_mean=True):
 
 	#Remove mean if required
 	if remove_mean:
-		cr_start('profiling_temporal_mean', 0)
+		cr_start('DMD.temporal_mean',0)
 		X_mean = <double*>malloc(m*sizeof(double))
 		# Compute temporal mean
 		c_temporal_mean(X_mean,&X[0,0],m,n)
 		# Compute substract temporal mean
 		c_subtract_mean(Y,&X[0,0],X_mean,m,n)
 		free(X_mean)
-		cr_stop('profiling_temporal_mean', 0)
+		cr_stop('DMD.temporal_mean',0)
 	else:
 		memcpy(Y,&X[0,0],m*n*sizeof(double))
 
@@ -105,7 +105,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	free(Y)
 
 	# Compute SVD
-	cr_start('profiling_SVD', 0)
+	cr_start('DMD.SVD',0)
 	cdef double *U
 	cdef double *S
 	cdef double *V
@@ -113,9 +113,9 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	S  = <double*>malloc(mn*sizeof(double))
 	V  = <double*>malloc((n-1)*mn*sizeof(double))
 	retval = c_tsqr_svd(U, S, V, Y1, m, mn, MPI_COMM.ob_mpi)
+	cr_stop('DMD.SVD',0)
 	if not retval == 0: raiseError('Problems computing SVD!')
 	free(Y1)
-	cr_stop('profiling_SVD', 0)
 
 	#Truncate
 	cdef int nr
@@ -134,7 +134,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	free(S)
 
 	#Project Jacobian of the snapshots into the POD basis
-	cr_start('profiling_linear_mapping', 0)
+	cr_start('DMD.linear_mapping',0)
 	cdef double *aux1
 	cdef double *aux2
 	cdef double *aux3
@@ -154,10 +154,10 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	free(aux1)
 	free(aux3)
 	free(Urt)
-	cr_stop('profiling_linear_mapping', 0)
+	cr_stop('DMD.linear_mapping',0)
 
 	#Compute eigenmodes
-	cr_start('profiling_eigendecomposition', 0)
+	cr_start('DMD.eigendecomposition',0)
 	cdef double *auxmuReal
 	cdef double *auxmuImag
 	cdef np.complex128_t *w
@@ -166,10 +166,10 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	w         = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
 	retval = c_eigen(auxmuReal,auxmuImag,w,Atilde,nr,nr)
 	free(Atilde)
-	cr_stop('profiling_eigendecomposition', 0)
+	cr_stop('DMD.eigendecomposition', 0)
 
 	#Computation of DMD modes
-	cr_start('profiling_modes', 0)
+	cr_start('DMD.modes',0)
 	cdef np.complex128_t *auxPhi
 	cdef np.complex128_t *aux1C
 	cdef np.complex128_t *aux2C
@@ -198,10 +198,10 @@ def run(double[:,:] X, double r, int remove_mean=True):
 			a = creal(auxPhi[iaux*nr + icol])
 			b = cimag(auxPhi[iaux*nr + icol])
 			auxPhi[iaux*nr + icol] = (a*c + b*d)/div + (b*c - a*d)/div*1j
-	cr_stop('profiling_modes', 0)
+	cr_stop('DMD.modes',0)
 
 	#Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
-	cr_start('profiling_amplitudes', 0)
+	cr_start('DMD.amplitudes', 0)
 	cdef np.complex128_t *auxbJov
 	cdef np.complex128_t *aux3C
 	cdef np.complex128_t *Vand
@@ -315,7 +315,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 		if iimag > 0:
 			p = 1
 			continue
-	cr_stop('profiling_amplitudes', 0)
+	cr_stop('DMD.amplitudes',0)
 	
 	# Return
 	return muReal, muImag, Phi, bJov
