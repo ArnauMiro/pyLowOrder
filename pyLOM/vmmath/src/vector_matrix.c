@@ -6,8 +6,10 @@
 #include <stdio.h>
 #include <string.h>
 #include "mpi.h"
+typedef double _Complex complex_t;
 
 #ifdef USE_MKL
+#define MKL_Complex16 complex_t
 #include "mkl.h"
 #include "mkl_lapacke.h"
 #else

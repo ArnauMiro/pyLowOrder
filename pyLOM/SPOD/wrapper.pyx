@@ -30,7 +30,7 @@ cdef extern from "averaging.h":
 	cdef void c_temporal_mean "temporal_mean"(double *out, double *X, const int m, const int n)
 	cdef void c_subtract_mean "subtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
 cdef extern from "svd.h":
-	cdef int c_ztsqr_svd "ztsqr_svd"(np.complex128_t *Ui, np.complex128_t *S, np.complex128_t *VT, np.complex128_t *Ai, const int m, const int n, MPI_Comm comm)
+	cdef int c_ztsqr_svd "ztsqr_svd"(np.complex128_t *Ui, double *S, np.complex128_t *VT, np.complex128_t *Ai, const int m, const int n, MPI_Comm comm)
 cdef extern from "fft.h":
 	cdef void c_fft1D "fft1D"(np.complex128_t *out, double *y, const int n)
 
@@ -144,7 +144,7 @@ def run(double[:,:] X, double[:] t, int nDFT=0, int nolap=0, int remove_mean=Tru
 	cdef np.complex128_t *qk
 	cdef np.complex128_t *Q
 	cdef np.complex128_t *U
-	cdef np.complex128_t *S
+	cdef double *S
 	cdef np.complex128_t *V
 
 	# Output arrays
@@ -222,7 +222,7 @@ def run(double[:,:] X, double[:] t, int nDFT=0, int nolap=0, int remove_mean=Tru
 	# Allocate memory
 	qf = <np.complex128_t*>malloc(M*nBlks*sizeof(np.complex128_t))
 	U  = <np.complex128_t*>malloc(M*nBlks*sizeof(np.complex128_t))
-	S  = <np.complex128_t*>malloc(M*nBlks*sizeof(np.complex128_t))
+	S  = <double*>malloc(M*nBlks*sizeof(double))
 	V  = <np.complex128_t*>malloc(M*nBlks*sizeof(np.complex128_t))
 
 	cr_start('SPOD.SVD',0)
@@ -239,7 +239,7 @@ def run(double[:,:] X, double[:] t, int nDFT=0, int nolap=0, int remove_mean=Tru
 				P[i + M*iblk,ifreq] = creal(U[nBlks*i + iblk])
 		# Store L
 		for iblk in range(nBlks):
-			L[ifreq,iblk] = creal(S[iblk])*creal(S[iblk]) + cimag(S[iblk])*cimag(S[iblk])
+			L[ifreq,iblk] = S[iblk]*S[iblk]
 	cr_stop('SPOD.SVD',0)
 
 	free(qf)
