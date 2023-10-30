@@ -74,7 +74,6 @@ cdef void _fft(np.complex128_t *out, double *Xf, double winWeight, int nDFT, int
 	# Free memory
 	free(Yf)
 
-@cr('SPOD.sort')
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -250,6 +249,8 @@ def run(double[:,:] X, double[:] t, int nDFT=0, int nolap=0, int remove_mean=Tru
 	free(V)
 
 	# Sort
+	cr_start('SPOD.sort',0)
 	_sort(&L[0,0],&P[0,0],&f[0],M,nBlks,nf)
+	cr_stop('SPOD.sort',0)
 
 	return L, P, f
