@@ -21,12 +21,6 @@
 #define AC_MAT(A,n,i,j) *((A)+(n)*(i)+(j))
 #define POW2(x)         ((x)*(x))
 
-struct array_index
-{
-    double value;
-    int index;
-};
-
 
 void transpose(double *A, double *B, const int m, const int n) {
 	/*
@@ -70,6 +64,39 @@ void reorder(double *A, int m, int n, int N) {
 	}
 }
 
+void matmult(double *C, double *A, double *B, const int m, const int n, const int k, const char *TA, const char *TB) {
+	/*
+		Matrix multiplication C = A x B
+		using cblas routines.
+
+		Transposable version
+
+		C(m,n), A(m,k), B(k,n)
+	*/
+	double alpha = 1.0, beta = 0.0;
+	CBLAS_TRANSPOSE TransA = CblasNoTrans, TransB = CblasNoTrans;
+	CBLAS_INDEX     lda = k, ldb = n, ldc = n;
+	// Transpose options
+	if (*TA == 'T') {TransA = CblasTrans; lda = m;}
+	if (*TB == 'T') {TransB = CblasTrans; ldb = k;}
+	cblas_dgemm(
+		CblasRowMajor, // const CBLAS_LAYOUT 	  layout
+		       TransA, // const CBLAS_TRANSPOSE   TransA
+		       TransB, // const CBLAS_TRANSPOSE   TransB
+		            m, // const CBLAS_INDEX 	  M
+		            n, // const CBLAS_INDEX 	  N
+		            k, // const CBLAS_INDEX 	  K
+		        alpha, // const double 	          alpha
+		            A, // const double * 	      A
+		          lda, // const CBLAS_INDEX 	  lda
+		            B, // const double * 	      B
+		          ldb, // const CBLAS_INDEX 	  ldb
+		         beta, // const double 	          beta
+		            C, // double * 	              C
+		          ldc  // const CBLAS_INDEX 	  ldc
+	);
+}
+
 void matmul(double *C, double *A, double *B, const int m, const int n, const int k) {
 	/*
 		Matrix multiplication C = A x B
@@ -77,25 +104,53 @@ void matmul(double *C, double *A, double *B, const int m, const int n, const int
 
 		C(m,n), A(m,k), B(k,n)
 	*/
-	cblas_dgemm(
+	matmult(C,A,B,m,n,k,"N","N");
+}
+
+void zmatmult(complex_t *C, complex_t *A, complex_t *B, const int m, const int n, const int k, const char *TA, const char *TB) {
+	/*
+		Matrix multiplication C = A x B
+		using cblas routines.
+
+		C(m,n), A(m,k), B(k,n)
+	*/
+	complex_t alpha = 1.0 + 0.0*I, beta = 0.0 + 0.0*I;
+	CBLAS_TRANSPOSE TransA = CblasNoTrans, TransB = CblasNoTrans;
+	CBLAS_INDEX     lda = k, ldb = n, ldc = n;
+	// Transpose options
+	if (*TA == 'T'){ TransA = CblasTrans;     lda = m; }
+	if (*TA == 'C'){ TransA = CblasConjTrans; lda = m; }
+	if (*TB == 'T'){ TransB = CblasTrans;     ldb = k; }
+	if (*TB == 'C'){ TransB = CblasConjTrans; ldb = k; }
+	cblas_zgemm(
 		CblasRowMajor, // const CBLAS_LAYOUT 	  layout
-		 CblasNoTrans, // const CBLAS_TRANSPOSE   TransA
-		 CblasNoTrans, // const CBLAS_TRANSPOSE   TransB
+		       TransA, // const CBLAS_TRANSPOSE   TransA
+		       TransB, // const CBLAS_TRANSPOSE   TransB
 		            m, // const CBLAS_INDEX 	  M
 		            n, // const CBLAS_INDEX 	  N
 		            k, // const CBLAS_INDEX 	  K
-		          1.0, // const double 	          alpha
-		            A, // const double * 	      A
-		            k, // const CBLAS_INDEX 	  lda
-	  			    B, // const double * 	      B
-		            n, // const CBLAS_INDEX 	  ldb
-		           0., // const double 	          beta
- 				    C, // double * 	              C
-		            n  // const CBLAS_INDEX 	  ldc
+		       &alpha, // const complex_t 	      alpha
+		            A, // const complex_t * 	  A
+		          lda, // const CBLAS_INDEX 	  lda
+		            B, // const complex_t * 	  B
+		          ldb, // const CBLAS_INDEX 	  ldb
+		        &beta, // const complex_t 	      beta
+		            C, // complex_t * 	          C
+		          ldc  // const CBLAS_INDEX 	  ldc
 	);
 }
 
-void matmul_paral(double *C, double *A, double *B, const int m, const int n, const int k) {
+void zmatmul(complex_t *C, complex_t *A, complex_t *B, const int m, const int n, const int k) {
+	/*
+		Matrix multiplication C = A x B
+		using cblas routines.
+
+		C(m,n), A(m,k), B(k,n)
+	*/
+	zmatmult(C,A,B,m,n,k,"N","N");
+}
+
+void matmulp(double *C, double *A, double *B, const int m, const int n, const int k) {
 	/*
 		Matrix multiplication C = A x B
 		using cblas routines.
@@ -104,60 +159,23 @@ void matmul_paral(double *C, double *A, double *B, const int m, const int n, con
 	*/
 	double *Cmine;
 	Cmine = (double*)malloc(m*n*sizeof(double));
-	cblas_dgemm(
-		CblasRowMajor, // const CBLAS_LAYOUT 	  layout
-		 CblasNoTrans, // const CBLAS_TRANSPOSE   TransA
-		 CblasNoTrans, // const CBLAS_TRANSPOSE   TransB
-		            m, // const CBLAS_INDEX 	  M
-		            n, // const CBLAS_INDEX 	  N
-		            k, // const CBLAS_INDEX 	  K
-		          1.0, // const double 	          alpha
-		            A, // const double * 	      A
-		            k, // const CBLAS_INDEX 	  lda
-				    B, // const double * 	      B
-		            n, // const CBLAS_INDEX 	  ldb
-		           0., // const double 	          beta
-				Cmine, // double * 	              C
-		            n  // const CBLAS_INDEX 	  ldc
-	);
-
+	matmul(Cmine,A,B,m,n,k);
 	MPI_Allreduce(Cmine, C, m*n, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 	free(Cmine);
 }
 
-void matmul_complex(complex_t *C, complex_t *A, complex_t *B, const int m, const int n, const int k, char *TransA, char *TransB) {
+void zmatmulp(complex_t *C, complex_t *A, complex_t *B, const int m, const int n, const int k) {
 	/*
-		Complex matrix multiplication C = A x B
+		Matrix multiplication C = A x B
 		using cblas routines.
 
 		C(m,n), A(m,k), B(k,n)
-		TRANSA: 0 - NoTrans; 1 - Trans; 2 - Hermitian
 	*/
-	complex_t alpha = 1 + 0*I, beta  = 0 + 0*I;
-	CBLAS_TRANSPOSE transa = CblasNoTrans, transb = CblasConjTrans;
-	CBLAS_INDEX lda = k, ldb = k, ldc = n;
-	
-	if(*TransA == 'T'){transa = CblasTrans;     lda = m;}
-	if(*TransA == 'C'){transa = CblasConjTrans; lda = m;}
-	if(*TransB == 'N'){transb = CblasNoTrans;   ldb = n;}
-	if(*TransB == 'T'){transb = CblasTrans;     ldb = k;}
-
-	cblas_zgemm(
-		CblasRowMajor, // const CBLAS_LAYOUT 	  layout
-		       transa, // const CBLAS_TRANSPOSE   TransA
-		       transb, // const CBLAS_TRANSPOSE   TransB
-		            m, // const CBLAS_INDEX 	  M
-		            n, // const CBLAS_INDEX 	  N
-		            k, // const CBLAS_INDEX 	  K
-		       &alpha, // const double 	          alpha
-		            A, // const complex_t * 	  A
-		          lda, // const CBLAS_INDEX 	  lda
-	  			    B, // const complex_t * 	  B
-		          ldb, // const CBLAS_INDEX 	  ldb
-		        &beta, // const double 	          beta
- 				    C, // complex_t * 	          C
-		          ldc  // const CBLAS_INDEX 	  ldc
-	);
+	complex_t *Cmine;
+	Cmine = (complex_t*)malloc(m*n*sizeof(complex_t));
+	zmatmul(Cmine,A,B,m,n,k);
+	MPI_Allreduce(Cmine, C, m*n, MPI_C_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
+	free(Cmine);
 }
 
 void vecmat(double *v, double *A, const int m, const int n) {
@@ -171,12 +189,11 @@ void vecmat(double *v, double *A, const int m, const int n) {
 	#ifdef USE_OMP
 	#pragma omp parallel for private(ii) shared(b,A) firstprivate(m,n)
 	#endif
-	for(ii=0; ii<m; ++ii) {
+	for(ii=0; ii<m; ++ii)
 		cblas_dscal(n,v[ii],A+n*ii,1);
-	}
 }
 
-void vecmat_complex(complex_t *v, complex_t *A, const int m, const int n) {
+void zvecmat(complex_t *v, complex_t *A, const int m, const int n) {
 	/*
 		Computes the product of b x A
 		using cblas routines.
@@ -187,9 +204,8 @@ void vecmat_complex(complex_t *v, complex_t *A, const int m, const int n) {
 	#ifdef USE_OMP
 	#pragma omp parallel for private(ii) shared(b,A) firstprivate(m,n)
 	#endif
-	for(ii=0; ii<m; ++ii) {
+	for(ii=0; ii<m; ++ii)
 		cblas_zscal(n,&v[ii],A+n*ii,1);
-	}
 }
 
 int eigen(double *real, double *imag, complex_t *w, double *A,
@@ -207,10 +223,9 @@ int eigen(double *real, double *imag, complex_t *w, double *A,
 		A(m,n)   matrix to obtain eigenvalues and eigenvectors from
 	*/
 	int info, ivec, imod;
-	double *vl;
-	vl = (double*)malloc(n*n*sizeof(double));
-	double *vecs;
-  double tol = 1e-12;
+	double *vl, *vecs;
+	double tol = 1e-12;
+	vl   = (double*)malloc(n*n*sizeof(double));
 	vecs = (double*)malloc(n*n*sizeof(double));
 	info = LAPACKE_dgeev(
 		LAPACK_ROW_MAJOR, // int  		matrix_layout
@@ -279,29 +294,34 @@ double RMSE(double *A, double *B, const int m, const int n, MPI_Comm comm) {
 
 int cholesky(complex_t *A, int N){
 	/*
-	Compute the lower Cholesky factorization of A
+		Compute the lower Cholesky factorization of A
 	*/
 	int info, ii, jj;
 	info = LAPACKE_zpotrf(
-		LAPACK_ROW_MAJOR, // int  		matrix_layout
-		'L', //char			Decide if the Upper or the Lower triangle of A are stored
-		  N, //int			Order of matrix A
-			A, //complex	Matrix A to decompose (works as input and output)
-		  N //int			Leading dimension of A
+		LAPACK_ROW_MAJOR, // int  	matrix_layout
+		             'L', //char	Decide if the Upper or the Lower triangle of A are stored
+		               N, //int		Order of matrix A
+		               A, //complex	Matrix A to decompose (works as input and output)
+		               N //int		Leading dimension of A
 	);
-	for(ii = 0; ii < N; ++ii){
-		for(jj = ii+1; jj < N; ++jj){
-			AC_MAT(A,N,ii,jj) = 0 + 0*I;
-		}
-	}
+	// Zero upper size part
+	#ifdef USE_OMP
+	#pragma omp parallel for collapse(2) private(ii,jj) shared(A) firstprivate(N)
+	#endif
+	for(ii = 0; ii < N; ++ii)
+		for(jj = ii+1; jj < N; ++jj)
+			AC_MAT(A,N,ii,jj) = 0.0 + 0.0*I;
 	return info;
 }
 
 void vandermonde(complex_t *Vand, double *real, double *imag, int m, int n){
 	/*
-	Computes the Vandermonde matrix of a complex vector formed by real + imag*I
+		Computes the Vandermonde matrix of a complex vector formed by real + imag*I
 	*/
-  int ii, jj;
+	int ii, jj;
+	#ifdef USE_OMP
+	#pragma omp parallel for collapse(2) private(ii,jj) shared(Vand,real,imag) firstprivate(m,n)
+	#endif
 	for(ii = 0; ii < m; ++ii){
 		for(jj = 0; jj < n; ++jj){
 			AC_MAT(Vand, n, ii, jj) = cpow((real[ii] + imag[ii]*I), jj);
@@ -311,9 +331,12 @@ void vandermonde(complex_t *Vand, double *real, double *imag, int m, int n){
 
 void vandermondeTime(complex_t *Vand, double *real, double *imag, int m, int n, double *t){
 	/*
-	Computes the Vandermonde matrix of a complex vector formed by real + imag*I
+		Computes the Vandermonde matrix of a complex vector formed by real + imag*I
 	*/
-  int ii, jj;
+	int ii, jj;
+ 	#ifdef USE_OMP
+	#pragma omp parallel for collapse(2) private(ii,jj) shared(Vand,real,imag,t) firstprivate(m,n)
+	#endif
 	for(ii = 0; ii < m; ++ii){
 		for(jj = 0; jj < n; ++jj){
 			AC_MAT(Vand, n, ii, jj) = cpow((real[ii] + imag[ii]*I), t[jj]);
@@ -321,49 +344,94 @@ void vandermondeTime(complex_t *Vand, double *real, double *imag, int m, int n, 
 	}
 }
 
-int inverse(complex_t *A, int N, char *UoL){
+int inverse(double *A, int N, char *UoL){
 	/*
-	Compute the inverse of A
+		Compute the inverse of A
 	*/
 	int info;
-	info = LAPACKE_ztrtri(
-		LAPACK_ROW_MAJOR, // int  		matrix_layout
-		*UoL,             //char		Decide if the Upper or the Lower triangle of A are stored
-		'N', 			  //int			Decide if is non Unitary or Unitary A
-		N, 				  //int			Order of A
-		A, 				  //complex		Matrix A to decompose (works as input and output)
-		N 				  //int			Leading dimension of A
+	info = LAPACKE_dtrtri(
+		LAPACK_ROW_MAJOR, //int     matrix_layout
+		            *UoL, //char    Decide if the Upper or the Lower triangle of A are stored
+		             'N', //int	    Decide if is non Unitary or Unitary A
+		               N, //int	    Order of A
+		               A, //double  Matrix A to decompose (works as input and output)
+		               N  //int     Leading dimension of A
 	);
 	return info;
 }
 
-int compare_complex(const void* a, const void* b) {
-    complex_t c1 = *(complex_t*)a;
-    complex_t c2 = *(complex_t*)b;
-    double diff = cabs(c1) - cabs(c2);
-    if (diff > 0) return 1;
-    else if (diff < 0) return -1;
-    else return 0;
+int zinverse(complex_t *A, int N, char *UoL){
+	/*
+		Compute the inverse of A
+	*/
+	int info;
+	info = LAPACKE_ztrtri(
+		LAPACK_ROW_MAJOR, //int     matrix_layout
+		            *UoL, //char    Decide if the Upper or the Lower triangle of A are stored
+		             'N', //int	    Decide if is non Unitary or Unitary A
+		               N, //int	    Order of A
+		               A, //complex Matrix A to decompose (works as input and output)
+		               N  //int     Leading dimension of A
+	);
+	return info;
 }
 
-void sort_complex_array(complex_t *v, int *index, int n){
+/// FIX
+
+int compare(const void* a, const void* b) {
+	double c1 = *(double*)a;
+	double c2 = *(double*)b;
+	double diff = fabs(c1) - fabs(c2);
+	if (diff > 0.) return 1;
+	else if (diff < 0.) return -1;
+	else return 0;
+}
+
+void sort(double *v, int *index, int n){
 	/*
-	Returns the ordered indexes of a complex array according to the absolute value of its elements
+		Returns the ordered indexes of a complex array according to the 
+		absolute value of its elements
 	*/
-	complex_t *w;
-	int i;
-	int j;
-	w = (complex_t*)malloc(n*sizeof(complex_t));
-	memcpy(w, v, n*sizeof(complex_t));
-    qsort(w, n, sizeof(complex_t), compare_complex);
+	int ii, jj;
+	double *w;
+	w = (double*)malloc(n*sizeof(double));
+
+	memcpy(w,v,n*sizeof(double));
+	qsort(w,n,sizeof(double),compare);
 	
-    for (i = 0; i < n; i++) {
-		for (j = 0; j < n; j++) {
-            if ((creal(v[i]) == creal(w[j])) & (cimag(v[i]) == cimag(w[j]))) {
-                index[i] = j;
-                break;
-            }
-        }
-    }
+	for (ii = 0; ii < n; ++ii) {
+		for (jj = 0; jj < n; ++jj) {
+			if (v[ii] == w[jj]) { index[ii] = jj; break; }
+		}
+	}
+	free(w);
+}
+
+int zcompare(const void* a, const void* b) {
+	complex_t c1 = *(complex_t*)a;
+	complex_t c2 = *(complex_t*)b;
+	double diff = cabs(c1) - cabs(c2);
+	if (diff > 0.) return 1;
+	else if (diff < 0.) return -1;
+	else return 0;
+}
+
+void zsort(complex_t *v, int *index, int n){
+	/*
+		Returns the ordered indexes of a complex array according to the 
+		absolute value of its elements
+	*/
+	int ii, jj;
+	complex_t *w;
+	w = (complex_t*)malloc(n*sizeof(complex_t));
+
+	memcpy(w,v,n*sizeof(complex_t));
+	qsort(w,n,sizeof(complex_t),zcompare);
+
+	for (ii = 0; ii < n; ++ii) {
+		for (jj = 0; jj < n; ++jj) {
+			if ((creal(v[ii]) == creal(w[jj])) & (cimag(v[ii]) == cimag(w[jj]))) { index[ii] = jj; break; }
+		}
+	}
 	free(w);
 }

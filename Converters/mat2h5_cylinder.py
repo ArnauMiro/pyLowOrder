@@ -12,7 +12,7 @@ import pyLOM
 
 
 ## Parameters
-MATFILE = './DATA/CYLINDER_ALL.mat'
+MATFILE = './CYLINDER_ALL.mat'
 OUTFILE = './DATA/CYLINDER.h5'
 DT      = 0.2
 DIMSX   = -1., 8.

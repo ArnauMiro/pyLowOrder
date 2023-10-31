@@ -162,6 +162,18 @@ Module_DMD = Extension('pyLOM.DMD.wrapper',
 						extra_objects = extra_objects,
 						libraries     = libraries,
 					   )
+Module_SPOD = Extension('pyLOM.SPOD.wrapper',
+						sources       = ['pyLOM/SPOD/wrapper.pyx',
+										 'pyLOM/vmmath/src/vector_matrix.c',
+										 'pyLOM/vmmath/src/averaging.c',
+										 'pyLOM/vmmath/src/svd.c',
+										 'pyLOM/vmmath/src/fft.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
 
 
 ## Decide which modules to compile
@@ -171,20 +183,24 @@ modules_list = [
 	# IO module
 	Module_IO_ensight,
 	# Low order algorithms
-	Module_POD,Module_DMD
-]
+	Module_POD,Module_DMD,Module_SPOD
+] if options['USE_COMPILED'] else []
 
 
 ## Main setup
 setup(
-	name        = 'pyLOM',
-	version     = '1.0.0',
-	ext_modules = cythonize(modules_list,
+	name             = 'pyLowOrder',
+	version          = '1.2.0',
+	author           = 'Benet Eiximeno, Beka Begiashvili, Arnau Miro, Eusebio Valero, Oriol Lehmkuhl',
+	author_email     = 'benet.eiximeno@bsc.es, beka.begiashvili@alumnos.upm.es, arnau.mirojane@bsc.es, eusebio.valero@upm.es, oriol.lehmkuhl@bsc.es',
+	maintainer       = 'Benet Eiximeno, Arnau Miro',
+	maintainer_email = 'benet.eiximeno@bsc.es, arnau.mirojane@bsc.es',
+	ext_modules      = cythonize(modules_list,
 		language_level = str(sys.version_info[0]), # This is to specify python 3 synthax
 		annotate       = True                      # This is to generate a report on the conversion to C code
 	),
     long_description = readme,
-    url              = 'https://github.com/ArnauMiro/UPM_BSC_LowOrder',
+    url              = 'https://github.com/ArnauMiro/pyLowOrder',
     packages         = find_packages(exclude=('Deps','Examples','Docs','Converters')),
-	install_requires = ['numpy','matplotlib','cython','h5py','mpi4py','nfft']
+	install_requires = ['numpy','matplotlib','cython>=3.0.0','h5py>=3.0.0','mpi4py','nfft']
 )

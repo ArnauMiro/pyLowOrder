@@ -7,7 +7,7 @@
 # Last rev: 11/04/2023
 from __future__ import print_function, division
 
-import numpy as np, mpi4py, copy, functools, subprocess
+import sys, numpy as np, mpi4py, copy, functools, subprocess
 mpi4py.rc.recv_mprobe = False
 from mpi4py import MPI
 
@@ -16,6 +16,8 @@ from .errors import raiseError
 comm     = MPI.COMM_WORLD
 mpi_rank = comm.Get_rank()
 mpi_size = comm.Get_size()
+
+PLATFORM = sys.platform
 
 CHANNEL_DICT = {}
 
@@ -155,7 +157,7 @@ def _getvalue(units=''):
 	Returns the used memory on an arbitrary instant but fixed.
 	'''
 	cmd = "cat /proc/meminfo | grep MemFree | cut -d ':' -f 2 | awk '{$1=$1};1' | cut -d ' ' -f 1"
-	return int( subprocess.check_output(cmd,shell=True) )
+	return int( subprocess.check_output(cmd,shell=True) ) if PLATFORM.lower() == 'linux' else 0
 
 def _reduce_mem(m1,m2,dtype):
 	for key in m2.keys():

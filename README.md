@@ -3,9 +3,9 @@
 [![Test-suite](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions/workflows/run_testsuite.yml/badge.svg)](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions)
 [![License](https://img.shields.io/badge/license-MIT-orange)](https://opensource.org/licenses/mit)
 
-# UPM-BSC Low Order Modelling library
+# pyLOM
 
-This tool is a port of the POD/DMD of the tools from UPM in MATLAB to C/C++ using a python interface. So far POD and DMD are fully implemented and work is being done to bring sPOD and hoDMD inside the tool.
+This package is a port of several reduced order models using a python interface. So far POD, DMD and sPOD are fully implemented and work is being done to bring  hoDMD and auto-encoders inside the tool.
 
 ## Deployment
 
@@ -116,3 +116,6 @@ Eiximeno, B., Miró, A., Cajas, J.C., Lehmkuhl, O., Rodriguez, I., 2022. On the 
 	
 </p>
 </details>
+
+## Acknowledgements
+The research leading to this software has received funding from the European High-Performance Computing Joint Undertaking (JU) under grant agreement No 956104. The JU receives support from the European Union’s Horizon 2020 research and innovation programme and Spain, France, Germany.

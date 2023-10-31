@@ -38,17 +38,8 @@ def matmul(A,B):
 	'''
 	return np.matmul(A,B)
 
-@cr('math.cmatmul')
-def complex_matmul(A,B):
-	'''
-	Matrix multiplication C = A x B
-
-	By default will transpose and conjugate B
-	'''
-	return np.matmul(A,np.transpose(np.conj(B)))
-
-@cr('math.matmul_paral')
-def matmul_paral(A,B):
+@cr('math.matmulp')
+def matmulp(A,B):
 	'''
 	Matrix multiplication C = A x B where A and B are distributed along the processors and C is the same for all of them
 	'''
@@ -64,6 +55,13 @@ def vecmat(v,A):
 	for ii in range(v.shape[0]):
 		C[ii,:] = v[ii]*A[ii,:]
 	return C
+
+@cr('math.argsort')
+def argsort(v):
+	'''
+	Returns the indices that sort a vector
+	'''
+	return np.argsort(v)
 
 @cr('math.diag')
 def diag(A):
@@ -85,23 +83,6 @@ def eigen(A):
 	real   = np.real(w)
 	imag   = np.imag(w)
 	return real,imag,vecs
-
-@cr('math.ceigenvectors')
-def build_complex_eigenvectors(vecs, imag):
-	'''
-	Reconstruction of the right eigenvectors in complex format
-	'''
-	wComplex = np.zeros(vecs.shape, dtype = 'complex_')
-	ivec = 0
-	while ivec < vecs.shape[1] - 1:
-		if imag[ivec] > np.finfo(np.double).eps:
-			wComplex[:, ivec]     = vecs[:, ivec] + vecs[:, ivec + 1]*1j
-			wComplex[:, ivec + 1] = vecs[:, ivec] - vecs[:, ivec + 1]*1j
-			ivec += 2
-		else:
-			wComplex[:, ivec] = vecs[:, ivec] + 0*1j
-			ivec = ivec + 1
-	return wComplex
 
 @cr('math.polar')
 def polar(real, imag):
@@ -199,7 +180,7 @@ def next_power_of_2(n):
 @cr('math.tsqr')
 def tsqr(Ai):
 	'''
-	Parallel QR factorization using Lapack
+	Parallel QR factorization of a real array using Lapack
 		Q(m,n) is the Q matrix
 		R(n,n) is the R matrix
 	'''
@@ -213,9 +194,9 @@ def tsqr(Ai):
 	Q1i, R    = qr(Ai)
 	nextPower = next_power_of_2(MPI_SIZE)
 	nlevels   = int(np.log2(nextPower))
-	QW        = np.eye(n, dtype = np.double)
-	C         = np.zeros((2*n, n), np.double)
-	Q2l       = np.zeros((2*n*nlevels, n), np.double)
+	QW        = np.eye(n, dtype = Ai.dtype)
+	C         = np.zeros((2*n, n), Ai.dtype)
+	Q2l       = np.zeros((2*n*nlevels, n), Ai.dtype)
 	blevel    = 1
 	for ilevel in range(nlevels):
 		# Store R in the upper part of the C matrix

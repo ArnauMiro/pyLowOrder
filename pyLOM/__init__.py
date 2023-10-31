@@ -7,7 +7,7 @@
 __VERSION__ = '1.5.0'
 
 # Import Low Order Models
-from . import POD, DMD, VAE
+from . import POD, DMD, SPOD, VAE
 
 # Import essential tools
 from .                import inp_out as io, vmmath as math, utils
