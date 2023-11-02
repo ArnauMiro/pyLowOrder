@@ -9,13 +9,16 @@ import numpy               as np
 
 ## Wrapper of a variational autoencoder
 class VariationalAutoencoder(nn.Module):
-    def __init__(self, latent_dim, nx, ny, encoder, decoder):
+    def __init__(self, latent_dim, nx, ny, encoder, decoder, device='cpu'):
         super(VariationalAutoencoder, self).__init__()
         self.lat_dim = np.int(latent_dim)
         self.nx      = nx
         self.ny      = ny
         self.encoder = encoder
         self.decoder = decoder
+        encoder.to(device)
+        decoder.to(device)
+        self.to(device)
         summary(self, input_size=(1, self.nx, self.ny))
    
     def _reparamatrizate(self, mu, logvar):
