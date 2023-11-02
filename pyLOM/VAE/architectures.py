@@ -28,9 +28,9 @@ class EncoderNoPool(nn.Module):
         self.flat = nn.Flatten()
         # Calculate the output size for the fully connected layer
         fc_input_size = out_channels * (self._nx // (1 << self.nlayers)) * (self._ny // (1 << self.nlayers))
-        self.fc1      = nn.Linear(fc_input_size, 128)
-        self.mu       = nn.Linear(128, self._lat_dim)
-        self.logvar   = nn.Linear(128, self._lat_dim)
+        self.fc1      = nn.Linear(fc_input_size, 256)
+        self.mu       = nn.Linear(256, self._lat_dim)
+        self.logvar   = nn.Linear(256, self._lat_dim)
 
         self._reset_parameters()
     
@@ -62,9 +62,9 @@ class DecoderNoPool(nn.Module):
         self.ny       = ny
         self.funcs    = activation_funcs
 
-        self.fc1 = nn.Linear(in_features=latent_dim, out_features=128)
+        self.fc1 = nn.Linear(in_features=latent_dim, out_features=256)
         fc_output_size = int((self.channels * (1 << 4) * self.nx // (1 << self.nlayers) * self.ny // (1 << self.nlayers)))
-        self.fc2 = nn.Linear(in_features=128, out_features=fc_output_size)
+        self.fc2 = nn.Linear(in_features=256, out_features=fc_output_size)
 
         # Create a list to hold the transposed convolutional layers
         self.deconv_layers = nn.ModuleList()
