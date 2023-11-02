@@ -5,7 +5,7 @@ import numpy as np
 
 ## Encoder and decoder without a pooling operation
 class EncoderNoPool(nn.Module):
-    def __init__(self, nlayers, latent_dim, nx, ny, channels, kernel_size, padding, stride=2):
+    def __init__(self, nlayers, latent_dim, nx, ny, channels, kernel_size, padding, activation_funcs, stride=2):
         super(EncoderNoPool, self).__init__()
 
         self.nlayers  = nlayers
@@ -13,6 +13,7 @@ class EncoderNoPool(nn.Module):
         self._lat_dim = np.int(latent_dim)
         self._nx      = np.int(nx)
         self._ny      = np.int(ny)
+        self.funcs    = activation_funcs
 
         # Create a list to hold the convolutional layers
         self.conv_layers = nn.ModuleList()
@@ -42,16 +43,16 @@ class EncoderNoPool(nn.Module):
 
     def forward(self, x):        
         out = x
-        for conv_layer in self.conv_layers:
-            out = torch.tanh(conv_layer(out))
+        for ilayer, conv_layer in enumerate(self.conv_layers):
+            out = self.funcs[ilayer](conv_layer(out))
         out = self.flat(out)
-        out = torch.nn.functional.elu(self.fc1(out))
+        out = self.funcs[ilayer+1](self.fc1(out))
         mu = self.mu(out)
         logvar = self.logvar(out)
         return mu, logvar
     
 class DecoderNoPool(nn.Module):
-    def __init__(self, nlayers, latent_dim, nx, ny, channels, kernel_size, padding, stride=2):
+    def __init__(self, nlayers, latent_dim, nx, ny, channels, kernel_size, padding, activation_funcs, stride=2):
         super(DecoderNoPool, self).__init__()       
         
         self.nlayers  = nlayers
@@ -59,6 +60,7 @@ class DecoderNoPool(nn.Module):
         self.lat_dim  = latent_dim
         self.nx       = nx
         self.ny       = ny
+        self.funcs    = activation_funcs
 
         self.fc1 = nn.Linear(in_features=latent_dim, out_features=128)
         fc_output_size = int((self.channels * (1 << 4) * self.nx // (1 << self.nlayers) * self.ny // (1 << self.nlayers)))
@@ -66,13 +68,16 @@ class DecoderNoPool(nn.Module):
 
         # Create a list to hold the transposed convolutional layers
         self.deconv_layers = nn.ModuleList()
-        in_channels = self.channels * (1 << 4)
-        for i in range(self.nlayers, 0, -1):
+        in_channels = self.channels * (1 << self.nlayers-1)
+        for i in range(self.nlayers-1, 0, -1):
             out_channels = self.channels * (1 << (i - 1))  # Compute output channels
             # Create a transposed convolutional layer
             deconv_layer = nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride, padding)
             self.deconv_layers.append(deconv_layer)
             in_channels = out_channels  # Update in_channels for the next layer
+        out_channels = 1
+        deconv_layer = nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride, padding)
+        self.deconv_layers.append(deconv_layer)
 
         self._reset_parameters()
 
@@ -84,11 +89,12 @@ class DecoderNoPool(nn.Module):
                 nn.init.xavier_uniform_(layer.weight)
 
     def forward(self, x):
-        out = torch.nn.functional.elu(self.fc1(x))
-        out = torch.nn.functional.elu(self.fc2(out))
+        out = self.funcs[self.nlayers](self.fc1(x))
+        out = self.funcs[self.nlayers](self.fc2(out))
         out = out.view(out.size(0), self.channels * (1 << 4), int(self.nx // (1 << self.nlayers)), int(self.ny // (1 << self.nlayers)))
-        for deconv_layer in self.deconv_layers:
-            out = torch.nn.functional.elu(deconv_layer(out))
+        for ilayer, (deconv_layer) in enumerate(self.deconv_layers):
+            ilayer = ilayer+1
+            out = self.funcs[self.nlayers-ilayer](deconv_layer(out))
         out = torch.tanh(out)
         return out
 

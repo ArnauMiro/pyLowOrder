@@ -6,6 +6,23 @@ import numpy               as np
 from   torch.utils.tensorboard import SummaryWriter
 from   torchsummary            import summary
 
+## Wrapper of the activation functions
+def tanh():
+    return nn.Tanh()
+
+def relu():
+    return nn.ReLU()
+
+def elu():
+    return nn.ELU()
+
+def sigmoid():
+    return nn.Sigmoid()
+
+def leakyRelu():
+    return nn.LeakyReLU()
+
+## Wrapper of the Dataset class
 
 ## Wrapper of a variational autoencoder
 class VariationalAutoencoder(nn.Module):

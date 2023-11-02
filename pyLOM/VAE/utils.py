@@ -13,6 +13,9 @@ def create_results_folder(RESUDIR):
     else:
         print(f"Folder already exists: {RESUDIR}")
 
+def select_device():
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu") 
+
 class Dataset(torch_dataset):
     @cr("Init VAE dataset")
     def __init__(self, var, nx, ny, time, transform = None):
