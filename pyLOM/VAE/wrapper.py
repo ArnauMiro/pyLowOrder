@@ -3,8 +3,8 @@ import torch.nn            as nn
 import torch.nn.functional as F
 import numpy               as np
 
-from   torch.utils.tensorboard import SummaryWriter
-from   torchsummary            import summary
+#from   torch.utils.tensorboard import SummaryWriter
+#from   torchsummary            import summary
 
 
 ## Wrapper of a variational autoencoder
@@ -48,7 +48,7 @@ class VariationalAutoencoder(nn.Module):
             mse     = 0
             kld     = 0
             for batch in train_data:   
-                batch.to(device)  
+                batch.to(device)
                 recon, mu, logvar, _ = self(batch)
                 mse_i  = self._lossfunc(batch, recon)
                 bkld_i = self._kld(mu,logvar)*beta
