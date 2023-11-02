@@ -3,8 +3,8 @@ import torch.nn            as nn
 import torch.nn.functional as F
 import numpy               as np
 
-#from   torch.utils.tensorboard import SummaryWriter
-#from   torchsummary            import summary
+from   torch.utils.tensorboard import SummaryWriter
+from   torchsummary            import summary
 
 
 ## Wrapper of a variational autoencoder
@@ -16,9 +16,10 @@ class VariationalAutoencoder(nn.Module):
         self.ny      = ny
         self.encoder = encoder
         self.decoder = decoder
-        encoder.to(device)
-        decoder.to(device)
-        self.to(device)
+        self._device = device
+        encoder.to(self._device)
+        decoder.to(self._device)
+        self.to(self._device)
         summary(self, input_size=(1, self.nx, self.ny))
    
     def _reparamatrizate(self, mu, logvar):
@@ -39,7 +40,7 @@ class VariationalAutoencoder(nn.Module):
         recon = self.decoder(z)
         return recon, mu, logvar, z
        
-    def train_model(self, train_data, vali_data, beta, nepochs, device='cpu', callback=None, learning_rate=3e-4, BASEDIR='./'):
+    def train_model(self, train_data, vali_data, beta, nepochs, callback=None, learning_rate=3e-4, BASEDIR='./'):
         prev_train_loss = 1e99
         writer = SummaryWriter(BASEDIR)
         for epoch in range(nepochs):
@@ -51,7 +52,7 @@ class VariationalAutoencoder(nn.Module):
             mse     = 0
             kld     = 0
             for batch in train_data:   
-                batch.to(device)
+                batch = batch.to(self._device)
                 recon, mu, logvar, _ = self(batch)
                 mse_i  = self._lossfunc(batch, recon)
                 bkld_i = self._kld(mu,logvar)*beta
@@ -67,7 +68,7 @@ class VariationalAutoencoder(nn.Module):
                 val_batches = 0
                 va_loss     = 0
                 for val_batch in vali_data:
-                    val_batch.to(device)
+                    val_batch = val_batch.to(self._device)
                     val_recon, val_mu, val_logvar , _ = self(val_batch)
                     mse_i       = self._lossfunc(val_batch, val_recon)
                     bkld_i      = self._kld(val_mu,val_logvar)*beta
@@ -105,12 +106,14 @@ class VariationalAutoencoder(nn.Module):
             for i in range(len(dataset)):
                 x = energy_batch[i,0,:,:]
                 x = torch.reshape(x, [1,1,self.nx,self.ny])
+                x = x.to(self._device)
                 x_recon  = self(x)
-                x_recon  = np.asanyarray(x_recon[0])
+                x_recon  = np.asanyarray(x_recon[0].cpu())
                 x_recon  = x_recon[0,0,:,:]
                 x_recon  = torch.reshape(torch.tensor(x_recon),[self.nx*self.ny, 1])
                 rec[:,i] = x_recon.detach().numpy()[:,0]
                 x = torch.reshape(x,[self.nx*self.ny,1])
+                x = x.to("cpu")
                 ek[i] = torch.sum((x-x_recon)**2)/torch.sum(x**2)
         energy = (1-np.mean(ek))*100
         print('Recovered energy %.2f' % (energy))
@@ -122,8 +125,9 @@ class VariationalAutoencoder(nn.Module):
         with torch.no_grad():
             instant  = iter(loader)
             batch    = next(instant)
+            batch    = batch.to(self._device)
             _,_,_, z = self(batch)
-            corr = np.corrcoef(z,rowvar=False)
+            corr = np.corrcoef(z.cpu(),rowvar=False)
         detR = np.linalg.det(corr)*100
         print('Correlation between modes %.2f' % (detR))
         return corr.reshape((self.lat_dim*self.lat_dim,))
@@ -131,8 +135,10 @@ class VariationalAutoencoder(nn.Module):
     def modes(self):
         zmode = np.diag(np.ones((self.lat_dim,),dtype=float))
         zmodt = torch.tensor(zmode, dtype=torch.float32)
+        zmodt = zmodt.to(self._device)
         modes = self.decoder(zmodt)
         mymod = np.zeros((self.nx*self.ny,self.lat_dim),dtype=float)
+        modes = modes.cpu()
         for imode in range(self.lat_dim):
             modesr = modes[imode,0,:,:].detach().numpy()
             mymod[:,imode] = modesr.reshape((self.nx*self.ny,), order='C')
