@@ -5,7 +5,7 @@ import numpy as np
 
 ## Encoder and decoder without a pooling operation
 class EncoderNoPool(nn.Module):
-    def __init__(self, nlayers, latent_dim, nx, ny, channels, kernel_size, padding, activation_funcs, stride=2):
+    def __init__(self, nlayers, latent_dim, nx, ny, channels, kernel_size, padding, activation_funcs, nlinear, stride=2):
         super(EncoderNoPool, self).__init__()
 
         self.nlayers  = nlayers
@@ -14,6 +14,7 @@ class EncoderNoPool(nn.Module):
         self._nx      = np.int(nx)
         self._ny      = np.int(ny)
         self.funcs    = activation_funcs
+        self.nlinear  = nlinear
 
         # Create a list to hold the convolutional layers
         self.conv_layers = nn.ModuleList()
@@ -28,9 +29,9 @@ class EncoderNoPool(nn.Module):
         self.flat = nn.Flatten()
         # Calculate the output size for the fully connected layer
         fc_input_size = out_channels * (self._nx // (1 << self.nlayers)) * (self._ny // (1 << self.nlayers))
-        self.fc1      = nn.Linear(fc_input_size, 256)
-        self.mu       = nn.Linear(256, self._lat_dim)
-        self.logvar   = nn.Linear(256, self._lat_dim)
+        self.fc1      = nn.Linear(fc_input_size, self.nlinear)
+        self.mu       = nn.Linear(self.nlinear, self._lat_dim)
+        self.logvar   = nn.Linear(self.nlinear, self._lat_dim)
 
         self._reset_parameters()
     
@@ -52,7 +53,7 @@ class EncoderNoPool(nn.Module):
         return mu, logvar
     
 class DecoderNoPool(nn.Module):
-    def __init__(self, nlayers, latent_dim, nx, ny, channels, kernel_size, padding, activation_funcs, stride=2):
+    def __init__(self, nlayers, latent_dim, nx, ny, channels, kernel_size, padding, activation_funcs, nlinear, stride=2):
         super(DecoderNoPool, self).__init__()       
         
         self.nlayers  = nlayers
@@ -61,10 +62,11 @@ class DecoderNoPool(nn.Module):
         self.nx       = nx
         self.ny       = ny
         self.funcs    = activation_funcs
+        self.nlinear  = nlinear
 
-        self.fc1 = nn.Linear(in_features=latent_dim, out_features=256)
+        self.fc1 = nn.Linear(in_features=latent_dim, out_features=self.nlinear)
         fc_output_size = int((self.channels * (1 << 4) * self.nx // (1 << self.nlayers) * self.ny // (1 << self.nlayers)))
-        self.fc2 = nn.Linear(in_features=256, out_features=fc_output_size)
+        self.fc2 = nn.Linear(in_features=self.nlinear, out_features=fc_output_size)
 
         # Create a list to hold the transposed convolutional layers
         self.deconv_layers = nn.ModuleList()
