@@ -14,6 +14,9 @@ class EncoderNoPool(nn.Module):
         self._nx      = np.int(nx)
         self._ny      = np.int(ny)
 
+        # Create a list to hold the convolutional layers
+        self.conv_layers = nn.ModuleList()
+        in_channels = 1  # Initial input channels
         for ilayer in range(self.nlayers):
             out_channels = self.channels * (1 << ilayer)  # Compute output channels
             # Create a convolutional layer
