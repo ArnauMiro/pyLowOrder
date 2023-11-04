@@ -5,29 +5,31 @@ import numpy as np
 
 ## Encoder and decoder without a pooling operation
 class EncoderNoPool(nn.Module):
-    def __init__(self, nlayers, latent_dim, nx, ny, channels, kernel_size, padding, activation_funcs, nlinear, stride=2):
+    def __init__(self, nlayers, latent_dim, nx, ny, channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=True, stride=2):
         super(EncoderNoPool, self).__init__()
 
-        self.nlayers  = nlayers
-        self.channels = np.int(channels)
-        self._lat_dim = np.int(latent_dim)
-        self._nx      = np.int(nx)
-        self._ny      = np.int(ny)
-        self.funcs    = activation_funcs
-        self.nlinear  = nlinear
+        self.nlayers    = nlayers
+        self.channels   = np.int(channels)
+        self._lat_dim   = np.int(latent_dim)
+        self._nx        = np.int(nx)
+        self._ny        = np.int(ny)
+        self.funcs      = activation_funcs
+        self.nlinear    = nlinear
+        self.batch_norm = batch_norm
 
         # Create a list to hold the convolutional layers
         self.conv_layers = nn.ModuleList()
+        self.norm_layers = nn.ModuleList()
         in_channels = 1  # Initial input channels
         for ilayer in range(self.nlayers):
             out_channels = self.channels * (1 << ilayer)  # Compute output channels
-            # Create a convolutional layer
             conv_layer = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding)
             self.conv_layers.append(conv_layer)
+            if self.batch_norm:
+                self.norm_layers.append(nn.BatchNorm2d(out_channels))
             in_channels = out_channels  # Update in_channels for the next layer
        
-        self.flat = nn.Flatten()
-        # Calculate the output size for the fully connected layer
+        self.flat     = nn.Flatten()
         fc_input_size = out_channels * (self._nx // (1 << self.nlayers)) * (self._ny // (1 << self.nlayers))
         self.fc1      = nn.Linear(fc_input_size, self.nlinear)
         self.mu       = nn.Linear(self.nlinear, self._lat_dim)
@@ -45,41 +47,49 @@ class EncoderNoPool(nn.Module):
     def forward(self, x):        
         out = x
         for ilayer, conv_layer in enumerate(self.conv_layers):
-            out = self.funcs[ilayer](conv_layer(out))
-        out = self.flat(out)
-        out = self.funcs[ilayer+1](self.fc1(out))
+            out = conv_layer(out)
+            if self.batch_norm:
+                out = self.norm_layers[ilayer](out)
+            out = self.funcs[ilayer](out)
+        out = self.funcs[ilayer+1](self.flat(out))
+        out = self.funcs[ilayer+2](self.fc1(out))
         mu = self.mu(out)
         logvar = self.logvar(out)
         return mu, logvar
     
 class DecoderNoPool(nn.Module):
-    def __init__(self, nlayers, latent_dim, nx, ny, channels, kernel_size, padding, activation_funcs, nlinear, stride=2):
+    def __init__(self, nlayers, latent_dim, nx, ny, channels, kernel_size, padding, activation_funcs, nlinear, batch_norm, stride=2):
         super(DecoderNoPool, self).__init__()       
         
-        self.nlayers  = nlayers
-        self.channels = channels
-        self.lat_dim  = latent_dim
-        self.nx       = nx
-        self.ny       = ny
-        self.funcs    = activation_funcs
-        self.nlinear  = nlinear
+        self.nlayers    = nlayers
+        self.channels   = channels
+        self.lat_dim    = latent_dim
+        self.nx         = nx
+        self.ny         = ny
+        self.funcs      = activation_funcs
+        self.nlinear    = nlinear
+        self.batch_norm = batch_norm
 
-        self.fc1 = nn.Linear(in_features=latent_dim, out_features=self.nlinear)
-        fc_output_size = int((self.channels * (1 << 4) * self.nx // (1 << self.nlayers) * self.ny // (1 << self.nlayers)))
+        self.fc1 = nn.Linear(in_features=self.lat_dim, out_features=self.nlinear)
+        fc_output_size = int((self.channels * (1 << (self.nlayers-1)) * self.nx // (1 << self.nlayers) * self.ny // (1 << self.nlayers)))
         self.fc2 = nn.Linear(in_features=self.nlinear, out_features=fc_output_size)
 
         # Create a list to hold the transposed convolutional layers
         self.deconv_layers = nn.ModuleList()
+        self.norm_layers   = nn.ModuleList()
         in_channels = self.channels * (1 << self.nlayers-1)
         for i in range(self.nlayers-1, 0, -1):
             out_channels = self.channels * (1 << (i - 1))  # Compute output channels
-            # Create a transposed convolutional layer
             deconv_layer = nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride, padding)
             self.deconv_layers.append(deconv_layer)
+            if self.batch_norm:
+                self.norm_layers.append(nn.BatchNorm2d(in_channels))
             in_channels = out_channels  # Update in_channels for the next layer
         out_channels = 1
         deconv_layer = nn.ConvTranspose2d(in_channels, out_channels, kernel_size, stride, padding)
         self.deconv_layers.append(deconv_layer)
+        if self.batch_norm:
+            self.norm_layers.append(nn.BatchNorm2d(in_channels))
 
         self._reset_parameters()
 
@@ -91,13 +101,14 @@ class DecoderNoPool(nn.Module):
                 nn.init.xavier_uniform_(layer.weight)
 
     def forward(self, x):
-        out = self.funcs[self.nlayers](self.fc1(x))
+        out = self.funcs[self.nlayers+1](self.fc1(x))
         out = self.funcs[self.nlayers](self.fc2(out))
-        out = out.view(out.size(0), self.channels * (1 << 4), int(self.nx // (1 << self.nlayers)), int(self.ny // (1 << self.nlayers)))
+        out = out.view(out.size(0), self.channels * (1 << (self.nlayers-1)), int(self.nx // (1 << self.nlayers)), int(self.ny // (1 << self.nlayers)))
         for ilayer, (deconv_layer) in enumerate(self.deconv_layers):
-            ilayer = ilayer+1
-            out = self.funcs[self.nlayers-ilayer](deconv_layer(out))
-        out = torch.tanh(out)
+            if self.batch_norm:
+                out = self.norm_layers[ilayer](out)
+            out = self.funcs[self.nlayers-ilayer-1](deconv_layer(out))
+        #out = torch.tanh(out)
         return out
 
 ## Encoder and decoder with a max pool operation

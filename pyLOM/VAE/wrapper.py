@@ -144,9 +144,10 @@ class VariationalAutoencoder(nn.Module):
             batch    = next(instant)
             batch    = batch.to(self._device)
             _,_,_, z = self(batch)
+            np.save('z.npy',z.cpu())
             corr = np.corrcoef(z.cpu(),rowvar=False)
         detR = np.linalg.det(corr)*100
-        print('Correlation between modes %.2f' % (detR))
+        print('Orthogonality between modes %.2f' % (detR))
         return corr.reshape((self.lat_dim*self.lat_dim,))
     
     def modes(self):
