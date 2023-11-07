@@ -161,3 +161,24 @@ class VariationalAutoencoder(nn.Module):
             modesr = modes[imode,0,:,:].detach().numpy()
             mymod[:,imode] = modesr.reshape((self.nx*self.ny,), order='C')
         return mymod.reshape((self.nx*self.ny*self.lat_dim,),order='C')
+
+    def latent_space(self, dataset):
+        # Compute latent vectors
+        loader = torch.utils.data.DataLoader(dataset, batch_size=len(dataset), shuffle=False)
+        with torch.no_grad():
+            instant  = iter(loader)
+            batch    = next(instant)
+            batch    = batch.to(self._device)
+            print(batch)
+            _,_,_, z = self(batch)
+        return z
+
+    def decode(self, z):
+        zt  = torch.tensor(z, dtype=torch.float32)
+        var = self.decoder(zt)
+        var = var.cpu()
+        varr = np.zeros((self.nx*self.ny,var.shape[0]),dtype=float)
+        for it in range(var.shape[0]):
+            varaux = var[it,0,:,:].detach().numpy()
+            varr[:,it] = varaux.reshape((self.nx*self.ny,), order='C')
+        return varr 

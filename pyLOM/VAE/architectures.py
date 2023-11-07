@@ -58,7 +58,7 @@ class EncoderNoPool(nn.Module):
         return mu, logvar
     
 class DecoderNoPool(nn.Module):
-    def __init__(self, nlayers, latent_dim, nx, ny, channels, kernel_size, padding, activation_funcs, nlinear, batch_norm, stride=2):
+    def __init__(self, nlayers, latent_dim, nx, ny, channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=True, stride=2):
         super(DecoderNoPool, self).__init__()       
         
         self.nlayers    = nlayers
