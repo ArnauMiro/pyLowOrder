@@ -79,18 +79,23 @@ class Dataset(torch_dataset):
 
 class MultiChannelDataset(torch_dataset):
     def __init__(self, vars, nx, ny, time, transform=None):
-        self._data = self._normalize(vars)
         self._nx = nx
         self._ny = ny
         self._time = time
         self.transform = transform
         self._n_channels = len(vars)
+        self._data, self._mean, self._max = self._normalize(vars)
 
     def __len__(self):
         return len(self._time)
 
     def __getitem__(self, index):
-        snap = torch.cat([torch.Tensor(self._data[i][:, index]).view(1, self._nx, self._ny) for i in range(self._n_channels)], dim=0)
+        snap = torch.Tensor([])
+        for ichannel in range(self._n_channels):
+            isnap = self.data[ichannel][:,index]
+            isnap = torch.Tensor(isnap)
+            isnap = isnap.view(1,self.nx,self.ny)
+            snap  = torch.cat((snap,isnap), dim=0)
         return snap
 
     @property
@@ -113,15 +118,18 @@ class MultiChannelDataset(torch_dataset):
     def n_channels(self):
         return self._n_channels
 
-    def _normalize(self, data_tuple):
-        normalized_data = []
-        for i in range(self._n_channels):
-            data = data_tuple[i]
-            mean = data.mean()
-            fluc = data - mean
-            maxi = fluc.max()
-            normalized_data.append(fluc / maxi)
-        return normalized_data
+    def _normalize(self, vars):
+        #data = tuple(None for _ in range(self._n_channels))
+        data = []
+        mean = np.zeros((self._n_channels,self._nx*self._ny),dtype=float)
+        maxi = np.zeros((self._n_channels,),dtype=float)
+        for ichan in range(self._n_channels):
+            var           = vars[ichan]
+            mean[ichan,:] = temporal_mean(var)
+            ifluc         = subtract_mean(var,mean[ichan,:])
+            maxi[ichan]   = ifluc.max()
+            data.append(ifluc/maxi[ichan])
+        return data, mean, maxi
 
     def recover(self, data):
         recovered_data = []
@@ -130,10 +138,14 @@ class MultiChannelDataset(torch_dataset):
         return recovered_data
 
     def split(self, ptrain, pvali, batch_size=1):
-        len_train = int(ptrain * len(self))
-        len_vali = int(pvali * len(self))
+        #Compute number of snapshots
+        len_train = int(ptrain*len(self))
+        len_vali  = int(pvali*len(self))
         len_train = len_train + len(self) - (len_train + len_vali)
-        train, vali = torch.utils.data.random_split(self, (len_train, len_vali))
+        #Select data
+        train, vali  = torch.utils.data.random_split(self,(len_train,len_vali))
         train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)
-        vali_loader = torch.utils.data.DataLoader(vali, batch_size=batch_size, shuffle=True)
+        vali_loader  = torch.utils.data.DataLoader(vali, batch_size=batch_size, shuffle=True)
+    
         return train_loader, vali_loader
+

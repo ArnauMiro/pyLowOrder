@@ -68,7 +68,8 @@ class VariationalAutoencoder(nn.Module):
             tr_loss = 0
             mse     = 0
             kld     = 0
-            for batch in train_data:   
+            for batch in train_data:
+                print(batch.shape)
                 batch = batch.to(self._device)
                 recon, mu, logvar, _ = self(batch)
                 mse_i  = self._lossfunc(batch, recon)
@@ -102,10 +103,10 @@ class VariationalAutoencoder(nn.Module):
                 writer.add_scalar("Loss/kld",  kld,    epoch+1)
 
             if callback.early_stop(va_loss, prev_train_loss, tr_loss):
-                print('Early Stopper Activated at epoch %i' %epoch)
+                print('Early Stopper Activated at epoch %i' %epoch, flush=True)
                 break
             prev_train_loss = tr_loss   
-            print('Epoch [%d / %d] average training error: %.5e' % (epoch+1, nepochs, tr_loss))
+            print('Epoch [%d / %d] average training error: %.5e' % (epoch+1, nepochs, tr_loss), flush=True)
         writer.flush()
         writer.close()
         torch.save(self.state_dict(), '%s/model_state' % BASEDIR)
