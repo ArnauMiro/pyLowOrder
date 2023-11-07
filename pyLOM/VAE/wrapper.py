@@ -26,18 +26,19 @@ def leakyRelu():
 
 ## Wrapper of a variational autoencoder
 class VariationalAutoencoder(nn.Module):
-    def __init__(self, latent_dim, nx, ny, encoder, decoder, device='cpu'):
+    def __init__(self, latent_dim, nx, ny, input_channels, encoder, decoder, device='cpu'):
         super(VariationalAutoencoder, self).__init__()
-        self.lat_dim = np.int(latent_dim)
-        self.nx      = nx
-        self.ny      = ny
-        self.encoder = encoder
-        self.decoder = decoder
-        self._device = device
+        self.lat_dim  = np.int(latent_dim)
+        self.nx       = nx
+        self.ny       = ny
+        self.inp_chan = input_channels
+        self.encoder  = encoder
+        self.decoder  = decoder
+        self._device  = device
         encoder.to(self._device)
         decoder.to(self._device)
         self.to(self._device)
-        summary(self, input_size=(1, self.nx, self.ny))
+        summary(self, input_size=(self.inp_chan, self.nx, self.ny))
    
     def _reparamatrizate(self, mu, logvar):
         std = torch.exp(0.5*logvar)
@@ -69,7 +70,6 @@ class VariationalAutoencoder(nn.Module):
             mse     = 0
             kld     = 0
             for batch in train_data:
-                print(batch.shape)
                 batch = batch.to(self._device)
                 recon, mu, logvar, _ = self(batch)
                 mse_i  = self._lossfunc(batch, recon)
@@ -115,24 +115,27 @@ class VariationalAutoencoder(nn.Module):
     def reconstruct(self, dataset):
         ##  Compute reconstruction and its accuracy
         ek     = np.zeros((len(dataset),))
-        rec    = np.zeros((self.nx*self.ny,len(dataset))) 
+        rec    = np.zeros((self.inp_chan,self.nx*self.ny,len(dataset))) 
         loader = torch.utils.data.DataLoader(dataset, batch_size=len(dataset), shuffle=False)
         with torch.no_grad():
             ## Energy recovered in reconstruction
             instant = iter(loader)
             energy_batch = next(instant)
             for i in range(len(dataset)):
-                x = energy_batch[i,0,:,:]
-                x = torch.reshape(x, [1,1,self.nx,self.ny])
+                x = energy_batch[i,:,:,:]
+                x = torch.reshape(x, [1,self.inp_chan,self.nx,self.ny])
                 x = x.to(self._device)
                 x_recon  = self(x)
                 x_recon  = np.asanyarray(x_recon[0].cpu())
-                x_recon  = x_recon[0,0,:,:]
-                x_recon  = torch.reshape(torch.tensor(x_recon),[self.nx*self.ny, 1])
-                rec[:,i] = x_recon.detach().numpy()[:,0]
-                x = torch.reshape(x,[self.nx*self.ny,1])
-                x = x.to("cpu")
-                ek[i] = torch.sum((x-x_recon)**2)/torch.sum(x**2)
+                for ichan in range(self.inp_chan):
+                    x_recchan  = x_recon[0,ichan,:,:]
+                    x_recchan  = torch.reshape(torch.tensor(x_recchan),[self.nx*self.ny,])
+                    rec[ichan,:,i] = x_recchan.detach().numpy()
+                xr    = rec.reshape((self.inp_chan*self.nx*self.ny,len(dataset)))
+                x     = torch.reshape(x,[self.inp_chan*self.nx*self.ny])
+                x     = x.to("cpu")
+                
+                ek[i] = torch.sum((x-xr[:,i])**2)/torch.sum(x**2)
         energy = (1-np.mean(ek))*100
         print('Recovered energy %.2f' % (energy))
         return rec
@@ -170,7 +173,6 @@ class VariationalAutoencoder(nn.Module):
             instant  = iter(loader)
             batch    = next(instant)
             batch    = batch.to(self._device)
-            print(batch)
             _,_,_, z = self(batch)
         return z
 

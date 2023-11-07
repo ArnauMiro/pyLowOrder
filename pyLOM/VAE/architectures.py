@@ -9,8 +9,8 @@ class Encoder2D(nn.Module):
         super(Encoder2D, self).__init__()
 
         self.nlayers    = nlayers
-        self.in_chan    = np.int(input_channels)
         self.filt_chan  = np.int(filter_channels)
+        self.in_chan    = np.int(input_channels)
         self._lat_dim   = np.int(latent_dim)
         self._nx        = np.int(nx)
         self._ny        = np.int(ny)
