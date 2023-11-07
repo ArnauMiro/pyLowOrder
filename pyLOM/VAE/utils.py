@@ -148,4 +148,3 @@ class MultiChannelDataset(torch_dataset):
         vali_loader  = torch.utils.data.DataLoader(vali, batch_size=batch_size, shuffle=True)
     
         return train_loader, vali_loader
-
