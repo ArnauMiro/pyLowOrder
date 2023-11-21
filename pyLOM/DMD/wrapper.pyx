@@ -94,6 +94,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 		memcpy(Y,&X[0,0],m*n*sizeof(double))
 
 	#Get the first N-1 snapshots: Y1 = Y[:,:-1]
+	cr_start('DMD.split_snapshots', 0)
 	cdef double *Y1
 	cdef double *Y2
 	Y1 = <double*>malloc(m*(n-1)*sizeof(double))
@@ -103,6 +104,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 			Y1[irow*(n-1) + icol] = Y[irow*n + icol]
 			Y2[irow*(n-1) + icol] = Y[irow*n + icol + 1]
 	free(Y)
+	cr_stop('DMD.split_snapshots', 0)
 
 	# Compute SVD
 	cr_start('DMD.SVD',0)
@@ -157,7 +159,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	cr_stop('DMD.linear_mapping',0)
 
 	#Compute eigenmodes
-	cr_start('DMD.eigendecomposition',0)
+	cr_start('DMD.modes',0)
 	cdef double *auxmuReal
 	cdef double *auxmuImag
 	cdef np.complex128_t *w
@@ -166,10 +168,8 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	w         = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
 	retval = c_eigen(auxmuReal,auxmuImag,w,Atilde,nr,nr)
 	free(Atilde)
-	cr_stop('DMD.eigendecomposition', 0)
 
 	#Computation of DMD modes
-	cr_start('DMD.modes',0)
 	cdef np.complex128_t *auxPhi
 	cdef np.complex128_t *aux1C
 	cdef np.complex128_t *aux2C

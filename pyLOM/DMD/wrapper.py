@@ -85,12 +85,10 @@ def run(X, r, remove_mean = True):
 	cr_stop('DMD.linear_mapping',0)
 
 	#Eigendecomposition of Atilde: Eigenvectors given as complex matrix
-	cr_start('DMD.eigendecomposition',0)
+	cr_start('DMD.modes',0)
 	muReal, muImag, w = eigen(Atilde)
-	cr_stop('DMD.eigendecomposition',0)
 
 	#Mode computation
-	cr_start('DMD.modes',0)
 	Phi =  matmul(matmul(matmul(Y[:, 1:], transpose(VT)), diag(1/S)), w)/(muReal + muImag*1J)
 	cr_stop('DMD.modes',0)
 
