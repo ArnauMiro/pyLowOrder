@@ -75,7 +75,9 @@ def run(X, r, remove_mean = True):
 	U, S, VT = tsqr_svd(Y[:, :-1])
 	cr_stop('DMD.SVD',0)
 	# Truncate according to residual
+	cr_start('DMD.truncate', 0)
 	U, S, VT = truncate(U, S, VT, r)
+	cr_stop('DMD.truncate', 0)
 
 	#Project A (Jacobian of the snapshots) into POD basis
 	cr_start('DMD.linear_mapping',0)
@@ -100,10 +102,12 @@ def run(X, r, remove_mean = True):
 	G    = matmul(diag(S), VT)
 	q    = conj(diag(matmul(matmul(Vand, transpose(conj(G))), w)))
 	bJov = matmul(inv(transpose(conj(Pl))), matmul(inv(Pl), q)) #Amplitudes according to Jovanovic 2014
-
-	#Order modes and eigenvalues according to its amplitude 
-	muReal, muImag, Phi, bJov = _order_modes(muReal, muImag, Phi, bJov)
 	cr_stop('DMD.amplitudes',0)
+
+	#Order modes and eigenvalues according to its amplitude
+	cr_start('DMD.order',0)
+	muReal, muImag, Phi, bJov = _order_modes(muReal, muImag, Phi, bJov)
+	cr_stop('DMD.order',0)
 
 	return muReal, muImag, Phi, bJov
 
