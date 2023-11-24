@@ -120,6 +120,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	free(Y1)
 
 	#Truncate
+	cr_start('DMD.truncate',0)
 	cdef int nr
 	cdef double *Ur
 	cdef double *Sr
@@ -134,6 +135,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	free(U)
 	free(V)
 	free(S)
+	cr_stop('DMD.truncate',0)
 
 	#Project Jacobian of the snapshots into the POD basis
 	cr_start('DMD.linear_mapping',0)
@@ -201,7 +203,6 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	cr_stop('DMD.modes',0)
 
 	#Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
-	cr_start('DMD.amplitudes', 0)
 	cdef np.complex128_t *auxbJov
 	cdef np.complex128_t *aux3C
 	cdef np.complex128_t *Vand
@@ -217,6 +218,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	Pinv    = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
 	q       = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
 
+	cr_start('DMD.amplitudes', 0)
 	c_vandermonde(Vand, auxmuReal, auxmuImag, nr, n-1)
 	c_zmatmult(aux3C, w, w, nr, nr, nr, 'C', 'N')
 	c_zmatmult(aux4C, Vand, Vand, nr, nr, n-1, 'N', 'C')
@@ -256,6 +258,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	if not retval == 0: raiseError('Problems computing the Inverse!')
 
 	c_zmatmult(auxbJov, P, aux1C, nr, 1, nr, 'N', 'N')
+	cr_stop('DMD.amplitudes',0)
 
 	# Free allocated arrays before reordering
 	free(Ur)
@@ -278,7 +281,8 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	cdef np.ndarray[np.double_t,ndim=1] muImag   = np.zeros((nr),dtype=np.double)
 	cdef np.ndarray[np.complex128_t,ndim=2] Phi  = np.zeros((m,nr),order='C',dtype=np.complex128)
 	cdef np.ndarray[np.complex128_t,ndim=1] bJov = np.zeros((nr,),dtype=np.complex128)
-	
+
+	cr.start('DMD.sort', 0)
 	c_zsort(auxbJov, auxOrd, nr)
 	for ii in range(nr):
 		muReal[nr-(auxOrd[ii]+1)] = auxmuReal[ii]
@@ -286,6 +290,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 		bJov[nr-(auxOrd[ii]+1)]   = auxbJov[ii]
 		for jj in range(m):
 			Phi[jj,nr-(auxOrd[ii]+1)]  = auxPhi[jj*nr + ii]
+	cr.stop('DMD.sort', 0)
 
 	#Free the variables that had to be ordered
 	free(auxmuReal)
@@ -295,6 +300,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	free(auxOrd)
 
 	#Ensure that all conjugate modes are in the same order
+	cr.start('DMD.conjugate', 0)
 	cdef bint p = 0
 	cdef double iimag
 	for ii in range(nr):
@@ -315,7 +321,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 		if iimag > 0:
 			p = 1
 			continue
-	cr_stop('DMD.amplitudes',0)
+	cr.stop('DMD.conjugate', 0)
 	
 	# Return
 	return muReal, muImag, Phi, bJov
