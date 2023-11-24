@@ -21,6 +21,8 @@ Deps/oneAPI/setvars.sh
 Deps/oneAPI/support.txt
 Deps/oneAPI/sys_check.sh
 Deps/oneAPI/tbb
+Deps/kissfft/include
+Deps/kissfft/lib
 Deps/fftw/include
 Deps/fftw/lib
 Deps/nfft/include
