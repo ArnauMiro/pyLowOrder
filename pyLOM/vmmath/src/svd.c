@@ -7,8 +7,10 @@
 #include <complex.h>
 #include <stdio.h>
 #include "mpi.h"
+typedef double _Complex complex_t;
 
 #ifdef USE_MKL
+#define MKL_Complex16 complex_t
 #include "mkl.h"
 #include "mkl_lapacke.h"
 #else
@@ -83,7 +85,7 @@ int svd(double *U, double *S, double *VT, double *Y, const int m, const int n) {
 	return retval;
 }
 
-int zsvd(complex_t *U, complex_t *S, complex_t *VT, complex_t *Y, const int m, const int n) {
+int zsvd(complex_t *U, double *S, complex_t *VT, complex_t *Y, const int m, const int n) {
 	/*
 		Single value decomposition (SVD) using Lapack.
 
@@ -129,12 +131,12 @@ int zsvd(complex_t *U, complex_t *S, complex_t *VT, complex_t *Y, const int m, c
 					 'S', // char  		jobz
 					   m, // int  		m
 					   n, // int  		n
-					   Y, // double*  	a
+					   Y, // complex_t*  	a
 					   n, // int  		lda
-					   S, // double *  	s
-					   U, // double *  	u
+					   S, // complex_t *  	s
+					   U, // complex_t *  	u
 					  mn, // int  		ldu
-					  VT, // double *  	vt
+					  VT, // complex_t *  	vt
 					   n  // int  		ldvt
 	);
 	#endif
@@ -580,7 +582,7 @@ int ztsqr(complex_t *Qi, complex_t *R, complex_t *Ai, const int m, const int n, 
 	return info;
 }
 
-int ztsqr_svd(complex_t *Ui, complex_t *S, complex_t *VT, complex_t *Ai, const int m, const int n, MPI_Comm comm) {
+int ztsqr_svd(complex_t *Ui, double *S, complex_t *VT, complex_t *Ai, const int m, const int n, MPI_Comm comm) {
 	/*
 		Single value decomposition (SVD) using TSQR algorithm from
 		J. Demmel, L. Grigori, M. Hoemmen, and J. Langou, ‘Communication-optimal Parallel

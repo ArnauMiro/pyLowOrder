@@ -11,7 +11,7 @@ import numpy as np
 import scipy
 
 from ..vmmath       import temporal_mean, subtract_mean, tsqr_svd
-from ..utils.cr     import cr
+from ..utils.cr     import cr, cr_start, cr_stop
 from ..utils.errors import raiseError
 
 
@@ -55,8 +55,10 @@ def run(X, t, nDFT=0, nolap=0, remove_mean=True):
 
 	#Remove temporal mean
 	if remove_mean:
+		cr_start('SPOD.temporal_mean',0)
 		X_mean = temporal_mean(X)
 		Y      = subtract_mean(X, X_mean)
+		cr_stop('SPOD.temporal_mean',0)
 	else:
 		Y = X.copy()
 
@@ -67,6 +69,7 @@ def run(X, t, nDFT=0, nolap=0, remove_mean=True):
 	Q  = np.zeros((M*nf,nBlks),np.complex128)
 	L  = np.zeros((nf,nBlks),np.double)
 	P  = np.zeros((M*nBlks,nf),np.double)
+	cr_start('SPOD.fft',0)
 	for iblk in range(nBlks):
 		# Get time index for present block
 		i0 = iblk*(nDFT - nolap)
@@ -76,16 +79,21 @@ def run(X, t, nDFT=0, nolap=0, remove_mean=True):
 			qk[ip, :] = _fft(Xf, winWeight, nDFT, nf)
 		qk[:,1:-1] *= 2
 		Q[:, iblk] = qk.reshape((M*nf), order='F')
+	cr_stop('SPOD.fft',0)
 
+	cr_start('SPOD.SVD',0)
 	for ifreq, freq in enumerate(f):
 		qf         = Q[ifreq*M:(ifreq+1)*M, :].copy()/np.sqrt(nBlks)
 		U, S, V    = tsqr_svd(qf)
 		P[:,ifreq] = np.real(U.reshape((M*nBlks), order='F'))
 		L[ifreq,:] = np.abs(S*S)
+	cr_stop('SPOD.SVD',0)
 
+	cr_start('SPOD.sort',0)
 	order = np.argsort(L[:,0])[::-1]
 	P = P[:, order]
 	f = f[order]
 	L = L[order,:]
+	cr_stop('SPOD.sort',0)
 	  
 	return L, P, f

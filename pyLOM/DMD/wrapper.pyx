@@ -20,7 +20,7 @@ from libc.complex  cimport creal, cimag
 from mpi4py.libmpi cimport MPI_Comm
 from mpi4py        cimport MPI
 
-from ..utils.cr     import cr
+from ..utils.cr     import cr, cr_start, cr_stop
 from ..utils.errors import raiseError
 
 cdef extern from "vector_matrix.h":
@@ -82,16 +82,19 @@ def run(double[:,:] X, double r, int remove_mean=True):
 
 	#Remove mean if required
 	if remove_mean:
+		cr_start('DMD.temporal_mean',0)
 		X_mean = <double*>malloc(m*sizeof(double))
 		# Compute temporal mean
 		c_temporal_mean(X_mean,&X[0,0],m,n)
 		# Compute substract temporal mean
 		c_subtract_mean(Y,&X[0,0],X_mean,m,n)
 		free(X_mean)
+		cr_stop('DMD.temporal_mean',0)
 	else:
 		memcpy(Y,&X[0,0],m*n*sizeof(double))
 
 	#Get the first N-1 snapshots: Y1 = Y[:,:-1]
+	cr_start('DMD.split_snapshots', 0)
 	cdef double *Y1
 	cdef double *Y2
 	Y1 = <double*>malloc(m*(n-1)*sizeof(double))
@@ -101,8 +104,10 @@ def run(double[:,:] X, double r, int remove_mean=True):
 			Y1[irow*(n-1) + icol] = Y[irow*n + icol]
 			Y2[irow*(n-1) + icol] = Y[irow*n + icol + 1]
 	free(Y)
+	cr_stop('DMD.split_snapshots', 0)
 
 	# Compute SVD
+	cr_start('DMD.SVD',0)
 	cdef double *U
 	cdef double *S
 	cdef double *V
@@ -110,6 +115,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	S  = <double*>malloc(mn*sizeof(double))
 	V  = <double*>malloc((n-1)*mn*sizeof(double))
 	retval = c_tsqr_svd(U, S, V, Y1, m, mn, MPI_COMM.ob_mpi)
+	cr_stop('DMD.SVD',0)
 	if not retval == 0: raiseError('Problems computing SVD!')
 	free(Y1)
 
@@ -130,6 +136,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	free(S)
 
 	#Project Jacobian of the snapshots into the POD basis
+	cr_start('DMD.linear_mapping',0)
 	cdef double *aux1
 	cdef double *aux2
 	cdef double *aux3
@@ -149,8 +156,10 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	free(aux1)
 	free(aux3)
 	free(Urt)
+	cr_stop('DMD.linear_mapping',0)
 
 	#Compute eigenmodes
+	cr_start('DMD.modes',0)
 	cdef double *auxmuReal
 	cdef double *auxmuImag
 	cdef np.complex128_t *w
@@ -189,8 +198,10 @@ def run(double[:,:] X, double r, int remove_mean=True):
 			a = creal(auxPhi[iaux*nr + icol])
 			b = cimag(auxPhi[iaux*nr + icol])
 			auxPhi[iaux*nr + icol] = (a*c + b*d)/div + (b*c - a*d)/div*1j
+	cr_stop('DMD.modes',0)
 
 	#Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
+	cr_start('DMD.amplitudes', 0)
 	cdef np.complex128_t *auxbJov
 	cdef np.complex128_t *aux3C
 	cdef np.complex128_t *Vand
@@ -304,6 +315,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 		if iimag > 0:
 			p = 1
 			continue
+	cr_stop('DMD.amplitudes',0)
 	
 	# Return
 	return muReal, muImag, Phi, bJov
