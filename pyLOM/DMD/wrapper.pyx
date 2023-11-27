@@ -282,7 +282,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	cdef np.ndarray[np.complex128_t,ndim=2] Phi  = np.zeros((m,nr),order='C',dtype=np.complex128)
 	cdef np.ndarray[np.complex128_t,ndim=1] bJov = np.zeros((nr,),dtype=np.complex128)
 
-	cr.start('DMD.sort', 0)
+	cr_start('DMD.sort', 0)
 	c_zsort(auxbJov, auxOrd, nr)
 	for ii in range(nr):
 		muReal[nr-(auxOrd[ii]+1)] = auxmuReal[ii]
@@ -290,7 +290,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 		bJov[nr-(auxOrd[ii]+1)]   = auxbJov[ii]
 		for jj in range(m):
 			Phi[jj,nr-(auxOrd[ii]+1)]  = auxPhi[jj*nr + ii]
-	cr.stop('DMD.sort', 0)
+	cr_stop('DMD.sort', 0)
 
 	#Free the variables that had to be ordered
 	free(auxmuReal)
@@ -300,7 +300,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	free(auxOrd)
 
 	#Ensure that all conjugate modes are in the same order
-	cr.start('DMD.conjugate', 0)
+	cr_start('DMD.conjugate', 0)
 	cdef bint p = 0
 	cdef double iimag
 	for ii in range(nr):
@@ -321,7 +321,7 @@ def run(double[:,:] X, double r, int remove_mean=True):
 		if iimag > 0:
 			p = 1
 			continue
-	cr.stop('DMD.conjugate', 0)
+	cr_stop('DMD.conjugate', 0)
 	
 	# Return
 	return muReal, muImag, Phi, bJov
