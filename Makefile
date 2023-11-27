@@ -110,6 +110,9 @@ endif
 ifeq ($(USE_MKL),ON)
 	DFLAGS += -DUSE_MKL
 endif
+ifeq ($(USE_FFTW),ON)
+	DFLAGS += -DUSE_FFTW3
+endif
 
 
 # One rule to compile them all, one rule to find them,
@@ -118,13 +121,29 @@ all: deps python install
 	@echo ""
 	@echo "pyLOM deployed successfully"
 
+# Selection of vector_matrix kernel libraries
+#
 ifeq ($(USE_MKL),ON)
-deps: mkl fftw nfft requirements
+vector_matrix: mkl
 
 else
-deps: lapack openblas fftw nfft requirements
+vector_matrix: lapack openblas
 
 endif
+
+# Selection of fft kernel libraries
+#
+ifeq ($(USE_FFTW),ON)
+fft: fftw nfft
+
+else
+fft: kissfft
+
+endif
+
+# General rule to build dependencies
+#
+deps: vector_matrix fft requirements
 
 
 # Python
@@ -154,6 +173,8 @@ openblas: Deps/lapack
 	@bash $</install_openblas.sh "${OPENBLAS_VERS}" "${PWD}/$<" "${CC}" "${CFLAGS}" "${FC}" "${FFLAGS}"
 mkl: Deps/oneAPI
 	@bash $</install_mkl.sh "${PLATFORM}" "${ONEAPI_VERS}" "${PWD}/$</mkl" "${CC}" "${CFLAGS}" "${FC}" "${FFLAGS}"
+kissfft: Deps/kissfft
+	@bash $</install_kissfft.sh "${PLATFORM}" "${KISSFFT_VERS}" "${OPENMP_PARALL}" "${PWD}/$<" "${CC}" "${CFLAGS}" "${FC}" "${FFLAGS}"
 fftw: Deps/fftw
 	@bash $</install_fftw.sh "${PLATFORM}" "${FFTW_VERS}" "${OPENMP_PARALL}" "${PWD}/$<" "${CC}" "${CFLAGS}" "${FC}" "${FFLAGS}"
 nfft: Deps/nfft
@@ -192,12 +213,22 @@ cleanall: clean
 	-@cd pyLOM; rm vmmath/*.so inp_out/*.so POD/*.so DMD/*.so SPOD/*.so
 
 ifeq ($(USE_MKL),ON)
-uninstall_deps: uninstall_mkl uninstall_fftw uninstall_nfft
+uninstall_vector_matrix: uninstall_mkl 
 
 else
-uninstall_deps: uninstall_lapack uninstall_fftw uninstall_nfft
+uninstall_vector_matrix: uninstall_lapack 
 
 endif
+
+ifeq ($(USE_FFTW),ON)
+uninstall_fft: uninstall_fftw uninstall_nfft
+
+else
+uninstall_fft: uninstall_kissfft
+
+endif
+
+uninstall_deps: uninstall_vector_matrix uninstall_fft
 
 uninstall: cleanall uninstall_deps uninstall_python
 	@${PIP} uninstall pyLowOrder
@@ -215,6 +246,10 @@ uninstall_lapack: Deps/lapack/lib
 uninstall_mkl: Deps/oneAPI/mkl
 	-@Deps/oneAPI/l_BaseKit_p_${ONEAPI_VERS}.sh -a --silent --action remove --eula accept --components intel.oneapi.lin.mkl.devel --install-dir $(shell pwd)/Deps/oneAPI
 	-@rm -rf Deps/oneAPI/l_BaseKit_p_${ONEAPI_VERS}.sh Deps/oneAPI/mkl
+
+uninstall_kissfft: Deps/kissfft/lib
+	-@rm -rf Deps/kissfft/include
+	-@rm -rf Deps/kissfft/lib
 
 uninstall_fftw: Deps/fftw/lib
 	-@rm -rf Deps/fftw/include

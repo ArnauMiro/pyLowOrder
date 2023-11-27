@@ -10,7 +10,7 @@ from __future__ import print_function
 import numpy as np
 
 from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd
-from ..utils.cr     import cr
+from ..utils.cr     import cr, cr_start, cr_stop
 from ..utils.errors import raiseError
 
 
@@ -30,14 +30,18 @@ def run(X,remove_mean=True):
 		- V:  are the right singular vectors.
 	'''
 	if remove_mean:
+		cr_start('POD.temporal_mean',0)Y
 		# Compute temporal mean
 		X_mean = temporal_mean(X)
 		# Compute substract temporal mean
 		Y = subtract_mean(X,X_mean)
+		cr_stop('POD.temporal_mean',0)Y
 	else:
 		Y = X.copy()
 	# Compute SVD
+	cr_start('POD.SVD',0)
 	U,S,V = tsqr_svd(Y)
+	cr_stop('POD.SVD',0)
 	# Return
 	return U,S,V
 
