@@ -282,8 +282,10 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	cdef np.ndarray[np.complex128_t,ndim=2] Phi  = np.zeros((m,nr),order='C',dtype=np.complex128)
 	cdef np.ndarray[np.complex128_t,ndim=1] bJov = np.zeros((nr,),dtype=np.complex128)
 
-	cr_start('DMD.sort', 0)
+	cr_start('DMD.qsort', 0)
 	c_zsort(auxbJov, auxOrd, nr)
+	cr_stop('DMD.qsort', 0)
+	cr_start('DMD.sort', 0)
 	for ii in range(nr):
 		muReal[nr-(auxOrd[ii]+1)] = auxmuReal[ii]
 		muImag[nr-(auxOrd[ii]+1)] = auxmuImag[ii]
