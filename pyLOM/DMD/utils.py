@@ -39,9 +39,9 @@ def save(fname,muReal,muImag,Phi,bJov,ptable,nvars=1,pointData=True,mode='w'):
 
 
 @cr('DMD.load')
-def load(fname,vars=['Phi','mu','bJov','delta','omega'],ptable=None):
+def load(fname,vars=['Phi','mu','bJov','delta','omega'],nmod=-1,ptable=None):
 	'''
 	Load DMD variables in serial or parallel
 	according to the partition used to compute the DMD.
 	'''
-	return io.h5_load_DMD(fname,vars,ptable)
+	return io.h5_load_DMD(fname,vars,nmod,ptable)

@@ -42,9 +42,9 @@ def save(fname,L,P,f,ptable,nvars=1,pointData=True,mode='w'):
 
 
 @cr('SPOD.load')
-def load(fname,vars=['L','P','f'],ptable=None):
+def load(fname,vars=['L','P','f'],nmod=-1,ptable=None):
 	'''
 	Load SPOD variables in serial or parallel
 	according to the partition used to compute the SPOD.
 	'''
-	return io.h5_load_SPOD(fname,vars,ptable)
+	return io.h5_load_SPOD(fname,vars,nmod,ptable)
