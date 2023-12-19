@@ -161,17 +161,20 @@ def run(double[:,:] X, double r, int remove_mean=True):
 	cr_stop('DMD.linear_mapping',0)
 
 	#Compute eigenmodes
-	cr_start('DMD.modes',0)
+	
 	cdef double *auxmuReal
 	cdef double *auxmuImag
 	cdef np.complex128_t *w
 	auxmuReal = <double*>malloc(nr*sizeof(double))
 	auxmuImag = <double*>malloc(nr*sizeof(double))
 	w         = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
+	cr_start('DMD.eigendecomposition',0)
 	retval = c_eigen(auxmuReal,auxmuImag,w,Atilde,nr,nr)
+	cr_stop('DMD.eigendecomposition',0)
 	free(Atilde)
 
 	#Computation of DMD modes
+	cr_start('DMD.modes',0)
 	cdef np.complex128_t *auxPhi
 	cdef np.complex128_t *aux1C
 	cdef np.complex128_t *aux2C
