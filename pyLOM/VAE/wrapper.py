@@ -3,7 +3,7 @@ import torch.nn            as nn
 import torch.nn.functional as F
 import numpy               as np
 
-from   torch.utils.tensorboard import SummaryWriter
+#from   torch.utils.tensorboard import SummaryWriter
 from   torchsummary            import summary
 
 ## Wrapper of the activation functions
@@ -60,7 +60,7 @@ class VariationalAutoencoder(nn.Module):
        
     def train_model(self, train_data, vali_data, beta, nepochs, callback=None, learning_rate=3e-4, BASEDIR='./'):
         prev_train_loss = 1e99
-        writer = SummaryWriter(BASEDIR)
+        #writer = SummaryWriter(BASEDIR)
         for epoch in range(nepochs):
             self.train()
             num_batches = 0 
@@ -97,18 +97,18 @@ class VariationalAutoencoder(nn.Module):
                 va_loss/=val_batches
                 mse /= num_batches
                 kld /= num_batches
-                writer.add_scalar("Loss/train",tr_loss,epoch+1)
-                writer.add_scalar("Loss/vali", va_loss,epoch+1)
-                writer.add_scalar("Loss/mse",  mse,    epoch+1)
-                writer.add_scalar("Loss/kld",  kld,    epoch+1)
+                #writer.add_scalar("Loss/train",tr_loss,epoch+1)
+                #writer.add_scalar("Loss/vali", va_loss,epoch+1)
+                #writer.add_scalar("Loss/mse",  mse,    epoch+1)
+                #writer.add_scalar("Loss/kld",  kld,    epoch+1)
 
             if callback.early_stop(va_loss, prev_train_loss, tr_loss):
                 print('Early Stopper Activated at epoch %i' %epoch, flush=True)
                 break
             prev_train_loss = tr_loss   
             print('Epoch [%d / %d] average training error: %.5e' % (epoch+1, nepochs, tr_loss), flush=True)
-        writer.flush()
-        writer.close()
+        #writer.flush()
+        #writer.close()
         torch.save(self.state_dict(), '%s/model_state' % BASEDIR)
 
             
