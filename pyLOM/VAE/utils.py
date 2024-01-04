@@ -128,13 +128,13 @@ class MultiChannelDataset(torch_dataset):
             mean[ichan,:] = temporal_mean(var)
             ifluc         = subtract_mean(var,mean[ichan,:])
             maxi[ichan]   = ifluc.max()
-            data.append(ifluc/maxi[ichan])
+            data.append(var)#ifluc/maxi[ichan])
         return data, mean, maxi
 
     def recover(self, data):
         recovered_data = []
         for i in range(self._n_channels):
-            recovered_data.append(data[i] * data[i].max() + data[i].mean())
+            recovered_data.append(data[i])# * data[i].max() + data[i].mean())
         return recovered_data
 
     def split(self, ptrain, pvali, batch_size=1):
