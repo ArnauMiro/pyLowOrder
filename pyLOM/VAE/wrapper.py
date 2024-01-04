@@ -61,8 +61,6 @@ class VariationalAutoencoder(nn.Module):
     def train_model(self, train_data, vali_data, beta, nepochs, callback=None, learning_rate=3e-4, BASEDIR='./'):
         prev_train_loss = 1e99
         #writer = SummaryWriter(BASEDIR)
-        print(self._device)
-        train_data = train_data.to(self._device)
         for epoch in range(nepochs):
             self.train()
             num_batches = 0 
@@ -87,7 +85,6 @@ class VariationalAutoencoder(nn.Module):
                 val_batches = 0
                 va_loss     = 0
                 for val_batch in vali_data:
-                    val_batch = val_batch.to(self._device)
                     val_recon, val_mu, val_logvar , _ = self(val_batch)
                     mse_i       = self._lossfunc(val_batch, val_recon)
                     bkld_i      = self._kld(val_mu,val_logvar)*beta

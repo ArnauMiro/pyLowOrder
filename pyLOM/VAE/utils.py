@@ -78,11 +78,12 @@ class Dataset(torch_dataset):
         return train_loader, vali_loader
 
 class MultiChannelDataset(torch_dataset):
-    def __init__(self, vars, nx, ny, time, transform=None):
+    def __init__(self, vars, nx, ny, time, device='cpu', transform=None):
         self._nx = nx
         self._ny = ny
         self._time = time
         self.transform = transform
+        self._device = device
         self._n_channels = len(vars)
         self._data, self._mean, self._max = self._normalize(vars)
 
@@ -96,7 +97,7 @@ class MultiChannelDataset(torch_dataset):
             isnap = torch.Tensor(isnap)
             isnap = isnap.view(1,self.nx,self.ny)
             snap  = torch.cat((snap,isnap), dim=0)
-        return snap
+        return snap.to(self._device)
 
     @property
     def nx(self):
