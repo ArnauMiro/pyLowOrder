@@ -183,9 +183,7 @@ class VariationalAutoencoder(nn.Module):
             for ibatch, batch in enumerate(train_data):
                 recon, mu, logvar, _ = self(batch)
                 mse_i  = self._lossfunc(batch, recon, reduction='mean')
-                print(ibatch, mse_i)
                 bkld_i = self._kld(mu,logvar)*beta
-                print(ibatch, bkld_i)
                 loss = mse_i - bkld_i
                 if loss.item() > prevloss:
                     loss = loss*2
