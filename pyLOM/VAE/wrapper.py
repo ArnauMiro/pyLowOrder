@@ -185,15 +185,10 @@ class VariationalAutoencoder(nn.Module):
                 mse_i  = self._lossfunc(batch, recon, reduction='mean')
                 bkld_i = self._kld(mu,logvar)*beta
                 loss = mse_i - bkld_i
-                if loss.item() > prevloss:
-                    prevloss = loss.item()
-                    loss = loss*2
-                else:
-                    prevloss = loss.item()
-                print(loss)
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
+                print('Epoch [%d / %d] batch loss: %.5e' % (epoch+1, nepochs, loss.item()), flush=True)
                 tr_loss += loss.item()
                 mse     += self._lossfunc(batch, recon).item()
                 kld     += self._kld(mu,logvar).item()*beta
