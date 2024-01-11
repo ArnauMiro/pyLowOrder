@@ -174,16 +174,18 @@ class VariationalAutoencoder(nn.Module):
         for epoch in range(nepochs):
             self.train()
             num_batches = 0 
-            learning_rate = learning_rate * 1/(1 + 0.001 * epoch)               #HARDCODED!!
+            learning_rate = learning_rate * 1/(1 + 0.0001 * epoch)               #HARDCODED!!
             optimizer = torch.optim.AdamW(self.parameters(), lr= learning_rate)  #HARDCODED!!
             tr_loss = 0
             mse     = 0
             kld     = 0
             prevloss    = 0
-            for batch in train_data:
+            for ibatch, batch in enumerate(train_data):
                 recon, mu, logvar, _ = self(batch)
                 mse_i  = self._lossfunc(batch, recon, reduction='mean')
+                print(ibatch, mse_i)
                 bkld_i = self._kld(mu,logvar)*beta
+                print(ibatch, bkld_i)
                 loss = mse_i - bkld_i
                 if loss.item() > prevloss: 
                     optimizer.zero_grad()
