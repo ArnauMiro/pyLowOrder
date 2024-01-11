@@ -190,6 +190,7 @@ class VariationalAutoencoder(nn.Module):
                     loss = loss*2
                 else:
                     prevloss = loss.item()
+                print(loss)
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
