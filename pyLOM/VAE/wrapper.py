@@ -184,15 +184,12 @@ class VariationalAutoencoder(nn.Module):
                 recon, mu, logvar, _ = self(batch)
                 mse_i  = self._lossfunc(batch, recon, reduction='mean')
                 bkld_i = self._kld(mu,logvar)*beta
-                auxloss = mse_i - bkld_i
-                if auxloss > loss: 
-                    loss = auxloss
-                else:
-                    loss = prevloss
-                prevloss = loss
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+                loss = mse_i - bkld_i
+                if loss.item() > prevloss: 
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
+                prevloss = loss.item()
                 tr_loss += loss.item()
                 mse     += self._lossfunc(batch, recon).item()
                 kld     += self._kld(mu,logvar).item()*beta
@@ -221,8 +218,8 @@ class VariationalAutoencoder(nn.Module):
             #    break
             prev_train_loss = tr_loss   
             print('Epoch [%d / %d] average training loss: %.5e | average validation loss: %.5e' % (epoch+1, nepochs, tr_loss, va_loss), flush=True)
-        #writer.flush()
-        #writer.close()
+        #qwriter.flush()
+        #qwriter.close()
         torch.save(self.state_dict(), '%s/model_state' % BASEDIR)
 
     def reconstruct(self, dataset):
