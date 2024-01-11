@@ -147,13 +147,12 @@ class VariationalAutoencoder(nn.Module):
         self._device  = device
         encoder.to(self._device)
         decoder.to(self._device)
-        print(self._device)
         self.to(self._device)
         summary(self, input_size=(self.inp_chan, self.nx, self.ny))
    
     def _reparamatrizate(self, mu, logvar):
         std = torch.exp(0.5*logvar)
-        epsilon = torch.rand_like(std)  #we create a normal distribution (0 ,1 ) with the dimensions of std        
+        epsilon = torch.randn_like(std)  #we create a normal distribution (0 ,1 ) with the dimensions of std        
         sample = mu + std*epsilon
         return  sample
     
@@ -161,7 +160,7 @@ class VariationalAutoencoder(nn.Module):
         return  F.mse_loss(recon_x.view(-1, self.nx*self.ny), x.view(-1, self.nx*self.ny),reduction=reduction)
            
     def _kld(self, mu, logvar):    
-        return 0.5*torch.mean(1 + logvar - mu**2 - logvar.exp())
+        return 0.5*torch.sum(1 + logvar - mu**2 - logvar.exp())
     
     def forward(self, x):
         mu, logvar = self.encoder(x)
@@ -169,7 +168,7 @@ class VariationalAutoencoder(nn.Module):
         recon = self.decoder(z)
         return recon, mu, logvar, z
        
-    def train_model(self, train_data, vali_data, mean_data, beta, nepochs, callback=None, learning_rate=5e-4, BASEDIR='./'):
+    def train_model(self, train_data, vali_data, beta, nepochs, callback=None, learning_rate=5e-4, BASEDIR='./'):
         prev_train_loss = 1e99
         #writer = SummaryWriter(BASEDIR)
         for epoch in range(nepochs):
@@ -180,15 +179,17 @@ class VariationalAutoencoder(nn.Module):
             tr_loss = 0
             mse     = 0
             kld     = 0
+            prevloss    = 0
             for batch in train_data:
                 recon, mu, logvar, _ = self(batch)
                 mse_i  = self._lossfunc(batch, recon, reduction='mean')
                 bkld_i = self._kld(mu,logvar)*beta
-                loss   = mse_i - bkld_i
-                #for batchmean in mean_data:
-                #    recm, _, _, _ = self(batchmean)
-                #    mse_m  = self._lossfunc(batchmean, recm, reduction='mean')
-                #    loss  += mse_m
+                auxloss = mse_i - bkld_i
+                if auxloss > loss: 
+                    loss = auxloss
+                else:
+                    loss = prevloss
+                prevloss = loss
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()

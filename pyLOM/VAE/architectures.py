@@ -291,7 +291,7 @@ class Encoder2D(nn.Module):
     def forward(self, x):        
         out = x
         for ilayer, conv_layer in enumerate(self.conv_layers):
-            out = conv_layer(self.dropout(out))
+            out = conv_layer(out)
             if self.batch_norm:
                 out = self.norm_layers[ilayer](out)
             out = self.funcs[ilayer](out)
@@ -352,5 +352,5 @@ class Decoder2D(nn.Module):
         for ilayer, (deconv_layer) in enumerate(self.deconv_layers):
             if self.batch_norm:
                 out = self.norm_layers[ilayer](out)
-            out = self.funcs[self.nlayers-ilayer-1](deconv_layer(self.dropout(out)))
+            out = self.funcs[self.nlayers-ilayer-1](deconv_layer(out))
         return out
