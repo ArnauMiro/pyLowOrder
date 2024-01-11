@@ -187,10 +187,11 @@ class VariationalAutoencoder(nn.Module):
                 bkld_i = self._kld(mu,logvar)*beta
                 print(ibatch, bkld_i)
                 loss = mse_i - bkld_i
-                if loss.item() > prevloss: 
-                    optimizer.zero_grad()
-                    loss.backward()
-                    optimizer.step()
+                if loss.item() > prevloss:
+                    loss = loss*2
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
                 prevloss = loss.item()
                 tr_loss += loss.item()
                 mse     += self._lossfunc(batch, recon).item()
