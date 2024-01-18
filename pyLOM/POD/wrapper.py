@@ -30,12 +30,12 @@ def run(X,remove_mean=True):
 		- V:  are the right singular vectors.
 	'''
 	if remove_mean:
-		cr_start('POD.temporal_mean',0)Y
+		cr_start('POD.temporal_mean',0)
 		# Compute temporal mean
 		X_mean = temporal_mean(X)
 		# Compute substract temporal mean
 		Y = subtract_mean(X,X_mean)
-		cr_stop('POD.temporal_mean',0)Y
+		cr_stop('POD.temporal_mean',0)
 	else:
 		Y = X.copy()
 	# Compute SVD
