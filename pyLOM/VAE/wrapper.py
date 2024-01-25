@@ -180,7 +180,7 @@ class VariationalAutoencoder(nn.Module):
             tr_loss = 0
             mse     = 0
             kld     = 0
-            for batch in enumerate(train_data):
+            for batch in train_data:
                 recon, mu, logvar, _ = self(batch)
                 mse_i  = self._lossfunc(batch, recon, reduction='mean')
                 bkld_i = self._kld(mu,logvar)*beta

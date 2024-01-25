@@ -107,9 +107,9 @@ class MultiChannelDataset(torch_dataset):
             recovered_data.append(data[i])# + data[i].mean())
         return recovered_data
 
-    def loader(self, batch_size=1):
+    def loader(self, batch_size=1,shuffle=True):
         #Compute number of snapshots
-        loader = torch.utils.data.DataLoader(self, batch_size=batch_size, shuffle=True)
+        loader = torch.utils.data.DataLoader(self, batch_size=batch_size, shuffle=shuffle)
         return loader
     
     def split_subdatasets(self, ptrain, pvali, batch_size=1, subdatasets=1):
