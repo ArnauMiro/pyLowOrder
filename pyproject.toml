@@ -126,6 +126,7 @@ dependencies = [
 # projects.
 [project.optional-dependencies] 
 full = [
+  "ensight-reader",
   "pyvista",
 ]
 

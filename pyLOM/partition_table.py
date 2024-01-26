@@ -101,7 +101,7 @@ class PartitionTable(object):
 
 	@classmethod
 	@cr('PartTable.new')
-	def new(cls,nparts,nelems,npoints):
+	def new(cls,nparts,nelems,npoints,has_master=False):
 		'''
 		Create a new partition table, in serial algorithm.
 		'''
@@ -118,7 +118,7 @@ class PartitionTable(object):
 			# How many nodes do I have
 			istart, iend  = worksplit(0,npoints,ipart,nWorkers=nparts)
 			points[ipart] = iend - istart
-		return cls(nparts,ids,elements,points)
+		return cls(nparts,ids,elements,points,has_master=has_master)
 
 	@classmethod
 	@cr('PartTable.from_pyAlya')
