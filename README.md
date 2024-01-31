@@ -2,6 +2,7 @@
 [![Build status](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions/workflows/build_gcc.yml/badge.svg)](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions)
 [![Test-suite](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions/workflows/run_testsuite.yml/badge.svg)](https://github.com/ArnauMiro/UPM_BSC_LowOrder/actions)
 [![License](https://img.shields.io/badge/license-MIT-orange)](https://opensource.org/licenses/mit)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10598565.svg)](https://doi.org/10.5281/zenodo.10598565)
 
 # pyLOM
 
