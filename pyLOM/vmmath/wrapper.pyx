@@ -57,10 +57,11 @@ cdef extern from "svd.h":
 	cdef int c_tsqr_svd  "tsqr_svd"(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm)
 	# Double complex precision
 	cdef int c_zqr       "zqr"      (np.complex128_t *Q, np.complex128_t *R, np.complex128_t *A, const int m, const int n)
-	cdef int c_zsvd      "zsvd"     (np.complex128_t *U, np.complex128_t *S, np.complex128_t *V, np.complex128_t *Y, const int m, const int n)
+	cdef int c_zsvd      "zsvd"     (np.complex128_t *U, np.double_t *S, np.complex128_t *V, np.complex128_t *Y, const int m, const int n)
 	cdef int c_ztsqr     "ztsqr"    (np.complex128_t *Qi, np.complex128_t *R, np.complex128_t *Ai, const int m, const int n, MPI_Comm comm)
-	cdef int c_ztsqr_svd "ztsqr_svd"(np.complex128_t *Ui, np.complex128_t *S, np.complex128_t *VT, np.complex128_t *Ai, const int m, const int n, MPI_Comm comm)
+	cdef int c_ztsqr_svd "ztsqr_svd"(np.complex128_t *Ui, np.double_t *S, np.complex128_t *VT, np.complex128_t *Ai, const int m, const int n, MPI_Comm comm)
 cdef extern from "fft.h":
+	cdef int USE_FFTW3 "_USE_FFTW3"
 	cdef void c_fft "fft"(double *psd, double *y, const double dt, const int n)
 	cdef void c_nfft "nfft"(double *psd, double *t, double* y, const int n)
 
@@ -425,7 +426,7 @@ def _zsvd(np.complex128_t[:,:] A, int do_copy=True):
 	cdef int m = A.shape[0], n = A.shape[1], mn = min(m,n)
 	cdef np.complex128_t *Y_copy
 	cdef np.ndarray[np.complex128_t,ndim=2] U = np.zeros((m,mn),dtype=np.complex128)
-	cdef np.ndarray[np.complex128_t,ndim=1] S = np.zeros((mn,) ,dtype=np.complex128)
+	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((mn,) ,dtype=np.double)
 	cdef np.ndarray[np.complex128_t,ndim=2] V = np.zeros((n,mn),dtype=np.complex128)
 	# Compute SVD
 	if do_copy:
@@ -550,7 +551,7 @@ def _ztsqr_svd(np.complex128_t[:,:] A):
 	cdef int m = A.shape[0], n = A.shape[1], mn = min(m,n)
 	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef np.ndarray[np.complex128_t,ndim=2] U = np.zeros((m,mn),dtype=np.complex128)
-	cdef np.ndarray[np.complex128_t,ndim=1] S = np.zeros((mn,) ,dtype=np.complex128)
+	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((mn,) ,dtype=np.double)
 	cdef np.ndarray[np.complex128_t,ndim=2] V = np.zeros((n,mn),dtype=np.complex128)
 	# Compute SVD using TSQR algorithm
 	retval = c_ztsqr_svd(&U[0,0],&S[0],&V[0,0],&A[0,0],m,n,MPI_COMM.ob_mpi)
@@ -585,14 +586,26 @@ def fft(double [:] t, double[:] y, int equispaced=True):
 	constant timestep. Return the frequency and PSD
 	'''
 	cdef int n = y.shape[0]
-	cdef double ts = t[1] - t[0]
+	cdef double ts = t[1] - t[0], k_left
+	cdef np.ndarray[np.double_t,ndim=1]     x
+	cdef np.ndarray[np.complex128_t,ndim=1] yf
 	cdef np.ndarray[np.double_t,ndim=1] f   = np.zeros((n,) ,dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=1] PSD = np.zeros((n,) ,dtype=np.double)
 	memcpy(&f[0],&y[0],n*sizeof(double))
 	if equispaced:
 		c_fft(&PSD[0],&f[0],ts,n)
 	else:
-		c_nfft(&PSD[0],&f[0],&t[0],n)
+		if USE_FFTW3:
+			c_nfft(&PSD[0],&f[0],&t[0],n)
+		else:
+			import nfft
+			# Compute sampling frequency
+			k_left = (t.shape[0]-1.)/2.
+			f      = (np.arange(t.shape[0],dtype=np.double)-k_left)/t[n-1]
+			# Compute power spectra using fft
+			x   = -0.5 + np.arange(t.shape[0],dtype=np.double)/t.shape[0]
+			yf  = nfft.nfft_adjoint(x,y,len(t))
+			PSD = np.real(yf*np.conj(yf))/y.shape[0]
 	return f, PSD
 
 @cr('math.RMSE')

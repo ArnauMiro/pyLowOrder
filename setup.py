@@ -84,14 +84,19 @@ libraries     = ['m']
 # OSX needs to also link with python3.8 for reasons...
 if sys.platform == 'darwin': libraries += ['python3.8']
 
-# NFFT
-include_dirs  += ['Deps/nfft/include']
-extra_objects += ['Deps/nfft/lib/libnfft3.a']
-
-# FFTW
-include_dirs  += ['Deps/fftw/include']
-extra_objects += ['Deps/fftw/lib/libfftw3.a']
-if options['OPENMP_PARALL']: extra_objects += ['Deps/fftw/lib/libfftw3_omp.a']
+if options['USE_FFTW']:
+	# NFFT
+	include_dirs  += ['Deps/nfft/include']
+	extra_objects += ['Deps/nfft/lib/libnfft3.a']
+	# FFTW
+	include_dirs  += ['Deps/fftw/include']
+	extra_objects += ['Deps/fftw/lib/libfftw3.a']
+	if options['OPENMP_PARALL']: extra_objects += ['Deps/fftw/lib/libfftw3_omp.a']
+	DFLAGS        += ' -DUSE_FFTW3'
+else:
+	# KISSFFT
+	include_dirs  += ['Deps/kissfft/include/kissfft']
+	extra_objects += ['Deps/kissfft/lib/libkissfft-double.a']
 
 # Select which libraries to use depending on the compilation options
 if options['USE_MKL']:

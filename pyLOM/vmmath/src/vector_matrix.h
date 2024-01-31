@@ -4,8 +4,8 @@
 #include <complex.h>
 typedef double _Complex complex_t;
 #ifdef USE_MKL
-#include "mkl.h"
 #define MKL_Complex16 complex_t
+#include "mkl.h"
 #endif
 // Double version
 void   transpose(double *A, double *B, const int m, const int n);

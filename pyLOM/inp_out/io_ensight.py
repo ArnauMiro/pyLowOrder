@@ -8,11 +8,19 @@
 from __future__ import print_function, division
 
 import numpy as np
+import ensightreader
 
 from ..utils.cr     import cr
 from ..utils.parall import MPI_RANK, MPI_SIZE, MPI_COMM, MPI_RDONLY, MPI_WRONLY, MPI_CREATE
 from ..utils.parall import mpi_file_open, worksplit, mpi_reduce, mpi_bcast
 
+ENSI2ELTYPE = {
+	'tria3'  : 2, # Triangular cell
+	'quad4'  : 3, # Quadrangular cell
+	'tetra4' : 4, # Tetrahedral cell
+	'penta6' : 6, # Linear prism
+	'hexa8'  : 5, # Hexahedron
+}
 
 ## HELPER FUNCTIONS ##
 
@@ -58,11 +66,12 @@ def Ensight_readCase(fname,rank=MPI_RANK):
 	# Only one rank reads the file
 	if MPI_RANK == rank or MPI_SIZE == 1:
 		# Open file for reading
-		f     = open(fname,'r')
-		lines = [line.strip() for line in f.readlines() if not '#' in line and not len(line.strip())==0]
+		f        = open(fname,'r')
+		lines    = [line.strip() for line in f.readlines() if not '#' in line and not len(line.strip())==0]
+		has_time = 'TIME' in lines
 		# Variables section
 		idstart = lines.index('VARIABLE')+1
-		idend   = lines.index('TIME')
+		idend   = lines.index('TIME') if has_time else len(lines)
 		varList = []
 		for ii in range(idstart,idend):
 			varList.append({})
@@ -77,9 +86,12 @@ def Ensight_readCase(fname,rank=MPI_RANK):
 			# File
 			varList[-1]['file'] = lines[ii].split()[-1]
 		# Timesteps
-		idstart   = lines.index('TIME') + 6
-		idend     = len(lines)
-		timesteps = np.array([float(l) for ii in range(idstart,idend) for l in lines[ii].split()],dtype=np.double) 
+		if has_time:
+			idstart   = lines.index('TIME') + 6
+			idend     = len(lines)
+			timesteps = np.array([float(l) for ii in range(idstart,idend) for l in lines[ii].split()],dtype=np.double)
+		else:
+			timesteps = np.array([],dtype=np.double)
 		# Close file
 		f.close()
 	# Broadcast to other ranks if needed
@@ -87,6 +99,23 @@ def Ensight_readCase(fname,rank=MPI_RANK):
 		varList, timesteps = mpi_bcast((varList,timesteps),rank=rank)
 	# Return
 	return varList, timesteps
+
+@cr('EnsightIO.readCase')
+def Ensight_readCase2(fname,rank=MPI_RANK):
+	'''
+	Read an Ensight Gold case file.
+
+	Use ensight-reader library.
+	'''
+	# Only one rank reads the file
+	if MPI_RANK == rank or MPI_SIZE == 1:
+		case = ensightreader.read_case(fname)	
+	# Broadcast to other ranks if needed
+	if MPI_SIZE > 1:
+		cases = mpi_bcast(case,rank=rank)
+	# Return
+	return case
+
 
 @cr('EnsightIO.writeCase')
 def Ensight_writeCase(fname,geofile,varList,timesteps,rank=MPI_RANK):
@@ -237,10 +266,47 @@ def Ensight_readGeoASCII(fname):
 	conec = np.ascontiguousarray(np.genfromtxt(f,max_rows=nel).astype(np.int32).reshape((nel,nnel),order='F'))
 	if header['elemID'] == 'given':
 		conec = conec[order,:]
-	# Close the field
+	# Close the file
 	f.close()
 	# Return
 	return xyz, conec, header
+
+@cr('EnsightIO.readGeo')
+def Ensight_readGeo2(geofile,part_id):
+	'''
+	Read an Ensight Gold Geometry using the
+	ensight-reader library
+	'''
+	# Recover the part
+	part = geofile.get_part_by_id(part_id)
+	# Start reading geometry file
+	f = open(geofile.file_path,'rb')
+	# Read node positions
+	nnod = part.number_of_nodes
+	xyz  = np.ascontiguousarray(part.read_nodes(f))
+	# Create connectivity array
+	nelem = []
+	elem  = []
+	nnel  = 0
+	for block in part.element_blocks:
+		nelem.append(block.number_of_elements)
+		elem.append(block.element_type.value)
+		nnel = max(nnel,block.element_type.nodes_per_element)
+	conec  = np.zeros((np.sum(nelem),nnel),np.int32)
+	eltype = np.ones((np.sum(nelem),),np.int32)
+	# Read connectivity
+	for iblock,block in enumerate(part.element_blocks):
+		nel1 = np.sum(nelem[:iblock]) if iblock > 0 else 0
+		nel2 = nelem[iblock]
+		nnel = block.element_type.nodes_per_element
+		# Subtract 1 to connectivity due to python indexing
+		conec[nel1:nel2,:nnel] = np.ascontiguousarray(block.read_connectivity(f)) - 1
+		eltype[nel1:nel2] *= ENSI2ELTYPE[elem[iblock]]
+	# Close the file
+	f.close()
+	# Return
+	return xyz, conec, eltype
+
 
 @cr('EnsightIO.readGeo')
 def Ensight_writeGeo(fname,xyz,conec,header):
@@ -401,10 +467,23 @@ def Ensight_readFieldMPIO(fname,dims=1,nnod=-1):
 	else:
 		f.Read_at(header_sz+istart*4,field)
 		field = np.ascontiguousarray(field)		
-	# Close the field
+	# Close the file
 	f.Close()
 	# Return
 	return field, header
+
+@cr('EnsightIO.readField')
+def Ensight_readField2(variable,part_id):
+	'''
+	Read an Ensight Gold field file using
+	the ensightreader library.
+	'''
+	f = open(variable.file_path,'rb')
+	field = np.ascontiguousarray(variable.read_node_data(f,part_id) if variable.variable_location == ensightreader.VariableLocation.PER_NODE else variable.read_element_data(f,part_id))
+	# Close the file
+	f.close()
+	# Return
+	return field
 
 
 @cr('EnsightIO.writeField')

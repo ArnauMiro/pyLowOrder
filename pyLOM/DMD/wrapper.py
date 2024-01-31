@@ -10,7 +10,7 @@ from __future__ import print_function
 import numpy as np
 from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, matmulp, vandermondeTime
 from ..POD          import truncate
-from ..utils.cr     import cr
+from ..utils.cr     import cr, cr_start, cr_stop
 from ..utils.errors import raiseError
 from ..utils.parall import mpi_gather, mpi_reduce, pprint
 
@@ -61,39 +61,53 @@ def run(X, r, remove_mean = True):
 	'''
 	#Remove temporal mean or not, depending on the user choice
 	if remove_mean:
+		cr_start('DMD.temporal_mean',0)
 		#Compute temporal mean
 		X_mean = temporal_mean(X)
 		#Subtract temporal mean
 		Y = subtract_mean(X, X_mean)
+		cr_stop('DMD.temporal_mean',0)
 	else:
 		Y = X.copy()
 
 	#Compute SVD
+	cr_start('DMD.SVD',0)
 	U, S, VT = tsqr_svd(Y[:, :-1])
+	cr_stop('DMD.SVD',0)
 	# Truncate according to residual
+	cr_start('DMD.truncate', 0)
 	U, S, VT = truncate(U, S, VT, r)
+	cr_stop('DMD.truncate', 0)
 
 	#Project A (Jacobian of the snapshots) into POD basis
+	cr_start('DMD.linear_mapping',0)
 	aux1   = matmulp(transpose(U), Y[:, 1:])
 	aux2   = transpose(vecmat(1./S, VT))
 	Atilde = matmul(aux1, aux2)
+	cr_stop('DMD.linear_mapping',0)
 
 	#Eigendecomposition of Atilde: Eigenvectors given as complex matrix
+	cr_start('DMD.modes',0)
 	muReal, muImag, w = eigen(Atilde)
 
 	#Mode computation
 	Phi =  matmul(matmul(matmul(Y[:, 1:], transpose(VT)), diag(1/S)), w)/(muReal + muImag*1J)
+	cr_stop('DMD.modes',0)
 
 	#Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
+	cr_start('DMD.amplitudes',0)
 	Vand = vandermonde(muReal, muImag, muReal.shape[0], Y.shape[1]-1)
 	P    = matmul(transpose(conj(w)), w)*conj(matmul(Vand, transpose(conj(Vand))))
 	Pl   = cholesky(P)
 	G    = matmul(diag(S), VT)
 	q    = conj(diag(matmul(matmul(Vand, transpose(conj(G))), w)))
 	bJov = matmul(inv(transpose(conj(Pl))), matmul(inv(Pl), q)) #Amplitudes according to Jovanovic 2014
+	cr_stop('DMD.amplitudes',0)
 
-	#Order modes and eigenvalues according to its amplitude 
+	#Order modes and eigenvalues according to its amplitude
+	cr_start('DMD.order',0)
 	muReal, muImag, Phi, bJov = _order_modes(muReal, muImag, Phi, bJov)
+	cr_stop('DMD.order',0)
 
 	return muReal, muImag, Phi, bJov
 
