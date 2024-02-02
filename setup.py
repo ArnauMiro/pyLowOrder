@@ -36,6 +36,7 @@ CXXFLAGS = ' -std=c++11'
 FFLAGS   = ''
 DFLAGS   = ' -DNPY_NO_DEPRECATED_API'
 if options['USE_MKL']:   DFLAGS += ' -DUSE_MKL'
+if options['USE_FFTW']:  DFLAGS += ' -DUSE_FFTW3'
 if options['USE_GESVD']: DFLAGS += ' -DUSE_LAPACK_DGESVD'
 if CC == 'mpicc':
 	# Using GCC as a compiler
