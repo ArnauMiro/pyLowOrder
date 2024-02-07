@@ -36,6 +36,7 @@ CXXFLAGS = ' -std=c++11'
 FFLAGS   = ''
 DFLAGS   = ' -DNPY_NO_DEPRECATED_API'
 if options['USE_MKL']:   DFLAGS += ' -DUSE_MKL'
+if options['USE_FFTW']:  DFLAGS += ' -DUSE_FFTW3'
 if options['USE_GESVD']: DFLAGS += ' -DUSE_LAPACK_DGESVD'
 if CC == 'mpicc':
 	# Using GCC as a compiler
@@ -195,7 +196,7 @@ modules_list = [
 ## Main setup
 setup(
 	name             = 'pyLowOrder',
-	version          = '1.2.0',
+	version          = '1.3.0',
 	author           = 'Benet Eiximeno, Beka Begiashvili, Arnau Miro, Eusebio Valero, Oriol Lehmkuhl',
 	author_email     = 'benet.eiximeno@bsc.es, beka.begiashvili@alumnos.upm.es, arnau.mirojane@bsc.es, eusebio.valero@upm.es, oriol.lehmkuhl@bsc.es',
 	maintainer       = 'Benet Eiximeno, Arnau Miro',
