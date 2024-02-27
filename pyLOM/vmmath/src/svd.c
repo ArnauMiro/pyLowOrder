@@ -14,6 +14,9 @@ typedef double _Complex complex_t;
 #include "mkl.h"
 #include "mkl_lapacke.h"
 #else
+// Due to a bug on OpenBLAS we need to switch the
+// SVD computation routine
+#define USE_LAPACK_GESVD
 #include "cblas.h"
 #include "lapacke.h"
 #endif
@@ -45,8 +48,8 @@ int svd(double *U, double *S, double *VT, double *Y, const int m, const int n) {
 			https://stackoverflow.com/questions/34698550/understanding-lapack-row-major-and-lapack-col-major-with-lda
 			https://software.intel.com/sites/products/documentation/doclib/mkl_sa/11/mkl_lapack_examples/lapacke_dgesvd_row.c.htm
 	*/
-	int retval, mn = MIN(m,n);
-	#ifdef USE_LAPACK_DGESVD
+	int retval = 0, mn = MIN(m,n);
+	#ifdef USE_LAPACK_GESVD
 	// Run LAPACKE DGESVD for the single value decomposition
 	double *superb;
 	superb = (double*)malloc((mn-1)*sizeof(double));
@@ -104,10 +107,10 @@ int zsvd(complex_t *U, double *S, complex_t *VT, complex_t *Y, const int m, cons
 			https://software.intel.com/sites/products/documentation/doclib/mkl_sa/11/mkl_lapack_examples/lapacke_dgesvd_row.c.htm
 	*/
 	int retval, mn = MIN(m,n);
-	#ifdef USE_LAPACK_DGESVD
-	// Run LAPACKE DGESVD for the single value decomposition
-	complex_t *superb;
-	superb = (complex_t*)malloc((mn-1)*sizeof(complex_t));
+	#ifdef USE_LAPACK_GESVD
+	// Run LAPACKE ZGESVD for the single value decomposition
+	double *superb;
+	superb = (double*)malloc((mn-1)*sizeof(double));
 	retval = LAPACKE_zgesvd(
 		LAPACK_ROW_MAJOR, // int  		matrix_layout
 					 'S', // char  		jobu
@@ -121,7 +124,7 @@ int zsvd(complex_t *U, double *S, complex_t *VT, complex_t *Y, const int m, cons
 					  mn, // int  		ldu
 					  VT, // complex_t* vt
 					   n, // int  		ldvt
-				  superb  // complex_t* superb
+				  superb  // double* superb
 	);
 	free(superb);
 	#else
