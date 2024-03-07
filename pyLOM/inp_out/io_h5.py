@@ -324,7 +324,7 @@ def h5_load_mesh(file,ptable,repart):
 	xyz    = np.array(file['MESH']['xyz'][inods,:],np.double) 
 	pointO = np.array(file['MESH']['pointOrder'][inods],np.int32)
 	# Fix the connectivity to start at zero
-	conec = np.searchsorted(pointO,conec.flatten()).reshape(conec.shape)
+	conec = np.searchsorted(pointO,conec.flatten()).reshape(conec.shape).astype(np.int32)
 	# Return
 	return Mesh(mtype,xyz,conec,eltype,cellO,pointO),inods
 
