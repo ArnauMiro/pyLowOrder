@@ -497,7 +497,7 @@ def h5_save_POD(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
 	file.close()
 
 @cr('h5IO.load_POD')
-def h5_load_POD(fname,vars,ptable=None):
+def h5_load_POD(fname,vars,nmod,ptable=None):
 	'''
 	Load POD variables from an HDF5 file.
 	'''
@@ -515,7 +515,7 @@ def h5_load_POD(fname,vars,ptable=None):
 		nvars = int(file['POD']['n_variables'][0])
 		point = bool(file['POD']['pointData'][0])
 		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,point=point)
-		varList.append( np.array(file['POD']['U'][istart:iend,:]) )
+		varList.append( np.array(file['POD']['U'][istart:iend,:nmod]) )
 	if 'S' in vars: varList.append( np.array(file['POD']['S'][:]) )
 	if 'V' in vars: varList.append( np.array(file['POD']['V'][:,:]) )
 	# Return
@@ -557,7 +557,7 @@ def h5_save_DMD(fname,muReal,muImag,Phi,bJov,ptable,nvars=1,pointData=True,mode=
 	file.close()
 
 @cr('h5IO.load_DMD')
-def h5_load_DMD(fname,vars,ptable=None):
+def h5_load_DMD(fname,vars,nmod,ptable=None):
 	'''
 	Load DMD variables from an HDF5 file.
 	'''
@@ -575,7 +575,7 @@ def h5_load_DMD(fname,vars,ptable=None):
 		nvars = int(file['DMD']['n_variables'][0])
 		point = bool(file['DMD']['pointData'][0])
 		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,point=point)
-		varList.append( np.array(file['DMD']['Phi'][istart:iend,:]) )
+		varList.append( np.array(file['DMD']['Phi'][istart:iend,:nmod]) )
 	if 'mu' in vars: 
 		varList.append( np.array(file['DMD']['Mu'][:,0]) ) # Real
 		varList.append( np.array(file['DMD']['Mu'][:,1]) ) # Imag
@@ -619,7 +619,7 @@ def h5_save_SPOD(fname,L,P,f,ptable,nvars=1,pointData=True,mode='w'):
 	dsP[istart:iend,:] = P
 	file.close()
 
-def h5_load_SPOD(fname,vars,ptable=None):
+def h5_load_SPOD(fname,vars,nmod,ptable=None):
 	'''
 	Load SPOD variables from an HDF5 file.
 	'''
@@ -638,7 +638,7 @@ def h5_load_SPOD(fname,vars,ptable=None):
 		nblocks = int(file['SPOD']['n_blocks'][0])
 		point   = bool(file['SPOD']['pointData'][0])
 		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars*nblocks,point=point)
-		varList.append( np.array(file['SPOD']['P'][istart:iend,:]) )
+		varList.append( np.array(file['SPOD']['P'][istart:iend,:nmod]) )
 	if 'L' in vars: 
 		varList.append( np.array(file['SPOD']['L'][:,:]) )
 	if 'f' in vars: 
