@@ -3,7 +3,7 @@ import torch.nn            as nn
 import torch.nn.functional as F
 import numpy               as np
 
-#from   torch.utils.tensorboard import SummaryWriter
+from   torch.utils.tensorboard import SummaryWriter
 from   torchsummary            import summary
 
 ## Wrapper of the activation functions
@@ -28,7 +28,7 @@ def leakyRelu():
 class Autoencoder(nn.Module):
     def __init__(self, latent_dim, nx, ny, input_channels, encoder, decoder, device='cpu'):
         super(Autoencoder, self).__init__()
-        self.lat_dim  = np.int(latent_dim)
+        self.lat_dim  = latent_dim
         self.nx       = nx
         self.ny       = ny
         self.inp_chan = input_channels
@@ -44,17 +44,17 @@ class Autoencoder(nn.Module):
         return  F.mse_loss(recon_x.view(-1, self.nx*self.ny), x.view(-1, self.nx*self.ny),reduction=reduction)
     
     def forward(self, x):
-        z = self.encoder(x)
+        z     = self.encoder(x)
         recon = self.decoder(z)
         return recon, z 
        
-    def train_model(self, train_data, vali_data, nepochs, callback=None, learning_rate=6e-4, BASEDIR='./', reduction='mean', alpha=0.1):
+    def train_model(self, train_data, vali_data, nepochs, callback=None, learning_rate=5e-4, BASEDIR='./', reduction='mean'):
         prev_train_loss = 1e99
         writer = SummaryWriter(BASEDIR)
         for epoch in range(nepochs):
             self.train()
             num_batches = 0 
-            learning_rate = learning_rate * 1/(1 + 0.0001 * epoch)               #HARDCODED!!
+            learning_rate = learning_rate * 1/(1 + 0.001 * epoch)               #HARDCODED!!
             optimizer = torch.optim.AdamW(self.parameters(), lr= learning_rate)  #HARDCODED!!
             tr_loss = 0
             for batch in train_data:
@@ -78,9 +78,9 @@ class Autoencoder(nn.Module):
                 writer.add_scalar("Loss/train",tr_loss,epoch+1)
                 writer.add_scalar("Loss/vali", va_loss,epoch+1)
 
-            #if callback.early_stop(va_loss, prev_train_loss, tr_loss):
-            #    print('Early Stopper Activated at epoch %i' %epoch, flush=True)
-            #    break
+            if callback.early_stop(va_loss, prev_train_loss, tr_loss):
+                print('Early Stopper Activated at epoch %i' %epoch, flush=True)
+                break
             prev_train_loss = tr_loss   
             print('Epoch [%d / %d] average training loss: %.5e | average validation loss: %.5e' % (epoch+1, nepochs, tr_loss, va_loss), flush=True)
         writer.flush()
@@ -138,7 +138,7 @@ class Autoencoder(nn.Module):
 class VariationalAutoencoder(nn.Module):
     def __init__(self, latent_dim, nx, ny, input_channels, encoder, decoder, device='cpu'):
         super(VariationalAutoencoder, self).__init__()
-        self.lat_dim  = np.int(latent_dim)
+        self.lat_dim  = latent_dim
         self.nx       = nx
         self.ny       = ny
         self.inp_chan = input_channels
@@ -170,7 +170,7 @@ class VariationalAutoencoder(nn.Module):
        
     def train_model(self, train_data, vali_data, beta, nepochs, callback=None, learning_rate=5e-4, BASEDIR='./'):
         prev_train_loss = 1e99
-        #writer = SummaryWriter(BASEDIR)
+        writer = SummaryWriter(BASEDIR)
         prevloss    = 0
         for epoch in range(nepochs):
             self.train()
@@ -188,7 +188,6 @@ class VariationalAutoencoder(nn.Module):
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-                print('Epoch [%d / %d] batch loss: %.5e' % (epoch+1, nepochs, loss.item()), flush=True)
                 tr_loss += loss.item()
                 mse     += self._lossfunc(batch, recon).item()
                 kld     += self._kld(mu,logvar).item()*beta
@@ -207,18 +206,18 @@ class VariationalAutoencoder(nn.Module):
                 va_loss/=val_batches
                 mse /= num_batches
                 kld /= num_batches
-                #writer.add_scalar("Loss/train",tr_loss,epoch+1)
-                #writer.add_scalar("Loss/vali", va_loss,epoch+1)
-                #writer.add_scalar("Loss/mse",  mse,    epoch+1)
-                #writer.add_scalar("Loss/kld",  kld,    epoch+1)
+                writer.add_scalar("Loss/train",tr_loss,epoch+1)
+                writer.add_scalar("Loss/vali", va_loss,epoch+1)
+                writer.add_scalar("Loss/mse",  mse,    epoch+1)
+                writer.add_scalar("Loss/kld",  kld,    epoch+1)
 
-            #if callback.early_stop(va_loss, prev_train_loss, tr_loss):
-            #    print('Early Stopper Activated at epoch %i' %epoch, flush=True)
-            #    break
+            if callback.early_stop(va_loss, prev_train_loss, tr_loss):
+                print('Early Stopper Activated at epoch %i' %epoch, flush=True)
+                break
             prev_train_loss = tr_loss   
             print('Epoch [%d / %d] average training loss: %.5e | average validation loss: %.5e' % (epoch+1, nepochs, tr_loss, va_loss), flush=True)
-        #qwriter.flush()
-        #qwriter.close()
+        writer.flush()
+        writer.close()
         torch.save(self.state_dict(), '%s/model_state' % BASEDIR)
 
     def reconstruct(self, dataset):

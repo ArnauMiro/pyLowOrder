@@ -247,15 +247,16 @@ class UNet(nn.Module):
 
 '''
 class Encoder2D(nn.Module):
-    def __init__(self, nlayers, latent_dim, nx, ny, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=True, stride=2, dropout=0):
+    def __init__(self, nlayers, latent_dim, nx, ny, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=True, stride=2, dropout=0, vae=False):
         super(Encoder2D, self).__init__()
 
         self.nlayers    = nlayers
-        self.filt_chan  = np.int(filter_channels)
-        self.in_chan    = np.int(input_channels)
-        self._lat_dim   = np.int(latent_dim)
-        self._nx        = np.int(nx)
-        self._ny        = np.int(ny)
+        self.filt_chan  = filter_channels
+        self.in_chan    = input_channels
+        self._lat_dim   = latent_dim
+        self._nx        = nx
+        self._ny        = ny
+        self._isvae     = vae
         self.funcs      = activation_funcs
         self.nlinear    = nlinear
         self.batch_norm = batch_norm
@@ -276,8 +277,11 @@ class Encoder2D(nn.Module):
         self.flat     = nn.Flatten()
         fc_input_size = out_channels * (self._nx // (1 << self.nlayers)) * (self._ny // (1 << self.nlayers))
         self.fc1      = nn.Linear(fc_input_size, self.nlinear)
-        self.mu       = nn.Linear(self.nlinear, self._lat_dim)
-        self.logvar   = nn.Linear(self.nlinear, self._lat_dim)
+        if self._isvae:
+            self.mu     = nn.Linear(self.nlinear, self._lat_dim)
+            self.logvar = nn.Linear(self.nlinear, self._lat_dim)
+        else:
+            self.z = nn.Linear(self.nlinear, self._lat_dim)
 
         self._reset_parameters()
     
@@ -297,9 +301,10 @@ class Encoder2D(nn.Module):
             out = self.funcs[ilayer](out)
         out = self.funcs[ilayer+1](self.flat(out))
         out = self.funcs[ilayer+2](self.fc1(out))
-        mu = self.mu(out)
-        logvar = self.logvar(out)
-        return mu, logvar
+        if self._isvae:
+            return self.mu(out), self.logvar(out)
+        else:
+            return self.z(out)
     
 class Decoder2D(nn.Module):
     def __init__(self, nlayers, latent_dim, nx, ny, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=True, stride=2, dropout=0):
