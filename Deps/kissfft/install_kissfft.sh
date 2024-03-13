@@ -33,7 +33,7 @@ else
 	echo "Fortran compiler '${FCOMPILER}' with flags '${FFLAGS}'"
 	echo "Install path ${INSTALL_PREFIX}"
 
-	cd Deps/
+	cd Deps/kissfft
 	# Clone repository and checkout version tag
 	git clone ${SRC} ${DIR}
 	cd ${DIR}
@@ -47,6 +47,7 @@ else
 		-DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX \
 		-DCMAKE_INSTALL_LIBDIR=$INSTALL_PREFIX/lib \
 		-DCMAKE_INSTALL_INCLUDEDIR=$INSTALL_PREFIX/include \
+		-DCMAKE_CXX_COMPILER_WORKS=ON \
 		-DKISSFFT_DATATYPE=double \
 		-DBUILD_SHARED_LIBS=OFF -DKISSFFT_STATIC=ON \
 		-DKISSFFT_OPENMP=${USE_OMP} \

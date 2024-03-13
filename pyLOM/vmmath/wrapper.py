@@ -360,3 +360,16 @@ def flip(A):
 	Changes order of the vector
 	'''
 	return np.flip(A)
+
+@cr('math.cellCenters')
+def cellCenters(xyz,conec):
+	'''
+	Compute the cell centers given a list 
+	of elements.
+	'''
+	xyz_cen = np.zeros((conec.shape[0],xyz.shape[1]),np.double)
+	for ielem in range(conec.shape[0]):
+		# Get the values of the field and the positions of the element
+		c = conec[ielem,conec[ielem,:]>=0]
+		xyz_cen[ielem,:] = np.mean(xyz[c,:],axis=0)
+	return xyz_cen

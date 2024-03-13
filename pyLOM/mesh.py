@@ -9,7 +9,7 @@ from __future__ import print_function, division
 
 import numpy as np
 
-
+from .vmmath       import cellCenters
 from .utils.cr     import cr
 from .utils.mem    import mem
 from .utils.errors import raiseError
@@ -147,7 +147,7 @@ class Mesh(object):
 			xyzc[:,2]  = zz.reshape((self.ncells,),order='C')		
 		# Connectivity for a unstructured mesh
 		if self.type == 'UNSTRUCT':
-			raiseError('Not yet implemented!')
+			xyzc = cellCenters(self._xyz,self._conec)
 		return xyzc
 
 	@cr('Mesh.reshape')
