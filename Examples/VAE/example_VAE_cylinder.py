@@ -9,15 +9,15 @@ device = pyLOM.VAE.select_device()
 ptrain      = 0.8
 pvali       = 0.2
 batch_size  = 1
-nlayers     = 5
 nepochs     = 300
+nlayers     = 5
 channels    = 32
 lat_dim     = 10
 beta        = 0
 kernel_size = 4
-activations = [pyLOM.VAE.tanh(), pyLOM.VAE.tanh(), pyLOM.VAE.tanh(), pyLOM.VAE.tanh(), pyLOM.VAE.tanh(), pyLOM.VAE.tanh(), pyLOM.VAE.tanh()]
 nlinear     = 256
 padding     = 1
+activations = [pyLOM.VAE.tanh(), pyLOM.VAE.tanh(), pyLOM.VAE.tanh(), pyLOM.VAE.tanh(), pyLOM.VAE.tanh(), pyLOM.VAE.tanh(), pyLOM.VAE.tanh()]
 batch_norm  = True
 
 ## Load pyLOM dataset and set up results output
