@@ -52,7 +52,7 @@ pyLOM.POD.plotSnapshot(d,vars=['VELOR'],instant=0,component=0,cmap='jet')
 ## Plot POD mode
 if pyLOM.utils.is_rank_or_serial(0):
 	# 0 - module, 1,2 - components
-	_,ax,_ = pyLOM.POD.plotMode(V,t,modes=[1,3])
+	_,ax = pyLOM.POD.plotMode(V,t,modes=[1,3])
 	ax[0][1].set_xlim([0,0.5])
 	ax[1][1].set_xlim([0,0.5])
 
