@@ -39,9 +39,9 @@ def save(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
 
 
 @cr('POD.load')
-def load(fname,vars=['U','S','V'],ptable=None):
+def load(fname,vars=['U','S','V'],nmod=-1,ptable=None):
 	'''
 	Load POD variables in serial or parallel
 	according to the partition used to compute the POD.
 	'''
-	return io.h5_load_POD(fname,vars,ptable)
+	return io.h5_load_POD(fname,vars,nmod,ptable)

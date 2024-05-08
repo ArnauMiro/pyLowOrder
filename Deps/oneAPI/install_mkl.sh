@@ -68,6 +68,13 @@ else
 		# Create install directory and copy includes
 		mkdir -p ${INSTALL_PREFIX}
 		cp -r $MKL_INSTALL_DIR/include ${INSTALL_PREFIX}
+	elif [ "$PLATFORM" = "flexo" ]; then # flexo
+		# MKL path
+		MKL_INSTALL_DIR="/opt/ohpc/pub/compiler/intel/oneapi/mkl/${VERS}/"
+		MKL_LIBRARIES="${MKL_INSTALL_DIR}/lib/intel64/"
+		# Create install directory and copy includes
+		mkdir -p ${INSTALL_PREFIX}
+		cp -r $MKL_INSTALL_DIR/include ${INSTALL_PREFIX}
 	else
 		cd Deps/
 		# MKL path

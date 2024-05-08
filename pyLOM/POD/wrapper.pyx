@@ -18,7 +18,7 @@ from libc.string   cimport memcpy, memset
 from mpi4py.libmpi cimport MPI_Comm
 from mpi4py        cimport MPI
 
-from ..utils.cr     import cr
+from ..utils.cr     import cr, cr_start, cr_stop
 from ..utils.errors import raiseError
 
 cdef extern from "vector_matrix.h":
@@ -65,16 +65,20 @@ def run(double[:,:] X,int remove_mean=True):
 	# Allocate memory
 	Y = <double*>malloc(m*n*sizeof(double))
 	if remove_mean:
+		cr_start('POD.temporal_mean',0)
 		X_mean = <double*>malloc(m*sizeof(double))
 		# Compute temporal mean
 		c_temporal_mean(X_mean,&X[0,0],m,n)
 		# Compute substract temporal mean
 		c_subtract_mean(Y,&X[0,0],X_mean,m,n)
 		free(X_mean)
+		cr_stop('POD.temporal_mean',0)
 	else:
 		memcpy(Y,&X[0,0],m*n*sizeof(double))
 	# Compute SVD
+	cr_start('POD.SVD',0)
 	retval = c_tsqr_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,MPI_COMM.ob_mpi)
+	cr_stop('POD.SVD',0)
 	free(Y)
 	# Return
 	if not retval == 0: raiseError('Problems computing SVD!')
