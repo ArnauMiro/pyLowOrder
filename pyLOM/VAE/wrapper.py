@@ -46,9 +46,57 @@ class Autoencoder(nn.Module):
     def forward(self, x):
         z     = self.encoder(x)
         recon = self.decoder(z)
-        return recon, z 
-       
-    def train_model(self, train_data, vali_data, nepochs, callback=None, learning_rate=5e-4, BASEDIR='./', reduction='mean'):
+        return recon, z  
+
+    def train_model(self, train_data, vali_data, nepochs, callback=None, learning_rate=1e-3, BASEDIR='./', reduction='mean', lr_decay=0.995):
+        # Initialization
+        prev_train_loss = 1e99
+        writer = SummaryWriter(BASEDIR)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=learning_rate)
+        scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=lr_decay)
+        # Training loop
+        for epoch in range(nepochs):
+            self.train()
+            num_batches = 0
+            tr_loss = 0
+            for batch in train_data:
+                recon, _ = self(batch)
+                loss = self._lossfunc(batch, recon, reduction)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                tr_loss += loss.item()
+                num_batches += 1
+            tr_loss /= num_batches
+            # Validation phase
+            with torch.no_grad():
+                val_batches = 0
+                va_loss = 0
+                for val_batch in vali_data:
+                    val_recon, _ = self(val_batch)
+                    vali_loss = self._lossfunc(val_batch, val_recon, reduction)
+                    va_loss += vali_loss.item()
+                    val_batches += 1
+                va_loss /= val_batches
+            # Logging
+            writer.add_scalar("Loss/train", tr_loss, epoch + 1)
+            writer.add_scalar("Loss/vali", va_loss, epoch + 1)
+            # Early stopping
+            if callback and callback.early_stop(va_loss, prev_train_loss, tr_loss):
+                print(f'Early Stopper Activated at epoch {epoch}', flush=True)
+                break
+            prev_train_loss = tr_loss
+            print(f'Epoch [{epoch+1} / {nepochs}] average training loss: {tr_loss:.5e} | average validation loss: {va_loss:.5e}', flush=True)            
+            # Learning rate scheduling
+            scheduler.step()
+
+        # Cleanup
+        writer.flush()
+        writer.close()
+        torch.save(self.state_dict(), f'{BASEDIR}/model_state.pth')
+
+      
+    def _old_train_model(self, train_data, vali_data, nepochs, callback=None, learning_rate=5e-4, BASEDIR='./', reduction='mean'):
         prev_train_loss = 1e99
         writer = SummaryWriter(BASEDIR)
         for epoch in range(nepochs):
