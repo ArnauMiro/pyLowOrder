@@ -118,7 +118,7 @@ class Dataset(torch_dataset):
         maxi = np.zeros((self._n_channels,self.nt),dtype=float)
         for ichan in range(self._n_channels):
             var           = vars[ichan]
-            maxi[ichan,:] = np.max(np.abs(var),axis=2)
+            maxi[ichan,:] = np.max(np.abs(var),axis=0)
             data.append(var/maxi[ichan,:])
         return data, mean, maxi
     
