@@ -90,6 +90,7 @@ class Autoencoder(nn.Module):
     def reconstruct(self, dataset):
         ##  Compute reconstruction and its accuracy
         ek     = np.zeros((len(dataset),))
+        mean   = np.zeros((len(dataset),))
         rec    = np.zeros((self.inp_chan,self.nx*self.ny,len(dataset))) 
         loader = torch.utils.data.DataLoader(dataset, batch_size=len(dataset), shuffle=False)
         with torch.no_grad():
@@ -106,12 +107,14 @@ class Autoencoder(nn.Module):
                     x_recchan  = x_recon[0,ichan,:,:]
                     x_recchan  = torch.reshape(torch.tensor(x_recchan),[self.nx*self.ny,])
                     rec[ichan,:,i] = x_recchan.detach().numpy()
-                xr    = rec.reshape((self.inp_chan*self.nx*self.ny,len(dataset)))
-                x     = torch.reshape(x,[self.inp_chan*self.nx*self.ny])
-                x     = x.to("cpu")
-                ek[i] = torch.sum((x-xr[:,i])**2)/torch.sum(x**2)
+                xr      = rec.reshape((self.inp_chan*self.nx*self.ny,len(dataset)))
+                x       = torch.reshape(x,[self.inp_chan*self.nx*self.ny])
+                x       = x.to("cpu")
+                ek[i]   = torch.sum((x-xr[:,i])**2)/torch.sum(x**2)
+                mean[i] = torch.mean(torch.abs((x-xr[:,i])/x))
         energy = (1-np.mean(ek))*100
         print('Recovered energy %.2f' % (energy))
+        print('Mean error %.2f percent' % (np.mean(mean)*100))
         return rec
     
     def latent_space(self, dataset):

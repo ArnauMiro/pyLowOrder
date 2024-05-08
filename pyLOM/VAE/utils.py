@@ -56,7 +56,7 @@ class Dataset(torch_dataset):
         self._device = device
         self._n_channels = len(vars)
         if transform:
-            self._data, self._mean, self._max = self._normalize(vars)
+            self._data, self._mean, self._max = self._normalize_min_max(vars)
         else:
             self._data, self._mean, self._max = self._get_data(vars)
 
@@ -96,6 +96,10 @@ class Dataset(torch_dataset):
     def n_channels(self):
         return self._n_channels
     
+    @property
+    def max(self):
+        return self._max
+       
     def _normalize(self, vars):
         data = [] #tuple(None for _ in range(self._n_channels))
         mean = np.zeros((self._n_channels,self._nx*self._ny),dtype=float)
@@ -106,6 +110,16 @@ class Dataset(torch_dataset):
             ifluc         = subtract_mean(var,mean[ichan,:])
             maxi[ichan]   = np.max(np.abs(ifluc))
             data.append(ifluc)
+        return data, mean, maxi
+    
+    def _normalize_min_max(self, vars):
+        data = [] #tuple(None for _ in range(self._n_channels))
+        mean = np.zeros((self._n_channels,self._nx*self._ny),dtype=float)
+        maxi = np.zeros((self._n_channels,self.nt),dtype=float)
+        for ichan in range(self._n_channels):
+            var           = vars[ichan]
+            maxi[ichan,:] = np.max(np.abs(var),axis=0)
+            data.append(var/maxi[ichan,:])
         return data, mean, maxi
     
     def _get_data(self, vars):
