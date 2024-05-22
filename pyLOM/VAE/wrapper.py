@@ -236,6 +236,8 @@ class VariationalAutoencoder(nn.Module):
     def reconstruct(self, dataset):
         ##  Compute reconstruction and its accuracy
         ek     = np.zeros((len(dataset),))
+        mu     = np.zeros((len(dataset),))
+        si     = np.zeros((len(dataset),))
         rec    = np.zeros((self.inp_chan,self.nx*self.ny,len(dataset))) 
         loader = torch.utils.data.DataLoader(dataset, batch_size=len(dataset), shuffle=False)
         with torch.no_grad():
@@ -256,9 +258,13 @@ class VariationalAutoencoder(nn.Module):
                 x     = torch.reshape(x,[self.inp_chan*self.nx*self.ny])
                 x     = x.to("cpu")
                 ek[i] = torch.sum((x-xr[:,i])**2)/torch.sum(x**2)
+                mu[i] = 2*torch.mean(x)*np.mean(xr)/(torch.mean(x)**2+np.mean(xr)**2)
+                si[i] = 2*torch.std(x)*np.std(xr)/(torch.std(x)**2+np.std(xr)**2)
         energy = (1-np.mean(ek))*100
         print('Recovered energy %.2f' % (energy))
-        return rec, ek
+        print('Recovered mean %.2f' % (np.mean(mu)*100))
+        print('Recovered fluct %.2f' % (np.mean(si)*100))
+        return rec
     
     def correlation(self, dataset):
         ##  Compute correlation between latent variables
