@@ -48,7 +48,7 @@ class Autoencoder(nn.Module):
         recon = self.decoder(z)
         return recon, z  
 
-    def train_model(self, train_data, vali_data, nepochs, callback=None, learning_rate=1e-3, BASEDIR='./', reduction='mean', lr_decay=0.995):
+    def train_model(self, train_data, vali_data, nepochs, callback=None, learning_rate=1e-3, BASEDIR='./', reduction='mean', lr_decay=0.999):
         # Initialization
         prev_train_loss = 1e99
         writer = SummaryWriter(BASEDIR)
@@ -94,46 +94,6 @@ class Autoencoder(nn.Module):
         writer.flush()
         writer.close()
         torch.save(self.state_dict(), f'{BASEDIR}/model_state.pth')
-
-      
-    def _old_train_model(self, train_data, vali_data, nepochs, callback=None, learning_rate=5e-4, BASEDIR='./', reduction='mean'):
-        prev_train_loss = 1e99
-        writer = SummaryWriter(BASEDIR)
-        for epoch in range(nepochs):
-            self.train()
-            num_batches = 0 
-            learning_rate = learning_rate * 1/(1 + 0.001 * epoch)               #HARDCODED!!
-            optimizer = torch.optim.AdamW(self.parameters(), lr= learning_rate)  #HARDCODED!!
-            tr_loss = 0
-            for batch in train_data:
-                recon, _ = self(batch)
-                loss     = self._lossfunc(batch, recon, reduction)
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                tr_loss     += loss.item()
-                num_batches += 1
-            with torch.no_grad():
-                val_batches = 0
-                va_loss     = 0
-                for val_batch in vali_data:
-                    val_recon,  _ = self(val_batch)
-                    vali_loss     = self._lossfunc(val_batch, val_recon, reduction)
-                    va_loss      += vali_loss.item()
-                    val_batches  += 1
-                tr_loss/=num_batches
-                va_loss/=val_batches
-                writer.add_scalar("Loss/train",tr_loss,epoch+1)
-                writer.add_scalar("Loss/vali", va_loss,epoch+1)
-
-            if callback.early_stop(va_loss, prev_train_loss, tr_loss):
-                print('Early Stopper Activated at epoch %i' %epoch, flush=True)
-                break
-            prev_train_loss = tr_loss   
-            print('Epoch [%d / %d] average training loss: %.5e | average validation loss: %.5e' % (epoch+1, nepochs, tr_loss, va_loss), flush=True)
-        writer.flush()
-        writer.close()
-        torch.save(self.state_dict(), '%s/model_state' % BASEDIR)
 
     def reconstruct(self, dataset):
         ##  Compute reconstruction and its accuracy
@@ -219,15 +179,14 @@ class VariationalAutoencoder(nn.Module):
         recon = self.decoder(z)
         return recon, mu, logvar, z
        
-    def train_model(self, train_data, vali_data, beta, nepochs, callback=None, learning_rate=5e-4, BASEDIR='./'):
+    def train_model(self, train_data, vali_data, beta, nepochs, callback=None, learning_rate=5e-4, lr_decay=0.999, BASEDIR='./'):
         prev_train_loss = 1e99
         writer = SummaryWriter(BASEDIR)
-        prevloss    = 0
+        optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
+        scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=lr_decay)
         for epoch in range(nepochs):
             self.train()
             num_batches = 0 
-            learning_rate = learning_rate * 1/(1 + 0.0001 * epoch)               #HARDCODED!!
-            optimizer = torch.optim.AdamW(self.parameters(), lr= learning_rate)  #HARDCODED!!
             tr_loss = 0
             mse     = 0
             kld     = 0
@@ -267,6 +226,9 @@ class VariationalAutoencoder(nn.Module):
                 break
             prev_train_loss = tr_loss   
             print('Epoch [%d / %d] average training loss: %.5e | average validation loss: %.5e' % (epoch+1, nepochs, tr_loss, va_loss), flush=True)
+            # Learning rate scheduling
+            scheduler.step()
+
         writer.flush()
         writer.close()
         torch.save(self.state_dict(), '%s/model_state' % BASEDIR)
