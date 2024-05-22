@@ -354,8 +354,8 @@ class Decoder2D(nn.Module):
         out = self.funcs[self.nlayers+1](self.fc1(x))
         out = self.funcs[self.nlayers](self.fc2(out))
         out = out.view(out.size(0), self.filt_chan * (1 << (self.nlayers-1)), int(self.nx // (1 << self.nlayers)), int(self.ny // (1 << self.nlayers)))
-        for ilayer, (deconv_layer) in enumerate(self.deconv_layers):
+        for ilayer, (deconv_layer) in enumerate(self.deconv_layers[:-1]):
             if self.batch_norm:
                 out = self.norm_layers[ilayer](out)
             out = self.funcs[self.nlayers-ilayer-1](deconv_layer(out))
-        return out
+        return self.deconv_layers[-1](out)
