@@ -245,7 +245,7 @@ class VariationalAutoencoder(nn.Module):
         ek = np.zeros(num_samples)
         mu = np.zeros(num_samples)
         si = np.zeros(num_samples)
-        rec = np.zeros((self.inp_chan, self.nx * self.ny, num_samples))
+        rec = torch.zeros((self.inp_chan, self.nx * self.ny, num_samples), device=self._device)
 
         loader = torch.utils.data.DataLoader(dataset, batch_size=num_samples, shuffle=False)
 
@@ -253,26 +253,26 @@ class VariationalAutoencoder(nn.Module):
             ## Energy recovered in reconstruction
             for energy_batch in loader:
                 energy_batch = energy_batch.to(self._device)
-                x_recon = self(energy_batch)
-                x_recon = x_recon.cpu().numpy()
+                x_recon,_,_,_ = self(energy_batch)
 
                 for i in range(num_samples):
                     x_recchan = x_recon[i]
-                    rec[:, :, i] = x_recchan.reshape(self.inp_chan, self.nx * self.ny)
+                    rec[:, :, i] = x_recchan.view(self.inp_chan, self.nx * self.ny)
 
-                    x = energy_batch[i].reshape(self.inp_chan * self.nx * self.ny).cpu()
-                    xr = rec[:, :, i].reshape(self.inp_chan * self.nx * self.ny)
+                    x = energy_batch[i].view(self.inp_chan * self.nx * self.ny)
+                    xr = rec[:, :, i].view(self.inp_chan * self.nx * self.ny)
 
                     ek[i] = torch.sum((x - xr) ** 2) / torch.sum(x ** 2)
-                    mu[i] = 2 * torch.mean(x) * np.mean(xr) / (torch.mean(x) ** 2 + np.mean(xr) ** 2)
-                    si[i] = 2 * torch.std(x) * np.std(xr) / (torch.std(x) ** 2 + np.std(xr) ** 2)
+                    mu[i] = 2 * torch.mean(x) * torch.mean(xr) / (torch.mean(x) ** 2 + torch.mean(xr) ** 2)
+                    si[i] = 2 * torch.std(x) * torch.std(xr) / (torch.std(x) ** 2 + torch.std(xr) ** 2)
 
         energy = (1 - np.mean(ek)) * 100
         print('Recovered energy %.2f' % energy)
         print('Recovered mean %.2f' % (np.mean(mu) * 100))
         print('Recovered fluct %.2f' % (np.mean(si) * 100))
 
-        return rec
+        return rec.cpu().numpy()
+
 
 
     def _old_reconstruct(self, dataset):
