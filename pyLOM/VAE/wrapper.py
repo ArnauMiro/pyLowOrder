@@ -3,10 +3,12 @@ import torch.nn            as nn
 import torch.nn.functional as F
 import numpy               as np
 
+from   torch.cuda.amp            import GradScaler, autocast
 from   torch.utils.tensorboard import SummaryWriter
 from   torchsummary            import summary
 
 from   ..utils.cr              import cr
+
 
 ## Wrapper of the activation functions
 def tanh():
@@ -185,45 +187,52 @@ class VariationalAutoencoder(nn.Module):
     @cr('VAE.train')   
     def train_model(self, train_data, vali_data, beta, nepochs, callback=None, learning_rate=5e-4, lr_decay=0.999, BASEDIR='./'):
         prev_train_loss = 1e99
-        writer = SummaryWriter(BASEDIR)
+        writer    = SummaryWriter(BASEDIR)
         optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
         scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=lr_decay)
+        scaler    = GradScaler()
         for epoch in range(nepochs):
+            ## Training
             self.train()
-            num_batches = 0 
             tr_loss = 0
             mse     = 0
             kld     = 0
             for batch in train_data:
-                recon, mu, logvar, _ = self(batch)
-                mse_i  = self._lossfunc(batch, recon, reduction='mean')
-                bkld_i = self._kld(mu,logvar)*beta
-                loss = mse_i - bkld_i
                 optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+                with autocast():
+                    recon, mu, logvar, _ = self(batch)
+                    mse_i = self._lossfunc(batch, recon, reduction='mean')
+                    kld_i = self._kld(mu,logvar)
+                    loss  = mse_i - beta*kld_i
+                scaler.scale(loss).backward()
+                scaler.step(optimizer)
+                scaler.update()
                 tr_loss += loss.item()
-                mse     += self._lossfunc(batch, recon).item()
-                kld     += self._kld(mu,logvar).item()*beta
-                num_batches += 1
+                mse     += mse_i.item()
+                kld     += kld_i.item()
+            num_batches = len(train_data)
+            tr_loss /= num_batches
+            mse /= num_batches
+            kld /= num_batches
+
+            ## Validation
+            self.eval()
+            va_loss     = 0
             with torch.no_grad():
-                val_batches = 0
-                va_loss     = 0
                 for val_batch in vali_data:
-                    val_recon, val_mu, val_logvar, _ = self(val_batch)
-                    mse_i       = self._lossfunc(val_batch, val_recon, reduction='mean')
-                    bkld_i      = self._kld(val_mu,val_logvar)*beta
-                    vali_loss   = mse_i - bkld_i
-                    va_loss     += vali_loss.item()
-                    val_batches += 1
-                tr_loss/=num_batches
-                va_loss/=val_batches
-                mse /= num_batches
-                kld /= num_batches
-                writer.add_scalar("Loss/train",tr_loss,epoch+1)
-                writer.add_scalar("Loss/vali", va_loss,epoch+1)
-                writer.add_scalar("Loss/mse",  mse,    epoch+1)
-                writer.add_scalar("Loss/kld",  kld,    epoch+1)
+                    with autocast():
+                        val_recon, val_mu, val_logvar, _ = self(val_batch)
+                        mse_i     = self._lossfunc(val_batch, val_recon, reduction='mean')
+                        kld_i     = self._kld(val_mu,val_logvar)
+                        vali_loss = mse_i - beta*kld_i
+                    va_loss  += vali_loss.item()
+
+            num_batches = len(vali_data)
+            va_loss    /=num_batches
+            writer.add_scalar("Loss/train",tr_loss,epoch+1)
+            writer.add_scalar("Loss/vali", va_loss,epoch+1)
+            writer.add_scalar("Loss/mse",  mse,    epoch+1)
+            writer.add_scalar("Loss/kld",  kld,    epoch+1)
 
             if callback.early_stop(va_loss, prev_train_loss, tr_loss):
                 print('Early Stopper Activated at epoch %i' %epoch, flush=True)
@@ -272,42 +281,7 @@ class VariationalAutoencoder(nn.Module):
         print('Recovered fluct %.2f' % (np.mean(si) * 100))
 
         return rec.cpu().numpy()
-
-
-
-    def _old_reconstruct(self, dataset):
-        ##  Compute reconstruction and its accuracy
-        ek     = np.zeros((len(dataset),))
-        mu     = np.zeros((len(dataset),))
-        si     = np.zeros((len(dataset),))
-        rec    = np.zeros((self.inp_chan,self.nx*self.ny,len(dataset))) 
-        loader = torch.utils.data.DataLoader(dataset, batch_size=len(dataset), shuffle=False)
-        with torch.no_grad():
-            ## Energy recovered in reconstruction
-            instant = iter(loader)
-            energy_batch = next(instant)
-            for i in range(len(dataset)):
-                x = energy_batch[i,:,:,:]
-                x = torch.reshape(x, [1,self.inp_chan,self.nx,self.ny])
-                x = x.to(self._device)
-                x_recon  = self(x)
-                x_recon  = np.asanyarray(x_recon[0].cpu())
-                for ichan in range(self.inp_chan):
-                    x_recchan  = x_recon[0,ichan,:,:]
-                    x_recchan  = torch.reshape(torch.tensor(x_recchan),[self.nx*self.ny,])
-                    rec[ichan,:,i] = x_recchan.detach().numpy()
-                xr    = rec.reshape((self.inp_chan*self.nx*self.ny,len(dataset)))
-                x     = torch.reshape(x,[self.inp_chan*self.nx*self.ny])
-                x     = x.to("cpu")
-                ek[i] = torch.sum((x-xr[:,i])**2)/torch.sum(x**2)
-                mu[i] = 2*torch.mean(x)*np.mean(xr)/(torch.mean(x)**2+np.mean(xr)**2)
-                si[i] = 2*torch.std(x)*np.std(xr)/(torch.std(x)**2+np.std(xr)**2)
-        energy = (1-np.mean(ek))*100
-        print('Recovered energy %.2f' % (energy))
-        print('Recovered mean %.2f' % (np.mean(mu)*100))
-        print('Recovered fluct %.2f' % (np.mean(si)*100))
-        return rec
-    
+  
     def correlation(self, dataset):
         ##  Compute correlation between latent variables
         loader = torch.utils.data.DataLoader(dataset, batch_size=len(dataset), shuffle=False)
