@@ -6,6 +6,8 @@ import numpy               as np
 from   torch.utils.tensorboard import SummaryWriter
 from   torchsummary            import summary
 
+from   ..utils.cr              import cr
+
 ## Wrapper of the activation functions
 def tanh():
     return nn.Tanh()
@@ -178,7 +180,9 @@ class VariationalAutoencoder(nn.Module):
         z = self._reparamatrizate(mu, logvar)
         recon = self.decoder(z)
         return recon, mu, logvar, z
-       
+    
+
+    @cr('VAE.train')   
     def train_model(self, train_data, vali_data, beta, nepochs, callback=None, learning_rate=5e-4, lr_decay=0.999, BASEDIR='./'):
         prev_train_loss = 1e99
         writer = SummaryWriter(BASEDIR)
@@ -233,7 +237,45 @@ class VariationalAutoencoder(nn.Module):
         writer.close()
         torch.save(self.state_dict(), '%s/model_state' % BASEDIR)
 
+
+    @cr('VAE.reconstruct')
     def reconstruct(self, dataset):
+        ## Compute reconstruction and its accuracy
+        num_samples = len(dataset)
+        ek = np.zeros(num_samples)
+        mu = np.zeros(num_samples)
+        si = np.zeros(num_samples)
+        rec = np.zeros((self.inp_chan, self.nx * self.ny, num_samples))
+
+        loader = torch.utils.data.DataLoader(dataset, batch_size=num_samples, shuffle=False)
+
+        with torch.no_grad():
+            ## Energy recovered in reconstruction
+            for energy_batch in loader:
+                energy_batch = energy_batch.to(self._device)
+                x_recon = self(energy_batch)
+                x_recon = x_recon.cpu().numpy()
+
+                for i in range(num_samples):
+                    x_recchan = x_recon[i]
+                    rec[:, :, i] = x_recchan.reshape(self.inp_chan, self.nx * self.ny)
+
+                    x = energy_batch[i].reshape(self.inp_chan * self.nx * self.ny).cpu()
+                    xr = rec[:, :, i].reshape(self.inp_chan * self.nx * self.ny)
+
+                    ek[i] = torch.sum((x - xr) ** 2) / torch.sum(x ** 2)
+                    mu[i] = 2 * torch.mean(x) * np.mean(xr) / (torch.mean(x) ** 2 + np.mean(xr) ** 2)
+                    si[i] = 2 * torch.std(x) * np.std(xr) / (torch.std(x) ** 2 + np.std(xr) ** 2)
+
+        energy = (1 - np.mean(ek)) * 100
+        print('Recovered energy %.2f' % energy)
+        print('Recovered mean %.2f' % (np.mean(mu) * 100))
+        print('Recovered fluct %.2f' % (np.mean(si) * 100))
+
+        return rec
+
+
+    def _old_reconstruct(self, dataset):
         ##  Compute reconstruction and its accuracy
         ek     = np.zeros((len(dataset),))
         mu     = np.zeros((len(dataset),))
