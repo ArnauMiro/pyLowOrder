@@ -243,9 +243,8 @@ class UNet(nn.Module):
 
         return out
 
-
-
 '''
+
 class Encoder2D(nn.Module):
     def __init__(self, nlayers, latent_dim, nx, ny, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=True, stride=2, dropout=0, vae=False):
         super(Encoder2D, self).__init__()

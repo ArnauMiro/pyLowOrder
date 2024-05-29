@@ -246,7 +246,6 @@ class VariationalAutoencoder(nn.Module):
         writer.close()
         torch.save(self.state_dict(), '%s/model_state' % BASEDIR)
 
-
     @cr('VAE.reconstruct')
     def reconstruct(self, dataset):
         ## Compute reconstruction and its accuracy
