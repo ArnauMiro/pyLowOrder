@@ -187,11 +187,11 @@ class VariationalAutoencoder(Autoencoder):
             kld     = 0
             for batch in train_data:
                 optimizer.zero_grad()
-                with autocast():
-                    recon, mu, logvar, _ = self(batch)
-                    mse_i = self._lossfunc(batch, recon, reduction='mean')
-                    kld_i = self._kld(mu,logvar)
-                    loss  = mse_i - beta*kld_i
+                #with autocast():
+                recon, mu, logvar, _ = self(batch)
+                mse_i = self._lossfunc(batch, recon, reduction='mean')
+                kld_i = self._kld(mu,logvar)
+                loss  = mse_i - beta*kld_i
                 scaler.scale(loss).backward()
                 scaler.step(optimizer)
                 scaler.update()
@@ -222,9 +222,10 @@ class VariationalAutoencoder(Autoencoder):
             writer.add_scalar("Loss/mse",  mse,    epoch+1)
             writer.add_scalar("Loss/kld",  kld,    epoch+1)
 
-            if callback.early_stop(va_loss, prev_train_loss, tr_loss):
-                print('Early Stopper Activated at epoch %i' %epoch, flush=True)
-                break
+            if callback is not None:
+                if callback.early_stop(va_loss, prev_train_loss, tr_loss):
+                    print('Early Stopper Activated at epoch %i' %epoch, flush=True)
+                    break
             prev_train_loss = tr_loss   
             print('Epoch [%d / %d] average training loss: %.5e | average validation loss: %.5e' % (epoch+1, nepochs, tr_loss, va_loss), flush=True)
             # Learning rate scheduling
