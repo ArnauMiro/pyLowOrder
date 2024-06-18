@@ -111,6 +111,56 @@ def run(X, r, remove_mean = True):
 
 	return muReal, muImag, Phi, bJov
 
+@cr('OptimizedDMD.run')
+def run_optimized(X, t, r, constraints, remove_mean=True):
+	'''
+	DMD analysis of snapshot matrix X
+	Inputs:
+		- X[ndims*nmesh,n_temp_snapshots]: data matrix
+		- remove_mean:                     whether or not to remove the mean flow
+
+	Returns:
+		- Phi:      DMD Modes
+		- muReal:   Real part of the eigenvalues
+		- muImag:   Imaginary part of the eigenvalues
+		- b:        Amplitude of the DMD modes
+		- X_DMD:    Reconstructed flow
+	'''
+	#Remove temporal mean or not, depending on the user choice
+	if remove_mean:
+		cr_start('DMD.temporal_mean',0)
+		#Compute temporal mean
+		X_mean = temporal_mean(X)
+		#Subtract temporal mean
+		Y = subtract_mean(X, X_mean)
+		cr_stop('DMD.temporal_mean',0)
+	else:
+		Y = X.copy()
+
+	#Compute SVD
+	cr_start('DMD.SVD',0)
+	U, S, VT = tsqr_svd(Y[:, :-1])
+	cr_stop('DMD.SVD',0)
+	# Truncate according to residual
+	cr_start('DMD.truncate', 0)
+	U, S, VT = truncate(U, S, VT, r)
+	cr_stop('DMD.truncate', 0)
+
+	#Project A (Jacobian of the snapshots) into POD basis
+	cr_start('DMD.linear_mapping',0)
+	aux1   = matmulp(transpose(U), Y[:, 1:])
+	aux2   = transpose(vecmat(1./S, VT))
+	Atilde = matmul(aux1, aux2)
+	cr_stop('DMD.linear_mapping',0)
+
+	#Eigendecomposition of Atilde: Eigenvectors given as complex matrix
+	cr_start('DMD.modes',0)
+	alphaReal_i, alpha_Imag_i, w = eigen(Atilde)
+	
+
+
+	return muReal, muImag, Phi, bJov
+
 @cr('DMD.frequency_damping')
 def frequency_damping(real, imag, dt):
 	'''
