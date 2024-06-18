@@ -166,7 +166,7 @@ class Dataset(torch_dataset):
         return train_loader, vali_loader
     
 class Dataset3D(torch_dataset):
-    def __init__(self, vars, nx, ny, nz, time, device = 'cpu', transform = True):
+    def __init__(self, vars, nx, ny, nz, time, device='cpu', transform = True):
         self._nx = nx
         self._ny = ny
         self._nz = nz
