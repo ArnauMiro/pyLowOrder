@@ -18,36 +18,6 @@ def create_results_folder(RESUDIR):
 def select_device():
     return torch.device("cuda" if torch.cuda.is_available() else "cpu") 
 
-class DenoisingDataset(torch_dataset):
-    def __init__(self, input, target, nx, ny, transform = None):
-        self._input  = input
-        self._target = target
-        self._nx     = nx
-        self._ny     = ny
-        self.transform = transform
-
-    def __len__(self):
-        return len(self._input[0,:])
-          
-    def __getitem__(self, index):
-        input  = torch.Tensor(self._input[:,index])
-        input  = input.resize_(1,self.nx,self.ny) 
-        target = torch.Tensor(self._target[:,index])
-        target = target.resize_(1,self.nx,self.ny)         
-        return input, target
-    
-    @property
-    def nx(self):
-        return self._nx
-
-    @property
-    def ny(self):
-        return self._ny
-       
-    def loader(self, batch_size=1):
-        loader  = torch.utils.data.DataLoader(dataset=self, batch_size=batch_size, shuffle=True)
-        return loader
-
 class Dataset(torch_dataset):
     def __init__(self, vars, nx, ny, time, device='cpu', transform=True):
         self._nx = nx
