@@ -3,7 +3,7 @@ import torch.nn            as nn
 import torch.nn.functional as F
 import numpy               as np
 
-from   torch.cuda.amp            import GradScaler, autocast
+from   torch.cuda.amp          import GradScaler, autocast
 from   torch.utils.tensorboard import SummaryWriter
 from   torchsummary            import summary
 
