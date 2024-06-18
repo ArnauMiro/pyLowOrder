@@ -164,3 +164,160 @@ class Dataset(torch_dataset):
         vali_loader  = torch.utils.data.DataLoader(combined_vali_dataset, batch_size=batch_size, shuffle=True)
 
         return train_loader, vali_loader
+    
+class Dataset3D(torch_dataset):
+    def __init__(self, vars, nx, ny, nz, time, device = 'cpu', transform = True):
+        self._nx = nx
+        self._ny = ny
+        self._nz = nz
+        self._time = time
+        self._device = device
+        self._n_channels = len(vars)
+        if transform:
+            self._data, self._mean, self._max = self._normalize(vars)
+        else:
+            self._data, self._mean, self._max = self._get_data(vars)
+
+    def __len__(self):
+        return len(self._time)
+
+    def __getitem__(self, index):
+        snap = torch.Tensor([])
+        for ichannel in range(self._n_channels):
+            isnap = self.data[ichannel][:,index]
+            isnap = torch.Tensor(isnap)
+            isnap = isnap.view(1,self.nx,self.ny,self.nz)
+            snap = torch.cat((snap,isnap), dim=0) 
+        return snap.to(self._device)
+    
+    @property
+    def nx(self):
+        return self._nx
+    
+    @property
+    def ny(self):
+        return self._ny
+    
+    @property
+    def nz(self):
+        return self._nz
+    
+    @property
+    def data(self):
+        return self._data
+
+    @property
+    def time(self):
+        return self._time
+    
+    @property
+    def nt(self):
+        return self._time.shape[0]
+
+    @property
+    def n_channels(self):
+        return self._n_channels
+    
+    def _normalize(self, vars):
+        data = []
+        mean = np.zeros((self._n_channels,self._nx*self._ny*self._nz),dtype=float)
+        maxi = np.zeros((self._n_channels,),dtype=float)
+        for ichan in range(self._n_channels):
+            var           = vars[ichan]
+            mean[ichan,:] = temporal_mean(var)
+            ifluc         = subtract_mean(var,mean[ichan,:])
+            maxi[ichan]   = np.max(np.abs(ifluc))
+            data.append(ifluc)
+        return data, mean, maxi
+    
+    def _get_data(self, vars):
+        data = [] 
+        mean = np.zeros((self._n_channels,self._nx*self._ny*self._nz),dtype=float)
+        maxi = np.zeros((self._n_channels,),dtype=float)
+        for ichan in range(self._n_channels):
+            var           = vars[ichan]
+            mean[ichan,:] = temporal_mean(var)
+            maxi[ichan]   = np.max(np.abs(var))
+            data.append(var)
+        return data, mean, maxi
+    
+    def crop(self, nx, ny, nz, n0x, n0y, n0z):
+
+        ## Crop for 3D data
+        cropdata = []
+        self._nx = nx
+        self._ny = ny
+        self._nz = nz
+        for ichannel in range(self._n_channels):
+            crops = []
+            for t in range(self.nt):
+                isnap = self.data[ichannel][:,t]
+                isnap = torch.Tensor(isnap)
+                isnap = isnap.view(1,n0x,n0y,n0z)
+                isnap_cropped = torch.zeros(1, nx, ny, nz)
+                xy_plane = torch.zeros(1,n0x,n0y)
+                for z in range(n0z): 
+                    xy_plane = isnap[:,:,:,z]
+                    isnap_cropped[:,:,:,z] = TF.crop(xy_plane, top=0, left=0, height=nx, width=ny)
+                crops.append(isnap_cropped.reshape(nx*ny*nz,1))
+            crops = torch.cat(crops, dim=1)
+            cropdata.append(crops)
+        self._data = cropdata
+
+    def pad(self, nx, ny, nz, n0x, n0y, n0z):
+
+        ## Pad for 3D data
+
+        paddata = []
+        self._nx = n0x
+        self._ny = n0y
+        self._nz = n0z
+        for ichannel in range(self._n_channels):
+            pads = []
+            for t in range(self.nt):
+                isnap = self.data[ichannel][:,t]
+                isnap = torch.Tensor(isnap)
+                isnap = isnap.view(1,nx,ny,nz)
+                isnap_padded = torch.zeros(1, n0x, n0y, n0z)
+                xy_plane = torch.zeros(1,nx,ny)
+                for z in range(nz):
+                    xy_plane = isnap[:,:,:,z]
+                    isnap_padded[:,:,:,z] = F.pad(xy_plane, (0, n0y-ny, 0, n0x-nx), mode='constant', value = 0)
+                pads.append(isnap_padded.reshape(n0x*n0y*n0z,1))
+            pads = torch.cat(pads, dim = 1)
+            paddata.append(pads)
+        self._data = paddata
+    
+    def recover(self, data) :
+        recovered_data = []
+        for i in range(self._n_channels):
+            recovered_data.append(data[i] + data[i].mean())
+        return recovered_data
+    
+    def loader(self, batch_size=1,shuffle=True):
+        #Compute number of snapshots
+        loader = torch.utils.data.DataLoader(self, batch_size = batch_size, shuffle=shuffle)
+        return loader
+
+    def split_subdatasets(self, ptrain, pvali, batch_size=1, subdatasets=1):
+            ##Compute number of snapshots
+            total_len = len(self)
+            sub_len   = total_len // subdatasets
+            len_train = int(ptrain*sub_len)
+            len_vali  = int(pvali*sub_len)
+            len_train = len_train + sub_len - (len_train + len_vali)
+            
+            ##Select data
+            train_subsets = []
+            vali_subsets  = []
+            for i in range(0, total_len, sub_len):
+                sub_dataset = torch.utils.data.Subset(self, range(i, i + sub_len))
+                train_subset, vali_subset = torch.utils.data.random_split(sub_dataset, (len_train, len_vali))
+                train_subsets.append(train_subset)
+                vali_subsets.append(vali_subset)
+            combined_train_dataset = torch.utils.data.ConcatDataset(train_subsets)
+            combined_vali_dataset = torch.utils.data.ConcatDataset(vali_subsets)
+            train_loader = torch.utils.data.DataLoader(combined_train_dataset, batch_size=batch_size, shuffle=True)
+            vali_loader  = torch.utils.data.DataLoader(combined_vali_dataset, batch_size=batch_size, shuffle=True)
+
+            return train_loader, vali_loader

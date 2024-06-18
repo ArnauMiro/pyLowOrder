@@ -9,8 +9,8 @@
 __VERSION__ = '2.0.1'
 
 from .wrapper       import tanh, relu, elu, sigmoid, leakyRelu, VariationalAutoencoder, Autoencoder
-from .architectures import Encoder2D, Decoder2D
+from .architectures import Encoder2D, Decoder2D, Encoder3D, Decoder3D
 from .callbacks     import EarlyStopper
-from .utils         import Dataset, create_results_folder, select_device
+from .utils         import Dataset, Dataset3D, create_results_folder, select_device
 
 del wrapper
