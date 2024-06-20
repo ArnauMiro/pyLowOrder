@@ -163,8 +163,10 @@ class VariationalAutoencoder(Autoencoder):
         sample = mu + std*epsilon
         return  sample
              
-    def _kld(self, mu, logvar):    
-        return 0.5*torch.sum(1 + logvar - mu**2 - logvar.exp())
+    def _kld(self, mu, logvar):
+        mum     = torch.mean(mu, axis=0)
+        logvarm = torch.mean(logvar, axis=0)
+        return 0.5*torch.sum(1 + logvar - mum**2 - logvarm.exp())
     
     def forward(self, x):
         mu, logvar = self.encoder(x)
@@ -173,11 +175,11 @@ class VariationalAutoencoder(Autoencoder):
         return recon, mu, logvar, z
     
     @cr('VAE.train')   
-    def train_model(self, train_data, vali_data, beta, nepochs, callback=None, learning_rate=5e-4, lr_decay=0.999, BASEDIR='./'):
+    def train_model(self, train_data, vali_data, betasch, nepochs, callback=None, learning_rate=1e-4, BASEDIR='./'):
         prev_train_loss = 1e99
         writer    = SummaryWriter(BASEDIR)
-        optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
-        scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=lr_decay)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=learning_rate)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, nepochs, eta_min=learning_rate*1e-3)
         scaler    = GradScaler()
         for epoch in range(nepochs):
             ## Training
@@ -185,13 +187,14 @@ class VariationalAutoencoder(Autoencoder):
             tr_loss = 0
             mse     = 0
             kld     = 0
+            beta    = betasch.getBeta(epoch, print=True)
             for batch in train_data:
                 optimizer.zero_grad()
-                #with autocast():
-                recon, mu, logvar, _ = self(batch)
-                mse_i = self._lossfunc(batch, recon, reduction='mean')
-                kld_i = self._kld(mu,logvar)
-                loss  = mse_i - beta*kld_i
+                with autocast():
+                    recon, mu, logvar, _ = self(batch)
+                    mse_i = self._lossfunc(batch, recon, reduction='mean')
+                    kld_i = self._kld(mu,logvar)
+                    loss  = mse_i - beta*kld_i
                 scaler.scale(loss).backward()
                 scaler.step(optimizer)
                 scaler.update()
@@ -227,7 +230,7 @@ class VariationalAutoencoder(Autoencoder):
                     print('Early Stopper Activated at epoch %i' %epoch, flush=True)
                     break
             prev_train_loss = tr_loss   
-            print('Epoch [%d / %d] average training loss: %.5e | average validation loss: %.5e' % (epoch+1, nepochs, tr_loss, va_loss), flush=True)
+            print('Epoch [%d / %d] average training loss: %.5e (MSE = %.5e KLD = %.5e) | average validation loss: %.5e' % (epoch+1, nepochs, tr_loss, mse, kld, va_loss), flush=True)
             # Learning rate scheduling
             scheduler.step()
 

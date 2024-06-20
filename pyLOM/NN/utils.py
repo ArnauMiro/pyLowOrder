@@ -18,6 +18,25 @@ def create_results_folder(RESUDIR):
 def select_device():
     return torch.device("cuda" if torch.cuda.is_available() else "cpu") 
 
+class betaLinearScheduler:
+    """Beta schedule, linear growth to max value
+    Args:
+       start_value (float): initial value of beta
+       end_value (float): final value of beta
+       warmup (int): number of epochs to reach final value"""
+
+    def __init__(self, start_value, end_value, warmup):
+       self.start_value = start_value
+       self.end_value = end_value
+       self.warmup = warmup
+
+    def getBeta(self, epoch):
+       if epoch < self.warmup:
+          beta = self.start_value + (self.end_value - self.start_value) * epoch / self.warmup
+         return beta
+       else:
+        return self.end_value
+
 class Dataset(torch_dataset):
     def __init__(self, vars, nx, ny, time, device='cpu', transform=True):
         self._nx = nx
