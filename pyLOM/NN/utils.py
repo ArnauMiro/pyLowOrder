@@ -206,7 +206,7 @@ class Dataset3D(torch_dataset):
 			isnap = self.data[ichannel][:,index]
 			isnap = torch.Tensor(isnap)
 			isnap = isnap.view(1,self.nx,self.ny,self.nz)
-			snap = torch.cat((snap,isnap), dim=0) 
+			snap = torch.cat((snap,isnap), dim=0)
 		return snap.to(self._device)
 	
 	@property
@@ -255,8 +255,8 @@ class Dataset3D(torch_dataset):
 		maxi = np.zeros((self._n_channels,),dtype=float)
 		for ichan in range(self._n_channels):
 			var           = vars[ichan]
-			mean[ichan,:] = temporal_mean(var)
-			maxi[ichan]   = np.max(np.abs(var))
+			#mean[ichan,:] = temporal_mean(var)
+			#maxi[ichan]   = np.max(np.abs(var))
 			data.append(var)
 		return data, mean, maxi
 	

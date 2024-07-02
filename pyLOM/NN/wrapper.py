@@ -29,6 +29,9 @@ def sigmoid():
 def leakyRelu():
     return nn.LeakyReLU()
 
+def silu():
+    return nn.SiLU()
+
 ## Wrapper of the Dataset class
 
 ## Wrapper of a variational autoencoder
@@ -178,7 +181,7 @@ class VariationalAutoencoder(Autoencoder):
     def train_model(self, train_data, vali_data, betasch, nepochs, callback=None, learning_rate=1e-4, BASEDIR='./'):
         prev_train_loss = 1e99
         writer    = SummaryWriter(BASEDIR)
-        optimizer = torch.optim.AdamW(self.parameters(), lr=learning_rate)
+        optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate, weight_decay=0, amsgrad=True, fused=True)
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, nepochs, eta_min=learning_rate*1e-3)
         scaler    = GradScaler()
         for epoch in range(nepochs):
@@ -187,7 +190,7 @@ class VariationalAutoencoder(Autoencoder):
             tr_loss = 0
             mse     = 0
             kld     = 0
-            beta    = betasch.getBeta(epoch, print=True)
+            beta    = betasch.getBeta(epoch)
             for batch in train_data:
                 optimizer.zero_grad()
                 with autocast():
