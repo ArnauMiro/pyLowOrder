@@ -159,7 +159,7 @@ def run_optimized(X, t, r, constraints, remove_mean=True):
 	
 
 
-	return muReal, muImag, Phi, bJov
+	return alphaReal_i, alpha_Imag_i, H, U
 
 @cr('DMD.frequency_damping')
 def frequency_damping(real, imag, dt):
