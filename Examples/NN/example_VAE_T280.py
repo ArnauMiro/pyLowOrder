@@ -14,17 +14,17 @@ device = pyLOM.NN.select_device()
 ptrain      = 0.8
 pvali       = 0.2
 batch_size  = 4
-nepochs     = 200
+nepochs     = 2000
 nlayers     = 4
 channels    = 48
-lat_dim     = 20
+lat_dim     = 10
 beta        = 1e-04
 kernel_size = 4
 nlinear     = 256
 padding     = 1
-activations = [pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh()]
-batch_norm  = True
-vae = True
+activations = [pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu()]
+batch_norm  = False
+vae         = True
 
 ## Load dataset and set up the results output
 
@@ -39,9 +39,11 @@ pyLOM.NN.create_results_folder(RESUDIR)
 
 ## Load the dataset
 pyldtset = pyLOM.Dataset.load(DATAFILE)
-u      = pyldtset[VARIABLE]
+u        = pyldtset[VARIABLE]
+um       = pyLOM.math.temporal_mean(u)
+u        = pyLOM.math.subtract_mean(u, um)
 time     = pyldtset.time 
-mesh = pyldtset.mesh
+mesh     = pyldtset.mesh
 print("Variables: ", pyldtset.varnames)
 print("Information about the variable: ", pyldtset.info(VARIABLE))
 print("Number of cells ", mesh.ncells)
@@ -63,7 +65,7 @@ nz = n0z
 
 
 #Create the torch dataset
-tordtset = pyLOM.NN.Dataset3D((u_x,), n0x, n0y, n0z, time)
+tordtset = pyLOM.NN.Dataset3D((u_x,), n0x, n0y, n0z, time, transform=False, device=device)
 
 '''
 #Single Snapshot
@@ -82,12 +84,12 @@ encarch = pyLOM.NN.Encoder3D(nlayers, lat_dim, nx, ny, nz, tordtset.n_channels, 
 decarch = pyLOM.NN.Decoder3D(nlayers, lat_dim, nx, ny, nz, tordtset.n_channels, channels, kernel_size, padding, activations, nlinear, batch_norm=batch_norm)
 AutoEnc = pyLOM.NN.VariationalAutoencoder(lat_dim, (nx, ny, nz), tordtset.n_channels, encarch, decarch, device=device)
 early_stop = pyLOM.NN.EarlyStopper(patience=15, min_delta=0.05)
-AutoEnc.train_model(trloader, valoader, beta, nepochs, callback = early_stop, BASEDIR = RESUDIR)
+AutoEnc.train_model(trloader, valoader, beta, nepochs, callback = None, BASEDIR = RESUDIR)
 #AutoEnc.load_state_dict(torch.load(MODEL_PATH))
 
 
 ## Reconstruct dataset and compute accuracy
-rec, ek  = AutoEnc.reconstruct(tordtset) # Returns (input channels, nx*ny, time)
+rec  = AutoEnc.reconstruct(tordtset) # Returns (input channels, nx*ny, time)
 recdtset = pyLOM.NN.Dataset3D((rec), nx, ny, nz, tordtset._time, transform=False)
 recdtset.pad(nx, ny, nz, n0x, n0y, n0z)
 tordtset.pad(nx, ny, nz, n0x, n0y, n0z)
