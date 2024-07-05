@@ -25,21 +25,21 @@ class betaLinearScheduler:
 	   end_value (float): final value of beta
 	   warmup (int): number of epochs to reach final value"""
 
-    def __init__(self, start_value, end_value, start_epoch, warmup):
-        self.start_value = start_value
-        self.end_value   = end_value
-        self.start_epoch = start_epoch
+	def __init__(self, start_value, end_value, start_epoch, warmup):
+		self.start_value = start_value
+		self.end_value   = end_value
+		self.start_epoch = start_epoch
 		self.warmup      = warmup
 
 	def getBeta(self, epoch):
-        if epoch < self.start_epoch:
-            return 0
-        else:
-    		if epoch < self.warmup:
-	    		beta = self.start_value + (self.end_value-self.start_value)*(epoch-self.start_epoch)/(self.warmup-self.start_epoch)
-		    	return beta
-		    else:
-			    return self.end_value
+		if epoch < self.start_epoch:
+			return 0
+		else:
+			if epoch < self.warmup:
+				beta = self.start_value + (self.end_value-self.start_value)*(epoch-self.start_epoch)/(self.warmup-self.start_epoch)
+				return beta
+			else:
+				return self.end_value
 
 class Dataset(torch_dataset):
 	def __init__(self, vars, nx, ny, time, device='cpu', transform=True):
