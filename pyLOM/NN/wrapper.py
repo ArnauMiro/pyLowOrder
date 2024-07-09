@@ -195,7 +195,7 @@ class VariationalAutoencoder(Autoencoder):
                 optimizer.zero_grad()
                 with autocast():
                     recon, mu, logvar, _ = self(batch)
-                    mse_i = self._lossfunc(batch, recon, reduction='mean')
+                    mse_i = self._lossfunc(batch, recon, reduction='sum')
                     kld_i = self._kld(mu,logvar)
                     loss  = mse_i - beta*kld_i
                 scaler.scale(loss).backward()
@@ -216,7 +216,7 @@ class VariationalAutoencoder(Autoencoder):
                 for val_batch in vali_data:
                     with autocast():
                         val_recon, val_mu, val_logvar, _ = self(val_batch)
-                        mse_i     = self._lossfunc(val_batch, val_recon, reduction='mean')
+                        mse_i     = self._lossfunc(val_batch, val_recon, reduction='sum')
                         kld_i     = self._kld(val_mu,val_logvar)
                         vali_loss = mse_i - beta*kld_i
                     va_loss  += vali_loss.item()
