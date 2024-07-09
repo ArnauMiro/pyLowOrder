@@ -18,8 +18,7 @@ from .wrapper import qr, svd, tsqr, tsqr_svd
 from .wrapper import fft
 # Cell center routines
 from .wrapper import cellCenters
-# Helper functions
-from .wrapper import exponentials, dExponentials
-
+# Optimizers
+from .wrapper import variable_projection_optimizer
 
 del wrapper
