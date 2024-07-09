@@ -10,9 +10,13 @@ from __future__ import print_function, division
 import numpy as np, scipy, nfft
 from mpi4py import MPI
 
+from   numpy.lib.stride_tricks import sliding_window_view
+
 from ..utils.cr     import cr
 from ..utils.parall import mpi_gather, mpi_reduce, pprint, mpi_send, mpi_recv, is_rank_or_serial
 from ..utils.errors import raiseError
+from   scipy.sparse import csr_matrix
+
 import h5py
 
 
@@ -373,3 +377,62 @@ def cellCenters(xyz,conec):
 		c = conec[ielem,conec[ielem,:]>=0]
 		xyz_cen[ielem,:] = np.mean(xyz[c,:],axis=0)
 	return xyz_cen
+
+@cr('math.Hankel')
+def pseudo_hankel_matrix(X, d):
+    """
+    Arrange the snapshot in the matrix `X` into the (pseudo) Hankel
+    matrix. The attribute `d` controls the number of snapshot from `X` in
+    each snapshot of the Hankel matrix.
+
+    :Example:
+
+        >>> a = np.array([[1, 2, 3, 4, 5]])
+        >>> pseudo_hankel_matrix(a, d=2)
+        array([[1, 2, 3, 4],
+               [2, 3, 4, 5]])
+        >>> pseudo_hankel_matrix(a, d=4)
+        array([[1, 2],
+               [2, 3],
+               [3, 4],
+               [4, 5]])
+
+        >>> a = np.array([1,2,3,4,5,6]).reshape(2,3)
+        >>> print(a)
+        [[1 2 3]
+         [4 5 6]]
+        >>> pseudo_hankel_matrix(a, d=2)
+        array([[1, 2],
+               [4, 5],
+               [2, 3],
+               [5, 6]])
+    """
+    return (sliding_window_view(X.T, (d, X.shape[0]))[:, 0].reshape(X.shape[1] - d + 1, -1).T)
+
+@cr('math.Exponentials')
+def exponentials(alpha, t):
+    '''
+    Matrix of exponentials
+    '''
+    return np.exp(np.outer(t, alpha))
+
+@cr('math.dExponentials')
+def dExponentials(alpha, t, i):
+    """
+    Derivatives of the matrix of exponentials.
+    :param alpha: Vector of time scalings in the exponent.
+    :type alpha: numpy.ndarray
+    :param t: Vector of time values.
+    :type t: numpy.ndarray
+    :param i: Index in alpha of the derivative variable.
+    :type i: int
+    :return: Derivatives of Phi(alpha, t) with respect to alpha[i].
+    :rtype: scipy.sparse.csr_matrix
+    """
+    m = len(t)
+    n = len(alpha)
+    if i < 0 or i > n - 1:
+        raise ValueError("Invalid index i given to exp_function_deriv.")
+    A = np.multiply(t, np.exp(alpha[i] * t))
+    return csr_matrix((A, (np.arange(m), np.full(m, fill_value=i))), shape=(m, n))
+

@@ -12,7 +12,7 @@ from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_
 from ..POD          import truncate
 from ..utils.cr     import cr, cr_start, cr_stop
 from ..utils.errors import raiseError
-from ..utils.parall import mpi_gather, mpi_reduce, pprint
+from ..utils.parall import mpi_gather, mpi_reduce, pprint, MPI_SIZE
 
 
 def _order_modes(muReal, muImag, Phi, bJov):
@@ -74,6 +74,7 @@ def run(X, r, remove_mean = True):
 	cr_start('DMD.SVD',0)
 	U, S, VT = tsqr_svd(Y[:, :-1])
 	cr_stop('DMD.SVD',0)
+
 	# Truncate according to residual
 	cr_start('DMD.truncate', 0)
 	U, S, VT = truncate(U, S, VT, r)
@@ -105,14 +106,16 @@ def run(X, r, remove_mean = True):
 	cr_stop('DMD.amplitudes',0)
 
 	#Order modes and eigenvalues according to its amplitude
-	cr_start('DMD.order',0)
-	muReal, muImag, Phi, bJov = _order_modes(muReal, muImag, Phi, bJov)
-	cr_stop('DMD.order',0)
-
-	return muReal, muImag, Phi, bJov
+	if muReal.shape[0] == 1:
+		return muReal, muImag, Phi, bJov
+	else:
+		cr_start('DMD.order',0)
+		muReal, muImag, Phi, bJov = _order_modes(muReal, muImag, Phi, bJov)
+		cr_stop('DMD.order',0)
+		return muReal, muImag, Phi, bJov
 
 @cr('OptimizedDMD.run')
-def run_optimized(X, t, r, constraints, remove_mean=True):
+def run_optimized(X, t, r, constraints=None, remove_mean=True):
 	'''
 	DMD analysis of snapshot matrix X
 	Inputs:
@@ -137,6 +140,7 @@ def run_optimized(X, t, r, constraints, remove_mean=True):
 	else:
 		Y = X.copy()
 
+	##Initialize the eigenvalues using the exact DMD
 	#Compute SVD
 	cr_start('DMD.SVD',0)
 	U, S, VT = tsqr_svd(Y[:, :-1])
@@ -145,21 +149,20 @@ def run_optimized(X, t, r, constraints, remove_mean=True):
 	cr_start('DMD.truncate', 0)
 	U, S, VT = truncate(U, S, VT, r)
 	cr_stop('DMD.truncate', 0)
-
+	H = np.matmul(np.diag(S), VT).T
 	#Project A (Jacobian of the snapshots) into POD basis
 	cr_start('DMD.linear_mapping',0)
 	aux1   = matmulp(transpose(U), Y[:, 1:])
 	aux2   = transpose(vecmat(1./S, VT))
 	Atilde = matmul(aux1, aux2)
 	cr_stop('DMD.linear_mapping',0)
-
 	#Eigendecomposition of Atilde: Eigenvectors given as complex matrix
 	cr_start('DMD.modes',0)
-	alphaReal_i, alpha_Imag_i, w = eigen(Atilde)
+	iniReal, iniImag, w = eigen(Atilde)
+
 	
 
-
-	return alphaReal_i, alpha_Imag_i, H, U
+	return iniReal, iniImag, H
 
 @cr('DMD.frequency_damping')
 def frequency_damping(real, imag, dt):
