@@ -467,6 +467,7 @@ def _varpro_opt_step(_lambda, neig, alpha, rjac, scales_pvt, rhs, ij_pvt):
 	#a_updated = self._push_eigenvalues(a_updated)
 	return delta, a_updated
 
+@cr('math.varpro_optimization')
 def variable_projection_optimizer(H, iniReal, iniImag, time, maxiter=30, _lambda=1.0, lambda_m=52, lambda_u=2, eps_stall=1e-12, tol=1e-6):
 
 	rH, cH      = H.shape
@@ -532,7 +533,7 @@ def variable_projection_optimizer(H, iniReal, iniImag, time, maxiter=30, _lambda
 					break
 			if err_0 > err:
 				pprint(0, "Not converged!!", flush=True)
-				break
+				return B, alpha
 			
 		## Update information
 		alpha, B      = alpha_0, B_0
@@ -547,9 +548,9 @@ def variable_projection_optimizer(H, iniReal, iniImag, time, maxiter=30, _lambda
 		# Update termination status and terminate if converged or stalled.
 		if err < tol:
 			pprint(0, "Convergence reached!", flush=True)
-			break
+			return B, alpha
 		if (ii > 0) and ((all_error[ii-1]-all_error[ii]) < eps_stall*all_error[ii - 1]):
 			pprint(0, "Stalled!", flush=True)
-			break
-		
-	return alpha
+			return B, alpha
+	
+	return B, alpha

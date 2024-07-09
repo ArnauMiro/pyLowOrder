@@ -38,25 +38,36 @@ for n, title, d in zip(range(131, 134), titles, data):
     plt.colorbar()
 
 ## Numerical parameters
-delays    = 2
+delays = 2
 
 ## Create time delay embedding
 hankel_X  = pyLOM.math.pseudo_hankel_matrix(X.T, delays)
 delay_t   = t[: -delays + 1]
 delay_t   = delay_t[:-1]
 
-#muReal, muImag, Phi, bJov = pyLOM.DMD.run(hankel_X, r=4, remove_mean=False)
-iniReal, iniImag, H = pyLOM.DMD.run_optimized(hankel_X, delay_t, r=4, constraints=None, remove_mean=False)
+muReal, muImag, Phi_delay, b = pyLOM.DMD.run_optimized(hankel_X, delay_t, r=4, constraints=None, remove_mean=False)
 
-alpha = pyLOM.math.variable_projection_optimizer(H, iniReal, iniImag, delay_t)
+## Postprocessing
+pyLOM.DMD.ritzSpectrum(muReal, muImag)
+disc_eigs = np.exp((muReal*muImag*1j) * dt)
 
-print(alpha)
-STOP
+Phi = np.average(Phi_delay.reshape((delays, Phi_delay.shape[0] // delays, Phi_delay.shape[1])), axis=0)
+
+plt.figure()
+plt.plot(x, Phi[:,0])
+plt.xlabel('x')
+plt.ylabel('Mode 1')
+
+plt.figure()
+plt.plot(x, Phi[:,1])
+plt.xlabel('x')
+plt.ylabel('Mode 2')
+
+plt.figure()
+plt.plot(x, Phi[:,2])
+plt.xlabel('x')
+plt.ylabel('Mode 3')
 
 
-#delta, omega = pyLOM.DMD.frequency_damping(muReal, muImag, dt)
-#print(muReal+muImag*1j)
-#print(np.round(np.log(muReal+muImag*1j)/dt, decimals=12))
-#pyLOM.DMD.ritzSpectrum(muReal, muImag)
-
+pyLOM.cr_info()
 plt.show()
