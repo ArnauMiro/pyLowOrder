@@ -14,7 +14,7 @@ FCOMPILER=${6}
 FFLAGS=${7}
 
 # Web address (source)
-SRC="https://registrationcenter-download.intel.com/akdlm/IRC_NAS/9a98af19-1c68-46ce-9fdd-e249240c7c42/l_BaseKit_p_${VERS}_offline.sh"
+SRC="https://registrationcenter-download.intel.com/akdlm/IRC_NAS/9a98af19-1c68-46ce-9fdd-e249240c7c42/l_BaseKit_p_${VERS}.sh"
 
 # Check if the MKL libraries have been deployed
 # if not, compile
