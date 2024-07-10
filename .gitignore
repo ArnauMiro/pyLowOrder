@@ -21,6 +21,12 @@ Deps/oneAPI/setvars.sh
 Deps/oneAPI/support.txt
 Deps/oneAPI/sys_check.sh
 Deps/oneAPI/tbb
+Deps/oneAPI/.toolkit_linking_tool/
+Deps/oneAPI/2024.2/
+Deps/oneAPI/basekit/
+Deps/oneAPI/common/
+Deps/oneAPI/diagnostics/
+Deps/oneAPI/tcm/
 Deps/kissfft/include
 Deps/kissfft/lib
 Deps/fftw/include

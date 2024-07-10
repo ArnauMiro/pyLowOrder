@@ -35,7 +35,9 @@ else
 
 	# Clone repository and checkout version tag
 	cd Deps/
-	wget --no-check-certificate -O ${TAR} ${SRC}
+	if [ ! -f "$${TAR}" ]; then
+		wget --no-check-certificate -O ${TAR} ${SRC}
+	fi
 	tar xvzf ${TAR}
 	# Configure build
 	cd ${DIR}

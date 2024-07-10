@@ -14,7 +14,7 @@ FCOMPILER=${6}
 FFLAGS=${7}
 
 # Web address (source)
-SRC=https://registrationcenter-download.intel.com/akdlm/irc_nas/17977/l_BaseKit_p_${VERS}.sh
+SRC="https://registrationcenter-download.intel.com/akdlm/IRC_NAS/9a98af19-1c68-46ce-9fdd-e249240c7c42/l_BaseKit_p_${VERS}.sh"
 
 # Check if the MKL libraries have been deployed
 # if not, compile
@@ -33,7 +33,14 @@ else
 
 	# Decide according to the accepted platforms which
 	# MKL version is used
-	if [ "$PLATFORM" = "MN4" ]; then # MareNostrum4
+	if [ "$PLATFORM" = "MN5_GPP" ]; then # MareNostrum5 GPP
+		# MKL path
+		MKL_INSTALL_DIR="/gpfs/apps/MN5/GPP/ONEAPI/${VERS}/mkl/latest"
+		MKL_LIBRARIES="${MKL_INSTALL_DIR}/lib/intel64/"
+		# Create install directory and copy includes
+		mkdir -p ${INSTALL_PREFIX}
+		cp -r $MKL_INSTALL_DIR/include ${INSTALL_PREFIX}
+	elif [ "$PLATFORM" = "MN4" ]; then # MareNostrum4
 		# MKL path
 		MKL_INSTALL_DIR="/apps/INTEL/oneapi/${VERS}/mkl/latest"
 		MKL_LIBRARIES="${MKL_INSTALL_DIR}/lib/intel64/"

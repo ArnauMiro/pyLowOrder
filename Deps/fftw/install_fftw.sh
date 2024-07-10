@@ -33,7 +33,18 @@ else
 	echo "Fortran compiler '${FCOMPILER}' with flags '${FFLAGS}'"
 	echo "Install path ${INSTALL_PREFIX}"
 
-	if [[ "$PLATFORM" == "MN3" || "$PLATFORM" == "MN4" || "$PLATFORM" == "MN4_MKL" ]]; then # MareNostrum4
+	if [[ "$PLATFORM" = "MN5_GPP" ]]; then # MareNostrum5 GPP
+		# Symlink to MN4 installation directory
+		if [ "$CCOMPILER" = "mpicc" ]; then
+			# GCC compiler
+			ln -s "/gpfs/apps/MN5/GPP/FFTW/${VERS}/GCC/OPENMPI/include" "${INSTALL_PREFIX}/"
+			ln -s "/gpfs/apps/MN5/GPP/FFTW/${VERS}/GCC/OPENMPI/lib" "${INSTALL_PREFIX}/"
+		else
+			# Intel compiler
+			ln -s "/gpfs/apps/MN5/GPP/FFTW/${VERS}/INTEL/IMPI/include" "${INSTALL_PREFIX}/"
+			ln -s "/gpfs/apps/MN5/GPP/FFTW/${VERS}/INTEL/IMPI/lib" "${INSTALL_PREFIX}/"
+		fi
+	elif [[ "$PLATFORM" == "MN3" || "$PLATFORM" == "MN4" || "$PLATFORM" == "MN4_MKL" ]]; then # MareNostrum4
 		# Symlink to MN4 installation directory
 		if [ "$CCOMPILER" = "mpicc" ]; then
 			# GCC compiler
