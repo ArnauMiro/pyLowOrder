@@ -122,7 +122,7 @@ class PartitionTable(object):
 
 	@classmethod
 	@cr('PartTable.from_pyAlya')
-	def from_pyAlya(cls,ptable,has_master=True):
+	def from_pyAlya(cls,ptable,porder=1,has_master=True):
 		'''
 		Create a partition table from a partition table coming
 		from Alya
@@ -130,7 +130,7 @@ class PartitionTable(object):
 		nparts   = ptable.n_partitions
 		ids      = np.arange(1,nparts+1,dtype=np.int32)
 		points   = ptable.Points
-		elements = ptable.Elements
+		elements = ptable.Elements*porder**3
 		return cls(nparts,ids,elements,points,has_master=has_master)		
 
 	@property
