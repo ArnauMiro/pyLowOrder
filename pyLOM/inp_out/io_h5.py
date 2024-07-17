@@ -94,38 +94,38 @@ def h5_save_mesh_nopartition(file,mesh,ptable):
 	'''
 	# Skip the whole process if the mesh is not there
 	if mesh is not None:
-	    # Create a group for the mesh
-	    group = file.create_group('MESH')
-	    # Save the mesh type
-	    dset = group.create_dataset('type',(1,),dtype='i4',data=MTYPE2ID[mesh.type])
-	    # Write the total number of cells and the total number of points
-	    # Assume we might be dealing with a parallel mesh
-	    npointG, ncellG = mesh.npointsG2, mesh.ncellsG
-	    group.create_dataset('npoints',(1,),dtype='i4',data=npointG)
-	    group.create_dataset('ncells' ,(1,),dtype='i4',data=ncellG)
-	    # Create the rest of the datasets for parallel storage
-	    dxyz   = group.create_dataset('xyz',(npointG,mesh.ndim),dtype='f8')
-	    dconec = group.create_dataset('connectivity',(ncellG,mesh.nnodcell),dtype='i4')
-	    deltyp = group.create_dataset('eltype',(ncellG,),dtype='u1')
-	    #dcellO = group.create_dataset('cellOrder',(ncellG,),dtype='i4')
-	    dpoinO = group.create_dataset('pointOrder',(npointG,),dtype='i4')
-	    # Skip master if needed
-	    if ptable.has_master and MPI_RANK == 0: return None, None, None
-	    # Get the position where the points should be stored
-	    inods,idx = np.unique(mesh.pointOrder,return_index=True)
-	    # Write dataset - points
-	    dxyz[inods,:] = mesh.xyz[idx,:]
-	    dpoinO[inods] = mesh.pointOrder[idx]
-	    # Compute start and end of read, cell data
-	    istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
-	    # Write dataset - cells
-	    dconec[istart:iend,:] = mesh.pointOrder[mesh.connectivity]
-        if mesh.pointOrder.shape[0] > 0:
-            dconec[istart:iend,:] = mesh.pointOrder[mesh.connectivity]
-        else:
-            dconec[istart:iend] = mesh.pointOrder
-	    deltyp[istart:iend]   = mesh.eltype
-	    #dcellO[istart:iend]   = mesh.cellOrder
+		# Create a group for the mesh
+		group = file.create_group('MESH')
+		# Save the mesh type
+		dset = group.create_dataset('type',(1,),dtype='i4',data=MTYPE2ID[mesh.type])
+		# Write the total number of cells and the total number of points
+		# Assume we might be dealing with a parallel mesh
+		npointG, ncellG = mesh.npointsG2, mesh.ncellsG
+		group.create_dataset('npoints',(1,),dtype='i4',data=npointG)
+		group.create_dataset('ncells' ,(1,),dtype='i4',data=ncellG)
+		# Create the rest of the datasets for parallel storage
+		dxyz   = group.create_dataset('xyz',(npointG,mesh.ndim),dtype='f8')
+		dconec = group.create_dataset('connectivity',(ncellG,mesh.nnodcell),dtype='i4')
+		deltyp = group.create_dataset('eltype',(ncellG,),dtype='u1')
+		#dcellO = group.create_dataset('cellOrder',(ncellG,),dtype='i4')
+		dpoinO = group.create_dataset('pointOrder',(npointG,),dtype='i4')
+		# Skip master if needed
+		if ptable.has_master and MPI_RANK == 0: return None, None, None
+		# Get the position where the points should be stored
+		inods,idx = np.unique(mesh.pointOrder,return_index=True)
+		# Write dataset - points
+		dxyz[inods,:] = mesh.xyz[idx,:]
+		dpoinO[inods] = mesh.pointOrder[idx]
+		# Compute start and end of read, cell data
+		istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
+		# Write dataset - cells
+		dconec[istart:iend,:] = mesh.pointOrder[mesh.connectivity]
+		if mesh.pointOrder.shape[0] > 0:
+			dconec[istart:iend,:] = mesh.pointOrder[mesh.connectivity]
+		else:
+			dconec[istart:iend] = mesh.pointOrder
+		deltyp[istart:iend]   = mesh.eltype
+		#dcellO[istart:iend]   = mesh.cellOrder
 	return inods,idx,npointG
 
 def h5_create_variable_datasets(file,time,varDict,ptable,ipart=-1):
@@ -478,9 +478,9 @@ def h5_save_POD(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
 	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,mode)
 	# Store attributes and partition table
 	if not mode == 'a':
-	    file.attrs['Version'] = PYLOM_H5_VERSION
-	    # Store partition table
-	    h5_save_partition(file,ptable)
+		file.attrs['Version'] = PYLOM_H5_VERSION
+		# Store partition table
+		h5_save_partition(file,ptable)
 	# Now create a POD group
 	group = file.create_group('POD')
 	# Create the datasets for U, S and V
@@ -493,8 +493,8 @@ def h5_save_POD(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
 	# Store S and U that are repeated across the ranks
 	# So it is enough that one rank stores them
 	if is_rank_or_serial(0):
-	    dsetS[:] = S
-	    dsetV[:] = V
+		dsetS[:] = S
+		dsetV[:] = V
 	# Store U in parallel
 	istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=pointData)
 	dsetU[istart:iend,:] = U
@@ -509,18 +509,18 @@ def h5_load_POD(fname,vars,nmod,ptable=None):
 	# Check the file version
 	version = tuple(file.attrs['Version'])
 	if not version == PYLOM_H5_VERSION:
-	    raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
+		raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
 	# Read the requested variables S, V
 	varList = []
 	if 'U' in vars:
-	    # Check if we need to read the partition table
-	    if ptable is None: ptable = h5_load_partition(file)
-	    print(ptable, flush=True)
-	    # Read
-	    nvars = int(file['POD']['n_variables'][0])
-	    point = bool(file['POD']['pointData'][0])
-	    istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=point)
-	    varList.append( np.array(file['POD']['U'][istart:iend,:nmod]) )
+		# Check if we need to read the partition table
+		if ptable is None: ptable = h5_load_partition(file)
+		print(ptable, flush=True)
+		# Read
+		nvars = int(file['POD']['n_variables'][0])
+		point = bool(file['POD']['pointData'][0])
+		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=point)
+		varList.append( np.array(file['POD']['U'][istart:iend,:nmod]) )
 	if 'S' in vars: varList.append( np.array(file['POD']['S'][:]) )
 	if 'V' in vars: varList.append( np.array(file['POD']['V'][:,:]) )
 	# Return
