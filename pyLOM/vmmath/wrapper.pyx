@@ -7,6 +7,9 @@
 # Last rev: 27/10/2021
 from __future__ import print_function, division
 
+from   numpy.lib.stride_tricks import sliding_window_view
+from scipy.sparse import csr_matrix
+
 cimport cython
 cimport numpy as np
 
@@ -64,6 +67,8 @@ cdef extern from "fft.h":
 	cdef int USE_FFTW3 "_USE_FFTW3"
 	cdef void c_fft "fft"(double *psd, double *y, const double dt, const int n)
 	cdef void c_nfft "nfft"(double *psd, double *t, double* y, const int n)
+cdef extern from "complex.h":
+	cdef np.complex128_t cexp "cexp"(np.complex128_t z)
 
 
 ## Fused type between double and complex
@@ -779,3 +784,89 @@ def cellCenters(double[:,:] xyz,int[:,:] conec):
 		for idim in range(ndim):
 			xyz_cen[ielem,idim] /= float(cc)
 	return xyz_cen
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def pseudo_hankel_matrix(np.ndarray X, int d):
+	"""
+	Arrange the snapshot in the matrix `X` into the (pseudo) Hankel
+	matrix. The attribute `d` controls the number of snapshot from `X` in
+	each snapshot of the Hankel matrix.
+
+	:Example:
+
+		>>> a = np.array([[1, 2, 3, 4, 5]])
+		>>> pseudo_hankel_matrix(a, d=2)
+		array([[1, 2, 3, 4],
+			   [2, 3, 4, 5]])
+		>>> pseudo_hankel_matrix(a, d=4)
+		array([[1, 2],
+			   [2, 3],
+			   [3, 4],
+			   [4, 5]])
+
+		>>> a = np.array([1,2,3,4,5,6]).reshape(2,3)
+		>>> print(a)
+		[[1 2 3]
+		 [4 5 6]]
+		>>> pseudo_hankel_matrix(a, d=2)
+		array([[1, 2],
+			   [4, 5],
+			   [2, 3],
+			   [5, 6]])
+	"""
+	cdef np.ndarray result
+	result = sliding_window_view(X.T, (d, X.shape[0]))[:, 0].reshape(X.shape[1] - d + 1, -1).T
+	return result
+
+@cr('math.exponentials')
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef _exponentials(np.ndarray[complex, ndim=1] alpha, np.ndarray[double, ndim=1] t):
+	'''
+	Matrix of exponentials
+	'''
+	cdef int n = alpha.shape[0]
+	cdef int m = t.shape[0]
+	cdef np.ndarray[complex, ndim=2] result = np.zeros((n, m), dtype=np.complex128)
+	cdef int i, j
+	cdef double complex value
+
+	for i in range(n):
+		for j in range(m):
+			value = t[j] * alpha[i]
+			result[i, j] = cexp(value)
+
+	return result
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def dExponentials(np.ndarray[complex, ndim=1] alpha, np.ndarray[double, ndim=1] t, int i):
+    """
+    Derivatives of the matrix of exponentials.
+    :param alpha: Vector of time scalings in the exponent.
+    :type alpha: numpy.ndarray
+    :param t: Vector of time values.
+    :type t: numpy.ndarray
+    :param i: Index in alpha of the derivative variable.
+    :type i: int
+    :return: Derivatives of Phi(alpha, t) with respect to alpha[i].
+    :rtype: scipy.sparse.csr_matrix
+    """
+    cdef int m = len(t)
+    cdef int n = len(alpha)
+    if i < 0 or i > n - 1:
+        raise ValueError("Invalid index i given to exp_function_deriv.")
+
+    cdef np.ndarray[complex, ndim=1] A = np.zeros(m, dtype=np.complex128)
+    cdef int j
+    cdef double complex value
+
+    for j in range(m):
+        value = t[j] * alpha[i]
+        A[j] = t[j] * cexp(value)
+
+    row_indices = np.arange(m, dtype=np.int32)
+    col_indices = np.full(m, fill_value=i, dtype=np.int32)
+
+    return csr_matrix((A, (row_indices, col_indices)), shape=(m, n))
