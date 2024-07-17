@@ -5,7 +5,6 @@ import pyLOM
 def f1(x, t):
     return 1.0/np.cosh(x + 3) * np.cos(2.3 * t)
 
-
 def f2(x, t):
     return 2.0 / np.cosh(x) * np.tanh(x) * np.sin(2.8 * t)
 
