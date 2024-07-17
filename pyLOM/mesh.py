@@ -204,7 +204,11 @@ class Mesh(object):
 		return mpi_reduce(self.npoints,op='sum',all=True)
 	@property
 	def npointsG2(self):
-		return mpi_reduce(self.pointOrder.max(),op='max',all=True) + 1
+        if self.pointOrder.shape[0] > 0:
+            npoints = self.pointOrder.max()
+        else:
+            npoints = 0
+		return mpi_reduce(npoints,op='max',all=True) + 1
 	@property
 	def ndim(self):
 		return self._xyz.shape[1]
@@ -216,7 +220,11 @@ class Mesh(object):
 		return mpi_reduce(self.ncells,op='sum',all=True)
 	@property
 	def ncellsG2(self):
-		return mpi_reduce(self.cellOrder.max(),op='max',all=True) + 1
+        if self.cellOrder.shape[0] > 0:
+            ncells = self.cellOrder.max()
+        else:
+            ncells = 0
+		return mpi_reduce(ncells,op='max',all=True) + 1
 	@property
 	def nnodcell(self):
 		return self._conec.shape[1]

@@ -120,6 +120,10 @@ def h5_save_mesh_nopartition(file,mesh,ptable):
 	    istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
 	    # Write dataset - cells
 	    dconec[istart:iend,:] = mesh.pointOrder[mesh.connectivity]
+        if mesh.pointOrder.shape[0] > 0:
+            dconec[istart:iend,:] = mesh.pointOrder[mesh.connectivity]
+        else:
+            dconec[istart:iend] = mesh.pointOrder
 	    deltyp[istart:iend]   = mesh.eltype
 	    #dcellO[istart:iend]   = mesh.cellOrder
 	return inods,idx,npointG
