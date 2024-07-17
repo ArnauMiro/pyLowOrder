@@ -167,7 +167,11 @@ def h5_fill_variable_datasets(dsetDict,varDict,ptable,inods,idx):
 			dsetDict[var]['value'][istart:iend,:]  = varDict[var]['value']
 		else:
 			if varDict[var]['ndim'] > 1: raiseError('Cannot deal with multi-dimensional arrays in no partition mode!')
-			dsetDict[var]['value'][inods,:] = varDict[var]['value'][idx,:]
+			if varDict[var]['value'].shape[0] > 0:
+				dsetDict[var]['value'][inods,:] = varDict[var]['value'][idx,:]
+			else:
+				dsetDict[var]['value'][inods,:] = varDict[var]['value']
+
 
 def h5_save_serial(fname,time,varDict,mesh,ptable):
 	'''
@@ -315,7 +319,8 @@ def h5_load_mesh(file,ptable,repart):
 	istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
 	conec  = np.array(file['MESH']['connectivity'][istart:iend,:],np.int32)
 	eltype = np.array(file['MESH']['eltype'][istart:iend],np.int32) 
-	cellO  = np.array(file['MESH']['cellOrder'][istart:iend],np.int32)
+	#cellO  = np.array(file['MESH']['cellOrder'][istart:iend],np.int32)
+	cellO  = np.arange(istart, iend, 1)
 	# Read point related variables
 	if repart:
 		# Warning! Repartition will only work if the input file is serial
