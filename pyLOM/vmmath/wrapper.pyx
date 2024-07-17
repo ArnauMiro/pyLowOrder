@@ -8,7 +8,6 @@
 from __future__ import print_function, division
 
 from   numpy.lib.stride_tricks import sliding_window_view
-from scipy.sparse import csr_matrix
 
 cimport cython
 cimport numpy as np
@@ -819,7 +818,6 @@ def pseudo_hankel_matrix(np.ndarray X, int d):
 	result = sliding_window_view(X.T, (d, X.shape[0]))[:, 0].reshape(X.shape[1] - d + 1, -1).T
 	return result
 
-@cr('math.exponentials')
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef _exponentials(np.ndarray[complex, ndim=1] alpha, np.ndarray[double, ndim=1] t):
@@ -828,45 +826,133 @@ cdef _exponentials(np.ndarray[complex, ndim=1] alpha, np.ndarray[double, ndim=1]
 	'''
 	cdef int n = alpha.shape[0]
 	cdef int m = t.shape[0]
-	cdef np.ndarray[complex, ndim=2] result = np.zeros((n, m), dtype=np.complex128)
+	cdef np.ndarray[complex, ndim=2] result = np.zeros((m, n), dtype=np.complex128)
 	cdef int i, j
 	cdef double complex value
 
-	for i in range(n):
-		for j in range(m):
-			value = t[j] * alpha[i]
+	for i in range(m):
+		for j in range(n):
+			value = t[i] * alpha[j]
 			result[i, j] = cexp(value)
 
 	return result
 
+@cr('math.dExponentials')
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def dExponentials(np.ndarray[complex, ndim=1] alpha, np.ndarray[double, ndim=1] t, int i):
-    """
-    Derivatives of the matrix of exponentials.
-    :param alpha: Vector of time scalings in the exponent.
-    :type alpha: numpy.ndarray
-    :param t: Vector of time values.
-    :type t: numpy.ndarray
-    :param i: Index in alpha of the derivative variable.
-    :type i: int
-    :return: Derivatives of Phi(alpha, t) with respect to alpha[i].
-    :rtype: scipy.sparse.csr_matrix
-    """
-    cdef int m = len(t)
-    cdef int n = len(alpha)
-    if i < 0 or i > n - 1:
-        raise ValueError("Invalid index i given to exp_function_deriv.")
+def _dExponentials(np.ndarray[complex, ndim=1] alpha, np.ndarray[double, ndim=1] t, int i):
+	"""
+	Derivatives of the matrix of exponentials.
+	:param alpha: Vector of time scalings in the exponent.
+	:type alpha: numpy.ndarray
+	:param t: Vector of time values.
+	:type t: numpy.ndarray
+	:param i: Index in alpha of the derivative variable.
+	:type i: int
+	:return: Derivatives of Phi(alpha, t) with respect to alpha[i].
+	:rtype: scipy.sparse.csr_matrix
+	"""
+	cdef int m = t.shape[0]
+	cdef int n = alpha.shape[0]
+	if i < 0 or i > n - 1:
+		raise ValueError("Invalid index i given to exp_function_deriv.")
 
-    cdef np.ndarray[complex, ndim=1] A = np.zeros(m, dtype=np.complex128)
-    cdef int j
-    cdef double complex value
+	cdef np.ndarray[complex, ndim=1] A = np.zeros(m, dtype=np.complex128)
+	cdef int j
+	cdef double complex value
 
-    for j in range(m):
-        value = t[j] * alpha[i]
-        A[j] = t[j] * cexp(value)
+	for j in range(m):
+		value = t[j] * alpha[i]
+		A[j] = t[j] * cexp(value)
+	
+	cdef np.ndarray[int, ndim=1] row_indices = np.empty(m, dtype=np.int32)
+	cdef np.ndarray[int, ndim=1] col_indices = np.empty(m, dtype=np.int32)
 
-    row_indices = np.arange(m, dtype=np.int32)
-    col_indices = np.full(m, fill_value=i, dtype=np.int32)
+	for j in range(m):
+		row_indices[j] = j
+		col_indices[j] = i
 
-    return csr_matrix((A, (row_indices, col_indices)), shape=(m, n))
+	return A, row_indices, col_indices
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef _varpro_opt_compute_B(np.ndarray[complex, ndim=2] _phi, np.ndarray[double, ndim=2] H):
+	"""
+	Update B for the current _phi.
+	"""
+	# Compute B using least squares.
+	cdef np.ndarray[complex, ndim=2] B = np.linalg.lstsq(_phi, H, rcond=None)[0]
+	return B
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef _varpro_opt_compute_error(np.ndarray[double, ndim=2] H, np.ndarray[complex, ndim=2] _phi, np.ndarray[complex, ndim=2] B):
+	"""
+	Compute the current residual, objective, and relative error.
+	"""
+	cdef int i, j, k
+	cdef int m = H.shape[0]
+	cdef int n = B.shape[1]
+	cdef int p = _phi.shape[1]
+	
+	cdef np.ndarray[complex, ndim=2] residual  = np.empty((m, n), dtype=np.complex128)
+	cdef np.ndarray[complex, ndim=2] phi_dot_B = np.empty((m, n), dtype=np.complex128)
+	cdef double objective, error
+	cdef double norm_residual, norm_H
+	cdef complex sum
+
+	# Manually perform matrix multiplication _phi * B
+	for i in range(m):
+		for j in range(n):
+			sum = 0
+			for k in range(p):
+				sum += _phi[i, k] * B[k, j]
+			phi_dot_B[i, j] = sum
+
+	# Compute residual H - _phi * B
+	for i in range(m):
+		for j in range(n):
+			residual[i, j] = H[i, j] - phi_dot_B[i, j]
+
+	# Compute Frobenius norms
+	norm_residual = 0
+	norm_H = 0
+	for i in range(m):
+		for j in range(n):
+			norm_residual += (residual[i, j].real ** 2 + residual[i, j].imag ** 2)
+			norm_H        += (H[i, j].real ** 2 + H[i, j].imag ** 2)
+
+	norm_residual = sqrt(norm_residual)
+	norm_H        = sqrt(norm_H)
+
+	# Compute objective and relative error
+	objective = 0.5 * norm_residual ** 2
+	error = norm_residual / norm_H
+
+	return residual, objective, error
+
+@cr('math.varpro_optimization')
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def variable_projection_optimizer(np.ndarray[double, ndim=2] H,np.ndarray[double, ndim=1] iniReal,np.ndarray[double, ndim=1] iniImag,np.ndarray[double, ndim=1] time, int maxiter=30, double _lambda=1.0, int lambda_m=52, int lambda_u=2, double eps_stall=1e-12, double tol=1e-6):
+	
+	cdef int rH, cH
+	cdef int neig
+	cdef int ii
+	#cdef np.ndarray[complex, ndim=2] _phi
+
+	rH    = H.shape[0]
+	cH    = H.shape[1]
+	neig  = iniReal.shape[0]
+
+	cdef np.ndarray[complex, ndim=1] alpha = np.empty(neig, dtype=np.complex128)
+	for ii in range(neig):
+		alpha[ii] = iniReal[ii] + 1j * iniImag[ii]
+	
+	_phi        = _exponentials(alpha, time)
+	B           = _varpro_opt_compute_B(_phi, H)
+	res,obj,err = _varpro_opt_compute_error(H, _phi, B)
+
+	
+	return res

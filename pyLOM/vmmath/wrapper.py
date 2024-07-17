@@ -409,14 +409,12 @@ def pseudo_hankel_matrix(X, d):
 	"""
 	return (sliding_window_view(X.T, (d, X.shape[0]))[:, 0].reshape(X.shape[1] - d + 1, -1).T)
 
-@cr('math.Exponentials')
 def _exponentials(alpha, t):
 	'''
 	Matrix of exponentials
 	'''
 	return np.exp(np.outer(t, alpha))
 
-@cr('math.dExponentials')
 def _dExponentials(alpha, t, i):
 	"""
 	Derivatives of the matrix of exponentials.
@@ -436,6 +434,7 @@ def _dExponentials(alpha, t, i):
 	A = np.multiply(t, np.exp(alpha[i] * t))
 	return csr_matrix((A, (np.arange(m), np.full(m, fill_value=i))), shape=(m, n))
 
+@cr('math.varpro_error')
 def _varpro_opt_compute_error(H, _phi, B):
 	"""
 	Compute the current residual, objective, and relative error.
@@ -445,6 +444,7 @@ def _varpro_opt_compute_error(H, _phi, B):
 	error = np.linalg.norm(residual, "fro") / np.linalg.norm(H, "fro")
 	return residual, objective, error
 
+@cr('math.varpro_B')
 def _varpro_opt_compute_B(_phi, H):
 	"""
 	Update B for the current a.
@@ -453,6 +453,7 @@ def _varpro_opt_compute_B(_phi, H):
 	B = np.linalg.lstsq(_phi, H, rcond=None)[0]
 	return B
 
+@cr('math.varpro_step')
 def _varpro_opt_step(_lambda, neig, alpha, rjac, scales_pvt, rhs, ij_pvt):
 	"""
 	Helper function that, when given a step size _lambda,
@@ -475,9 +476,10 @@ def variable_projection_optimizer(H, iniReal, iniImag, time, maxiter=30, _lambda
 	neig        = alpha.shape[0]
 	_phi        = _exponentials(alpha, time)
 	B           = _varpro_opt_compute_B(_phi, H)
+	res,obj,err = _varpro_opt_compute_error(H, _phi, B)
+
 	Up,sp,VTp   = np.linalg.svd(_phi, full_matrices=False)
 	Sp          = np.diag(sp)
-	res,obj,err = _varpro_opt_compute_error(H, _phi, B)
 	
 	all_error = np.zeros(maxiter)
 	djac_matrix = np.zeros((rH*cH, neig), dtype="complex")
