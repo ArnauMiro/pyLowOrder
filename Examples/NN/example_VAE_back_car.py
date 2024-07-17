@@ -18,24 +18,24 @@ CASESTR = 'back_dataset'
 VARLIST = ['Cp']
 DSETDIR = '%s/%s.h5' % (BASEDIR, CASESTR)
 RESUDIR = 'vae_beta_%.2e_ld_%i' % (beta, lat_dim)
-pyLOM.VAE.create_results_folder(RESUDIR)
+pyLOM.NN.create_results_folder(RESUDIR)
 
 ## Mesh size (HARDCODED BUT MUST BE INCLUDED IN PYLOM DATASET)
-nx = 192
-ny = 128
+nh = 192
+nw = 128
 
 ## Create a torch dataset
 pyldtset = pyLOM.Dataset.load(DSETDIR)
-tordtset = pyLOM.VAE.Dataset(pyldtset['Cp'], nx, ny, pyldtset.time)
+tordtset = pyLOM.NN.Dataset(pyldtset['Cp'], nh, nw, pyldtset.time)
 
 ## Split data between train, test and validation
 trloader, valoader = tordtset.split(ptrain, pvali,batch_size=batch_size)
 
 ## Set and train the variational autoencoder
-encarch    = pyLOM.VAE.EncoderNoPool(lat_dim, nx, ny, channels, kernel_size, padding)
-decarch    = pyLOM.VAE.DecoderNoPool(lat_dim, nx, ny, channels, kernel_size, padding)
-vae        = pyLOM.VAE.VariationalAutoencoder(lat_dim, nx, ny, encarch, decarch)
-early_stop = pyLOM.VAE.EarlyStopper(patience=5, min_delta=0.02)
+encarch    = pyLOM.NN.EncoderNoPool(lat_dim, nh, nw, channels, kernel_size, padding)
+decarch    = pyLOM.NN.DecoderNoPool(lat_dim, nh, nw, channels, kernel_size, padding)
+vae        = pyLOM.NN.VariationalAutoencoder(lat_dim, nh, nw, encarch, decarch)
+early_stop = pyLOM.NN.EarlyStopper(patience=5, min_delta=0.02)
 vae.train_model(trloader, valoader, beta, nepochs, callback=early_stop, BASEDIR=RESUDIR)
     
 ## Reconstruct dataset and compute accuracy

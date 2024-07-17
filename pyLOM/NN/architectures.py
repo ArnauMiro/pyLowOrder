@@ -34,7 +34,7 @@ class Encoder2D(nn.Module):
         self.flat     = nn.Flatten()
         fc_input_size = out_channels * (self.nh // (1 << self.nlayers)) * (self.nw // (1 << self.nlayers))
         self.fc1      = nn.Linear(fc_input_size, self.nlinear)
-        if self._isvae:
+        if self.isvae:
             self.mu     = nn.Linear(self.nlinear, self.lat_dim)
             self.logvar = nn.Linear(self.nlinear, self.lat_dim)
         else:
@@ -110,7 +110,7 @@ class Decoder2D(nn.Module):
     def forward(self, x):
         out = self.funcs[self.nlayers+1](self.fc1(x))
         out = self.funcs[self.nlayers](self.fc2(out))
-        out = out.view(out.size(0), self.filt_chan * (1 << (self.nlayers-1)), int(self.nx // (1 << self.nlayers)), int(self.ny // (1 << self.nlayers)))
+        out = out.view(out.size(0), self.filt_chan * (1 << (self.nlayers-1)), int(self.nh // (1 << self.nlayers)), int(self.nw // (1 << self.nlayers)))
         for ilayer, (deconv_layer) in enumerate(self.deconv_layers[:-1]):
             if self.batch_norm:
                 out = self.norm_layers[ilayer](out)

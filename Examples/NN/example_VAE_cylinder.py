@@ -28,33 +28,33 @@ RESUDIR = 'vae_beta_%.2e_ld_%i' % (beta, lat_dim)
 pyLOM.NN.create_results_folder(RESUDIR)
 
 ## Mesh size (HARDCODED BUT MUST BE INCLUDED IN PYLOM DATASET)
-n0x = 449
-n0y = 199
-nx  = 448
-ny  = 192
+n0h = 449
+n0w = 199
+nh  = 448
+nw  = 192
 
 ## Create a torch dataset
 pyldtset = pyLOM.Dataset.load(DSETDIR)
 u_x      = pyldtset['VELOX']
 time     = pyldtset.time
-tordtset = pyLOM.NN.Dataset((u_x,), n0x, n0y, time)
+tordtset = pyLOM.NN.Dataset((u_x,), n0h, n0w, time, transform=False)
 tordtset.data[0] = np.transpose(np.array([tordtset.data[0][:,0]]))
 tordtset._time   = np.array([tordtset.time[0]])
-tordtset.crop(nx, ny, n0x, n0y)
+tordtset.crop(nh, nw, n0h, n0w)
 trloader = tordtset.loader()
 
 ## Set and train the variational autoencoder
-encarch    = pyLOM.NN.Encoder2D(nlayers, lat_dim, nx, ny, tordtset.n_channels, channels, kernel_size, padding, activations, nlinear, batch_norm=batch_norm)
-decarch    = pyLOM.NN.Decoder2D(nlayers, lat_dim, nx, ny, tordtset.n_channels, channels, kernel_size, padding, activations, nlinear, batch_norm=batch_norm)
-ae         = pyLOM.NN.Autoencoder(lat_dim, nx, ny, tordtset.n_channels, encarch, decarch, device=device)
+encarch    = pyLOM.NN.Encoder2D(nlayers, lat_dim, nh, nw, tordtset.n_channels, channels, kernel_size, padding, activations, nlinear, batch_norm=batch_norm)
+decarch    = pyLOM.NN.Decoder2D(nlayers, lat_dim, nh, nw, tordtset.n_channels, channels, kernel_size, padding, activations, nlinear, batch_norm=batch_norm)
+ae         = pyLOM.NN.Autoencoder(lat_dim, nh, nw, tordtset.n_channels, encarch, decarch, device=device)
 early_stop = pyLOM.NN.EarlyStopper(patience=5, min_delta=0.02)
 ae.train_model(trloader, trloader, nepochs, callback=early_stop, BASEDIR=RESUDIR)
     
 ## Reconstruct dataset and compute accuracy
 rec      = ae.reconstruct(tordtset)
-recdtset = pyLOM.NN.Dataset((rec), nx, ny, tordtset._time, transform=False)
-recdtset.pad(nx, ny, n0x, n0y)
-tordtset.pad(nx, ny, n0x, n0y)
+recdtset = pyLOM.NN.Dataset((rec), nh, nw, tordtset._time, transform=False)
+recdtset.pad(nh, nw, n0h, n0w)
+tordtset.pad(nh, nw, n0h, n0w)
 pyldtset.add_variable('urec', False, 1, recdtset.data[0][:,0].numpy())
 pyldtset.add_variable('utra', False, 1, tordtset.data[0][:,0])
 pyldtset.write('reco',basedir='.',instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec', 'VELOX', 'utra'],fmt='vtkh5')
