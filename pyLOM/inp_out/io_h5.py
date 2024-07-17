@@ -142,7 +142,7 @@ def h5_create_variable_datasets(file,time,varDict,ptable,ipart=-1):
 		n     = mpi_reduce(varDict[var]['value'].shape[0],op='sum',all=True)
 		if ptable.has_master: n -= 1
 		npoin = int(file['MESH']['npoints'][0]) if varDict[var]['point'] else int(file['MESH']['ncells'][0])
-		ndim  = n//npoin
+		ndim  = 1 #n//npoin
 		ntime = varDict[var]['value'].shape[1]
 		dsetDict[var] = {
 			'point' : vargroup.create_dataset('point',(1,),dtype='u1'),
