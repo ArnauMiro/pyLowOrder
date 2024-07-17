@@ -251,7 +251,7 @@ def Ensight_readGeoASCII(fname):
 	nnod = int(f.readline())
 	# Skip the node id list, if present
 	if header['nodeID'] == 'given':
-		order = np.genfromtxt(f,max_rows=nnod).astype(np.int)-1
+		order = np.genfromtxt(f,max_rows=nnod).astype(np.int32)-1
 	xyz = np.ascontiguousarray(np.genfromtxt(f,max_rows=3*nnod).astype(np.double).reshape((nnod,3),order='F'))
 	if header['nodeID'] == 'given':
 		xyz = xyz[order,:]
@@ -262,7 +262,7 @@ def Ensight_readGeoASCII(fname):
 	nnel  = elnod(header['eltype'])
 	# Skip the node id list, if present
 	if header['elemID'] == 'given':
-		order = np.genfromtxt(f,max_rows=nel).astype(np.int)-1
+		order = np.genfromtxt(f,max_rows=nel).astype(np.int32)-1
 	conec = np.ascontiguousarray(np.genfromtxt(f,max_rows=nel).astype(np.int32).reshape((nel,nnel),order='F'))
 	if header['elemID'] == 'given':
 		conec = conec[order,:]
