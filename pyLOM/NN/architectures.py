@@ -4,16 +4,16 @@ import torch.nn.functional as F
 import numpy as np
 
 class Encoder2D(nn.Module):
-    def __init__(self, nlayers, latent_dim, nx, ny, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=True, stride=2, dropout=0, vae=False):
+    def __init__(self, nlayers, latent_dim, nh, nw, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=True, stride=2, dropout=0, vae=False):
         super(Encoder2D, self).__init__()
 
         self.nlayers    = nlayers
         self.filt_chan  = filter_channels
         self.in_chan    = input_channels
-        self._lat_dim   = latent_dim
-        self._nx        = nx
-        self._ny        = ny
-        self._isvae     = vae
+        self.lat_dim    = latent_dim
+        self.nh         = nh
+        self.nw         = nw
+        self.isvae      = vae
         self.funcs      = activation_funcs
         self.nlinear    = nlinear
         self.batch_norm = batch_norm
@@ -32,13 +32,13 @@ class Encoder2D(nn.Module):
             in_channels = out_channels  # Update in_channels for the next layer
        
         self.flat     = nn.Flatten()
-        fc_input_size = out_channels * (self._nx // (1 << self.nlayers)) * (self._ny // (1 << self.nlayers))
+        fc_input_size = out_channels * (self.nh // (1 << self.nlayers)) * (self.nw // (1 << self.nlayers))
         self.fc1      = nn.Linear(fc_input_size, self.nlinear)
         if self._isvae:
-            self.mu     = nn.Linear(self.nlinear, self._lat_dim)
-            self.logvar = nn.Linear(self.nlinear, self._lat_dim)
+            self.mu     = nn.Linear(self.nlinear, self.lat_dim)
+            self.logvar = nn.Linear(self.nlinear, self.lat_dim)
         else:
-            self.z = nn.Linear(self.nlinear, self._lat_dim)
+            self.z = nn.Linear(self.nlinear, self.lat_dim)
 
         self._reset_parameters()
     
@@ -58,27 +58,27 @@ class Encoder2D(nn.Module):
             out = self.funcs[ilayer](out)
         out = self.funcs[ilayer+1](self.flat(out))
         out = self.funcs[ilayer+2](self.fc1(out))
-        if self._isvae:
+        if self.isvae:
             return self.mu(out), self.logvar(out)
         else:
             return self.z(out)
     
 class Decoder2D(nn.Module):
-    def __init__(self, nlayers, latent_dim, nx, ny, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=True, stride=2, dropout=0):
+    def __init__(self, nlayers, latent_dim, nh, nw, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=True, stride=2, dropout=0):
         super(Decoder2D, self).__init__()       
         
         self.nlayers    = nlayers
         self.filt_chan  = filter_channels
         self.in_chan    = input_channels
         self.lat_dim    = latent_dim
-        self.nx         = nx
-        self.ny         = ny
+        self.nh         = nh
+        self.nw         = nw
         self.funcs      = activation_funcs
         self.nlinear    = nlinear
         self.batch_norm = batch_norm
         self.dropout    = nn.Dropout(p=dropout)
         self.fc1 = nn.Linear(in_features=self.lat_dim, out_features=self.nlinear)
-        fc_output_size = int((self.filt_chan * (1 << (self.nlayers-1)) * self.nx // (1 << self.nlayers) * self.ny // (1 << self.nlayers)))
+        fc_output_size = int((self.filt_chan * (1 << (self.nlayers-1)) * self.nh // (1 << self.nlayers) * self.nw // (1 << self.nlayers)))
         self.fc2 = nn.Linear(in_features=self.nlinear, out_features=fc_output_size)
 
         # Create a list to hold the transposed convolutional layers

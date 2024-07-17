@@ -3,7 +3,7 @@ import torch.nn            as nn
 import torch.nn.functional as F
 import numpy               as np
 
-from   torch.cuda.amp            import GradScaler, autocast
+from   torch.cuda.amp          import GradScaler, autocast
 from   torch.utils.tensorboard import SummaryWriter
 from   torchsummary            import summary
 
@@ -30,11 +30,11 @@ def leakyRelu():
 
 ## Wrapper of a variational autoencoder
 class Autoencoder(nn.Module):
-    def __init__(self, latent_dim, nx, ny, input_channels, encoder, decoder, device='cpu'):
+    def __init__(self, latent_dim, nh, nw, input_channels, encoder, decoder, device='cpu'):
         super(Autoencoder, self).__init__()
         self.lat_dim  = latent_dim
-        self.nx       = nx
-        self.ny       = ny
+        self.nh       = nh
+        self.nw       = nw
         self.inp_chan = input_channels
         self.encoder  = encoder
         self.decoder  = decoder
@@ -42,10 +42,10 @@ class Autoencoder(nn.Module):
         encoder.to(self._device)
         decoder.to(self._device)
         self.to(self._device)
-        summary(self, input_size=(self.inp_chan, self.nx, self.ny))
+        summary(self, input_size=(self.inp_chan, self.nh, self.nw))
       
     def _lossfunc(self, x, recon_x, reduction):
-        return  F.mse_loss(recon_x.view(-1, self.nx*self.ny), x.view(-1, self.nx*self.ny),reduction=reduction)
+        return  F.mse_loss(recon_x.view(-1, self.nh*self.nw), x.view(-1, self.nh*self.nw),reduction=reduction)
     
     def forward(self, x):
         z     = self.encoder(x)
@@ -103,7 +103,7 @@ class Autoencoder(nn.Module):
         ##  Compute reconstruction and its accuracy
         ek     = np.zeros((len(dataset),))
         mean   = np.zeros((len(dataset),))
-        rec    = np.zeros((self.inp_chan,self.nx*self.ny,len(dataset))) 
+        rec    = np.zeros((self.inp_chan,self.nh*self.nw,len(dataset))) 
         loader = torch.utils.data.DataLoader(dataset, batch_size=len(dataset), shuffle=False)
         with torch.no_grad():
             ## Energy recovered in reconstruction
@@ -111,16 +111,16 @@ class Autoencoder(nn.Module):
             energy_batch = next(instant)
             for i in range(len(dataset)):
                 x = energy_batch[i,:,:,:]
-                x = torch.reshape(x, [1,self.inp_chan,self.nx,self.ny])
+                x = torch.reshape(x, [1,self.inp_chan,self.nh,self.nw])
                 x = x.to(self._device)
                 x_recon  = self(x)
                 x_recon  = np.asanyarray(x_recon[0].cpu())
                 for ichan in range(self.inp_chan):
                     x_recchan  = x_recon[0,ichan,:,:]
-                    x_recchan  = torch.reshape(torch.tensor(x_recchan),[self.nx*self.ny,])
+                    x_recchan  = torch.reshape(torch.tensor(x_recchan),[self.nh*self.nw,])
                     rec[ichan,:,i] = x_recchan.detach().numpy()
-                xr      = rec.reshape((self.inp_chan*self.nx*self.ny,len(dataset)))
-                x       = torch.reshape(x,[self.inp_chan*self.nx*self.ny])
+                xr      = rec.reshape((self.inp_chan*self.nh*self.nw,len(dataset)))
+                x       = torch.reshape(x,[self.inp_chan*self.nh*self.nw])
                 x       = x.to("cpu")
                 ek[i]   = torch.sum((x-xr[:,i])**2)/torch.sum(x**2)
                 mean[i] = torch.mean(torch.abs((x-xr[:,i])/x))
@@ -143,19 +143,19 @@ class Autoencoder(nn.Module):
         zt  = torch.tensor(z, dtype=torch.float32)
         var = self.decoder(zt)
         var = var.cpu()
-        varr = np.zeros((self.nx*self.ny,var.shape[0]),dtype=float)
+        varr = np.zeros((self.nh*self.nw,var.shape[0]),dtype=float)
         for it in range(var.shape[0]):
             varaux = var[it,0,:,:].detach().numpy()
-            varr[:,it] = varaux.reshape((self.nx*self.ny,), order='C')
+            varr[:,it] = varaux.reshape((self.nh*self.nw,), order='C')
         return varr 
 
 ## Wrapper of a variational autoencoder
 class VariationalAutoencoder(nn.Module):
-    def __init__(self, latent_dim, nx, ny, input_channels, encoder, decoder, device='cpu'):
+    def __init__(self, latent_dim, nh, nw, input_channels, encoder, decoder, device='cpu'):
         super(VariationalAutoencoder, self).__init__()
         self.lat_dim  = latent_dim
-        self.nx       = nx
-        self.ny       = ny
+        self.nh       = nh
+        self.nw       = nw
         self.inp_chan = input_channels
         self.encoder  = encoder
         self.decoder  = decoder
@@ -163,7 +163,7 @@ class VariationalAutoencoder(nn.Module):
         encoder.to(self._device)
         decoder.to(self._device)
         self.to(self._device)
-        summary(self, input_size=(self.inp_chan, self.nx, self.ny))
+        summary(self, input_size=(self.inp_chan, self.nh, self.nw))
    
     def _reparamatrizate(self, mu, logvar):
         std = torch.exp(0.5*logvar)
@@ -172,7 +172,7 @@ class VariationalAutoencoder(nn.Module):
         return  sample
     
     def _lossfunc(self, x, recon_x, reduction='mean'):
-        return  F.mse_loss(recon_x.view(-1, self.nx*self.ny), x.view(-1, self.nx*self.ny),reduction=reduction)
+        return  F.mse_loss(recon_x.view(-1, self.nh*self.nw), x.view(-1, self.nh*self.nw),reduction=reduction)
            
     def _kld(self, mu, logvar):    
         return 0.5*torch.sum(1 + logvar - mu**2 - logvar.exp())
@@ -253,7 +253,7 @@ class VariationalAutoencoder(nn.Module):
         ek = np.zeros(num_samples)
         mu = np.zeros(num_samples)
         si = np.zeros(num_samples)
-        rec = torch.zeros((self.inp_chan, self.nx * self.ny, num_samples), device=self._device)
+        rec = torch.zeros((self.inp_chan, self.nh * self.nw, num_samples), device=self._device)
 
         loader = torch.utils.data.DataLoader(dataset, batch_size=num_samples, shuffle=False)
 
@@ -265,10 +265,10 @@ class VariationalAutoencoder(nn.Module):
 
                 for i in range(num_samples):
                     x_recchan = x_recon[i]
-                    rec[:, :, i] = x_recchan.view(self.inp_chan, self.nx * self.ny)
+                    rec[:, :, i] = x_recchan.view(self.inp_chan, self.nh * self.nw)
 
-                    x = energy_batch[i].view(self.inp_chan * self.nx * self.ny)
-                    xr = rec[:, :, i].view(self.inp_chan * self.nx * self.ny)
+                    x = energy_batch[i].view(self.inp_chan * self.nh * self.nw)
+                    xr = rec[:, :, i].view(self.inp_chan * self.nh * self.nw)
 
                     ek[i] = torch.sum((x - xr) ** 2) / torch.sum(x ** 2)
                     mu[i] = 2 * torch.mean(x) * torch.mean(xr) / (torch.mean(x) ** 2 + torch.mean(xr) ** 2)
@@ -300,12 +300,12 @@ class VariationalAutoencoder(nn.Module):
         zmodt = torch.tensor(zmode, dtype=torch.float32)
         zmodt = zmodt.to(self._device)
         modes = self.decoder(zmodt)
-        mymod = np.zeros((self.nx*self.ny,self.lat_dim),dtype=float)
+        mymod = np.zeros((self.nh*self.nw,self.lat_dim),dtype=float)
         modes = modes.cpu()
         for imode in range(self.lat_dim):
             modesr = modes[imode,0,:,:].detach().numpy()
-            mymod[:,imode] = modesr.reshape((self.nx*self.ny,), order='C')
-        return mymod.reshape((self.nx*self.ny*self.lat_dim,),order='C')
+            mymod[:,imode] = modesr.reshape((self.nh*self.nw,), order='C')
+        return mymod.reshape((self.nh*self.nw*self.lat_dim,),order='C')
 
     def latent_space(self, dataset):
         # Compute latent vectors
@@ -321,8 +321,8 @@ class VariationalAutoencoder(nn.Module):
         zt  = torch.tensor(z, dtype=torch.float32)
         var = self.decoder(zt)
         var = var.cpu()
-        varr = np.zeros((self.nx*self.ny,var.shape[0]),dtype=float)
+        varr = np.zeros((self.nh*self.nw,var.shape[0]),dtype=float)
         for it in range(var.shape[0]):
             varaux = var[it,0,:,:].detach().numpy()
-            varr[:,it] = varaux.reshape((self.nx*self.ny,), order='C')
+            varr[:,it] = varaux.reshape((self.nh*self.nw,), order='C')
         return varr 
