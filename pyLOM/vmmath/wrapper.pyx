@@ -923,9 +923,7 @@ def variable_projection_optimizer(np.ndarray[double, ndim=2] H,np.ndarray[double
 	
 	cdef int rH, cH
 	cdef int neig
-	cdef int ii, ieig
-	cdef int ip, jp, kp
-	cdef complex sum
+	cdef int ii, jj, ieig
 
 	rH    = H.shape[0]
 	cH    = H.shape[1]
@@ -933,22 +931,32 @@ def variable_projection_optimizer(np.ndarray[double, ndim=2] H,np.ndarray[double
 
 	cdef np.ndarray[complex, ndim=1] alpha = np.empty(neig, dtype=np.complex128)
 	cdef np.ndarray[complex, ndim=2] B
+	cdef np.ndarray[complex, ndim=2] res
+	
 	for ii in range(neig):
 		alpha[ii] = iniReal[ii] + 1j * iniImag[ii]
-
 	_phi        = _exponentials(alpha, time)
 	B           = _varpro_opt_compute_B(_phi, H)
 	res,obj,err = _varpro_opt_compute_error(H, _phi, B)
 
 	cdef np.ndarray[complex, ndim=2] Up, VTp
 	cdef np.ndarray[double, ndim=1] sp
-	cdef np.ndarray[double, ndim=2] Sp
 
-	Up,sp,VTp  = np.linalg.svd(_phi, full_matrices=False)
-	Sp         = np.diag(sp)
-	cdef int m = Up.shape[1]
-	cdef int n = alpha.shape[0]
-	cdef int p = time.shape[0]
+	Up,sp,VTp = np.linalg.svd(_phi, full_matrices=False)
+	#transform = np.matmul([Up, 1/sp, VTp])
+	
+	cdef int m  = Up.shape[1]
+	cdef int m0 = Up.shape[0]
+	cdef int n  = alpha.shape[0]
+	cdef int p  = time.shape[0]
+
+	cdef np.ndarray[complex, ndim=2] transform1 = np.zeros((m, m), dtype=np.complex128)
+	cdef np.ndarray[complex, ndim=2] transform  = np.zeros((m0, m), dtype=np.complex128)
+
+	for ii in range(n):
+		for jj in range(n):
+			transform1[ii, jj] = 1/sp[ii]*VTp[ii,jj]
+	c_zmatmult(&transform[0,0],&Up[0,0],&transform1[0,0],m0,m,m,"N","N")
 
 	cdef np.ndarray[double,  ndim=1] all_error   = np.zeros(maxiter, dtype=np.float64)
 	cdef np.ndarray[complex, ndim=2] djac_matrix = np.zeros((rH * cH, neig), dtype=np.complex128)
@@ -957,15 +965,27 @@ def variable_projection_optimizer(np.ndarray[double, ndim=2] H,np.ndarray[double
 	cdef np.ndarray[complex, ndim=2] ut_dphi     = np.zeros((m, n), dtype=np.complex128)
 	cdef np.ndarray[complex, ndim=2] uut_dphi    = np.zeros((p, m), dtype=np.complex128)
 	cdef np.ndarray[complex, ndim=2] djac_a      = np.zeros((p, m), dtype=np.complex128)
+	cdef np.ndarray[complex, ndim=2] djac_b      = np.zeros((p, m), dtype=np.complex128)
 	cdef np.ndarray[complex, ndim=2] dphi_temp
+	cdef np.ndarray[complex, ndim=2] dphit_res   = np.zeros((m, n), dtype=np.complex128)
+
 
 	for ii in range(maxiter):
 		for ieig in range(neig):
+			# Build the approximate expression for the Jacobian.
 			dphi_temp = _dExponentials(alpha, time, ieig)
 			c_zmatmult(&ut_dphi[0,0],&Up[0,0],&dphi_temp[0,0],m,n,p,"C","N")
 			c_zmatmult(&uut_dphi[0,0],&Up[0,0],&ut_dphi[0,0],p,n,m,"N","N")
 			dphi_temp -= uut_dphi
-			c_zmatmult(&djac_a[0,0], &dphi_temp[0,0],&B[0,0],p,n,m,"N","N")
+			c_zmatmult(&djac_a[0,0],&dphi_temp[0,0],&B[0,0],p,n,m,"N","N")
 			djac_matrix[:, ieig] = djac_a.ravel(order="F")
 
-	return djac_matrix
+			# Compute the full expression for the Jacobian.
+			c_zmatmult(&dphit_res[0,0],&dphi_temp[0,0],&res[0,0],m,n,p,"C","N")
+			c_zmatmult(&djac_b[0,0],&transform[0,0],&dphit_res[0,0],p,n,m,"N","N")
+			djac_matrix[:, ieig] += djac_b.ravel(order="F")
+			scales[ieig] = min(np.linalg.norm(djac_matrix[:, ieig]), 1)
+			scales[ieig] = max(scales[ieig], 1e-6)
+			
+
+	return scales

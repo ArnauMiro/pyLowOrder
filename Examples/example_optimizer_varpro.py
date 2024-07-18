@@ -60,9 +60,15 @@ def variable_projection_optimizer(H, iniReal, iniImag, time, maxiter=30, _lambda
 			djac_a    = (dphi_temp - uut_dphi) @ B
 			djac_matrix[:, ieig] = djac_a.ravel(order="F")
 
+			# Compute the full expression for the Jacobian.
+			transform = np.linalg.multi_dot([Up, np.linalg.inv(Sp), VTp])
+			dphit_res = csr_matrix(dphi_temp.conj().T @ res)
+			djac_b    = transform @ dphit_res
+			djac_matrix[:, ieig] += djac_b.ravel(order="F")
+			scales[ieig] = min(np.linalg.norm(djac_matrix[:, ieig]), 1)
+			scales[ieig] = max(scales[ieig], 1e-6)
 
-
-	return djac_matrix
+	return scales
 
 data = np.load('test_varpro.npz')
 
@@ -73,7 +79,6 @@ var1 = variable_projection_optimizer(H, iniReal, iniImag, t)
 pyLOM.cr_stop('non_compiled', 0)
 
 var2 = pyLOM.math.variable_projection_optimizer(H, iniReal, iniImag, t)
-
 print(np.max(np.abs(var1-var2)))
 
 pyLOM.cr_info()
