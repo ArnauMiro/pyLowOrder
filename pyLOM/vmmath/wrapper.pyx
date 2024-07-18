@@ -842,36 +842,21 @@ cdef _exponentials(np.ndarray[complex, ndim=1] alpha, np.ndarray[double, ndim=1]
 cdef _dExponentials(np.ndarray[complex, ndim=1] alpha, np.ndarray[double, ndim=1] t, int i):
 	"""
 	Derivatives of the matrix of exponentials.
-	:param alpha: Vector of time scalings in the exponent.
-	:type alpha: numpy.ndarray
-	:param t: Vector of time values.
-	:type t: numpy.ndarray
-	:param i: Index in alpha of the derivative variable.
-	:type i: int
-	:return: Derivatives of Phi(alpha, t) with respect to alpha[i].
-	:rtype: scipy.sparse.csr_matrix
 	"""
 	cdef int m = t.shape[0]
 	cdef int n = alpha.shape[0]
 	if i < 0 or i > n - 1:
 		raise ValueError("Invalid index i given to exp_function_deriv.")
 
-	cdef np.ndarray[complex, ndim=2] A = np.zeros(m, dtype=np.complex128)
+	cdef np.ndarray[complex, ndim=2] A = np.zeros((m,n), dtype=np.complex128)
 	cdef int j
 	cdef double complex value
 
 	for j in range(m):
 		value = t[j] * alpha[i]
-		A[j] = t[j] * cexp(value)
+		A[j,i] = t[j] * cexp(value)
 	
-	cdef np.ndarray[int, ndim=1] row_indices = np.empty(m, dtype=np.int32)
-	cdef np.ndarray[int, ndim=1] col_indices = np.empty(m, dtype=np.int32)
-
-	for j in range(m):
-		row_indices[j] = j
-		col_indices[j] = i
-
-	return A , row_indices, col_indices
+	return A
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -947,6 +932,7 @@ def variable_projection_optimizer(np.ndarray[double, ndim=2] H,np.ndarray[double
 	neig  = iniReal.shape[0]
 
 	cdef np.ndarray[complex, ndim=1] alpha = np.empty(neig, dtype=np.complex128)
+	cdef np.ndarray[complex, ndim=2] B
 	for ii in range(neig):
 		alpha[ii] = iniReal[ii] + 1j * iniImag[ii]
 
@@ -964,25 +950,22 @@ def variable_projection_optimizer(np.ndarray[double, ndim=2] H,np.ndarray[double
 	cdef int n = alpha.shape[0]
 	cdef int p = time.shape[0]
 
-
-	cdef np.ndarray[double, ndim=1] all_error = np.zeros(maxiter, dtype=np.float64)
+	cdef np.ndarray[double,  ndim=1] all_error   = np.zeros(maxiter, dtype=np.float64)
 	cdef np.ndarray[complex, ndim=2] djac_matrix = np.zeros((rH * cH, neig), dtype=np.complex128)
-	cdef np.ndarray[complex, ndim=2] rjac = np.zeros((2 * neig, neig), dtype=np.complex128)
-	cdef np.ndarray[double, ndim=1] scales = np.zeros(neig, dtype=np.float64)
-	cdef np.ndarray[complex, ndim=2] ut_dphi = np.zeros((m, n), dtype=np.complex128)
+	cdef np.ndarray[complex, ndim=2] rjac        = np.zeros((2 * neig, neig), dtype=np.complex128)
+	cdef np.ndarray[double,  ndim=1] scales      = np.zeros(neig, dtype=np.float64)
+	cdef np.ndarray[complex, ndim=2] ut_dphi     = np.zeros((m, n), dtype=np.complex128)
+	cdef np.ndarray[complex, ndim=2] uut_dphi    = np.zeros((p, m), dtype=np.complex128)
+	cdef np.ndarray[complex, ndim=2] djac_a      = np.zeros((p, m), dtype=np.complex128)
+	cdef np.ndarray[complex, ndim=2] dphi_temp
 
 	for ii in range(maxiter):
 		for ieig in range(neig):
 			dphi_temp = _dExponentials(alpha, time, ieig)
-			print(dphi_temp.shape)
-			for ip in range(m):
-				for jp in range(n):
-					sum = 0
-					for kp in range(p):
-						sum += Up[kp, ip].conjugate() * dphi_temp[kp, jp]
-				ut_dphi[ip, jp] = sum
+			c_zmatmult(&ut_dphi[0,0],&Up[0,0],&dphi_temp[0,0],m,n,p,"C","N")
+			c_zmatmult(&uut_dphi[0,0],&Up[0,0],&ut_dphi[0,0],p,n,m,"N","N")
+			dphi_temp -= uut_dphi
+			c_zmatmult(&djac_a[0,0], &dphi_temp[0,0],&B[0,0],p,n,m,"N","N")
+			djac_matrix[:, ieig] = djac_a.ravel(order="F")
 
-
-
-	
-	return ut_dphi
+	return djac_matrix
