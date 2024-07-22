@@ -423,7 +423,7 @@ def h5_load_serial(fname):
 		npoints, ncells = h5_load_size(file)
 		# Redo the partitions table
 		ptable = PartitionTable.new(MPI_SIZE,ncells,npoints)
-		repart = True
+		repart = False
 	# Read the mesh
 	mesh, inods = h5_load_mesh(file,ptable,repart)
 	# Figure out how many partitions we have
@@ -453,7 +453,7 @@ def h5_load_mpio(fname):
 		npoints, ncells = h5_load_size(file)
 		# Redo the partitions table
 		ptable = PartitionTable.new(MPI_SIZE,ncells,npoints)
-		repart = True
+		repart = False
 	# Read the mesh
 	mesh, inods = h5_load_mesh(file,ptable,repart)
 	# Figure out how many partitions we have
