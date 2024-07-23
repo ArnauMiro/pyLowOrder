@@ -51,10 +51,8 @@ def _optimized_modes(U, S, VT, Atilde, t):
 
 	#Eigendecomposition of Atilde for initailization of the variable projection optimization algorithm
 	iniReal, iniImag, iniW=  eigen(Atilde)
-
 	#Optimization of eigenvalues
-	B, alpha = variable_projection_optimizer(H, iniReal, iniImag, t)
-
+	B, alpha = variable_projection_optimizer(H, iniReal, iniImag, t[:H.shape[0]])
 	#Compute modes and amplitudes
 	muReal = alpha.real
 	muImag = alpha.imag

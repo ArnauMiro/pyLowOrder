@@ -10,7 +10,7 @@ __VERSION__ = '1.0.0'
 
 
 # Functions coming from DMD
-from .wrapper import run, frequency_damping, reconstruction_jovanovic
+from .wrapper import run, run_optimized, frequency_damping, reconstruction_jovanovic
 from .utils   import extract_modes, save, load
 from .plots   import plotMode, ritzSpectrum, amplitudeFrequency, dampingFrequency, plotResidual, plotSnapshot
 

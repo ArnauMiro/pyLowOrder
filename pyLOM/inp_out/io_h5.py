@@ -574,7 +574,7 @@ def h5_load_DMD(fname,vars,nmod,ptable=None):
 		# Read
 		nvars = int(file['DMD']['n_variables'][0])
 		point = bool(file['DMD']['pointData'][0])
-		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,point=point)
+		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=point)
 		varList.append( np.array(file['DMD']['Phi'][istart:iend,:nmod]) )
 	if 'mu' in vars: 
 		varList.append( np.array(file['DMD']['Mu'][:,0]) ) # Real
