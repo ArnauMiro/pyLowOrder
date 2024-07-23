@@ -514,7 +514,7 @@ def h5_load_POD(fname,vars,nmod,ptable=None):
 		# Read
 		nvars = int(file['POD']['n_variables'][0])
 		point = bool(file['POD']['pointData'][0])
-		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,point=point)
+		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=point)
 		varList.append( np.array(file['POD']['U'][istart:iend,:nmod]) )
 	if 'S' in vars: varList.append( np.array(file['POD']['S'][:]) )
 	if 'V' in vars: varList.append( np.array(file['POD']['V'][:,:]) )
