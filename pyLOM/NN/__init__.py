@@ -6,8 +6,6 @@
 #
 # Last rev: 02/11/2023
 
-__VERSION__ = '2.0.1'
-
 # Supress prints from tensorflow
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  

@@ -6,8 +6,6 @@
 #
 # Last rev: 20/10/2021
 
-__VERSION__ = '1.0.0'
-
 # Pickle and HDF5 exchange format
 from .io_pkl  import pkl_load, pkl_save
 from .io_h5   import h5_load, h5_save, h5_append, h5_save_POD, h5_load_POD, h5_save_DMD, h5_load_DMD, h5_save_SPOD, h5_load_SPOD, h5_save_VAE
