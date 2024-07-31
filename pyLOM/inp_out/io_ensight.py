@@ -8,7 +8,7 @@
 from __future__ import print_function, division
 
 import numpy as np
-import ensightreader
+#import ensightreader
 
 from ..utils.cr     import cr
 from ..utils.parall import MPI_RANK, MPI_SIZE, MPI_COMM, MPI_RDONLY, MPI_WRONLY, MPI_CREATE
