@@ -7,5 +7,6 @@ nfft
 ensight-reader
 pyvista
 torch
+torchvision
 torchsummary
 tensorflow
