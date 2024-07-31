@@ -6,3 +6,6 @@ h5py>=3.0.0
 nfft
 ensight-reader
 pyvista
+torch
+torchsummary
+tensorflow
