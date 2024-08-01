@@ -6,8 +6,6 @@
 #
 # Last rev: 27/10/2021
 
-__VERSION__ = '1.5.0'
-
 # Vector matrix routines
 from .wrapper import transpose, vector_norm, matmul, matmulp, vecmat, argsort, eigen, polar, cholesky, vandermonde, conj, diag, inv, flip, vandermondeTime
 # Averaging routines
