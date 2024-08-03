@@ -107,7 +107,7 @@ def h5_save_mesh_nopartition(file,mesh,ptable):
 		dxyz   = group.create_dataset('xyz',(npointG,mesh.ndim),dtype='f8')
 		dconec = group.create_dataset('connectivity',(ncellG,mesh.nnodcell),dtype='i4')
 		deltyp = group.create_dataset('eltype',(ncellG,),dtype='u1')
-		#dcellO = group.create_dataset('cellOrder',(ncellG,),dtype='i4')
+		dcellO = group.create_dataset('cellOrder',(ncellG,),dtype='i4')
 		dpoinO = group.create_dataset('pointOrder',(npointG,),dtype='i4')
 		# Skip master if needed
 		if ptable.has_master and MPI_RANK == 0: return None, None, None
@@ -125,7 +125,7 @@ def h5_save_mesh_nopartition(file,mesh,ptable):
 		else:
 			dconec[istart:iend] = mesh.pointOrder
 		deltyp[istart:iend]   = mesh.eltype
-		#dcellO[istart:iend]   = mesh.cellOrder
+		dcellO[istart:iend]   = mesh.cellOrder
 	return inods,idx,npointG
 
 def h5_create_variable_datasets(file,time,varDict,ptable,ipart=-1):
