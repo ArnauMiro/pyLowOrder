@@ -319,7 +319,7 @@ def h5_load_mesh(file,ptable,repart):
 	istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
 	conec  = np.array(file['MESH']['connectivity'][istart:iend,:],np.int32)
 	eltype = np.array(file['MESH']['eltype'][istart:iend],np.int32) 
-	#cellO  = np.array(file['MESH']['cellOrder'][istart:iend],np.int32)
+	cellO  = np.array(file['MESH']['cellOrder'][istart:iend],np.int32)
 	cellO  = np.arange(istart, iend, 1)
 	# Read point related variables
 	if repart:
