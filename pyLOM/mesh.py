@@ -185,8 +185,8 @@ class Mesh(object):
 		return cls('STRUCT3D',xyz,conec,eltype,cellO,pointO)
 
 	@classmethod
-	@cr('Mesh.from_pyAlya')
-	def from_pyAlya(cls,mesh,sod=False):
+	@cr('Mesh.from_pyQvarsi')
+	def from_pyQvarsi(cls,mesh,sod=False):
 		'''
 		Create the mesh structure from a pyAlya mesh structure
 		'''

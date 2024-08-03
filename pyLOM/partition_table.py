@@ -121,11 +121,11 @@ class PartitionTable(object):
 		return cls(nparts,ids,elements,points,has_master=has_master)
 
 	@classmethod
-	@cr('PartTable.from_pyAlya')
-	def from_pyAlya(cls,ptable,porder=1,has_master=True):
+	@cr('PartTable.from_pyQvarsi')
+	def from_pyQvarsi(cls,ptable,porder=1,has_master=True):
 		'''
 		Create a partition table from a partition table coming
-		from Alya
+		from pyQvarsi
 		'''
 		nparts   = ptable.n_partitions
 		ids      = np.arange(1,nparts+1,dtype=np.int32)
