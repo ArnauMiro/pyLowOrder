@@ -19,6 +19,14 @@ jobs:
       CXX: mpiicpc
       FC: mpiifort
     steps:
+      # Free up some disk space in the runner
+      - name: Maximize build space
+        uses: AdityaGarg8/remove-unwanted-software@v4.1
+        with:
+          remove-android: 'true'
+          remove-dotnet:  'true'
+          remove-haskell: 'true'
+          remove-codeql:  'true'
       - uses: actions/checkout@v3
       # Setup Intel MPI and Python for this job
       - name: Intel Apt repository
@@ -31,7 +39,7 @@ jobs:
           sudo apt-get update
       - name: Install Intel oneAPI
         timeout-minutes: 5
-        run: sudo apt-get install intel-oneapi-compiler-fortran intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic intel-oneapi-mpi intel-oneapi-mpi-devel 
+        run: sudo apt-get install intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic intel-oneapi-mpi intel-oneapi-mpi-devel 
         #intel-oneapi-mkl
       - name: Setup Intel oneAPI environment
         run: |

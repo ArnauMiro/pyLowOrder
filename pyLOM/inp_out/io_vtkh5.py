@@ -10,7 +10,7 @@ import numpy as np, h5py
 from ..utils.cr     import cr
 from ..utils.parall import MPI_RANK, MPI_SIZE, MPI_COMM, mpi_reduce, mpi_bcast
 
-VTKTYPE = np.string_('UnstructuredGrid')
+VTKTYPE = np.bytes_('UnstructuredGrid')
 VTKVERS = np.array([1,0],np.int32)
 
 
