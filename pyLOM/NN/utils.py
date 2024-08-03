@@ -42,9 +42,9 @@ class betaLinearScheduler:
 				return self.end_value
 
 class Dataset(torch_dataset):
-	def __init__(self, vars, nx, ny, time, device='cpu', transform=True):
-		self._nx = nx
-		self._ny = ny
+	def __init__(self, vars, nh, nw, time, device='cpu', transform=True):
+		self._nh = nh
+		self._nw = nw
 		self._time = time
 		self._device = device
 		self._n_channels = len(vars)
@@ -61,17 +61,17 @@ class Dataset(torch_dataset):
 		for ichannel in range(self._n_channels):
 			isnap = self.data[ichannel][:,index]
 			isnap = torch.Tensor(isnap)
-			isnap = isnap.view(1,self.nx,self.ny)
+			isnap = isnap.view(1,self._nh,self._nw)
 			snap  = torch.cat((snap,isnap), dim=0)
 		return snap.to(self._device)
 
 	@property
-	def nx(self):
-		return self._nx
+	def nh(self):
+		return self._nh
 
 	@property
-	def ny(self):
-		return self._ny
+	def nw(self):
+		return self._nw
 
 	@property
 	def data(self):
@@ -95,7 +95,7 @@ class Dataset(torch_dataset):
 	   
 	def _normalize(self, vars):
 		data = [] #tuple(None for _ in range(self._n_channels))
-		mean = np.zeros((self._n_channels,self._nx*self._ny),dtype=float)
+		mean = np.zeros((self._n_channels,self._nh*self._nw),dtype=float)
 		maxi = np.zeros((self._n_channels,),dtype=float)
 		for ichan in range(self._n_channels):
 			var           = vars[ichan]
@@ -107,7 +107,7 @@ class Dataset(torch_dataset):
 	
 	def _normalize_min_max(self, vars):
 		data = [] #tuple(None for _ in range(self._n_channels))
-		mean = np.zeros((self._n_channels,self._nx*self._ny),dtype=float)
+		mean = np.zeros((self._n_channels,self._nh*self._nw),dtype=float)
 		maxi = np.zeros((self._n_channels,self.nt),dtype=float)
 		for ichan in range(self._n_channels):
 			var           = vars[ichan]
@@ -117,7 +117,7 @@ class Dataset(torch_dataset):
 	
 	def _get_data(self, vars):
 		data = [] #tuple(None for _ in range(self._n_channels))
-		mean = np.zeros((self._n_channels,self._nx*self._ny),dtype=float)
+		mean = np.zeros((self._n_channels,self._nh*self._nw),dtype=float)
 		maxi = np.zeros((self._n_channels,),dtype=float)
 		for ichan in range(self._n_channels):
 			var           = vars[ichan]
@@ -126,28 +126,28 @@ class Dataset(torch_dataset):
 			data.append(var)
 		return data, mean, maxi
 	
-	def crop(self, nx, ny, n0x, n0y):
+	def crop(self, nh, nw, n0h, n0w):
 		cropdata = []
-		self._nx = nx
-		self._ny = ny
+		self._nh = nh
+		self._nw = nw
 		for ichannel in range(self._n_channels):
 			isnap = self.data[ichannel]
 			isnap = torch.Tensor(isnap)
-			isnap = isnap.view(self.nt,n0x,n0y)
-			isnap = TF.crop(isnap, top=0, left=0, height=nx, width=ny)
-			cropdata.append(isnap.reshape(nx*ny,self.nt))
+			isnap = isnap.view(self.nt,n0h,n0w)
+			isnap = TF.crop(isnap, top=0, left=0, height=nh, width=nw)
+			cropdata.append(isnap.reshape(nh*nw,self.nt))
 		self._data = cropdata
 
-	def pad(self, nx, ny, n0x, n0y):
+	def pad(self, nh, nw, n0h, n0w):
 		paddata = []
-		self._nx = n0x
-		self._ny = n0y
+		self._nh = n0h
+		self._nw = n0w
 		for ichannel in range(self._n_channels):
 			isnap = self.data[ichannel]
 			isnap = torch.Tensor(isnap)
-			isnap = isnap.view(self.nt,nx,ny)
-			isnap = F.pad(isnap, (0, n0y-ny, 0, n0x-nx), mode='constant', value=0)
-			paddata.append(isnap.reshape(n0x*n0y,self.nt))
+			isnap = isnap.view(self.nt,nh,nw)
+			isnap = F.pad(isnap, (0, n0w-nw, 0, n0h-nh), mode='constant', value=0)
+			paddata.append(isnap.reshape(n0h*n0w,self.nt))
 		self._data = paddata
 
 	def recover(self, data):
