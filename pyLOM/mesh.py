@@ -185,13 +185,13 @@ class Mesh(object):
 		return cls('STRUCT3D',xyz,conec,eltype,cellO,pointO)
 
 	@classmethod
-	@cr('Mesh.from_pyAlya')
-	def from_pyAlya(cls,mesh,sod=False):
+	@cr('Mesh.from_pyQvarsi')
+	def from_pyQvarsi(cls,mesh,sod=False):
 		'''
 		Create the mesh structure from a pyAlya mesh structure
 		'''
-		eltype = np.array([ALYA2ELTYP[t] for t in mesh.eltype],np.uint8)
-		return cls('UNSTRUCT',mesh.xyz,mesh.connectivity_vtk if sod else mesh.connectivity,eltype,mesh.leinv,mesh.lninv)
+		eltype = np.array([ALYA2ELTYP[t] for t in mesh.eltype_linear],np.uint8)
+		return cls('UNSTRUCT',mesh.xyz,mesh.connectivity_vtk if sod else mesh.connectivity,eltype,mesh.leinv_linear,mesh.lninv)
 
 	@property
 	def type(self):
@@ -204,7 +204,11 @@ class Mesh(object):
 		return mpi_reduce(self.npoints,op='sum',all=True)
 	@property
 	def npointsG2(self):
-		return mpi_reduce(self.pointOrder.max(),op='max',all=True) + 1
+		if self.pointOrder.shape[0] > 0:
+			npoints = self.pointOrder.max()
+		else:
+			npoints = 0
+		return mpi_reduce(npoints,op='max',all=True) + 1
 	@property
 	def ndim(self):
 		return self._xyz.shape[1]
@@ -216,7 +220,11 @@ class Mesh(object):
 		return mpi_reduce(self.ncells,op='sum',all=True)
 	@property
 	def ncellsG2(self):
-		return mpi_reduce(self.cellOrder.max(),op='max',all=True) + 1
+		if self.cellOrder.shape[0] > 0:
+			ncells = self.cellOrder.max()
+		else:
+			ncells = 0
+		return mpi_reduce(ncells,op='max',all=True) + 1
 	@property
 	def nnodcell(self):
 		return self._conec.shape[1]
