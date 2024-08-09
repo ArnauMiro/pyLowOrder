@@ -122,7 +122,7 @@ class PartitionTable(object):
 
 	@classmethod
 	@cr('PartTable.from_pyQvarsi')
-	def from_pyQvarsi(cls,ptable,porder=1,has_master=True):
+	def from_pyQvarsi(cls,ptable,porder=1,has_master=False):
 		'''
 		Create a partition table from a partition table coming
 		from pyQvarsi
