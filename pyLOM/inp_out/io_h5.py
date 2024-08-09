@@ -520,7 +520,6 @@ def h5_load_POD(fname,vars,nmod,ptable=None):
 	if 'U' in vars:
 		# Check if we need to read the partition table
 		if ptable is None: ptable = h5_load_partition(file)
-		print(ptable, flush=True)
 		# Read
 		nvars = int(file['POD']['n_variables'][0])
 		point = bool(file['POD']['pointData'][0])
