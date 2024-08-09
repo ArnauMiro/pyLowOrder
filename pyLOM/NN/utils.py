@@ -139,8 +139,20 @@ class Dataset(torch_dataset):
 			maxi[ichan]   = np.max(np.abs(var))
 			data.append(var)
 		return data, mean, maxi
-	
-	def crop(self, nh, nw, n0h, n0w):
+
+	def crop(self, shape, shape0):
+		if len(shape) == 2:
+			_crop2D(self, shape[0], shape[1], shape0[0], shape0[1])
+		if len(shape) == 3:
+			_crop3D(self, shape[0], shape[1], shape[2], shape0[0], shape0[1], shape0[2])
+
+	def pad(self, shape, shape0):
+		if len(shape) == 2:
+			_pad2D(self, shape[0], shape[1], shape0[0], shape0[1])
+		if len(shape) == 3:
+			_pad3D(self, shape[0], shape[1], shape[2], shape0[0], shape0[1], shape0[2])
+
+	def _crop2D(self, nh, nw, n0h, n0w):
 		cropdata = []
 		self._nh = nh
 		self._nw = nw
@@ -152,7 +164,7 @@ class Dataset(torch_dataset):
 			cropdata.append(isnap.reshape(nh*nw,self.nt))
 		self._data = cropdata
 
-	def pad(self, nh, nw, n0h, n0w):
+	def _pad2D(self, nh, nw, n0h, n0w):
 		paddata = []
 		self._nh = n0h
 		self._nw = n0w
@@ -164,49 +176,46 @@ class Dataset(torch_dataset):
 			paddata.append(isnap.reshape(n0h*n0w,self.nt))
 		self._data = paddata
 
-		def crop3d(self, nx, ny, nz, n0x, n0y, n0z):
-
+	def _crop3D(self, nd, nh, nw, n0d, n0h, n0w):
 		## Crop for 3D data
 		cropdata = []
-		self._nx = nx
-		self._ny = ny
-		self._nz = nz
+		self._nd = nd
+		self._nh = nh
+		self._nw = nw
 		for ichannel in range(self._n_channels):
 			crops = []
 			for t in range(self.nt):
 				isnap = self.data[ichannel][:,t]
 				isnap = torch.Tensor(isnap)
-				isnap = isnap.view(1,n0x,n0y,n0z)
-				isnap_cropped = torch.zeros(1, nx, ny, nz)
-				xy_plane = torch.zeros(1,n0x,n0y)
-				for z in range(n0z): 
+				isnap = isnap.view(1,n0d,n0h,n0w)
+				isnap_cropped = torch.zeros(1, nd, nh, nw)
+				xy_plane = torch.zeros(1,n0d,n0h)
+				for z in range(n0w): 
 					xy_plane = isnap[:,:,:,z]
-					isnap_cropped[:,:,:,z] = TF.crop(xy_plane, top=0, left=0, height=nx, width=ny)
-				crops.append(isnap_cropped.reshape(nx*ny*nz,1))
+					isnap_cropped[:,:,:,z] = TF.crop(xy_plane, top=0, left=0, height=nd, width=nw)
+				crops.append(isnap_cropped.reshape(nd*nh*nw,1))
 			crops = torch.cat(crops, dim=1)
 			cropdata.append(crops)
 		self._data = cropdata
 
-	def pad3d(self, nx, ny, nz, n0x, n0y, n0z):
-
+	def _pad3D(self, nd, nh, nw, n0d, n0h, n0w):
 		## Pad for 3D data
-
 		paddata = []
-		self._nx = n0x
-		self._ny = n0y
-		self._nz = n0z
+		self._nd = n0d
+		self._nh = n0h
+		self._nw = n0w
 		for ichannel in range(self._n_channels):
 			pads = []
 			for t in range(self.nt):
 				isnap = self.data[ichannel][:,t]
 				isnap = torch.Tensor(isnap)
-				isnap = isnap.view(1,nx,ny,nz)
-				isnap_padded = torch.zeros(1, n0x, n0y, n0z)
-				xy_plane = torch.zeros(1,nx,ny)
-				for z in range(nz):
+				isnap = isnap.view(1,nd,nh,nw)
+				isnap_padded = torch.zeros(1, n0d, n0h, n0w)
+				xy_plane = torch.zeros(1,nd,nh)
+				for z in range(nw):
 					xy_plane = isnap[:,:,:,z]
-					isnap_padded[:,:,:,z] = F.pad(xy_plane, (0, n0y-ny, 0, n0x-nx), mode='constant', value = 0)
-				pads.append(isnap_padded.reshape(n0x*n0y*n0z,1))
+					isnap_padded[:,:,:,z] = F.pad(xy_plane, (0, n0h-nh, 0, n0d-nd), mode='constant', value = 0)
+				pads.append(isnap_padded.reshape(n0d*n0h*n0w,1))
 			pads = torch.cat(pads, dim = 1)
 			paddata.append(pads)
 		self._data = paddata
