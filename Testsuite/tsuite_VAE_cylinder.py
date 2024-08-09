@@ -37,7 +37,7 @@ ny  = 192
 pyldtset = pyLOM.Dataset.load(DSETDIR)
 u_x      = pyldtset['VELOX']
 time     = pyldtset.time
-tordtset = pyLOM.NN.Dataset((u_x,), n0x, n0y, time, transform=False)
+tordtset = pyLOM.NN.Dataset((u_x,), (n0x, n0y), time, device=device, transform=False)
 tordtset.data[0] = np.transpose(np.array([tordtset.data[0][:,0]]))
 tordtset._time   = np.array([tordtset.time[0]])
 tordtset.crop(nx, ny, n0x, n0y)
@@ -46,13 +46,13 @@ trloader = tordtset.loader()
 ## Set and train the variational autoencoder
 encarch    = pyLOM.NN.Encoder2D(nlayers, lat_dim, nx, ny, tordtset.n_channels, channels, kernel_size, padding, activations, nlinear, batch_norm=batch_norm)
 decarch    = pyLOM.NN.Decoder2D(nlayers, lat_dim, nx, ny, tordtset.n_channels, channels, kernel_size, padding, activations, nlinear, batch_norm=batch_norm)
-ae         = pyLOM.NN.Autoencoder(lat_dim, nx, ny, tordtset.n_channels, encarch, decarch, device=device)
+ae         = pyLOM.NN.Autoencoder(lat_dim, (nx, ny), tordtset.n_channels, encarch, decarch, device=device)
 early_stop = pyLOM.NN.EarlyStopper(patience=5, min_delta=0.02)
 ae.train_model(trloader, trloader, nepochs, callback=early_stop, BASEDIR=RESUDIR)
     
 ## Reconstruct dataset and compute accuracy
 rec      = ae.reconstruct(tordtset)
-recdtset = pyLOM.NN.Dataset((rec), nx, ny, tordtset._time, transform=False)
+recdtset = pyLOM.NN.Dataset((rec), (nx, ny), tordtset._time, device=device, transform=False)
 recdtset.pad(nx, ny, n0x, n0y)
 tordtset.pad(nx, ny, n0x, n0y)
 pyldtset.add_variable('urec', False, 1, recdtset.data[0][:,0].numpy())

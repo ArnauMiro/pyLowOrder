@@ -8,6 +8,9 @@ from torch.utils.data import Dataset as torch_dataset
 from ..vmmath         import temporal_mean, subtract_mean
 from ..utils.cr       import cr
 
+from   functools               import reduce
+from   operator                import mul
+
 def create_results_folder(RESUDIR):
 	if not os.path.exists(RESUDIR):
 		os.makedirs(RESUDIR)
@@ -42,11 +45,18 @@ class betaLinearScheduler:
 				return self.end_value
 
 class Dataset(torch_dataset):
-	def __init__(self, vars, nh, nw, time, device='cpu', transform=True):
-		self._nh = nh
-		self._nw = nw
-		self._time = time
-		self._device = device
+	def __init__(self, vars, inp_shape, time, device='cpu', transform=True):
+		self._ndim = len(inp_shape)
+		if self._ndim == 2:
+			self._nh   = inp_shape[0]
+			self._nw   = inp_shape[1]
+		if self._ndim == 3:
+			self._nd   = inp_shape[0]
+			self._nh   = inp_shape[1]
+			self._nw   = inp_shape[2]
+		self._N          = reduce(mul, inp_shape)
+		self._time       = time
+		self._device     = device
 		self._n_channels = len(vars)
 		if transform:
 			self._data, self._mean, self._max = self._normalize_min_max(vars)
@@ -61,10 +71,14 @@ class Dataset(torch_dataset):
 		for ichannel in range(self._n_channels):
 			isnap = self.data[ichannel][:,index]
 			isnap = torch.Tensor(isnap)
-			isnap = isnap.view(1,self._nh,self._nw)
+			isnap = isnap.view(1,self._nh,self._nw) if self._ndim == 2 else isnap.view(1,self._nd,self._nh,self._nw)
 			snap  = torch.cat((snap,isnap), dim=0)
 		return snap.to(self._device)
 
+	@property
+	def nd(self):
+		return self._nd
+	
 	@property
 	def nh(self):
 		return self._nh
@@ -95,7 +109,7 @@ class Dataset(torch_dataset):
 	   
 	def _normalize(self, vars):
 		data = [] #tuple(None for _ in range(self._n_channels))
-		mean = np.zeros((self._n_channels,self._nh*self._nw),dtype=float)
+		mean = np.zeros((self._n_channels,self._N),dtype=float)
 		maxi = np.zeros((self._n_channels,),dtype=float)
 		for ichan in range(self._n_channels):
 			var           = vars[ichan]
@@ -107,7 +121,7 @@ class Dataset(torch_dataset):
 	
 	def _normalize_min_max(self, vars):
 		data = [] #tuple(None for _ in range(self._n_channels))
-		mean = np.zeros((self._n_channels,self._nh*self._nw),dtype=float)
+		mean = np.zeros((self._n_channels,self._N),dtype=float)
 		maxi = np.zeros((self._n_channels,self.nt),dtype=float)
 		for ichan in range(self._n_channels):
 			var           = vars[ichan]
@@ -117,7 +131,7 @@ class Dataset(torch_dataset):
 	
 	def _get_data(self, vars):
 		data = [] #tuple(None for _ in range(self._n_channels))
-		mean = np.zeros((self._n_channels,self._nh*self._nw),dtype=float)
+		mean = np.zeros((self._n_channels,self._N),dtype=float)
 		maxi = np.zeros((self._n_channels,),dtype=float)
 		for ichan in range(self._n_channels):
 			var           = vars[ichan]
