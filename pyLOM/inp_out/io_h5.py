@@ -100,7 +100,7 @@ def h5_save_mesh_nopartition(file,mesh,ptable):
 		dset = group.create_dataset('type',(1,),dtype='i4',data=MTYPE2ID[mesh.type])
 		# Write the total number of cells and the total number of points
 		# Assume we might be dealing with a parallel mesh
-		npointG, ncellG = mesh.npointsG2, mesh.ncellsG2
+		npointG, ncellG = mesh.npointsG2, mesh.ncellsG
 		group.create_dataset('npoints',(1,),dtype='i4',data=npointG)
 		group.create_dataset('ncells' ,(1,),dtype='i4',data=ncellG)
 		# Create the rest of the datasets for parallel storage
@@ -116,10 +116,13 @@ def h5_save_mesh_nopartition(file,mesh,ptable):
 		# Write dataset - points
 		dxyz[inods,:] = mesh.xyz[idx,:]
 		dpoinO[inods] = mesh.pointOrder[idx]
-                # Compute start and end of read, cell data
+		# Compute start and end of read, cell data
 		istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
 		# Write dataset - cells
-		dconec[istart:iend,:] = mesh.pointOrder[mesh.connectivity]
+		if mesh.pointOrder.shape[0] > 0:
+			dconec[istart:iend,:] = mesh.pointOrder[mesh.connectivity]
+		else:
+			dconec[istart:iend] = mesh.pointOrder
 		deltyp[istart:iend]   = mesh.eltype
 		dcellO[istart:iend]   = mesh.cellOrder
 	return inods,idx,npointG
@@ -138,7 +141,7 @@ def h5_create_variable_datasets(file,time,varDict,ptable,ipart=-1):
 		n     = mpi_reduce(varDict[var]['value'].shape[0],op='sum',all=True)
 		if ptable.has_master: n -= 1
 		npoin = int(file['MESH']['npoints'][0]) if varDict[var]['point'] else int(file['MESH']['ncells'][0])
-		ndim  = n//npoin
+		ndim  = 1 #n//npoin
 		ntime = varDict[var]['value'].shape[1]
 		dsetDict[var] = {
 			'point' : vargroup.create_dataset('point',(1,),dtype='u1'),
@@ -163,7 +166,11 @@ def h5_fill_variable_datasets(dsetDict,varDict,ptable,inods,idx):
 			dsetDict[var]['value'][istart:iend,:]  = varDict[var]['value']
 		else:
 			if varDict[var]['ndim'] > 1: raiseError('Cannot deal with multi-dimensional arrays in no partition mode!')
-			dsetDict[var]['value'][inods,:] = varDict[var]['value'][idx,:]
+			if varDict[var]['value'].shape[0] > 0:
+				dsetDict[var]['value'][inods,:] = varDict[var]['value'][idx,:]
+			else:
+				dsetDict[var]['value'][inods,:] = varDict[var]['value']
+
 
 def h5_save_serial(fname,time,varDict,mesh,ptable):
 	'''
@@ -312,6 +319,7 @@ def h5_load_mesh(file,ptable,repart):
 	conec  = np.array(file['MESH']['connectivity'][istart:iend,:],np.int32)
 	eltype = np.array(file['MESH']['eltype'][istart:iend],np.int32) 
 	cellO  = np.array(file['MESH']['cellOrder'][istart:iend],np.int32)
+	cellO  = np.arange(istart, iend, 1)
 	# Read point related variables
 	if repart:
 		# Warning! Repartition will only work if the input file is serial
@@ -514,7 +522,7 @@ def h5_load_POD(fname,vars,nmod,ptable=None):
 		# Read
 		nvars = int(file['POD']['n_variables'][0])
 		point = bool(file['POD']['pointData'][0])
-		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,point=point)
+		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=point)
 		varList.append( np.array(file['POD']['U'][istart:iend,:nmod]) )
 	if 'S' in vars: varList.append( np.array(file['POD']['S'][:]) )
 	if 'V' in vars: varList.append( np.array(file['POD']['V'][:,:]) )
