@@ -20,6 +20,7 @@ from .architectures.autoencoders import Autoencoder, VariationalAutoencoder
 from .architectures.encoders_decoders import Encoder2D, Decoder2D, Encoder3D, Decoder3D
 
 from .optimizer import OptunaOptimizer
+from .pipeline import Pipeline
 
 ## Wrapper of the activation functions
 import torch.nn as nn

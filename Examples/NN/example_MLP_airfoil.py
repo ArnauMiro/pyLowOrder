@@ -23,6 +23,14 @@ optimizer = pyLOM.NN.OptunaOptimizer(
     save_dir=None
 )
 
-print(model)
+pipeline = pyLOM.NN.Pipeline(
+    train_dataset=None,
+    test_dataset=None,
+    optimizer=optimizer,
+    model_class=pyLOM.NN.MLP,
+    evaluators=[],
+)
+
+print(pipeline, model)
 import torch
 print(pyLOM.NN.tanh()(torch.tensor(1.0)))
