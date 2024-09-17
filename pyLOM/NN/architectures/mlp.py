@@ -363,7 +363,7 @@ class MLP(nn.Module):
         return cls(input_dim, output_dim, **optimization_params), optimization_params
 
     def _get_optimizing_value(name, value, trial):
-        if isinstance(value, tuple) or isinstance(value, list):
+        if isinstance(value, tuple):
             use_log = value[1] / value[0] >= 1000
             if isinstance(value[0], int):
                 return trial.suggest_int(name, value[0], value[1], log=use_log)
