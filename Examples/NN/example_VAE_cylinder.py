@@ -48,7 +48,7 @@ encarch    = pyLOM.NN.Encoder2D(nlayers, lat_dim, nh, nw, tordtset.n_channels, c
 decarch    = pyLOM.NN.Decoder2D(nlayers, lat_dim, nh, nw, tordtset.n_channels, channels, kernel_size, padding, activations, nlinear, batch_norm=batch_norm)
 ae         = pyLOM.NN.Autoencoder(lat_dim, nh, nw, tordtset.n_channels, encarch, decarch, device=device)
 early_stop = pyLOM.NN.EarlyStopper(patience=5, min_delta=0.02)
-ae.train_model(trloader, trloader, nepochs, callback=early_stop, BASEDIR=RESUDIR)
+ae.train_model(trloader, trloader, beta, nepochs, callback=early_stop, BASEDIR=RESUDIR)
     
 ## Reconstruct dataset and compute accuracy
 rec      = ae.reconstruct(tordtset)
