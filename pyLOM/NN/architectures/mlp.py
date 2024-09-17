@@ -9,7 +9,7 @@ import sys
 
 import optuna
 
-# from optimization import OptunaOptimizer
+from ..optimizer import OptunaOptimizer
 
 
 class MLP(nn.Module):
@@ -315,7 +315,7 @@ class MLP(nn.Module):
         cls, 
         train_dataset, 
         eval_dataset, 
-        # optuna_optimizer: OptunaOptimizer,
+        optuna_optimizer: OptunaOptimizer,
         **kwargs,
     ) -> Tuple[nn.Module, Dict]:
         r"""

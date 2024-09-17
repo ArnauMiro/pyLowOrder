@@ -16,5 +16,6 @@ from .callbacks     import EarlyStopper
 from .utils         import Dataset, create_results_folder, select_device, betaLinearScheduler
 
 from .architectures.mlp import MLP
+from .optimizer import OptunaOptimizer
 
 del wrapper, os
