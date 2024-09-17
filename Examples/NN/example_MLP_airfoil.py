@@ -8,6 +8,7 @@ model = pyLOM.NN.MLP(
         p_dropouts=[0.07158, 0.03035, 0.15853]
     )
 
+
 optimizer = pyLOM.NN.OptunaOptimizer(
     optimization_params={
         "lr": 0.01,  # fixed parameter
@@ -23,3 +24,5 @@ optimizer = pyLOM.NN.OptunaOptimizer(
 )
 
 print(model)
+import torch
+print(pyLOM.NN.tanh()(torch.tensor(1.0)))

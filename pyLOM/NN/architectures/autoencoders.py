@@ -10,29 +10,8 @@ from   torchsummary            import summary
 from   functools               import reduce
 from   operator                import mul
 
-from   ..utils.cr              import cr
+from   ...utils.cr              import cr
 
-
-## Wrapper of the activation functions
-def tanh():
-    return nn.Tanh()
-
-def relu():
-    return nn.ReLU()
-
-def elu():
-    return nn.ELU()
-
-def sigmoid():
-    return nn.Sigmoid()
-
-def leakyRelu():
-    return nn.LeakyReLU()
-
-def silu():
-    return nn.SiLU()
-
-## Wrapper of the Dataset class
 
 ## Wrapper of a variational autoencoder
 class Autoencoder(nn.Module):

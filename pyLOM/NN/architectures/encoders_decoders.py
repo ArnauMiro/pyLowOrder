@@ -1,7 +1,4 @@
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import numpy as np
 
 class Encoder2D(nn.Module):
     def __init__(self, nlayers, latent_dim, nh, nw, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=True, stride=2, dropout=0, vae=False):
