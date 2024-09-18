@@ -76,32 +76,3 @@ class Pipeline:
         self._model.fit(
             self.train_dataset, eval_dataset=self.test_dataset, **self.training_params
         )
-
-        if len(self.evaluators) > 0:
-            print(f"\n{'-'*50}\nMetrics on train data:\n{'-'*50}")
-            self.evaluate(self.train_dataset)
-
-            if self.test_dataset is not None:
-                print(f"{'-'*50}\nMetrics on test data:\n{'-'*50}")
-                self.evaluate(self.test_dataset)
-
-    def evaluate(self, dataset) -> Dict[str, float]:
-        """
-        Evaluate the model on a dataset.
-        
-        Args:
-            dataset (BaseDataset): The dataset to evaluate the model on.
-            
-        Returns:
-            metrics (Dict[str, float]): The metrics evaluated on the dataset.
-        """
-        # if the dataset is scaled, then there is no need to rescale the output
-        rescale_output = dataset.isscaled[1] 
-        y_pred = self._model.predict(dataset, rescale_output=rescale_output, **self.training_params)
-        dataset.rescale_data()
-        _, y_true = dataset[:]
-        metrics = {}
-        for evaluator in self.evaluators:
-            metrics.update(evaluator(y_true, y_pred))
-            evaluator.print_metrics()
-        return metrics

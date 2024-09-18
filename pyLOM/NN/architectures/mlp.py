@@ -196,7 +196,6 @@ class MLP(nn.Module):
     def predict(
         self, 
         X, 
-        rescale_output: bool = True,
         return_targets: bool = False,
         **kwargs,
     ):
@@ -218,7 +217,7 @@ class MLP(nn.Module):
             Tuple [np.ndarray, np.ndarray]: The predictions and the true target values.
         """
         dataloader_params = {
-            "batch_size": 32,
+            "batch_size": 256,
             "shuffle": False,
             "num_workers": 0,
             "pin_memory": True,
@@ -245,10 +244,6 @@ class MLP(nn.Module):
                 all_predictions[start_idx:end_idx, :] = output.cpu().numpy()
                 all_targets[start_idx:end_idx, :] = y.cpu().numpy()
                 start_idx = end_idx
-                
-        if rescale_output:
-            all_predictions = X.rescale_y(np.array(all_predictions))
-            all_targets = X.rescale_y(np.array(all_targets))
 
         if return_targets:
             return all_predictions, all_targets
