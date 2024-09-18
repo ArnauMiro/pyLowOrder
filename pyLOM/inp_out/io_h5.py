@@ -10,34 +10,14 @@ from __future__ import print_function, division
 import os, numpy as np, h5py
 
 from ..partition_table import PartitionTable
-from ..mesh            import MTYPE2ID, ID2MTYPE, Mesh
+from ..mesh            import MTYPE2ID, ID2MTYPE
 from ..utils.cr        import cr
 from ..utils.parall    import MPI_COMM, MPI_RANK, MPI_SIZE, worksplit, writesplit, is_rank_or_serial, mpi_reduce, mpi_gather
 from ..utils.errors    import raiseError
 
 
-PYLOM_H5_VERSION = (2,0)
+PYLOM_H5_VERSION = (3,0)
 
-
-@cr('h5IO.save')
-def h5_save(fname,time,varDict,mesh,ptable,mpio=True,nopartition=False):
-	'''
-	Save a Dataset in HDF5
-	'''
-	if mpio and not MPI_SIZE == 1:
-		h5_save_mpio(fname,time,varDict,mesh,ptable,nopartition)
-	else:
-		h5_save_serial(fname,time,varDict,mesh,ptable)
-
-@cr('h5IO.append')
-def h5_append(fname,time,varDict,mesh,ptable,mpio=True,nopartition=False):
-	'''
-	Save a Dataset in HDF5
-	'''
-	if mpio and not MPI_SIZE == 1:
-		h5_append_mpio(fname,time,varDict,mesh,ptable,nopartition)
-	else:
-		h5_append_serial(fname,time,varDict,mesh,ptable)
 
 def h5_save_partition(file,ptable):
 	'''
@@ -50,237 +30,12 @@ def h5_save_partition(file,ptable):
 	group.create_dataset('Elements',(ptable.n_partitions,),dtype='i4',data=ptable.Elements)
 	group.create_dataset('Points',(ptable.n_partitions,),dtype='i4',data=ptable.Points)
 
-def h5_save_mesh(file,mesh,ptable):
-	'''
-	Save the mesh inside the HDF5 file
-	'''
-	# Skip the whole process if the mesh is not there
-	if mesh is not None:
-		# Create a group for the mesh
-		group = file.create_group('MESH')
-		# Save the mesh type
-		dset = group.create_dataset('type',(1,),dtype='i4',data=MTYPE2ID[mesh.type])
-		# Write the total number of cells and the total number of points
-		# Assume we might be dealing with a parallel mesh
-		npointG, ncellG = mesh.npointsG, mesh.ncellsG
-		if ptable.has_master: 
-			npointG -= 1
-			ncellG  -= 1
-		group.create_dataset('npoints',(1,),dtype='i4',data=npointG)
-		group.create_dataset('ncells' ,(1,),dtype='i4',data=ncellG)
-		# Create the rest of the datasets for parallel storage
-		dxyz   = group.create_dataset('xyz',(npointG,mesh.ndim),dtype='f8')
-		dconec = group.create_dataset('connectivity',(ncellG,mesh.nnodcell),dtype='i4')
-		deltyp = group.create_dataset('eltype',(ncellG,),dtype='u1')
-		dcellO = group.create_dataset('cellOrder',(ncellG,),dtype='i4')
-		dpoinO = group.create_dataset('pointOrder',(npointG,),dtype='i4')
-		# Skip master if needed
-		if ptable.has_master and MPI_RANK == 0: return None, None, None
-		# Point dataset
-		# Compute start and end of read, node data
-		istartp, iend = ptable.partition_bounds(MPI_RANK,points=True)
-		dxyz[istartp:iend,:]  = mesh.xyz
-		dpoinO[istartp:iend]  = mesh.pointOrder
-		# Compute start and end of read, cell data
-		istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
-		dconec[istart:iend,:] = mesh.connectivity + istartp
-		deltyp[istart:iend]   = mesh.eltype
-		dcellO[istart:iend]   = mesh.cellOrder
-	return None, None, None
-
-def h5_save_mesh_nopartition(file,mesh,ptable):
-	'''
-	Save the mesh inside the HDF5 file
-	'''
-	# Skip the whole process if the mesh is not there
-	if mesh is not None:
-		# Create a group for the mesh
-		group = file.create_group('MESH')
-		# Save the mesh type
-		dset = group.create_dataset('type',(1,),dtype='i4',data=MTYPE2ID[mesh.type])
-		# Write the total number of cells and the total number of points
-		# Assume we might be dealing with a parallel mesh
-		npointG, ncellG = mesh.npointsG2, mesh.ncellsG2
-		group.create_dataset('npoints',(1,),dtype='i4',data=npointG)
-		group.create_dataset('ncells' ,(1,),dtype='i4',data=ncellG)
-		# Create the rest of the datasets for parallel storage
-		dxyz   = group.create_dataset('xyz',(npointG,mesh.ndim),dtype='f8')
-		dconec = group.create_dataset('connectivity',(ncellG,mesh.nnodcell),dtype='i4')
-		deltyp = group.create_dataset('eltype',(ncellG,),dtype='u1')
-		dcellO = group.create_dataset('cellOrder',(ncellG,),dtype='i4')
-		dpoinO = group.create_dataset('pointOrder',(npointG,),dtype='i4')
-		# Skip master if needed
-		if ptable.has_master and MPI_RANK == 0: return None, None, None
-		# Get the position where the points should be stored
-		inods,idx = np.unique(mesh.pointOrder,return_index=True)
-		# Write dataset - points
-		dxyz[inods,:] = mesh.xyz[idx,:]
-		dpoinO[inods] = mesh.pointOrder[idx]
-                # Compute start and end of read, cell data
-		istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
-		# Write dataset - cells
-		dconec[istart:iend,:] = mesh.pointOrder[mesh.connectivity]
-		deltyp[istart:iend]   = mesh.eltype
-		dcellO[istart:iend]   = mesh.cellOrder
-	return inods,idx,npointG
-
-def h5_create_variable_datasets(file,time,varDict,ptable,ipart=-1):
-	'''
-	Create the variable datasets inside an HDF5 file
-	'''
-	# Store time array (common for all processes)
-	if not 'time' in file.keys(): file.create_dataset('time',time.shape,dtype=time.dtype,data=time)
-	# Create group for variables
-	group = file.create_group('VARIABLES_%d'%ipart if ipart >= 0 else 'VARIABLES')
-	dsetDict = {}
-	for var in varDict.keys():
-		vargroup = group.create_group(var)
-		n     = mpi_reduce(varDict[var]['value'].shape[0],op='sum',all=True)
-		if ptable.has_master: n -= 1
-		npoin = int(file['MESH']['npoints'][0]) if varDict[var]['point'] else int(file['MESH']['ncells'][0])
-		ndim  = n//npoin
-		ntime = varDict[var]['value'].shape[1]
-		dsetDict[var] = {
-			'point' : vargroup.create_dataset('point',(1,),dtype='u1'),
-			'ndim'  : vargroup.create_dataset('ndim' ,(1,),dtype='i4'),
-			'value' : vargroup.create_dataset('value',(ndim*npoin,ntime),dtype=varDict[var]['value'].dtype),
-		}
-	return dsetDict
-
-def h5_fill_variable_datasets(dsetDict,varDict,ptable,inods,idx):
-	'''
-	Fill in the variable datasets inside an HDF5 file
-	'''
-	# Skip master if needed
-	if ptable.has_master and MPI_RANK == 0: return
-	for var in dsetDict.keys():
-		# Fill dataset
-		dsetDict[var]['point'][:] = varDict[var]['point']
-		dsetDict[var]['ndim'][:]  = varDict[var]['ndim']
-		if inods is None or not varDict[var]['point']:
-			# Compute start and end bounds for the variable
-			istart, iend = ptable.partition_bounds(MPI_RANK,ndim=varDict[var]['ndim'],points=varDict[var]['point'])
-			dsetDict[var]['value'][istart:iend,:]  = varDict[var]['value']
-		else:
-			if varDict[var]['ndim'] > 1: raiseError('Cannot deal with multi-dimensional arrays in no partition mode!')
-			dsetDict[var]['value'][inods,:] = varDict[var]['value'][idx,:]
-
-def h5_save_serial(fname,time,varDict,mesh,ptable):
-	'''
-	Save a dataset in HDF5 in serial mode
-	'''
-	# Open file for writing
-	file = h5py.File(fname,'w')
-	file.attrs['Version'] = PYLOM_H5_VERSION
-	# Store partition table
-	h5_save_partition(file,ptable)
-	# Store the mesh
-	inods,idx,npoints = h5_save_mesh(file,mesh,ptable)
-	# Store the variables
-	h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable),varDict,ptable,inods,idx)
-	file.close()
-
-def h5_save_mpio(fname,time,varDict,mesh,ptable,nopartition):
-	'''
-	Save a dataset in HDF5 in parallel mode
-	'''
-	# Open file
-	file = h5py.File(fname,'w',driver='mpio',comm=MPI_COMM)
-	file.attrs['Version'] = PYLOM_H5_VERSION
-	# Store partition table
-	h5_save_partition(file,PartitionTable.new(1,mesh.ncellsG2,mesh.npointsG2))
-	# Store the mesh
-	inods,idx,npoints = h5_save_mesh(file,mesh,ptable) if not nopartition else h5_save_mesh_nopartition(file,mesh,ptable)
-	# Store the variables
-	h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable),varDict,ptable,inods,idx)
-	file.close()
-
-def h5_append_serial(fname,time,varDict,mesh,ptable):
-	'''
-	Save a dataset in HDF5 in serial mode
-	'''
-	file = h5py.File(fname,'a')
-	if not hasattr(h5_append_serial,'ipart'):
-		# Input file does not exist, we create it with the whole structure
-		file.attrs['Version'] = PYLOM_H5_VERSION
-		# Store partition table
-		h5_save_partition(file,ptable)
-		# Store the mesh
-		inods,idx,npoints = h5_save_mesh(file,mesh,ptable)
-		# Start the partition counter
-		h5_append_serial.ipart   = 0
-		h5_append_serial.inods   = inods
-		h5_append_serial.idx     = idx
-		h5_append_serial.npoints = npoints
-	else:
-		# Check the file version
-		version = tuple(file.attrs['Version'])
-		if not version == PYLOM_H5_VERSION:
-			raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
-		# Obtain from function
-		ipart   = h5_append_serial.ipart
-		inods   = h5_append_serial.inods
-		idx     = h5_append_serial.idx
-		npoints = h5_append_serial.npoints 
-		# Write the time partition on the file
-		h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable,ipart=ipart),varDict,ptable,inods,idx)
-		# Update time
-		file['time'][:] = time
-		# Increase the partition counter
-		h5_append_serial.ipart += 1
-	file.close()
-
-def h5_append_mpio(fname,time,varDict,mesh,ptable,nopartition):
-	'''
-	Save a dataset in HDF5 in serial mode
-	'''
-	file = h5py.File(fname,'a',driver='mpio',comm=MPI_COMM)
-	if not hasattr(h5_append_mpio,'ipart'):
-		# Input file does not exist, we create it with the whole structure
-		file.attrs['Version'] = PYLOM_H5_VERSION
-		# Store partition table
-		h5_save_partition(file,ptable)
-		# Store the mesh
-		inods,idx,npoints = h5_save_mesh(file,mesh,ptable) if not nopartition else h5_save_mesh_nopartition(file,mesh,ptable)
-		# Start the partition counter
-		h5_append_mpio.ipart   = 0
-		h5_append_mpio.inods   = inods
-		h5_append_mpio.idx     = idx
-		h5_append_mpio.npoints = npoints
-	else:
-		# Check the file version
-		version = tuple(file.attrs['Version'])
-		if not version == PYLOM_H5_VERSION:
-			raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
-		# Obtain from function
-		ipart   = h5_append_mpio.ipart
-		inods   = h5_append_mpio.inods
-		idx     = h5_append_mpio.idx
-		npoints = h5_append_mpio.npoints 
-		# Write the time partition on the file
-		h5_fill_variable_datasets(h5_create_variable_datasets(file,time,varDict,ptable,ipart=ipart),varDict,ptable,inods,idx)
-		# Update time
-		file['time'][:] = time
-		# Increase the partition counter
-		h5_append_mpio.ipart += 1
-	file.close()
-
-
-@cr('h5IO.load')
-def h5_load(fname,mpio=True):
-	'''
-	Load a dataset in HDF5
-	'''
-	if mpio and not MPI_SIZE == 1:
-		return h5_load_mpio(fname)
-	else:
-		return h5_load_serial(fname)
-
 def h5_load_partition(file):
 	'''
 	Load a partition table inside an HDF5 file
 	'''
 	# Load file
+	if not 'PARTITIONS' in file.keys(): raiseError('No partition table stored in dataset!')
 	nparts   = int(file['PARTITIONS']['NSubD'][0])
 	ids      = np.array(file['PARTITIONS']['Ids'][:])
 	elements = np.array(file['PARTITIONS']['Elements'][:])
@@ -288,30 +43,98 @@ def h5_load_partition(file):
 	# Return partition class
 	return PartitionTable(nparts,ids,elements,points)
 
-def h5_load_size(file):
+def h5_save_meshes(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
+	'''
+	Save the mesh inside the HDF5 file
+	'''
+	# Save the mesh type
+	dset = file.create_dataset('type',(1,),dtype='i4',data=MTYPE2ID[mtype])
+	# Write the total number of cells and the total number of points
+	# Assume we might be dealing with a parallel mesh
+	ndim     = xyz.shape[1]
+	nnodcell = conec.shape[1]
+	npointG  = mpi_reduce(xyz.shape[0],op='sum',all=True)
+	ncellG   = mpi_reduce(eltype.shape[0],op='sum',all=True)
+	if ptable.has_master: 
+		npointG -= 1
+		ncellG  -= 1
+	file.create_dataset('npoints',(1,),dtype='i4',data=npointG)
+	file.create_dataset('ncells' ,(1,),dtype='i4',data=ncellG)
+	# Create the rest of the datasets for parallel storage
+	dxyz   = file.create_dataset('xyz',(npointG,ndim),dtype='f8')
+	dconec = file.create_dataset('connectivity',(ncellG,nnodcell),dtype='i4')
+	deltyp = file.create_dataset('eltype',(ncellG,),dtype='u1')
+	dcellO = file.create_dataset('cellOrder',(ncellG,),dtype='i4')
+	dpoinO = file.create_dataset('pointOrder',(npointG,),dtype='i4')
+	# Skip master if needed
+	if ptable.has_master and MPI_RANK == 0: return None, None, None
+	# Point dataset
+	# Compute start and end of read, node data
+	istartp, iend = ptable.partition_bounds(MPI_RANK,points=True)
+	dxyz[istartp:iend,:]  = xyz
+	dpoinO[istartp:iend]  = pointO
+	# Compute start and end of read, cell data
+	istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
+	dconec[istart:iend,:] = conec + istartp
+	deltyp[istart:iend]   = eltype
+	dcellO[istart:iend]   = cellO
+
+def h5_save_meshes_nopartition(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
+	'''
+	Save the mesh inside the HDF5 file
+	'''
+	# Save the mesh type
+	dset = group.create_dataset('type',(1,),dtype='i4',data=MTYPE2ID[mtype])
+	# Write the total number of cells and the total number of points
+	# Assume we might be dealing with a parallel mesh
+	ndim     = xyz.shape[1]
+	nnodcell = conec.shape[1]
+	npointG  = mpi_reduce(pointO.max(),op='max',all=True) + 1
+	ncellG   = mpi_reduce(cellO.max(),op='max',all=True) + 1
+	if ptable.has_master: 
+		npointG -= 1
+		ncellG  -= 1
+	file.create_dataset('npoints',(1,),dtype='i4',data=npointG)
+	file.create_dataset('ncells' ,(1,),dtype='i4',data=ncellG)
+	# Create the rest of the datasets for parallel storage
+	dxyz   = file.create_dataset('xyz',(npointG,ndim),dtype='f8')
+	dconec = file.create_dataset('connectivity',(ncellG,nnodcell),dtype='i4')
+	deltyp = file.create_dataset('eltype',(ncellG,),dtype='u1')
+	dcellO = file.create_dataset('cellOrder',(ncellG,),dtype='i4')
+	dpoinO = file.create_dataset('pointOrder',(npointG,),dtype='i4')
+	# Skip master if needed
+	if ptable.has_master and MPI_RANK == 0: return None, None, None
+	# Point dataset
+	# Get the position where the points should be stored
+	inods,idx = np.unique(mesh.pointOrder,return_index=True)
+	dxyz[inods,:] = xyz[idx,:]
+	dpoinO[inods] = pointO[idx]
+	# Compute start and end of read, cell data
+	istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
+	dconec[istart:iend,:] = pointO[conec]
+	deltyp[istart:iend]   = eltype
+	dcellO[istart:iend]   = cellO
+
+def h5_load_meshes_size(file):
 	'''
 	Load only the number of cells and points for the partition
 	'''
-	# Crash if mesh is not present
-	if not 'MESH' in file.keys():
-		raiseError('Repartition is not possible without a mesh!')
 	# If the mesh is present read the size
-	npoints = int(file['MESH']['npoints'][0])
-	ncells  = int(file['MESH']['ncells'][0])
+	npoints = int(file['npoints'][0])
+	ncells  = int(file['ncells'][0])
 	return npoints, ncells
 
-def h5_load_mesh(file,ptable,repart):
+def h5_load_meshes(file,ptable,repart):
 	'''
 	Load the mesh inside the HDF5 file
 	'''
-	if not 'MESH' in file.keys(): return None
 	# Read mesh type
-	mtype  = ID2MTYPE[int(file['MESH']['type'][0])]
+	mtype  = ID2MTYPE[int(file['type'][0])]
 	# Read cell related variables
 	istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
-	conec  = np.array(file['MESH']['connectivity'][istart:iend,:],np.int32)
-	eltype = np.array(file['MESH']['eltype'][istart:iend],np.int32) 
-	cellO  = np.array(file['MESH']['cellOrder'][istart:iend],np.int32)
+	conec  = np.array(file['connectivity'][istart:iend,:],np.int32)
+	eltype = np.array(file['eltype'][istart:iend],np.int32) 
+	cellO  = np.array(file['cellOrder'][istart:iend],np.int32)
 	# Read point related variables
 	if repart:
 		# Warning! Repartition will only work if the input file is serial
@@ -321,91 +144,458 @@ def h5_load_mesh(file,ptable,repart):
 	else:
 		istart, iend = ptable.partition_bounds(MPI_RANK,points=True)
 		inods = np.arange(istart,iend,dtype=np.int32)
-	xyz    = np.array(file['MESH']['xyz'][inods,:],np.double) 
-	pointO = np.array(file['MESH']['pointOrder'][inods],np.int32)
+	xyz    = np.array(file['xyz'][inods,:],np.double) 
+	pointO = np.array(file['pointOrder'][inods],np.int32)
 	# Fix the connectivity to start at zero
 	conec = np.searchsorted(pointO,conec.flatten()).reshape(conec.shape).astype(np.int32)
 	# Return
-	return Mesh(mtype,xyz,conec,eltype,cellO,pointO),inods
+	return mtype, xyz, conec, eltype, cellO, pointO
 
-def h5_load_variables_single(file,mesh,ptable,inods,repart):
+def h5_save_points(file,xyz,order,ptable,point):
+	'''
+	Save the points inside the HDF5 file
+	'''
+	npointG = mpi_reduce(xyz.shape[0],op='sum',all=True)
+	ndim    = xyz.shape[1]
+	if ptable.has_master: npointG -= 1
+	file.create_dataset('pointData',(1,),dtype='i4',data=point)
+	file.create_dataset('npoints',(1,),dtype='i4',data=npointG)
+	# Create the rest of the datasets for parallel storage
+	dxyz   = file.create_dataset('xyz',(npointG,ndim),dtype=xyz.dtype)
+	dpoinO = file.create_dataset('order',(npointG,),dtype='i4')
+	# Skip master if needed
+	if ptable.has_master and MPI_RANK == 0: return None, None, None
+	# Compute start and end of read, node data
+	istart, iend = ptable.partition_bounds(MPI_RANK,points=point)
+	dxyz[istart:iend,:] = xyz
+	dpoinO[istart:iend] = order
+	return None, None, None
+
+def h5_save_points_nopartition(file,xyz,order,ptable,point):
+	'''
+	Save the points inside the HDF5 file
+	'''
+	# Assume we might be dealing with a parallel mesh
+	npointG = mpi_reduce(order.max(),op='max',all=True) + 1
+	file.create_dataset('pointData',(1,),dtype='i4',data=point)
+	file.create_dataset('npoints',(1,),dtype='i4',data=npointG)
+	# Create the rest of the datasets for parallel storage
+	dxyz   = file.create_dataset('xyz',(npointG,ndim),dtype=xyz.dtype)
+	dpoinO = file.create_dataset('order',(npointG,),dtype='i4')
+	# Skip master if needed
+	if ptable.has_master and MPI_RANK == 0: return None, None, None
+	# Get the position where the points should be stored
+	inods,idx = np.unique(order,return_index=True)
+	# Write dataset - points
+	dxyz[inods,:] = mesh.xyz[idx,:]
+	dpoinO[inods] = mesh.pointOrder[idx]
+	return inods,idx,npointG
+
+def h5_load_dset_size(file):
+	'''
+	Load only the number of points for the dataset
+	'''
+	# Crash if mesh is not present
+	if not 'xyz' in file.keys():
+		raiseError('Repartition is not possible without a the points!')
+	# If the mesh is present read the size
+	npoints = int(file['npoints'][0])
+	point   = int(file['pointData'][0])
+	return npoints, point
+
+def h5_load_points(file,ptable,point):
+	'''
+	Load the mesh inside the HDF5 file
+	'''
+#		# Warning! Repartition will only work if the input file is serial
+#		# i.e., it does not have any repeated nodes, otherwise it wont work
+#		inods  = ptable.partition_points(MPI_RANK,1,conec)
+#		ptable.update_points(inods.shape[0])
+	istart, iend = ptable.partition_bounds(MPI_RANK,points=point)
+	xyz   = np.array(file['xyz'][istart:iend,:]) 
+	order = np.array(file['order'][istart:iend])
+	# Return
+	return xyz, order
+
+def h5_create_variable_datasets(file,varDict,ptable,ipart=-1):
+	'''
+	Create the variable datasets inside an HDF5 file
+	'''
+	# Create group for variables
+	group = file.create_group('VARIABLES_%d'%ipart if ipart >= 0 else 'VARIABLES')
+	dsetDict = {}
+	for var in varDict.keys():
+		vargroup = group.create_group(var)
+		nvars    = varDict[var]['value'].shape[0]
+		dsetDict[var] = {
+			'idim'  : vargroup.create_dataset('idim' ,(1,),dtype='i4'),
+			'value' : vargroup.create_dataset('value',(nvars,),dtype=varDict[var]['value'].dtype),
+		}
+	return dsetDict
+
+def h5_load_variables_single(file):
 	'''
 	Load the variables inside the HDF5 file
 	'''
-	# Read time
-	time = np.array(file['time'][:])
-	# Read variables
 	varDict = {}
 	for v in file['VARIABLES'].keys():
-		# Load point and ndim
-		point   = bool(file['VARIABLES'][v]['point'][0])
-		ndim    = int(file['VARIABLES'][v]['ndim'][0])
-		npoints = mesh.npoints if point else mesh.ncells
-		value   = np.zeros((ndim*npoints,len(time)),np.double) 
-		# Read the values
-		if mesh is None or not point:
-			istart, iend = ptable.partition_bounds(MPI_RANK,ndim=ndim,points=point)
-			value[:,:]   = np.array(file['VARIABLES'][v]['value'][istart:iend,:])
-		else:
-			if repart:
-				# We are repartitioning, then use inods to read the array
-				for idim in range(ndim):
-					value[idim:ndim*npoints:ndim,:] = np.array(file['VARIABLES'][v]['value'][inods+idim*npoints,:])
-			else:
-				# Just use the partition bounds to recover the array
-				istart, iend = ptable.partition_bounds(MPI_RANK,ndim=ndim,points=point)
-				value[:,:]   = np.array(file['VARIABLES'][v]['value'][istart:iend,:])
-		# Generate dictionary
-		varDict[v] = {'point':point,'ndim':ndim,'value':value}
+		vargroup = file['VARIABLES'][v]
+		varDict[v] = {
+			'idim'  : int(vargroup['idim'][0]),
+			'value' : np.array(vargroup['value']),
+		}
 	# Return
-	return time, varDict
+	return varDict
 
-def h5_load_variables_multi(file,mesh,ptable,inods,repart,npart):
+def h5_create_field_datasets(file,fieldDict,ptable,ipart=-1):
 	'''
-	Load the variables inside the HDF5 file
+	Create the variable datasets inside an HDF5 file
 	'''
-	# Read time
-	time = np.array(file['time'][:])
-	# Scan for variables in first partition and build variable dictionary
-	varDict = {}
-	for v in file['VARIABLES_0'].keys():
-		point   = bool(file['VARIABLES_0'][v]['point'][0])
-		ndim    = int(file['VARIABLES_0'][v]['ndim'][0])
-		npoints = mesh.npoints if point else mesh.ncells
-		value   = np.zeros((ndim*npoints,len(time)),np.double) 		
+	# Create group for variables
+	group = file.create_group('FIELDS_%d'%ipart if ipart >= 0 else 'FIELDS')
+	dsetDict = {}
+	for var in fieldDict.keys():
+		vargroup = group.create_group(var)
+		n     = mpi_reduce(fieldDict[var]['value'].shape[0],op='sum',all=True)
+		if ptable.has_master: n -= 1
+		npoin = int(file['xyz'].shape[0])
+		ndim  = n//npoin
+		dims  = tuple([ndim*npoin] + [fieldDict[var]['value'].shape[ivar+1] for ivar in range(len(fieldDict[var]['value'].shape) - 1)])
+		dsetDict[var] = {
+			'ndim'  : vargroup.create_dataset('ndim' ,(1,),dtype='i4'),
+			'value' : vargroup.create_dataset('value',dims,dtype=fieldDict[var]['value'].dtype),
+		}
+	return dsetDict
+
+def h5_fill_variable_datasets(dsetDict,varDict):
+	'''
+	Fill in the variable datasets inside an HDF5 file
+	'''
+	for var in dsetDict.keys():
+		# Fill dataset
+		dsetDict[var]['idim'][:]  = varDict[var]['idim']
+		dsetDict[var]['value'][:] = varDict[var]['value']
+
+def h5_fill_field_datasets(dsetDict,fieldDict,ptable,point,inods,idx):
+	'''
+	Fill in the variable datasets inside an HDF5 file
+	'''
+	# Skip master if needed
+	if ptable.has_master and MPI_RANK == 0: return
+	for var in dsetDict.keys():
+		# Fill dataset
+		dsetDict[var]['ndim'][:]  = fieldDict[var]['ndim']
+		# Compute start and end bounds for the variable
+		if inods is None:
+			istart, iend = ptable.partition_bounds(MPI_RANK,ndim=fieldDict[var]['ndim'],points=point)
+			dsetDict[var]['value'][istart:iend,:] = fieldDict[var]['value']
+		else:
+			if fieldDict[var]['ndim'] > 1: raiseError('Cannot deal with multi-dimensional arrays in no partition mode!')
+			dsetDict[var]['value'][inods,:] = fieldDict[var]['value'][idx,:]
+
+def h5_load_fields_single(file,npoints,ptable,varDict,point):
+	'''
+	Load the fields inside the HDF5 file
+	'''
+	# Read variables
+	fieldDict = {}
+	for v in file['FIELDS'].keys():
+		fieldgroup = file['FIELDS'][v]
+		# Load point and ndim
+		ndim  = int(fieldgroup['ndim'][0])
+		dims  = tuple([ndim*npoints] + [len(varDict[vv]['value']) for vv in varDict.keys()])
+		value = np.zeros(dims,np.double)
+		# Read the values
+		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=ndim,points=point)
+		value[:]   = np.array(fieldgroup['value'][istart:iend])
 		# Generate dictionary
-		varDict[v] = {'point':point,'ndim':ndim,'value':value}
+		fieldDict[v] = {'ndim':ndim,'value':value}
+	# Return
+	return fieldDict
+
+def h5_load_fields_multi(file,npoints,ptable,varDict,point,npart):
+	'''
+	Load the fields inside the HDF5 file
+	'''
+	# Scan for variables in first partition and build variable dictionary
+	fieldDict = {}
+	for v in file['FIELDS_0'].keys():
+		fieldgroup = file['FIELDS_0'][v]
+		# Load ndim
+		ndim  = int(fieldgroup['ndim'][0])
+		dims  = tuple([ndim*npoints] + [len(varDict[vv]['value']) for vv in varDict.keys()])
+		value = np.zeros(dims,np.double)	
+		# Generate dictionary
+		fieldDict[v] = {'point':point,'ndim':ndim,'value':value}
+	# Generate the partition size
+	psize = [len(varDict[vv]['value'])//npart for vv in varDict.keys()]
 	# Read variables per partition
-	psize  = len(time)//npart
 	for ipart in range(npart):
 		# Compute start and end of my partition in time
-		pstart = ipart*psize
-		pend   = (ipart+1)*psize
-		pname  = 'VARIABLES_%d'%ipart
+		pname  = 'FIELDS_%d'%ipart
+		pstart = [ipart*p for p in psize]
+		pend   = [(ipart+1)*psize for p in psize]
 		# Read the partition
 		for v in file[pname].keys():
-			point   = bool(file[pname][v]['point'][0])
-			ndim    = int(file[pname][v]['ndim'][0])
-			npoints = mesh.npoints if point else mesh.ncells
+			fieldgroup = file[pname][v]
+			# Load ndim
+			ndim   = int(fieldgroup['ndim'][0])
+			sliced = tuple([np.s_[:]] + [np.s_[i:j] for (i,j) in zip(pstart,pend)])
 			# Read the values
-			if mesh is None or not point:
-				istart, iend = ptable.partition_bounds(MPI_RANK,ndim=ndim,points=point)
-				varDict[v]['value'][:,pstart:pend] = np.array(file[pname][v]['value'][istart:iend,:])
-			else:
-				if repart:
-					# We are repartitioning, then use inods to read the array
-					for idim in range(ndim):
-						varDict[v]['value'][idim:ndim*npoints:ndim,pstart:pend] = np.array(file[pname][v]['value'][inods+idim*npoints,:])
-				else:
-					# Just use the partition bounds to recover the array
-					istart, iend = ptable.partition_bounds(MPI_RANK,ndim=ndim,points=point)
-					varDict[v]['value'][:,pstart:pend] = np.array(file[pname][v]['value'][istart:iend,:])
+			istart, iend = ptable.partition_bounds(MPI_RANK,ndim=ndim,points=point)
+			fieldDict[v]['value'][sliced] = np.array(fieldgroup['value'][istart:iend])
 	# Return
-	return time, varDict
+	return fieldDict
 
-def h5_load_serial(fname):
+
+@cr('h5IO.save_dset')
+def h5_save_dset(fname,xyz,varDict,fieldDict,ordering,point,ptable,mpio=True,nopartition=False):
+	'''
+	Save a Dataset in HDF5
+	'''
+	if mpio and not MPI_SIZE == 1:
+		h5_save_dset_mpio(fname,xyz,varDict,fieldDict,ordering,point,ptable,nopartition)
+	else:
+		h5_save_dset_serial(fname,xyz,varDict,fieldDict,ordering,point,ptable)
+
+def h5_save_dset_serial(fname,xyz,varDict,fieldDict,ordering,point,ptable):
+	'''
+	Save a Dataset in HDF5 in serial mode
+	'''
+	# Open file for writing
+	file = h5py.File(fname,'w' if not os.path.exists(fname) else 'a')
+	file.attrs['Version'] = PYLOM_H5_VERSION
+	# Create dataset group
+	group = file.create_group('DATASET')
+	# Save points
+	inods,idx,_ = h5_save_points(group,xyz,ordering,ptable,point)
+	# Store the variables
+	h5_fill_variable_datasets(h5_create_variable_datasets(group,varDict,ptable),varDict)
+	# Store the fields
+	h5_fill_field_datasets(h5_create_field_datasets(group,fieldDict,ptable),fieldDict,ptable,point,inods,idx)
+	file.close()
+
+def h5_save_dset_mpio(fname,xyz,varDict,fieldDict,ordering,point,ptable,nopartition):
+	'''
+	Save a Dataset in HDF5 in parallel mode
+	'''
+	# Open file
+	file = h5py.File(fname,'w',driver='mpio',comm=MPI_COMM)
+	file.attrs['Version'] = PYLOM_H5_VERSION
+	# Create dataset group
+	group = file.create_group('DATASET')
+	# Save points
+	inods,idx,_ = h5_save_points(group,xyz,ordering,ptable,point) if not nopartition else h5_save_points_nopartition(group,xyz,ordering,ptable,point)
+	# Store the variables
+	h5_fill_variable_datasets(h5_create_variable_datasets(group,varDict,ptable),varDict)
+	# Store the fields
+	h5_fill_field_datasets(h5_create_field_datasets(group,time,fieldDict,ptable),fieldDict,ptable,point,inods,idx)
+	file.close()
+
+
+@cr('h5IO.append_dset')
+def h5_append_dset(fname,xyz,varDict,fieldDict,ordering,point,ptable,mpio=True,nopartition=False):
+	'''
+	Save a Dataset in HDF5
+	'''
+	if mpio and not MPI_SIZE == 1:
+		h5_append_dset_mpio(fname,xyz,varDict,fieldDict,ordering,point,ptable,nopartition)
+	else:
+		h5_append_dset_serial(fname,xyz,varDict,fieldDict,ordering,point,ptable)
+
+def h5_append_dset_serial(fname,xyz,varDict,fieldDict,ordering,point,ptable):
+	'''
+	Save a dataset in HDF5 in serial mode
+	'''
+	file = h5py.File(fname,'a')
+	if not hasattr(h5_append_serial,'ipart'):
+		# Input file does not exist, we create it with the whole structure
+		file.attrs['Version'] = PYLOM_H5_VERSION
+		# Create dataset group
+		group = file.create_group('DATASET')
+		# Save points
+		inods,idx,npoints = h5_save_points(group,xyz,ordering,ptable,point)
+		# Start the partition counter
+		h5_append_serial.ipart   = 0
+		h5_append_serial.inods   = inods
+		h5_append_serial.idx     = idx
+		h5_append_serial.npoints = npoints
+	# Check the file version
+	version = tuple(file.attrs['Version'])
+	if not version == PYLOM_H5_VERSION:
+		raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
+	# Obtain from function
+	group   = file['DATASET']
+	ipart   = h5_append_serial.ipart
+	inods   = h5_append_serial.inods
+	idx     = h5_append_serial.idx
+	npoints = h5_append_serial.npoints 
+	# Store the variables
+	h5_fill_variable_datasets(h5_create_variable_datasets(group,varDict,ptable),varDict,ipart=ipart)
+	# Store the fields
+	h5_fill_field_datasets(h5_create_field_datasets(group,fieldDict,ptable,ipart=ipart),fieldDict,ptable,point,inods,idx)
+	# Increase the partition counter
+	h5_append_serial.ipart += 1
+	file.close()
+
+def h5_append_dset_mpio(fname,xyz,varDict,fieldDict,ordering,point,ptable,nopartition):
+	'''
+	Save a dataset in HDF5 in parallel mode
+	'''
+	file = h5py.File(fname,'a',driver='mpio',comm=MPI_COMM)
+	if not hasattr(h5_append_mpio,'ipart'):
+		# Input file does not exist, we create it with the whole structure
+		file.attrs['Version'] = PYLOM_H5_VERSION
+		# Create dataset group
+		group = file.create_group('DATASET')
+		# Save points
+		inods,idx,npoints = h5_save_points(group,xyz,ordering,ptable,point)
+		# Start the partition counter
+		h5_append_mpio.ipart   = 0
+		h5_append_mpio.inods   = inods
+		h5_append_mpio.idx     = idx
+		h5_append_mpio.npoints = npoints
+	# Check the file version
+	version = tuple(file.attrs['Version'])
+	if not version == PYLOM_H5_VERSION:
+		raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
+	# Obtain from function
+	group   = file['DATASET']
+	ipart   = h5_append_mpio.ipart
+	inods   = h5_append_mpio.inods
+	idx     = h5_append_mpio.idx
+	npoints = h5_append_mpio.npoints 
+	# Store the variables
+	h5_fill_variable_datasets(h5_create_variable_datasets(group,varDict,ptable),varDict,ipart=ipart)
+	# Store the fields
+	h5_fill_field_datasets(h5_create_field_datasets(group,fieldDict,ptable,ipart=ipart),fieldDict,ptable,point,inods,idx)
+	# Increase the partition counter
+	h5_append_mpio.ipart += 1
+	file.close()
+
+
+@cr('h5IO.load_dset')
+def h5_load_dset(fname,ptable=None,mpio=True):
+	'''
+	Load a dataset in HDF5
+	'''
+	if mpio and not MPI_SIZE == 1:
+		return h5_load_dset_mpio(fname,ptable)
+	else:
+		return h5_load_dset_serial(fname,ptable)
+
+def h5_load_dset_serial(fname,ptable):
 	'''
 	Load a dataset in HDF5 in serial
+	'''
+	# Open file for writing
+	file = h5py.File(fname,'r')
+	# Check the file version
+	version = tuple(file.attrs['Version'])
+	if not version == PYLOM_H5_VERSION:
+		raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
+	# Open the dataset group
+	group  = file['DATASET']
+	# Read dataset size
+	npoints,point = h5_load_dset_size(group)
+	# Are we reading for the same number of partitions?
+	if ptable is None or not ptable.check_split():
+		# Redo the partitions table
+		ptable = PartitionTable.new(MPI_SIZE,npoints,npoints)
+	# Read the points
+	xyz, order = h5_load_points(group,ptable,point)
+	# Figure out how many partitions we have
+	npart = np.sum(['VAR' in key for key in group.keys()])
+	# Read the variables
+	varDict   = h5_load_variables_single(group)
+	fieldDict = h5_load_fields_single(group,npoints,ptable,varDict,point) if npart == 1 else h5_load_fields_multi(group,npoints,ptable,varDict,point,npart)
+	file.close()
+	return xyz, order, point, ptable, varDict, fieldDict
+
+def h5_load_dset_mpio(fname,ptable):
+	'''
+	Load a field in HDF5 in parallel
+	'''
+	# Open file for reading
+	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM)
+	# Check the file version
+	version = tuple(file.attrs['Version'])
+	if not version == PYLOM_H5_VERSION:
+		raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
+	# Open the dataset group
+	group  = file['DATASET']
+	# Read dataset size
+	npoints,point = h5_load_dset_size(group)
+	# Are we reading for the same number of partitions?
+	if ptable is None or not ptable.check_split():
+		# Redo the partitions table
+		ptable = PartitionTable.new(MPI_SIZE,npoints,npoints)
+	# Read the points
+	xyz, order = h5_load_points(group,ptable,point)
+	# Figure out how many partitions we have
+	npoints = xyz.shape[0]
+	npart   = np.sum(['VAR' in key for key in group.keys()])
+	# Read the variables
+	varDict   = h5_load_variables_single(group)
+	fieldDict = h5_load_fields_single(group,npoints,ptable,varDict,point) if npart == 1 else h5_load_fields_multi(group,npoints,ptable,varDict,point,npart)
+	file.close()
+	return xyz, order, point, ptable, varDict, fieldDict
+
+
+@cr('h5IO.save_mesh')
+def h5_save_mesh(fname,mtype,xyz,conec,eltype,cellO,pointO,ptable,mpio=True,nopartition=False):
+	'''
+	Save a Mesh in HDF5
+	'''
+	if mpio and not MPI_SIZE == 1:
+		h5_save_mesh_mpio(fname,mtype,xyz,conec,eltype,cellO,pointO,ptable,nopartition)
+	else:
+		h5_save_mesh_serial(fname,mtype,xyz,conec,eltype,cellO,pointO,ptable)
+
+def h5_save_mesh_serial(fname,mtype,xyz,conec,eltype,cellO,pointO,ptable):
+	'''
+	Save a Mesh in HDF5 in serial mode
+	'''
+	# Open file for writing
+	file = h5py.File(fname,'w' if not os.path.exists(fname) else 'a')
+	file.attrs['Version'] = PYLOM_H5_VERSION
+	# Store partition table
+	h5_save_partition(file,ptable)
+	# Create dataset group
+	group = file.create_group('MESH')
+	# Save mesh
+	h5_save_meshes(group,mtype,xyz,conec,eltype,cellO,pointO,ptable)
+	file.close()
+
+def h5_save_dset_mpio(fname,xyz,varDict,fieldDict,ordering,point,ptable,nopartition):
+	'''
+	Save a dataset in HDF5 in parallel mode
+	'''
+	# Open file
+	file = h5py.File(fname,'w',driver='mpio',comm=MPI_COMM)
+	file.attrs['Version'] = PYLOM_H5_VERSION
+	# Store partition table
+	h5_save_partition(file,ptable)
+	# Create dataset group
+	group = file.create_group('MESH')
+	# Save mesh
+	h5_save_meshes(group,mtype,xyz,conec,eltype,cellO,pointO,ptable) if not nopartition else h5_save_meshes_nopartition(group,mtype,xyz,conec,eltype,cellO,pointO,ptable)
+	file.close()
+
+
+@cr('h5IO.load_mesh')
+def h5_load_mesh(fname,mpio=True):
+	'''
+	Load a mesh in HDF5
+	'''
+	if mpio and not MPI_SIZE == 1:
+		return h5_load_mesh_mpio(fname)
+	else:
+		return h5_load_mesh_serial(fname)
+
+def h5_load_mesh_serial(fname):
+	'''
+	Load a mesh in HDF5 in serial
 	'''
 	# Open file for writing
 	file = h5py.File(fname,'r')
@@ -417,25 +607,24 @@ def h5_load_serial(fname):
 	ptable = h5_load_partition(file)
 	repart = False
 	# Are we reading for the same number of partitions?
+	group = file['MESH']
 	if not ptable.check_split():
 		# Read the number of elements and points to compute
 		# the new partition table
-		npoints, ncells = h5_load_size(file)
+		npoints, ncells = h5_load_meshes_size(group)
 		# Redo the partitions table
 		ptable = PartitionTable.new(MPI_SIZE,ncells,npoints)
 		repart = True
 	# Read the mesh
-	mesh, inods = h5_load_mesh(file,ptable,repart)
-	# Figure out how many partitions we have
-	npart = np.sum(['VAR' in key for key in file.keys()])
-	# Read the variables
-	time, varDict = h5_load_variables_single(file,mesh,ptable,inods,repart) if npart == 1 else h5_load_variables_multi(file,mesh,ptable,inods,repart,npart)
+	if not 'MESH' in file.keys(): raiseError('Mesh not present in dataset!')
+	mtype,xyz,conec,eltype,cellO,pointO = h5_load_meshes(group,ptable,repart)
+	# Close the file
 	file.close()
-	return ptable, mesh, time, varDict
+	return mtype, xyz, conec, eltype, cellO, pointO, ptable
 
-def h5_load_mpio(fname):
+def h5_load_mesh_mpio(fname):
 	'''
-	Load a field in HDF5 in parallel
+	Load a mesh in HDF5 in parallel
 	'''
 	# Open file for reading
 	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM)
@@ -447,21 +636,20 @@ def h5_load_mpio(fname):
 	ptable = h5_load_partition(file)
 	repart = False
 	# Are we reading for the same number of partitions?
+	group = file['MESH']
 	if not ptable.check_split():
 		# Read the number of elements and points to compute
 		# the new partition table
-		npoints, ncells = h5_load_size(file)
+		npoints, ncells = h5_load_meshes_size(group)
 		# Redo the partitions table
 		ptable = PartitionTable.new(MPI_SIZE,ncells,npoints)
 		repart = True
 	# Read the mesh
-	mesh, inods = h5_load_mesh(file,ptable,repart)
-	# Figure out how many partitions we have
-	npart = np.sum(['VAR' in key for key in file.keys()])
-	# Read the variables
-	time, varDict = h5_load_variables_single(file,mesh,ptable,inods,repart) if npart == 1 else h5_load_variables_multi(file,mesh,ptable,inods,repart,npart)
+	if not 'MESH' in file.keys(): raiseError('Mesh not present in dataset!')
+	mtype,xyz,conec,eltype,cellO,pointO = h5_load_meshes(group,ptable,repart)
+	# Close the file
 	file.close()
-	return ptable, mesh, time, varDict
+	return mtype, xyz, conec, eltype, cellO, pointO, ptable
 
 
 @cr('h5IO.save_POD')

@@ -24,38 +24,46 @@ class Dataset(object):
 	with the number of variables and relates them so that the operations 
 	in parallel are easier.
 	'''
-	@mem('Dataset')
-	def __init__(self, ptable=None, mesh=None, time=np.array([0.],np.double), **kwargs):
+	def __init__(self, xyz=None, ptable=None, vars=None, order=None, point=True, **kwargs):
 		'''
 		Class constructor
 
 		Inputs:
+			> xyz:    coordinates of the points.
 			> ptable: partition table used.
-			> mesh:   mesh class if available.
-			> time:   time instants as a numpy array.
-			> kwags:  dictionary containin the variable name and values as a
+			> vars:   dictionary containing the variable name and values as
+					  as a python dictionary.
+			> order:  ordering of the points (automatically created if none)
+			> point:  True if point data, False if cell data.
+			> kwags:  dictionary containing the field name and values as a
 					  python dictionary.
 		'''
-		self._time    = time
-		self._vardict = kwargs
-		self._mesh    = mesh
-		self._ptable  = ptable
+		self._xyz      = xyz
+		self._vardict  = vars
+		self._fieldict = kwargs
+		self._ptable   = ptable
+		self._order    = np.range(xyz.shape[0]) if order is None else order
+		self._point    = point
 
 	def __len__(self):
-		return self._time.shape[0]
+		return self._xyz.shape[0]
 
 	def __str__(self):
 		'''
 		String representation
 		'''
-		s  = 'Dataset of %d instants:\n' % len(self)
-		s += '  > time - max = ' + str(np.nanmax(self._time,axis=0)) + ', min = ' + str(np.nanmin(self._time,axis=0)) + '\n'
+		s  = 'Dataset of %d variables:\n' % len(self.varnames)
 		for key in self.varnames:
-			var    = self[key]
+			var    = self.vars[key]['value']
 			nanstr = ' (has NaNs) ' if np.any(np.isnan(var)) else ' '
-			s     += '  > ' +  key + nanstr + '- max = ' + str(np.nanmax(var)) \
-										    + ', min = ' + str(np.nanmin(var)) \
-										    + ', avg = ' + str(np.nanmean(var)) \
+			s     += '  > ' + key + nanstr + ' - max = ' + str(np.nanmax(var)) + ', min = ' + str(np.nanmin(var)) + '\n'
+		s += 'and %d fields with %d points:\n' % (len(self.fieldnames),len(self))
+		for key in self.fieldnames:
+			field  = self.fields[key]['value']
+			nanstr = ' (has NaNs) ' if np.any(np.isnan(field)) else ' '
+			s     += '  > ' +  key + nanstr + '- max = ' + str(np.nanmax(field)) \
+										    + ', min = ' + str(np.nanmin(field)) \
+										    + ', avg = ' + str(np.nanmean(field)) \
 										    + '\n'
 		return s
 		
@@ -64,89 +72,101 @@ class Dataset(object):
 		'''
 		Dataset[key]
 
-		Recover the value of a variable given its key
+		Recover the value of a field given its key
 		'''
-		return self._vardict[key]['value']
+		return self._fieldict[key]['value']
 
 	def __setitem__(self,key,value):
 		'''
 		Dataset[key] = value
 
-		Set the value of a variable given its key
+		Set the field of a variable given its key
 		'''
-		self._vardict[key]['value'] = value
+		self._fieldict[key]['value'] = value
 
 	# Functions
 	def rename(self,new,old):
 		'''
 		Rename a variable inside a field.
 		'''
-		self.var[new] = self.var.pop(old)
+		self.fields[new] = self.fields.pop(old)
 		return self
 
 	def delete(self,varname):
 		'''
 		Delete a variable inside a field.
 		'''
-		return self.var.pop(varname)
+		return self.fields.pop(varname)
+
+	def get_variable(self,key):
+		'''
+		Recover the value of a variable given its key
+		'''
+		return self._vardict[key]['value']
 
 	def info(self,var):
 		'''
 		Returns the information for a certain variable
 		'''
-		return {'point':self._vardict[var]['point'],'ndim':self._vardict[var]['ndim']}
+		return {'point':self._point,'ndim':self._fieldict[var]['ndim']}
 
-	def add_variable(self,varname,point,ndim,var):
+	def add_field(self,varname,ndim,var):
 		'''
-		Add a variable to the dataset
+		Add a field to the dataset
 		'''
-		self._vardict[varname] = {
-			'point' : point,
+		self._fieldict[varname] = {
 			'ndim'  : ndim,
 			'value' : var, 
 		}
 
-	def append_time(self,time,**varDict):
+	def add_variable(self,varname,idim,var):
+		'''
+		Add a variable to the dataset
+		'''
+		self._vardict[varname] = {
+			'idim'  : idim,
+			'value' : var, 
+		}
+
+	def append_variable(self,varname,var,**fieldict):
 		'''
 		Appends new timesteps to the dataset
 		'''
-		# Add to time vector
-		self.time = np.concatenate((self.time,time))
-		# Sort ascendingly and retrieve sorting
-		# index
-		idx = np.argsort(self.time)
-		self.time = self.time[idx]
+		# Add to variable vector
+		self.vars[varname]['value'] = np.concatenate((self.vars[varname]['value'],var))
+		# Sort ascendingly and retrieve sorting index
+		idx = np.argsort(self.vars[varname]['value'])
+		self.vars[varname]['value'] = self.vars[varname]['value'][idx]
+		idim = self.vars[varname]['idim']
 		# Now concatenate and sort per variable
-		for v in varDict:
-			self[v] = np.concatenate((self[v],varDict[v]),axis=1)[:,idx]
+		for v in fieldict:
+			aux = np.concatenate((self[v][:,:,idim],fieldict[v]),axis=1)[:,idx]
+			self[v][:,:,idim] = aux
 
 	@cr('Dataset.X')
-	def X(self,*args,time_slice=np.s_[:]):
+	def X(self,*args):
 		'''
-		Return the X matrix for the selected variables
-
-		To define a slice in numpy use np.s_ so that:
-			X[:,:1000] -> X[:,np.s_[:1000]]
-		or
-			X[:,::5] -> X[:,np.s_[::5]]
+		Return the X matrix for the selected fields
 		'''
 		# Select all variables if none is provided
-		variables = self.varnames if len(args) == 0 else args
-		# Compute the number of variables
-		nvars = 0
-		for var in variables:
-			nvars += self.var[var]['ndim']
+		fieldnames = self.fieldnames if len(args) == 0 else args
+		# Compute the number of fields
+		npoints = len(self)
+		nfields = 0
+		for f in fieldnames:
+			nfields += self.fields[f]['ndim']
 		# Create output array
-		npoints = self.mesh.npoints if self.var[variables[0]]['point'] else self.mesh.ncells
-		ninst   = self._time[time_slice].shape[0]
-		X = np.zeros((nvars*npoints,ninst),np.double)
+		dims = [nfields*npoints]
+		for i,v in enumerate(self.varnames):
+			dims += self.vars[v]['values'][s].shape[0]
+		X = np.zeros(dims,np.double)
 		# Populate output matrix
-		ivar = 0
-		for var in variables:
-			v = self.var[var]
+		ifield = 0
+		for field in fieldnames:
+			v = self.fields[var]
 			for idim in range(v['ndim']):
-				X[ivar:nvars*npoints:nvars,:] = v['value'][idim:v['ndim']*npoints:v['ndim'],time_slice]
-				ivar += 1
+				X[ifield:nfields*npoints:nfields] = v['value'][idim:v['ndim']*npoints:v['ndim']]
+				ifield += 1
 		return X
 
 	@cr('Dataset.save')
@@ -166,9 +186,9 @@ class Dataset(object):
 			if not 'nopartition' in kwargs.keys(): kwargs['nopartition'] = False
 			# Append or save
 			if not kwargs.pop('append',False):
-				io.h5_save(fname,self.time,self.var,self.mesh,self.partition_table,**kwargs)
+				io.h5_save_dset(fname,self.xyz,self.vars,self.fields,self.ordering,self.point,self.partition_table,**kwargs)
 			else:
-				io.h5_append(fname,self.time,self.var,self.mesh,self.partition_table,**kwargs)
+				io.h5_append_dset(fname,self.xyz,self.vars,self.fields,self.ordering,self.point,self.partition_table,**kwargs)
 
 	@classmethod
 	@cr('Dataset.load')
@@ -184,105 +204,43 @@ class Dataset(object):
 		# H5 format
 		if fmt.lower() == 'h5':
 			if not 'mpio' in kwargs.keys(): kwargs['mpio'] = True
-			ptable, mesh, time, varDict = io.h5_load(fname,**kwargs)
-			return cls(ptable,mesh,time,**varDict)
+			xyz, order, point, ptable, varDict, fieldDict = io.h5_load_dset(fname,**kwargs)
+			return cls(xyz,ptable,varDict,order, point, **fieldDict)
 		raiseError('Cannot load file <%s>!'%fname)
-
-	@cr('Dataset.write')
-	def write(self,casestr,basedir='./',instants=[0],times=[0.],vars=[],fmt='vtk'):
-		'''
-		Store the data using various formats.
-		This method differs from save in the fact that save is used 
-		to recover the field, write only outputs the data.
-		'''
-		os.makedirs(basedir,exist_ok=True)
-		if fmt.lower() in ['vtk']:
-			raiseError('VTK format not yet implemented!')
-		elif fmt.lower() in ['ensi','ensight']:
-			EnsightWriter(self,casestr,basedir,instants,vars)
-		elif fmt.lower() in ['vtkh5','vtkhdf']:
-			VTKHDF5Writer(self,casestr,basedir,instants,times,vars)
-		else:
-			raiseError('Format <%s> not implemented!'%fmt)
 
 	# Properties
 	@property
-	def time(self):
-		return self._time
-	@time.setter
-	def time(self,value):
-		self._time = value
+	def xyz(self):
+		return self._xyz
+	def x(self):
+		return self._xyz[:,0]
+	@property
+	def y(self):
+		return self._xyz[:,1]
+	@property
+	def z(self):
+		return self._xyz[:,2]
 
+	@property
+	def ordering(self):
+		return self._order
+	@property
+	def point(self):
+		return self._point
 	@property
 	def partition_table(self):
 		return self._ptable
-	@property
-	def mesh(self):
-		return self._mesh
 
 	@property
-	def var(self):
+	def vars(self):
 		return self._vardict
 	@property
 	def varnames(self):
 		return list(self._vardict.keys())
 
-
-def EnsightWriter(dset,casestr,basedir,instants,varnames):
-	'''
-	Ensight dataset writer
-	'''
-	# Create the filename for the geometry
-	geofile = os.path.join(basedir,'%s.ensi.geo'%casestr)
-	header = {
-		'descr'  : 'File created with pyAlya tool\nmesh file',
-		'nodeID' : 'assign',
-		'elemID' : 'assign',
-		'partID' : 1,
-		'partNM' : 'Volume Mesh',
-		'eltype' : mesh.eltypeENSI
-	}
-	# Write geometry file
-	io.Ensight_writeGeo(geofile,dset.mesh.xyz,dset.mesh.connectivity+1,header) # Python index start at 0
-	# Write instantaneous fields
-	binfile_fmt = '%s.ensi.%s-%06d'
-	# Define Ensight header
-	header = {
-		'descr'  : 'File created with pyLOM',
-		'partID' : 1,
-		'partNM' : 'part',
-		'eltype' : mesh.eltypeENSI
-	}
-	# Loop the selected instants
-	for var in varnames:
-		# Recover variable information
-		info  = dset.info(var)
-		field = dset[var]
-		# Variable has temporal evolution
-		header['eltype'] = mesh.eltypeENSI
-		if len(field.shape) > 1:
-			# Loop requested instants
-			for instant in instants:
-				filename = os.path.join(basedir,binfile_fmt % (casestr,var,instant+1))
-				# Reshape variable for Ensight file
-				f = dset.mesh.reshape_var(field[:,instant],info)
-				io.Ensight_writeField(filename,f,header)
-		else:
-			filename = os.path.join(basedir,binfile_fmt % (casestr,var,1))
-			# Reshape variable for Ensight file
-			f = dset.mesh.reshape_var(field,dset.mesh,info)
-			io.Ensight_writeField(filename,f,header)
-
-
-def VTKHDF5Writer(dset,casestr,basedir,instants,times,varnames):
-	'''
-	Ensight dataset writer
-	'''
-	# Loop the instants
-	for instant, time in zip(instants,times):
-		filename = os.path.join(basedir,'%s-%08d-vtk.hdf'%(casestr,instant))
-		# Write the mesh on the file
-		io.vtkh5_save_mesh(filename,dset.mesh,dset.partition_table)
-		# Write the data on the file
-		varDict = {v:dset.mesh.reshape_var(dset[v][:,instant] if len(dset[v].shape) > 1 else dset[v],dset.info(v)) for v in varnames}
-		io.vtkh5_save_field(filename,instant,time,varDict,dset.partition_table)
+	@property
+	def fields(self):
+		return self._fieldict
+	@property
+	def fieldnames(self):
+		return list(self._fieldict.keys())
