@@ -2,7 +2,7 @@ import numpy as np
 import pyLOM
 
 
-DATASET_PATH = '/home/david/Downloads/mean_yaw_dataset.h5' #"./mean_yaw_dataset.h5"
+DATASET_PATH = "./mean_yaw_dataset.h5"
 original_dataset = pyLOM.Dataset.load(DATASET_PATH)
 print(original_dataset["Cp"].min(), original_dataset["Cp"].max(), original_dataset.mesh.xyz.min(), original_dataset.mesh.xyz.max())
 
