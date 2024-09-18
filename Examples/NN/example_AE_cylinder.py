@@ -10,8 +10,6 @@ nlayers     = 5
 channels    = 64
 lat_dim     = 5
 beta        = 0
-beta_start  = 0
-beta_wmup   = 0
 kernel_size = 4
 nlinear     = 512
 padding     = 1
@@ -36,12 +34,10 @@ u_x      = pyldtset['VELOX'][:nh*nw,0]
 tordtset = pyLOM.NN.Dataset((u_x[:,np.newaxis],), (nh, nw))
 time     = np.array([0])
 
-betasch = pyLOM.NN.betaLinearScheduler(0., beta, beta_start, beta_wmup)
-
 ## Set and train the variational autoencoder
-encoder    = pyLOM.NN.Encoder2D(nlayers, lat_dim, nh, nw, tordtset.num_channels, channels, kernel_size, padding, activations, nlinear, vae=True)
+encoder    = pyLOM.NN.Encoder2D(nlayers, lat_dim, nh, nw, tordtset.num_channels, channels, kernel_size, padding, activations, nlinear)
 decoder    = pyLOM.NN.Decoder2D(nlayers, lat_dim, nh, nw, tordtset.num_channels, channels, kernel_size, padding, activations, nlinear)
-model      = pyLOM.NN.VariationalAutoencoder(lat_dim, (nh, nw), tordtset.num_channels, encoder, decoder, device=device)
+model      = pyLOM.NN.Autoencoder(lat_dim, (nh, nw), tordtset.num_channels, encoder, decoder, device=device)
 early_stop = pyLOM.NN.EarlyStopper(patience=5, min_delta=0.02)
 
 pipeline = pyLOM.NN.Pipeline(

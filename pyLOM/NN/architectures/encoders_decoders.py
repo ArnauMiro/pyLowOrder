@@ -1,7 +1,7 @@
 import torch.nn as nn
 
 class Encoder2D(nn.Module):
-    def __init__(self, nlayers, latent_dim, nh, nw, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=True, stride=2, dropout=0, vae=False):
+    def __init__(self, nlayers, latent_dim, nh, nw, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=False, stride=2, dropout=0, vae=False):
         super(Encoder2D, self).__init__()
 
         self.nlayers    = nlayers
@@ -61,7 +61,7 @@ class Encoder2D(nn.Module):
             return self.z(out)
     
 class Decoder2D(nn.Module):
-    def __init__(self, nlayers, latent_dim, nh, nw, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=True, stride=2, dropout=0):
+    def __init__(self, nlayers, latent_dim, nh, nw, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=False, stride=2, dropout=0):
         super(Decoder2D, self).__init__()       
         
         self.nlayers    = nlayers
@@ -115,7 +115,7 @@ class Decoder2D(nn.Module):
         return self.deconv_layers[-1](out)
     
 class Encoder3D(nn.Module):
-    def __init__(self, nlayers, latent_dim, nx, ny, nz, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=True, stride = 2, dropout = 0, vae = False):
+    def __init__(self, nlayers, latent_dim, nx, ny, nz, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=False, stride = 2, dropout = 0, vae = False):
         super(Encoder3D,self).__init__()
 
         self.nlayers = nlayers
@@ -177,7 +177,7 @@ class Encoder3D(nn.Module):
             return self.z(out)
 
 class Decoder3D(nn.Module):
-    def __init__(self, nlayers, latent_dim, nx, ny, nz, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=True, stride=2, dropout=0):
+    def __init__(self, nlayers, latent_dim, nx, ny, nz, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=False, stride=2, dropout=0):
         super(Decoder3D, self).__init__()       
         
         self.nlayers = nlayers

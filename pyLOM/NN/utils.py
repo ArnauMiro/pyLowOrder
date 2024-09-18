@@ -19,6 +19,10 @@ import warnings
 
 
 class MinMaxScaler:
+	"""
+	Args:
+			feature_range (Tuple): Desired range of transformed data. Default is ``(0, 1)``.
+	"""
 	def __init__(self, feature_range=(0, 1)):
 		self.feature_range = feature_range
 
@@ -26,7 +30,7 @@ class MinMaxScaler:
 		self, variables: List[Union[np.ndarray, torch.tensor]]
 	) -> List[Union[np.ndarray, torch.tensor]]:
 		"""
-		Scale variables to the range [0, 1] using min-max scaling.
+		Scale variables to the range defined on `feature_range` using min-max scaling.
 		Args:
 				variables: List of variables to be scaled. The variables should be 2d numpy arrays or torch tensors.
 		Returns:
@@ -95,32 +99,25 @@ class Dataset(torch.utils.data.Dataset):
 	):
 		self.parameters = parameters
 		self.num_channels = len(variables_out)
-		print(self.num_channels)
 		self.mesh_shape = mesh_shape
 		if outputs_scaler is not None:
 			variables_out = outputs_scaler.transform(variables_out)
 		self.variables_out = self._process_variables_out(variables_out)
 		if variables_in is not None:
-			print(variables_in.shape)
 			self.variables_in = self._process_variables_in(variables_in, parameters)
-			print(self.variables_in.shape)
 			if inputs_scaler is not None:
 				self.variables_in = inputs_scaler.transform([self.variables_in])[0]
-				print(self.variables_in.shape)
 
 	def _process_variables_out(self, variables_out):
-		if len(variables_out) == 1:
+		if self.num_channels == 1:
 			variables_out = torch.tensor(variables_out[0])
+			variables_out = variables_out.unsqueeze(-1)
 		else:
 			variables_out = torch.cat(
 				[torch.tensor(variable).unsqueeze(0) for variable in variables_out],
 				dim=0,
 			)  # (C, mul(mesh_shape), N)
-		print(variables_out.shape)
 
-		if self.num_channels == 1:
-			variables_out = variables_out.unsqueeze(-1)
-		print(variables_out.shape)
 		variables_out = variables_out.permute(2, 0, 1)  # (N, C, mul(mesh_shape))
 		variables_out = variables_out.reshape(
 			-1, self.num_channels, *self.mesh_shape
@@ -148,7 +145,6 @@ class Dataset(torch.utils.data.Dataset):
 	def __getitem__(self, idx):
 		if self.variables_in is None:
 			return self.variables_out[idx]
-		# print(idx, self.variables_in.shape)
 		return self.variables_in[idx], self.variables_out[idx]
 
 	def get_splits(
