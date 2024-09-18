@@ -9,7 +9,9 @@ from ..vmmath         import temporal_mean, subtract_mean
 from ..utils.cr       import cr
 
 from   functools               import reduce
+from   itertools               import product
 from   operator                import mul
+from  typing                  import List
 
 def create_results_folder(RESUDIR):
 	if not os.path.exists(RESUDIR):
@@ -43,8 +45,69 @@ class betaLinearScheduler:
 				return beta
 			else:
 				return self.end_value
+			
+class Dataset(torch.utils.data.Dataset):
+    def __init__(
+        self,
+        variables_out: tuple,
+        mesh_shape: tuple = (1,),
+        variables_in: np.ndarray = None,
+        parameters: List[List[float]] = None,
+        scaler_in=None, # sklearn scaler
+        scaler_out=None, # sklearn scaler
+    ):
+        self.parameters = parameters
+        self.num_channels = len(variables_out)
+        self.mesh_shape = mesh_shape
+        self.variables_out = self._process_variables_out(variables_out)
+        self.variables_in = (
+            self._process_variables_in(variables_in, parameters)
+            if variables_in is not None
+            else None
+        )
+        self.scaler_in = scaler_in
+        self.scaler_out = scaler_out
 
-class Dataset(torch_dataset):
+
+    def _process_variables_out(self, variables_out):
+        if len(variables_out) == 1:
+            variables_out = torch.tensor(variables_out[0])
+        else:
+            variables_out = torch.cat(
+                [torch.tensor(variable).unsqueeze(0) for variable in variables_out],
+                dim=0,
+            )  # (C, mul(mesh_shape), N)
+        
+        if self.num_channels == 1:
+            variables_out = variables_out.unsqueeze(-1)
+        variables_out = variables_out.permute(2, 0, 1)  # (N, C, mul(mesh_shape))
+        variables_out = variables_out.reshape(-1, self.num_channels, *self.mesh_shape)  # (N, C, *mesh_shape)
+        if variables_out.shape[-1] == 1:  # (N, C, 1) -> (N, C)
+            variables_out = variables_out.squeeze(-1)
+        return variables_out.float()
+
+    def _process_variables_in(self, variables_in, parameters):
+        if parameters is None:
+            variables_in = torch.tensor(variables_in, dtype=torch.float32)
+            return variables_in
+        variables_in = torch.tensor(variables_in, dtype=torch.float32)
+        # parameters is a list of lists of floats. Each contains the values that will be repeated for each input coordinate
+        # in some sense, it is like a cartesian product of the parameters with the input coordinates
+        cartesian_product = list(product(*parameters))
+        cartesian_product = torch.tensor(cartesian_product)
+        variables_in_repeated = variables_in.repeat(len(cartesian_product), 1)
+        cartesian_product = cartesian_product.repeat(len(variables_in), 1)
+        return torch.cat([variables_in_repeated, cartesian_product], dim=1).float()
+
+    def __len__(self):
+        return len(self.variables_out)
+
+    def __getitem__(self, idx):
+        if self.variables_in is None:
+            return self.variables_out[idx]
+        return self.variables_in[idx], self.variables_out[idx]
+
+class DatasetOld(torch_dataset):
 	def __init__(self, vars, inp_shape, time, device='cpu', transform=True):
 		self._ndim = len(inp_shape)
 		if self._ndim == 2:
@@ -142,15 +205,15 @@ class Dataset(torch_dataset):
 
 	def crop(self, shape, shape0):
 		if len(shape) == 2:
-			_crop2D(self, shape[0], shape[1], shape0[0], shape0[1])
+			self._crop2D(self, shape[0], shape[1], shape0[0], shape0[1])
 		if len(shape) == 3:
-			_crop3D(self, shape[0], shape[1], shape[2], shape0[0], shape0[1], shape0[2])
+			self._crop3D(self, shape[0], shape[1], shape[2], shape0[0], shape0[1], shape0[2])
 
 	def pad(self, shape, shape0):
 		if len(shape) == 2:
-			_pad2D(self, shape[0], shape[1], shape0[0], shape0[1])
+			self._pad2D(self, shape[0], shape[1], shape0[0], shape0[1])
 		if len(shape) == 3:
-			_pad3D(self, shape[0], shape[1], shape[2], shape0[0], shape0[1], shape0[2])
+			self._pad3D(self, shape[0], shape[1], shape[2], shape0[0], shape0[1], shape0[2])
 
 	def _crop2D(self, nh, nw, n0h, n0w):
 		cropdata = []
