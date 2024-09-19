@@ -31,13 +31,17 @@ pyAlya.pprint(0,'Run (%d instants)...' % len(listOfInstants),flush=True)
 ## Create POD dataset
 m = pyLOM.Mesh.from_pyAlya(mesh)
 p = pyLOM.PartitionTable.from_pyAlya(mesh.partition_table,has_master=True)
-d = pyLOM.Dataset(ptable=p, mesh=m, time=np.zeros((ni,),dtype=np.double))
-d.save('%s_a.h5'%CASESTR,append=True,nopartition=True) 
+d = pyLOM.Dataset(xyz=m.xyz, ptable=p, order=m.pointOrder, point=True,
+	# Add the time as the only variable
+	vars  = {'time':{'idim':0,'value':time}}
+)
+m.save('%s.h5'%CASESTR,nopartition=True) 
 
 
 ## Build dataset from the instants
-ntime = 100
-ibuff = 0
+ntime   = 100
+ibuff   = 0
+time    = np.zeros((ni,),np.double)
 X_PRESS = np.zeros((mesh.nnod,ntime),dtype=np.double) # POD matrix, VELOC and PRESS
 X_VELOX = np.zeros((mesh.nnod,ntime),dtype=np.double) # POD matrix, VELOC and PRESS
 X_VELOY = np.zeros((mesh.nnod,ntime),dtype=np.double) # POD matrix, VELOC and PRESS
@@ -47,7 +51,7 @@ for ii,instant in enumerate(listOfInstants):
 	# Read data
 	field, header = pyAlya.Field.read(CASESTR,VARLIST,instant,mesh.xyz,basedir=BASEDIR)
 	# Store time
-	d.time[ii] = header.time
+	time[ii] = header.time
 	# Store the POD matrix
 	X_PRESS[:,ibuff] = field['PRESS']
 	X_VELOX[:,ibuff] = field['VELOC'][:,0]
@@ -57,10 +61,11 @@ for ii,instant in enumerate(listOfInstants):
 	# Append POD matrix
 	if ntime == ibuff:
 		pyAlya.pprint(1,'Printing instant %d...'%instant,flush=True)
-		d.add_variable('PRESS',True,1,X_PRESS)
-		d.add_variable('VELOX',True,1,X_VELOX)
-		d.add_variable('VELOY',True,1,X_VELOY)
-		d.add_variable('VELOZ',True,1,X_VELOZ)
+		d.set_variable('time',time)
+		d.add_field('PRESS',1,X_PRESS)
+		d.add_field('VELOX',1,X_VELOX)
+		d.add_field('VELOY',1,X_VELOY)
+		d.add_field('VELOZ',1,X_VELOZ)
 		d.save('%s_a.h5'%CASESTR,append=True,nopartition=True)
 		# Reset counters
 		ibuff  = 0
@@ -68,4 +73,3 @@ for ii,instant in enumerate(listOfInstants):
 
 pyAlya.cr_info()
 pyLOM.cr_info()
-

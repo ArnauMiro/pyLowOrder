@@ -104,6 +104,12 @@ class Dataset(object):
 		'''
 		return self._vardict[key]['value']
 
+	def set_variable(self,key,value):
+		'''
+		Recover the value of a variable given its key
+		'''
+		self._vardict[key]['value'] = value
+
 	def info(self,var):
 		'''
 		Returns the information for a certain variable
