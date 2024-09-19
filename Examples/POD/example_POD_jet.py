@@ -13,14 +13,15 @@ import pyLOM
 
 
 ## Parameters
-DATAFILE = 'Examples/Data/jetLES.h5'
+DATAFILE = './DATA/jetLES.h5'
 VARIABLE = 'PRESS'
 
 
 ## Data loadingx
-d = pyLOM.Dataset.load(DATAFILE)
-X  = d[VARIABLE][:,::10]
-t  = d.time[::10]
+m = pyLOM.Mesh.load(DATAFILE)
+d = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table)
+X = d[VARIABLE][:,::10]
+t = d.get_variable('time')[::10]
 
 
 ## Run POD
@@ -28,7 +29,7 @@ PSI,S,V = pyLOM.POD.run(X,remove_mean=False) # PSI are POD modes
 if pyLOM.utils.is_rank_or_serial(root=0): pyLOM.POD.plotResidual(S)
 # Truncate according to a residual
 PSI,S,V = pyLOM.POD.truncate(PSI,S,V,r=5e-6)
-pyLOM.POD.save('results.h5',PSI,S,V,d.partition_table,nvars=1,pointData=True)
+pyLOM.POD.save('results.h5',PSI,S,V,d.partition_table,nvars=1,pointData=d.point)
 # Reconstruct the flow
 X_POD = pyLOM.POD.reconstruct(PSI,S,V)
 # Compute RMSE
@@ -38,15 +39,14 @@ pyLOM.pprint(0,'RMSE = %e'%rmse)
 
 ## Dump to ParaView
 # Spatial modes
-d.add_variable('spatial_modes_P',True,6,pyLOM.POD.extract_modes(PSI,1,d.mesh.npoints,modes=[1,4,6,2,5,3]))
-d.write('modes',basedir='out/modes',instants=[0],times=[0.],vars=['spatial_modes_P'],fmt='vtkh5')
-pyLOM.POD.plotSnapshot(d,vars=['spatial_modes_P'],instant=0,component=0,cmap='jet',cpos='xy')
+#d.add_field('spatial_modes_P',6,pyLOM.POD.extract_modes(PSI,1,len(d),modes=[1,4,6,2,5,3]))
+#pyLOM.io.pv_writer(m,d,'modes',basedir='out/modes',instants=[0],times=[0.],vars=['spatial_modes_P'],fmt='vtkh5')
+#pyLOM.POD.plotSnapshot(d,m,vars=['spatial_modes_P'],instant=0,component=0,cmap='jet',cpos='xy')
 
 # Temporal evolution
-d.add_variable('PRESR',True,1,X_POD)
-d.write('flow',basedir='out/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t,vars=['PRESS','PRESR'],fmt='vtkh5')
-pyLOM.POD.plotSnapshot(d,vars=['PRESR'],instant=0,component=0,cmap='jet',cpos='xy')
-
+d.add_field('PRESR',1,X_POD)
+#pyLOM.io.pv_writer(m,d,'flow',basedir='out/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t,vars=['PRESS','PRESR'],fmt='vtkh5')
+pyLOM.POD.plotSnapshot(d,m,vars=['PRESR'],instant=0,component=0,cmap='jet',cpos='xy')
 
 ## Plot POD mode
 if pyLOM.utils.is_rank_or_serial(0):
