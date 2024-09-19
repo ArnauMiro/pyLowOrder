@@ -20,16 +20,16 @@ class PartitionTable(object):
 	partition used for the given dataset or  it can generate
 	a new partition
 	'''
-	@mem('PartTable')
 	def __init__(self,nparts,ids,elements,points,has_master=False):
 		'''
 		Class constructor
 		'''
-		self._nparts      = nparts
-		self._ids         = ids
-		self._elements    = elements
-		self._master      = has_master if MPI_SIZE > 1 else False
-		self._points      = points
+		self._nparts   = nparts
+		self._ids      = ids
+		self._elements = elements
+		self._master   = has_master if MPI_SIZE > 1 else False
+		self._points   = points
+		self._inods    = None
 
 	def __str__(self):
 		out  = 'Partition Table:\nnumber of partitions: %d\n' % self.n_partitions
@@ -54,7 +54,7 @@ class PartitionTable(object):
 		return istart, iend
 
 	@cr('PartTable.ppoints')
-	def partition_points(self,rank,npoints,conec,ndim=1):
+	def partition_points(self,npoints,conec,ndim=1):
 		'''
 		Compute the points to be read for this partition
 		'''
@@ -148,3 +148,9 @@ class PartitionTable(object):
 	@property
 	def has_master(self):
 		return self._master
+	@property
+	def nodes(self):
+		return self._inods
+	@nodes.setter
+	def nodes(self,inods):
+		self._inods = inods
