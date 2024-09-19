@@ -13,7 +13,7 @@ import pyLOM
 
 
 ## Parameters
-DATAFILE = '/Users/arnaumiro/Documents/LowOrder/DATA/CYLINDER.h5'
+DATAFILE = './DATA/CYLINDER.h5'
 VARIABLE = 'VELOC'
 
 
@@ -29,7 +29,7 @@ PSI,S,V = pyLOM.POD.run(X,remove_mean=False) # PSI are POD modes
 if pyLOM.utils.is_rank_or_serial(root=0): pyLOM.POD.plotResidual(S)
 # Truncate according to a residual
 PSI,S,V = pyLOM.POD.truncate(PSI,S,V,r=5e-6)
-pyLOM.POD.save('results.h5',PSI,S,V,d.partition_table,nvars=2,pointData=False)
+pyLOM.POD.save('results.h5',PSI,S,V,d.partition_table,nvars=2,pointData=d.point)
 # Reconstruct the flow
 X_POD = pyLOM.POD.reconstruct(PSI,S,V)
 # Compute RMSE
@@ -45,7 +45,6 @@ pyLOM.io.pv_writer(m,d,'modes',basedir='out/modes',instants=[0],times=[0.],vars=
 pyLOM.POD.plotSnapshot(d,m,vars=['spatial_modes_U'],instant=0,component=0,cmap='jet',cpos='xy')
 
 # Temporal evolution
-#d.add_variable('VELOR',False,2,X_POD)
 d.add_field('VELOR',2,X_POD)
 pyLOM.io.pv_writer(m,d,'flow',basedir='out/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t,vars=['VELOC','VELOR'],fmt='vtkh5')
 pyLOM.POD.plotSnapshot(d,m,vars=['VELOR'],instant=0,component=0,cmap='jet',cpos='xy')
