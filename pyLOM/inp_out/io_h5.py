@@ -139,9 +139,8 @@ def h5_load_meshes(file,ptable,repart):
 	if repart:
 		# Warning! Repartition will only work if the input file is serial
 		# i.e., it does not have any repeated nodes, otherwise it wont work
-		inods  = ptable.partition_points(1,conec)
-		ptable.update_points(inods.shape[0])
-		ptable.nodes = inods
+		ptable.create_partition_points(conec)
+		inods  = ptable.partition_points(1)
 	else:
 		istart, iend = ptable.partition_bounds(MPI_RANK,points=True)
 		inods = np.arange(istart,iend,dtype=np.int32)
@@ -208,17 +207,16 @@ def h5_load_points(file,ptable,point):
 	'''
 	Load the mesh inside the HDF5 file
 	'''
-	if ptable.nodes is None:
-		istart, iend = ptable.partition_bounds(MPI_RANK,points=point)
-		inods = np.arange(istart,iend,dtype=np.int32)
-	else:
+	if ptable.nodes is None or not point:
 		# Warning! Repartition will only work if the input file is serial
 		# i.e., it does not have any repeated nodes, otherwise it wont work
-		inods = ptable.nodes
+		istart, iend = ptable.partition_bounds(MPI_RANK,points=point)
+		ptable.nodes = np.arange(istart,iend,dtype=np.int32)
+	inods = ptable.nodes
 	xyz   = np.array(file['xyz'][inods,:]) 
 	order = np.array(file['order'][inods])
 	# Return
-	return xyz, order, inods
+	return xyz, order
 
 def h5_create_variable_datasets(file,varDict,ptable,ipart=-1):
 	'''
@@ -296,7 +294,7 @@ def h5_fill_field_datasets(dsetDict,fieldDict,ptable,point,inods,idx):
 			if fieldDict[var]['ndim'] > 1: raiseError('Cannot deal with multi-dimensional arrays in no partition mode!')
 			dsetDict[var]['value'][inods,:] = fieldDict[var]['value'][idx,:]
 
-def h5_load_fields_single(file,npoints,inods,varDict):
+def h5_load_fields_single(file,npoints,ptable,varDict,point):
 	'''
 	Load the fields inside the HDF5 file
 	'''
@@ -308,14 +306,21 @@ def h5_load_fields_single(file,npoints,inods,varDict):
 		ndim  = int(fieldgroup['ndim'][0])
 		dims  = tuple([ndim*npoints] + [len(varDict[vv]['value']) for vv in varDict.keys()])
 		value = np.zeros(dims,np.double)
+		# Select which points to load
+		if point:
+			inods = ptable.partition_points(npoints,ndim=ndim)
+		else:
+			# Use the partition bounds to recover the array
+			istart, iend = ptable.partition_bounds(MPI_RANK,ndim=ndim,points=False)
+			inods = np.arange(istart,iend,dtype=np.int32)
 		# Read the values
-		value[:]   = np.array(fieldgroup['value'][inods])
+		value[:] = np.array(fieldgroup['value'][inods])
 		# Generate dictionary
 		fieldDict[v] = {'ndim':ndim,'value':value}
 	# Return
 	return fieldDict
 
-def h5_load_fields_multi(file,npoints,inods,varDict,npart):
+def h5_load_fields_multi(file,npoints,ptable,varDict,point,npart):
 	'''
 	Load the fields inside the HDF5 file
 	'''
@@ -343,6 +348,13 @@ def h5_load_fields_multi(file,npoints,inods,varDict,npart):
 			# Load ndim
 			ndim   = int(fieldgroup['ndim'][0])
 			sliced = tuple([np.s_[:]] + [np.s_[i:j] for (i,j) in zip(pstart,pend)])
+			# Select which points to load
+			if point:
+				inods = ptable.partition_points(npoints,ndim=ndim)
+			else:
+				# Use the partition bounds to recover the array
+				istart, iend = ptable.partition_bounds(MPI_RANK,ndim=ndim,points=False)
+				inods = np.arange(istart,iend,dtype=np.int32)
 			# Read the values
 			fieldDict[v]['value'][sliced] = np.array(fieldgroup['value'][inods])
 	# Return
@@ -504,12 +516,12 @@ def h5_load_dset_serial(fname,ptable):
 		# Redo the partitions table
 		ptable = PartitionTable.new(MPI_SIZE,npoints,npoints)
 	# Read the points
-	xyz, order, inods = h5_load_points(group,ptable,point)
+	xyz, order = h5_load_points(group,ptable,point)
 	# Figure out how many partitions we have
 	npart = np.sum(['VAR' in key for key in group.keys()])
 	# Read the variables
 	varDict   = h5_load_variables_single(group)
-	fieldDict = h5_load_fields_single(group,npoints,inods,varDict) if npart == 1 else h5_load_fields_multi(group,npoints,inods,varDict,npart)
+	fieldDict = h5_load_fields_single(group,npoints,ptable,varDict,point) if npart == 1 else h5_load_fields_multi(group,npoints,ptable,varDict,point,npart)
 	file.close()
 	return xyz, order, point, ptable, varDict, fieldDict
 
@@ -532,13 +544,13 @@ def h5_load_dset_mpio(fname,ptable):
 		# Redo the partitions table
 		ptable = PartitionTable.new(MPI_SIZE,npoints,npoints)
 	# Read the points
-	xyz, order, inods = h5_load_points(group,ptable,point)
+	xyz, order = h5_load_points(group,ptable,point)
 	# Figure out how many partitions we have
 	npoints = xyz.shape[0]
 	npart   = np.sum(['VAR' in key for key in group.keys()])
 	# Read the variables
 	varDict   = h5_load_variables_single(group)
-	fieldDict = h5_load_fields_single(group,npoints,inods,varDict) if npart == 1 else h5_load_fields_multi(group,npoints,inods,varDict,npart)
+	fieldDict = h5_load_fields_single(group,npoints,ptable,varDict,point) if npart == 1 else h5_load_fields_multi(group,npoints,ptable,varDict,point,npart)
 	file.close()
 	return xyz, order, point, ptable, varDict, fieldDict
 

@@ -53,17 +53,23 @@ class PartitionTable(object):
 		iend     = istart + table[this_idx][0]*ndim
 		return istart, iend
 
+	@cr('PartTable.set_ppoints')
+	def create_partition_points(self,conec):
+		'''
+		Find which nodes this partition has
+		'''
+		self._inods = np.unique(conec.flatten())
+		self.update_points(self._inods.shape[0])
+
 	@cr('PartTable.ppoints')
-	def partition_points(self,npoints,conec,ndim=1):
+	def partition_points(self,npoints,ndim=1):
 		'''
 		Compute the points to be read for this partition
 		'''
-		# Find which nodes this partition has
-		thenods = np.unique(conec.flatten())
 		mynods  = np.array([],np.int32)
 		# Deal with multiple dimensions
 		for idim in range(ndim):
-			mynods = np.hstack((mynods,thenods+idim*npoints))
+			mynods = np.hstack((mynods,self._inods+idim*npoints))
 		return mynods		
 
 	@cr('PartTable.reorder')
