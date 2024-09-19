@@ -89,11 +89,10 @@ try:
 		return cellsf, offset
 
 	@cr('plots.pyvista_snap')
-	def plotSnapshot(dset,vars=[],instant=0,**kwargs):
+	def plotSnapshot(dset,mesh,vars=[],instant=0,**kwargs):
 		'''
 		Plot using pyVista
 		'''
-		mesh = dset.mesh
 		# First create the unstructured grid
 		cells, offsets = _cells_and_offsets(mesh.connectivity)
 		# Create the unstructured grid
@@ -102,18 +101,17 @@ try:
 		for v in vars:
 			info = dset.info(v)
 			if info['point']:
-				ugrid.point_data[v] = dset.mesh.reshape_var(dset[v][:,instant] if len(dset[v].shape) > 1 else dset[v],info)
+				ugrid.point_data[v] = mesh.reshape_var(dset[v][:,instant] if len(dset[v].shape) > 1 else dset[v],info)
 			else:
-				ugrid.cell_data[v]  = dset.mesh.reshape_var(dset[v][:,instant] if len(dset[v].shape) > 1 else dset[v],info)
+				ugrid.cell_data[v]  = mesh.reshape_var(dset[v][:,instant] if len(dset[v].shape) > 1 else dset[v],info)
 		# Launch plot
 		return ugrid.plot(**kwargs)
 
 	@cr('plots.pyvista_layout')
-	def plotLayout(dset,nrows,ncols,imode,vars=[],cmap='jet',title='',off_screen=False,**kwargs):
+	def plotLayout(dset,mesh,nrows,ncols,imode,vars=[],cmap='jet',title='',off_screen=False,**kwargs):
 		'''
 		Plot using pyVista
 		'''
-		mesh = dset.mesh
 		# First create the unstructured grid
 		cells, offsets = _cells_and_offsets(mesh.connectivity)
 		# Create the unstructured grid
@@ -125,9 +123,9 @@ try:
 			# Add variable to mesh
 			info = dset.info(v)
 			if info['point']:
-				ugrid.point_data[v] = dset.mesh.reshape_var(dset[v],info)
+				ugrid.point_data[v] = mesh.reshape_var(dset[v],info)
 			else:
-				ugrid.cell_data[v]  = dset.mesh.reshape_var(dset[v],info)
+				ugrid.cell_data[v]  = mesh.reshape_var(dset[v],info)
 			# Plot
 			plotter.subplot(irow,icol)
 			if ivar == 0: plotter.add_text(title)
