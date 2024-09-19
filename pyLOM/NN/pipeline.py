@@ -1,6 +1,6 @@
 from typing import List, Dict
 import warnings
-from optimizer import OptunaOptimizer
+from .optimizer import OptunaOptimizer
 
 class Pipeline:
     r"""
