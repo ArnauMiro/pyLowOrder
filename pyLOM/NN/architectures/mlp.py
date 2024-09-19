@@ -317,8 +317,8 @@ class MLP(nn.Module):
         Create an optimized model using Optuna. The model is trained on the training dataset and evaluated on the validation dataset.
         
         Args:
-            train_dataset (BaseDataset): The training dataset.
-            eval_dataset (BaseDataset): The evaluation dataset.
+            train_dataset: The training dataset.
+            eval_dataset: The evaluation dataset.
             optuna_optimizer (OptunaOptimizer): The optimizer to use for optimization.
             kwargs: Additional keyword arguments.
 

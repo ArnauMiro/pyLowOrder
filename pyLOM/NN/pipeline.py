@@ -1,7 +1,6 @@
 from typing import List, Dict
 import warnings
-
-
+from optimizer import OptunaOptimizer
 
 class Pipeline:
     r"""
@@ -27,12 +26,12 @@ class Pipeline:
 
     def __init__(
         self,
-        train_dataset, #: BaseDataset,
-        valid_dataset=None, #: BaseDataset = None,
-        test_dataset=None, #: BaseDataset = None,
-        model=None, #: Model = None,
+        train_dataset,
+        valid_dataset=None,
+        test_dataset=None, 
+        model=None, 
         training_params: Dict = None,
-        optimizer=None, #: OptunaOptimizer = None,
+        optimizer: OptunaOptimizer = None,
         model_class=None,
         evaluators: List = [],
     ):
@@ -50,7 +49,7 @@ class Pipeline:
         ), "Either model and training_params or optimizer and model_class must be provided"
 
     @property
-    def model(self): # -> Model:
+    def model(self):
         """
         Get the trained model.
         """

@@ -81,7 +81,7 @@ class Dataset(torch.utils.data.Dataset):
 	r"""
 	Args:
 			variables_out (Tuple): Tuple of variables to be used as output. Each variable should be a 2d numpy array or torch tensor. If only one varielbe wants to be provided, it should be passed as a tuple with one element. E.g. ``(variable,)``.
-			mesh_shape (Tuple): Shape of the mesh. Default is ``(1,)``.
+			mesh_shape (Tuple): Shape of the mesh. If not mesh is used and the data is considered as points, leave this as default. Default is ``(1,)``.
 			variables_in (np.ndarray): Input variables. Default is ``None``.
 			parameters (List[List[float]]): List of parameters to be used as input. Default is ``None``.
 			inputs_scaler (MinMaxScaler): Scaler to scale the input variables. Default is ``None``.

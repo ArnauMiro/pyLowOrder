@@ -9,10 +9,10 @@ class OptunaOptimizer():
     """
     Args:
         optimization_params (Dict): A dictionary containing the parameters to optimize.
-        n_trials (int): The number of trials to run. Default is `100`.
-        direction (str): The direction to optimize. Can be 'minimize' or 'maximize'. Default is `'minimize'`.
-        pruner (optuna.pruners.BasePruner): The pruner to use. Default is `None`.
-        save_dir (str): The directory to save the best parameters. Default is `None`.
+        n_trials (int): The number of trials to run. Default is ``100``.
+        direction (str): The direction to optimize. Can be 'minimize' or 'maximize'. Default is ``'minimize'``.
+        pruner (optuna.pruners.BasePruner): The pruner to use. Default is ``None``.
+        save_dir (str): The directory to save the best parameters. Default is ``None``.
     """
     def __init__(
         self,
