@@ -41,12 +41,12 @@ pyLOM.pprint(0,'RMSE = %e'%rmse)
 # Spatial modes
 d.add_field('spatial_modes_P',6,pyLOM.POD.extract_modes(PSI,1,len(d),modes=[1,4,6,2,5,3]))
 pyLOM.io.pv_writer(m,d,'modes',basedir='out/modes',instants=[0],times=[0.],vars=['spatial_modes_P'],fmt='vtkh5')
-pyLOM.POD.plotSnapshot(d,m,vars=['spatial_modes_P'],instant=0,component=0,cmap='jet',cpos='xy')
+pyLOM.POD.plotSnapshot(m,d,vars=['spatial_modes_P'],instant=0,component=0,cmap='jet',cpos='xy')
 
 # Temporal evolution
 d.add_field('PRESR',1,X_POD)
 pyLOM.io.pv_writer(m,d,'flow',basedir='out/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t,vars=['PRESS','PRESR'],fmt='vtkh5')
-pyLOM.POD.plotSnapshot(d,m,vars=['PRESR'],instant=0,component=0,cmap='jet',cpos='xy')
+pyLOM.POD.plotSnapshot(m,d,vars=['PRESR'],instant=0,component=0,cmap='jet',cpos='xy')
 
 
 ## Plot POD mode

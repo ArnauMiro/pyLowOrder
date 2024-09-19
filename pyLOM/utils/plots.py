@@ -89,7 +89,7 @@ try:
 		return cellsf, offset
 
 	@cr('plots.pyvista_snap')
-	def plotSnapshot(dset,mesh,vars=[],idim=0,instant=0,**kwargs):
+	def plotSnapshot(mesh,dset,vars=[],idim=0,instant=0,**kwargs):
 		'''
 		Plot using pyVista
 		'''
@@ -109,7 +109,7 @@ try:
 		return ugrid.plot(**kwargs)
 
 	@cr('plots.pyvista_layout')
-	def plotLayout(dset,mesh,nrows,ncols,imode,vars=[],cmap='jet',title='',off_screen=False,**kwargs):
+	def plotLayout(mesh,dset,nrows,ncols,imode,vars=[],cmap='jet',title='',off_screen=False,**kwargs):
 		'''
 		Plot using pyVista
 		'''
