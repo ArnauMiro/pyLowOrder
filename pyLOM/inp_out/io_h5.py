@@ -111,7 +111,7 @@ def h5_save_meshes_nopartition(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	dpoinO[inods] = pointO[idx]
 	# Compute start and end of read, cell data
 	istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
-	dconec[istart:iend,:] = pointO[conec]
+	dconec[istart:iend,:] = pointO[conec] if pointO.shape[0] > 0 else conec
 	deltyp[istart:iend]   = eltype
 	dcellO[istart:iend]   = cellO
 
@@ -135,6 +135,7 @@ def h5_load_meshes(file,ptable,repart):
 	conec  = np.array(file['connectivity'][istart:iend,:],np.int32)
 	eltype = np.array(file['eltype'][istart:iend],np.int32) 
 	cellO  = np.array(file['cellOrder'][istart:iend],np.int32)
+	cellO  = np.arange(istart, iend, 1) # Fix IO for clipped datasets in pyQvarsi
 	# Read point related variables
 	if repart:
 		# Warning! Repartition will only work if the input file is serial
@@ -715,7 +716,7 @@ def h5_load_POD(fname,vars,nmod,ptable=None):
 		# Read
 		nvars = int(file['POD']['n_variables'][0])
 		point = bool(file['POD']['pointData'][0])
-		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,point=point)
+		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=point)
 		varList.append( np.array(file['POD']['U'][istart:iend,:nmod]) )
 	if 'S' in vars: varList.append( np.array(file['POD']['S'][:]) )
 	if 'V' in vars: varList.append( np.array(file['POD']['V'][:,:]) )
@@ -785,6 +786,22 @@ def h5_load_DMD(fname,vars,nmod,ptable=None):
 	file.close()
 	return varList
 
+@cr('h5IO.save_VAE')
+def h5_save_VAE(fname, kld, mse, val_loss, train_loss_avg, corrcoef, mode='w'):
+	'''
+	Store VAE results.
+	'''
+	file = h5py.File('%s.h5'%fname,mode,driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,mode)
+	# Now create a VAE group
+	group = file.create_group('VAE')
+	# Create the datasets for U, S and V
+	
+	group.create_dataset('kld',(kld.shape[0],),dtype='u1',data=kld)
+	group.create_dataset('mse',(mse.shape[0],),dtype='u1',data=mse)
+	group.create_dataset('val_loss',(val_loss.shape[0],),dtype='u1',data=val_loss)
+	group.create_dataset('train_loss_avg',(train_loss_avg.shape[0],),dtype='u1',data=train_loss_avg)
+	group.create_dataset('correlation',(corrcoef.shape[0],),dtype='u1',data=corrcoef)
+	file.close()
 
 def h5_save_SPOD(fname,L,P,f,ptable,nvars=1,pointData=True,mode='w'):
 	'''

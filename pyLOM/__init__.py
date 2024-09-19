@@ -4,10 +4,8 @@
 #
 # Last rev: 09/07/2021
 
-__VERSION__ = '1.5.0'
-
 # Import Low Order Models
-from . import POD, DMD, SPOD
+from . import POD, DMD, SPOD, NN
 
 # Import essential tools
 from .                import inp_out as io, vmmath as math, utils
