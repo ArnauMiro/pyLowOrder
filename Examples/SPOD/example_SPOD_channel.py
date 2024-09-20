@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# POD analysis.
+# SPOD analysis.
 #
 # Last revision: 29/10/2021
 from __future__ import print_function, division

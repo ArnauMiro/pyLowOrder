@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Example of POD.
+# Example of SPOD.
 #
 # Last revision: 19/07/2021
 from __future__ import print_function, division
