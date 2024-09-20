@@ -20,6 +20,7 @@ m = pyLOM.Mesh.load(DATAFILE)
 d = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table)
 X = d.X(*VARIABLES)
 
+
 ## Run POD
 PSI,S,V = pyLOM.POD.run(X,remove_mean=False) # PSI are POD modes
 if pyLOM.utils.is_rank_or_serial(root=0): 
