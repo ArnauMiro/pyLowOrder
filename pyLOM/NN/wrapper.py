@@ -106,34 +106,38 @@ class Autoencoder(nn.Module):
         torch.save(self.state_dict(), f'{BASEDIR}/model_state.pth')
 
     def reconstruct(self, dataset):
-        ##  Compute reconstruction and its accuracy
-        ek     = np.zeros((len(dataset),))
-        mean   = np.zeros((len(dataset),))
-        rec    = np.zeros((self.inp_chan,self.N,len(dataset))) 
-        loader = torch.utils.data.DataLoader(dataset, batch_size=len(dataset), shuffle=False)
+        ## Compute reconstruction and its accuracy
+        num_samples = len(dataset)
+        ek = np.zeros(num_samples)
+        mu = np.zeros(num_samples)
+        si = np.zeros(num_samples)
+        rec = torch.zeros((self.inp_chan, self.N, num_samples), device=self._device)
+
+        loader = torch.utils.data.DataLoader(dataset, batch_size=num_samples, shuffle=False)
+
         with torch.no_grad():
             ## Energy recovered in reconstruction
-            instant = iter(loader)
-            energy_batch = next(instant)
-            for i in range(len(dataset)):
-                x = energy_batch[i,:,:,:]
-                x = torch.reshape(x, [1,self.inp_chan,self.N])
-                x = x.to(self._device)
-                x_recon  = self(x)
-                x_recon  = np.asanyarray(x_recon[0].cpu())
-                for ichan in range(self.inp_chan):
-                    x_recchan  = x_recon[0,ichan,:,:]
-                    x_recchan  = torch.reshape(torch.tensor(x_recchan),[self.N,])
-                    rec[ichan,:,i] = x_recchan.detach().numpy()
-                xr      = rec.reshape((self.inp_chan*self.N,len(dataset)))
-                x       = torch.reshape(x,[self.inp_chan*self.N])
-                x       = x.to("cpu")
-                ek[i]   = torch.sum((x-xr[:,i])**2)/torch.sum(x**2)
-                mean[i] = torch.mean(torch.abs((x-xr[:,i])/x))
-        energy = (1-np.mean(ek))*100
-        print('Recovered energy %.2f' % (energy))
-        print('Mean error %.2f percent' % (np.mean(mean)*100))
-        return rec
+            for energy_batch in loader:
+                energy_batch = energy_batch.to(self._device)
+                x_recon,_ = self(energy_batch)
+
+                for i in range(num_samples):
+                    x_recchan = x_recon[i]
+                    rec[:, :, i] = x_recchan.view(self.inp_chan, self.N)
+
+                    x = energy_batch[i].view(self.inp_chan * self.N)
+                    xr = rec[:, :, i].view(self.inp_chan * self.N)
+
+                    ek[i] = torch.sum((x - xr) ** 2) / torch.sum(x ** 2)
+                    mu[i] = 2 * torch.mean(x) * torch.mean(xr) / (torch.mean(x) ** 2 + torch.mean(xr) ** 2)
+                    si[i] = 2 * torch.std(x) * torch.std(xr) / (torch.std(x) ** 2 + torch.std(xr) ** 2)
+
+        energy = (1 - np.mean(ek)) * 100
+        print('Recovered energy %.2f' % energy)
+        print('Recovered mean %.2f' % (np.mean(mu) * 100))
+        print('Recovered fluct %.2f' % (np.mean(si) * 100))
+
+        return rec.cpu().numpy()
     
     def latent_space(self, dataset):
         # Compute latent vectors
@@ -178,10 +182,10 @@ class VariationalAutoencoder(Autoencoder):
         return recon, mu, logvar, z
     
     @cr('VAE.train')   
-    def train_model(self, train_data, vali_data, betasch, nepochs, callback=None, learning_rate=1e-4, BASEDIR='./'):
+    def train_model(self, train_data, vali_data, betasch, nepochs, callback=None, fused=False, learning_rate=1e-4, BASEDIR='./'):
         prev_train_loss = 1e99
         writer    = SummaryWriter(BASEDIR)
-        optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate, weight_decay=0, amsgrad=True, fused=True)
+        optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate, weight_decay=0, amsgrad=True, fused=fused)
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, nepochs, eta_min=learning_rate*1e-3)
         scaler    = GradScaler()
         for epoch in range(nepochs):
