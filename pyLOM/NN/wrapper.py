@@ -182,10 +182,10 @@ class VariationalAutoencoder(Autoencoder):
         return recon, mu, logvar, z
     
     @cr('VAE.train')   
-    def train_model(self, train_data, vali_data, betasch, nepochs, callback=None, learning_rate=1e-4, BASEDIR='./'):
+    def train_model(self, train_data, vali_data, betasch, nepochs, callback=None, fused=False, learning_rate=1e-4, BASEDIR='./'):
         prev_train_loss = 1e99
         writer    = SummaryWriter(BASEDIR)
-        optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate, weight_decay=0, amsgrad=True, fused=True)
+        optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate, weight_decay=0, amsgrad=True, fused=fused)
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, nepochs, eta_min=learning_rate*1e-3)
         scaler    = GradScaler()
         for epoch in range(nepochs):
