@@ -9,7 +9,7 @@ device = pyLOM.NN.select_device()
 ptrain      = 0.8
 pvali       = 0.2
 batch_size  = 1
-nepochs     = 300
+nepochs     = 10
 nlayers     = 1
 channels    = 32
 lat_dim     = 10
@@ -46,15 +46,15 @@ trloader = tordtset.loader()
 ## Set and train the variational autoencoder
 encarch    = pyLOM.NN.Encoder2D(nlayers, lat_dim, nh, nw, tordtset.n_channels, channels, kernel_size, padding, activations, nlinear, batch_norm=batch_norm)
 decarch    = pyLOM.NN.Decoder2D(nlayers, lat_dim, nh, nw, tordtset.n_channels, channels, kernel_size, padding, activations, nlinear, batch_norm=batch_norm)
-ae         = pyLOM.NN.Autoencoder(lat_dim, nh, nw, tordtset.n_channels, encarch, decarch, device=device)
+ae         = pyLOM.NN.Autoencoder(lat_dim, (nh, nw), tordtset.n_channels, encarch, decarch, device=device)
 early_stop = pyLOM.NN.EarlyStopper(patience=5, min_delta=0.02)
-ae.train_model(trloader, trloader, beta, nepochs, callback=early_stop, BASEDIR=RESUDIR)
+ae.train_model(trloader, trloader, nepochs, callback=early_stop, BASEDIR=RESUDIR)
     
 ## Reconstruct dataset and compute accuracy
 rec      = ae.reconstruct(tordtset)
-recdtset = pyLOM.NN.Dataset((rec), nh, nw, tordtset._time, transform=False)
-recdtset.pad(nh, nw, n0h, n0w)
-tordtset.pad(nh, nw, n0h, n0w)
+recdtset = pyLOM.NN.Dataset((rec), (nh, nw), tordtset._time, transform=False)
+recdtset.pad((nh, nw), (n0h, n0w))
+tordtset.pad((nh, nw), (n0h, n0w))
 pyldtset.add_variable('urec', False, 1, recdtset.data[0][:,0].numpy())
 pyldtset.add_variable('utra', False, 1, tordtset.data[0][:,0])
 pyldtset.write('reco',basedir='.',instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec', 'VELOX', 'utra'],fmt='vtkh5')
