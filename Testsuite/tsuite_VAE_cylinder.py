@@ -9,16 +9,16 @@ device = pyLOM.NN.select_device()
 ptrain      = 0.8
 pvali       = 0.2
 batch_size  = 1
-nepochs     = 300
+nepochs     = 10
 nlayers     = 1
 channels    = 32
-lat_dim     = 10
+lat_dim     = 5
 beta        = 0
 kernel_size = 4
 nlinear     = 256
 padding     = 1
 activations = [pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh()]
-batch_norm  = True
+batch_norm  = False
 
 ## Load pyLOM dataset and set up results output
 BASEDIR = '.'
@@ -53,8 +53,8 @@ ae.train_model(trloader, trloader, nepochs, callback=early_stop, BASEDIR=RESUDIR
 ## Reconstruct dataset and compute accuracy
 rec      = ae.reconstruct(tordtset)
 recdtset = pyLOM.NN.Dataset((rec), (nx, ny), tordtset._time, device=device, transform=False)
-recdtset.pad(nx, ny, n0x, n0y)
-tordtset.pad(nx, ny, n0x, n0y)
+recdtset.pad((nx, ny), (n0x, n0y))
+tordtset.pad((nx, ny), (n0x, n0y))
 pyldtset.add_variable('urec', False, 1, recdtset.data[0][:,0].numpy())
 pyldtset.add_variable('utra', False, 1, tordtset.data[0][:,0])
 pyldtset.write('reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec', 'VELOX', 'utra'],fmt='vtkh5')
