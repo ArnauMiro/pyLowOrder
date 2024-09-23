@@ -40,7 +40,7 @@ time     = pyldtset.time
 tordtset = pyLOM.NN.Dataset((u_x,), (n0x, n0y), time, device=device, transform=False)
 tordtset.data[0] = np.transpose(np.array([tordtset.data[0][:,0]]))
 tordtset._time   = np.array([tordtset.time[0]])
-tordtset.crop(nx, ny, n0x, n0y)
+tordtset.crop((nx, ny), (n0x, n0y))
 trloader = tordtset.loader()
 
 ## Set and train the variational autoencoder

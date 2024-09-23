@@ -37,10 +37,10 @@ nw  = 192
 pyldtset = pyLOM.Dataset.load(DSETDIR)
 u_x      = pyldtset['VELOX']
 time     = pyldtset.time
-tordtset = pyLOM.NN.Dataset((u_x,), n0h, n0w, time, transform=False)
+tordtset = pyLOM.NN.Dataset((u_x,), (n0h, n0w), time, transform=False)
 tordtset.data[0] = np.transpose(np.array([tordtset.data[0][:,0]]))
 tordtset._time   = np.array([tordtset.time[0]])
-tordtset.crop(nh, nw, n0h, n0w)
+tordtset.crop((nh, nw), (n0h, n0w))
 trloader = tordtset.loader()
 
 ## Set and train the variational autoencoder
