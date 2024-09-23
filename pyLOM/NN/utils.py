@@ -140,18 +140,6 @@ class Dataset(torch_dataset):
 			data.append(var)
 		return data, mean, maxi
 
-	def crop(self, shape, shape0):
-		if len(shape) == 2:
-			_crop2D(self, shape[0], shape[1], shape0[0], shape0[1])
-		if len(shape) == 3:
-			_crop3D(self, shape[0], shape[1], shape[2], shape0[0], shape0[1], shape0[2])
-
-	def pad(self, shape, shape0):
-		if len(shape) == 2:
-			_pad2D(self, shape[0], shape[1], shape0[0], shape0[1])
-		if len(shape) == 3:
-			_pad3D(self, shape[0], shape[1], shape[2], shape0[0], shape0[1], shape0[2])
-
 	def _crop2D(self, nh, nw, n0h, n0w):
 		cropdata = []
 		self._nh = nh
@@ -192,7 +180,7 @@ class Dataset(torch_dataset):
 				xy_plane = torch.zeros(1,n0d,n0h)
 				for z in range(n0w): 
 					xy_plane = isnap[:,:,:,z]
-					isnap_cropped[:,:,:,z] = TF.crop(xy_plane, top=0, left=0, height=nd, width=nw)
+					isnap_cropped[:,:,:,z] = TF.crop(xy_plane, top=0, left=0, height=nd, width=nh)
 				crops.append(isnap_cropped.reshape(nd*nh*nw,1))
 			crops = torch.cat(crops, dim=1)
 			cropdata.append(crops)
@@ -219,6 +207,18 @@ class Dataset(torch_dataset):
 			pads = torch.cat(pads, dim = 1)
 			paddata.append(pads)
 		self._data = paddata
+
+	def crop(self, shape, shape0):
+		if len(shape) == 2:
+			self._crop2D(shape[0], shape[1], shape0[0], shape0[1])
+		if len(shape) == 3:
+			self._crop3D(shape[0], shape[1], shape[2], shape0[0], shape0[1], shape0[2])
+
+	def pad(self, shape, shape0):
+		if len(shape) == 2:
+			self._pad2D(shape[0], shape[1], shape0[0], shape0[1])
+		if len(shape) == 3:
+			self._pad3D(shape[0], shape[1], shape[2], shape0[0], shape0[1], shape0[2])
 
 	def recover(self, data):
 		recovered_data = []
