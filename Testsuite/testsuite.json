@@ -157,5 +157,29 @@
 		"nprocs" : 4,
 		"reset"  : false,
 		"active" : true
+	},
+
+	"comment": "NN tests",
+	"VAE_2D": {
+		"name"   : "VAE Cylinder 2D",
+		"module" : "NN",
+		"file"   : "runs/tsuite_VAE2D.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : "VELOX",
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : false
+	},
+	"VAE_3D": {
+		"name"   : "VAE Channel 3D",
+		"module" : "NN",
+		"file"   : "runs/tsuite_VAE3D.py",
+		"data"   : "DATA/CHANNEL.h5",
+		"var"    : "VELOX",
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : false
 	}
 }
