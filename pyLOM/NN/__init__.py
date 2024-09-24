@@ -14,5 +14,7 @@ from .wrapper       import tanh, relu, elu, sigmoid, leakyRelu, silu, Variationa
 from .architectures import Encoder2D, Decoder2D, Encoder3D, Decoder3D
 from .callbacks     import EarlyStopper
 from .utils         import Dataset, create_results_folder, select_device, betaLinearScheduler
+from ..utils.plots  import plotSnapshot
+
 
 del wrapper, os

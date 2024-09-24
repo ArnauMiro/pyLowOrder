@@ -1,14 +1,20 @@
-## 3D CNN Autoencoder Test 
-## T280
-## Aleix Usieda
+#!/usr/bin/env python
+#
+# Example of 3D-VAE.
+#
+# Last revision: 24/09/2024
+from __future__ import print_function, division
  
+import mpi4py
+mpi4py.rc.recv_mprobe = False
 
-import pyLOM
 import numpy as np
+import pyLOM
+
 
 ## Set device
-
 device = pyLOM.NN.select_device()
+
 
 ## Specify autoencoder parameters
 ptrain      = 0.8
@@ -28,75 +34,73 @@ activations = [pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(
 batch_norm  = False
 vae         = True
 
-## Load dataset and set up the results output
 
-DATAFILE = 'Examples/Data/Tensor_re280.h5'
+## Load dataset and set up the results output
+DATAFILE = './DATA/Tensor_re280.h5'
 VARIABLE = 'VELOC'
-RESUDIR = 'vae_beta_%.2e_ld_%i' % (beta, lat_dim)
+RESUDIR  = 'vae_beta_%.2e_ld_%i' % (beta, lat_dim)
 pyLOM.NN.create_results_folder(RESUDIR)
 
-## Mesh size (100 x 40 x 64)
-## vars ['VELOC'] : u
-## 120 instants
 
 ## Load the dataset
-pyldtset = pyLOM.Dataset.load(DATAFILE)
-u        = pyldtset[VARIABLE]
-um       = pyLOM.math.temporal_mean(u)
-u        = pyLOM.math.subtract_mean(u, um)
-time     = pyldtset.time 
-mesh     = pyldtset.mesh
-print("Variables: ", pyldtset.varnames)
-print("Information about the variable: ", pyldtset.info(VARIABLE))
-print("Number of cells ", mesh.ncells)
+m    = pyLOM.Mesh.load(DATAFILE) # Mesh size (100 x 40 x 64)
+d    = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table)
+u    = d[VARIABLE] # vars ['VELOC'] : u
+um   = pyLOM.math.temporal_mean(u)
+u    = pyLOM.math.subtract_mean(u, um)
+time = d.get_variable('time') # 120 instants
+print("Variables: ", d.varnames)
+print("Information about the variable: ", d.info(VARIABLE))
+print("Number of points ", len(d))
 print("Instants :", time.shape[0])
 
-#Take x component only for testing
-nvars = pyldtset._vardict[VARIABLE]['ndim']
-u_x = np.zeros((mesh.ncells,time.shape[0]), dtype = float)
-u_x[:,:] = u[0:nvars*mesh.ncells:nvars,:]
+# Take x component only for testing
+nvars    = d.info(VARIABLE)['ndim']
+u_x      = np.zeros((len(d),time.shape[0]), dtype = float)
+u_x[:,:] = u[0:nvars*len(d):nvars,:]
 print("New variable: u_x", u_x.shape)
 
 # Mesh Size
-n0x = len(np.unique(mesh.x))-1 
-n0y = len(np.unique(mesh.y))-1
-n0z = len(np.unique(mesh.z))-1
-nx = 96
-ny = 32
-nz = n0z
+n0x = len(np.unique(m.x)) - 1 
+n0y = len(np.unique(m.y)) - 1
+n0z = len(np.unique(m.z)) - 1
+nx  = 96
+ny  = 32
+nz  = n0z
 
-
-#Create the torch dataset
-tordtset = pyLOM.NN.Dataset((u_x,), (n0x, n0y, n0z), time, transform=False, device=device)
-
+# Create the torch dataset
+td = pyLOM.NN.Dataset((u_x,), (n0x, n0y, n0z), time, transform=False, device=device)
 '''
-#Single Snapshot
-tordtset.data[0] = np.transpose(np.array([tordtset.data[0][:,0]]))
-tordtset._time = np.array([tordtset.time[0]])
+# Single Snapshot
+td.data[0] = np.transpose(np.array([td.data[0][:,0]]))
+td._time = np.array([td.time[0]])
 '''
-
-
-tordtset.crop((nx, ny, nz), (n0x, n0y, n0z))
-trloader, valoader = tordtset.split_subdatasets(ptrain, pvali,batch_size=batch_size)
-#trloader = tordtset.loader()
+td.crop((nx, ny, nz), (n0x, n0y, n0z))
+trloader, valoader = td.split_subdatasets(ptrain, pvali,batch_size=batch_size)
+#trloader = td.loader()
 
 ##Set beta scheduler
 betasch = pyLOM.NN.betaLinearScheduler(0., beta, beta_start, beta_wmup)
 
 ## Set and train the Autoencoder
-encarch = pyLOM.NN.Encoder3D(nlayers, lat_dim, nx, ny, nz, tordtset.n_channels, channels, kernel_size, padding, activations, nlinear, batch_norm=batch_norm, stride = 2, dropout = 0, vae = vae)
-decarch = pyLOM.NN.Decoder3D(nlayers, lat_dim, nx, ny, nz, tordtset.n_channels, channels, kernel_size, padding, activations, nlinear, batch_norm=batch_norm)
-AutoEnc = pyLOM.NN.VariationalAutoencoder(lat_dim, (nx, ny, nz), tordtset.n_channels, encarch, decarch, device=device)
+encarch = pyLOM.NN.Encoder3D(nlayers, lat_dim, nx, ny, nz, td.n_channels, channels, kernel_size, padding, activations, nlinear, batch_norm=batch_norm, stride = 2, dropout = 0, vae = vae)
+decarch = pyLOM.NN.Decoder3D(nlayers, lat_dim, nx, ny, nz, td.n_channels, channels, kernel_size, padding, activations, nlinear, batch_norm=batch_norm)
+AutoEnc = pyLOM.NN.VariationalAutoencoder(lat_dim, (nx, ny, nz), td.n_channels, encarch, decarch, device=device)
 early_stop = pyLOM.NN.EarlyStopper(patience=15, min_delta=0.05)
 AutoEnc.train_model(trloader, valoader, betasch, nepochs, callback = None, BASEDIR = RESUDIR)
 #AutoEnc.load_state_dict(torch.load(MODEL_PATH))
 
 
 ## Reconstruct dataset and compute accuracy
-rec  = AutoEnc.reconstruct(tordtset) # Returns (input channels, nx*ny, time)
-recdtset = pyLOM.NN.Dataset((rec), (nx, ny, nz), tordtset._time, transform=False)
-recdtset.pad((nx, ny, nz), (n0x, n0y, n0z))
-tordtset.pad((nx, ny, nz), (n0x, n0y, n0z))
-pyldtset.add_variable('urec', False, 1, recdtset.data[0][:,:].numpy())
-pyldtset.add_variable('utra', False, 1, tordtset.data[0][:,:])
-pyldtset.write('reco',basedir='.',instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec', 'utra'],fmt='vtkh5')
+rec = AutoEnc.reconstruct(td) # Returns (input channels, nx*ny, time)
+rd  = pyLOM.NN.Dataset((rec), (nx, ny, nz), td._time, transform=False)
+rd.pad((nx, ny, nz), (n0x, n0y, n0z))
+td.pad((nx, ny, nz), (n0x, n0y, n0z))
+d.add_field('urec', 1, rd.data[0][:,:].numpy())
+d.add_field('utra', 1, td.data[0][:,:])
+pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec','VELOC','utra'],fmt='vtkh5')
+pyLOM.NN.plotSnapshot(m,d,vars=['urec'],instant=0,component=0,cmap='jet')
+pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet')
+
+
+pyLOM.cr_info()
