@@ -162,14 +162,14 @@ class Dataset(object):
 		for f in fieldnames:
 			nfields += self.fields[f]['ndim']
 		# Create output array
-		dims = [nfields*npoints]
-		for i,v in enumerate(self.varnames):
-			dims += self.vars[v]['values'][s].shape[0]
+		dims = [nfields*npoints] + [0]*len(fieldnames)
+		for v in self.varnames:
+			dims[self.vars[v]['idim'] + 1] = self.vars[v]['value'].shape[0]
 		X = np.zeros(dims,np.double)
 		# Populate output matrix
 		ifield = 0
 		for field in fieldnames:
-			v = self.fields[var]
+			v = self.fields[field]
 			for idim in range(v['ndim']):
 				X[ifield:nfields*npoints:nfields] = v['value'][idim:v['ndim']*npoints:v['ndim']]
 				ifield += 1
