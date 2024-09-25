@@ -7,8 +7,16 @@
 # Last rev: 09/07/2021
 from __future__ import print_function, division
 
-import sys
+import sys, numpy as np
 from .parall import MPI_RANK, MPI_COMM
+
+
+def truncate(value,precision):
+	'''
+	Truncate array by a certain precision
+	'''
+	fact  = 10**precision
+	return np.round(value*fact)/fact
 
 
 def raiseError(errmsg):
