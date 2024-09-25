@@ -401,7 +401,7 @@ def h5_save_dset_mpio(fname,xyz,varDict,fieldDict,ordering,point,ptable,nopartit
 	# Store the variables
 	h5_fill_variable_datasets(h5_create_variable_datasets(group,varDict,ptable),varDict)
 	# Store the fields
-	h5_fill_field_datasets(h5_create_field_datasets(group,time,fieldDict,ptable),fieldDict,ptable,point,inods,idx)
+	h5_fill_field_datasets(h5_create_field_datasets(group,fieldDict,ptable),fieldDict,ptable,point,inods,idx)
 	file.close()
 
 
