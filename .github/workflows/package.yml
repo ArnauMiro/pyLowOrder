@@ -24,39 +24,47 @@ jobs:
       CXX: mpc++
       FC: mpif90
     steps:
-    - uses: actions/checkout@v3
-    # Setup MPI and Python for this job
-    - name: Setup MPI
-      uses: mpi4py/setup-mpi@v1
-      with:
-        mpi: openmpi
-    - name: Set up Python
-      uses: actions/setup-python@v3
-      with:
-        python-version: '3.x'
-    # Install dependencies, build and install
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install setuptools build
-    - name: Build package
-      run: |
-        make requirements
-        sed -i 's/USE_COMPILED  = ON/USE_COMPILED  = OFF/g' options.cfg
-        make package-build
-        make install
-    # POD test suite
-    - name: Run test-suite POD
-      run: bash Testsuite/run_POD_testsuite.sh
-    # DMD test suite
-    - name: Run test-suite DMD
-      run: bash Testsuite/run_DMD_testsuite.sh  
-    # SPOD test suite
-    - name: Run test-suite SPOD
-      run: bash Testsuite/run_SPOD_testsuite.sh
-    # Publish to PyPi once the test-sute has been successfully run
-    - name: Publish package
-      uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
-      with:
-        user: __token__
-        password: ${{ secrets.PYPI_API_TOKEN }}
+      # Free up some disk space in the runner
+      - name: Maximize build space
+        uses: AdityaGarg8/remove-unwanted-software@v4.1
+        with:
+          remove-android: 'true'
+          remove-dotnet:  'true'
+          remove-haskell: 'true'
+          remove-codeql:  'true'
+      - uses: actions/checkout@v3
+      # Setup MPI and Python for this job
+      - name: Setup MPI
+        uses: mpi4py/setup-mpi@v1
+        with:
+          mpi: openmpi
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.x'
+      # Install dependencies, build and install
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install setuptools build
+      - name: Build package
+        run: |
+          make requirements
+          sed -i 's/USE_COMPILED  = ON/USE_COMPILED  = OFF/g' options.cfg
+          make package-build
+          make install
+      # POD test suite
+      - name: Run test-suite POD
+        run: bash Testsuite/run_POD_testsuite.sh
+      # DMD test suite
+      - name: Run test-suite DMD
+        run: bash Testsuite/run_DMD_testsuite.sh  
+      # SPOD test suite
+      - name: Run test-suite SPOD
+        run: bash Testsuite/run_SPOD_testsuite.sh
+      # Publish to PyPi once the test-sute has been successfully run
+      - name: Publish package
+        uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
