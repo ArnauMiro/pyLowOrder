@@ -581,7 +581,7 @@ def h5_save_mesh_serial(fname,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	h5_save_meshes(group,mtype,xyz,conec,eltype,cellO,pointO,ptable)
 	file.close()
 
-def h5_save_mesh_mpio(fname,xyz,varDict,fieldDict,ordering,point,ptable,nopartition):
+def h5_save_mesh_mpio(fname,mtype,xyz,conec,eltype,cellO,pointO,ptable,nopartition):
 	'''
 	Save a dataset in HDF5 in parallel mode
 	'''
