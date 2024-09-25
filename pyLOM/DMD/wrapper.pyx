@@ -316,8 +316,8 @@ def _srun(float[:,:] X, float r, int remove_mean):
 	# Order modes and eigenvalues according to its amplitude
 	cdef int *auxOrd
 	auxOrd = <int*>malloc(nr*sizeof(int))
-	cdef np.ndarray[np.float_t,ndim=1] muReal   = np.zeros((nr),dtype=np.float)
-	cdef np.ndarray[np.float_t,ndim=1] muImag   = np.zeros((nr),dtype=np.float)
+	cdef np.ndarray[np.float32_t,ndim=1] muReal   = np.zeros((nr),dtype=np.float)
+	cdef np.ndarray[np.float32_t,ndim=1] muImag   = np.zeros((nr),dtype=np.float)
 	cdef np.ndarray[np.complex64_t,ndim=2] Phi  = np.zeros((m,nr),order='C',dtype=np.complex64)
 	cdef np.ndarray[np.complex64_t,ndim=1] bJov = np.zeros((nr,),dtype=np.complex64)
 
