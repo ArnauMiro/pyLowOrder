@@ -162,7 +162,7 @@ class Dataset(object):
 		for f in fieldnames:
 			nfields += self.fields[f]['ndim']
 		# Create output array
-		dims = [nfields*npoints] + [0]*len(fieldnames)
+		dims = [nfields*npoints] + [0]*len(self.varnames)
 		for v in self.varnames:
 			dims[self.vars[v]['idim'] + 1] = self.vars[v]['value'].shape[0]
 		X = np.zeros(dims,np.double)
