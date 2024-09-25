@@ -29,11 +29,11 @@ pyAlya.pprint(0,'Run (%d instants)...' % len(listOfInstants),flush=True)
 
 
 ## Create POD dataset
-m = pyLOM.Mesh.from_pyAlya(mesh)
-p = pyLOM.PartitionTable.from_pyAlya(mesh.partition_table,has_master=True)
+p = pyLOM.PartitionTable.from_pyQvarsi(mesh.partition_table,has_master=True)
+m = pyLOM.Mesh.from_pyQvarsi(mesh,ptable=p)
 d = pyLOM.Dataset(xyz=m.xyz, ptable=p, order=m.pointOrder, point=True,
 	# Add the time as the only variable
-	vars  = {'time':{'idim':0,'value':time}}
+	vars  = {'time':{'idim':0,'value':None}}
 )
 m.save('%s.h5'%CASESTR,nopartition=True) 
 
