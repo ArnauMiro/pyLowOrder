@@ -11,16 +11,16 @@ import pyLOM
 
 
 ## Parameters
-DATAFILE = sys.argv[1]
-VARIABLE = sys.argv[2]
-OUTDIR   = sys.argv[3]
-PARAMS   = json.loads(str(sys.argv[4]).replace("'",'"'))
+DATAFILE  = sys.argv[1]
+VARIABLES = eval(sys.argv[2])
+OUTDIR    = sys.argv[3]
+PARAMS    = json.loads(str(sys.argv[4]).replace("'",'"'))
 
 
 ## Data loading
 m     = pyLOM.Mesh.load(DATAFILE)
 d     = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table)
-X     = d[VARIABLE]
+X     = d.X(*VARIABLES)
 t     = d.get_variable('time')
 npwin = PARAMS['npwin'] #Number of snapshots in each window
 nolap = PARAMS['nolap'] #Number of overlapping snapshots between windows
@@ -32,7 +32,7 @@ if pyLOM.utils.is_rank_or_serial(root=0):
     fig,_ = pyLOM.SPOD.plotSpectra(f, L)
     os.makedirs(OUTDIR,exist_ok=True)
     fig.savefig(f'{OUTDIR}/spectra.png',dpi=300)
-pyLOM.SPOD.save(f'{OUTDIR}/results.h5',L,P,f,d.partition_table,nvars=1,pointData=d.point)
+pyLOM.SPOD.save(f'{OUTDIR}/results.h5',L,P,f,d.partition_table,nvars=len(VARIABLES),pointData=d.point)
 
 
 ## Testsuite output

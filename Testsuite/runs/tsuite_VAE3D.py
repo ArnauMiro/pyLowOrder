@@ -11,9 +11,9 @@ mpi4py.rc.recv_mprobe = False
 import sys, os, numpy as np
 import pyLOM
 
-DATAFILE = sys.argv[1]
-VARIABLE = sys.argv[2]
-OUTDIR   = sys.argv[3]
+DATAFILE  = sys.argv[1]
+VARIABLES = eval(sys.argv[2])
+OUTDIR    = sys.argv[3]
 
 
 ## Set device
@@ -47,28 +47,28 @@ pyLOM.NN.create_results_folder(RESUDIR)
 ## Load the dataset
 m    = pyLOM.Mesh.load(DATAFILE) # Mesh size (100 x 40 x 64)
 d    = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table)
-u    = d[VARIABLE] # vars ['VELOC'] : u
+u    = d.X(*VARIABLES)
 um   = pyLOM.math.temporal_mean(u)
 u    = pyLOM.math.subtract_mean(u, um)
 time = d.get_variable('time') # 120 instants
 print("Variables: ", d.varnames)
-print("Information about the variable: ", d.info(VARIABLE))
+print("Information about the variable: ", d.info(VARIABLES[0]))
 print("Number of points ", len(d))
 print("Instants :", time.shape[0])
 
 # Take x component only for testing
-nvars    = d.info(VARIABLE)['ndim']
+nvars    = d.info(VARIABLES[0])['ndim']
 u_x      = np.zeros((len(d),time.shape[0]), dtype=float)
 u_x[:,:] = u[0:nvars*len(d):nvars,:]
 print("New variable: u_x", u_x.shape)
 
 # Mesh Size
-n0x = len(np.unique(m.x)) - 1 
-n0y = len(np.unique(m.y)) - 1
-n0z = len(np.unique(m.z)) - 1
-nx  = 96
-ny  = 32
-nz  = n0z
+n0x = len(np.unique(pyLOM.utils.truncate(d.x,6))) 
+n0y = len(np.unique(pyLOM.utils.truncate(d.y,6)))
+n0z = len(np.unique(pyLOM.utils.truncate(d.z,6)))
+nx  = 64
+ny  = 64
+nz  = 64
 
 # Create the torch dataset
 td = pyLOM.NN.Dataset((u_x,), (n0x, n0y, n0z), time, transform=False, device=device)
@@ -92,8 +92,8 @@ rec = AutoEnc.reconstruct(td) # Returns (input channels, nx*ny, time)
 rd  = pyLOM.NN.Dataset((rec), (nx, ny, nz), td._time, transform=False)
 rd.pad((nx, ny, nz), (n0x, n0y, n0z))
 td.pad((nx, ny, nz), (n0x, n0y, n0z))
-d.add_field('urec', 1, rd.data[0][:,:].numpy())
-d.add_field('utra', 1, td.data[0][:,:])
+d.add_field('urec', len(VARIABLES), rd.data[0][:,:].numpy())
+d.add_field('utra', len(VARIABLES), td.data[0][:,:])
 pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec','VELOC','utra'],fmt='vtkh5')
 pyLOM.NN.plotSnapshot(m,d,vars=['urec'],instant=0,component=0,cmap='jet')
 pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet')

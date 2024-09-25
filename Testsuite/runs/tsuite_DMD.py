@@ -11,15 +11,15 @@ import pyLOM
 
 
 ## Parameters
-DATAFILE = sys.argv[1]
-VARIABLE = sys.argv[2]
-OUTDIR   = sys.argv[3]
+DATAFILE  = sys.argv[1]
+VARIABLES = eval(sys.argv[2])
+OUTDIR    = sys.argv[3]
 
 
 ## Data loading
 m  = pyLOM.Mesh.load(DATAFILE)
 d  = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table)
-X  = d[VARIABLE]
+X = d.X(*VARIABLES)
 t  = d.get_variable('time')
 dt = t[1] - t[0]
 
@@ -30,7 +30,7 @@ muReal,muImag,Phi,bJov = pyLOM.DMD.run(Y,1e-6,remove_mean=False)
 # Compute frequency and damping ratio of the modes
 delta, omega = pyLOM.DMD.frequency_damping(muReal,muImag,dt)
 os.makedirs(OUTDIR,exist_ok=True)
-pyLOM.DMD.save(f'{OUTDIR}/results.h5',muReal,muImag,Phi,bJov,d.partition_table,nvars=1,pointData=d.point)
+pyLOM.DMD.save(f'{OUTDIR}/results.h5',muReal,muImag,Phi,bJov,d.partition_table,nvars=len(VARIABLES),pointData=d.point)
 # Reconstruction according to Jovanovic 2014
 # Last 50 snapshots are predicted
 X_DMD = pyLOM.DMD.reconstruction_jovanovic(Phi,muReal,muImag,t,bJov)
@@ -70,8 +70,8 @@ d.add_field('MODES_IMAG',6,pyLOM.DMD.extract_modes(Phi,1,len(d),real=False,modes
 pyLOM.io.pv_writer(m,d,'modes',basedir=f'{OUTDIR}/modes',instants=[0],times=[0.],vars=['MODES_REAL','MODES_IMAG'],fmt='vtkh5')
 
 # Temporal evolution
-d.add_field('RECON',1,X_DMD)
-pyLOM.io.pv_writer(m,d,'flow',basedir=f'{OUTDIR}/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t,vars=[VARIABLE,'RECON'],fmt='vtkh5')
+d.add_field('RECON',len(VARIABLES),X_DMD)
+pyLOM.io.pv_writer(m,d,'flow',basedir=f'{OUTDIR}/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t,vars=VARIABLES+['RECON'],fmt='vtkh5')
 
 
 ## Show and print timings

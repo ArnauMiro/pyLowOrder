@@ -10,15 +10,15 @@ import pyLOM
 
 
 ## Parameters
-DATAFILE = sys.argv[1]
-VARIABLE = sys.argv[2]
-OUTDIR   = sys.argv[3]
+DATAFILE  = sys.argv[1]
+VARIABLES = eval(sys.argv[2])
+OUTDIR    = sys.argv[3]
 
 
 ## Data loading
 m = pyLOM.Mesh.load(DATAFILE)
 d = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table)
-X = d[VARIABLE]
+X = d.X(*VARIABLES)
 t = d.get_variable('time')
 
 
@@ -30,7 +30,7 @@ if pyLOM.utils.is_rank_or_serial(root=0):
 	fig.savefig(f'{OUTDIR}/residuals.png',dpi=300)
 # Truncate according to a residual
 PSI,S,V = pyLOM.POD.truncate(PSI,S,V,r=5e-6)
-pyLOM.POD.save(f'{OUTDIR}/results.h5',PSI,S,V,d.partition_table,nvars=1,pointData=d.point)
+pyLOM.POD.save(f'{OUTDIR}/results.h5',PSI,S,V,d.partition_table,nvars=len(VARIABLES),pointData=d.point)
 # Reconstruct the flow
 X_POD = pyLOM.POD.reconstruct(PSI,S,V)
 # Compute RMSE
@@ -53,8 +53,8 @@ d.add_field('spatial_modes',6,pyLOM.POD.extract_modes(PSI,1,len(d),modes=[1,4,6,
 pyLOM.io.pv_writer(m,d,'modes',basedir=f'{OUTDIR}/modes',instants=[0],times=[0.],vars=['spatial_modes'],fmt='vtkh5')
 
 # Temporal evolution
-d.add_field('RECON',1,X_POD)
-pyLOM.io.pv_writer(m,d,'flow',basedir=f'{OUTDIR}/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t,vars=[VARIABLE,'RECON'],fmt='vtkh5')
+d.add_field('RECON',len(VARIABLES),X_POD)
+pyLOM.io.pv_writer(m,d,'flow',basedir=f'{OUTDIR}/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t,vars=VARIABLES+['RECON'],fmt='vtkh5')
 
 
 ## Plot POD mode

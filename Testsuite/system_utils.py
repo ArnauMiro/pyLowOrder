@@ -74,7 +74,7 @@ def run_python(name,nprocs,file,datafile,var,params,OUTROOT='/tmp',grepStats=Fal
 	output  = os.path.join(OUTROOT,f"{name}.out")
 	summary = os.path.join(OUTROOT,f"{name}.log")
 	
-	cmd = 'mpirun -np %d %s python %s %s %s %s "%s" | tee %s' % (nprocs,'--oversubscribe' if oversubscribe else '',file,datafile,var,outdir,params,output)
+	cmd = 'mpirun -np %d %s python %s "%s" "%s" "%s" "%s" | tee %s' % (nprocs,'--oversubscribe' if oversubscribe else '',file,datafile,var,outdir,params,output)
 	r   = mysystem(cmd,echoi=True,echoo=False)
 	if r!=0:
 		print("Python returns non zero value %d !!!! " % r )
