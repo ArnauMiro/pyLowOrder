@@ -175,6 +175,7 @@ def h5_save_points_nopartition(file,xyz,order,ptable,point):
 	'''
 	# Assume we might be dealing with a parallel mesh
 	npointG = mpi_reduce(order.max(),op='max',all=True) + 1
+	ndim    = xyz.shape[1]
 	file.create_dataset('pointData',(1,),dtype='i4',data=point)
 	file.create_dataset('npoints',(1,),dtype='i4',data=npointG)
 	# Create the rest of the datasets for parallel storage
@@ -185,8 +186,8 @@ def h5_save_points_nopartition(file,xyz,order,ptable,point):
 	# Get the position where the points should be stored
 	inods,idx = np.unique(order,return_index=True)
 	# Write dataset - points
-	dxyz[inods,:] = mesh.xyz[idx,:]
-	dpoinO[inods] = mesh.pointOrder[idx]
+	dxyz[inods,:] = xyz[idx,:]
+	dpoinO[inods] = order[idx]
 	return inods,idx,npointG
 
 def h5_load_dset_size(file):
