@@ -52,7 +52,7 @@ def _vtkh5_write_mesh_serial(file,xyz,lnods,ltype):
 	# Create dataset for number of points
 	npoints, ndim = xyz.shape
 	file.create_dataset('NumberOfPoints',(1,),dtype=int,data=npoints)
-	file.create_dataset('Points',(npoints,ndim),dtype=np.double,data=xyz)
+	file.create_dataset('Points',(npoints,ndim),dtype=xyz.dtype,data=xyz)
 	# Create dataset for number of cells
 	lnods, offsets = _vtkh5_connectivity_and_offsets(lnods)
 	ncells = ltype.shape[0]
@@ -74,7 +74,7 @@ def _vtkh5_write_mesh_mpio(file,xyz,lnods,ltype, ptable):
 	npoints      = xyz.shape[0]                               # Number of points of this partition
 	npG          = int(mpi_reduce(npoints,op='sum',all=True)) # Total number of points
 	npoints_dset = file.create_dataset('NumberOfPoints',(nparts,),dtype=int)
-	points_dset  = file.create_dataset('Points',(npG,3),dtype=np.double)
+	points_dset  = file.create_dataset('Points',(npG,3),dtype=xyz.dtype)
 	# Create datasets for cell data
 	ncells, npcells = ltype.shape[0], lnods.shape[1]
 	lnods, offsets  = _vtkh5_connectivity_and_offsets(lnods)
