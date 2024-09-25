@@ -51,7 +51,7 @@ def ritzSpectrum(real, imag, fig = None, ax = None, cmap = None):
 	ax.plot(np.cos(theta), np.sin(theta), c = 'k')
 	ax.scatter(real, imag, c = cmap)
 	ax.axis('equal')
-	ax.set(xlabel = '$\mu_{Re}$', ylabel = '$\mu_{Imag}$', title = 'Ritz spectrum')
+	ax.set(xlabel = r'$\mu_{Re}$', ylabel = r'$\mu_{Imag}$', title = 'Ritz spectrum')
 	return fig, ax
 
 def amplitudeFrequency(omega, amplitude, fig = None, ax = None, cmap = None, mark = None, norm = False):
