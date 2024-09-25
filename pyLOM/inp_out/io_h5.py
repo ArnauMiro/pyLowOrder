@@ -392,7 +392,7 @@ def h5_save_dset_mpio(fname,xyz,varDict,fieldDict,ordering,point,ptable,nopartit
 	Save a Dataset in HDF5 in parallel mode
 	'''
 	# Open file
-	file = h5py.File(fname,'w',driver='mpio',comm=MPI_COMM)
+	file = h5py.File(fname,'w' if not os.path.exists(fname) else 'a',driver='mpio',comm=MPI_COMM)
 	file.attrs['Version'] = PYLOM_H5_VERSION
 	# Create dataset group
 	group = file.create_group('DATASET')
