@@ -27,9 +27,8 @@ pyAlya.pprint(0,'Run (%d instants)...' % len(listOfInstants),flush=True)
 
 
 ## Create POD dataset
-p      = pyLOM.PartitionTable.from_pyQvarsi(mesh.partition_table,has_master=True)
-eltype = np.array([pyLOM.mesh.ALYA2ELTYP[t] for t in mesh.eltype],np.uint8)
-m      = pyLOM.Mesh('UNSTRUCT',mesh.xyz,mesh.connectivity,eltype,mesh.leinv,mesh.lninv,p)
+p = pyLOM.PartitionTable.from_pyQvarsi(mesh.partition_table,has_master=True)
+m = pyLOM.Mesh.from_pyQvarsi(mesh,ptable=p)
 
 
 ## Build dataset from the instants
