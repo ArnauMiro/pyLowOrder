@@ -48,7 +48,7 @@ def h5_save_meshes(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	Save the mesh inside the HDF5 file
 	'''
 	# Save the mesh type
-	dset = file.create_dataset('type',(1,),dtype='i4',data=MTYPE2ID[mtype])
+	file.create_dataset('type',(1,),dtype='i4',data=MTYPE2ID[mtype])
 	# Write the total number of cells and the total number of points
 	# Assume we might be dealing with a parallel mesh
 	ndim     = xyz.shape[1]
@@ -84,7 +84,7 @@ def h5_save_meshes_nopartition(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	Save the mesh inside the HDF5 file
 	'''
 	# Save the mesh type
-	dset = group.create_dataset('type',(1,),dtype='i4',data=MTYPE2ID[mtype])
+	file.create_dataset('type',(1,),dtype='i4',data=MTYPE2ID[mtype])
 	# Write the total number of cells and the total number of points
 	# Assume we might be dealing with a parallel mesh
 	ndim     = xyz.shape[1]
@@ -106,7 +106,7 @@ def h5_save_meshes_nopartition(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	if ptable.has_master and MPI_RANK == 0: return None, None, None
 	# Point dataset
 	# Get the position where the points should be stored
-	inods,idx = np.unique(mesh.pointOrder,return_index=True)
+	inods,idx = np.unique(pointO,return_index=True)
 	dxyz[inods,:] = xyz[idx,:]
 	dpoinO[inods] = pointO[idx]
 	# Compute start and end of read, cell data
