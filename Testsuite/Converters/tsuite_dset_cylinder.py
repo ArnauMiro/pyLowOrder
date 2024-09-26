@@ -52,13 +52,15 @@ VELOX[:,:] = np.ascontiguousarray(mat['UALL'].astype(np.double))
 
 ## Create dataset for pyLOM
 # Select a limited number of time instants
-nsample = 8
+nsample = 10
 d = pyLOM.Dataset(xyz=mesh.xyzc, ptable=ptable, order=mesh.cellOrder, point=False,
 	# Add the time as the only variable
 	vars  = {'time':{'idim':0,'value':time[::nsample].copy()}},
 	# Now add all the arrays to be stored in the dataset
 	# It is important to convert them as C contiguous arrays
+	VELOC = {'ndim':2,'value':VELOC[:,::nsample].copy()},
 	VELOX = {'ndim':1,'value':VELOX[:,::nsample].copy()},
+	VORTI = {'ndim':1,'value':VORTI[:,::nsample].copy()},
 )
 print(d)
 
