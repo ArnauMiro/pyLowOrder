@@ -41,7 +41,7 @@ vae         = True
 
 ## Load dataset and set up the results output
 RESUDIR  = os.path.join(OUTDIR,'vae_beta_%.2e_ld_%i' % (beta, lat_dim))
-pyLOM.NN.create_results_folder(RESUDIR)
+pyLOM.NN.create_results_folder(RESUDIR,echo=False)
 
 
 ## Load the dataset

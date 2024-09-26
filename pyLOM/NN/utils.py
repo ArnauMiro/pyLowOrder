@@ -11,12 +11,12 @@ from ..utils.cr       import cr
 from   functools               import reduce
 from   operator                import mul
 
-def create_results_folder(RESUDIR):
+def create_results_folder(RESUDIR,echo=True):
 	if not os.path.exists(RESUDIR):
 		os.makedirs(RESUDIR)
-		print(f"Folder created: {RESUDIR}")
+		if echo: print(f"Folder created: {RESUDIR}")
 	else:
-		print(f"Folder already exists: {RESUDIR}")
+		if echo: print(f"Folder already exists: {RESUDIR}")
 
 def select_device():
 	return torch.device("cuda" if torch.cuda.is_available() else "cpu") 

@@ -50,7 +50,7 @@ def checkOutput(summary,reference,relTol,zeroTol,info=False):
 		for v1,v2 in zip(dat1[1:],dat2[1:]):
 			if not assumeOK(v1,v2,relTol,zeroTol): error = True
 		if error:
-			print("field %s DIFFERS!")
+			print("field %s DIFFERS!"%name1)
 			print ("reference: %s" % line2,flush=True)
 			print ("output   : %s" % line1,flush=True)
 			break
