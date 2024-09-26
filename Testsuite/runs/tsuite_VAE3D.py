@@ -63,12 +63,12 @@ u_x[:,:] = u[0:nvars*len(d):nvars,:]
 print("New variable: u_x", u_x.shape)
 
 # Mesh Size
-n0x = len(np.unique(pyLOM.utils.truncate(d.x,6))) 
-n0y = len(np.unique(pyLOM.utils.truncate(d.y,6)))
-n0z = len(np.unique(pyLOM.utils.truncate(d.z,6)))
-nx  = 64
-ny  = 64
-nz  = 64
+n0x = len(np.unique(m.x)) - 1 
+n0y = len(np.unique(m.y)) - 1
+n0z = len(np.unique(m.z)) - 1
+nx  = 96
+ny  = 32
+nz  = n0z
 
 # Create the torch dataset
 td = pyLOM.NN.Dataset((u_x,), (n0x, n0y, n0z), time, transform=False, device=device)
@@ -76,8 +76,10 @@ td.crop((nx, ny, nz), (n0x, n0y, n0z))
 trloader, valoader = td.split_subdatasets(ptrain, pvali,batch_size=batch_size)
 #trloader = td.loader()
 
+
 ##Set beta scheduler
 betasch = pyLOM.NN.betaLinearScheduler(0., beta, beta_start, beta_wmup)
+
 
 ## Set and train the Autoencoder
 encarch = pyLOM.NN.Encoder3D(nlayers, lat_dim, nx, ny, nz, td.n_channels, channels, kernel_size, padding, activations, nlinear, batch_norm=batch_norm, stride = 2, dropout = 0, vae = vae)
@@ -94,9 +96,7 @@ rd.pad((nx, ny, nz), (n0x, n0y, n0z))
 td.pad((nx, ny, nz), (n0x, n0y, n0z))
 d.add_field('urec', len(VARIABLES), rd.data[0][:,:].numpy())
 d.add_field('utra', len(VARIABLES), td.data[0][:,:])
-pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec','VELOC','utra'],fmt='vtkh5')
-pyLOM.NN.plotSnapshot(m,d,vars=['urec'],instant=0,component=0,cmap='jet')
-pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet')
+pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=VARIABLES+['urec','utra'],fmt='vtkh5')
 
 
 ## Testsuite output
