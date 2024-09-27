@@ -149,6 +149,17 @@ class Dataset(object):
 			aux = np.concatenate((self[v][:,:,idim],fieldict[v]),axis=1)[:,idx]
 			self[v][:,:,idim] = aux
 
+	@cr('Dataset.reshape')
+	def reshape(self,field,info):
+		'''
+		Reshape a field for a single variable
+		according to the info
+		'''
+		# Obtain number of points from the mesh
+		npoints = len(self)
+		# Only reshape the variable if ndim > 1
+		return np.ascontiguousarray(field.reshape((npoints,info['ndim']),order='C') if info['ndim'] > 1 else field)
+
 	@cr('Dataset.X')
 	def X(self,*args):
 		'''
@@ -161,10 +172,27 @@ class Dataset(object):
 		nfields = 0
 		for f in fieldnames:
 			nfields += self.fields[f]['ndim']
+		dims = [nfields*npoints]
+		# Variable order could be random, thus create a list of variable
+		# names and their idim to order
+		varls = np.array(list(self.varnames))
+		ivars = np.array([self.vars[v]['idim'] for v in varls])
+		idx   = np.argsort(ivars)
+		# Order the variables
+		varls = varls[idx]
+		ivars = ivars[idx]
+		# Loop the number of variables according to their idim
+		# As minimum we will have 1 variable, thus idim=0. If 
+		# we have idim > 0, this surely indicates a multi-dimensional
+		# field
+		varc = 0
+		for v in varls:
+			ivar = self.vars[v]['idim']
+			lvar = len(self.vars[v]['value'])
+			if ivar == varc:
+				dims += [lvar]
+				varc += 1
 		# Create output array
-		dims = [nfields*npoints] + [0]*len(self.varnames)
-		for v in self.varnames:
-			dims[self.vars[v]['idim'] + 1] = self.vars[v]['value'].shape[0]
 		X = np.zeros(dims,np.double)
 		# Populate output matrix
 		ifield = 0
