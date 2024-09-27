@@ -263,6 +263,8 @@ def h5_create_field_datasets(file,fieldDict,ptable,ipart=-1):
 		dims  = tuple([ndim*npoin] + [fieldDict[var]['value'].shape[ivar+1] for ivar in range(len(fieldDict[var]['value'].shape) - 1)])
 		dsetDict[var] = {
 			'ndim'  : vargroup.create_dataset('ndim' ,(1,),dtype='i4'),
+			'nvar'  : vargroup.create_dataset('nvar' ,(1,),dtype='i4'),
+			'vars'  : vargroup.create_dataset('vars' ,(len(fieldDict[var]['value'].shape) - 1,),dtype='i4'),
 			'value' : vargroup.create_dataset('value',dims,dtype=fieldDict[var]['value'].dtype),
 		}
 	return dsetDict
@@ -285,6 +287,8 @@ def h5_fill_field_datasets(dsetDict,fieldDict,ptable,point,inods,idx):
 	for var in dsetDict.keys():
 		# Fill dataset
 		dsetDict[var]['ndim'][:]  = fieldDict[var]['ndim']
+		dsetDict[var]['nvar'][:]  = len(fieldDict[var]['value'].shape) - 1
+		dsetDict[var]['vars'][:]  = fieldDict[var]['value'].shape[1:]
 		# Compute start and end bounds for the variable
 		if inods is None:
 			istart, iend = ptable.partition_bounds(MPI_RANK,ndim=fieldDict[var]['ndim'],points=point)
@@ -301,9 +305,10 @@ def h5_load_fields_single(file,npoints,ptable,varDict,point):
 	fieldDict = {}
 	for v in file['FIELDS'].keys():
 		fieldgroup = file['FIELDS'][v]
-		# Load point and ndim
-		ndim  = int(fieldgroup['ndim'][0])
-		dims  = tuple([ndim*npoints] + [len(varDict[vv]['value']) for vv in varDict.keys()])
+		# Load point and dimensions
+		ndim = int(fieldgroup['ndim'][0])
+		dims = [ndim*npoints] + list(fieldgroup['vars'])
+		# Now allocate output array
 		value = np.zeros(dims,np.double)
 		# Select which points to load
 		if point:
@@ -327,9 +332,10 @@ def h5_load_fields_multi(file,npoints,ptable,varDict,point,npart):
 	fieldDict = {}
 	for v in file['FIELDS_0'].keys():
 		fieldgroup = file['FIELDS_0'][v]
-		# Load ndim
-		ndim  = int(fieldgroup['ndim'][0])
-		dims  = tuple([ndim*npoints] + [len(varDict[vv]['value']) for vv in varDict.keys()])
+		# Load point and dimensions
+		ndim = int(fieldgroup['ndim'][0])
+		dims = [ndim*npoints] + list(fieldgroup['vars'])
+		# Now allocate output array
 		value = np.zeros(dims,np.double)	
 		# Generate dictionary
 		fieldDict[v] = {'ndim':ndim,'value':value}
