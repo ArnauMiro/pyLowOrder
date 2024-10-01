@@ -13,7 +13,7 @@ import pyLOM
 
 
 ## Set device
-device = pyLOM.NN.select_device("cpu") # Force CPU for this example
+device = pyLOM.NN.select_device("cpu") # Force CPU for this example, if left in blank it will automatically select the device
 
 
 ## Specify autoencoder parameters
