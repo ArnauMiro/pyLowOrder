@@ -70,6 +70,7 @@ class Autoencoder(nn.Module):
             num_batches = 0
             tr_loss = 0
             for batch in train_data:
+                batch = batch.to(self._device)
                 recon, _ = self(batch)
                 loss = self._lossfunc(batch, recon, reduction)
                 optimizer.zero_grad()
@@ -83,6 +84,7 @@ class Autoencoder(nn.Module):
                 val_batches = 0
                 va_loss = 0
                 for val_batch in vali_data:
+                    val_batch = val_batch.to(self._device)
                     val_recon, _ = self(val_batch)
                     vali_loss = self._lossfunc(val_batch, val_recon, reduction)
                     va_loss += vali_loss.item()
