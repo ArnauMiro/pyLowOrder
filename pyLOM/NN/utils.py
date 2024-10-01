@@ -18,8 +18,8 @@ def create_results_folder(RESUDIR,echo=True):
 	else:
 		if echo: print(f"Folder already exists: {RESUDIR}")
 
-def select_device():
-	return torch.device("cuda" if torch.cuda.is_available() else "cpu") 
+def select_device(device="cuda" if torch.cuda.is_available() else "cpu"):
+	return torch.device(device) 
 
 class betaLinearScheduler:
 	"""Beta schedule, linear growth to max value

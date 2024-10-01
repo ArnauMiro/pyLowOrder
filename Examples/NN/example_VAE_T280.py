@@ -13,7 +13,7 @@ import pyLOM
 
 
 ## Set device
-device = pyLOM.NN.select_device()
+device = pyLOM.NN.select_device("cpu") # Force CPU for this example, if left in blank it will automatically select the device
 
 
 ## Specify autoencoder parameters
@@ -54,21 +54,24 @@ print("Information about the variable: ", d.info(VARIABLE))
 print("Number of points ", len(d))
 print("Instants :", time.shape[0])
 
-# Take x component only for testing
+
+## Take x component only for testing
 nvars    = d.info(VARIABLE)['ndim']
 u_x      = np.zeros((len(d),time.shape[0]), dtype = float)
 u_x[:,:] = u[0:nvars*len(d):nvars,:]
 print("New variable: u_x", u_x.shape)
 
-# Mesh Size
-n0x = len(np.unique(m.x)) - 1 
-n0y = len(np.unique(m.y)) - 1
-n0z = len(np.unique(m.z)) - 1
+
+## Mesh Size
+n0x = len(np.unique(d.xyz[:,0])) - 1 
+n0y = len(np.unique(d.xyz[:,1])) - 1
+n0z = len(np.unique(d.xyz[:,2])) - 1
 nx  = 96
 ny  = 32
 nz  = n0z
 
-# Create the torch dataset
+
+## Create the torch dataset
 td = pyLOM.NN.Dataset((u_x,), (n0x, n0y, n0z), time, transform=False, device=device)
 '''
 # Single Snapshot
@@ -77,10 +80,11 @@ td._time = np.array([td.time[0]])
 '''
 td.crop((nx, ny, nz), (n0x, n0y, n0z))
 trloader, valoader = td.split_subdatasets(ptrain, pvali,batch_size=batch_size)
-#trloader = td.loader()
+
 
 ##Set beta scheduler
 betasch = pyLOM.NN.betaLinearScheduler(0., beta, beta_start, beta_wmup)
+
 
 ## Set and train the Autoencoder
 encarch = pyLOM.NN.Encoder3D(nlayers, lat_dim, nx, ny, nz, td.n_channels, channels, kernel_size, padding, activations, nlinear, batch_norm=batch_norm, stride = 2, dropout = 0, vae = vae)
