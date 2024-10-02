@@ -63,9 +63,9 @@ print("New variable: u_x", u_x.shape)
 
 
 ## Mesh Size
-n0x = len(np.unique(d.xyz[:,0])) - 1 
-n0y = len(np.unique(d.xyz[:,1])) - 1
-n0z = len(np.unique(d.xyz[:,2])) - 1
+n0x = len(np.unique(d.xyz[:,0]))
+n0y = len(np.unique(d.xyz[:,1]))
+n0z = len(np.unique(d.xyz[:,2]))
 nx  = 96
 ny  = 32
 nz  = n0z
@@ -82,7 +82,7 @@ td.crop((nx, ny, nz), (n0x, n0y, n0z))
 trloader, valoader = td.split_subdatasets(ptrain, pvali,batch_size=batch_size)
 
 
-##Set beta scheduler
+## Set beta scheduler
 betasch = pyLOM.NN.betaLinearScheduler(0., beta, beta_start, beta_wmup)
 
 
