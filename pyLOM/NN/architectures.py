@@ -1,4 +1,12 @@
-import torch
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# NN general architectures.
+#
+# Last rev: 02/10/2024
+from __future__ import print_function
+
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np

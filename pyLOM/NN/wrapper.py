@@ -1,4 +1,13 @@
-import torch
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# Python interface for NN.
+#
+# Last rev: 02/10/2024
+from __future__ import print_function
+
+import os, torch
 import torch.nn            as nn
 import torch.nn.functional as F
 import numpy               as np
@@ -10,6 +19,7 @@ from   torchsummary            import summary
 from   functools               import reduce
 from   operator                import mul
 
+from   .                       import DEVICE
 from   ..utils.cr              import cr
 
 
@@ -32,11 +42,10 @@ def leakyRelu():
 def silu():
     return nn.SiLU()
 
-## Wrapper of the Dataset class
 
 ## Wrapper of a variational autoencoder
 class Autoencoder(nn.Module):
-    def __init__(self, latent_dim, in_shape, input_channels, encoder, decoder, device='cpu'):
+    def __init__(self, latent_dim, in_shape, input_channels, encoder, decoder, device=DEVICE):
         super(Autoencoder, self).__init__()
         self.lat_dim  = latent_dim
         self.in_shape = in_shape
@@ -105,7 +114,7 @@ class Autoencoder(nn.Module):
         # Cleanup
         writer.flush()
         writer.close()
-        torch.save(self.state_dict(), f'{BASEDIR}/model_state.pth')
+        torch.save(self.state_dict(), os.path.join(BASEDIR,'model_state.pth'))
 
     def reconstruct(self, dataset):
         ## Compute reconstruction and its accuracy
@@ -163,7 +172,7 @@ class Autoencoder(nn.Module):
 
 ## Wrapper of a variational autoencoder
 class VariationalAutoencoder(Autoencoder):
-    def __init__(self, latent_dim, in_shape, input_channels, encoder, decoder, device='cpu'):
+    def __init__(self, latent_dim, in_shape, input_channels, encoder, decoder, device=DEVICE):
         super(VariationalAutoencoder, self).__init__(latent_dim, in_shape, input_channels, encoder, decoder, device)
 
     def _reparamatrizate(self, mu, logvar):
