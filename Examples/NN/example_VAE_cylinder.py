@@ -52,7 +52,7 @@ m    = pyLOM.Mesh.load(DSETDIR)
 d    = pyLOM.Dataset.load(DSETDIR,ptable=m.partition_table)
 u_x  = d['VELOX']
 time = d.get_variable('time')
-td   = pyLOM.NN.Dataset((u_x,), (n0h, n0w), time, transform=False)
+td   = pyLOM.NN.Dataset((u_x,), (n0h, n0w), time, transform=False, device=device)
 td.data[0] = np.transpose(np.array([td.data[0][:,0]]))
 td._time   = np.array([td.time[0]])
 td.crop((nh, nw), (n0h, n0w))
