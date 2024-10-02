@@ -57,7 +57,7 @@ class Autoencoder(nn.Module):
         encoder.to(self._device)
         decoder.to(self._device)
         self.to(self._device)
-        summary(self, input_size=(self.inp_chan, *self.in_shape))
+        summary(self, input_size=(self.inp_chan, *self.in_shape),device=device)
       
     def _lossfunc(self, x, recon_x, reduction):
         return  F.mse_loss(recon_x.view(-1, self.N), x.view(-1, self.N),reduction=reduction)
@@ -200,7 +200,7 @@ class VariationalAutoencoder(Autoencoder):
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, nepochs, eta_min=learning_rate*1e-3)
         scaler    = GradScaler()
         for epoch in range(nepochs):
-            ## Training
+            # Training
             self.train()
             tr_loss = 0
             mse     = 0
@@ -224,7 +224,7 @@ class VariationalAutoencoder(Autoencoder):
             mse /= num_batches
             kld /= num_batches
 
-            ## Validation
+            # Validation
             self.eval()
             va_loss     = 0
             with torch.no_grad():
@@ -258,7 +258,7 @@ class VariationalAutoencoder(Autoencoder):
 
     @cr('VAE.reconstruct')
     def reconstruct(self, dataset):
-        ## Compute reconstruction and its accuracy
+        # Compute reconstruction and its accuracy
         num_samples = len(dataset)
         ek = np.zeros(num_samples)
         mu = np.zeros(num_samples)
@@ -292,7 +292,7 @@ class VariationalAutoencoder(Autoencoder):
         return rec.cpu().numpy()
   
     def correlation(self, dataset):
-        ##  Compute correlation between latent variables
+        # Compute correlation between latent variables
         loader = torch.utils.data.DataLoader(dataset, batch_size=len(dataset), shuffle=False)
         with torch.no_grad():
             instant  = iter(loader)
