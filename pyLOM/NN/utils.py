@@ -180,20 +180,35 @@ class Dataset(torch_dataset):
 		self._nd = nd
 		self._nh = nh
 		self._nw = nw
+	
+		# Compute cropping offsets (center cropping)
+		crop_d_start = (n0d - nd) // 2
+		crop_h_start = (n0h - nh) // 2
+		crop_w_start = (n0w - nw) // 2
+	
 		for ichannel in range(self._n_channels):
 			crops = []
 			for t in range(self.nt):
-				isnap = self.data[ichannel][:,t]
-				isnap = torch.Tensor(isnap)
-				isnap = isnap.view(1,n0d,n0h,n0w)
-				isnap_cropped = torch.zeros(1, nd, nh, nw)
-				xy_plane = torch.zeros(1,n0d,n0h)
-				for z in range(n0w): 
-					xy_plane = isnap[:,:,:,z]
-					isnap_cropped[:,:,:,z] = TF.crop(xy_plane, top=0, left=0, height=nd, width=nh)
-				crops.append(isnap_cropped.reshape(nd*nh*nw,1))
+				# Extract the snapshot data for the current time step `t` and channel `ichannel`
+				isnap = self.data[ichannel][:, t]  # assuming self.data is [n_channels, samples, n0d, n0h, n0w]
+				isnap = torch.Tensor(isnap)  # Convert to tensor if not already
+	
+				# Reshape to 3D (Depth x Height x Width)
+				isnap = isnap.view(1, n0d, n0h, n0w)
+	
+				# Perform 3D cropping using slicing
+				isnap_cropped = isnap[:, 
+									  crop_d_start:crop_d_start+nd, 
+									  crop_h_start:crop_h_start+nh, 
+									  crop_w_start:crop_w_start+nw]
+	
+				# Flatten the cropped tensor and append
+				crops.append(isnap_cropped.reshape(nd * nh * nw, 1))
+	
+			# Concatenate crops for all time steps
 			crops = torch.cat(crops, dim=1)
 			cropdata.append(crops)
+		# Store the cropped data
 		self._data = cropdata
 
 	def _pad3D(self, nd, nh, nw, n0d, n0h, n0w):
