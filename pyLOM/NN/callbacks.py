@@ -1,3 +1,12 @@
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# NN callback routines.
+#
+# Last rev: 02/10/2024
+from __future__ import print_function
+
 import numpy as np
 
 ## Early stopper callback
