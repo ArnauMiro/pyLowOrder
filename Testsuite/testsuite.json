@@ -213,7 +213,7 @@
 		"params" : {},
 		"nprocs" : 1,
 		"reset"  : false,
-		"active" : false
+		"active" : true
 	},
 	"VAE_Tensor280_3D": {
 		"name"   : "VAE Tensor280 3D",
