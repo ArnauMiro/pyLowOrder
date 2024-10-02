@@ -57,7 +57,7 @@ class Encoder2D(nn.Module):
             elif isinstance(layer, nn.Linear):
                 nn.init.xavier_uniform_(layer.weight)
 
-    def forward(self, x):        
+    def forward(self, x):  
         out = x
         for ilayer, conv_layer in enumerate(self.conv_layers):
             out = conv_layer(out)
