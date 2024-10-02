@@ -36,15 +36,17 @@ vae         = True
 
 
 ## Load dataset and set up the results output
-DATAFILE = './DATA/Tensor_re280.h5'
-VARIABLE = 'VELOC'
+BASEDIR = 'Testsuite/DATA/'
+CASESTR = 'Tensor_re280.h5'
+DSETDIR = os.path.join(BASEDIR,f'{CASESTR}.h5')
+VARIABLE = 'VELOX'
 RESUDIR  = 'vae_beta_%.2e_ld_%i' % (beta, lat_dim)
 pyLOM.NN.create_results_folder(RESUDIR)
 
 
 ## Load the dataset
-m    = pyLOM.Mesh.load(DATAFILE) # Mesh size (100 x 40 x 64)
-d    = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table)
+m    = pyLOM.Mesh.load(DSETDIR) # Mesh size (100 x 40 x 64)
+d    = pyLOM.Dataset.load(DSETDIR,ptable=m.partition_table)
 u    = d[VARIABLE] # vars ['VELOC'] : u
 um   = pyLOM.math.temporal_mean(u)
 u    = pyLOM.math.subtract_mean(u, um)
@@ -98,7 +100,7 @@ rd.pad((nx, ny, nz), (n0x, n0y, n0z))
 td.pad((nx, ny, nz), (n0x, n0y, n0z))
 d.add_field('urec', 1, rd.data[0][:,:].numpy())
 d.add_field('utra', 1, td.data[0][:,:])
-pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec','VELOC','utra'],fmt='vtkh5')
+pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec','VELOX','utra'],fmt='vtkh5')
 pyLOM.NN.plotSnapshot(m,d,vars=['urec'],instant=0,component=0,cmap='jet')
 pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet')
 
