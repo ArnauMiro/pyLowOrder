@@ -12,7 +12,7 @@ import pyLOM
 
 
 ## Parameters
-MATFILE = './CYLINDER_ALL.mat'
+MATFILE = './DATA/CYLINDER_ALL.mat'
 OUTFILE = './DATA/CYLINDER.h5'
 DT      = 0.2
 DIMSX   = -1., 8.
@@ -31,6 +31,7 @@ print(mesh)
 
 ## Create partition table
 ptable = pyLOM.PartitionTable.new(1,mesh.ncells,mesh.npoints)
+mesh.partition_table = ptable
 print(ptable)
 
 # Build time instants
@@ -49,16 +50,18 @@ VELOX[:,:] = np.ascontiguousarray(mat['UALL'].astype(np.double))
 
 
 ## Create dataset for pyLOM
-d = pyLOM.Dataset(ptable=ptable, mesh=mesh, time=time,
+d = pyLOM.Dataset(xyz=mesh.xyzc, ptable=ptable, order=mesh.cellOrder, point=False,
+	# Add the time as the only variable
+	vars  = {'time':{'idim':0,'value':time}},
 	# Now add all the arrays to be stored in the dataset
 	# It is important to convert them as C contiguous arrays
-	VELOC = {'point':False,'ndim':2,'value':VELOC},
-	VELOX = {'point':False,'ndim':1,'value':VELOX},
-	VORTI = {'point':False,'ndim':1,'value':VORTI},
+	VELOC = {'ndim':2,'value':VELOC},
+	VELOX = {'ndim':1,'value':VELOX},
+	VORTI = {'ndim':1,'value':VORTI},
 )
 print(d)
 
-# Store dataset
-d.save(OUTFILE)
+mesh.save(OUTFILE) # Store the mesh
+d.save(OUTFILE)    # Store dataset
 
 pyLOM.cr_info()

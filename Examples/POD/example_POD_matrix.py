@@ -61,3 +61,6 @@ axs[0].set_title("Original matrix")
 axs[1].pcolor(X_rsh_rec[:,0].reshape((200,100)))
 axs[1].set_title("Reconstructed matrix")
 plt.show()
+
+## Print timings
+pyLOM.cr_info()
