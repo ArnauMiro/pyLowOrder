@@ -36,9 +36,9 @@ vae         = True
 
 
 ## Load dataset and set up the results output
-BASEDIR = 'Testsuite/DATA/'
-CASESTR = 'CHANNEL'
-DSETDIR = os.path.join(BASEDIR,f'{CASESTR}.h5')
+BASEDIR  = './DATA/'
+CASESTR  = 'CHANNEL'
+DSETDIR  = os.path.join(BASEDIR,f'{CASESTR}.h5')
 VARIABLE = 'VELOX'
 RESUDIR  = 'vae_beta_%.2e_ld_%i' % (beta, lat_dim)
 pyLOM.NN.create_results_folder(RESUDIR)
@@ -56,11 +56,11 @@ print("Information about the variable: ", d.info(VARIABLE))
 print("Number of points ", len(d))
 print("Instants :", time.shape[0])
 
+
 ## Mesh Size
 n0x = len(np.unique(np.round(d.xyz[:,0],5)))
 n0y = len(np.unique(np.round(d.xyz[:,1],5))) 
 n0z = len(np.unique(np.round(d.xyz[:,2],5))) 
-
 nx, ny, nz = 64, 64, 64
 
 
@@ -94,10 +94,8 @@ rd  = pyLOM.NN.Dataset((rec), (nx, ny, nz), td._time, transform=False)
 rd.pad((nx, ny, nz), (n0x, n0y, n0z))
 td.pad((nx, ny, nz), (n0x, n0y, n0z))
 d.add_field('urec', 1, rd.data[0][:,:].numpy())
-d.add_field('utra', 1, td.data[0][:,:])
-#pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec','VELOX','utra'],fmt='vtkh5')
-#pyLOM.NN.plotSnapshot(m,d,vars=['urec'],instant=0,component=0,cmap='jet')
-#pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet')
+d.add_field('utra', 1, td.data[0][:,:].numpy())
+pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec','VELOX','utra'],fmt='vtkh5')
 
 
 pyLOM.cr_info()
