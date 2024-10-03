@@ -11,20 +11,20 @@ mpi4py.rc.recv_mprobe = False
 import sys, os, numpy as np
 import pyLOM
 
-DATAFILE = sys.argv[1]
-VARIABLE = sys.argv[2]
-OUTDIR   = sys.argv[3]
+DATAFILE  = sys.argv[1]
+VARIABLES = eval(sys.argv[2])
+OUTDIR    = sys.argv[3]
 
 
 ## Set device
-device = pyLOM.NN.select_device()
+device = pyLOM.NN.select_device('cpu')
 
 
 ## Specify autoencoder parameters
 ptrain      = 0.8
 pvali       = 0.2
 batch_size  = 1
-nepochs     = 10
+nepochs     = 100
 nlayers     = 1
 channels    = 32
 lat_dim     = 10
@@ -41,19 +41,22 @@ RESUDIR = os.path.join(OUTDIR,'vae_beta_%.2e_ld_%i' % (beta, lat_dim))
 pyLOM.NN.create_results_folder(RESUDIR)
 
 
-## Mesh size (HARDCODED BUT MUST BE INCLUDED IN PYLOM DATASET)
-n0h = 449
-n0w = 199
+## Load pyLOM dataset
+m    = pyLOM.Mesh.load(DATAFILE)
+d    = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table)
+u_x  = d.X(*VARIABLES)
+time = d.get_variable('time')
+
+
+## Mesh size
+n0h = len(np.unique(d.xyz[:,0]))
+n0w = len(np.unique(d.xyz[:,1]))
 nh  = 448
 nw  = 192
 
 
 ## Create a torch dataset
-m    = pyLOM.Mesh.load(DATAFILE)
-d    = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table)
-u_x  = d[VARIABLE]
-time = d.get_variable('time')
-td   = pyLOM.NN.Dataset((u_x,), (n0h, n0w), time, transform=False)
+td   = pyLOM.NN.Dataset((u_x,), (n0h, n0w), time, transform=False, device=device)
 td.data[0] = np.transpose(np.array([td.data[0][:,0]]))
 td._time   = np.array([td.time[0]])
 td.crop((nh, nw), (n0h, n0w))
@@ -75,9 +78,7 @@ rd.pad((nh, nw), (n0h, n0w))
 td.pad((nh, nw), (n0h, n0w))
 d.add_field('urec',1,rd.data[0][:,0].numpy())
 d.add_field('utra',1,td.data[0][:,0])
-pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec', VARIABLE, 'utra'],fmt='vtkh5')
-pyLOM.NN.plotSnapshot(m,d,vars=['urec'],instant=0,component=0,cmap='jet',cpos='xy')
-pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet',cpos='xy')
+pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=VARIABLES+['urec', 'utra'],fmt='vtkh5')
 
 
 ## Testsuite output

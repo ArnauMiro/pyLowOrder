@@ -8,7 +8,7 @@ from __future__ import print_function, division
 import mpi4py
 mpi4py.rc.recv_mprobe = False
 
-import numpy as np
+import os, numpy as np
 import pyLOM
 
 
@@ -37,7 +37,7 @@ vae         = True
 
 ## Load dataset and set up the results output
 BASEDIR = 'Testsuite/DATA/'
-CASESTR = 'Tensor_re280.h5'
+CASESTR = 'CHANNEL'
 DSETDIR = os.path.join(BASEDIR,f'{CASESTR}.h5')
 VARIABLE = 'VELOX'
 RESUDIR  = 'vae_beta_%.2e_ld_%i' % (beta, lat_dim)
@@ -49,28 +49,19 @@ m    = pyLOM.Mesh.load(DSETDIR) # Mesh size (100 x 40 x 64)
 d    = pyLOM.Dataset.load(DSETDIR,ptable=m.partition_table)
 u    = d[VARIABLE] # vars ['VELOC'] : u
 um   = pyLOM.math.temporal_mean(u)
-u    = pyLOM.math.subtract_mean(u, um)
+u_x  = pyLOM.math.subtract_mean(u, um)
 time = d.get_variable('time') # 120 instants
 print("Variables: ", d.varnames)
 print("Information about the variable: ", d.info(VARIABLE))
 print("Number of points ", len(d))
 print("Instants :", time.shape[0])
 
-
-## Take x component only for testing
-nvars    = d.info(VARIABLE)['ndim']
-u_x      = np.zeros((len(d),time.shape[0]), dtype = float)
-u_x[:,:] = u[0:nvars*len(d):nvars,:]
-print("New variable: u_x", u_x.shape)
-
-
 ## Mesh Size
-n0x = len(np.unique(d.xyz[:,0]))
-n0y = len(np.unique(d.xyz[:,1]))
-n0z = len(np.unique(d.xyz[:,2]))
-nx  = 96
-ny  = 32
-nz  = n0z
+n0x = len(np.unique(np.round(d.xyz[:,0],5)))
+n0y = len(np.unique(np.round(d.xyz[:,1],5))) 
+n0z = len(np.unique(np.round(d.xyz[:,2],5))) 
+
+nx, ny, nz = 64, 64, 64
 
 
 ## Create the torch dataset
@@ -84,7 +75,7 @@ td.crop((nx, ny, nz), (n0x, n0y, n0z))
 trloader, valoader = td.split_subdatasets(ptrain, pvali,batch_size=batch_size)
 
 
-## Set beta scheduler
+##Set beta scheduler
 betasch = pyLOM.NN.betaLinearScheduler(0., beta, beta_start, beta_wmup)
 
 
@@ -104,9 +95,9 @@ rd.pad((nx, ny, nz), (n0x, n0y, n0z))
 td.pad((nx, ny, nz), (n0x, n0y, n0z))
 d.add_field('urec', 1, rd.data[0][:,:].numpy())
 d.add_field('utra', 1, td.data[0][:,:])
-pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec','VELOX','utra'],fmt='vtkh5')
-pyLOM.NN.plotSnapshot(m,d,vars=['urec'],instant=0,component=0,cmap='jet')
-pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet')
+#pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec','VELOX','utra'],fmt='vtkh5')
+#pyLOM.NN.plotSnapshot(m,d,vars=['urec'],instant=0,component=0,cmap='jet')
+#pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet')
 
 
 pyLOM.cr_info()

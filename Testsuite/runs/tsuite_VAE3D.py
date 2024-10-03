@@ -24,7 +24,7 @@ device = pyLOM.NN.select_device()
 ptrain      = 0.8
 pvali       = 0.2
 batch_size  = 4
-nepochs     = 10
+nepochs     = 100
 nlayers     = 4
 channels    = 48
 lat_dim     = 10
@@ -74,10 +74,9 @@ nz  = n0z
 td = pyLOM.NN.Dataset((u_x,), (n0x, n0y, n0z), time, transform=False, device=device)
 td.crop((nx, ny, nz), (n0x, n0y, n0z))
 trloader, valoader = td.split_subdatasets(ptrain, pvali,batch_size=batch_size)
-#trloader = td.loader()
 
 
-##Set beta scheduler
+## Set beta scheduler
 betasch = pyLOM.NN.betaLinearScheduler(0., beta, beta_start, beta_wmup)
 
 

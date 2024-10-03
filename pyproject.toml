@@ -114,7 +114,7 @@ dependencies = [
     "matplotlib",
     "h5py>=3.0.0",
     "nfft",
-    "torch",
+    "torch>=2.3.0",
     "torchvision",
     "torchsummary",
     "tensorflow"
@@ -168,7 +168,7 @@ requires = [
   "matplotlib",
   "h5py>=3.0.0",
   "nfft",
-  "torch",
+  "torch>=2.3.0",
   "torchvision",
   "torchsummary",
   "tensorflow"

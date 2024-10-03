@@ -1,15 +1,24 @@
-import torch
-import numpy as np
-import os
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# NN general utilities.
+#
+# Last rev: 02/10/2024
+from __future__ import print_function
+
+import os, torch, numpy as np
 import torchvision.transforms.functional as TF
 import torch.nn.functional as F
 
 from torch.utils.data import Dataset as torch_dataset
+from   functools      import reduce
+from   operator       import mul
+
+from .                import DEVICE
 from ..vmmath         import temporal_mean, subtract_mean
 from ..utils.cr       import cr
 
-from   functools               import reduce
-from   operator                import mul
 
 def create_results_folder(RESUDIR,echo=True):
 	if not os.path.exists(RESUDIR):
@@ -18,8 +27,9 @@ def create_results_folder(RESUDIR,echo=True):
 	else:
 		if echo: print(f"Folder already exists: {RESUDIR}")
 
-def select_device():
-	return torch.device("cuda" if torch.cuda.is_available() else "cpu") 
+def select_device(device=DEVICE):
+	torch.device(device)
+	return device
 
 class betaLinearScheduler:
 	"""Beta schedule, linear growth to max value
@@ -45,7 +55,7 @@ class betaLinearScheduler:
 				return self.end_value
 
 class Dataset(torch_dataset):
-	def __init__(self, vars, inp_shape, time, device='cpu', transform=True):
+	def __init__(self, vars, inp_shape, time, device=DEVICE, transform=True):
 		self._ndim = len(inp_shape)
 		if self._ndim == 2:
 			self._nh   = inp_shape[0]
@@ -165,29 +175,44 @@ class Dataset(torch_dataset):
 		self._data = paddata
 
 	def _crop3D(self, nd, nh, nw, n0d, n0h, n0w):
-		## Crop for 3D data
+		# Crop for 3D data
 		cropdata = []
 		self._nd = nd
 		self._nh = nh
 		self._nw = nw
+	
+		# Compute cropping offsets (center cropping)
+		crop_d_start = (n0d - nd) // 2
+		crop_h_start = (n0h - nh) // 2
+		crop_w_start = (n0w - nw) // 2
+	
 		for ichannel in range(self._n_channels):
 			crops = []
 			for t in range(self.nt):
-				isnap = self.data[ichannel][:,t]
-				isnap = torch.Tensor(isnap)
-				isnap = isnap.view(1,n0d,n0h,n0w)
-				isnap_cropped = torch.zeros(1, nd, nh, nw)
-				xy_plane = torch.zeros(1,n0d,n0h)
-				for z in range(n0w): 
-					xy_plane = isnap[:,:,:,z]
-					isnap_cropped[:,:,:,z] = TF.crop(xy_plane, top=0, left=0, height=nd, width=nh)
-				crops.append(isnap_cropped.reshape(nd*nh*nw,1))
+				# Extract the snapshot data for the current time step `t` and channel `ichannel`
+				isnap = self.data[ichannel][:, t]  # assuming self.data is [n_channels, samples, n0d, n0h, n0w]
+				isnap = torch.Tensor(isnap)  # Convert to tensor if not already
+	
+				# Reshape to 3D (Depth x Height x Width)
+				isnap = isnap.view(1, n0d, n0h, n0w)
+	
+				# Perform 3D cropping using slicing
+				isnap_cropped = isnap[:, 
+									  crop_d_start:crop_d_start+nd, 
+									  crop_h_start:crop_h_start+nh, 
+									  crop_w_start:crop_w_start+nw]
+	
+				# Flatten the cropped tensor and append
+				crops.append(isnap_cropped.reshape(nd * nh * nw, 1))
+	
+			# Concatenate crops for all time steps
 			crops = torch.cat(crops, dim=1)
 			cropdata.append(crops)
+		# Store the cropped data
 		self._data = cropdata
 
 	def _pad3D(self, nd, nh, nw, n0d, n0h, n0w):
-		## Pad for 3D data
+		# Pad for 3D data
 		paddata = []
 		self._nd = n0d
 		self._nh = n0h
@@ -227,19 +252,19 @@ class Dataset(torch_dataset):
 		return recovered_data
 
 	def loader(self, batch_size=1,shuffle=True):
-		#Compute number of snapshots
+		# Compute number of snapshots
 		loader = torch.utils.data.DataLoader(self, batch_size=batch_size, shuffle=shuffle)
 		return loader
 	
 	def split_subdatasets(self, ptrain, pvali, batch_size=1, subdatasets=1):
-		##Compute number of snapshots
+		# Compute number of snapshots
 		total_len = len(self)
 		sub_len   = total_len // subdatasets
 		len_train = int(ptrain*sub_len)
 		len_vali  = int(pvali*sub_len)
 		len_train = len_train + sub_len - (len_train + len_vali)
 		
-		##Select data
+		# Select data
 		# Initialize lists to store subsets
 		train_subsets = []
 		vali_subsets  = []

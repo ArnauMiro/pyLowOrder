@@ -1,4 +1,12 @@
-import torch
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# NN general architectures.
+#
+# Last rev: 02/10/2024
+from __future__ import print_function
+
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
@@ -49,7 +57,7 @@ class Encoder2D(nn.Module):
             elif isinstance(layer, nn.Linear):
                 nn.init.xavier_uniform_(layer.weight)
 
-    def forward(self, x):        
+    def forward(self, x):  
         out = x
         for ilayer, conv_layer in enumerate(self.conv_layers):
             out = conv_layer(out)
