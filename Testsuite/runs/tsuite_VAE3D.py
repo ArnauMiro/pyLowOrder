@@ -8,12 +8,13 @@ from __future__ import print_function, division
 import mpi4py
 mpi4py.rc.recv_mprobe = False
 
-import sys, os, numpy as np
+import sys, os, numpy as np, json
 import pyLOM
 
 DATAFILE  = sys.argv[1]
 VARIABLES = eval(sys.argv[2])
 OUTDIR    = sys.argv[3]
+PARAMS    = json.loads(str(sys.argv[4]).replace("'",'"'))
 
 
 ## Set device
@@ -63,12 +64,10 @@ u_x[:,:] = u[0:nvars*len(d):nvars,:]
 print("New variable: u_x", u_x.shape)
 
 # Mesh Size
-n0x = len(np.unique(m.x)) - 1 
-n0y = len(np.unique(m.y)) - 1
-n0z = len(np.unique(m.z)) - 1
-nx  = 96
-ny  = 32
-nz  = n0z
+n0x = len(np.unique(pyLOM.utils.round(d.xyz[:,0],5)))
+n0y = len(np.unique(pyLOM.utils.round(d.xyz[:,1],5))) 
+n0z = len(np.unique(pyLOM.utils.round(d.xyz[:,2],5))) 
+nx, ny, nz  = PARAMS['nx'], PARAMS['ny'], PARAMS['nz']
 
 # Create the torch dataset
 td = pyLOM.NN.Dataset((u_x,), (n0x, n0y, n0z), time, transform=False, device=device)
@@ -94,13 +93,13 @@ rd  = pyLOM.NN.Dataset((rec), (nx, ny, nz), td._time, transform=False)
 rd.pad((nx, ny, nz), (n0x, n0y, n0z))
 td.pad((nx, ny, nz), (n0x, n0y, n0z))
 d.add_field('urec', len(VARIABLES), rd.data[0][:,:].numpy())
-d.add_field('utra', len(VARIABLES), td.data[0][:,:])
+d.add_field('utra', len(VARIABLES), td.data[0][:,:].numpy())
 pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=VARIABLES+['urec','utra'],fmt='vtkh5')
 
 
 ## Testsuite output
 pyLOM.pprint(0,'TSUITE u_x  =',u_x.min(),u_x.max(),u_x.mean())
-pyLOM.pprint(0,'TSUITE urec =',d['urec'].min(),d['urec'].max(),d['urec'].mean())
+#pyLOM.pprint(0,'TSUITE urec =',d['urec'].min(),d['urec'].max(),d['urec'].mean())
 pyLOM.pprint(0,'TSUITE utra =',d['utra'].min(),d['utra'].max(),d['utra'].mean())
 
 

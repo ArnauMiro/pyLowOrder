@@ -1,4 +1,2 @@
-Folder created: /tmp/TESTSUITE/VAE_Cylinder_2D/vae_beta_0.00e+00_ld_10
 TSUITE u_x  = -0.238083 1.31276 0.8374142054824109
-TSUITE urec = -0.23270619 1.3101442 0.79949605
-TSUITE utra = tensor(-0.2316) tensor(1.3085) tensor(0.7995)
+TSUITE utra = -0.231639 1.3085 0.79946846

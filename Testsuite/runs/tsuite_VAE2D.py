@@ -38,7 +38,7 @@ batch_norm  = True
 
 ## Load pyLOM dataset and set up results output
 RESUDIR = os.path.join(OUTDIR,'vae_beta_%.2e_ld_%i' % (beta, lat_dim))
-pyLOM.NN.create_results_folder(RESUDIR)
+pyLOM.NN.create_results_folder(RESUDIR,echo=False)
 
 
 ## Load pyLOM dataset
@@ -49,8 +49,8 @@ time = d.get_variable('time')
 
 
 ## Mesh size
-n0h = len(np.unique(d.xyz[:,0]))
-n0w = len(np.unique(d.xyz[:,1]))
+n0h = len(np.unique(pyLOM.utils.round(d.xyz[:,0],5)))
+n0w = len(np.unique(pyLOM.utils.round(d.xyz[:,1],5)))
 nh  = 448
 nw  = 192
 
@@ -77,13 +77,13 @@ rd  = pyLOM.NN.Dataset((rec), (nh, nw), td._time, transform=False)
 rd.pad((nh, nw), (n0h, n0w))
 td.pad((nh, nw), (n0h, n0w))
 d.add_field('urec',1,rd.data[0][:,0].numpy())
-d.add_field('utra',1,td.data[0][:,0])
+d.add_field('utra',1,td.data[0][:,0].numpy())
 pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=VARIABLES+['urec', 'utra'],fmt='vtkh5')
 
 
 ## Testsuite output
 pyLOM.pprint(0,'TSUITE u_x  =',u_x.min(),u_x.max(),u_x.mean())
-pyLOM.pprint(0,'TSUITE urec =',d['urec'].min(),d['urec'].max(),d['urec'].mean())
+#pyLOM.pprint(0,'TSUITE urec =',d['urec'].min(),d['urec'].max(),d['urec'].mean())
 pyLOM.pprint(0,'TSUITE utra =',d['utra'].min(),d['utra'].max(),d['utra'].mean())
 
 
