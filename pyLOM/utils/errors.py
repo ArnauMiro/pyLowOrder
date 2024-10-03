@@ -11,7 +11,7 @@ import sys, numpy as np
 from .parall import MPI_RANK, MPI_COMM
 
 
-def truncate(value,precision):
+def round(value,precision):
 	'''
 	Truncate array by a certain precision
 	'''
