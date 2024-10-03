@@ -43,6 +43,7 @@ def run(X, t, nDFT=0, nolap=0, remove_mean=True):
 	M = X.shape[0]
 	N = X.shape[1]
 	dt = t[1] - t[0]
+	cdtype = np.complex128 if X.dtype is np.double else np.complex64
 	
 	if nDFT == 0:
 		nDFT = int(np.power(2,np.floor(np.log2(N/10))))
@@ -65,10 +66,10 @@ def run(X, t, nDFT=0, nolap=0, remove_mean=True):
 	#Set frequency axis
 	f  = np.arange(np.ceil(nDFT / 2) + 1) / dt / nDFT
 	nf = f.shape[0]
-	qk = np.zeros((M,nf),np.complex128)
-	Q  = np.zeros((M*nf,nBlks),np.complex128)
-	L  = np.zeros((nf,nBlks),np.double)
-	P  = np.zeros((M*nBlks,nf),np.double)
+	qk = np.zeros((M,nf),cdtype)
+	Q  = np.zeros((M*nf,nBlks),cdtype)
+	L  = np.zeros((nf,nBlks),X.dtype)
+	P  = np.zeros((M*nBlks,nf),X.dtype)
 	cr_start('SPOD.fft',0)
 	for iblk in range(nBlks):
 		# Get time index for present block

@@ -142,7 +142,7 @@ def h5_load_meshes(file,ptable,repart):
 	else:
 		istart, iend = ptable.partition_bounds(MPI_RANK,points=True)
 		inods = np.arange(istart,iend,dtype=np.int32)
-	xyz    = np.array(file['xyz'][inods,:],np.double) 
+	xyz    = np.array(file['xyz'][inods,:],file['xyz'].dtype) 
 	pointO = np.array(file['pointOrder'][inods],np.int32)
 	# Fix the connectivity to start at zero
 	conec = np.searchsorted(pointO,conec.flatten()).reshape(conec.shape).astype(np.int32)
@@ -309,7 +309,7 @@ def h5_load_fields_single(file,npoints,ptable,varDict,point):
 		ndim = int(fieldgroup['ndim'][0])
 		dims = [ndim*npoints] + list(fieldgroup['vars'])
 		# Now allocate output array
-		value = np.zeros(dims,np.double)
+		value = np.zeros(dims,fieldgroup['value'])
 		# Select which points to load
 		if point:
 			inods = ptable.partition_points(npoints,ndim=ndim)
@@ -336,7 +336,7 @@ def h5_load_fields_multi(file,npoints,ptable,varDict,point,npart):
 		ndim = int(fieldgroup['ndim'][0])
 		dims = [ndim*npoints] + list(fieldgroup['vars'])
 		# Now allocate output array
-		value = np.zeros(dims,np.double)	
+		value = np.zeros(dims,fieldgroup['value'].dtype)	
 		# Generate dictionary
 		fieldDict[v] = {'ndim':ndim,'value':value}
 	# Generate the partition size
