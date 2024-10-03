@@ -8,19 +8,20 @@ from __future__ import print_function, division
 import mpi4py
 mpi4py.rc.recv_mprobe = False
 
-import os, numpy as np
+import numpy as np
 import pyLOM
 
 
 ## Parameters
-DATAFILE = 'Examples/Data/jetLES.h5'
+DATAFILE = './DATA/jetLES.h5'
 VARIABLE = 'PRESS'
 
 
 ## Data loadingx
-d = pyLOM.Dataset.load(DATAFILE)
-X  = d[VARIABLE][:,::10]
-t  = d.time[::10]
+m = pyLOM.Mesh.load(DATAFILE)
+d = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table)
+X = d[VARIABLE][:,::10].copy()
+t = d.get_variable('time')[::10].copy()
 dt = t[1] - t[0]
 
 
@@ -29,7 +30,7 @@ Y = X[:,:100].copy()
 muReal,muImag,Phi,bJov = pyLOM.DMD.run(Y,1e-6,remove_mean=False)
 # Compute frequency and damping ratio of the modes
 delta, omega = pyLOM.DMD.frequency_damping(muReal,muImag,dt)
-pyLOM.DMD.save('results.h5',muReal,muImag,Phi,bJov,d.partition_table,nvars=1,pointData=True)
+pyLOM.DMD.save('results.h5',muReal,muImag,Phi,bJov,d.partition_table,nvars=1,pointData=d.point)
 # Reconstruction according to Jovanovic 2014
 X_DMD = pyLOM.DMD.reconstruction_jovanovic(Phi,muReal,muImag,t,bJov)
 rmse  = pyLOM.math.RMSE(X_DMD.copy(),X.copy())
@@ -45,22 +46,22 @@ if pyLOM.utils.is_rank_or_serial(0):
 
 ## Dump to ParaView
 # Spatial modes
-d.add_variable('P_MODES_REAL',True,6,0,pyLOM.DMD.extract_modes(Phi,1,d.mesh.npoints,real=True,modes=[1,4,6,2,5,3]))
-d.add_variable('P_MODES_IMAG',True,6,0,pyLOM.DMD.extract_modes(Phi,1,d.mesh.npoints,real=False,modes=[1,4,6,2,5,3]))
-d.write('modes',basedir='out/modes',instants=[0],times=[0.],vars=['P_MODES_REAL','P_MODES_IMAG'],fmt='vtkh5')
-pyLOM.DMD.plotMode(Phi,omega,d,1,pointData=True,modes=[1,2,3,4,5,6,7],cpos='xy')
+d.add_field('P_MODES_REAL',6,pyLOM.DMD.extract_modes(Phi,1,len(d),real=True,modes=[1,4,6,2,5,3]))
+d.add_field('P_MODES_IMAG',6,pyLOM.DMD.extract_modes(Phi,1,len(d),real=False,modes=[1,4,6,2,5,3]))
+pyLOM.io.pv_writer(m,d,'modes',basedir='out/modes',instants=[0],times=[0.],vars=['P_MODES_REAL','P_MODES_IMAG'],fmt='vtkh5')
+pyLOM.DMD.plotMode(Phi,omega,m,d,1,pointData=True,modes=[1,2,3,4,5,6,7],cpos='xy')
 
 # Temporal evolution
-d.add_variable('PRESR',True,1,X_DMD)
-d.write('flow',basedir='out/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t,vars=['PRESS','PRESR'],fmt='vtkh5')
-pyLOM.DMD.plotSnapshot(d,vars=['PRESR'],instant=0,cmap='jet',cpos='xy')
+d.add_field('PRESR',1,X_DMD)
+pyLOM.io.pv_writer(m,d,'flow',basedir='out/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t,vars=['PRESS','PRESR'],fmt='vtkh5')
+pyLOM.DMD.plotSnapshot(m,d,vars=['PRESR'],instant=0,cmap='jet',cpos='xy')
 
 # Prediction
 t_new = t[-1] + dt*np.arange(0,100,1,np.double)
 X_DMD = pyLOM.DMD.reconstruction_jovanovic(Phi,muReal,muImag,t_new,bJov)
-d.add_variable('PRENR',True,1,X_DMD)
-d.write('pred',basedir='out/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t_new,vars=['PRENR'],fmt='vtkh5')
-pyLOM.DMD.plotSnapshot(d,vars=['PRENR'],instant=40,cmap='jet',cpos='xy')
+d.add_field('PRENR',1,X_DMD)
+pyLOM.io.pv_writer(m,d,'pred',basedir='out/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t_new,vars=['PRENR'],fmt='vtkh5')
+pyLOM.DMD.plotSnapshot(m,d,vars=['PRENR'],instant=40,cmap='jet',cpos='xy')
 
 
 ## Show and print timings

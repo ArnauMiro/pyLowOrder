@@ -34,6 +34,7 @@ print(mesh)
 
 ## Create partition table
 ptable = pyLOM.PartitionTable.new(1,mesh.ncells,mesh.npoints)
+mesh.partition_table = ptable
 print(ptable)
 
 
@@ -52,14 +53,17 @@ VELOC[2:3*npoints:3,:] = tensor[2,:,:,:,280:400].reshape((nx*ny*nz,nt),order='C'
 
 
 ## Create dataset for pyLOM
-d = pyLOM.Dataset(ptable=ptable, mesh=mesh, time=time,
+d = pyLOM.Dataset(xyz=mesh.xyzc, ptable=ptable, order=mesh.cellOrder, point=False,
+	# Add the time as the only variable
+	vars  = {'time':{'idim':0,'value':time}},
 	# Now add all the arrays to be stored in the dataset
 	# It is important to convert them as C contiguous arrays
-	VELOC = {'point':False,'ndim':3,'value':VELOC},
+	VELOC = {'ndim':3,'value':VELOC},
 )
 print(d)
 
-# Store dataset
-d.save(OUTFILE)
+mesh.save(OUTFILE) # Store the mesh
+d.save(OUTFILE)    # Store dataset
+
 
 pyLOM.cr_info()
