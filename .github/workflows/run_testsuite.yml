@@ -52,4 +52,4 @@ jobs:
         run: make install
       # Test suite
       - name: Run test-suite POD
-        run: cd Testsuite && python run_testsuite.py testsuite.json
+        run: cd Testsuite && python run_testsuite.py -f testsuite.json
