@@ -5,7 +5,7 @@
 # Last rev: 28/10/2022
 from __future__ import print_function, division
 
-import numpy as np, h5py
+import os, numpy as np, h5py
 
 from ..utils.cr     import cr
 from ..utils.parall import MPI_RANK, MPI_SIZE, MPI_COMM, mpi_reduce, mpi_bcast
@@ -23,11 +23,11 @@ def _vtkh5_create_structure(file):
 	main.attrs['Type']    = VTKTYPE
 	main.attrs['Version'] = VTKVERS
 	# Create cell data group
-	main.create_group('CellData')
-	main.create_group('PointData')
-	main.create_group('FieldData')
+	cdata = main.create_group('CellData')
+	pdata = main.create_group('PointData')
+	fdata = main.create_group('FieldData')
 	# Return created groups
-	return main
+	return main, cdata, pdata, fdata
 
 def _vtkh5_connectivity_and_offsets(lnods):
 	'''
@@ -52,7 +52,7 @@ def _vtkh5_write_mesh_serial(file,xyz,lnods,ltype):
 	# Create dataset for number of points
 	npoints, ndim = xyz.shape
 	file.create_dataset('NumberOfPoints',(1,),dtype=int,data=npoints)
-	file.create_dataset('Points',(npoints,ndim),dtype=np.double,data=xyz)
+	file.create_dataset('Points',(npoints,ndim),dtype=xyz.dtype,data=xyz)
 	# Create dataset for number of cells
 	lnods, offsets = _vtkh5_connectivity_and_offsets(lnods)
 	ncells = ltype.shape[0]
@@ -74,7 +74,7 @@ def _vtkh5_write_mesh_mpio(file,xyz,lnods,ltype, ptable):
 	npoints      = xyz.shape[0]                               # Number of points of this partition
 	npG          = int(mpi_reduce(npoints,op='sum',all=True)) # Total number of points
 	npoints_dset = file.create_dataset('NumberOfPoints',(nparts,),dtype=int)
-	points_dset  = file.create_dataset('Points',(npG,3),dtype=np.double)
+	points_dset  = file.create_dataset('Points',(npG,3),dtype=xyz.dtype)
 	# Create datasets for cell data
 	ncells, npcells = ltype.shape[0], lnods.shape[1]
 	lnods, offsets  = _vtkh5_connectivity_and_offsets(lnods)
@@ -102,6 +102,19 @@ def _vtkh5_write_mesh_mpio(file,xyz,lnods,ltype, ptable):
 	# Return some parameters
 	return npG, ncG
 
+def _vtkh5_link_mesh(file,lname):
+	'''
+	Create external link mesh to the VTKH5 file.
+	'''
+	file['NumberOfPoints']          = h5py.ExternalLink(lname,'VTKHDF/NumberOfPoints')
+	file['NumberOfCells']           = h5py.ExternalLink(lname,'VTKHDF/NumberOfCells')
+	file['NumberOfConnectivityIds'] = h5py.ExternalLink(lname,'VTKHDF/NumberOfConnectivityIds')
+	file['Points']                  = h5py.ExternalLink(lname,'VTKHDF/Points')
+	file['Connectivity']            = h5py.ExternalLink(lname,'VTKHDF/Connectivity')
+	file['Offsets']                 = h5py.ExternalLink(lname,'VTKHDF/Offsets')
+	file['Types']                   = h5py.ExternalLink(lname,'VTKHDF/Types')
+
+
 @cr('vtkh5IO.save_mesh')
 def vtkh5_save_mesh(fname,mesh,ptable,mpio=True):
 	'''
@@ -117,9 +130,9 @@ def vtkh5_save_mesh_serial(fname,xyz,lnods,ltype):
 	Save the mesh component into a VTKH5 file (serial)
 	'''
 	# Open file for writing
-	file = h5py.File(fname,'w')
+	file = h5py.File(fname,'w' if not os.path.exists(fname) else 'a')
 	# Create the file structure
-	main = _vtkh5_create_structure(file)
+	main, _, _, _ = _vtkh5_create_structure(file)
 	# Write the mesh
 	_vtkh5_write_mesh_serial(main,xyz,lnods,ltype)
 	# Close file
@@ -130,67 +143,102 @@ def vtkh5_save_mesh_mpio(fname,xyz,lnods,ltype,ptable):
 	Save the mesh component into a VTKH5 file (serial)
 	'''
 	# Open file for writing
-	file = h5py.File(fname,'w',driver='mpio',comm=MPI_COMM)
+	file = h5py.File(fname,'w' if not os.path.exists(fname) else 'a',driver='mpio',comm=MPI_COMM)
 	# Create the file structure
-	main = _vtkh5_create_structure(file)
+	main, _, _, _ = _vtkh5_create_structure(file)
 	# Write the mesh
 	_vtkh5_write_mesh_mpio(main,xyz,lnods,ltype,ptable)
 	# Close file
 	file.close()
 
 
+@cr('vtkh5IO.link_mesh')
+def vtkh5_link_mesh(fname,lname,mpio=True):
+	'''
+	Link the mesh component into a VTKH5 file
+	'''
+	if mpio and not MPI_SIZE == 1:
+		vtkh5_link_mesh_mpio(fname,lname)
+	else:
+		vtkh5_link_mesh_serial(fname,lname)
+
+def vtkh5_link_mesh_serial(fname,lname):
+	'''
+	Save the mesh component into a VTKH5 file (serial)
+	'''
+	# Open file for writing
+	file = h5py.File(fname,'w' if not os.path.exists(fname) else 'a')
+	# Create the file structure
+	main, _, _, _ = _vtkh5_create_structure(file)
+	# Link the mesh
+	_vtkh5_link_mesh(main,lname)
+	# Close file
+	file.close()
+
+def vtkh5_link_mesh_mpio(fname,lname):
+	'''
+	Save the mesh component into a VTKH5 file (serial)
+	'''
+	# Open file for writing
+	file = h5py.File(fname,'w' if not os.path.exists(fname) else 'a',driver='mpio',comm=MPI_COMM)
+	# Create the file structure
+	main, _, _, _ = _vtkh5_create_structure(file)
+	# Link the mesh
+	_vtkh5_link_mesh(main,lname)
+	# Close file
+	file.close()
+
+
 @cr('vtkh5IO.save_field')
-def vtkh5_save_field(fname,instant,time,varDict,ptable,mpio=True):
+def vtkh5_save_field(fname,instant,time,point,varDict,ptable,mpio=True):
 	'''
 	Save the mesh component into a VTKH5 file
 	'''
 	if mpio and not MPI_SIZE == 1:
-		vtkh5_save_field_mpio(fname,instant,time,varDict,ptable)
+		vtkh5_save_field_mpio(fname,instant,time,point,varDict,ptable)
 	else:
-		vtkh5_save_field_serial(fname,instant,time,varDict)
+		vtkh5_save_field_serial(fname,instant,time,point,varDict)
 
-def vtkh5_save_field_serial(fname,instant,time,varDict):
+def vtkh5_save_field_serial(fname,instant,time,point,varDict):
 	'''
 	Save the field component into a VTKH5 file (serial)
 	'''
 	# Open file for writing (append to a mesh)
-	file = h5py.File(fname,'a')
+	file = h5py.File(fname,'w' if not os.path.exists(fname) else 'a')
 	main = file['VTKHDF']
-	npoints = int(main['NumberOfPoints'][0])
 	# Write dt and instant as field data
 	main['FieldData'].create_dataset('InstantValue',(1,),dtype=int,data=instant)
 	main['FieldData'].create_dataset('TimeValue',(1,),dtype=float,data=time)
 	# Write the variables
 	for var in varDict.keys():
 		# Obtain in which group to write
-		group = 'PointData' if varDict[var].shape[0] == npoints else 'CellData'
+		group = 'PointData' if point else 'CellData'
 		# Create and write
 		main[group].create_dataset(var,varDict[var].shape,dtype=varDict[var].dtype,data=varDict[var])
 	# Close file
 	file.close()
 
-def vtkh5_save_field_mpio(fname,instant,time,varDict,ptable):
+def vtkh5_save_field_mpio(fname,instant,time,point,varDict,ptable):
 	'''
 	Save the mesh component into a VTKH5 file (serial)
 	'''
 	myrank = MPI_RANK
 	# Open file for writing
-	file = h5py.File(fname,'a',driver='mpio',comm=MPI_COMM)
+	file = h5py.File(fname,'w' if not os.path.exists(fname) else 'a',driver='mpio',comm=MPI_COMM)
 	main = file['VTKHDF']
-	npoints = int(main['NumberOfPoints'][myrank])
 	# Write dt and instant as field data
 	main['FieldData'].create_dataset('InstantValue',(1,),dtype=int,data=instant)
 	main['FieldData'].create_dataset('TimeValue',(1,),dtype=float,data=time)
 	# Create the dictionaries
 	dsets = {}
 	for var in varDict.keys():
-		group   = mpi_bcast('PointData' if varDict[var].shape[0] == npoints else 'CellData',root=1)
+		group   = mpi_bcast('PointData' if point else 'CellData',root=1)
 		npG     = int(mpi_reduce(varDict[var].shape[0],op='sum',all=True)) # Total number of points
 		nsizeG  = int(mpi_reduce(varDict[var].shape[1] if len(varDict[var].shape) > 1 else 0,op='max',all=True))
 		dsets[var] = main[group].create_dataset(var,(npG,) if nsizeG == 0 else (npG,nsizeG) if nsizeG > 0 else (npG,),dtype=varDict[var].dtype)
 	# Write the variables
 	for var in varDict.keys():
-		istart, iend = ptable.partition_bounds(myrank,points=True if varDict[var].shape[0] == npoints else False)
+		istart, iend = ptable.partition_bounds(myrank,points=point)
 		if len(varDict[var].shape) == 1: # Scalar field
 			dsets[var][istart:iend] = varDict[var]
 		else: # Vectorial or tensorial field

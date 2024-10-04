@@ -50,30 +50,6 @@ jobs:
         run: make python
       - name: Install
         run: make install
-      # POD test suite
+      # Test suite
       - name: Run test-suite POD
-        run: bash Testsuite/run_POD_testsuite.sh
-#      - name: upload results POD
-#        uses: actions/upload-artifact@v3
-#        with:
-#          name: output_POD
-#          path: Testsuite/*.tar.gz
-#          retention-days: 1
-      # DMD test suite
-      - name: Run test-suite DMD
-        run: bash Testsuite/run_DMD_testsuite.sh
-#      - name: Upload results DMD
-#        uses: actions/upload-artifact@v3
-#        with:
-#          name: output_DMD
-#          path: Testsuite/*.tar.gz
-#          retention-days: 1      
-      # SPOD test suite
-      - name: Run test-suite SPOD
-        run: bash Testsuite/run_SPOD_testsuite.sh
-#      - name: Upload results SPOD
-#        uses: actions/upload-artifact@v3
-#        with:
-#          name: output_SPOD
-#          path: Testsuite/*.tar.gz
-#          retention-days: 1   
+        run: cd Testsuite && python run_testsuite.py -f testsuite.json

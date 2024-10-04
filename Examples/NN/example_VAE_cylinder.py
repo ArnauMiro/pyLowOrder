@@ -1,9 +1,20 @@
+#!/usr/bin/env python
+#
+# Example of 2D-VAE.
+#
+# Last revision: 24/09/2024
+from __future__ import print_function, division
+
+import mpi4py
+mpi4py.rc.recv_mprobe = False
+
+import os, numpy as np
 import pyLOM
-import numpy as np
-import matplotlib.pyplot as plt
+
 
 ## Set device
-device = pyLOM.NN.select_device()
+device = pyLOM.NN.select_device("cpu") # Force CPU for this example, if left in blank it will automatically select the device
+
 
 ## Specify autoencoder parameters
 nlayers     = 5
@@ -20,7 +31,7 @@ activations = [pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(
 ## Load pyLOM dataset and set up results output
 BASEDIR = 'Testsuite'
 CASESTR = 'CYLINDER'
-DSETDIR = '%s/%s.h5' % (BASEDIR, CASESTR)
+DSETDIR = os.path.join(BASEDIR,f'{CASESTR}.h5')
 RESUDIR = 'vae_beta_%.2e_ld_%i' % (beta, lat_dim)
 pyLOM.NN.create_results_folder(RESUDIR)
 
@@ -29,6 +40,7 @@ n0h = 449
 n0w = 199
 nh  = 448
 nw  = 192
+
 
 ## Create a torch dataset
 pyldtset = pyLOM.Dataset.load(DSETDIR)

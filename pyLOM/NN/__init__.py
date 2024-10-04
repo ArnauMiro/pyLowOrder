@@ -7,8 +7,9 @@
 # Last rev: 19/09/2024
 
 # Supress prints from tensorflow
-import os
+import os, torch
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 from .callbacks     import EarlyStopper
 from .utils         import Dataset, create_results_folder, select_device, betaLinearScheduler, MinMaxScaler

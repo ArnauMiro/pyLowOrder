@@ -216,12 +216,12 @@ class Dataset(torch.utils.data.Dataset):
 		]
 
 
-def create_results_folder(RESUDIR):
+def create_results_folder(RESUDIR,echo=True):
 	if not os.path.exists(RESUDIR):
 		os.makedirs(RESUDIR)
-		print(f"Folder created: {RESUDIR}")
+		if echo: print(f"Folder created: {RESUDIR}")
 	else:
-		print(f"Folder already exists: {RESUDIR}")
+		if echo: print(f"Folder already exists: {RESUDIR}")
 
 
 def select_device():
@@ -395,11 +395,17 @@ class DatasetOld(torch_dataset):
 		self._data = paddata
 
 	def _crop3D(self, nd, nh, nw, n0d, n0h, n0w):
-		## Crop for 3D data
+		# Crop for 3D data
 		cropdata = []
 		self._nd = nd
 		self._nh = nh
 		self._nw = nw
+	
+		# Compute cropping offsets (center cropping)
+		crop_d_start = (n0d - nd) // 2
+		crop_h_start = (n0h - nh) // 2
+		crop_w_start = (n0w - nw) // 2
+	
 		for ichannel in range(self._n_channels):
 			crops = []
 			for t in range(self.nt):
@@ -416,10 +422,11 @@ class DatasetOld(torch_dataset):
 				crops.append(isnap_cropped.reshape(nd * nh * nw, 1))
 			crops = torch.cat(crops, dim=1)
 			cropdata.append(crops)
+		# Store the cropped data
 		self._data = cropdata
 
 	def _pad3D(self, nd, nh, nw, n0d, n0h, n0w):
-		## Pad for 3D data
+		# Pad for 3D data
 		paddata = []
 		self._nd = n0d
 		self._nh = n0h
@@ -442,6 +449,18 @@ class DatasetOld(torch_dataset):
 			paddata.append(pads)
 		self._data = paddata
 
+	def crop(self, shape, shape0):
+		if len(shape) == 2:
+			self._crop2D(shape[0], shape[1], shape0[0], shape0[1])
+		if len(shape) == 3:
+			self._crop3D(shape[0], shape[1], shape[2], shape0[0], shape0[1], shape0[2])
+
+	def pad(self, shape, shape0):
+		if len(shape) == 2:
+			self._pad2D(shape[0], shape[1], shape0[0], shape0[1])
+		if len(shape) == 3:
+			self._pad3D(shape[0], shape[1], shape[2], shape0[0], shape0[1], shape0[2])
+
 	def recover(self, data):
 		recovered_data = []
 		for i in range(self._n_channels):
@@ -456,7 +475,7 @@ class DatasetOld(torch_dataset):
 		return loader
 
 	def split_subdatasets(self, ptrain, pvali, batch_size=1, subdatasets=1):
-		##Compute number of snapshots
+		# Compute number of snapshots
 		total_len = len(self)
 		sub_len = total_len // subdatasets
 		len_train = int(ptrain * sub_len)

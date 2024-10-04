@@ -82,17 +82,17 @@ include_dirs  = []
 extra_objects = []
 libraries     = ['m']
 
-# OSX needs to also link with python3.8 for reasons...
-if sys.platform == 'darwin': libraries += ['python3.8']
+# OSX needs to also link with python for reasons...
+if sys.platform == 'darwin': libraries += [f'python{sys.version_info[0]}.{sys.version_info[1]}']
 
 if options['USE_FFTW']:
 	# NFFT
 	include_dirs  += ['Deps/nfft/include']
-	extra_objects += ['Deps/nfft/lib/libnfft3.a']
+	extra_objects += ['Deps/nfft/lib/libnfft3.a','Deps/nfft/lib/libnfft3f.a']
 	# FFTW
 	include_dirs  += ['Deps/fftw/include']
-	extra_objects += ['Deps/fftw/lib/libfftw3.a']
-	if options['OPENMP_PARALL']: extra_objects += ['Deps/fftw/lib/libfftw3_omp.a']
+	extra_objects += ['Deps/fftw/lib/libfftw3.a','Deps/fftw/lib/libfftw3f.a']
+	if options['OPENMP_PARALL']: extra_objects += ['Deps/fftw/lib/libfftw3_omp.a','Deps/fftw/lib/libfftw3f_omp.a']
 	DFLAGS        += ' -DUSE_FFTW3'
 else:
 	# KISSFFT
@@ -117,9 +117,9 @@ else:
 	libraries     += ['gfortran']
 	# Classical LAPACK & BLAS library has a very bad performance
 	# but is left here for nostalgia
-	#include_dirs  += ['Deps/lapack/include/']
-	#extra_objects += ['Deps/lapack/lib/liblapacke.a','Deps/lapack/lib/liblapack.a','Deps/lapack/lib/libcblas.a','Deps/lapack/lib/libblas.a']
-	#libraries     += ['gfortran']
+#	include_dirs  += ['Deps/lapack/include/']
+#	extra_objects += ['Deps/lapack/lib/liblapacke.a','Deps/lapack/lib/liblapack.a','Deps/lapack/lib/libcblas.a','Deps/lapack/lib/libblas.a']
+#	libraries     += ['gfortran']
 
 
 ## Modules
@@ -208,5 +208,5 @@ setup(
     long_description = readme,
     url              = 'https://github.com/ArnauMiro/pyLowOrder',
     packages         = find_packages(exclude=('Deps','Examples','Docs','Converters')),
-	install_requires = ['numpy','matplotlib','cython>=3.0.0','h5py>=3.0.0','mpi4py','nfft']
+	install_requires = ['numpy','matplotlib','cython>=3.0.0','h5py>=3.0.0','mpi4py<4.0.0','nfft','torch>=2.3.0','torchvision','torchsummary','tensorflow']
 )

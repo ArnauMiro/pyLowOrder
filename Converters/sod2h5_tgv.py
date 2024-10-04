@@ -2,6 +2,8 @@
 #
 # Extract DATASET for POD using pyAlya
 #
+# TODO: fix when adding support for SOD2D
+#
 # Last rev: 28/10/2021
 from __future__ import print_function, division
 
