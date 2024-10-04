@@ -106,7 +106,8 @@ class Dataset(torch.utils.data.Dataset):
 		if variables_in is not None:
 			self.variables_in = self._process_variables_in(variables_in, parameters)
 			if inputs_scaler is not None:
-				self.variables_in = inputs_scaler.transform([self.variables_in])[0]
+				self.variables_in = inputs_scaler.transform([self.variables_in[:, i] for i in range(self.variables_in.shape[1])])
+				self.variables_in = torch.stack(self.variables_in, dim=1)
 
 	def _process_variables_out(self, variables_out):
 		if self.num_channels == 1:
@@ -133,10 +134,18 @@ class Dataset(torch.utils.data.Dataset):
 		variables_in = torch.tensor(variables_in, dtype=torch.float32)
 		# parameters is a list of lists of floats. Each contains the values that will be repeated for each input coordinate
 		# in some sense, it is like a cartesian product of the parameters with the input coordinates
-		cartesian_product = list(product(*parameters))
-		cartesian_product = torch.tensor(cartesian_product)
+		if len(parameters) == 1:
+			cartesian_product = torch.tensor(parameters[0])
+		else:
+			cartesian_product = list(product(*parameters))
+			cartesian_product = torch.tensor(cartesian_product)
+		# repeat the variables_in for each element in the cartesian product
 		variables_in_repeated = variables_in.repeat(len(cartesian_product), 1)
-		cartesian_product = cartesian_product.repeat(len(variables_in), 1)
+		# to repeat the cartesian product for each element in variables_in, we need to repeat each element in the cartesian product for the initial length of variables_in
+		parameters_repeated = []
+		for product_element in cartesian_product:
+			parameters_repeated.append(product_element.repeat(len(variables_in), 1))
+		cartesian_product = torch.cat(parameters_repeated, dim=0)
 		return torch.cat([variables_in_repeated, cartesian_product], dim=1).float()
 
 	def __len__(self):

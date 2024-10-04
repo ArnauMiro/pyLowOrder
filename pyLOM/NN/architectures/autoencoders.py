@@ -1,13 +1,4 @@
-#!/usr/bin/env python
-#
-# pyLOM - Python Low Order Modeling.
-#
-# Python interface for NN.
-#
-# Last rev: 02/10/2024
-from __future__ import print_function
-
-import os, torch
+import torch
 import torch.nn            as nn
 import torch.nn.functional as F
 import numpy               as np
@@ -25,7 +16,7 @@ from   ...utils.cr              import cr
 
 ## Wrapper of a variational autoencoder
 class Autoencoder(nn.Module):
-    def __init__(self, latent_dim, in_shape, input_channels, encoder, decoder, device=DEVICE):
+    def __init__(self, latent_dim, in_shape, input_channels, encoder, decoder, device='cpu'):
         super(Autoencoder, self).__init__()
         self.lat_dim  = latent_dim
         self.in_shape = in_shape
@@ -37,7 +28,7 @@ class Autoencoder(nn.Module):
         encoder.to(self._device)
         decoder.to(self._device)
         self.to(self._device)
-        summary(self, input_size=(self.inp_chan, *self.in_shape),device=device)
+        summary(self, input_size=(self.inp_chan, *self.in_shape))
       
     def _lossfunc(self, x, recon_x, reduction):
         return  F.mse_loss(recon_x.view(-1, self.N), x.view(-1, self.N),reduction=reduction)
@@ -103,7 +94,7 @@ class Autoencoder(nn.Module):
         # Cleanup
         writer.flush()
         writer.close()
-        torch.save(self.state_dict(), os.path.join(BASEDIR,'model_state.pth'))
+        torch.save(self.state_dict(), f'{BASEDIR}/model_state.pth')
 
     def reconstruct(self, dataset):
         ## Compute reconstruction and its accuracy
@@ -115,38 +106,8 @@ class Autoencoder(nn.Module):
 
         loader = torch.utils.data.DataLoader(dataset, batch_size=num_samples, shuffle=False)
 
-        ## Compute reconstruction and its accuracy
-        num_samples = len(dataset)
-        ek = np.zeros(num_samples)
-        mu = np.zeros(num_samples)
-        si = np.zeros(num_samples)
-        rec = torch.zeros((self.inp_chan, self.N, num_samples), device=self._device)
-
-        loader = torch.utils.data.DataLoader(dataset, batch_size=num_samples, shuffle=False)
-
         with torch.no_grad():
             ## Energy recovered in reconstruction
-            for energy_batch in loader:
-                energy_batch = energy_batch.to(self._device)
-                x_recon,_ = self(energy_batch)
-
-                for i in range(num_samples):
-                    x_recchan = x_recon[i]
-                    rec[:, :, i] = x_recchan.view(self.inp_chan, self.N)
-
-                    x = energy_batch[i].view(self.inp_chan * self.N)
-                    xr = rec[:, :, i].view(self.inp_chan * self.N)
-
-                    ek[i] = torch.sum((x - xr) ** 2) / torch.sum(x ** 2)
-                    mu[i] = 2 * torch.mean(x) * torch.mean(xr) / (torch.mean(x) ** 2 + torch.mean(xr) ** 2)
-                    si[i] = 2 * torch.std(x) * torch.std(xr) / (torch.std(x) ** 2 + torch.std(xr) ** 2)
-
-        energy = (1 - np.mean(ek)) * 100
-        print('Recovered energy %.2f' % energy)
-        print('Recovered mean %.2f' % (np.mean(mu) * 100))
-        print('Recovered fluct %.2f' % (np.mean(si) * 100))
-
-        return rec.cpu().numpy()
             for energy_batch in loader:
                 energy_batch = energy_batch.to(self._device)
                 x_recon,_ = self(energy_batch)
@@ -191,7 +152,7 @@ class Autoencoder(nn.Module):
 
 ## Wrapper of a variational autoencoder
 class VariationalAutoencoder(Autoencoder):
-    def __init__(self, latent_dim, in_shape, input_channels, encoder, decoder, device=DEVICE):
+    def __init__(self, latent_dim, in_shape, input_channels, encoder, decoder, device='cpu'):
         super(VariationalAutoencoder, self).__init__(latent_dim, in_shape, input_channels, encoder, decoder, device)
 
     def _reparamatrizate(self, mu, logvar):
@@ -215,11 +176,11 @@ class VariationalAutoencoder(Autoencoder):
     def fit(self, train_data, vali_data, betasch, nepochs, callback=None, learning_rate=1e-4, BASEDIR='./'):
         prev_train_loss = 1e99
         writer    = SummaryWriter(BASEDIR)
-        optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate, weight_decay=0, amsgrad=True, fused=fused)
+        optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate, weight_decay=0, amsgrad=True, fused=True)
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, nepochs, eta_min=learning_rate*1e-3)
         scaler    = GradScaler()
         for epoch in range(nepochs):
-            # Training
+            ## Training
             self.train()
             tr_loss = 0
             mse     = 0
@@ -243,7 +204,7 @@ class VariationalAutoencoder(Autoencoder):
             mse /= num_batches
             kld /= num_batches
 
-            # Validation
+            ## Validation
             self.eval()
             va_loss     = 0
             with torch.no_grad():
@@ -277,7 +238,7 @@ class VariationalAutoencoder(Autoencoder):
 
     @cr('VAE.reconstruct')
     def reconstruct(self, dataset):
-        # Compute reconstruction and its accuracy
+        ## Compute reconstruction and its accuracy
         num_samples = len(dataset)
         ek = np.zeros(num_samples)
         mu = np.zeros(num_samples)
@@ -311,7 +272,7 @@ class VariationalAutoencoder(Autoencoder):
         return rec.cpu().numpy()
   
     def correlation(self, dataset):
-        # Compute correlation between latent variables
+        ##  Compute correlation between latent variables
         loader = torch.utils.data.DataLoader(dataset, batch_size=len(dataset), shuffle=False)
         with torch.no_grad():
             instant  = iter(loader)
