@@ -14,8 +14,8 @@ from .wrapper import temporal_mean, subtract_mean, RMSE
 from .wrapper import qr, svd, tsqr, tsqr_svd
 # FFT routines
 from .wrapper import fft
-# Cell center routines
-from .wrapper import cellCenters
+# Mesh related routines
+from .wrapper import cellCenters, normals
 
 
 del wrapper

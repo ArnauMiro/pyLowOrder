@@ -1594,3 +1594,132 @@ def cellCenters(real[:,:] xyz, int[:,:] conec):
 		return _dcellCenters(xyz,conec)
 	else:
 		return _scellCenters(xyz,conec)
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.float32_t,ndim=2] _snormals(float[:,:] xyz, int[:,:] conec):
+	'''
+	Compute the cell centers given a list 
+	of elements (internal function).
+	'''
+	cdef int ielem, icon, c, cc, nel = conec.shape[0], ndim = xyz.shape[1], ncon = conec.shape[1]
+	cdef np.ndarray[np.float32_t,ndim=1] cen     = np.zeros((ndim,),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=1] u       = np.zeros((ndim,),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=1] v       = np.zeros((ndim,),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=2] normals = np.zeros((nel,ndim),dtype = np.float32)
+
+	for ielem in range(nel):
+		# Set to zero
+		for idim in range(ndim):
+			cen[idim]           = 0.
+			normals[ielem,idim] = 0.
+		# Compute centroid
+		cc = 0
+		for icon in range(ncon):
+			c = conec[ielem,icon]
+			if c < 0: break
+			for idim in range(ndim):
+				cen[idim] += xyz[c,idim]
+			cc += 1
+		for idim in range(ndim):
+			cen[idim] /= float(cc)
+		# Compute normal
+		# Compute u, v
+		icon = cc - 1
+		c    = conec[ielem,0]
+		cc   = conec[ielem,icon]
+		for idim in range(ndim):
+			u[idim] = xyz[c,idim]  - cen[idim]
+			v[idim] = xyz[cc,idim] - cen[idim]
+		# Cross product
+		normals[ielem,0] += 0.5*(u[1]*v[2] - u[2]*v[1])
+		normals[ielem,1] += 0.5*(u[2]*v[0] - u[0]*v[2])
+		normals[ielem,2] += 0.5*(u[0]*v[1] - u[1]*v[0])
+		for icon in range(1,ncon):
+			c  = conec[ielem,icon]
+			cc = conec[ielem,icon-1]
+			if c < 0: break
+			# Compute u, v
+			for idim in range(ndim):
+				u[idim] = xyz[c,idim]  - cen[idim]
+				v[idim] = xyz[cc,idim] - cen[idim]
+			# Cross product
+			normals[ielem,0] += 0.5*(u[1]*v[2] - u[2]*v[1])
+			normals[ielem,1] += 0.5*(u[2]*v[0] - u[0]*v[2])
+			normals[ielem,2] += 0.5*(u[0]*v[1] - u[1]*v[0])
+
+	return normals
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.double_t,ndim=2] _dnormals(double[:,:] xyz, int[:,:] conec):
+	'''
+	Compute the cell centers given a list 
+	of elements (internal function).
+	'''
+	cdef int ielem, icon, c, cc, nel = conec.shape[0], ndim = xyz.shape[1], ncon = conec.shape[1]
+	cdef np.ndarray[np.double_t,ndim=1] cen     = np.zeros((ndim,),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=1] u       = np.zeros((ndim,),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=1] v       = np.zeros((ndim,),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] normals = np.zeros((nel,ndim),dtype = np.double)
+
+	for ielem in range(nel):
+		# Set to zero
+		for idim in range(ndim):
+			cen[idim]           = 0.
+			normals[ielem,idim] = 0.
+		# Compute centroid
+		cc = 0
+		for icon in range(ncon):
+			c = conec[ielem,icon]
+			if c < 0: break
+			for idim in range(ndim):
+				cen[idim] += xyz[c,idim]
+			cc += 1
+		for idim in range(ndim):
+			cen[idim] /= float(cc)
+		# Compute normal
+		# Compute u, v
+		icon = cc - 1
+		c    = conec[ielem,0]
+		cc   = conec[ielem,icon]
+		for idim in range(ndim):
+			u[idim] = xyz[c,idim]  - cen[idim]
+			v[idim] = xyz[cc,idim] - cen[idim]
+		# Cross product
+		normals[ielem,0] += 0.5*(u[1]*v[2] - u[2]*v[1])
+		normals[ielem,1] += 0.5*(u[2]*v[0] - u[0]*v[2])
+		normals[ielem,2] += 0.5*(u[0]*v[1] - u[1]*v[0])
+		for icon in range(1,ncon):
+			c  = conec[ielem,icon]
+			cc = conec[ielem,icon-1]
+			if c < 0: break
+			# Compute u, v
+			for idim in range(ndim):
+				u[idim] = xyz[c,idim]  - cen[idim]
+				v[idim] = xyz[cc,idim] - cen[idim]
+			# Cross product
+			normals[ielem,0] += 0.5*(u[1]*v[2] - u[2]*v[1])
+			normals[ielem,1] += 0.5*(u[2]*v[0] - u[0]*v[2])
+			normals[ielem,2] += 0.5*(u[0]*v[1] - u[1]*v[0])
+
+	return normals
+
+@cr('math.normals')
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def normals(real[:,:] xyz, int[:,:] conec):
+	'''
+	Compute the cell centers given a list 
+	of elements (internal function).
+	'''
+	if real is double:
+		return _dnormals(xyz,conec)
+	else:
+		return _snormals(xyz,conec)

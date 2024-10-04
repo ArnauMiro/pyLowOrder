@@ -373,3 +373,19 @@ def cellCenters(xyz,conec):
 		c = conec[ielem,conec[ielem,:]>=0]
 		xyz_cen[ielem,:] = np.mean(xyz[c,:],axis=0)
 	return xyz_cen
+
+@cr('math.normals')
+def normals(xyz,conec):
+	normals = np.zeros(((conec.shape[0],3)),xyz.dtype)
+	for ielem in range(conec.shape[0]):
+		# Get the values of the field and the positions of the element
+		c     = conec[ielem,conec[ielem,:]>=0]
+		xyzel =  xyz[c,:]
+		# Compute centroid
+		cen  = np.mean(xyzel,axis=0)
+		# Compute normal
+		for inod in range(len(c)):
+			u = xyzel[inod]   - cen
+			v = xyzel[inod-1] - cen
+			normals[ielem,:] += 0.5*np.cross(u,v)
+	return normals
