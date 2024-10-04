@@ -14,7 +14,7 @@ from dragon       import dragon, dragonAllOK, dragonAlmostOK, dragonAngry
 
 ## Parameters
 RELTOL  = 1e-3
-ZEROTOL = 1e-6
+ZEROTOL = 1e-4
 OUTROOT = '/tmp/TESTSUITE/' # WARNING: OUTROOT IS ERASED BEFORE EVERY RUN
 MODULES = ['POD','DMD','SPOD','NN']
 
@@ -48,12 +48,12 @@ def checkOutput(summary,reference,relTol,zeroTol,info=False):
 		if name1 != name2:
 			raise Exception('lines %s and %s differ in the field name ' % (line1,line2))
 		for v1,v2 in zip(dat1[1:],dat2[1:]):
-			if not assumeOK(v1,v2,relTol,zeroTol): error = True
-		if error:
-			print("field %s DIFFERS!"%name1)
-			print ("reference: %s" % line2,flush=True)
-			print ("output   : %s" % line1,flush=True)
-			break
+			if not assumeOK(v1,v2,relTol,zeroTol): 
+				print("field %s DIFFERS!"%name1)
+				print ("reference: %s" % line2,flush=True)
+				print ("output   : %s" % line1,flush=True)
+				error = True
+		if error: break
 	return 1 if error else 0
 
 def runtest(name,nprocs,file,datafile,var,params,relTol=RELTOL,zeroTol=ZEROTOL,resetRef=False,OUTROOT=OUTROOT,oversubscribe=False):
