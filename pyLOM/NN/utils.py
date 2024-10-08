@@ -20,11 +20,35 @@ import warnings
 
 class MinMaxScaler:
     """
+    Min-max scaling to scale variables to a desired range. The formula is given by:
+    .. math::
+        X_{scaled} = (X - X_{min}) / (X_{max} - X_{min}) * (feature-range_{max} - feature-range_{min}) + feature-range_{min}
+
+
     Args:
             feature_range (Tuple): Desired range of transformed data. Default is ``(0, 1)``.
     """
     def __init__(self, feature_range=(0, 1)):
         self.feature_range = feature_range
+        self._is_fitted = False
+
+    @property
+    def is_fitted(self):
+        return self._is_fitted
+    
+    def fit(self, variables: List[Union[np.ndarray, torch.tensor]]):
+        """
+        Compute the min and max values of each variable.
+        Args:
+                variables: List of variables to be fitted. The variables should be 2d numpy arrays or torch tensors.
+        """
+        min_max_values = []
+        for variable in variables:
+            min_val = variable.min()
+            max_val = variable.max()
+            min_max_values.append({"min": min_val, "max": max_val})
+        self.variable_scaling_params = min_max_values
+        self._is_fitted = True
 
     def transform(
         self, variables: List[Union[np.ndarray, torch.tensor]]
@@ -35,14 +59,12 @@ class MinMaxScaler:
                 variables: List of variables to be scaled. The variables should be 2d numpy arrays or torch tensors.
         Returns:
                 scaled_variables: List of scaled variables.
-                variable_scaling_params: List of dictionaries containing the min and max values of each variable.
         """
 
         scaled_variables = []
-        variable_scaling_params = []
-        for variable in variables:
-            min_val = variable.min()
-            max_val = variable.max()
+        for i, variable in enumerate(variables):
+            min_val = self.variable_scaling_params[i]["min"]
+            max_val = self.variable_scaling_params[i]["max"]
             scaled_variable = (variable - min_val) / (max_val - min_val)
             # scale the variable to the desired feature_range
             scaled_variable = (
@@ -50,10 +72,19 @@ class MinMaxScaler:
                 + self.feature_range[0]
             )
             scaled_variables.append(scaled_variable)
-            variable_scaling_params.append({"min": min_val, "max": max_val})
 
-        self.variable_scaling_params = variable_scaling_params
         return scaled_variables
+    
+    def fit_transform(self, variables: List[Union[np.ndarray, torch.tensor]]) -> List[Union[np.ndarray, torch.tensor]]:
+        """
+        Fit and transform the variables using min-max scaling.
+        Args:
+                variables: List of variables to be fitted and scaled. The variables should be 2d numpy arrays or torch tensors.
+        Returns:
+                scaled_variables: List of scaled variables.
+        """
+        self.fit(variables)
+        return self.transform(variables)
 
     def inverse_transform(self, variables: List[np.ndarray]) -> List[np.ndarray]:
         """
@@ -79,13 +110,30 @@ class MinMaxScaler:
 
 class Dataset(torch.utils.data.Dataset):
     r"""
+    Dataset class to be used with PyTorch. It can be used with both mesh and point data.
+    It is useful convert the `pyLOM.Dataset` to a PyTorch dataset and train neural networks with results from CFD simulations.
+
+    Example:
+        >>> original_dataset = pyLOM.Dataset.load(path)
+        >>> input_scaler = pyLOM.NN.MinMaxScaler()
+        >>> output_scaler = pyLOM.NN.MinMaxScaler()
+        >>> dataset = pyLOM.NN.Dataset(
+        ...     variables_out=(original_dataset["CP"],),
+        ...     variables_in=original_dataset.xyz,
+        ...     parameters=[[*zip(original_dataset.get_variable('AoA'), original_dataset.get_variable('Mach'))]], # to have each Mach and AoA pair just once. To have all possibnle combinations, use [original_dataset.get_variable('AoA'), original_dataset.get_variable("Mach")]
+        ...     inputs_scaler=input_scaler,
+        ...     outputs_scaler=output_scaler,
+        ... )
+
+
     Args:
-            variables_out (Tuple): Tuple of variables to be used as output. Each variable should be a 2d numpy array or torch tensor. If only one varielbe wants to be provided, it should be passed as a tuple with one element. E.g. ``(variable,)``.
+            variables_out (Tuple): Tuple of variables to be used as output. Each variable should be a 2d numpy array or torch tensor. If only one variable wants to be provided, it should be passed as a tuple with one element. E.g. ``(variable,)``.
             mesh_shape (Tuple): Shape of the mesh. If not mesh is used and the data is considered as points, leave this as default. Default is ``(1,)``.
             variables_in (np.ndarray): Input variables. Default is ``None``.
             parameters (List[List[float]]): List of parameters to be used as input. Default is ``None``.
             inputs_scaler (MinMaxScaler): Scaler to scale the input variables. Default is ``None``.
             outputs_scaler (MinMaxScaler): Scaler to scale the output variables. Default is ``None``.
+            snapshots_by_column (bool): If the snapshots from `variables_out` are stored by column. Default is ``True``.
     """
 
     def __init__(
@@ -104,11 +152,15 @@ class Dataset(torch.utils.data.Dataset):
         if snapshots_by_column:
             variables_out = [variable.T for variable in variables_out]
         if outputs_scaler is not None:
+            if not outputs_scaler.is_fitted:
+                outputs_scaler.fit(variables_out)
             variables_out = outputs_scaler.transform(variables_out)
         self.variables_out = self._process_variables_out(variables_out)
         if variables_in is not None:
             self.variables_in = self._process_variables_in(variables_in, parameters)
             if inputs_scaler is not None:
+                if not inputs_scaler.is_fitted:
+                    inputs_scaler.fit([self.variables_in[:, i] for i in range(self.variables_in.shape[1])])
                 self.variables_in = inputs_scaler.transform([self.variables_in[:, i] for i in range(self.variables_in.shape[1])])
                 self.variables_in = torch.stack(self.variables_in, dim=1)
         else:
@@ -172,17 +224,9 @@ class Dataset(torch.utils.data.Dataset):
         distributed in round-robin fashion to the lengths
         until there are no remainders left.
 
-        Optionally fix the generator for reproducible results, e.g.:
-
-        Example:
-                >>> # xdoctest: +SKIP
-                >>> generator1 = torch.Generator().manual_seed(42)
-                >>> generator2 = torch.Generator().manual_seed(42)
-                >>> random_split(range(10), [3, 7], generator=generator1)
-                >>> random_split(range(30), [0.3, 0.3, 0.4], generator=generator2)
+        Optionally fix the generator for reproducible results.
 
         Args:
-                dataset (Dataset): Dataset to be split
                 sizes (sequence): lengths or fractions of splits to be produced
                 generator (Generator): Generator used for the random permutation.
         """
