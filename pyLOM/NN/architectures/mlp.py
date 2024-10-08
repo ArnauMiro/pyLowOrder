@@ -327,9 +327,14 @@ class MLP(nn.Module):
         """
         optimization_params = optuna_optimizer.optimization_params
         input_dim, output_dim = train_dataset[0][0].shape[0], train_dataset[0][1].shape[0]
-        
         def optimization_function(trial) -> float:
-            training_params = {key: cls._get_optimizing_value(key, params, trial) for key, params in optimization_params.items()}
+            training_params = {} 
+            # put the key "p_dropouts", if present, at the end of the optimization_params dictionary to assure n_layers is already defined
+            if "p_dropouts" in optimization_params:
+                dropout_params = optimization_params.pop("p_dropouts")
+                optimization_params["p_dropouts"] = dropout_params          
+            for key, params in optimization_params.items():
+                training_params[key] = cls._get_optimizing_value(key, params, trial, training_params)
             model = cls(input_dim, output_dim, **training_params)
             if optuna_optimizer.pruner is not None:
                 epochs = training_params["epochs"]
@@ -357,9 +362,11 @@ class MLP(nn.Module):
         
         return cls(input_dim, output_dim, **optimization_params), optimization_params
 
-    def _get_optimizing_value(name, value, trial):
-        if isinstance(value, tuple):
+    def _get_optimizing_value(name, value, trial, training_params):
+        if isinstance(value, tuple) or isinstance(value, list):
             use_log = value[1] / value[0] >= 1000
+            if name == "p_dropouts":
+                return [trial.suggest_float(f"p_dropout_l{i}", value[0], value[1], log=use_log) for i in range(training_params["n_layers"])]
             if isinstance(value[0], int):
                 return trial.suggest_int(name, value[0], value[1], log=use_log)
             elif isinstance(value[0], float):
