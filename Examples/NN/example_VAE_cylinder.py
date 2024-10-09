@@ -29,7 +29,7 @@ padding     = 1
 activations = [pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh()]
 
 ## Load pyLOM dataset and set up results output
-BASEDIR = 'Testsuite'
+BASEDIR  = './DATA/'
 CASESTR = 'CYLINDER'
 DSETDIR = os.path.join(BASEDIR,f'{CASESTR}.h5')
 RESUDIR = 'vae_beta_%.2e_ld_%i' % (beta, lat_dim)
