@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# Autoencoder architecture for NN Module
+#
+# Last rev: 09/10/2024
+
 import torch
 import torch.nn            as nn
 import torch.nn.functional as F
@@ -11,7 +19,7 @@ from   torchsummary            import summary
 from   functools               import reduce
 from   operator                import mul
 
-from   ...utils.cr              import cr
+from   ...utils.cr             import cr
 
 
 ## Wrapper of a variational autoencoder
@@ -28,7 +36,7 @@ class Autoencoder(nn.Module):
         encoder.to(self._device)
         decoder.to(self._device)
         self.to(self._device)
-        summary(self, input_size=(self.inp_chan, *self.in_shape))
+        summary(self, input_size=(self.inp_chan, *self.in_shape),device=device)
       
     def _lossfunc(self, x, recon_x, reduction):
         return  F.mse_loss(recon_x.view(-1, self.N), x.view(-1, self.N),reduction=reduction)
