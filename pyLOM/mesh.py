@@ -10,7 +10,7 @@ from __future__ import print_function, division
 import os, numpy as np
 
 from .             import inp_out as io
-from .vmmath       import cellCenters
+from .vmmath       import cellCenters, normals
 from .utils.cr     import cr
 from .utils.mem    import mem
 from .utils.errors import raiseError
@@ -75,6 +75,7 @@ class Mesh(object):
 		self._type   = mtype
 		self._xyz    = xyz
 		self._xyzc   = None
+		self._normal = None
 		self._conec  = connectivity
 		self._eltype = eltype
 		self._cellO  = cellOrder
@@ -282,6 +283,10 @@ class Mesh(object):
 	def xyzc(self):
 		if self._xyzc is None: self._xyzc = self.cellcenters()
 		return self._xyzc
+	@property
+	def normal(self):
+		if self._normal is None: self._normal = normals(self._xyz,self._conec)
+		return self._normal
 
 	@property
 	def connectivity(self):
