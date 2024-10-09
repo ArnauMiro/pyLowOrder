@@ -10,6 +10,7 @@ import os, numpy as np, torch
 import torchvision.transforms.functional as TF
 import torch.nn.functional as F
 
+from torch.utils.data import Subset
 from torch            import Generator, randperm, default_generator
 from functools        import reduce
 from itertools        import product, accumulate
@@ -17,7 +18,6 @@ from operator         import mul
 from typing           import List, Optional, Tuple, cast, Sequence, Union
 
 from .                import DEVICE
-from ..vmmath         import temporal_mean, subtract_mean
 from ..utils.cr       import cr
 from ..utils.errors   import raiseWarning
 
@@ -210,6 +210,33 @@ class Dataset(torch.utils.data.Dataset):
         if self.variables_in is None:
             return self.variables_out[idx]
         return self.variables_in[idx], self.variables_out[idx]
+
+    def _crop2D(self, nh, nw):
+        cropdata = []
+        n0h, n0w = self.mesh_shape
+        print(self.variables_out.shape)
+        print(n0h, n0w, self.num_channels)
+        for ichannel in range(self.num_channels):
+            isnap = self.variables_out[ichannel]
+            print(isnap.shape)
+#            isnap = isnap.view(self.nt,n0h,n0w)
+#            print(isnap.shape)
+#            isnap = TF.crop(isnap, top=0, left=0, height=nh, width=nw)
+#            print(isnap.shape)
+#            cropdata.append(isnap.reshape(nh*nw,self.nt))
+#        self._data = cropdata
+
+    def _pad2D(self, nh, nw, n0h, n0w):
+        paddata = []
+        self._nh = n0h
+        self._nw = n0w
+        for ichannel in range(self._n_channels):
+            isnap = self.data[ichannel]
+            isnap = torch.Tensor(isnap)
+            isnap = isnap.view(self.nt,nh,nw)
+            isnap = F.pad(isnap, (0, n0w-nw, 0, n0h-nh), mode='constant', value=0)
+            paddata.append(isnap.reshape(n0h*n0w,self.nt))
+        self._data = paddata
 
     def get_splits(
         self,

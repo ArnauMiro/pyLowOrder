@@ -7,7 +7,7 @@
 # Last rev: 30/07/2021
 from __future__ import print_function, division
 
-import os, copy, mpi4py, numpy as np
+import os, mpi4py, numpy as np
 mpi4py.rc.recv_mprobe = False
 from mpi4py import MPI
 

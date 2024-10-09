@@ -42,36 +42,48 @@ nw  = 192
 ## Create a torch dataset
 m    = pyLOM.Mesh.load(DSETDIR)
 d    = pyLOM.Dataset.load(DSETDIR,ptable=m.partition_table)
-u_x  = d['VELOX']
-td   = pyLOM.NN.Dataset((u_x[:,np.newaxis],), (nh, nw))
+u_x  = d['VELOX'][:,0]
+u_y  = d['VORTI'][:,0]
 time = np.array([0])
+td   = pyLOM.NN.Dataset((u_x,u_y), (n0h, n0w))
+#td.crop((nh, nw), (n0h, n0w))
+td._crop2D(nh, nw)
 
 
-## Set and train the variational autoencoder
-encoder    = pyLOM.NN.Encoder2D(nlayers, lat_dim, nh, nw, td.num_channels, channels, kernel_size, padding, activations, nlinear)
-decoder    = pyLOM.NN.Decoder2D(nlayers, lat_dim, nh, nw, td.num_channels, channels, kernel_size, padding, activations, nlinear)
-model      = pyLOM.NN.Autoencoder(lat_dim, (nh, nw), td.num_channels, encoder, decoder, device=device)
-early_stop = pyLOM.NN.EarlyStopper(patience=5, min_delta=0.02)
-
-pipeline = pyLOM.NN.Pipeline(
-    train_dataset = td,
-    test_dataset = td,
-    model=model,
-    training_params={
-        "batch_size": 1,
-        "epochs": 10000,
-        "lr": 1e-4
-    },
-)
-pipeline.run()
-
-    
-## Reconstruct dataset and compute accuracy
-rec = model.reconstruct(td)
-rd  = np.zeros((n0h*n0w,1))
-rd[:nh*nw,:] = rec[0,:]
-d.add_field('VELOR',1,rd)
-d.add_field('utra',1,td.data[0][:,0].numpy())
-pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['VELOX', 'VELOR', 'utra'],fmt='vtkh5')
-pyLOM.NN.plotSnapshot(m,d,vars=['VELOR'],instant=0,component=0,cmap='jet',cpos='xy')
-pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet',cpos='xy')
+### Create a torch dataset
+#m    = pyLOM.Mesh.load(DSETDIR)
+#d    = pyLOM.Dataset.load(DSETDIR,ptable=m.partition_table)
+#u_x  = d['VELOX'][:nh*nw,0]
+#td   = pyLOM.NN.Dataset((u_x[:,np.newaxis],), (nh, nw))
+#time = np.array([0])
+#
+#
+### Set and train the variational autoencoder
+#encoder    = pyLOM.NN.Encoder2D(nlayers, lat_dim, nh, nw, td.num_channels, channels, kernel_size, padding, activations, nlinear)
+#decoder    = pyLOM.NN.Decoder2D(nlayers, lat_dim, nh, nw, td.num_channels, channels, kernel_size, padding, activations, nlinear)
+#model      = pyLOM.NN.Autoencoder(lat_dim, (nh, nw), td.num_channels, encoder, decoder, device=device)
+#early_stop = pyLOM.NN.EarlyStopper(patience=5, min_delta=0.02)
+#
+#pipeline = pyLOM.NN.Pipeline(
+#    train_dataset = td,
+#    test_dataset = td,
+#    model=model,
+#    training_params={
+#        "batch_size": 1,
+#        "epochs": 1,
+#        "lr": 1e-4
+#    },
+#)
+#pipeline.run()
+#
+#    
+### Reconstruct dataset and compute accuracy
+#rec = model.reconstruct(td)
+#rd  = np.zeros((n0h*n0w,1))
+#rd[:nh*nw,:] = rec[0,:]
+#d.add_field('VELOR',1,rd)
+#print(u_x.shape,rd.shape,len(d))
+##d.add_field('utra',1,td.variables_out[0,:,:].numpy().reshape(nh*nw))
+##pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['VELOX', 'VELOR', 'utra'],fmt='vtkh5')
+#pyLOM.NN.plotSnapshot(m,d,vars=['VELOR'],instant=0,component=0,cmap='jet',cpos='xy')
+##pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet',cpos='xy')
