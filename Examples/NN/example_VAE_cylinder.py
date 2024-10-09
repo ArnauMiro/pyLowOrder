@@ -63,7 +63,8 @@ pipeline = pyLOM.NN.Pipeline(
     training_params={
         "batch_size": 1,
         "epochs": 10000,
-        "lr": 1e-4
+        "lr": 1e-4,
+        "betasch": betasch
     },
 )
 pipeline.run()
