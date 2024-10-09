@@ -1,6 +1,15 @@
-from typing import List, Dict
-import warnings
-from .optimizer import OptunaOptimizer
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# NN pipeline routines.
+#
+# Last rev: 02/10/2024
+
+from typing         import List, Dict
+from .optimizer     import OptunaOptimizer
+from ..utils.errors import raiseWarning
+
 
 class Pipeline:
     r"""
@@ -62,9 +71,7 @@ class Pipeline:
         if self.optimizer is not None:
             if self.valid_dataset is None:
                 self.valid_dataset = self.train_dataset
-                warnings.warn(
-                    "Validation dataset not provided, using train dataset for evaluation on optimization"
-                )
+                raiseWarning( "Validation dataset not provided, using train dataset for evaluation on optimization")
 
             self._model, self.training_params = self.model_class.create_optimized_model(
                 train_dataset = self.train_dataset,

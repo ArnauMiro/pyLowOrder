@@ -38,6 +38,7 @@ def checkOutput(summary,reference,relTol,zeroTol,info=False):
 	file2 = open(reference,'r')
 	error = False
 	while True:
+		displ = False
 		line1 = file1.readline().strip()
 		if not line1: break
 		line2 = file2.readline().strip()
@@ -49,11 +50,13 @@ def checkOutput(summary,reference,relTol,zeroTol,info=False):
 			raise Exception('lines %s and %s differ in the field name ' % (line1,line2))
 		for v1,v2 in zip(dat1[1:],dat2[1:]):
 			if not assumeOK(v1,v2,relTol,zeroTol): 
-				print("field %s DIFFERS!"%name1)
-				print ("reference: %s" % line2,flush=True)
-				print ("output   : %s" % line1,flush=True)
 				error = True
-		if error: break
+				displ = True
+		if displ:
+			print("field %s DIFFERS!"%name1)
+			print ("reference: %s" % line2,flush=True)
+			print ("output   : %s" % line1,flush=True)
+			error = True
 	return 1 if error else 0
 
 def runtest(name,nprocs,file,datafile,var,params,relTol=RELTOL,zeroTol=ZEROTOL,resetRef=False,OUTROOT=OUTROOT,oversubscribe=False):

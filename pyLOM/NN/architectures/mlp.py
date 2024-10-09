@@ -1,15 +1,16 @@
-import torch
-import torch.nn as nn
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# MLP architecture for NN Module
+#
+# Last rev: 09/10/2024
+
+import os, torch, numpy as np, torch.nn as nn
+
 from torch.utils.data import DataLoader
-
-import os
-import numpy as np
-from typing import Optional, Dict, List, Tuple
-import sys
-
-import optuna
-
-from ..optimizer import OptunaOptimizer
+from typing           import Optional, Dict, List, Tuple
+from ..optimizer      import OptunaOptimizer, TrialPruned
 
 
 class MLP(nn.Module):
@@ -181,8 +182,7 @@ class MLP(nn.Module):
             
             if print_rate_epoch != 0 and (epoch % print_rate_epoch) == 0:
                 test_log = f" | Test loss (x1e5) {test_loss * 1e5:.4f}" if eval_dataloader is not None else ""
-                print(f"Epoch {epoch}/{total_epochs} | Train loss (x1e5) {train_loss * 1e5:.4f} {test_log}")
-                sys.stdout.flush()
+                print(f"Epoch {epoch}/{total_epochs} | Train loss (x1e5) {train_loss * 1e5:.4f} {test_log}", flush=True)
 
             epoch_list.append(epoch)
             self.state = (
@@ -344,8 +344,7 @@ class MLP(nn.Module):
                     y_pred, y_true = model.predict(eval_dataset, rescale_output=False, return_targets=True)
                     loss_val = ((y_pred - y_true)**2).mean()
                     trial.report(loss_val, epoch)
-                    if trial.should_prune():
-                        raise optuna.exceptions.TrialPruned()
+                    if trial.should_prune(): raise TrialPruned()
             else:
                 model.fit(train_dataset, **training_params)
                 y_pred, y_true = model.predict(eval_dataset, rescale_output=False, return_targets=True)
