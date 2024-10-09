@@ -201,7 +201,12 @@ class Dataset(torch.utils.data.Dataset):
         for product_element in cartesian_product:
             parameters_repeated.append(product_element.repeat(len(variables_in), 1))
         cartesian_product = torch.cat(parameters_repeated, dim=0)
-        return torch.cat([variables_in_repeated, cartesian_product], dim=os.
+        return torch.cat([variables_in_repeated, cartesian_product], dim=1).float()
+
+    def __len__(self):
+        return len(self.variables_out)
+
+    def __getitem__(self, idx):
         if self.variables_in is None:
             return self.variables_out[idx]
         return self.variables_in[idx], self.variables_out[idx]
