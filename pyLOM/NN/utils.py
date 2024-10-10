@@ -216,12 +216,14 @@ class Dataset(torch.utils.data.Dataset):
         n0h, n0w = self.mesh_shape
         print(self.variables_out.shape)
         print(n0h, n0w, self.num_channels)
-        for ichannel in range(self.num_channels):
-            isnap = self.variables_out[ichannel]
-            print(isnap.shape)
-#            isnap = isnap.view(self.nt,n0h,n0w)
-#            print(isnap.shape)
-#            isnap = TF.crop(isnap, top=0, left=0, height=nh, width=nw)
+        self.variables_out = TF.crop(self.variables_out, top=0, left=0, height=nh, width=nw)
+#         for ichannel in range(self.num_channels):
+#             isnap = self.variables_out[:, ichannel]
+#             print(isnap.shape)
+# #            isnap = isnap.view(self.nt,n0h,n0w)
+# #            print(isnap.shape)
+#             isnap = TF.crop(isnap, top=0, left=0, height=nh, width=nw)
+#             self.variables_out[:, ichannel] = isnap
 #            print(isnap.shape)
 #            cropdata.append(isnap.reshape(nh*nw,self.nt))
 #        self._data = cropdata
@@ -230,13 +232,14 @@ class Dataset(torch.utils.data.Dataset):
         paddata = []
         self._nh = n0h
         self._nw = n0w
-        for ichannel in range(self._n_channels):
-            isnap = self.data[ichannel]
-            isnap = torch.Tensor(isnap)
-            isnap = isnap.view(self.nt,nh,nw)
-            isnap = F.pad(isnap, (0, n0w-nw, 0, n0h-nh), mode='constant', value=0)
-            paddata.append(isnap.reshape(n0h*n0w,self.nt))
-        self._data = paddata
+        self.variables_out = TF.pad(self.variables_out, (0, n0w-nw, 0, n0h-nh), padding_mode='constant', fill=0)
+        # for ichannel in range(self._n_channels):
+        #     isnap = self.data[ichannel]
+        #     isnap = torch.Tensor(isnap)
+        #     isnap = isnap.view(self.nt,nh,nw)
+        #     isnap = F.pad(isnap, (0, n0w-nw, 0, n0h-nh), mode='constant', value=0)
+        #     paddata.append(isnap.reshape(n0h*n0w,self.nt))
+        # self._data = paddata
 
     def get_splits(
         self,

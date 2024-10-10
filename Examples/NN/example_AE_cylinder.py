@@ -25,7 +25,7 @@ activations = [pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(
 
 
 ## Load pyLOM dataset and set up results output
-BASEDIR  = './DATA/'
+BASEDIR  = './DATA'
 CASESTR = 'CYLINDER'
 DSETDIR = '%s/%s.h5' % (BASEDIR, CASESTR)
 RESUDIR = 'ae_ld_%i' % (lat_dim)
@@ -47,7 +47,12 @@ u_y  = d['VORTI'][:,0]
 time = np.array([0])
 td   = pyLOM.NN.Dataset((u_x,u_y), (n0h, n0w))
 #td.crop((nh, nw), (n0h, n0w))
+asd = td[:]
+print(asd.shape)
 td._crop2D(nh, nw)
+# td._pad2D(nh, nw, n0h, n0w)
+asd = td[:]
+print(asd.shape)
 
 
 ### Create a torch dataset
@@ -59,31 +64,33 @@ td._crop2D(nh, nw)
 #
 #
 ### Set and train the variational autoencoder
-#encoder    = pyLOM.NN.Encoder2D(nlayers, lat_dim, nh, nw, td.num_channels, channels, kernel_size, padding, activations, nlinear)
-#decoder    = pyLOM.NN.Decoder2D(nlayers, lat_dim, nh, nw, td.num_channels, channels, kernel_size, padding, activations, nlinear)
-#model      = pyLOM.NN.Autoencoder(lat_dim, (nh, nw), td.num_channels, encoder, decoder, device=device)
-#early_stop = pyLOM.NN.EarlyStopper(patience=5, min_delta=0.02)
-#
-#pipeline = pyLOM.NN.Pipeline(
-#    train_dataset = td,
-#    test_dataset = td,
-#    model=model,
-#    training_params={
-#        "batch_size": 1,
-#        "epochs": 1,
-#        "lr": 1e-4
-#    },
-#)
-#pipeline.run()
-#
-#    
-### Reconstruct dataset and compute accuracy
-#rec = model.reconstruct(td)
-#rd  = np.zeros((n0h*n0w,1))
-#rd[:nh*nw,:] = rec[0,:]
-#d.add_field('VELOR',1,rd)
-#print(u_x.shape,rd.shape,len(d))
-##d.add_field('utra',1,td.variables_out[0,:,:].numpy().reshape(nh*nw))
-##pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['VELOX', 'VELOR', 'utra'],fmt='vtkh5')
-#pyLOM.NN.plotSnapshot(m,d,vars=['VELOR'],instant=0,component=0,cmap='jet',cpos='xy')
-##pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet',cpos='xy')
+encoder    = pyLOM.NN.Encoder2D(nlayers, lat_dim, nh, nw, td.num_channels, channels, kernel_size, padding, activations, nlinear)
+decoder    = pyLOM.NN.Decoder2D(nlayers, lat_dim, nh, nw, td.num_channels, channels, kernel_size, padding, activations, nlinear)
+model      = pyLOM.NN.Autoencoder(lat_dim, (nh, nw), td.num_channels, encoder, decoder, device=device)
+early_stop = pyLOM.NN.EarlyStopper(patience=5, min_delta=0.02)
+
+pipeline = pyLOM.NN.Pipeline(
+   train_dataset = td,
+   test_dataset = td,
+   model=model,
+   training_params={
+       "batch_size": 1,
+       "epochs": 100,
+       "lr": 1e-4,
+       "callback":early_stop,
+   },
+   
+)
+pipeline.run()
+
+   
+## Reconstruct dataset and compute accuracy
+rec = model.reconstruct(td)
+rd  = np.zeros((n0h*n0w,1))
+rd[:nh*nw,:] = rec[0,:]
+d.add_field('VELOR',1,rd)
+print(u_x.shape,rd.shape,len(d))
+#d.add_field('utra',1,td.variables_out[0,:,:].numpy().reshape(nh*nw))
+#pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['VELOX', 'VELOR', 'utra'],fmt='vtkh5')
+# pyLOM.NN.plotSnapshot(m,d,vars=['VELOR'],instant=0,component=0,cmap='jet',cpos='xy')
+#pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet',cpos='xy')
