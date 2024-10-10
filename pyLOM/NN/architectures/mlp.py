@@ -280,7 +280,7 @@ class MLP(nn.Module):
     def load(
         cls, 
         path: str,
-        device: torch.device = torch.device("cpu"),
+        device: torch.device = DEVICE,
     ):
         r"""
         Load the model from a checkpoint file. Does not require the model to be instantiated.
