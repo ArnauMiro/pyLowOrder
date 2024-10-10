@@ -19,12 +19,13 @@ from   torchsummary            import summary
 from   functools               import reduce
 from   operator                import mul
 
+from   ..                      import DEVICE
 from   ...utils.cr             import cr
 
 
 ## Wrapper of a variational autoencoder
 class Autoencoder(nn.Module):
-    def __init__(self, latent_dim, in_shape, input_channels, encoder, decoder, device='cpu'):
+    def __init__(self, latent_dim, in_shape, input_channels, encoder, decoder, device=DEVICE):
         super(Autoencoder, self).__init__()
         self.lat_dim  = latent_dim
         self.in_shape = in_shape
@@ -160,7 +161,7 @@ class Autoencoder(nn.Module):
 
 ## Wrapper of a variational autoencoder
 class VariationalAutoencoder(Autoencoder):
-    def __init__(self, latent_dim, in_shape, input_channels, encoder, decoder, device='cpu'):
+    def __init__(self, latent_dim, in_shape, input_channels, encoder, decoder, device=DEVICE):
         super(VariationalAutoencoder, self).__init__(latent_dim, in_shape, input_channels, encoder, decoder, device)
 
     def _reparamatrizate(self, mu, logvar):

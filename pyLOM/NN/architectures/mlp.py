@@ -11,6 +11,7 @@ import os, torch, numpy as np, torch.nn as nn
 from torch.utils.data import DataLoader
 from typing           import Optional, Dict, List, Tuple
 from ..optimizer      import OptunaOptimizer, TrialPruned
+from ..               import DEVICE
 
 
 class MLP(nn.Module):
@@ -37,7 +38,7 @@ class MLP(nn.Module):
         hidden_size: int,
         p_dropouts: Optional[List[float]] = None,
         activation: torch.nn.Module = torch.nn.functional.relu,
-        device: torch.device = torch.device("cpu"),
+        device: torch.device = DEVICE,
         **kwargs: Dict,
     ):
         self.input_size = input_size
