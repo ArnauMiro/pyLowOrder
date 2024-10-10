@@ -43,7 +43,6 @@ nw  = 192
 m    = pyLOM.Mesh.load(DSETDIR)
 d    = pyLOM.Dataset.load(DSETDIR,ptable=m.partition_table)
 u_x  = d['VELOX'][:,0]
-time = np.array([0])
 td   = pyLOM.NN.Dataset((u_x,), (n0h, n0w))
 td.crop(nh, nw)
 
@@ -60,7 +59,7 @@ pipeline = pyLOM.NN.Pipeline(
    model=model,
    training_params={
        "batch_size": 1,
-       "epochs": 1000,
+       "epochs": 500,
        "lr": 1e-4,
        "callback":early_stop,
    },
@@ -76,6 +75,6 @@ rd.pad(n0h,n0w)
 td.pad(n0h,n0w)
 d.add_field('urec',1,rd[0,0,:,:].numpy().reshape((n0w*n0h,)))
 d.add_field('utra',1,td[0,0,:,:].numpy().reshape((n0w*n0h,)))
-pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec', 'VELOX', 'utra'],fmt='vtkh5')
+pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=[0],times=[0.],vars=['urec', 'VELOX', 'utra'],fmt='vtkh5')
 pyLOM.NN.plotSnapshot(m,d,vars=['urec'],instant=0,component=0,cmap='jet',cpos='xy')
 pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet',cpos='xy')
