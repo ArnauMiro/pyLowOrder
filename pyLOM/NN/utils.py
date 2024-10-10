@@ -19,7 +19,7 @@ from typing           import List, Optional, Tuple, cast, Sequence, Union
 
 from .                import DEVICE
 from ..utils.cr       import cr
-from ..utils.errors   import raiseWarning
+from ..utils.errors   import raiseWarning, raiseError
 
 
 class MinMaxScaler:
@@ -212,34 +212,26 @@ class Dataset(torch.utils.data.Dataset):
         return self.variables_in[idx], self.variables_out[idx]
 
     def _crop2D(self, nh, nw):
-        cropdata = []
         n0h, n0w = self.mesh_shape
-        print(self.variables_out.shape)
-        print(n0h, n0w, self.num_channels)
         self.variables_out = TF.crop(self.variables_out, top=0, left=0, height=nh, width=nw)
-#         for ichannel in range(self.num_channels):
-#             isnap = self.variables_out[:, ichannel]
-#             print(isnap.shape)
-# #            isnap = isnap.view(self.nt,n0h,n0w)
-# #            print(isnap.shape)
-#             isnap = TF.crop(isnap, top=0, left=0, height=nh, width=nw)
-#             self.variables_out[:, ichannel] = isnap
-#            print(isnap.shape)
-#            cropdata.append(isnap.reshape(nh*nw,self.nt))
-#        self._data = cropdata
+        self.mesh_shape    = (nh,nw)
 
-    def _pad2D(self, nh, nw, n0h, n0w):
-        paddata = []
-        self._nh = n0h
-        self._nw = n0w
-        self.variables_out = TF.pad(self.variables_out, (0, n0w-nw, 0, n0h-nh), padding_mode='constant', fill=0)
-        # for ichannel in range(self._n_channels):
-        #     isnap = self.data[ichannel]
-        #     isnap = torch.Tensor(isnap)
-        #     isnap = isnap.view(self.nt,nh,nw)
-        #     isnap = F.pad(isnap, (0, n0w-nw, 0, n0h-nh), mode='constant', value=0)
-        #     paddata.append(isnap.reshape(n0h*n0w,self.nt))
-        # self._data = paddata
+    def crop(self, *args):
+        if len(args) == 2: 
+            self._crop2D(*args)
+        else:
+            raiseError(f'Invalid number of dimensions {len(args)} for mesh {self.mesh_shape}')
+
+    def _pad2D(self, n0h, n0w):
+        nh, nw = self.mesh_shape
+        self.variables_out = TF.pad(self.variables_out, (0, 0, n0w-nw, n0h-nh), padding_mode='constant', fill=0)
+        self.mesh_shape    = (n0h,n0w)
+
+    def pad(self, *args):
+        if len(args) == 2: 
+            self._pad2D(*args)
+        else:
+            raiseError(f'Invalid number of dimensions {len(args)} for mesh {self.mesh_shape}')
 
     def get_splits(
         self,
