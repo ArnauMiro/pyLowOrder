@@ -212,13 +212,21 @@ class Dataset(torch.utils.data.Dataset):
         return self.variables_in[idx], self.variables_out[idx]
 
     def _crop2D(self, nh, nw):
-        n0h, n0w = self.mesh_shape
         self.variables_out = TF.crop(self.variables_out, top=0, left=0, height=nh, width=nw)
         self.mesh_shape    = (nh,nw)
+
+    def _crop3D(self, nh, nw, nd):
+        crops = []
+        for iz in range(nd):
+            crops.append( TF.crop(self.variables_out[:,:,:,:,iz], top=0, left=0, height=nh, width=nw) )
+        self.variables_out = torch.stack(crops,dim=-1)
+        self.mesh_shape = (nh,nw,nd)
 
     def crop(self, *args):
         if len(args) == 2: 
             self._crop2D(*args)
+        elif len(args) == 3:
+            self._crop3D(*args)
         else:
             raiseError(f'Invalid number of dimensions {len(args)} for mesh {self.mesh_shape}')
 
@@ -227,9 +235,48 @@ class Dataset(torch.utils.data.Dataset):
         self.variables_out = TF.pad(self.variables_out, (0, 0, n0w-nw, n0h-nh), padding_mode='constant', fill=0)
         self.mesh_shape    = (n0h,n0w)
 
+    def _crop3D(self, nd, nh, nw, n0d, n0h, n0w):
+        # Crop for 3D data
+        cropdata = []
+        self._nd = nd
+        self._nh = nh
+        self._nw = nw
+    
+        # Compute cropping offsets (center cropping)
+        crop_d_start = (n0d - nd) // 2
+        crop_h_start = (n0h - nh) // 2
+        crop_w_start = (n0w - nw) // 2
+    
+        for ichannel in range(self._n_channels):
+            crops = []
+            for t in range(self.nt):
+                # Extract the snapshot data for the current time step `t` and channel `ichannel`
+                isnap = self.data[ichannel][:, t]  # assuming self.data is [n_channels, samples, n0d, n0h, n0w]
+                isnap = torch.Tensor(isnap)  # Convert to tensor if not already
+    
+                # Reshape to 3D (Depth x Height x Width)
+                isnap = isnap.view(1, n0d, n0h, n0w)
+    
+                # Perform 3D cropping using slicing
+                isnap_cropped = isnap[:, 
+                                      crop_d_start:crop_d_start+nd, 
+                                      crop_h_start:crop_h_start+nh, 
+                                      crop_w_start:crop_w_start+nw]
+    
+                # Flatten the cropped tensor and append
+                crops.append(isnap_cropped.reshape(nd * nh * nw, 1))
+    
+            # Concatenate crops for all time steps
+            crops = torch.cat(crops, dim=1)
+            cropdata.append(crops)
+        # Store the cropped data
+        self._data = cropdata
+
     def pad(self, *args):
         if len(args) == 2: 
             self._pad2D(*args)
+        elif len(args) == 3: 
+            self._pad3D(*args)
         else:
             raiseError(f'Invalid number of dimensions {len(args)} for mesh {self.mesh_shape}')
 
