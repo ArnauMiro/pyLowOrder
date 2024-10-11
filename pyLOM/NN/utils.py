@@ -232,13 +232,6 @@ class Dataset(torch.utils.data.Dataset):
         self.variables_out = self.variables_out[:, :, :nh, :nw, :nd]
         self.mesh_shape    = (nh, nw, nd)
 
-    def _crop3D(self, nh, nw, nd):
-        crops = []
-        for iz in range(nd):
-            crops.append( TF.crop(self.variables_out[:,:,:,:,iz], top=0, left=0, height=nh, width=nw) )
-        self.variables_out = torch.stack(crops,dim=-1)
-        self.mesh_shape = (nh,nw,nd)
-
     def crop(self, *args):
         """
         Crop the dataset to a desired shape. The cropping currently works for 2D and 3D meshes.
@@ -255,12 +248,12 @@ class Dataset(torch.utils.data.Dataset):
 
     def _pad2D(self, n0h, n0w):
         nh, nw = self.mesh_shape
-        self.variables_out = TF.pad(self.variables_out, (0, 0, n0w-nw, n0h-nh), padding_mode='constant', fill=0)
+        self.variables_out = F.pad(self.variables_out, (0, n0w-nw, 0, n0h-nh), mode='constant', value=0)
         self.mesh_shape    = (n0h,n0w)
 
     def _pad3D(self, n0h, n0w, n0d):
         nh, nw, nd = self.mesh_shape
-        self.variables_out = F.pad(self.variables_out, (0, 0, n0d-nd, n0w-nw, n0h-nh), mode='constant', value=0)
+        self.variables_out = F.pad(self.variables_out, (0, n0w-nw, 0, n0h-nh, 0, n0d-nd), mode='constant', value=0)
         self.mesh_shape    = (n0h, n0w, n0d)
 
     def pad(self, *args):
