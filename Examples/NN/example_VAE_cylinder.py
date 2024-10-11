@@ -68,7 +68,8 @@ pipeline = pyLOM.NN.Pipeline(
         "batch_size": 1,
         "epochs": 500,
         "lr": 1e-4,
-        "betasch": betasch
+        "betasch": betasch,
+        "BASEDIR":RESUDIR
     },
 )
 pipeline.run()
