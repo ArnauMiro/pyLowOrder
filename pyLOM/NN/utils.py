@@ -134,7 +134,7 @@ class Dataset(torch.utils.data.Dataset):
             variables_out (Tuple): Tuple of variables to be used as output. Each variable should be a 2d numpy array or torch tensor. If only one variable wants to be provided, it should be passed as a tuple with one element. E.g. ``(variable,)``.
             mesh_shape (Tuple): Shape of the mesh. If not mesh is used and the data is considered as points, leave this as default. Default is ``(1,)``.
             variables_in (np.ndarray): Input variables. Default is ``None``.
-            parameters (List[List[float]]): List of parameters to be used as input. Default is ``None``.
+            parameters (List[List[Union[float, Tuple]]]): List of parameters to be used as input. All possible combinations of these parameters, i.e. its cartesian product, will appear along with variables_in. If there is only one inner list and its elements are tuples, they will be treated as a single element for the cartesiand produt, which is useful when the combination of the parameters was predefined. Default is ``None``.
             inputs_scaler (MinMaxScaler): Scaler to scale the input variables. Default is ``None``.
             outputs_scaler (MinMaxScaler): Scaler to scale the output variables. Default is ``None``.
             snapshots_by_column (bool): If the snapshots from `variables_out` are stored by column. Default is ``True``.
@@ -145,7 +145,7 @@ class Dataset(torch.utils.data.Dataset):
         variables_out: Tuple,
         mesh_shape: Tuple = (1,),
         variables_in: np.ndarray = None,
-        parameters: List[List[float]] = None,
+        parameters: List[List[Union[float, Tuple]]] = None,
         inputs_scaler=None,
         outputs_scaler=None,
         snapshots_by_column=True
@@ -184,23 +184,24 @@ class Dataset(torch.utils.data.Dataset):
 
     def _process_variables_in(self, variables_in, parameters):
         if parameters is None:
-            variables_in = torch.tensor(variables_in, dtype=torch.float32)
-            return variables_in
+            return torch.tensor(variables_in, dtype=torch.float32)
+        
         variables_in = torch.tensor(variables_in, dtype=torch.float32)
         # parameters is a list of lists of floats. Each contains the values that will be repeated for each input coordinate
         # in some sense, it is like a cartesian product of the parameters with the input coordinates
         if len(parameters) == 1:
             cartesian_product = torch.tensor(parameters[0])
         else:
-            cartesian_product = list(product(*parameters))
-            cartesian_product = torch.tensor(cartesian_product)
+            cartesian_product = torch.tensor(list(product(*parameters)))
+
         # repeat the variables_in for each element in the cartesian product
         variables_in_repeated = variables_in.repeat(len(cartesian_product), 1)
         # to repeat the cartesian product for each element in variables_in, we need to repeat each element in the cartesian product for the initial length of variables_in
-        parameters_repeated = []
-        for product_element in cartesian_product:
-            parameters_repeated.append(product_element.repeat(len(variables_in), 1))
-        cartesian_product = torch.cat(parameters_repeated, dim=0)
+        # parameters_repeated = []
+        # for product_element in cartesian_product:
+            # parameters_repeated.append(product_element.repeat(len(variables_in), 1))
+        # cartesian_product = torch.cat(parameters_repeated, dim=0)
+        cartesian_product = cartesian_product.repeat_interleave(variables_in.size(0), dim=0)
         return torch.cat([variables_in_repeated, cartesian_product], dim=1).float()
 
     def __len__(self):
@@ -210,15 +211,38 @@ class Dataset(torch.utils.data.Dataset):
         if self.variables_in is None:
             return self.variables_out[idx]
         return self.variables_in[idx], self.variables_out[idx]
+    
+    def __add__(self, other):
+        if not isinstance(other, Dataset):
+            raiseError(f"Cannot add Dataset with {type(other)}")
+        if self.variables_in is None:
+            variables_in = None
+        else:
+            variables_in = torch.cat([self.variables_in, other.variables_in], dim=0)
+        variables_out = torch.cat([self.variables_out, other.variables_out], dim=0)
+        self.variables_in = variables_in
+        self.variables_out = variables_out
+        return self
 
     def _crop2D(self, nh, nw):
-        n0h, n0w = self.mesh_shape
-        self.variables_out = TF.crop(self.variables_out, top=0, left=0, height=nh, width=nw)
-        self.mesh_shape    = (nh,nw)
+        self.variables_out = self.variables_out[:, :, :nh, :nw]
+        self.mesh_shape    = (nh, nw)
+
+    def _crop3D(self, nh, nw, nd):
+        self.variables_out = self.variables_out[:, :, :nh, :nw, :nd]
+        self.mesh_shape    = (nh, nw, nd)
 
     def crop(self, *args):
+        """
+        Crop the dataset to a desired shape. The cropping currently works for 2D and 3D meshes.
+
+        Args:
+            args (Tuple): Desired shape of the mesh. If the mesh is 2D, the shape should be a tuple with two elements. If the mesh is 3D, the shape should be a tuple with three elements.
+        """
         if len(args) == 2: 
             self._crop2D(*args)
+        elif len(args) == 3:
+            self._crop3D(*args)
         else:
             raiseError(f'Invalid number of dimensions {len(args)} for mesh {self.mesh_shape}')
 
@@ -227,9 +251,22 @@ class Dataset(torch.utils.data.Dataset):
         self.variables_out = TF.pad(self.variables_out, (0, 0, n0w-nw, n0h-nh), padding_mode='constant', fill=0)
         self.mesh_shape    = (n0h,n0w)
 
+    def _pad3D(self, n0h, n0w, n0d):
+        nh, nw, nd = self.mesh_shape
+        self.variables_out = F.pad(self.variables_out, (0, n0d - nd, 0, n0w - nw, 0, n0h - nh), mode='constant', value=0)
+        self.mesh_shape    = (n0h, n0w, n0d)
+
     def pad(self, *args):
+        """
+        Pad the dataset to a desired shape. The padding currently works for 2D and 3D meshes.
+
+        Args:
+            args (Tuple): Desired shape of the mesh. If the mesh is 2D, the shape should be a tuple with two elements. If the mesh is 3D, the shape should be a tuple with three elements.
+        """
         if len(args) == 2: 
             self._pad2D(*args)
+        elif len(args) == 3:
+            self._pad3D(*args)
         else:
             raiseError(f'Invalid number of dimensions {len(args)} for mesh {self.mesh_shape}')
 
