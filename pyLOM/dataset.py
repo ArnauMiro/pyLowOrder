@@ -110,6 +110,14 @@ class Dataset(object):
 		'''
 		self._vardict[key]['value'] = value
 
+	def get_dim(self,var,idim):
+		'''
+		Recover the value of a variable for a given dimension
+		'''
+		ndim = self._fieldict[var]['ndim']
+		if idim >= ndim: raiseError(f'Requested dimension {idim} for {var} greater than its number of dimensions {ndim}!')
+		return self._fieldict[var]['value'][idim:ndim*len(self):ndim]
+
 	def info(self,var):
 		'''
 		Returns the information for a certain variable
