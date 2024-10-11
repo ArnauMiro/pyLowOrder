@@ -6,6 +6,8 @@ import optuna
 
 
 DATASET_DIR = Path("DLR_DATA")
+RESUDIR = "./MLP_DLR_airfoil"
+pyLOM.NN.create_results_folder(RESUDIR)
 
 input_scaler = pyLOM.NN.MinMaxScaler()
 output_scaler = pyLOM.NN.MinMaxScaler()   
@@ -89,10 +91,13 @@ pipeline = pyLOM.NN.Pipeline(
 pipeline.run()
 
 # check saving and loading the model
-pipeline.model.save("model.pth")
-model = pyLOM.NN.MLP.load("model.pth")
+pipeline.model.save(RESUDIR + "/model.pth")
+model = pyLOM.NN.MLP.load(RESUDIR + "/model.pth")
 
+# to predict from a dataset
 preds = model.predict(dataset_test, batch_size=2048)
+# to predict from a tensor
+# preds = model(torch.tensor(dataset_test[:][0], device=model.device)).cpu().detach().numpy()
 scaled_preds = output_scaler.inverse_transform([preds])[0]
 scaled_y = output_scaler.inverse_transform([dataset_test[:][1]])[0]
 

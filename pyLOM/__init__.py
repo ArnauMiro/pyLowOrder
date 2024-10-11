@@ -4,8 +4,6 @@
 #
 # Last rev: 09/07/2021
 
-# Import Low Order Models
-from . import POD, DMD, SPOD, NN
 
 # Import essential tools
 from .                import inp_out as io, vmmath as math, utils
@@ -18,5 +16,7 @@ from .utils.cr     import cr, cr_start, cr_stop, cr_reset, cr_info
 from .utils.parall import pprint
 from .utils.plots  import show_plots, close_plots
 
+# Import Low Order Models
+from . import POD, DMD, SPOD, NN
 
 del dataset, partition_table, mesh

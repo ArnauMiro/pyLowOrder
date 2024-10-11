@@ -62,6 +62,7 @@ pipeline = pyLOM.NN.Pipeline(
        "epochs": 500,
        "lr": 1e-4,
        "callback":early_stop,
+       'BASEDIR':RESUDIR,
    },
    
 )
