@@ -11,7 +11,8 @@ import os, torch, numpy as np, torch.nn as nn
 from torch.utils.data import DataLoader
 from typing           import Optional, Dict, List, Tuple
 from ..optimizer      import OptunaOptimizer, TrialPruned
-from ..               import DEVICE
+from ..               import DEVICE # pyLOM/NN/__init__.py
+from ...              import pprint, cr # pyLOM/__init__.py
 
 
 class MLP(nn.Module):
@@ -76,6 +77,7 @@ class MLP(nn.Module):
         z = self.oupt(x)
         return z
     
+    @cr('MLP.fit')
     def fit(
         self,
         train_dataset,
@@ -161,7 +163,7 @@ class MLP(nn.Module):
                 train_loss_list.append(loss_val_item)
                 train_loss += loss_val_item
                 if print_rate_batch != 0 and (b_idx % print_rate_batch) == 0:
-                    print("Batch %4d/%4d | Train loss (x1e5) %0.4f" % (b_idx, len(train_dataloader), loss_val_item * 1e5))
+                    pprint(0, "Batch %4d/%4d | Train loss (x1e5) %0.4f" % (b_idx, len(train_dataloader), loss_val_item * 1e5), flush=True)
                    
             train_loss = train_loss / (b_idx + 1)
             
@@ -183,7 +185,7 @@ class MLP(nn.Module):
             
             if print_rate_epoch != 0 and (epoch % print_rate_epoch) == 0:
                 test_log = f" | Test loss (x1e5) {test_loss * 1e5:.4f}" if eval_dataloader is not None else ""
-                print(f"Epoch {epoch}/{total_epochs} | Train loss (x1e5) {train_loss * 1e5:.4f} {test_log}", flush=True)
+                pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss (x1e5) {train_loss * 1e5:.4f} {test_log}", flush=True)
 
             epoch_list.append(epoch)
             self.state = (
@@ -194,6 +196,7 @@ class MLP(nn.Module):
                 test_loss_list,
                 )
     
+    @cr('MLP.predict')
     def predict(
         self, 
         X, 
@@ -202,8 +205,8 @@ class MLP(nn.Module):
     ):
         r"""
         Predict the target values for the input data. The dataset is loaded to a DataLoader with the provided keyword arguments. 
-        The model is set to evaluation mode and the predictions are made using the input data. The output can be rescaled using 
-        the dataset scaler.
+        The model is set to evaluation mode and the predictions are made using the input data. 
+        To make a prediction from a torch tensor, use the `__call__` method directly.
 
         Args:
             X (BaseDataset): The dataset whose target values are to be predicted using the input data.
@@ -243,7 +246,8 @@ class MLP(nn.Module):
                 batch_size = x.size(0)
                 end_idx = start_idx + batch_size
                 all_predictions[start_idx:end_idx, :] = output.cpu().numpy()
-                all_targets[start_idx:end_idx, :] = y.cpu().numpy()
+                if return_targets:
+                    all_targets[start_idx:end_idx, :] = y.cpu().numpy()
                 start_idx = end_idx
 
         if return_targets:
@@ -307,6 +311,7 @@ class MLP(nn.Module):
         return model
     
     @classmethod
+    @cr('MLP.create_optimized_model')
     def create_optimized_model(
         cls, 
         train_dataset, 
