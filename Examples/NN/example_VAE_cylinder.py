@@ -47,8 +47,8 @@ nw  = 192
 ## Create a torch dataset
 m    = pyLOM.Mesh.load(DSETDIR)
 d    = pyLOM.Dataset.load(DSETDIR,ptable=m.partition_table)
-u_x  = d['VELOX'][:,0]
-time = d.get_variable('time')[0]
+u_x  = d['VELOX']
+time = d.get_variable('time')
 td   = pyLOM.NN.Dataset((u_x,), (n0h, n0w))
 td.crop(nh, nw)
 
@@ -66,7 +66,7 @@ pipeline = pyLOM.NN.Pipeline(
     model=model,
     training_params={
         "batch_size": 1,
-        "epochs": 500,
+        "epochs": 5,
         "lr": 1e-4,
         "betasch": betasch,
         "BASEDIR":RESUDIR
@@ -80,8 +80,9 @@ rec = model.reconstruct(td)
 rd  = pyLOM.NN.Dataset((rec,), (nh, nw))
 rd.pad(n0h, n0w)
 td.pad(n0h, n0w)
-d.add_field('urec',1,rd[0,0,:,:].numpy().reshape((n0w*n0h,)))
-d.add_field('utra',1,td[0,0,:,:].numpy().reshape((n0w*n0h,)))
+print(td.shape,rd.shape)
+d.add_field('urec',1,rd[:,0,:,:].numpy().reshape((n0w*n0h,)))
+d.add_field('utra',1,td[:,0,:,:].numpy().reshape((n0w*n0h,)))
 pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=[0],times=[time],vars=['urec', 'VELOX', 'utra'],fmt='vtkh5')
 pyLOM.NN.plotSnapshot(m,d,vars=['urec'],instant=0,component=0,cmap='jet',cpos='xy')
 pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet',cpos='xy')
