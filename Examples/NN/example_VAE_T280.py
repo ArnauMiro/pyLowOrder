@@ -63,6 +63,7 @@ n0z = len(np.unique(d.xyz[:,2]))
 nx  = 96
 ny  = 32
 nz  = n0z
+nt  = len(time)
 
 
 ## Create the torch dataset
@@ -97,8 +98,8 @@ rec = model.reconstruct(td)
 rd  = pyLOM.NN.Dataset((rec,), (nx, ny, nz))
 rd.pad(n0x, n0y, n0z)
 td.pad(n0x, n0y, n0z)
-d.add_field('urec', 1,rd[0,0,:,:,:].numpy().reshape((n0x*n0y*n0z,)))
-d.add_field('utra',1,td[0,0,:,:,:].numpy().reshape((n0x*n0y*n0z,)))
+d.add_field('urec',1,rd[:,0,:,:,:].numpy().reshape((n0x*n0y*n0z,nt)))
+d.add_field('utra',1,td[:,0,:,:,:].numpy().reshape((n0x*n0y*n0z,nt)))
 pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec','VELOC','utra'],fmt='vtkh5')
 pyLOM.NN.plotSnapshot(m,d,vars=['urec'],instant=0,component=0,cmap='jet')
 pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet')
