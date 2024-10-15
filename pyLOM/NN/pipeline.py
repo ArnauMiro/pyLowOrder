@@ -6,7 +6,7 @@
 #
 # Last rev: 02/10/2024
 
-from typing         import List, Dict
+from typing         import List, Dict, Any
 from .optimizer     import OptunaOptimizer
 from ..utils.errors import raiseWarning
 
@@ -64,9 +64,12 @@ class Pipeline:
         """
         return self._model
 
-    def run(self):
+    def run(self) -> Any:
         """
         Run the pipeline.
+
+        Returns:
+            model_output (Any): The output of the model's fit method.
         """
         if self.optimizer is not None:
             if self.valid_dataset is None:
@@ -79,6 +82,8 @@ class Pipeline:
                 optuna_optimizer = self.optimizer,
             )
 
-        self._model.fit(
+        model_output = self._model.fit(
             self.train_dataset, eval_dataset=self.test_dataset, **self.training_params
         )
+
+        return model_output
