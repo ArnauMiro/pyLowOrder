@@ -9,7 +9,7 @@
 import os, torch, numpy as np, torch.nn as nn
 
 from torch.utils.data import DataLoader
-from typing           import Optional, Dict, List, Tuple
+from typing           import Dict, Tuple
 from ..optimizer      import OptunaOptimizer, TrialPruned
 from ..               import DEVICE # pyLOM/NN/__init__.py
 from ...              import pprint, cr # pyLOM/__init__.py
@@ -25,7 +25,7 @@ class MLP(nn.Module):
         output_size (int): Number of output features.
         n_layers (int): Number of hidden layers.
         hidden_size (int): Number of neurons in each hidden layer.
-        p_dropouts (List[float], optional): Dropout probability for each hidden layer (default: ``None``).
+        p_dropouts (float, optional): Dropout probability for the hidden layers (default: ``0.0``).
         checkpoint_file (str, optional): Path to a checkpoint file to load the model from (default: ``None``).
         activation (torch.nn.Module, optional): Activation function to use (default: ``torch.nn.functional.relu``).
         device (torch.device, optional): Device to use (default: ``torch.device("cpu")``).
@@ -37,7 +37,7 @@ class MLP(nn.Module):
         output_size: int,
         n_layers: int,
         hidden_size: int,
-        p_dropouts: Optional[List[float]] = None,
+        p_dropouts: float = 0.0,
         activation: torch.nn.Module = torch.nn.functional.relu,
         device: torch.device = DEVICE,
         **kwargs: Dict,
@@ -46,8 +46,6 @@ class MLP(nn.Module):
         self.output_size = output_size
         self.n_layers = n_layers
         self.hidden_size = hidden_size
-        if p_dropouts is None:
-            p_dropouts = [0]*n_layers
         self.p_dropouts = p_dropouts
         self.activation = activation
         self.device = device
@@ -58,7 +56,8 @@ class MLP(nn.Module):
             in_size = input_size if i == 0 else hidden_size
             out_size = hidden_size
             self.layers.append(nn.Linear(in_size, out_size))
-            self.layers.append(nn.Dropout(p_dropouts[i]))
+            if p_dropouts > 0:
+                self.layers.append(nn.Dropout(p_dropouts))
         self.oupt = nn.Linear(hidden_size, output_size)
 
         for layer in self.layers:
@@ -97,8 +96,8 @@ class MLP(nn.Module):
         Fit the model to the training data. If eval_set is provided, the model will be evaluated on this set after each epoch. 
         
         Args:
-            train_dataset (BaseDataset): Training dataset to fit the model.
-            eval_dataset (BaseDataset, optional): Evaluation dataset to evaluate the model after each epoch (default: ``None``).
+            train_dataset: Training dataset to fit the model.
+            eval_dataset (optional): Evaluation dataset to evaluate the model after each epoch (default: ``None``).
             epochs (int, optional): Number of epochs to train the model (default: ``100``).
             lr (float, optional): Learning rate for the optimizer (default: ``0.001``).
             lr_gamma (float, optional): Multiplicative factor of learning rate decay (default: ``1``).
@@ -209,11 +208,11 @@ class MLP(nn.Module):
         To make a prediction from a torch tensor, use the `__call__` method directly.
 
         Args:
-            X (BaseDataset): The dataset whose target values are to be predicted using the input data.
+            X: The dataset whose target values are to be predicted using the input data.
             rescale_output (bool): Whether to rescale the output with the scaler of the dataset (default: ``True``).
             kwargs (dict, optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):
-                - batch_size (int, optional): Batch size (default: ``32``).
-                - shuffle (bool, optional): Shuffle the data (default: ``True``).
+                - batch_size (int, optional): Batch size (default: ``256``).
+                - shuffle (bool, optional): Shuffle the data (default: ``False``).
                 - num_workers (int, optional): Number of workers to use (default: ``0``).
                 - pin_memory (bool, optional): Pin memory (default: ``True``).
  
@@ -257,13 +256,14 @@ class MLP(nn.Module):
 
     def save(
         self, 
-        path: str = None,
+        path: str,
     ):
         r"""
         Save the model to a checkpoint file.
 
         Args:
-            path (str): Path to save the model.
+            path (str): Path to save the model. It can be either a path to a directory or a file name. 
+            If it is a directory, the model will be saved with a filename that includes the number of epochs trained.
         """
         checkpoint = {"input_size": self.input_size, 
                       "output_size": self.output_size, 
@@ -290,7 +290,7 @@ class MLP(nn.Module):
         Load the model from a checkpoint file. Does not require the model to be instantiated.
 
         Args:
-            path (str): Path to load the model from.
+            path (str): Path to the file to load the model from.
             device (torch.device, optional): Device to use (default: ``torch.device("cpu")``).
 
         Returns:
@@ -329,31 +329,27 @@ class MLP(nn.Module):
             kwargs: Additional keyword arguments.
 
         Returns:
-            Tuple [Model, Dict]: The optimized model and the optimization parameters.
+            Tuple [MLP, Dict]: The optimized model and the optimization parameters.
         """
         optimization_params = optuna_optimizer.optimization_params
         input_dim, output_dim = train_dataset[0][0].shape[0], train_dataset[0][1].shape[0]
         def optimization_function(trial) -> float:
-            training_params = {} 
-            # put the key "p_dropouts", if present, at the end of the optimization_params dictionary to assure n_layers is already defined
-            if "p_dropouts" in optimization_params:
-                dropout_params = optimization_params.pop("p_dropouts")
-                optimization_params["p_dropouts"] = dropout_params          
+            training_params = {}       
             for key, params in optimization_params.items():
-                training_params[key] = cls._get_optimizing_value(key, params, trial, training_params)
+                training_params[key] = cls._get_optimizing_value(key, params, trial)
             model = cls(input_dim, output_dim, **training_params)
             if optuna_optimizer.pruner is not None:
                 epochs = training_params["epochs"]
                 training_params["epochs"] = 1
                 for epoch in range(epochs):
                     model.fit(train_dataset, **training_params)
-                    y_pred, y_true = model.predict(eval_dataset, rescale_output=False, return_targets=True)
+                    y_pred, y_true = model.predict(eval_dataset, return_targets=True)
                     loss_val = ((y_pred - y_true)**2).mean()
                     trial.report(loss_val, epoch)
                     if trial.should_prune(): raise TrialPruned()
             else:
                 model.fit(train_dataset, **training_params)
-                y_pred, y_true = model.predict(eval_dataset, rescale_output=False, return_targets=True)
+                y_pred, y_true = model.predict(eval_dataset, return_targets=True)
                 loss_val = ((y_pred - y_true)**2).mean()
             
             return loss_val
@@ -367,11 +363,9 @@ class MLP(nn.Module):
         
         return cls(input_dim, output_dim, **optimization_params), optimization_params
 
-    def _get_optimizing_value(name, value, trial, training_params):
+    def _get_optimizing_value(name, value, trial):
         if isinstance(value, tuple) or isinstance(value, list):
             use_log = value[1] / value[0] >= 1000
-            if name == "p_dropouts":
-                return [trial.suggest_float(f"p_dropout_l{i}", value[0], value[1], log=use_log) for i in range(training_params["n_layers"])]
             if isinstance(value[0], int):
                 return trial.suggest_int(name, value[0], value[1], log=use_log)
             elif isinstance(value[0], float):

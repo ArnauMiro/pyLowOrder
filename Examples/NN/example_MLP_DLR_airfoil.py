@@ -5,7 +5,7 @@ import torch
 import optuna
 
 
-DATASET_DIR = Path("DLR_DATA")
+DATASET_DIR = Path("/home/d.ramos/Datos_DLR_pylom") # DLR_DATA
 RESUDIR = "./MLP_DLR_airfoil"
 pyLOM.NN.create_results_folder(RESUDIR)
 
@@ -60,7 +60,7 @@ model = pyLOM.NN.MLP(
     output_size=1,
     hidden_size=256,
     n_layers=2,
-    p_dropouts=[0.15, 0.15],
+    p_dropouts=0.15,
 )
 
 training_params = {
@@ -74,7 +74,7 @@ training_params = {
     "lr": 0.0008380427541690664, 
     "lr_gamma": 0.9905178804615045, 
     "batch_size": 119, 
-    "hidden_size": 129, 
+    "hidden_size": 129,
     "n_layers": 6
 }
 
@@ -82,8 +82,10 @@ pipeline = pyLOM.NN.Pipeline(
     train_dataset=dataset_train,
     test_dataset=dataset_test,
     valid_dataset=val_dataset,
+    # To optimize the hyperparameters:
     # optimizer=optimizer,
     # model_class=pyLOM.NN.MLP,
+    # To train a model:
     model=model,
     training_params=training_params,
 )
@@ -107,4 +109,3 @@ print(scaled_y.min(), scaled_y.max())
 print(f"MAE: {np.abs(scaled_preds - np.array(scaled_y)).mean()}")
 print(f"MRE: {np.abs(scaled_preds - np.array(scaled_y)).mean() / abs(np.array(scaled_y).mean() + 1e-6)}")
 print(f"MSE: {((scaled_preds - np.array(scaled_y)) ** 2).mean()}")
-print(f"r2 score: {np.corrcoef(scaled_preds, np.array(scaled_y))[0, 1] ** 2}")

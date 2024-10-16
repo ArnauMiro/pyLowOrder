@@ -18,16 +18,16 @@ class Pipeline:
     To train a model with fixed parameters, provide a model and training parameters.
 
     Args: 
-        train_dataset (BaseDataset): The training dataset.
-        valid_dataset (BaseDataset, optional): The validation dataset. Default is `None`.
-        test_dataset (BaseDataset, optional): The test dataset. Default is `None`.
-        model (Model, optional): The model to train. Default is `None`. 
+        train_dataset: The training dataset.
+        valid_dataset (optional): The validation dataset. Default is ``None``.
+        test_dataset (optional): The test dataset. Default is ``None``.
+        model (Model, optional): The model to train. Default is ``None``. 
             If optimizer and model_class are provided, this is not used.
-        training_params (Dict, optional): The parameters for training the model. Default is `None`. 
+        training_params (Dict, optional): The parameters for training the model. Default is ``None``. 
             If optimizer and model_class are provided, this is not used.
-        optimizer (OptunaOptimizer, optional): The optimizer to use for optimization. Default is `None`.
-        model_class (Model, optional): The model class to use for optimization. Default is `None`.
-        evaluators (List, optional): The evaluators to use for evaluating the model. Default is `[]`.
+        optimizer (OptunaOptimizer, optional): The optimizer to use for optimization. Default is ``None``.
+        model_class (Model, optional): The model class to use for optimization. Default is ``None``.
+        evaluators (List, optional): The evaluators to use for evaluating the model. Default is ``[]``.
 
     Raises:
         AssertionError: If neither model and training_params nor optimizer and model_class are provided.
