@@ -132,6 +132,7 @@ dependencies = [
 full = [
   "ensight-reader",
   "pyvista",
+  "optuna",
 ]
 
 # List URLs that are relevant to your project

@@ -2,17 +2,15 @@
 #
 # pyLOM - Python Low Order Modeling.
 #
-# NN general architectures.
+# Encoder-Decoder architecture for NN Module
 #
-# Last rev: 02/10/2024
-from __future__ import print_function
+# Last rev: 09/10/2024
 
 import torch.nn as nn
-import torch.nn.functional as F
-import numpy as np
+
 
 class Encoder2D(nn.Module):
-    def __init__(self, nlayers, latent_dim, nh, nw, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=True, stride=2, dropout=0, vae=False):
+    def __init__(self, nlayers, latent_dim, nh, nw, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=False, stride=2, dropout=0, vae=False):
         super(Encoder2D, self).__init__()
 
         self.nlayers    = nlayers
@@ -70,9 +68,10 @@ class Encoder2D(nn.Module):
             return self.mu(out), self.logvar(out)
         else:
             return self.z(out)
-    
+
+
 class Decoder2D(nn.Module):
-    def __init__(self, nlayers, latent_dim, nh, nw, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=True, stride=2, dropout=0):
+    def __init__(self, nlayers, latent_dim, nh, nw, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=False, stride=2, dropout=0):
         super(Decoder2D, self).__init__()       
         
         self.nlayers    = nlayers
@@ -124,9 +123,10 @@ class Decoder2D(nn.Module):
                 out = self.norm_layers[ilayer](out)
             out = self.funcs[self.nlayers-ilayer-1](deconv_layer(out))
         return self.deconv_layers[-1](out)
-    
+
+
 class Encoder3D(nn.Module):
-    def __init__(self, nlayers, latent_dim, nx, ny, nz, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=True, stride = 2, dropout = 0, vae = False):
+    def __init__(self, nlayers, latent_dim, nx, ny, nz, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=False, stride = 2, dropout = 0, vae = False):
         super(Encoder3D,self).__init__()
 
         self.nlayers = nlayers
@@ -187,8 +187,9 @@ class Encoder3D(nn.Module):
         else:
             return self.z(out)
 
+
 class Decoder3D(nn.Module):
-    def __init__(self, nlayers, latent_dim, nx, ny, nz, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=True, stride=2, dropout=0):
+    def __init__(self, nlayers, latent_dim, nx, ny, nz, input_channels, filter_channels, kernel_size, padding, activation_funcs, nlinear, batch_norm=False, stride=2, dropout=0):
         super(Decoder3D, self).__init__()       
         
         self.nlayers = nlayers

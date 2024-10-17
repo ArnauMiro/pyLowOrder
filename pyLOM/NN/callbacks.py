@@ -9,6 +9,7 @@ from __future__ import print_function
 
 import numpy as np
 
+
 ## Early stopper callback
 class EarlyStopper:
     def __init__(self, patience=1, min_delta=0):

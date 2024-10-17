@@ -59,23 +59,23 @@ td.crop(nh, nw)
 
 
 ## Set and train the variational autoencoder
-betasch    = pyLOM.NN.betaLinearScheduler(0., beta, beta_start, beta_wmup)
-encoder    = pyLOM.NN.Encoder2D(nlayers, lat_dim, nh, nw, td.num_channels, channels, kernel_size, padding, activations, nlinear, vae=True)
+encoder    = pyLOM.NN.Encoder2D(nlayers, lat_dim, nh, nw, td.num_channels, channels, kernel_size, padding, activations, nlinear)
 decoder    = pyLOM.NN.Decoder2D(nlayers, lat_dim, nh, nw, td.num_channels, channels, kernel_size, padding, activations, nlinear)
-model      = pyLOM.NN.VariationalAutoencoder(lat_dim, (nh, nw), td.num_channels, encoder, decoder, device=device)
+model      = pyLOM.NN.Autoencoder(lat_dim, (nh, nw), td.num_channels, encoder, decoder, device=device)
 early_stop = pyLOM.NN.EarlyStopper(patience=5, min_delta=0.02)
 
 pipeline = pyLOM.NN.Pipeline(
-    train_dataset = td,
-    test_dataset  = td,
-    model=model,
-    training_params={
-        "batch_size": 1,
-        "epochs": 100,
-        "lr": 1e-4,
-        "betasch": betasch,
-        "BASEDIR":RESUDIR
-    },
+   train_dataset = td,
+   test_dataset  = td,
+   model         = model,
+   training_params = {
+       "batch_size": 1,
+       "epochs": 500,
+       "lr": 1e-4,
+       "callback":early_stop,
+       'BASEDIR':RESUDIR,
+   },
+   
 )
 pipeline.run()
 
@@ -85,8 +85,8 @@ rec = model.reconstruct(td)
 rd  = pyLOM.NN.Dataset((rec), (nh, nw))
 rd.pad(n0h, n0w)
 td.pad(n0h, n0w)
-d.add_field('urec',1,rd[:,0,:,:].numpy().reshape((n0w*n0h,)))
-d.add_field('utra',1,td[:,0,:,:].numpy().reshape((n0w*n0h,)))
+d.add_field('urec',1,rd[0,0,:,:].numpy().reshape((n0w*n0h,)))
+d.add_field('utra',1,td[0,0,:,:].numpy().reshape((n0w*n0h,)))
 pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=VARIABLES+['urec', 'utra'],fmt='vtkh5')
 
 
