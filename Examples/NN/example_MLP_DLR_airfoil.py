@@ -119,10 +119,10 @@ scaled_preds = scaler.inverse_transform([preds])[0]
 scaled_y     = scaler.inverse_transform([td_test[:][1]])[0]
 
 # check that the scaling is correct
-print(scaled_y.min(), scaled_y.max())
+pyLOM.pprint(0,scaled_y.min(), scaled_y.max())
 
-print(f"MAE: {np.abs(scaled_preds - np.array(scaled_y)).mean()}")
-print(f"MRE: {np.abs(scaled_preds - np.array(scaled_y)).mean() / abs(np.array(scaled_y).mean() + 1e-6)}")
-print(f"MSE: {((scaled_preds - np.array(scaled_y)) ** 2).mean()}")
+pyLOM.pprint(0,f"MAE: {np.abs(scaled_preds - np.array(scaled_y)).mean()}")
+pyLOM.pprint(0,f"MRE: {np.abs(scaled_preds - np.array(scaled_y)).mean() / abs(np.array(scaled_y).mean() + 1e-6)}")
+pyLOM.pprint(0,f"MSE: {((scaled_preds - np.array(scaled_y)) ** 2).mean()}")
 
 pyLOM.cr_info()
