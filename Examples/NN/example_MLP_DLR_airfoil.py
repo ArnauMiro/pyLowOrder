@@ -1,45 +1,60 @@
-import numpy as np
+#!/usr/bin/env python
+#
+# Example of MLP.
+#
+# Last revision: 09/10/2024
+
+import os, numpy as np, torch, optuna
 import pyLOM
-from pathlib import Path
-import torch
-import optuna
 
 
-DATASET_DIR = Path("/home/d.ramos/Datos_DLR_pylom") # DLR_DATA
-RESUDIR = "./MLP_DLR_airfoil"
+def load_dataset(fname,inputs_scaler,outputs_scaler):
+    '''
+    Auxiliary function to load a dataset into a pyLOM
+    NN dataset
+    '''
+    d  = pyLOM.Dataset.load(fname)
+    td = pyLOM.NN.Dataset(
+        variables_out  = (d["CP"],), 
+        variables_in   = d.xyz,
+        # to have each Mach and AoA pair just once. 
+        # To have all possible combinations, use [d.get_variable('AoA'), d.get_variable("Mach")]
+        parameters     = [[*zip(d.get_variable('AoA'), d.get_variable('Mach'))]], 
+        inputs_scaler  = inputs_scaler,
+        outputs_scaler = outputs_scaler,
+    )
+    return d, td
+
+def print_dset_stats(name,td):
+    '''
+    Auxiliary function to print the statistics
+    of a NN dataset
+    '''
+    x, y = td[:]
+    pyLOM.pprint(0,f'name={name} ({len(td)}), x ({x.shape}) = [{x.min(dim=0)},{x.max(dim=0)}], y ({y.shape}) = [{y.min(dim=0)},{y.max(dim=0)}]')
+
+
+## Set device
+device = pyLOM.NN.select_device("cpu") # Force CPU for this example, if left in blank it will automatically select the device
+
+
+## Load datasets and set up the results output
+BASEDIR = './DATA'
+CASESTR = 'NRL7301'
+RESUDIR = 'MLP_DLR_airfoil'
 pyLOM.NN.create_results_folder(RESUDIR)
 
-input_scaler = pyLOM.NN.MinMaxScaler()
-output_scaler = pyLOM.NN.MinMaxScaler()   
+scaler     = pyLOM.NN.MinMaxScaler()
+_,td_train = load_dataset(os.path.join(BASEDIR,f'{CASESTR}_TRAIN.h5'),scaler,scaler)
+_,td_test  = load_dataset(os.path.join(BASEDIR,f'{CASESTR}_TEST.h5'),scaler,scaler)
+_,td_val   = load_dataset(os.path.join(BASEDIR,f'{CASESTR}_VAL.h5'),scaler,scaler)
 
-def load_dataset(path):
-    original_dataset = pyLOM.Dataset.load(path)
-    dataset = pyLOM.NN.Dataset(
-        variables_out=(original_dataset["CP"],), 
-        variables_in=original_dataset.xyz,
-        parameters=[[*zip(original_dataset.get_variable('AoA'), original_dataset.get_variable('Mach'))]], # to have each Mach and AoA pair just once. To have all possibnle combinations, use [original_dataset.get_variable('AoA'), original_dataset.get_variable("Mach")]
-        inputs_scaler=input_scaler,
-        outputs_scaler=output_scaler,
-    )
-    return dataset
+print_dset_stats('train',td_train)
+print_dset_stats('test', td_test)
+print_dset_stats('val',  td_val)
 
-dataset_train = load_dataset(DATASET_DIR / "TRAIN.h5")
-dataset_test = load_dataset(DATASET_DIR / "TEST.h5")
-val_dataset = load_dataset(DATASET_DIR / "VAL.h5")
 
-print(len(dataset_train), len(dataset_test), len(val_dataset))
-
-x, y = dataset_train[:]
-print(x.min(dim=0), x.max(dim=0), y.min(dim=0), y.max(dim=0), x.shape, y.shape)
-print(x.shape, y.shape)
-
-x, y = dataset_test[:]
-print(x.min(), x.max(), y.min(), y.max(), x.shape, y.shape)
-
-x, y = val_dataset[:]
-print(x.min(), x.max(), y.min(), y.max(), x.shape, y.shape)
-
-# define the optimizer
+## define the optimizer
 optimizer = pyLOM.NN.OptunaOptimizer(
     optimization_params={
         "lr": (0.00001, 0.01),  # fixed parameter
@@ -70,7 +85,7 @@ training_params = {
     "loss_fn": torch.nn.MSELoss(),
     "print_rate_epoch": 1,
     "num_workers": 6,
-    "device": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
+    "device": device,
     "lr": 0.0008380427541690664, 
     "lr_gamma": 0.9905178804615045, 
     "batch_size": 119, 
@@ -79,9 +94,9 @@ training_params = {
 }
 
 pipeline = pyLOM.NN.Pipeline(
-    train_dataset=dataset_train,
-    test_dataset=dataset_test,
-    valid_dataset=val_dataset,
+    train_dataset=td_train,
+    test_dataset=td_test,
+    valid_dataset=td_val,
     # To optimize the hyperparameters:
     # optimizer=optimizer,
     # model_class=pyLOM.NN.MLP,
@@ -92,16 +107,16 @@ pipeline = pyLOM.NN.Pipeline(
 
 pipeline.run()
 
-# check saving and loading the model
-pipeline.model.save(RESUDIR + "/model.pth")
-model = pyLOM.NN.MLP.load(RESUDIR + "/model.pth")
 
+## check saving and loading the model
+pipeline.model.save(os.path.join(RESUDIR,"model.pth"))
+model = pyLOM.NN.MLP.load(RESUDIR + "/model.pth")
 # to predict from a dataset
-preds = model.predict(dataset_test, batch_size=2048)
+preds = model.predict(td_test, batch_size=2048)
 # to predict from a tensor
 # preds = model(torch.tensor(dataset_test[:][0], device=model.device)).cpu().detach().numpy()
-scaled_preds = output_scaler.inverse_transform([preds])[0]
-scaled_y = output_scaler.inverse_transform([dataset_test[:][1]])[0]
+scaled_preds = scaler.inverse_transform([preds])[0]
+scaled_y     = scaler.inverse_transform([td_test[:][1]])[0]
 
 # check that the scaling is correct
 print(scaled_y.min(), scaled_y.max())
@@ -109,3 +124,5 @@ print(scaled_y.min(), scaled_y.max())
 print(f"MAE: {np.abs(scaled_preds - np.array(scaled_y)).mean()}")
 print(f"MRE: {np.abs(scaled_preds - np.array(scaled_y)).mean() / abs(np.array(scaled_y).mean() + 1e-6)}")
 print(f"MSE: {((scaled_preds - np.array(scaled_y)) ** 2).mean()}")
+
+pyLOM.cr_info()
