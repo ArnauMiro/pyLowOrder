@@ -4,7 +4,7 @@
 #
 # Last revision: 09/10/2024
 
-import os, numpy as np, torch, optuna, matplotlib.pyplot as plt
+import os, numpy as np, optuna, matplotlib.pyplot as plt
 import pyLOM
 
 
@@ -67,7 +67,7 @@ device = pyLOM.NN.select_device("cpu") # Force CPU for this example, if left in 
 
 
 ## Load datasets and set up the results output
-BASEDIR = '/home/d.ramos/Datos_DLR_pylom'# './DATA' TODO: arreglar esto
+BASEDIR = './DATA'
 CASESTR = 'NRL7301'
 RESUDIR = 'MLP_DLR_airfoil'
 pyLOM.NN.create_results_folder(RESUDIR)
