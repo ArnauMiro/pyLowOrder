@@ -79,3 +79,5 @@ d.add_field('utra',1,td[0,0,:,:].numpy().reshape((n0w*n0h,)))
 pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=[0],times=[0.],vars=['urec', 'VELOX', 'utra'],fmt='vtkh5')
 pyLOM.NN.plotSnapshot(m,d,vars=['urec'],instant=0,component=0,cmap='jet',cpos='xy')
 pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet',cpos='xy')
+
+pyLOM.cr_info()
