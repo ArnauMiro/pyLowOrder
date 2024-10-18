@@ -204,6 +204,10 @@ class Dataset(torch.utils.data.Dataset):
         cartesian_product = cartesian_product.repeat_interleave(variables_in.size(0), dim=0)
         return torch.cat([variables_in_repeated, cartesian_product], dim=1).float()
 
+    @property
+    def shape(self):
+        return self.variables_out.shape
+
     def __len__(self):
         return len(self.variables_out)
 
