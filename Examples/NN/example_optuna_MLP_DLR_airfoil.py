@@ -4,7 +4,7 @@
 #
 # Last revision: 09/10/2024
 
-import os, numpy as np, torch, matplotlib.pyplot as plt
+import os, numpy as np, optuna, matplotlib.pyplot as plt
 import pyLOM
 
 
@@ -34,9 +34,6 @@ def print_dset_stats(name,td):
     pyLOM.pprint(0,f'name={name} ({len(td)}), x ({x.shape}) = [{x.min(dim=0)},{x.max(dim=0)}], y ({y.shape}) = [{y.min(dim=0)},{y.max(dim=0)}]')
 
 def true_vs_pred_plot(y_true, y_pred, path):
-    """
-    Auxiliary function to plot the true vs predicted values
-    """
     num_plots = y_true.shape[1]
     plt.figure(figsize=(10, 5 * num_plots))
     for j in range(num_plots):
@@ -50,10 +47,7 @@ def true_vs_pred_plot(y_true, y_pred, path):
     plt.tight_layout()
     plt.savefig(path, dpi=300)
 
-def plot_train_test_loss(train_loss, test_loss, path):
-    """
-    Auxiliary function to plot the training and test loss
-    """
+def plot_train_test_loss(train_loss, test_loss, path):   
     plt.figure()
     plt.plot(range(1, len(train_loss) + 1), train_loss, label="Training Loss")
     total_epochs = len(test_loss) # test loss is calculated at the end of each epoch
@@ -88,35 +82,33 @@ print_dset_stats('train',td_train)
 print_dset_stats('test', td_test)
 print_dset_stats('val',  td_val)
 
-model = pyLOM.NN.MLP(
-    input_size=4,
-    output_size=1,
-    hidden_size=256,
-    n_layers=2,
-    p_dropouts=0.15,
-)
 
-training_params = {
-    "epochs": 50,
-    'lr_scheduler_step': 1,
-    "optimizer_class": torch.optim.Adam,
-    "loss_fn": torch.nn.MSELoss(),
-    "print_rate_epoch": 5,
-    "num_workers": 0,
-    "device": device,
-    "lr": 0.000838, 
-    "lr_gamma": 0.99, 
-    "batch_size": 119, 
-    "hidden_size": 129,
-    "n_layers": 6,
-}
+optimization_params = {
+        "lr": (0.00001, 0.01),  # fixed parameter
+        "n_layers": (1, 4),  # optimizable parameter,
+        "batch_size": (128, 512),
+        "hidden_size": (200, 400),
+        "p_dropouts": (0.1, 0.5),
+        "epochs": 50,
+        "num_workers": 0,
+        'print_rate_epoch': 5
+    }
+
+# define the optimizer
+optimizer = pyLOM.NN.OptunaOptimizer(
+    optimization_params=optimization_params,
+    n_trials=5, # 5 may be too low, but it is just for the example
+    direction="minimize",
+    pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=5, interval_steps=1),
+    save_dir=None,
+)
 
 pipeline = pyLOM.NN.Pipeline(
     train_dataset=td_train,
     test_dataset=td_test,
     valid_dataset=td_val,
-    model=model,
-    training_params=training_params,
+    model_class=pyLOM.NN.MLP,
+    optimizer=optimizer,
 )
 
 training_logs = pipeline.run()

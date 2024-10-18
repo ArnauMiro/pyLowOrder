@@ -9,7 +9,7 @@
 import os, torch, numpy as np, torch.nn as nn
 
 from torch.utils.data import DataLoader
-from typing           import Dict, Tuple
+from typing           import Dict, List, Tuple
 from ..optimizer      import OptunaOptimizer, TrialPruned
 from ..               import DEVICE # pyLOM/NN/__init__.py
 from ...              import pprint, cr # pyLOM/__init__.py
@@ -91,7 +91,7 @@ class MLP(nn.Module):
         print_rate_batch: int = 0,
         print_rate_epoch: int = 1,
         **kwargs,
-    ):
+    )-> Dict[str, List[float]]:
         r"""
         Fit the model to the training data. If eval_set is provided, the model will be evaluated on this set after each epoch. 
         
@@ -112,6 +112,9 @@ class MLP(nn.Module):
                 - shuffle (bool, optional): Shuffle the data (default: ``True``).
                 - num_workers (int, optional): Number of workers to use (default: ``0``).
                 - pin_memory (bool, optional): Pin memory (default: ``True``).
+
+        Returns:
+            Dict[str, List[float]]: Dictionary containing the training and evaluation losses.
         """
         dataloader_params = {
             "batch_size": 32,
@@ -194,6 +197,8 @@ class MLP(nn.Module):
                 train_loss_list,
                 test_loss_list,
                 )
+            
+        return {"train_loss": train_loss_list, "test_loss": test_loss_list}
     
     @cr('MLP.predict')
     def predict(

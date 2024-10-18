@@ -7,14 +7,11 @@
 # Last rev: 02/10/2024
 
 import os, numpy as np, torch
-import torchvision.transforms.functional as TF
 import torch.nn.functional as F
 
 from torch.utils.data import Subset
 from torch            import Generator, randperm, default_generator
-from functools        import reduce
 from itertools        import product, accumulate
-from operator         import mul
 from typing           import List, Optional, Tuple, cast, Sequence, Union
 
 from .                import DEVICE
