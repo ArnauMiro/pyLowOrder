@@ -66,7 +66,7 @@ pipeline = pyLOM.NN.Pipeline(
     model=model,
     training_params={
         "batch_size": 1,
-        "epochs": 5,
+        "epochs": 500,
         "lr": 1e-4,
         "betasch": betasch,
         "BASEDIR":RESUDIR
@@ -80,9 +80,8 @@ rec = model.reconstruct(td)
 rd  = pyLOM.NN.Dataset((rec,), (nh, nw))
 rd.pad(n0h, n0w)
 td.pad(n0h, n0w)
-print(td.shape,rd.shape)
-d.add_field('urec',1,rd[:,0,:,:].numpy().reshape((n0w*n0h,)))
-d.add_field('utra',1,td[:,0,:,:].numpy().reshape((n0w*n0h,)))
+d.add_field('urec',1,rd[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
+d.add_field('utra',1,td[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
 pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=[0],times=[time],vars=['urec', 'VELOX', 'utra'],fmt='vtkh5')
 pyLOM.NN.plotSnapshot(m,d,vars=['urec'],instant=0,component=0,cmap='jet',cpos='xy')
 pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet',cpos='xy')
