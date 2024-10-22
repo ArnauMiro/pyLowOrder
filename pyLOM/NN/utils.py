@@ -254,7 +254,7 @@ class Dataset(torch.utils.data.Dataset):
 
     def _pad3D(self, n0h, n0w, n0d):
         nh, nw, nd = self.mesh_shape
-        self.variables_out = F.pad(self.variables_out, (0, n0w-nw, 0, n0h-nh, 0, n0d-nd), mode='constant', value=0)
+        self.variables_out = F.pad(self.variables_out, (0, n0d-nd, 0, n0w-nw, 0, n0h-nh), mode='constant', value=0)
         self.mesh_shape    = (n0h, n0w, n0d)
 
     def pad(self, *args):
