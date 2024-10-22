@@ -279,7 +279,7 @@ def tsqr_svd(Ai):
 	return Ui, S, V
 
 @cr('math.randomized_svd')
-def randomized_svd(Ai, r, q=3):
+def randomized_svd(Ai, r, q):
 	'''
 	Ai(m,n)  data matrix dispersed on each processor.
 	r        target number of modes
