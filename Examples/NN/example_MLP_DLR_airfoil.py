@@ -143,3 +143,4 @@ true_vs_pred_plot(scaled_y, scaled_preds, RESUDIR + '/true_vs_pred.png')
 plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss.png')
 
 pyLOM.cr_info()
+plt.show()
