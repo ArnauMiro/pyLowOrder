@@ -18,14 +18,14 @@ PARAMS    = json.loads(str(sys.argv[4]).replace("'",'"'))
 
 
 ## Set device
-device = pyLOM.NN.select_device()
+device = pyLOM.NN.select_device("cpu")
 
 
 ## Specify autoencoder parameters
 ptrain      = 0.8
 pvali       = 0.2
 batch_size  = 4
-nepochs     = 100
+nepochs     = 10
 nlayers     = 4
 channels    = 48
 lat_dim     = 10
@@ -50,18 +50,12 @@ m    = pyLOM.Mesh.load(DATAFILE) # Mesh size (100 x 40 x 64)
 d    = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table)
 u    = d.X(*VARIABLES)
 um   = pyLOM.math.temporal_mean(u)
-u    = pyLOM.math.subtract_mean(u, um)
+u_x  = pyLOM.math.subtract_mean(u, um)
 time = d.get_variable('time') # 120 instants
 print("Variables: ", d.varnames)
 print("Information about the variable: ", d.info(VARIABLES[0]))
 print("Number of points ", len(d))
 print("Instants :", time.shape[0])
-
-# Take x component only for testing
-nvars    = d.info(VARIABLES[0])['ndim']
-u_x      = np.zeros((len(d),time.shape[0]), dtype=float)
-u_x[:,:] = u[0:nvars*len(d):nvars,:]
-print("New variable: u_x", u_x.shape)
 
 # Mesh Size
 n0x = len(np.unique(pyLOM.utils.round(d.xyz[:,0],5)))
@@ -70,35 +64,44 @@ n0z = len(np.unique(pyLOM.utils.round(d.xyz[:,2],5)))
 nx, ny, nz  = PARAMS['nx'], PARAMS['ny'], PARAMS['nz']
 
 # Create the torch dataset
-td = pyLOM.NN.Dataset((u_x,), (n0x, n0y, n0z), time, transform=False, device=device)
-td.crop((nx, ny, nz), (n0x, n0y, n0z))
-trloader, valoader = td.split_subdatasets(ptrain, pvali,batch_size=batch_size)
+td = pyLOM.NN.Dataset((u_x,), (n0x, n0y, n0z))
+td.crop(nx, ny, nz)
 
 
-## Set beta scheduler
-betasch = pyLOM.NN.betaLinearScheduler(0., beta, beta_start, beta_wmup)
-
-
-## Set and train the Autoencoder
-encarch = pyLOM.NN.Encoder3D(nlayers, lat_dim, nx, ny, nz, td.n_channels, channels, kernel_size, padding, activations, nlinear, batch_norm=batch_norm, stride = 2, dropout = 0, vae = vae)
-decarch = pyLOM.NN.Decoder3D(nlayers, lat_dim, nx, ny, nz, td.n_channels, channels, kernel_size, padding, activations, nlinear, batch_norm=batch_norm)
-AutoEnc = pyLOM.NN.VariationalAutoencoder(lat_dim, (nx, ny, nz), td.n_channels, encarch, decarch, device=device)
+## Set and train the variational autoencoder
+betasch    = pyLOM.NN.betaLinearScheduler(0., beta, beta_start, beta_wmup)
+encoder    = pyLOM.NN.Encoder3D(nlayers, lat_dim, nx, ny, nz, td.num_channels, channels, kernel_size, padding, activations, nlinear, batch_norm=batch_norm, stride = 2, dropout = 0, vae = vae)
+decoder    = pyLOM.NN.Decoder3D(nlayers, lat_dim, nx, ny, nz, td.num_channels, channels, kernel_size, padding, activations, nlinear, batch_norm=batch_norm)
+model      = pyLOM.NN.VariationalAutoencoder(lat_dim, (nx, ny, nz), td.num_channels, encoder, decoder, device=device)
 early_stop = pyLOM.NN.EarlyStopper(patience=15, min_delta=0.05)
-AutoEnc.train_model(trloader, valoader, betasch, nepochs, callback = None, BASEDIR = RESUDIR)
+
+pipeline = pyLOM.NN.Pipeline(
+    train_dataset = td,
+    test_dataset  = td,
+    model=model,
+    training_params={
+        "batch_size": 1,
+        "epochs": 100,
+        "lr": 1e-4,
+        "betasch": betasch,
+        "BASEDIR":RESUDIR
+    },
+)
+pipeline.run()
 
 
 ## Reconstruct dataset and compute accuracy
-rec = AutoEnc.reconstruct(td) # Returns (input channels, nx*ny, time)
-rd  = pyLOM.NN.Dataset((rec), (nx, ny, nz), td._time, transform=False)
-rd.pad((nx, ny, nz), (n0x, n0y, n0z))
-td.pad((nx, ny, nz), (n0x, n0y, n0z))
-d.add_field('urec', len(VARIABLES), rd.data[0][:,:].numpy())
-d.add_field('utra', len(VARIABLES), td.data[0][:,:].numpy())
+rec = model.reconstruct(td)
+rd  = pyLOM.NN.Dataset((rec,), (nx, ny, nz))
+rd.pad(n0x, n0y, n0z)
+td.pad(n0x, n0y, n0z)
+d.add_field('urec',1,rd[:,0,:,:].numpy().reshape((len(time),n0x*n0y*n0z)).T)
+d.add_field('utra',1,td[:,0,:,:].numpy().reshape((len(time),n0x*n0y*n0z)).T)
 pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=VARIABLES+['urec','utra'],fmt='vtkh5')
 
 
 ## Testsuite output
-pyLOM.pprint(0,'TSUITE u_x  =',u_x.min(),u_x.max(),u_x.mean())
+pyLOM.pprint(0,'TSUITE u_x  =',u.min(),u.max(),u.mean())
 #pyLOM.pprint(0,'TSUITE urec =',d['urec'].min(),d['urec'].max(),d['urec'].mean())
 pyLOM.pprint(0,'TSUITE utra =',d['utra'].min(),d['utra'].max(),d['utra'].mean())
 

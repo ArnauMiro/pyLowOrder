@@ -21,17 +21,16 @@ device = pyLOM.NN.select_device('cpu')
 
 
 ## Specify autoencoder parameters
-ptrain      = 0.8
-pvali       = 0.2
-nlayers     = 1
-channels    = 32
-lat_dim     = 10
+nlayers     = 5
+channels    = 64
+lat_dim     = 5
 beta        = 0
+beta_start  = 0
+beta_wmup   = 0
 kernel_size = 4
-nlinear     = 256
+nlinear     = 512
 padding     = 1
 activations = [pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh()]
-batch_norm  = True
 
 
 ## Load pyLOM dataset and set up results output
@@ -85,8 +84,8 @@ rec = model.reconstruct(td)
 rd  = pyLOM.NN.Dataset((rec), (nh, nw))
 rd.pad(n0h, n0w)
 td.pad(n0h, n0w)
-d.add_field('urec',1,rd[:,0,:,:].numpy().reshape((n0w*n0h,)))
-d.add_field('utra',1,td[:,0,:,:].numpy().reshape((n0w*n0h,)))
+d.add_field('urec',1,rd[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
+d.add_field('utra',1,td[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
 pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=VARIABLES+['urec', 'utra'],fmt='vtkh5')
 
 
