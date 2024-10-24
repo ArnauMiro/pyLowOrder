@@ -193,7 +193,7 @@ class VariationalAutoencoder(Autoencoder):
         eval_data  = DataLoader(eval_dataset, **dataloader_params)
         prev_train_loss = 1e99
         writer    = SummaryWriter(BASEDIR)
-        optimizer = torch.optim.Adam(self.parameters(), lr=lr, weight_decay=0, amsgrad=True, fused=True)
+        optimizer = torch.optim.Adam(self.parameters(), lr=lr, weight_decay=0, amsgrad=False if self._device == "cpu" else True, fused=False if self._device == "cpu" else True)
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, epochs, eta_min=lr*1e-3)
         scaler    = GradScaler()
         for epoch in range(epochs):
