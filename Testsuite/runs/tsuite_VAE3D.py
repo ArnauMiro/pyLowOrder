@@ -76,7 +76,7 @@ pipeline = pyLOM.NN.Pipeline(
     test_dataset  = td,
     model=model,
     training_params={
-        "batch_size": 1,
+        "batch_size": 4,
         "epochs": 100,
         "lr": 1e-4,
         "betasch": betasch,
