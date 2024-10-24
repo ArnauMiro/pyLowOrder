@@ -30,7 +30,7 @@ beta_wmup   = 0
 kernel_size = 4
 nlinear     = 512
 padding     = 1
-activations = [pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh()]
+activations = [pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu()]
 
 
 ## Load pyLOM dataset and set up results output
@@ -41,7 +41,9 @@ pyLOM.NN.create_results_folder(RESUDIR,echo=False)
 ## Load pyLOM dataset
 m    = pyLOM.Mesh.load(DATAFILE)
 d    = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table)
-u_x  = d.X(*VARIABLES)
+u    = d.X(*VARIABLES)
+um   = pyLOM.math.temporal_mean(u)
+u_x  = pyLOM.math.subtract_mean(u, um)
 time = d.get_variable('time')
 
 
@@ -69,7 +71,7 @@ pipeline = pyLOM.NN.Pipeline(
     test_dataset  = td,
     model=model,
     training_params={
-        "batch_size": 1,
+        "batch_size": 4,
         "epochs": 100,
         "lr": 1e-4,
         "betasch": betasch,
