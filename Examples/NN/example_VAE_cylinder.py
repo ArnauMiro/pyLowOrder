@@ -26,7 +26,7 @@ beta_wmup   = 0
 kernel_size = 4
 nlinear     = 512
 padding     = 1
-activations = [pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh()]
+activations = [pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu()]
 
 
 ## Load pyLOM dataset and set up results output
@@ -48,8 +48,10 @@ nw  = 192
 m    = pyLOM.Mesh.load(DSETDIR)
 d    = pyLOM.Dataset.load(DSETDIR,ptable=m.partition_table)
 u_x  = d['VELOX']
+u_m  = pyLOM.math.temporal_mean(u_x)
+u_xm = pyLOM.math.subtract_mean(u_x, u_m)
 time = d.get_variable('time')
-td   = pyLOM.NN.Dataset((u_x,), (n0h, n0w))
+td   = pyLOM.NN.Dataset((u_xm,), (n0h, n0w))
 td.crop(nh, nw)
 
 
@@ -65,7 +67,7 @@ pipeline = pyLOM.NN.Pipeline(
     test_dataset  = td,
     model=model,
     training_params={
-        "batch_size": 1,
+        "batch_size": 4,
         "epochs": 100,
         "lr": 1e-4,
         "betasch": betasch,
