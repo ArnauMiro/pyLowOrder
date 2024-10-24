@@ -62,9 +62,9 @@ model      = pyLOM.NN.Autoencoder(lat_dim, (nh, nw), td.num_channels, encoder, d
 early_stop = pyLOM.NN.EarlyStopper(patience=5, min_delta=0.02)
 
 pipeline = pyLOM.NN.Pipeline(
-   train_dataset = td,
-   test_dataset  = td,
-   model         = model,
+   train_dataset   = td,
+   test_dataset    = td,
+   model           = model,
    training_params = {
        "batch_size": 16,
        "epochs": 100,
