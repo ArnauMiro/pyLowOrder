@@ -71,7 +71,7 @@ pipeline = pyLOM.NN.Pipeline(
         "epochs": 100,
         "lr": 1e-4,
         "betasch": betasch,
-        "BASEDIR":RESUDIR
+        "BASEDIR": RESUDIR
     },
 )
 pipeline.run()
