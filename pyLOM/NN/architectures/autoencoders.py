@@ -2,45 +2,25 @@
 #
 # pyLOM - Python Low Order Modeling.
 #
-# Python interface for NN.
+# Autoencoder architecture for NN Module
 #
-# Last rev: 02/10/2024
-from __future__ import print_function
+# Last rev: 09/10/2024
 
-import os, torch
+import torch
 import torch.nn            as nn
 import torch.nn.functional as F
 import numpy               as np
 
-from   torch.cuda.amp          import GradScaler, autocast
+from   torch.utils.data        import DataLoader
+from   torch.amp               import GradScaler, autocast
 from   torch.utils.tensorboard import SummaryWriter
 from   torchsummary            import summary
 
 from   functools               import reduce
 from   operator                import mul
 
-from   .                       import DEVICE
-from   ..utils.cr              import cr
-
-
-## Wrapper of the activation functions
-def tanh():
-    return nn.Tanh()
-
-def relu():
-    return nn.ReLU()
-
-def elu():
-    return nn.ELU()
-
-def sigmoid():
-    return nn.Sigmoid()
-
-def leakyRelu():
-    return nn.LeakyReLU()
-
-def silu():
-    return nn.SiLU()
+from   ..                      import DEVICE
+from   ...utils.cr             import cr
 
 
 ## Wrapper of a variational autoencoder
@@ -67,19 +47,27 @@ class Autoencoder(nn.Module):
         recon = self.decoder(z)
         return recon, z  
 
-    def train_model(self, train_data, vali_data, nepochs, callback=None, learning_rate=1e-3, BASEDIR='./', reduction='mean', lr_decay=0.999):
+    def fit(self, train_dataset, eval_dataset=None, epochs=100, callback=None, lr=1e-3, BASEDIR='./', reduction='mean', lr_decay=0.999, batch_size=32, shuffle=True, num_workers=0, pin_memory=True):
+        dataloader_params = {
+            "batch_size": batch_size,
+            "shuffle": shuffle,
+            "num_workers": num_workers,
+            "pin_memory": pin_memory,
+        }
+        train_data = DataLoader(train_dataset, **dataloader_params)
+        eval_data  = DataLoader(eval_dataset, **dataloader_params)
         # Initialization
         prev_train_loss = 1e99
         writer = SummaryWriter(BASEDIR)
-        optimizer = torch.optim.AdamW(self.parameters(), lr=learning_rate)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=lr)
         scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=lr_decay)
         # Training loop
-        for epoch in range(nepochs):
+        for epoch in range(epochs):
             self.train()
             num_batches = 0
             tr_loss = 0
-            for batch in train_data:
-                batch = batch.to(self._device)
+            for batch0 in train_data:
+                batch = batch0.to(self._device)
                 recon, _ = self(batch)
                 loss = self._lossfunc(batch, recon, reduction)
                 optimizer.zero_grad()
@@ -89,16 +77,17 @@ class Autoencoder(nn.Module):
                 num_batches += 1
             tr_loss /= num_batches
             # Validation phase
-            with torch.no_grad():
-                val_batches = 0
-                va_loss = 0
-                for val_batch in vali_data:
-                    val_batch = val_batch.to(self._device)
-                    val_recon, _ = self(val_batch)
-                    vali_loss = self._lossfunc(val_batch, val_recon, reduction)
-                    va_loss += vali_loss.item()
-                    val_batches += 1
-                va_loss /= val_batches
+            if eval_dataset is not None:
+                with torch.no_grad():
+                    val_batches = 0
+                    va_loss = 0
+                    for val_batch0 in eval_data:
+                        val_batch = val_batch0.to(self._device)
+                        val_recon, _ = self(val_batch)
+                        vali_loss = self._lossfunc(val_batch, val_recon, reduction)
+                        va_loss += vali_loss.item()
+                        val_batches += 1
+                    va_loss /= val_batches
             # Logging
             writer.add_scalar("Loss/train", tr_loss, epoch + 1)
             writer.add_scalar("Loss/vali", va_loss, epoch + 1)
@@ -107,14 +96,14 @@ class Autoencoder(nn.Module):
                 print(f'Early Stopper Activated at epoch {epoch}', flush=True)
                 break
             prev_train_loss = tr_loss
-            print(f'Epoch [{epoch+1} / {nepochs}] average training loss: {tr_loss:.5e} | average validation loss: {va_loss:.5e}', flush=True)            
+            print(f'Epoch [{epoch+1} / {epochs}] average training loss: {tr_loss:.5e} | average validation loss: {va_loss:.5e}', flush=True)            
             # Learning rate scheduling
             scheduler.step()
 
         # Cleanup
         writer.flush()
         writer.close()
-        torch.save(self.state_dict(), os.path.join(BASEDIR,'model_state.pth'))
+        torch.save(self.state_dict(), f'{BASEDIR}/model_state.pth')
 
     def reconstruct(self, dataset):
         ## Compute reconstruction and its accuracy
@@ -192,23 +181,32 @@ class VariationalAutoencoder(Autoencoder):
         recon = self.decoder(z)
         return recon, mu, logvar, z
     
-    @cr('VAE.train')   
-    def train_model(self, train_data, vali_data, betasch, nepochs, callback=None, fused=False, learning_rate=1e-4, BASEDIR='./'):
+    @cr('VAE.fit')   
+    def fit(self, train_dataset, eval_dataset=None, betasch=None, epochs=1000, callback=None, lr=1e-4, BASEDIR='./', batch_size=32, shuffle=True, num_workers=0, pin_memory=True):
+        dataloader_params = {
+            "batch_size": batch_size,
+            "shuffle": shuffle,
+            "num_workers": num_workers,
+            "pin_memory": pin_memory,
+        }
+        train_data = DataLoader(train_dataset, **dataloader_params)
+        eval_data  = DataLoader(eval_dataset, **dataloader_params)
         prev_train_loss = 1e99
         writer    = SummaryWriter(BASEDIR)
-        optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate, weight_decay=0, amsgrad=True, fused=fused)
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, nepochs, eta_min=learning_rate*1e-3)
+        optimizer = torch.optim.Adam(self.parameters(), lr=lr, weight_decay=0, amsgrad=False if self._device == "cpu" else True, fused=False if self._device == "cpu" else True)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, epochs, eta_min=lr*1e-3)
         scaler    = GradScaler()
-        for epoch in range(nepochs):
-            # Training
+        for epoch in range(epochs):
+            ## Training
             self.train()
             tr_loss = 0
             mse     = 0
             kld     = 0
-            beta    = betasch.getBeta(epoch)
-            for batch in train_data:
+            beta    = betasch.getBeta(epoch) if betasch is not None else 0
+            for batch0 in train_data:
+                batch = batch0.to(self._device)
                 optimizer.zero_grad()
-                with autocast():
+                with autocast(device_type=self._device):
                     recon, mu, logvar, _ = self(batch)
                     mse_i = self._lossfunc(batch, recon, reduction='sum')
                     kld_i = self._kld(mu,logvar)
@@ -224,19 +222,20 @@ class VariationalAutoencoder(Autoencoder):
             mse /= num_batches
             kld /= num_batches
 
-            # Validation
+            ## Validation
             self.eval()
             va_loss     = 0
             with torch.no_grad():
-                for val_batch in vali_data:
-                    with autocast():
+                for val_batch0 in eval_data:
+                    val_batch = val_batch0.to(self._device)
+                    with autocast(device_type=self._device):
                         val_recon, val_mu, val_logvar, _ = self(val_batch)
                         mse_i     = self._lossfunc(val_batch, val_recon, reduction='sum')
                         kld_i     = self._kld(val_mu,val_logvar)
                         vali_loss = mse_i - beta*kld_i
                     va_loss  += vali_loss.item()
 
-            num_batches = len(vali_data)
+            num_batches = len(eval_data)
             va_loss    /=num_batches
             writer.add_scalar("Loss/train",tr_loss,epoch+1)
             writer.add_scalar("Loss/vali", va_loss,epoch+1)
@@ -248,7 +247,7 @@ class VariationalAutoencoder(Autoencoder):
                     print('Early Stopper Activated at epoch %i' %epoch, flush=True)
                     break
             prev_train_loss = tr_loss   
-            print('Epoch [%d / %d] average training loss: %.5e (MSE = %.5e KLD = %.5e) | average validation loss: %.5e' % (epoch+1, nepochs, tr_loss, mse, kld, va_loss), flush=True)
+            print('Epoch [%d / %d] average training loss: %.5e (MSE = %.5e KLD = %.5e) | average validation loss: %.5e' % (epoch+1, epochs, tr_loss, mse, kld, va_loss), flush=True)
             # Learning rate scheduling
             scheduler.step()
 
@@ -258,7 +257,7 @@ class VariationalAutoencoder(Autoencoder):
 
     @cr('VAE.reconstruct')
     def reconstruct(self, dataset):
-        # Compute reconstruction and its accuracy
+        ## Compute reconstruction and its accuracy
         num_samples = len(dataset)
         ek = np.zeros(num_samples)
         mu = np.zeros(num_samples)
@@ -292,7 +291,7 @@ class VariationalAutoencoder(Autoencoder):
         return rec.cpu().numpy()
   
     def correlation(self, dataset):
-        # Compute correlation between latent variables
+        ##  Compute correlation between latent variables
         loader = torch.utils.data.DataLoader(dataset, batch_size=len(dataset), shuffle=False)
         with torch.no_grad():
             instant  = iter(loader)

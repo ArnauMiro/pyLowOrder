@@ -8,7 +8,6 @@
 from __future__ import print_function, division
 
 import numpy as np
-#import ensightreader
 
 from ..utils.cr     import cr
 from ..utils.parall import MPI_RANK, MPI_SIZE, MPI_COMM, MPI_RDONLY, MPI_WRONLY, MPI_CREATE
@@ -107,6 +106,7 @@ def Ensight_readCase2(fname,rank=MPI_RANK):
 
 	Use ensight-reader library.
 	'''
+	import ensightreader
 	# Only one rank reads the file
 	if MPI_RANK == rank or MPI_SIZE == 1:
 		case = ensightreader.read_case(fname)	
@@ -478,6 +478,7 @@ def Ensight_readField2(variable,part_id):
 	Read an Ensight Gold field file using
 	the ensightreader library.
 	'''
+	import ensightreader
 	f = open(variable.file_path,'rb')
 	field = np.ascontiguousarray(variable.read_node_data(f,part_id) if variable.variable_location == ensightreader.VariableLocation.PER_NODE else variable.read_element_data(f,part_id))
 	# Close the file
