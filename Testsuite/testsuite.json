@@ -247,5 +247,16 @@
 		"nprocs" : 1,
 		"reset"  : false,
 		"active" : true
+	},
+	"MLP_synthetic": {
+		"name"   : "MLP synthetic data",
+		"module" : "NN",
+		"file"   : "runs/tsuite_MLP.py",
+		"data"   : "DATA/SYNTHETIC.h5",
+		"var"    : ["DATA"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
 	}
 }
