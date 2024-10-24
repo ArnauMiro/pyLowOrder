@@ -52,10 +52,6 @@ u    = d.X(*VARIABLES)
 um   = pyLOM.math.temporal_mean(u)
 u_x  = pyLOM.math.subtract_mean(u, um)
 time = d.get_variable('time') # 120 instants
-print("Variables: ", d.varnames)
-print("Information about the variable: ", d.info(VARIABLES[0]))
-print("Number of points ", len(d))
-print("Instants :", time.shape[0])
 
 # Mesh Size
 n0x = len(np.unique(pyLOM.utils.round(d.xyz[:,0],5)))
