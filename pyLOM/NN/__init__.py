@@ -20,6 +20,7 @@ from .optimizer     import OptunaOptimizer
 from .pipeline      import Pipeline
 
 from .architectures.mlp               import MLP
+from .architectures.kan               import KAN, ChebyshevLayer, JacobiLayer
 from .architectures.autoencoders      import Autoencoder, VariationalAutoencoder
 from .architectures.encoders_decoders import Encoder2D, Decoder2D, Encoder3D, Decoder3D
 
