@@ -69,7 +69,7 @@ class RegressionEvaluator():
     ) -> float:
         """
         Compute the mean relative error (MRE) between the true values and the predicted values,
-        excluding cases where y_true is close to zero within a specified tolerance.
+        adding a tolerance level to consider values close to zero.
 
         Args:
             y_true (numpy.ndarray): The true values.
@@ -79,12 +79,7 @@ class RegressionEvaluator():
         Returns:
             float: The mean relative error excluding cases where y_true is close to zero.
         """
-        mask = np.abs(y_true) > self.tolerance
-        y_true_masked = y_true[mask]
-        y_pred_masked = y_pred[mask]
-        
-        relative_errors = np.abs((y_true_masked - y_pred_masked) / (y_true_masked))
-        
+        relative_errors = np.abs((y_true - y_pred) / (y_true + self.tolerance))
         return np.mean(relative_errors) * 100
     
     def ae_q(
