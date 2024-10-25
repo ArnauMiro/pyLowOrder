@@ -1,4 +1,5 @@
 import os
+from typing import Dict, Tuple
 
 import numpy as np
 import torch
@@ -8,6 +9,8 @@ from torch.utils.data import DataLoader
 
 from ... import cr, pprint  # pyLOM/__init__.py
 from ..  import DEVICE  # pyLOM/NN/__init__.py
+from ...utils.errors import raiseError
+from ..optimizer      import OptunaOptimizer
 
 
 class KAN(nn.Module):
@@ -33,7 +36,7 @@ class KAN(nn.Module):
         n_layers: int,
         hidden_size: int,
         layer_type,
-        model_name: str,
+        model_name: str = "KAN",
         p_dropouts: float = 0.0,
         device: torch.device = DEVICE,
         **layer_kwargs,
@@ -76,11 +79,11 @@ class KAN(nn.Module):
         self,
         train_dataset,
         eval_dataset,
-        epochs: int,
-        batch_size: int,
-        lr: float,
-        lr_gamma: float,
-        lr_scheduler_step: int,
+        batch_size: int = 32,
+        epochs: int = 100,
+        lr: float = 0.001,
+        lr_gamma: float = 1,
+        lr_scheduler_step: int = 1,
         print_eval_rate: int = 2,
         loss_fn=nn.MSELoss(),
         save_logs_path=None,
@@ -96,7 +99,7 @@ class KAN(nn.Module):
             lr (float): The learning rate for the Adam optimizer.
             lr_gamma (float): The learning rate decay factor.
             lr_scheduler_step (int): The number of epochs to reduce the learning rate.
-            print_eval_rate (int, optional): The model will be evaluated every ``print_eval_rate`` epochs and the losses will be printed (default: ``2``).
+            print_eval_rate (int, optional): The model will be evaluated every ``print_eval_rate`` epochs and the losses will be printed. If set to 0, nothing will be printed (default: ``2``).
             loss_fn (torch.nn.Module, optional): The loss function (default: ``nn.MSELoss()``).
             save_logs_path (str, optional): Path to save the training and evaluation losses (default: ``None``).
         """
@@ -143,7 +146,7 @@ class KAN(nn.Module):
                 )
             )
             self.scheduler.step()
-            if (epoch + 1) % print_eval_rate == 0:
+            if print_eval_rate != 0 and (epoch + 1) % print_eval_rate == 0:
                 self.eval()
                 test_loss = 0.0
                 with torch.no_grad():
@@ -327,10 +330,141 @@ class KAN(nn.Module):
             pprint(0, f"{key}: {checkpoint[key]}")
 
         return model
+    
+    @classmethod
+    @cr("KAN.create_optimized_model")
+    def create_optimized_model(
+        cls, 
+        train_dataset, 
+        eval_dataset, 
+        optuna_optimizer: OptunaOptimizer,
+        **kwargs,
+    ) -> Tuple[nn.Module, Dict]:
+        """
+        Create an optimized KAN model using Optuna. The model is trained on the training dataset and the metric to optimize is computed with the evaluation dataset.
+
+        Args:
+            train_dataset: The training dataset.
+            eval_dataset: The evaluation dataset.
+            optuna_optimizer (OptunaOptimizer): The optimizer to use for optimization.
+            kwargs: Additional keyword arguments.
+
+        Returns:
+            Tuple [KAN, Dict]: The optimized model and the optimization parameters.
+        """
+        optimizing_parameters = optuna_optimizer.optimization_params
+        input_size, output_size = train_dataset[0][0].shape[0], train_dataset[0][1].shape[0]
+
+        def optimization_function(trial) -> float:
+            model_parameters, training_parameters = cls._sample_kan_parameters(trial, optimizing_parameters)
+            model = cls(
+                input_size=input_size,
+                output_size=output_size,
+                **model_parameters,
+            )
+            model_logs = model.fit(train_dataset, eval_dataset, **training_parameters)
+            return model_logs["test_loss"][-1].item()
+        
+        best_params = optuna_optimizer.optimize(optimization_function)
+        # Update the optimizing parameters with the best parameters found
+        optimizing_parameters.update(best_params)
+        del optimizing_parameters["layer_kwargs"]
+        # Separate the model and training parameters from the best parameters found. 
+        # Note: now optimizing_parameters contains the best parameters found and does not contain any tuple, 
+        # so this is an easy wan to separate the training and model parameters
+        model_parameters, training_parameters = cls._sample_kan_parameters(best_params, optimizing_parameters)
+        model = cls(input_size=input_size, output_size=output_size, **model_parameters)
+        return model, training_parameters
+        
+    
+    @classmethod
+    def _sample_kan_parameters(cls, trial, optimizing_parameters):
+        training_parameters = {}
+        model_parameters = {}
+        if "n_layers" in optimizing_parameters:
+            model_parameters["n_layers"] = cls._suggest_int_value(trial, "n_layers", optimizing_parameters)
+        else:
+            raiseError("A value or range to optimize for the number of layers must be provided")
+        if "hidden_size" in optimizing_parameters:
+            model_parameters["hidden_size"] = cls._suggest_int_value(trial, "hidden_size", optimizing_parameters)
+        else:
+            raiseError("A value or range to optimize for the hidden size must be provided")
+        if "p_dropouts" in optimizing_parameters:
+            model_parameters["p_dropouts"] = cls._suggest_float_value(trial, "p_dropouts", optimizing_parameters)
+        else:
+            model_parameters["p_dropouts"] = 0.0
+        if "layer_type" in optimizing_parameters:
+            model_parameters["layer_type"] = cls._suggest_categorical_value(trial, "layer_type", optimizing_parameters)
+        else:
+            raiseError("A value or range to optimize for the layer type must be provided")
+        if "layer_kwargs" in optimizing_parameters:
+            for key in optimizing_parameters["layer_kwargs"]:
+                if key not in ["degree", "a", "b"]:
+                    raiseError(f"Invalid key {key} in layer_kwargs")
+                else:
+                    if key == "degree":
+                        model_parameters[key] = cls._suggest_int_value(trial, key, optimizing_parameters["layer_kwargs"])
+                    else:
+                        model_parameters[key] = cls._suggest_float_value(trial, key, optimizing_parameters["layer_kwargs"])
+        elif "degree" in optimizing_parameters:
+            model_parameters["degree"] = cls._suggest_int_value(trial, "degree", optimizing_parameters)
+        else:
+            raiseError("Layer kwargs with at least a key for degree must be provided")
+
+        if "epochs" in optimizing_parameters:
+            training_parameters["epochs"] = cls._suggest_int_value(trial, "epochs", optimizing_parameters)
+        else:
+            training_parameters["epochs"] = 100
+        if "batch_size" in optimizing_parameters:
+            training_parameters["batch_size"] = cls._suggest_int_value(trial, "batch_size", optimizing_parameters)
+        else:
+            training_parameters["batch_size"] = 32
+        if "lr" in optimizing_parameters:
+            training_parameters["lr"] = cls._suggest_float_value(trial, "lr", optimizing_parameters, log_scale=True)
+        else:
+            training_parameters["lr"] = 0.001
+        if "lr_gamma" in optimizing_parameters:
+            training_parameters["lr_gamma"] = cls._suggest_float_value(trial, "lr_gamma", optimizing_parameters)
+        else:
+            training_parameters["lr_gamma"] = 1
+        if "lr_scheduler_step" in optimizing_parameters:
+            training_parameters["lr_scheduler_step"] = cls._suggest_int_value(trial, "lr_scheduler_step", optimizing_parameters)
+        else:
+            training_parameters["lr_scheduler_step"] = 1
+        # non optimizing parameters
+        for no_optimizing_param in ["save_logs_path", "print_eval_rate", "loss_fn"]:
+            if no_optimizing_param in optimizing_parameters:
+                training_parameters[no_optimizing_param] = optimizing_parameters[no_optimizing_param]
+        
+        for no_optimizing_param in ["device", "model_name"]:
+            if no_optimizing_param in optimizing_parameters:
+                model_parameters[no_optimizing_param] = optimizing_parameters[no_optimizing_param]
+
+        return model_parameters, training_parameters
+            
+
+    def _suggest_int_value(trial, parameter_name, optimizing_parameters, log_scale=False):
+        if isinstance(optimizing_parameters[parameter_name], tuple):
+            return trial.suggest_int(parameter_name, *optimizing_parameters[parameter_name], log=log_scale)
+        else:
+            return optimizing_parameters[parameter_name]
+        
+    def _suggest_float_value(trial, parameter_name, optimizing_parameters, log_scale=False):
+        if isinstance(optimizing_parameters[parameter_name], tuple):
+            return trial.suggest_float(parameter_name, *optimizing_parameters[parameter_name], log=log_scale)
+        else:
+            return optimizing_parameters[parameter_name]
+        
+    def _suggest_categorical_value(trial, parameter_name, optimizing_parameters):
+        if isinstance(optimizing_parameters[parameter_name], tuple):
+            return trial.suggest_categorical(parameter_name, optimizing_parameters[parameter_name])
+        else:
+            return optimizing_parameters[parameter_name]
+        
 
 
 class ChebyshevLayer(nn.Module):
-    def __init__(self, input_dim, output_dim, degree):
+    def __init__(self, input_dim, output_dim, degree, **kwargs):
         super().__init__()
         self.inputdim = input_dim
         self.outdim = output_dim
