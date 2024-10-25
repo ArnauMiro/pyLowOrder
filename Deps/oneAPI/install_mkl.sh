@@ -82,6 +82,13 @@ else
 		# Create install directory and copy includes
 		mkdir -p ${INSTALL_PREFIX}
 		cp -r $MKL_INSTALL_DIR/include ${INSTALL_PREFIX}
+	elif [ "$PLATFORM" = "HX1" ]; then # HX1 Imperial college
+		# MKL path
+		MKL_INSTALL_DIR="/gpfs/easybuild/prod/software/imkl/2022.1.0/mkl/${VERS}/"
+		MKL_LIBRARIES="${MKL_INSTALL_DIR}/lib/intel64/"
+		# Create install directory and copy includes
+		mkdir -p ${INSTALL_PREFIX}
+		cp -r $MKL_INSTALL_DIR/include ${INSTALL_PREFIX}	
 	else
 		cd Deps/
 		# MKL path
