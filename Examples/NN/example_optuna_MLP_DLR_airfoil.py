@@ -84,12 +84,12 @@ print_dset_stats('val',  td_val)
 
 
 optimization_params = {
-        "lr": (0.00001, 0.01),  # fixed parameter
+        "lr": (0.00001, 0.01), 
+        "epochs": 50,  # fixed parameter
         "n_layers": (1, 4),  # optimizable parameter,
         "batch_size": (128, 512),
         "hidden_size": (200, 400),
         "p_dropouts": (0.1, 0.5),
-        "epochs": 50,
         "num_workers": 0,
         'print_rate_epoch': 5
     }

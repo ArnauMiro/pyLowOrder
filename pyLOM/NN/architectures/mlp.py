@@ -335,6 +335,38 @@ class MLP(nn.Module):
 
         Returns:
             Tuple [MLP, Dict]: The optimized model and the optimization parameters.
+
+        Example:
+            >>> from pyLOM.NN import MLP, OptunaOptimizer
+            >>> # Split the dataset
+            >>> train_dataset, eval_dataset = dataset.get_splits([0.8, 0.2])
+            >>> 
+            >>> # Define the optimization parameters
+            >>> optimization_params = {
+            >>>     "lr": (0.00001, 0.01), # optimizable parameter
+            >>>     "epochs": 50, # fixed parameter
+            >>>     "n_layers": (1, 4),
+            >>>     "batch_size": (128, 512),
+            >>>     "hidden_size": (200, 400),
+            >>>     "p_dropouts": (0.1, 0.5),
+            >>>     "num_workers": 0,
+            >>>     'print_rate_epoch': 5
+            >>> }
+            >>>
+            >>> # Define the optimizer
+            >>> optimizer = OptunaOptimizer(
+            >>>     optimization_params=optimization_params,
+            >>>     n_trials=5,
+            >>>     direction="minimize",
+            >>>     pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=5, interval_steps=1),
+            >>>     save_dir=None,
+            >>> )
+            >>>
+            >>> # Create the optimized model
+            >>> model, optimization_params = MLP.create_optimized_model(train_dataset, eval_dataset, optimizer)
+            >>> 
+            >>> # Fit the model
+            >>> model.fit(train_dataset, eval_dataset, **optimization_params)
         """
         optimization_params = optuna_optimizer.optimization_params
         input_dim, output_dim = train_dataset[0][0].shape[0], train_dataset[0][1].shape[0]
