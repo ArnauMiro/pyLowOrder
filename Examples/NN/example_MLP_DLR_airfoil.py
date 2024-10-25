@@ -73,13 +73,13 @@ device = pyLOM.NN.select_device("cpu") # Force CPU for this example, if left in 
 
 
 ## Load datasets and set up the results output
-BASEDIR = './DATA'
+BASEDIR = '/home/d.ramos/Datos_DLR_pylom' #'./DATA'
 CASESTR = 'NRL7301'
 RESUDIR = 'MLP_DLR_airfoil'
 pyLOM.NN.create_results_folder(RESUDIR)
 
 input_scaler     = pyLOM.NN.MinMaxScaler()
-output_scaler     = pyLOM.NN.MinMaxScaler()
+output_scaler    = pyLOM.NN.MinMaxScaler()
 _,td_train = load_dataset(os.path.join(BASEDIR,f'{CASESTR}_TRAIN.h5'),input_scaler,output_scaler)
 _,td_test  = load_dataset(os.path.join(BASEDIR,f'{CASESTR}_TEST.h5'),input_scaler,output_scaler)
 _,td_val   = load_dataset(os.path.join(BASEDIR,f'{CASESTR}_VAL.h5'),input_scaler,output_scaler)
@@ -135,9 +135,9 @@ scaled_y     = output_scaler.inverse_transform([td_test[:][1]])[0]
 # check that the scaling is correct
 pyLOM.pprint(0,scaled_y.min(), scaled_y.max())
 
-pyLOM.pprint(0,f"MAE: {np.abs(scaled_preds - np.array(scaled_y)).mean()}")
-pyLOM.pprint(0,f"MRE: {np.abs(scaled_preds - np.array(scaled_y)).mean() / abs(np.array(scaled_y).mean() + 1e-6)}")
-pyLOM.pprint(0,f"MSE: {((scaled_preds - np.array(scaled_y)) ** 2).mean()}")
+evaluator = pyLOM.NN.RegressionEvaluator()
+evaluator(scaled_y, scaled_preds)
+evaluator.print_metrics()
 
 true_vs_pred_plot(scaled_y, scaled_preds, RESUDIR + '/true_vs_pred.png')
 plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss.png')

@@ -10,7 +10,7 @@ import json
 
 from typing         import Callable, Dict
 from ..utils.errors import raiseError
-
+from ..             import pprint
 
 # Add optuna as an optional dependency
 try:
@@ -77,18 +77,18 @@ try:
             completed_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
             
             # Optimization report
-            print("\nStudy statistics: ")
-            print("  Number of finished trials: ", len(study.trials))
-            print("  Number of pruned trials: ", len(pruned_trials))
-            print("  Number of completed trials: ", len(completed_trials))
+            pprint(0, "\nStudy statistics: ")
+            pprint(0, "  Number of finished trials: ", len(study.trials))
+            pprint(0, "  Number of pruned trials: ", len(pruned_trials))
+            pprint(0, "  Number of completed trials: ", len(completed_trials))
 
             trial = study.best_trial
-            print("Best trial:")
-            print("  Value: ", trial.value)
-            print("  Params: ")
+            pprint(0, "Best trial:")
+            pprint(0, "  Value: ", trial.value)
+            pprint(0, "  Params: ")
             for key, value in trial.params.items():
-                print("    {}: {}".format(key, value))
-            print("\n")
+                pprint(0, "    {}: {}".format(key, value))
+            pprint(0, "\n")
 
 except:
     def TrialState():

@@ -16,12 +16,15 @@ from ..utils.plots  import plotSnapshot
 from .callbacks     import EarlyStopper
 from .utils         import Dataset, create_results_folder, select_device, betaLinearScheduler, MinMaxScaler
 
+from .stats         import RegressionEvaluator
+
 from .optimizer     import OptunaOptimizer
 from .pipeline      import Pipeline
 
 from .architectures.mlp               import MLP
 from .architectures.autoencoders      import Autoencoder, VariationalAutoencoder
 from .architectures.encoders_decoders import Encoder2D, Decoder2D, Encoder3D, Decoder3D
+
 
 
 # Wrapper of the activation functions
