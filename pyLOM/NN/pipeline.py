@@ -9,7 +9,7 @@
 from typing         import List, Dict, Any
 from .optimizer     import OptunaOptimizer
 from ..utils.errors import raiseWarning
-
+from ..            import pprint
 
 class Pipeline:
     r"""
@@ -66,7 +66,7 @@ class Pipeline:
 
     def run(self) -> Any:
         """
-        Run the pipeline.
+        Run the pipeline, this will train the model and return the output of the model's fit method. If optuna is used, the model will be trained with the optimized parameters.
 
         Returns:
             model_output (Any): The output of the model's fit method.
@@ -81,6 +81,7 @@ class Pipeline:
                 eval_dataset = self.valid_dataset,
                 optuna_optimizer = self.optimizer,
             )
+            pprint(0, "Training now a model with optimized parameters")
 
         model_output = self._model.fit(
             self.train_dataset, eval_dataset=self.test_dataset, **self.training_params
