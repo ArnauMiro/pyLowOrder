@@ -204,6 +204,17 @@
 	},
 
 	"comment": "NN tests",
+	"AE_Cylinder_2D": {
+		"name"   : "AE Cylinder 2D",
+		"module" : "NN",
+		"file"   : "runs/tsuite_AE2D.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
 	"VAE_Cylinder_2D": {
 		"name"   : "VAE Cylinder 2D",
 		"module" : "NN",
@@ -233,6 +244,17 @@
 		"data"   : "DATA/CHANNEL.h5",
 		"var"    : ["VELOX"],
 		"params" : {"nx":64,"ny":64,"nz":64},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"MLP_airfoil": {
+		"name"   : "MLP airfoil data",
+		"module" : "NN",
+		"file"   : "runs/tsuite_MLP.py",
+		"data"   : "DATA/AIRFOIL.h5",
+		"var"    : ["cp"],
+		"params" : {},
 		"nprocs" : 1,
 		"reset"  : false,
 		"active" : true

@@ -45,6 +45,9 @@ pyLOM/vmmath/wrapper.html
 pyLOM/inp_out/*.c
 pyLOM/inp_out/*.html
 
+DATA/*.txt
+DATA/*.h5
+
 # C extensions
 *.so
 

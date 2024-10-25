@@ -24,27 +24,20 @@ device = pyLOM.NN.select_device('cpu')
 nlayers     = 5
 channels    = 64
 lat_dim     = 5
-beta        = 0
-beta_start  = 0
-beta_wmup   = 0
 kernel_size = 4
 nlinear     = 512
 padding     = 1
-activations = [pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu()]
+activations = [pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh()]
 
 
 ## Load pyLOM dataset and set up results output
-RESUDIR = os.path.join(OUTDIR,'vae_beta_%.2e_ld_%i' % (beta, lat_dim))
+RESUDIR = os.path.join(OUTDIR,'ae_ld_%i' % (lat_dim))
 pyLOM.NN.create_results_folder(RESUDIR,echo=False)
 
 
 ## Load pyLOM dataset
 m    = pyLOM.Mesh.load(DATAFILE)
 d    = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table)
-u    = d.X(*VARIABLES)
-um   = pyLOM.math.temporal_mean(u)
-u_x  = pyLOM.math.subtract_mean(u, um)
-time = d.get_variable('time')
 
 
 ## Mesh size
@@ -55,28 +48,31 @@ nw  = 192
 
 
 ## Create a torch dataset
+u    = d.X(*VARIABLES)
+um   = pyLOM.math.temporal_mean(u)
+u_x  = pyLOM.math.subtract_mean(u, um)[:,0]
 td   = pyLOM.NN.Dataset((u_x,), (n0h, n0w))
 td.crop(nh, nw)
 
 
 ## Set and train the variational autoencoder
-betasch    = pyLOM.NN.betaLinearScheduler(0., beta, beta_start, beta_wmup)
-encoder    = pyLOM.NN.Encoder2D(nlayers, lat_dim, nh, nw, td.num_channels, channels, kernel_size, padding, activations, nlinear, vae=True)
+encoder    = pyLOM.NN.Encoder2D(nlayers, lat_dim, nh, nw, td.num_channels, channels, kernel_size, padding, activations, nlinear)
 decoder    = pyLOM.NN.Decoder2D(nlayers, lat_dim, nh, nw, td.num_channels, channels, kernel_size, padding, activations, nlinear)
-model      = pyLOM.NN.VariationalAutoencoder(lat_dim, (nh, nw), td.num_channels, encoder, decoder, device=device)
+model      = pyLOM.NN.Autoencoder(lat_dim, (nh, nw), td.num_channels, encoder, decoder, device=device)
 early_stop = pyLOM.NN.EarlyStopper(patience=5, min_delta=0.02)
 
 pipeline = pyLOM.NN.Pipeline(
-    train_dataset = td,
-    test_dataset  = td,
-    model=model,
-    training_params={
-        "batch_size": 4,
-        "epochs": 100,
-        "lr": 1e-4,
-        "betasch": betasch,
-        "BASEDIR":RESUDIR
-    },
+   train_dataset   = td,
+   test_dataset    = td,
+   model           = model,
+   training_params = {
+       "batch_size": 16,
+       "epochs": 100,
+       "lr": 1e-4,
+       "callback":early_stop,
+       'BASEDIR':RESUDIR,
+   },
+   
 )
 pipeline.run()
 
@@ -84,11 +80,11 @@ pipeline.run()
 ## Reconstruct dataset and compute accuracy
 rec = model.reconstruct(td)
 rd  = pyLOM.NN.Dataset((rec), (nh, nw))
-rd.pad(n0h, n0w)
-td.pad(n0h, n0w)
-d.add_field('urec',1,rd[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
-d.add_field('utra',1,td[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
-pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=VARIABLES+['urec', 'utra'],fmt='vtkh5')
+rd.pad(n0h,n0w)
+td.pad(n0h,n0w)
+d.add_field('urec',1,rd[0,0,:,:].numpy().reshape((n0w*n0h,)))
+d.add_field('utra',1,td[0,0,:,:].numpy().reshape((n0w*n0h,)))
+pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=[0],times=[0.],vars=VARIABLES+['urec', 'utra'],fmt='vtkh5')
 
 
 ## Testsuite output
