@@ -114,9 +114,9 @@ scaled_preds = output_scaler.inverse_transform([preds])[0]
 scaled_y     = output_scaler.inverse_transform([td_test[:][1]])[0]
 
 
-pyLOM.pprint(0,f"MAE: {np.abs(scaled_preds - np.array(scaled_y)).mean()}")
-pyLOM.pprint(0,f"MRE: {np.abs(scaled_preds - np.array(scaled_y)).mean() / abs(np.array(scaled_y).mean() + 1e-6)}")
-pyLOM.pprint(0,f"MSE: {((scaled_preds - np.array(scaled_y)) ** 2).mean()}")
+evaluator = pyLOM.NN.RegressionEvaluator()
+evaluator(scaled_y, scaled_preds)
+evaluator.print_metrics()
 
 true_vs_pred_plot(scaled_y, scaled_preds, RESUDIR + '/true_vs_pred.png')
 plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss.png')
