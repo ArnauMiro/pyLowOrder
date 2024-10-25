@@ -294,11 +294,11 @@ def randomized_svd(Ai, r, q):
 
 	# QR factorization on A
 	for j in range(q):
-		Qi,R = tsqr(Yi)
+		Qi,_ = tsqr(Yi)
 		Q2i  = matmulp(Ai.T,Qi)
 		Yi   = matmul(Ai,Q2i)
 
-	Qi,R = tsqr(Yi)
+	Qi,_ = tsqr(Yi)
 	B    = matmulp(Qi.T,Ai)
 
 	Ur, S, V = svd(B)
