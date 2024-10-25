@@ -73,7 +73,7 @@ device = pyLOM.NN.select_device("cpu") # Force CPU for this example, if left in 
 
 
 ## Load datasets and set up the results output
-BASEDIR = '/home/d.ramos/Datos_DLR_pylom' #'./DATA'
+BASEDIR  = './DATA'
 CASESTR = 'NRL7301'
 RESUDIR = 'MLP_DLR_airfoil'
 pyLOM.NN.create_results_folder(RESUDIR)
