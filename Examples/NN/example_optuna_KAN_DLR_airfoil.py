@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 #
-# Example of Kan.
+# Example of KAN with optuna.
 #
-# Last revision: 24/10/2024
+# Last revision: 25/10/2024
 
-import os, numpy as np, matplotlib.pyplot as plt
+import os, numpy as np, optuna, matplotlib.pyplot as plt
 import pyLOM
 
 
@@ -34,9 +34,6 @@ def print_dset_stats(name,td):
     pyLOM.pprint(0,f'name={name} ({len(td)}), x ({x.shape}) = [{x.min(dim=0)},{x.max(dim=0)}], y ({y.shape}) = [{y.min(dim=0)},{y.max(dim=0)}]')
 
 def true_vs_pred_plot(y_true, y_pred, path):
-    """
-    Auxiliary function to plot the true vs predicted values
-    """
     num_plots = y_true.shape[1]
     plt.figure(figsize=(10, 5 * num_plots))
     for j in range(num_plots):
@@ -50,10 +47,7 @@ def true_vs_pred_plot(y_true, y_pred, path):
     plt.tight_layout()
     plt.savefig(path, dpi=300)
 
-def plot_train_test_loss(train_loss, test_loss, path):
-    """
-    Auxiliary function to plot the training and test loss
-    """
+def plot_train_test_loss(train_loss, test_loss, path):   
     plt.figure()
     plt.plot(range(1, len(train_loss) + 1), train_loss, label="Training Loss")
     total_epochs = len(test_loss) # test loss is calculated at the end of each epoch
@@ -75,7 +69,7 @@ device = pyLOM.NN.select_device("cpu") # Force CPU for this example, if left in 
 ## Load datasets and set up the results output
 BASEDIR = './DATA'
 CASESTR = 'NRL7301'
-RESUDIR = 'KAN_DLR_airfoil'
+RESUDIR = 'KAN_optuna_DLR_airfoil'
 pyLOM.NN.create_results_folder(RESUDIR)
 
 input_scaler     = pyLOM.NN.MinMaxScaler()
@@ -88,44 +82,50 @@ print_dset_stats('train',td_train)
 print_dset_stats('test', td_test)
 print_dset_stats('val',  td_val)
 
-model = pyLOM.NN.KAN(
-    input_size=4,
-    output_size=1,
-    hidden_size=31,
-    n_layers=3,
-    p_dropouts=0.0,
-    layer_type=pyLOM.NN.ChebyshevLayer,
-    model_name="kan_example",
-    device=device,
-    degree=7
-)
 
-training_params = {
-    "epochs": 20,
-    "lr": 1e-5,
-    'lr_gamma': 0.95,
-    'lr_scheduler_step': 10,
-    'batch_size': 8,
-    "print_eval_rate": 1,
-    "save_logs_path":RESUDIR,
+optimization_params = {
+    "lr": (0.00001, 0.1),
+    "batch_size": (10, 64),
+    "hidden_size": (10, 40),
+    "print_rate": 10,
+    "n_layers": (1, 4),
+    "print_eval_rate": 2,
+    "epochs": 10,
+    "lr_gamma": 0.98,
+    "lr_step_size": 3,
+    "model_name": "kan_test_optuna",
+    'device': device,
+    "layer_type": (pyLOM.NN.ChebyshevLayer, pyLOM.NN.JacobiLayer),
+    "layer_kwargs": {
+        "degree": (3, 10),
+    },
 }
+
+# define the optimizer
+optimizer = pyLOM.NN.OptunaOptimizer(
+    optimization_params=optimization_params,
+    n_trials=5, # 5 may be too low, but it is just for the example
+    direction="minimize",
+    pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=5, interval_steps=1),
+    save_dir=None,
+)
 
 pipeline = pyLOM.NN.Pipeline(
     train_dataset=td_train,
     test_dataset=td_test,
     valid_dataset=td_val,
-    model=model,
-    training_params=training_params,
+    model_class=pyLOM.NN.KAN,
+    optimizer=optimizer,
 )
 
 training_logs = pipeline.run()
 
 
 ## check saving and loading the model
-pipeline.model.save(os.path.join(RESUDIR,"model.pth"))
+pipeline.model.save(os.path.join(RESUDIR, "model.pth"))
 model = pyLOM.NN.KAN.load(RESUDIR + "/model.pth")
 # to predict from a dataset
-preds = model.predict(td_test, batch_size=256)
+preds = model.predict(td_test, batch_size=2048)
 # to predict from a tensor
 # preds = model(torch.tensor(dataset_test[:][0], device=model.device)).cpu().detach().numpy()
 scaled_preds = output_scaler.inverse_transform([preds])[0]
