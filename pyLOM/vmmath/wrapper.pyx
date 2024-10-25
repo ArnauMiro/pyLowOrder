@@ -76,10 +76,11 @@ cdef extern from "averaging.h":
 	cdef void c_dsubtract_mean "dsubtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
 cdef extern from "svd.h":
 	# Single precision
-	cdef int c_sqr        "sqr"      (float *Q,  float *R, float *A,  const int m, const int n)
-	cdef int c_ssvd       "ssvd"     (float *U,  float *S, float *V,  float *Y,    const int m, const int n)
-	cdef int c_stsqr      "stsqr"    (float *Qi, float *R, float *Ai, const int m, const int n, MPI_Comm comm)
-	cdef int c_stsqr_svd  "stsqr_svd"(float *Ui, float *S, float *VT, float *Ai,   const int m, const int n, MPI_Comm comm)
+	cdef int c_sqr             "sqr"            (float *Q,  float *R, float *A,  const int m, const int n)
+	cdef int c_ssvd            "ssvd"           (float *U,  float *S, float *V,  float *Y,    const int m, const int n)
+	cdef int c_stsqr           "stsqr"          (float *Qi, float *R, float *Ai, const int m, const int n, MPI_Comm comm)
+	cdef int c_stsqr_svd       "stsqr_svd"      (float *Ui, float *S, float *VT, float *Ai,   const int m, const int n, MPI_Comm comm)
+	cdef int c_srandomized_svd "srandomized_svd"(float *Ui, float *S, float *VT, float *Ai,   const int m, const int n, const int r, const int q, MPI_Comm comm)
 	# Double precision
 	cdef int c_dqr        "dqr"      (double *Q,  double *R, double *A,  const int m, const int n)
 	cdef int c_dsvd       "dsvd"     (double *U,  double *S, double *V,  double *Y,   const int m, const int n)
@@ -1112,51 +1113,20 @@ def tsqr_svd(real_full[:,:] A):
 @cython.cdivision(True)    # turn off zero division check
 def _srandomized_svd(float[:,:] A, int r, int q):
 	'''
-	Parallel Single value decomposition (SVD) using Lapack.
+	Parallel Randomized Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
 		S(n)     are the singular values.
 		V(n,n)   are the right singular vectors.
 	'''
 	cdef int retval
-	cdef int ii = 0
 	cdef int m = A.shape[0], n = A.shape[1], mn = min(m,n)
 	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
-	cdef np.ndarray[np.float32_t,ndim=2] omega = np.random.rand((m,mn),dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=2] Y  = np.zeros((m,r),dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=2] At = np.zeros((mn,m),dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=2] Q  = np.zeros((m,r),dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=2] Qt = np.zeros((r,m),dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=2] Q2 = np.zeros((n,r),dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=2] R  = np.zeros((r,r),dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=2] B  = np.zeros((r,n),dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=2] U  = np.zeros((m,mn),dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=2] Ur = np.zeros((m,mn),dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=1] S  = np.zeros((mn,) ,dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=2] V  = np.zeros((n,mn),dtype=np.float32)
-	
-	c_smatmul(&Y[0,0],&A[0,0],&omega[0,0],m,n,r)
-	if not retval == 0: raiseError('Problems computing matmul of A*omega!')
-	c_stranspose(&A[0,0], &At[0,0], m, n)
-
-	for ii in range(q):
-		retval = c_stsqr(&Q[0,0],&R[0,0],&Y[0,0],m,r,MPI_COMM.ob_mpi)
-		if not retval == 0: raiseError('Problems computing TSQR!')
-
-		c_smatmulp(&Q2[0,0],&At[0,0],&Q[0,0],m,n,r)
-		c_smatmul(&Y[0,0],&A[0,0],&Q2[0,0],m,n,r)
-
-	retval = c_stsqr(&Q[0,0],&R[0,0],&Y[0,0],m,r,MPI_COMM.ob_mpi)
-	if not retval == 0: raiseError('Problems computing TSQR!')
-
-	c_stranspose(&Q[0,0], &Qt[0,0], m, r)
-	c_smatmulp(&B[0,0],&Qt[0,0],&A[0,0],m,n,r)
-
-	retval = c_ssvd(&Ur[0,0],&S[0],&V[0,0],&B[0,0],m,r)
-	if not retval == 0: raiseError('Problems computing SVD!')
-
-	c_smatmul(&U[0,0],&Q[0,0],&Ur[0,0],m,n,r)
-
-
+	cdef np.ndarray[np.float32_t,ndim=2] U = np.zeros((m,r),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=1] S = np.zeros((r,) ,dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=2] V = np.zeros((r,n),dtype=np.float32)
+	# Compute SVD using randomized algorithm
+	retval = c_srandomized_svd(&U[0,0],&S[0],&V[0,0],&A[0,0],m,n,r,q,MPI_COMM.ob_mpi)
+	if not retval == 0: raiseError('Problems computing Randomized SVD!')
 	return U,S,V
 
 @cr('math.randomized_svd')
@@ -1164,7 +1134,7 @@ def _srandomized_svd(float[:,:] A, int r, int q):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def randomized_svd(real_full[:,:] A):
+def randomized_svd(real_full[:,:] A, const int r, const int q):
 	'''
 	Parallel Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
@@ -1172,13 +1142,13 @@ def randomized_svd(real_full[:,:] A):
 		V(n,n)   are the right singular vectors.
 	'''
 	if real_full is np.complex128_t:
-		return _srandomized_svd(A)
+		return _srandomized_svd(A,r,q)
 	elif real_full is np.complex64_t:
-		return _srandomized_svd(A)
+		return _srandomized_svd(A,r,q)
 	elif real_full is double:
-		return _srandomized_svd(A)
+		return _srandomized_svd(A,r,q)
 	else:
-		return _srandomized_svd(A)
+		return _srandomized_svd(A,r,q)
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function

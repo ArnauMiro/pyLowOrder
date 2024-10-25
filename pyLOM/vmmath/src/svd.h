@@ -14,6 +14,7 @@ int sqr(float *Q, float *R, float *A, const int m, const int n);
 int ssvd(float *U, float *S, float *VT, float *Y, const int m, const int n);
 int stsqr(float *Qi, float *R, float *Ai, const int m, const int n, MPI_Comm comm);
 int stsqr_svd(float *Ui, float *S, float *VT, float *Ai, const int m, const int n, MPI_Comm comm);
+int srandomized_svd(float *Ui, float *S, float *VT, float *Ai, const int m, const int n, const int r, const int q, MPI_Comm comm);
 // Double precision version
 int dqr(double *Q, double *R, double *A, const int m, const int n);
 int dsvd(double *U, double *S, double *VT, double *Y, const int m, const int n);
