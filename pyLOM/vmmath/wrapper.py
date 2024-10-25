@@ -289,9 +289,8 @@ def randomized_svd(Ai, r, q):
 	VT(n,n)  right singular vectors (transposed).
 	'''
 	mi, n = Ai.shape
-	omega = np.random.rand(n, r) 
+	omega = np.random.rand(n, r).astype(Ai.dtype)
 	Yi = matmul(Ai,omega)
-
 	# QR factorization on A
 	for j in range(q):
 		Qi,_ = tsqr(Yi)
