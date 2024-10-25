@@ -342,6 +342,7 @@ class KAN(nn.Module):
     ) -> Tuple[nn.Module, Dict]:
         """
         Create an optimized KAN model using Optuna. The model is trained on the training dataset and the metric to optimize is computed with the evaluation dataset.
+        If the parameters from the optimizer are a tuple, the function will optimize the parameter. If the parameter is a single value, it will be fixed during optimization.
 
         Args:
             train_dataset: The training dataset.
@@ -351,6 +352,44 @@ class KAN(nn.Module):
 
         Returns:
             Tuple [KAN, Dict]: The optimized model and the optimization parameters.
+
+        Example:
+            >>> from pyLOM.NN import KAN, OptunaOptimizer
+            >>> # Split the dataset
+            >>> train_dataset, eval_dataset = dataset.get_splits([0.8, 0.2])
+            >>> 
+            >>> # Define the optimization parameters
+            >>> optimization_params = {
+            >>>     "lr": (0.00001, 0.1),
+            >>>     "batch_size": (10, 64),
+            >>>     "hidden_size": (10, 40), # optimizable parameter
+            >>>     "n_layers": (1, 4),
+            >>>     "print_eval_rate": 2,
+            >>>     "epochs": 10, # non-optimizable parameter
+            >>>     "lr_gamma": 0.98,
+            >>>     "lr_step_size": 3,
+            >>>     "model_name": "kan_test_optuna",
+            >>>     'device': device,
+            >>>     "layer_type": (pyLOM.NN.ChebyshevLayer, pyLOM.NN.JacobiLayer),
+            >>>     "layer_kwargs": {
+            >>>         "degree": (3, 10),
+            >>>     },
+            >>> }
+            >>>
+            >>> # Define the optimizer
+            >>> optimizer = OptunaOptimizer(
+            >>>     optimization_params=optimization_params,
+            >>>     n_trials=5,
+            >>>     direction="minimize",
+            >>>     pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=5, interval_steps=1),
+            >>>     save_dir=None,
+            >>> )
+            >>>
+            >>> # Create the optimized model
+            >>> model, optimization_params = KAN.create_optimized_model(train_dataset, eval_dataset, optimizer)
+            >>> 
+            >>> # Fit the model
+            >>> model.fit(train_dataset, eval_dataset, **optimization_params)
         """
         optimizing_parameters = optuna_optimizer.optimization_params
         input_size, output_size = train_dataset[0][0].shape[0], train_dataset[0][1].shape[0]
@@ -464,6 +503,15 @@ class KAN(nn.Module):
 
 
 class ChebyshevLayer(nn.Module):
+    """
+    Chebyshev layer for KAN model.
+
+    Args:
+        input_dim (int): The number of input features.
+        output_dim (int): The number of output features.
+        degree (int): The degree of the Chebyshev polynomial.
+    """
+
     def __init__(self, input_dim, output_dim, degree, **kwargs):
         super().__init__()
         self.inputdim = input_dim
@@ -492,6 +540,18 @@ class ChebyshevLayer(nn.Module):
 
 
 class JacobiLayer(nn.Module):
+    """
+    Jacobi layer for KAN model.
+
+    Args:
+        input_dim (int): The number of input features.
+        output_dim (int): The number of output features.
+        degree (int): The degree of the Jacobi polynomial.
+        a (float, optional): The first parameter of the Jacobi polynomial (default: ``1.0``).
+        b (float, optional): The second parameter of the Jacobi polynomial (default: ``1.0``).
+    """
+
+    
     def __init__(self, input_dim, output_dim, degree, a=1.0, b=1.0):
         super().__init__()
         self.inputdim = input_dim

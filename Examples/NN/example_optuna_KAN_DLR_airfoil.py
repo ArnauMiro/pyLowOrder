@@ -87,7 +87,6 @@ optimization_params = {
     "lr": (0.00001, 0.1),
     "batch_size": (10, 64),
     "hidden_size": (10, 40),
-    "print_rate": 10,
     "n_layers": (1, 4),
     "print_eval_rate": 2,
     "epochs": 10,
