@@ -248,12 +248,12 @@
 		"reset"  : false,
 		"active" : true
 	},
-	"MLP_synthetic": {
-		"name"   : "MLP synthetic data",
+	"MLP_airfoil": {
+		"name"   : "MLP airfoil data",
 		"module" : "NN",
 		"file"   : "runs/tsuite_MLP.py",
-		"data"   : "DATA/SYNTHETIC.h5",
-		"var"    : ["DATA"],
+		"data"   : "DATA/AIRFOIL.h5",
+		"var"    : ["cp"],
 		"params" : {},
 		"nprocs" : 1,
 		"reset"  : false,
