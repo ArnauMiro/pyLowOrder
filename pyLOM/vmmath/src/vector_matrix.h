@@ -20,6 +20,7 @@ void   svecmat(float *v, float *A, const int m, const int n);
 int    sinverse(float *A, int N, char *UoL);
 float  sRMSE(float *A, float *B, const int m, const int n, MPI_Comm comm);
 void   ssort(float *v, int *index, int n);
+void   srandom_matrix(float *A, int m, int n);
 // Double version
 void   dtranspose(double *A, double *B, const int m, const int n);
 double dvector_norm(double *v, int start, int n);

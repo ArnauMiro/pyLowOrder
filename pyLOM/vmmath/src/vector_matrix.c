@@ -5,6 +5,8 @@
 #include <complex.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <time.h>
 #include "mpi.h"
 typedef float  _Complex scomplex_t;
 typedef double _Complex dcomplex_t;
@@ -848,4 +850,15 @@ void zsort(dcomplex_t *v, int *index, int n){
 		}
 	}
 	free(w);
+}
+
+void srandom_matrix(float *A, int m, int n){
+	// Seed the random number generator
+    srand((unsigned int)time(NULL));
+
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            A[i * n + j] = (float)rand() / RAND_MAX;
+        }
+    }
 }
