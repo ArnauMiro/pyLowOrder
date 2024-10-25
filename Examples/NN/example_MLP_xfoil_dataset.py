@@ -7,6 +7,8 @@
 import os, numpy as np, torch, matplotlib.pyplot as plt
 import pyLOM
 
+device = pyLOM.NN.select_device("cpu") # Force CPU for this example, if left in blank it will automatically select the device
+
 
 def true_vs_pred_plot(y_true, y_pred, path):
     """
@@ -43,39 +45,25 @@ def plot_train_test_loss(train_loss, test_loss, path):
     plt.grid()
     plt.savefig(path, dpi=300)
 
-device = pyLOM.NN.select_device("cpu") # Force CPU for this example, if left in blank it will automatically select the device
-DATADIR = 'Examples/Data'
+## Load datasets and set up the results output
+BASEDIR = './DATA'
+CASESTR = 'AIRFOIL'
 RESUDIR = 'MLP_xfoil_dataset'
 pyLOM.NN.create_results_folder(RESUDIR)
 
-data = np.loadtxt(
-    DATADIR + '/dataset_xfoil.txt', 
-    usecols=range(0,5), 
-    delimiter="\t", 
-    comments="#", 
-    dtype=np.float32,
-    skiprows=1
-)
-Re = np.unique(data[:, 0]).tolist()
-print(len(Re), Re)
-AoA = np.unique(data[:, 1]).tolist()
-print(len(AoA), AoA)
-num_airfoil_points = 99 # number of points in the airfoil
-xy = data[:num_airfoil_points, 2:4]
-cp = data[:, 4:5] # coefficient of pressure
+d  = pyLOM.Dataset.load(os.path.join(BASEDIR,f'{CASESTR}.h5'))
 
 input_scaler = pyLOM.NN.MinMaxScaler()
 output_scaler = pyLOM.NN.MinMaxScaler()
 
 dataset = pyLOM.NN.Dataset(
-    variables_out=(cp,),
-    variables_in=xy,
-    parameters=[Re, AoA],
+    variables_out=(d['cp'],),
+    variables_in=d.xyz,
+    parameters=[d.get_variable('Re'), d.get_variable('AoA')],
     inputs_scaler=input_scaler,
     outputs_scaler=output_scaler,
     snapshots_by_column=False
 )
-
 td_train, td_test = dataset.get_splits([0.8, 0.2])
 
 training_params = {
