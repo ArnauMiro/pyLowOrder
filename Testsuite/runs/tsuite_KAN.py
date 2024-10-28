@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 # PYLOM Testsuite
-# Run MLP on the synthetic dataset
+# Run KAN on the synthetic dataset
 #
 # Last revision: 23/10/2024
 from __future__ import print_function, division
@@ -45,26 +45,29 @@ dataset = pyLOM.NN.Dataset(
 
 td_train, td_test = dataset.get_splits([0.8, 0.2])
 
+sample_input, sample_output = td_train[0]
 
 ## Generate model
 training_params = {
-    "epochs": 250,
-    "lr": 0.00015,
-    "lr_gamma": 0.98,
-    "lr_scheduler_step": 15,
-    "batch_size": 512,
-    "loss_fn": torch.nn.MSELoss(),
-    "optimizer_class": torch.optim.Adam,
-    "print_rate_epoch": 10,
+    "epochs": 5,
+    "lr": 1e-5,
+    'lr_gamma': 0.95,
+    'lr_scheduler_step': 10,
+    'batch_size': 8,
+    "print_eval_rate": 1,
+    "save_logs_path":RESUDIR,
 }
 
-sample_input, sample_output = td_train[0]
-model = pyLOM.NN.MLP(
+model = pyLOM.NN.KAN(
     input_size=sample_input.shape[0],
     output_size=sample_output.shape[0],
-    hidden_size=32,
-    n_layers=2,
-    p_dropouts=0.1,
+    hidden_size=31,
+    n_layers=3,
+    p_dropouts=0.0,
+    layer_type=pyLOM.NN.ChebyshevLayer,
+    model_name="kan_example",
+    device=device,
+    degree=7
 )
 
 pipeline = pyLOM.NN.Pipeline(
@@ -79,7 +82,7 @@ training_logs = pipeline.run()
 
 ## check saving and loading the model
 pipeline.model.save(os.path.join(RESUDIR,"model.pth"))
-model = pyLOM.NN.MLP.load(RESUDIR + "/model.pth")
+model = pyLOM.NN.KAN.load(RESUDIR + "/model.pth")
 preds = model.predict(td_test, batch_size=250)
 
 scaled_preds = output_scaler.inverse_transform([preds])[0]

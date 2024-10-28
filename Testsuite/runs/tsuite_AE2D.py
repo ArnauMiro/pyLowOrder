@@ -67,7 +67,7 @@ pipeline = pyLOM.NN.Pipeline(
    model           = model,
    training_params = {
        "batch_size": 16,
-       "epochs": 100,
+       "epochs": 10,
        "lr": 1e-4,
        "callback":early_stop,
        'BASEDIR':RESUDIR,
