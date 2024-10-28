@@ -107,7 +107,7 @@ def truncate(double[:,:] U, double[:] S, double[:,:] V, double r=1e-8):
 	'''
 	cdef int m = U.shape[0], n = S.shape[0], N
 	# Compute N using S
-	N  = c_compute_truncation_residual(&S[0],r,n)
+	N  = int(r) if r >=1 else c_compute_truncation_residual(&S[0],r,n)
 	# Allocate output arrays
 	cdef np.ndarray[np.double_t,ndim=2] Ur = np.zeros((m,N),dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=1] Sr = np.zeros((N,),dtype=np.double)
