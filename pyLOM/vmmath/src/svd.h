@@ -20,6 +20,7 @@ int dqr(double *Q, double *R, double *A, const int m, const int n);
 int dsvd(double *U, double *S, double *VT, double *Y, const int m, const int n);
 int dtsqr(double *Qi, double *R, double *Ai, const int m, const int n, MPI_Comm comm);
 int dtsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm);
+int drandomized_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, const int r, const int q, MPI_Comm comm);
 // Single complex version
 int cqr(scomplex_t *Q, scomplex_t *R, scomplex_t *A, const int m, const int n);
 int csvd(scomplex_t *U, float *S, scomplex_t *VT, scomplex_t *Y, const int m, const int n);
