@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Example of MLP.
+# Example of KAN with xfoil dataset.
 #
 # Last revision: 23/10/2024
 
@@ -48,10 +48,10 @@ def plot_train_test_loss(train_loss, test_loss, path):
 ## Load datasets and set up the results output
 BASEDIR = './DATA'
 CASESTR = 'AIRFOIL'
-RESUDIR = 'MLP_xfoil_dataset'
+RESUDIR = 'KAN_xfoil_dataset'
 pyLOM.NN.create_results_folder(RESUDIR)
 
-d  = pyLOM.Dataset.load(os.path.join(BASEDIR,f'{CASESTR}.h5'))
+d = pyLOM.Dataset.load(os.path.join(BASEDIR,f'{CASESTR}.h5'))
 
 input_scaler = pyLOM.NN.MinMaxScaler()
 output_scaler = pyLOM.NN.MinMaxScaler()
@@ -66,25 +66,29 @@ dataset = pyLOM.NN.Dataset(
 )
 td_train, td_test = dataset.get_splits([0.8, 0.2])
 
-training_params = {
-    "epochs": 250,
-    "lr": 0.00015,
-    "lr_gamma": 0.98,
-    "lr_scheduler_step": 15,
-    "batch_size": 512,
-    "loss_fn": torch.nn.MSELoss(),
-    "optimizer_class": torch.optim.Adam,
-    "print_rate_epoch": 10,
-}
-
 sample_input, sample_output = td_train[0]
-model = pyLOM.NN.MLP(
+
+model = pyLOM.NN.KAN(
     input_size=sample_input.shape[0],
     output_size=sample_output.shape[0],
-    hidden_size=128,
+    hidden_size=31,
     n_layers=3,
-    p_dropouts=0.1,
+    p_dropouts=0.0,
+    layer_type=pyLOM.NN.ChebyshevLayer,
+    model_name="kan_example_xfoil",
+    device=device,
+    degree=7
 )
+
+training_params = {
+    "epochs": 20,
+    "lr": 1e-5,
+    'lr_gamma': 0.95,
+    'lr_scheduler_step': 10,
+    'batch_size': 8,
+    "print_eval_rate": 1,
+    "save_logs_path":RESUDIR,
+}
 
 pipeline = pyLOM.NN.Pipeline(
     train_dataset=td_train,
@@ -98,7 +102,7 @@ training_logs = pipeline.run()
 
 ## check saving and loading the model
 pipeline.model.save(os.path.join(RESUDIR,"model.pth"))
-model = pyLOM.NN.MLP.load(RESUDIR + "/model.pth")
+model = pyLOM.NN.KAN.load(RESUDIR + "/model.pth")
 preds = model.predict(td_test, batch_size=250)
 
 scaled_preds = output_scaler.inverse_transform([preds])[0]

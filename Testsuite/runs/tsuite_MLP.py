@@ -40,7 +40,7 @@ dataset = pyLOM.NN.Dataset(
     parameters          = [d.get_variable('Re'), d.get_variable('AoA')],
     inputs_scaler       = input_scaler,
     outputs_scaler      = output_scaler,
-    snapshots_by_column = False
+    snapshots_by_column = True
 )
 
 td_train, td_test = dataset.get_splits([0.8, 0.2])
