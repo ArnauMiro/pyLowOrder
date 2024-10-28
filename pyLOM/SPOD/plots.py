@@ -15,21 +15,21 @@ from ..vmmath      import fft
 from ..utils.plots import plotResidual, plotFieldStruct2D, plotSnapshot, plotLayout
 
 
-def plotMode(L, P, freqs, dset, ivar, pointData=True, modes=np.array([1],np.int32),**kwargs):
+def plotMode(L, P, freqs, mesh, dset, ivar, pointData=True, modes=np.array([1],np.int32),**kwargs):
 	'''
 	Plot the real and imaginary parts of a mode
 	'''
 	# Extract the modes to be plotted
-	npoints = dset.mesh.size(pointData)
+	npoints = mesh.size(pointData)
 	P_modes = extract_modes(L,P,ivar,npoints,modes=modes)
 	# Add to the dataset
-	dset.add_variable('P_MODES',pointData,len(modes),P_modes)
+	dset.add_field('P_MODES',len(modes),P_modes)
 	# Loop over the modes
 	screenshot = kwargs.pop('screenshot',None)
 	off_screen = kwargs.pop('off_screen',False)
 	for imode, mode in enumerate(modes):
 		if screenshot is not None: kwargs['screenshot'] = screenshot % imode
-		plotLayout(dset,1,1,mode-1,vars=['P_MODES'],title='Mode %d St = %.3f' % (mode-1, np.abs(freqs[mode-1])),off_screen=off_screen,**kwargs)
+		plotLayout(mesh,dset,1,1,mode-1,vars=['P_MODES'],title='Mode %d St = %.3f' % (mode-1, np.abs(freqs[mode-1])),off_screen=off_screen,**kwargs)
 	# Remove from dataset
 	dset.delete('P_MODES')
 

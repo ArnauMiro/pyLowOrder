@@ -6,9 +6,7 @@
 #
 # Last rev: 19/07/2021
 
-__VERSION__ = '1.0.0'
-
-from .errors import raiseError, raiseWarning
+from .errors import raiseError, raiseWarning, round
 from .cr     import cr, cr_start, cr_stop, cr_info
 from .mem    import mem, mem_start, mem_stop, mem_info
 from .parall import MPI_RANK, MPI_SIZE, worksplit, is_rank_or_serial, pprint

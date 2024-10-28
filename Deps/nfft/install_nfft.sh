@@ -39,8 +39,24 @@ else
 		wget --no-check-certificate -O ${TAR} ${SRC}
 	fi
 	tar xvzf ${TAR}
-	# Configure build
+	# Configure build single
 	cd ${DIR}
+	if [ "$USE_OMP" = "ON" ]; then
+		./configure --prefix=${INSTALL_PREFIX} \
+					--enable-openmp \
+					--enable-single \
+					--with-fftw3=${INSTALL_PREFIX}/../fftw \
+					CC="${CCOMPILER}" CFLAGS="${CFLAGS}" LDFLAGS="-lm"
+	else
+		./configure --prefix=${INSTALL_PREFIX} \
+					--enable-single \
+					--with-fftw3=${INSTALL_PREFIX}/../fftw \
+					CC="${CCOMPILER}" CFLAGS="${CFLAGS}" LDFLAGS="-lm"
+	fi
+	# Build
+	make -j $(getconf _NPROCESSORS_ONLN)
+	make install
+	# Configure build double
 	if [ "$USE_OMP" = "ON" ]; then
 		./configure --prefix=${INSTALL_PREFIX} \
 					--enable-openmp \

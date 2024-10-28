@@ -286,15 +286,15 @@ def fft(t,y,equispaced=True):
 	if equispaced:
 		ts = t[1] - t[0] # Sampling time
 		# Compute sampling frequency
-		f  = 1./ts/t.shape[0]*np.arange(t.shape[0],dtype=np.double)
+		f  = 1./ts/t.shape[0]*np.arange(t.shape[0],dtype=y.dtype)
 		# Compute power spectra using fft
 		yf = scipy.fft.fft(y)
 	else:
 		# Compute sampling frequency
 		k_left = (t.shape[0]-1.)/2.
-		f      = (np.arange(t.shape[0],dtype=np.double)-k_left)/t[-1]
+		f      = (np.arange(t.shape[0],dtype=y.dtype)-k_left)/t[-1]
 		# Compute power spectra using fft
-		x  = -0.5 + np.arange(t.shape[0],dtype=np.double)/t.shape[0]
+		x  = -0.5 + np.arange(t.shape[0],dtype=y.dtype)/t.shape[0]
 		yf = nfft.nfft_adjoint(x,y,len(t))
 	ps = np.real(yf*conj(yf))/y.shape[0] # np.abs(yf)/y.shape[0]
 	return f, ps
@@ -367,9 +367,25 @@ def cellCenters(xyz,conec):
 	Compute the cell centers given a list 
 	of elements.
 	'''
-	xyz_cen = np.zeros((conec.shape[0],xyz.shape[1]),np.double)
+	xyz_cen = np.zeros((conec.shape[0],xyz.shape[1]),xyz.dtype)
 	for ielem in range(conec.shape[0]):
 		# Get the values of the field and the positions of the element
 		c = conec[ielem,conec[ielem,:]>=0]
 		xyz_cen[ielem,:] = np.mean(xyz[c,:],axis=0)
 	return xyz_cen
+
+@cr('math.normals')
+def normals(xyz,conec):
+	normals = np.zeros(((conec.shape[0],3)),xyz.dtype)
+	for ielem in range(conec.shape[0]):
+		# Get the values of the field and the positions of the element
+		c     = conec[ielem,conec[ielem,:]>=0]
+		xyzel =  xyz[c,:]
+		# Compute centroid
+		cen  = np.mean(xyzel,axis=0)
+		# Compute normal
+		for inod in range(len(c)):
+			u = xyzel[inod]   - cen
+			v = xyzel[inod-1] - cen
+			normals[ielem,:] += 0.5*np.cross(u,v)
+	return normals

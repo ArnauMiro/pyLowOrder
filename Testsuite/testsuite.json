@@ -1,0 +1,262 @@
+{	
+	"comment": "POD tests",
+	"POD_Cylinder": {
+		"name"   : "POD Cylinder 2D",
+		"module" : "POD",
+		"file"   : "runs/tsuite_POD.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"POD_Cylinder1": {
+		"name"   : "POD Cylinder 2D (parallel)",
+		"module" : "POD",
+		"file"   : "runs/tsuite_POD.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {},
+		"nprocs" : 4,
+		"reset"  : false,
+		"active" : true
+	},
+	"POD_Jet": {
+		"name"   : "POD Jet 2D",
+		"module" : "POD",
+		"file"   : "runs/tsuite_POD.py",
+		"data"   : "DATA/JET.h5",
+		"var"    : ["PRESS"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"POD_Jet1": {
+		"name"   : "POD Jet 2D (parallel)",
+		"module" : "POD",
+		"file"   : "runs/tsuite_POD.py",
+		"data"   : "DATA/JET.h5",
+		"var"    : ["PRESS"],
+		"params" : {},
+		"nprocs" : 4,
+		"reset"  : false,
+		"active" : true
+	},
+	"POD_T280": {
+		"name"   : "POD Tensor280 3D",
+		"module" : "POD",
+		"file"   : "runs/tsuite_POD.py",
+		"data"   : "DATA/TENSOR280.h5",
+		"var"    : ["VELOX"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"POD_T2801": {
+		"name"   : "POD Tensor280 3D (parallel)",
+		"module" : "POD",
+		"file"   : "runs/tsuite_POD.py",
+		"data"   : "DATA/TENSOR280.h5",
+		"var"    : ["VELOX"],
+		"params" : {},
+		"nprocs" : 4,
+		"reset"  : false,
+		"active" : true
+	},
+	"POD_Channel": {
+		"name"   : "POD Channel flow",
+		"module" : "POD",
+		"file"   : "runs/tsuite_POD.py",
+		"data"   : "DATA/CHANNEL.h5",
+		"var"    : ["VELOX","VELOY","VELOZ"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"POD_Channel1": {
+		"name"   : "POD Channel flow (parallel)",
+		"module" : "POD",
+		"file"   : "runs/tsuite_POD.py",
+		"data"   : "DATA/CHANNEL.h5",
+		"var"    : ["VELOX","VELOY","VELOZ"],
+		"params" : {},
+		"nprocs" : 4,
+		"reset"  : false,
+		"active" : true
+	},
+
+	"comment": "DMD tests",
+	"DMD_Cylinder": {
+		"name"   : "DMD Cylinder 2D",
+		"module" : "DMD",
+		"file"   : "runs/tsuite_DMD.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"DMD_Cylinder1": {
+		"name"   : "DMD Cylinder 2D (parallel)",
+		"module" : "DMD",
+		"file"   : "runs/tsuite_DMD.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {},
+		"nprocs" : 4,
+		"reset"  : false,
+		"active" : true
+	},
+	"DMD_Jet": {
+		"name"   : "DMD Jet 2D",
+		"module" : "DMD",
+		"file"   : "runs/tsuite_DMD.py",
+		"data"   : "DATA/JET.h5",
+		"var"    : ["PRESS"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"DMD_Jet1": {
+		"name"   : "DMD Jet 2D (parallel)",
+		"module" : "DMD",
+		"file"   : "runs/tsuite_DMD.py",
+		"data"   : "DATA/JET.h5",
+		"var"    : ["PRESS"],
+		"params" : {},
+		"nprocs" : 4,
+		"reset"  : false,
+		"active" : true
+	},
+
+	"comment": "SPOD tests",
+	"SPOD_Cylinder": {
+		"name"   : "SPOD Cylinder 2D",
+		"module" : "SPOD",
+		"file"   : "runs/tsuite_SPOD.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {"npwin" : 10,"nolap" : 2},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"SPOD_Cylinder1": {
+		"name"   : "SPOD Cylinder 2D (parallel)",
+		"module" : "SPOD",
+		"file"   : "runs/tsuite_SPOD.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {"npwin" : 10,"nolap" : 2},
+		"nprocs" : 4,
+		"reset"  : false,
+		"active" : true
+	},
+	"SPOD_Jet": {
+		"name"   : "SPOD Jet 2D",
+		"module" : "SPOD",
+		"file"   : "runs/tsuite_SPOD.py",
+		"data"   : "DATA/JET.h5",
+		"var"    : ["PRESS"],
+		"params" : {"npwin" : 50,"nolap" : 10},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"SPOD_Jet1": {
+		"name"   : "SPOD Jet 2D (parallel)",
+		"module" : "SPOD",
+		"file"   : "runs/tsuite_SPOD.py",
+		"data"   : "DATA/JET.h5",
+		"var"    : ["PRESS"],
+		"params" : {"npwin" : 50,"nolap" : 10},
+		"nprocs" : 4,
+		"reset"  : false,
+		"active" : true
+	},
+	"SPOD_Tensor280": {
+		"name"   : "SPOD Tensor 280 3D",
+		"module" : "SPOD",
+		"file"   : "runs/tsuite_SPOD.py",
+		"data"   : "DATA/TENSOR280.h5",
+		"var"    : ["VELOX"],
+		"params" : {"npwin" : 10,"nolap" : 2},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"SPOD_Tensor2801": {
+		"name"   : "SPOD Tensor 280 3D (parallel)",
+		"module" : "SPOD",
+		"file"   : "runs/tsuite_SPOD.py",
+		"data"   : "DATA/TENSOR280.h5",
+		"var"    : ["VELOX"],
+		"params" : {"npwin" : 10,"nolap" : 2},
+		"nprocs" : 4,
+		"reset"  : false,
+		"active" : true
+	},
+
+	"comment": "NN tests",
+	"AE_Cylinder_2D": {
+		"name"   : "AE Cylinder 2D",
+		"module" : "NN",
+		"file"   : "runs/tsuite_AE2D.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"VAE_Cylinder_2D": {
+		"name"   : "VAE Cylinder 2D",
+		"module" : "NN",
+		"file"   : "runs/tsuite_VAE2D.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"VAE_Tensor280_3D": {
+		"name"   : "VAE Tensor280 3D",
+		"module" : "NN",
+		"file"   : "runs/tsuite_VAE3D.py",
+		"data"   : "DATA/TENSOR280.h5",
+		"var"    : ["VELOX"],
+		"params" : {"nx":96,"ny":32,"nz":64},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"VAE_Channel_3D": {
+		"name"   : "VAE Channel 3D",
+		"module" : "NN",
+		"file"   : "runs/tsuite_VAE3D.py",
+		"data"   : "DATA/CHANNEL.h5",
+		"var"    : ["VELOX"],
+		"params" : {"nx":64,"ny":64,"nz":64},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"MLP_airfoil": {
+		"name"   : "MLP airfoil data",
+		"module" : "NN",
+		"file"   : "runs/tsuite_MLP.py",
+		"data"   : "DATA/AIRFOIL.h5",
+		"var"    : ["cp"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	}
+}
