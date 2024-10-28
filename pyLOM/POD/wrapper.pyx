@@ -96,7 +96,7 @@ def _srun(float[:,:] X, int remove_mean, int randomized, int r, int q):
 		free(X_mean)
 		cr_stop('POD.temporal_mean',0)
 	else:
-		memcpy(Y,&X[0,0],m*n*sizeof(double))
+		memcpy(Y,&X[0,0],m*n*sizeof(float))
 	# Compute SVD
 	cr_start('POD.SVD',0)
 	if randomized:
@@ -203,7 +203,7 @@ def _struncate(float[:,:] U, float[:] S, float[:,:] V, float r):
 	'''
 	cdef int m = U.shape[0], n = S.shape[0], N
 	# Compute N using S
-	N  = c_scompute_truncation_residual(&S[0],r,n)
+	N  = int(r) if r >=1 else c_scompute_truncation_residual(&S[0],r,n)
 	# Allocate output arrays
 	cdef np.ndarray[np.float32_t,ndim=2] Ur = np.zeros((m,N),dtype=np.float32)
 	cdef np.ndarray[np.float32_t,ndim=1] Sr = np.zeros((N,), dtype=np.float32)
@@ -234,7 +234,7 @@ def _dtruncate(double[:,:] U, double[:] S, double[:,:] V, double r):
 	'''
 	cdef int m = U.shape[0], n = S.shape[0], N
 	# Compute N using S
-	N  = c_dcompute_truncation_residual(&S[0],r,n)
+	N  = int(r) if r >=1 else c_dcompute_truncation_residual(&S[0],r,n)
 	# Allocate output arrays
 	cdef np.ndarray[np.double_t,ndim=2] Ur = np.zeros((m,N),dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=1] Sr = np.zeros((N,), dtype=np.double)

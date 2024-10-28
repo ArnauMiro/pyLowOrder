@@ -17,19 +17,16 @@ device = pyLOM.NN.select_device("cpu") # Force CPU for this example, if left in 
 
 
 ## Specify autoencoder parameters
-ptrain      = 0.8
-pvali       = 0.2
-batch_size  = 1
-nepochs     = 10
-nlayers     = 1
-channels    = 32
-lat_dim     = 10
+nlayers     = 5
+channels    = 64
+lat_dim     = 5
 beta        = 0
+beta_start  = 0
+beta_wmup   = 0
 kernel_size = 4
-nlinear     = 256
+nlinear     = 512
 padding     = 1
-activations = [pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh()]
-batch_norm  = True
+activations = [pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu()]
 
 
 ## Load pyLOM dataset and set up results output
@@ -51,29 +48,42 @@ nw  = 192
 m    = pyLOM.Mesh.load(DSETDIR)
 d    = pyLOM.Dataset.load(DSETDIR,ptable=m.partition_table)
 u_x  = d['VELOX']
+u_m  = pyLOM.math.temporal_mean(u_x)
+u_xm = pyLOM.math.subtract_mean(u_x, u_m)
 time = d.get_variable('time')
-td   = pyLOM.NN.Dataset((u_x,), (n0h, n0w), time, transform=False, device=device)
-td.data[0] = np.transpose(np.array([td.data[0][:,0]]))
-td._time   = np.array([td.time[0]])
-td.crop((nh, nw), (n0h, n0w))
-trloader = td.loader()
+td   = pyLOM.NN.Dataset((u_xm,), (n0h, n0w))
+td.crop(nh, nw)
 
 
 ## Set and train the variational autoencoder
-encarch    = pyLOM.NN.Encoder2D(nlayers, lat_dim, nh, nw, td.n_channels, channels, kernel_size, padding, activations, nlinear, batch_norm=batch_norm)
-decarch    = pyLOM.NN.Decoder2D(nlayers, lat_dim, nh, nw, td.n_channels, channels, kernel_size, padding, activations, nlinear, batch_norm=batch_norm)
-ae         = pyLOM.NN.Autoencoder(lat_dim, (nh, nw), td.n_channels, encarch, decarch, device=device)
+betasch    = pyLOM.NN.betaLinearScheduler(0., beta, beta_start, beta_wmup)
+encoder    = pyLOM.NN.Encoder2D(nlayers, lat_dim, nh, nw, td.num_channels, channels, kernel_size, padding, activations, nlinear, vae=True)
+decoder    = pyLOM.NN.Decoder2D(nlayers, lat_dim, nh, nw, td.num_channels, channels, kernel_size, padding, activations, nlinear)
+model      = pyLOM.NN.VariationalAutoencoder(lat_dim, (nh, nw), td.num_channels, encoder, decoder, device=device)
 early_stop = pyLOM.NN.EarlyStopper(patience=5, min_delta=0.02)
-ae.train_model(trloader, trloader, nepochs, callback=early_stop, BASEDIR=RESUDIR)
+
+pipeline = pyLOM.NN.Pipeline(
+    train_dataset = td,
+    test_dataset  = td,
+    model=model,
+    training_params={
+        "batch_size": 4,
+        "epochs": 100,
+        "lr": 1e-4,
+        "betasch": betasch,
+        "BASEDIR": RESUDIR
+    },
+)
+pipeline.run()
 
 
 ## Reconstruct dataset and compute accuracy
-rec = ae.reconstruct(td)
-rd  = pyLOM.NN.Dataset((rec), (nh, nw), td._time, transform=False)
-rd.pad((nh, nw), (n0h, n0w))
-td.pad((nh, nw), (n0h, n0w))
-d.add_field('urec',1,rd.data[0][:,0].numpy())
-d.add_field('utra',1,td.data[0][:,0].numpy())
+rec = model.reconstruct(td)
+rd  = pyLOM.NN.Dataset((rec,), (nh, nw))
+rd.pad(n0h, n0w)
+td.pad(n0h, n0w)
+d.add_field('urec',1,rd[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
+d.add_field('utra',1,td[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
 pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec', 'VELOX', 'utra'],fmt='vtkh5')
 pyLOM.NN.plotSnapshot(m,d,vars=['urec'],instant=0,component=0,cmap='jet',cpos='xy')
 pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet',cpos='xy')

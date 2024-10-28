@@ -7,7 +7,7 @@
 # Last rev: 30/07/2021
 from __future__ import print_function, division
 
-import os, copy, mpi4py, numpy as np
+import os, mpi4py, numpy as np
 mpi4py.rc.recv_mprobe = False
 from mpi4py import MPI
 
@@ -109,6 +109,15 @@ class Dataset(object):
 		Recover the value of a variable given its key
 		'''
 		self._vardict[key]['value'] = value
+
+	def get_dim(self,var,idim):
+		'''
+		Recover the value of a variable for a given dimension
+		'''
+		ndim = self._fieldict[var]['ndim']
+		if idim >= ndim: raiseError(f'Requested dimension {idim} for {var} greater than its number of dimensions {ndim}!')
+		print(len(self))
+		return  np.ascontiguousarray(self._fieldict[var]['value'][idim:ndim*len(self):ndim])
 
 	def info(self,var):
 		'''

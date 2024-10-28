@@ -65,7 +65,7 @@ void scompute_truncation(float *Ur, float *Sr, float *VTr, float *U,
 		//Copy S into Sr
 		Sr[jj] = S[jj];
 		//Copy VT into VTr
-		memcpy(VTr+n*jj,VT+n*jj,n*sizeof(double));
+		memcpy(VTr+n*jj,VT+n*jj,n*sizeof(float));
   }
 }
 
