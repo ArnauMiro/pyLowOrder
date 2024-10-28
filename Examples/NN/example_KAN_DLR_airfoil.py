@@ -78,8 +78,8 @@ CASESTR = 'NRL7301'
 RESUDIR = 'KAN_DLR_airfoil'
 pyLOM.NN.create_results_folder(RESUDIR)
 
-input_scaler     = pyLOM.NN.MinMaxScaler()
-output_scaler     = pyLOM.NN.MinMaxScaler()
+input_scaler  = pyLOM.NN.MinMaxScaler()
+output_scaler = pyLOM.NN.MinMaxScaler()
 _,td_train = load_dataset(os.path.join(BASEDIR,f'{CASESTR}_TRAIN.h5'),input_scaler,output_scaler)
 _,td_test  = load_dataset(os.path.join(BASEDIR,f'{CASESTR}_TEST.h5'),input_scaler,output_scaler)
 _,td_val   = load_dataset(os.path.join(BASEDIR,f'{CASESTR}_VAL.h5'),input_scaler,output_scaler)

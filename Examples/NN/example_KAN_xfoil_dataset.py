@@ -53,7 +53,7 @@ pyLOM.NN.create_results_folder(RESUDIR)
 
 d = pyLOM.Dataset.load(os.path.join(BASEDIR,f'{CASESTR}.h5'))
 
-input_scaler = pyLOM.NN.MinMaxScaler()
+input_scaler  = pyLOM.NN.MinMaxScaler()
 output_scaler = pyLOM.NN.MinMaxScaler()
 
 dataset = pyLOM.NN.Dataset(
