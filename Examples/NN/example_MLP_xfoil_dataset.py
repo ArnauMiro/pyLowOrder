@@ -7,18 +7,7 @@
 import os, numpy as np, torch, matplotlib.pyplot as plt
 import pyLOM
 
-
-def generate_synthetic_data(n_samples=1000, noise_level=0.05):
-    # Generate input features
-    X = np.random.randn(n_samples, 2)
-
-    # Generate target values using a nonlinear function
-    y = np.sin(X[:, 0]) + np.cos(X[:, 1]) + 0.5 * X[:, 0] ** 2
-
-    # Add noise
-    y += noise_level * np.random.randn(n_samples)
-
-    return X, y
+device = pyLOM.NN.select_device("cpu") # Force CPU for this example, if left in blank it will automatically select the device
 
 
 def true_vs_pred_plot(y_true, y_pred, path):
@@ -56,31 +45,33 @@ def plot_train_test_loss(train_loss, test_loss, path):
     plt.grid()
     plt.savefig(path, dpi=300)
 
-device = pyLOM.NN.select_device("cpu") # Force CPU for this example, if left in blank it will automatically select the device
-RESUDIR = 'MLP_DLR_airfoil'
+## Load datasets and set up the results output
+BASEDIR = './DATA'
+CASESTR = 'AIRFOIL'
+RESUDIR = 'MLP_xfoil_dataset'
 pyLOM.NN.create_results_folder(RESUDIR)
+
+d  = pyLOM.Dataset.load(os.path.join(BASEDIR,f'{CASESTR}.h5'))
 
 input_scaler = pyLOM.NN.MinMaxScaler()
 output_scaler = pyLOM.NN.MinMaxScaler()
 
-X, y = generate_synthetic_data(n_samples=1250)
-
 dataset = pyLOM.NN.Dataset(
-    variables_out=(y,), 
-    variables_in=X,
+    variables_out=(d['cp'],),
+    variables_in=d.xyz,
+    parameters=[d.get_variable('Re'), d.get_variable('AoA')],
     inputs_scaler=input_scaler,
     outputs_scaler=output_scaler,
     snapshots_by_column=False
 )
-
 td_train, td_test = dataset.get_splits([0.8, 0.2])
 
 training_params = {
-    "epochs": 50,
-    "lr": 0.00125,
-    "lr_gamma": 0.96,
-    "lr_scheduler_step": 1,
-    "batch_size": 32,
+    "epochs": 250,
+    "lr": 0.00015,
+    "lr_gamma": 0.98,
+    "lr_scheduler_step": 15,
+    "batch_size": 512,
     "loss_fn": torch.nn.MSELoss(),
     "optimizer_class": torch.optim.Adam,
     "print_rate_epoch": 10,
@@ -90,8 +81,8 @@ sample_input, sample_output = td_train[0]
 model = pyLOM.NN.MLP(
     input_size=sample_input.shape[0],
     output_size=sample_output.shape[0],
-    hidden_size=32,
-    n_layers=2,
+    hidden_size=128,
+    n_layers=3,
     p_dropouts=0.1,
 )
 
@@ -114,9 +105,9 @@ scaled_preds = output_scaler.inverse_transform([preds])[0]
 scaled_y     = output_scaler.inverse_transform([td_test[:][1]])[0]
 
 
-pyLOM.pprint(0,f"MAE: {np.abs(scaled_preds - np.array(scaled_y)).mean()}")
-pyLOM.pprint(0,f"MRE: {np.abs(scaled_preds - np.array(scaled_y)).mean() / abs(np.array(scaled_y).mean() + 1e-6)}")
-pyLOM.pprint(0,f"MSE: {((scaled_preds - np.array(scaled_y)) ** 2).mean()}")
+evaluator = pyLOM.NN.RegressionEvaluator(tolerance=1e-10)
+evaluator(scaled_y, scaled_preds)
+evaluator.print_metrics()
 
 true_vs_pred_plot(scaled_y, scaled_preds, RESUDIR + '/true_vs_pred.png')
 plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss.png')

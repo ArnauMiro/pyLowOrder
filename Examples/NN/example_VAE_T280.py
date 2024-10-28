@@ -79,15 +79,15 @@ model      = pyLOM.NN.VariationalAutoencoder(lat_dim, (nx, ny, nz), td.num_chann
 early_stop = pyLOM.NN.EarlyStopper(patience=15, min_delta=0.05)
 
 pipeline = pyLOM.NN.Pipeline(
-    train_dataset = td,
-    test_dataset  = td,
-    model=model,
-    training_params={
-        "batch_size": 1,
+    train_dataset   = td,
+    test_dataset    = td,
+    model           = model,
+    training_params = {
+        "batch_size": 4,
         "epochs": 100,
         "lr": 1e-4,
         "betasch": betasch,
-        "BASEDIR":RESUDIR
+        "BASEDIR": RESUDIR
     },
 )
 pipeline.run()
@@ -96,8 +96,8 @@ pipeline.run()
 ## Reconstruct dataset and compute accuracy
 rec = model.reconstruct(td)
 rd  = pyLOM.NN.Dataset((rec,), (nx, ny, nz))
-rd.pad(n0x, n0y, n0z)
 td.pad(n0x, n0y, n0z)
+rd.pad(n0x, n0y, n0z)
 d.add_field('urec',1,rd[:,0,:,:,:].numpy().reshape((nt,n0x*n0y*n0z)).T)
 d.add_field('utra',1,td[:,0,:,:,:].numpy().reshape((nt,n0x*n0y*n0z)).T)
 pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec','VELOC','utra'],fmt='vtkh5')

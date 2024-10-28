@@ -37,6 +37,7 @@ output_scaler = pyLOM.NN.MinMaxScaler()
 dataset = pyLOM.NN.Dataset(
     variables_out       = (y,), 
     variables_in        = d.xyz[:,:1],
+    parameters          = [d.get_variable('Re'), d.get_variable('AoA')],
     inputs_scaler       = input_scaler,
     outputs_scaler      = output_scaler,
     snapshots_by_column = False
@@ -47,11 +48,11 @@ td_train, td_test = dataset.get_splits([0.8, 0.2])
 
 ## Generate model
 training_params = {
-    "epochs": 500,
-    "lr": 0.00125,
-    "lr_gamma": 0.96,
-    "lr_scheduler_step": 1,
-    "batch_size": 32,
+    "epochs": 250,
+    "lr": 0.00015,
+    "lr_gamma": 0.98,
+    "lr_scheduler_step": 15,
+    "batch_size": 512,
     "loss_fn": torch.nn.MSELoss(),
     "optimizer_class": torch.optim.Adam,
     "print_rate_epoch": 10,

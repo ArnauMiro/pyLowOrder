@@ -77,15 +77,15 @@ model      = pyLOM.NN.VariationalAutoencoder(lat_dim, (nx, ny, nz), td.num_chann
 early_stop = pyLOM.NN.EarlyStopper(patience=15, min_delta=0.05)
 
 pipeline = pyLOM.NN.Pipeline(
-    train_dataset = td,
-    test_dataset  = td,
-    model=model,
-    training_params={
-        "batch_size": 1,
-        "epochs": 100,
+    train_dataset   = td,
+    test_dataset    = td,
+    model           = model,
+    training_params = {
+        "batch_size": 4,
+        "epochs": 500,
         "lr": 1e-4,
         "betasch": betasch,
-        "BASEDIR":RESUDIR
+        "BASEDIR": RESUDIR
     },
 )
 pipeline.run()

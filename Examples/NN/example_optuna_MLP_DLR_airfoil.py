@@ -84,12 +84,12 @@ print_dset_stats('val',  td_val)
 
 
 optimization_params = {
-        "lr": (0.00001, 0.01),  # fixed parameter
+        "lr": (0.00001, 0.01), 
+        "epochs": 50,  # fixed parameter
         "n_layers": (1, 4),  # optimizable parameter,
         "batch_size": (128, 512),
         "hidden_size": (200, 400),
         "p_dropouts": (0.1, 0.5),
-        "epochs": 50,
         "num_workers": 0,
         'print_rate_epoch': 5
     }
@@ -127,9 +127,9 @@ scaled_y     = output_scaler.inverse_transform([td_test[:][1]])[0]
 # check that the scaling is correct
 pyLOM.pprint(0,scaled_y.min(), scaled_y.max())
 
-pyLOM.pprint(0,f"MAE: {np.abs(scaled_preds - np.array(scaled_y)).mean()}")
-pyLOM.pprint(0,f"MRE: {np.abs(scaled_preds - np.array(scaled_y)).mean() / abs(np.array(scaled_y).mean() + 1e-6)}")
-pyLOM.pprint(0,f"MSE: {((scaled_preds - np.array(scaled_y)) ** 2).mean()}")
+evaluator = pyLOM.NN.RegressionEvaluator()
+evaluator(scaled_y, scaled_preds)
+evaluator.print_metrics()
 
 true_vs_pred_plot(scaled_y, scaled_preds, RESUDIR + '/true_vs_pred.png')
 plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss.png')

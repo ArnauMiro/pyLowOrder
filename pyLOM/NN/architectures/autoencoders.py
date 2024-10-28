@@ -12,7 +12,7 @@ import torch.nn.functional as F
 import numpy               as np
 
 from   torch.utils.data        import DataLoader
-from   torch.cuda.amp          import GradScaler, autocast
+from   torch.amp               import GradScaler, autocast
 from   torch.utils.tensorboard import SummaryWriter
 from   torchsummary            import summary
 
@@ -203,9 +203,10 @@ class VariationalAutoencoder(Autoencoder):
             mse     = 0
             kld     = 0
             beta    = betasch.getBeta(epoch) if betasch is not None else 0
-            for batch in train_data:
+            for batch0 in train_data:
+                batch = batch0.to(self._device)
                 optimizer.zero_grad()
-                with autocast():
+                with autocast(device_type=self._device):
                     recon, mu, logvar, _ = self(batch)
                     mse_i = self._lossfunc(batch, recon, reduction='sum')
                     kld_i = self._kld(mu,logvar)
@@ -225,8 +226,9 @@ class VariationalAutoencoder(Autoencoder):
             self.eval()
             va_loss     = 0
             with torch.no_grad():
-                for val_batch in eval_data:
-                    with autocast():
+                for val_batch0 in eval_data:
+                    val_batch = val_batch0.to(self._device)
+                    with autocast(device_type=self._device):
                         val_recon, val_mu, val_logvar, _ = self(val_batch)
                         mse_i     = self._lossfunc(val_batch, val_recon, reduction='sum')
                         kld_i     = self._kld(val_mu,val_logvar)

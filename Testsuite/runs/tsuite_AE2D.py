@@ -48,7 +48,9 @@ nw  = 192
 
 
 ## Create a torch dataset
-u_x  = d.X(*VARIABLES)[:,0]
+u    = d.X(*VARIABLES)
+um   = pyLOM.math.temporal_mean(u)
+u_x  = pyLOM.math.subtract_mean(u, um)[:,0]
 td   = pyLOM.NN.Dataset((u_x,), (n0h, n0w))
 td.crop(nh, nw)
 
@@ -60,11 +62,11 @@ model      = pyLOM.NN.Autoencoder(lat_dim, (nh, nw), td.num_channels, encoder, d
 early_stop = pyLOM.NN.EarlyStopper(patience=5, min_delta=0.02)
 
 pipeline = pyLOM.NN.Pipeline(
-   train_dataset = td,
-   test_dataset  = td,
-   model         = model,
+   train_dataset   = td,
+   test_dataset    = td,
+   model           = model,
    training_params = {
-       "batch_size": 1,
+       "batch_size": 16,
        "epochs": 100,
        "lr": 1e-4,
        "callback":early_stop,
