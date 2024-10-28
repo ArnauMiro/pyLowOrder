@@ -175,6 +175,8 @@ class KAN(nn.Module):
                 pprint(0, log_message)
 
         if save_logs_path is not None:
+            if not os.path.exists(save_logs_path):
+                os.makedirs(save_logs_path)
             train_losses_np = train_losses.cpu().numpy()
             test_losses_np = test_losses.cpu().numpy()
 
@@ -407,7 +409,8 @@ class KAN(nn.Module):
         best_params = optuna_optimizer.optimize(optimization_function)
         # Update the optimizing parameters with the best parameters found
         optimizing_parameters.update(best_params)
-        del optimizing_parameters["layer_kwargs"]
+        if "layer_kwargs" in optimizing_parameters:
+            del optimizing_parameters["layer_kwargs"]
         # Separate the model and training parameters from the best parameters found. 
         # Note: now optimizing_parameters contains the best parameters found and does not contain any tuple, 
         # so this is an easy wan to separate the training and model parameters
