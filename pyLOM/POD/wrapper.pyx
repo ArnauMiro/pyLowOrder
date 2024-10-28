@@ -62,7 +62,7 @@ ctypedef fused real:
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _srun(float[:,:] X, int remove_mean):
+def _srun(float[:,:] X, int remove_mean, int randomized, int r, int q):
 	'''
 	Run POD analysis of a matrix X.
 
@@ -99,7 +99,10 @@ def _srun(float[:,:] X, int remove_mean):
 		memcpy(Y,&X[0,0],m*n*sizeof(double))
 	# Compute SVD
 	cr_start('POD.SVD',0)
-	retval = c_stsqr_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,MPI_COMM.ob_mpi)
+	if randomized:
+		print('hola')
+	else:
+		retval = c_stsqr_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,MPI_COMM.ob_mpi)
 	cr_stop('POD.SVD',0)
 	free(Y)
 	# Return
@@ -110,7 +113,7 @@ def _srun(float[:,:] X, int remove_mean):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _drun(double[:,:] X, int remove_mean):
+def _drun(double[:,:] X, int remove_mean, int randomized, int r, int q):
 	'''
 	Run POD analysis of a matrix X.
 
@@ -159,7 +162,7 @@ def _drun(double[:,:] X, int remove_mean):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def run(real[:,:] X, int remove_mean=True):
+def run(real[:,:] X, int remove_mean=True, int randomized=False, int r=1, int q=3):
 	'''
 	Run POD analysis of a matrix X.
 
@@ -173,9 +176,9 @@ def run(real[:,:] X, int remove_mean=True):
 		- V:  are the right singular vectors.
 	'''
 	if real is double:
-		return _drun(X,remove_mean)
+		return _drun(X,remove_mean, randomized, r, q)
 	else:
-		return _srun(X,remove_mean)
+		return _srun(X,remove_mean, randomized, r, q)
 
 
 ## POD truncate method
