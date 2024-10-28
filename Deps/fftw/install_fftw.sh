@@ -65,7 +65,7 @@ else
 		ln -s "/opt/cesga/2020/software/MPI/intel/2021.3.0/impi/2021.3.0/fftw/${VERS}/lib" "${INSTALL_PREFIX}/"
 	elif [[ "$PLATFORM" == "HX1" ]]; then # HX1 Imperial college
 		# Intel compiler
-		ln -s "/gpfs/easybuild/prod/software/imkl/${VERS}/mkl/latest/include" "${INSTALL_PREFIX}/"
+		ln -s "/gpfs/easybuild/prod/software/imkl/2022.1.0/mkl/latest/" "${INSTALL_PREFIX}/"
 		ln -s "/gpfs/easybuild/prod/software/imkl/${VERS}/mkl/latest/lib" "${INSTALL_PREFIX}/"
 	else
 		cd Deps/
