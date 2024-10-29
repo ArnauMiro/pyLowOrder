@@ -27,13 +27,13 @@ from ..utils.errors import raiseError
 cdef extern from "vector_matrix.h" nogil:
 	# Single precision
 	cdef void   c_stranspose        "stranspose"(float *A, float *B, const int m, const int n)
-	cdef double c_svector_norm      "svector_norm"(float *v, int start, int n)
+	cdef float  c_svector_norm      "svector_norm"(float *v, int start, int n)
 	cdef void   c_smatmult          "smatmult"(float *C, float *A, float *B, const int m, const int n, const int k, const char *TA, const char *TB)
 	cdef void   c_smatmul           "smatmul"(float *C, float *A, float *B, const int m, const int n, const int k)
 	cdef void   c_smatmulp          "smatmulp"(float *C, float *A, float *B, const int m, const int n, const int k)
 	cdef void   c_svecmat           "svecmat"(float *v, float *A, const int m, const int n)
 	cdef int    c_sinverse          "sinverse"(float *A, int N, char *UoL)
-	cdef double c_sRMSE             "sRMSE"(float *A, float *B, const int m, const int n, MPI_Comm comm)
+	cdef float  c_sRMSE             "sRMSE"(float *A, float *B, const int m, const int n, MPI_Comm comm)
 	cdef void   c_ssort             "ssort"(float *v, int *index, int n)
 	# Double precision
 	cdef void   c_dtranspose        "dtranspose"(double *A, double *B, const int m, const int n)

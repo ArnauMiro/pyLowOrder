@@ -14,8 +14,8 @@ int scompute_truncation_residual(float *S, float res, const int n){
 	Function which computes the accumulative residual of the vector S (of size n) and it
 	returns truncation instant according to the desired residual, res, imposed by the user.
 	*/
-	double accumulative;
-	double normS = svector_norm(S,0,n);
+	float accumulative;
+	float normS = svector_norm(S,0,n);
 	int ii;
 	for(ii = 0; ii < n; ++ii){
 		accumulative = svector_norm(S,ii,n)/normS;
