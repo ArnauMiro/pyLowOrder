@@ -129,19 +129,19 @@ void smatmult(float *C, float *A, float *B, const int m, const int n, const int 
 	if (*TB == 'T') {TransB = CblasTrans; ldb = k;}
 	cblas_sgemm(
 		CblasRowMajor, // const CBLAS_LAYOUT 	  layout
-		       TransA, // const CBLAS_TRANSPOSE   TransA
-		       TransB, // const CBLAS_TRANSPOSE   TransB
-		            m, // const CBLAS_INDEX 	  M
-		            n, // const CBLAS_INDEX 	  N
-		            k, // const CBLAS_INDEX 	  K
-		        alpha, // const float 	          alpha
-		            A, // const float * 	      A
-		          lda, // const CBLAS_INDEX 	  lda
-		            B, // const float * 	      B
-		          ldb, // const CBLAS_INDEX 	  ldb
-		         beta, // const float 	          beta
-		            C, // float * 	              C
-		          ldc  // const CBLAS_INDEX 	  ldc
+			   TransA, // const CBLAS_TRANSPOSE   TransA
+			   TransB, // const CBLAS_TRANSPOSE   TransB
+					m, // const CBLAS_INDEX 	  M
+					n, // const CBLAS_INDEX 	  N
+					k, // const CBLAS_INDEX 	  K
+				alpha, // const float 	          alpha
+					A, // const float * 	      A
+				  lda, // const CBLAS_INDEX 	  lda
+					B, // const float * 	      B
+				  ldb, // const CBLAS_INDEX 	  ldb
+				 beta, // const float 	          beta
+					C, // float * 	              C
+				  ldc  // const CBLAS_INDEX 	  ldc
 	);
 }
 
@@ -162,19 +162,19 @@ void dmatmult(double *C, double *A, double *B, const int m, const int n, const i
 	if (*TB == 'T') {TransB = CblasTrans; ldb = k;}
 	cblas_dgemm(
 		CblasRowMajor, // const CBLAS_LAYOUT 	  layout
-		       TransA, // const CBLAS_TRANSPOSE   TransA
-		       TransB, // const CBLAS_TRANSPOSE   TransB
-		            m, // const CBLAS_INDEX 	  M
-		            n, // const CBLAS_INDEX 	  N
-		            k, // const CBLAS_INDEX 	  K
-		        alpha, // const double 	          alpha
-		            A, // const double * 	      A
-		          lda, // const CBLAS_INDEX 	  lda
-		            B, // const double * 	      B
-		          ldb, // const CBLAS_INDEX 	  ldb
-		         beta, // const double 	          beta
-		            C, // double * 	              C
-		          ldc  // const CBLAS_INDEX 	  ldc
+			   TransA, // const CBLAS_TRANSPOSE   TransA
+			   TransB, // const CBLAS_TRANSPOSE   TransB
+					m, // const CBLAS_INDEX 	  M
+					n, // const CBLAS_INDEX 	  N
+					k, // const CBLAS_INDEX 	  K
+				alpha, // const double 	          alpha
+					A, // const double * 	      A
+				  lda, // const CBLAS_INDEX 	  lda
+					B, // const double * 	      B
+				  ldb, // const CBLAS_INDEX 	  ldb
+				 beta, // const double 	          beta
+					C, // double * 	              C
+				  ldc  // const CBLAS_INDEX 	  ldc
 	);
 }
 
@@ -215,19 +215,19 @@ void cmatmult(scomplex_t *C, scomplex_t *A, scomplex_t *B, const int m, const in
 	if (*TB == 'C'){ TransB = CblasConjTrans; ldb = k; }
 	cblas_cgemm(
 		CblasRowMajor, // const CBLAS_LAYOUT 	  layout
-		       TransA, // const CBLAS_TRANSPOSE   TransA
-		       TransB, // const CBLAS_TRANSPOSE   TransB
-		            m, // const CBLAS_INDEX 	  M
-		            n, // const CBLAS_INDEX 	  N
-		            k, // const CBLAS_INDEX 	  K
-		       &alpha, // const scomplex_t 	      alpha
-		            A, // const scomplex_t * 	  A
-		          lda, // const CBLAS_INDEX 	  lda
-		            B, // const scomplex_t * 	  B
-		          ldb, // const CBLAS_INDEX 	  ldb
-		        &beta, // const scomplex_t 	      beta
-		            C, // scomplex_t * 	          C
-		          ldc  // const CBLAS_INDEX 	  ldc
+			   TransA, // const CBLAS_TRANSPOSE   TransA
+			   TransB, // const CBLAS_TRANSPOSE   TransB
+					m, // const CBLAS_INDEX 	  M
+					n, // const CBLAS_INDEX 	  N
+					k, // const CBLAS_INDEX 	  K
+			   &alpha, // const scomplex_t 	      alpha
+					A, // const scomplex_t * 	  A
+				  lda, // const CBLAS_INDEX 	  lda
+					B, // const scomplex_t * 	  B
+				  ldb, // const CBLAS_INDEX 	  ldb
+				&beta, // const scomplex_t 	      beta
+					C, // scomplex_t * 	          C
+				  ldc  // const CBLAS_INDEX 	  ldc
 	);
 }
 
@@ -248,19 +248,19 @@ void zmatmult(dcomplex_t *C, dcomplex_t *A, dcomplex_t *B, const int m, const in
 	if (*TB == 'C'){ TransB = CblasConjTrans; ldb = k; }
 	cblas_zgemm(
 		CblasRowMajor, // const CBLAS_LAYOUT 	  layout
-		       TransA, // const CBLAS_TRANSPOSE   TransA
-		       TransB, // const CBLAS_TRANSPOSE   TransB
-		            m, // const CBLAS_INDEX 	  M
-		            n, // const CBLAS_INDEX 	  N
-		            k, // const CBLAS_INDEX 	  K
-		       &alpha, // const dcomplex_t 	      alpha
-		            A, // const dcomplex_t * 	  A
-		          lda, // const CBLAS_INDEX 	  lda
-		            B, // const dcomplex_t * 	  B
-		          ldb, // const CBLAS_INDEX 	  ldb
-		        &beta, // const dcomplex_t 	      beta
-		            C, // dcomplex_t * 	          C
-		          ldc  // const CBLAS_INDEX 	  ldc
+			   TransA, // const CBLAS_TRANSPOSE   TransA
+			   TransB, // const CBLAS_TRANSPOSE   TransB
+					m, // const CBLAS_INDEX 	  M
+					n, // const CBLAS_INDEX 	  N
+					k, // const CBLAS_INDEX 	  K
+			   &alpha, // const dcomplex_t 	      alpha
+					A, // const dcomplex_t * 	  A
+				  lda, // const CBLAS_INDEX 	  lda
+					B, // const dcomplex_t * 	  B
+				  ldb, // const CBLAS_INDEX 	  ldb
+				&beta, // const dcomplex_t 	      beta
+					C, // dcomplex_t * 	          C
+				  ldc  // const CBLAS_INDEX 	  ldc
 	);
 }
 
@@ -421,17 +421,17 @@ int ceigen(float *real, float *imag, scomplex_t *w, float *A,
 	vecs = (float*)malloc(n*n*sizeof(float));
 	info = LAPACKE_sgeev(
 		LAPACK_ROW_MAJOR, // int  		matrix_layout
-		           'N',   // char       jobvl
-		           'V',   // char       jobvr
-		             n,   // int        n
-		             A,   // float*    A
-		             m,   // int        lda
-		          real,   // float*    wr
-		          imag,   // float*    wi
-		            vl,   // float*    vl
-		             n,   // int        ldvl
-		          vecs,   // float*    vr
-		             n    // int        ldvr
+				   'N',   // char       jobvl
+				   'V',   // char       jobvr
+					 n,   // int        n
+					 A,   // float*    A
+					 m,   // int        lda
+				  real,   // float*    wr
+				  imag,   // float*    wi
+					vl,   // float*    vl
+					 n,   // int        ldvl
+				  vecs,   // float*    vr
+					 n    // int        ldvr
 	);
 	//Define and allocate memory for the complex array of eigenvectors
 	//Change while for a for
@@ -475,17 +475,17 @@ int zeigen(double *real, double *imag, dcomplex_t *w, double *A,
 	vecs = (double*)malloc(n*n*sizeof(double));
 	info = LAPACKE_dgeev(
 		LAPACK_ROW_MAJOR, // int  		matrix_layout
-		           'N',   // char       jobvl
-		           'V',   // char       jobvr
-		             n,   // int        n
-		             A,   // double*    A
-		             m,   // int        lda
-		          real,   // double*    wr
-		          imag,   // double*    wi
-		            vl,   // double*    vl
-		             n,   // int        ldvl
-		          vecs,   // double*    vr
-		             n    // int        ldvr
+				   'N',   // char       jobvl
+				   'V',   // char       jobvr
+					 n,   // int        n
+					 A,   // double*    A
+					 m,   // int        lda
+				  real,   // double*    wr
+				  imag,   // double*    wi
+					vl,   // double*    vl
+					 n,   // int        ldvl
+				  vecs,   // double*    vr
+					 n    // int        ldvr
 	);
 	//Define and allocate memory for the complex array of eigenvectors
 	//Change while for a for
@@ -575,10 +575,10 @@ int ccholesky(scomplex_t *A, int N){
 	int info, ii, jj;
 	info = LAPACKE_cpotrf(
 		LAPACK_ROW_MAJOR, // int  	matrix_layout
-		             'L', //char	Decide if the Upper or the Lower triangle of A are stored
-		               N, //int		Order of matrix A
-		               A, //complex	Matrix A to decompose (works as input and output)
-		               N  //int		Leading dimension of A
+					 'L', //char	Decide if the Upper or the Lower triangle of A are stored
+					   N, //int		Order of matrix A
+					   A, //complex	Matrix A to decompose (works as input and output)
+					   N  //int		Leading dimension of A
 	);
 	// Zero upper size part
 	#ifdef USE_OMP
@@ -597,10 +597,10 @@ int zcholesky(dcomplex_t *A, int N){
 	int info, ii, jj;
 	info = LAPACKE_zpotrf(
 		LAPACK_ROW_MAJOR, // int  	matrix_layout
-		             'L', //char	Decide if the Upper or the Lower triangle of A are stored
-		               N, //int		Order of matrix A
-		               A, //complex	Matrix A to decompose (works as input and output)
-		               N  //int		Leading dimension of A
+					 'L', //char	Decide if the Upper or the Lower triangle of A are stored
+					   N, //int		Order of matrix A
+					   A, //complex	Matrix A to decompose (works as input and output)
+					   N  //int		Leading dimension of A
 	);
 	// Zero upper size part
 	#ifdef USE_OMP
@@ -679,11 +679,11 @@ int sinverse(float *A, int N, char *UoL){
 	int info;
 	info = LAPACKE_strtri(
 		LAPACK_ROW_MAJOR, //int     matrix_layout
-		            *UoL, //char    Decide if the Upper or the Lower triangle of A are stored
-		             'N', //int	    Decide if is non Unitary or Unitary A
-		               N, //int	    Order of A
-		               A, //double  Matrix A to decompose (works as input and output)
-		               N  //int     Leading dimension of A
+					*UoL, //char    Decide if the Upper or the Lower triangle of A are stored
+					 'N', //int	    Decide if is non Unitary or Unitary A
+					   N, //int	    Order of A
+					   A, //double  Matrix A to decompose (works as input and output)
+					   N  //int     Leading dimension of A
 	);
 	return info;
 }
@@ -695,11 +695,11 @@ int dinverse(double *A, int N, char *UoL){
 	int info;
 	info = LAPACKE_dtrtri(
 		LAPACK_ROW_MAJOR, //int     matrix_layout
-		            *UoL, //char    Decide if the Upper or the Lower triangle of A are stored
-		             'N', //int	    Decide if is non Unitary or Unitary A
-		               N, //int	    Order of A
-		               A, //double  Matrix A to decompose (works as input and output)
-		               N  //int     Leading dimension of A
+					*UoL, //char    Decide if the Upper or the Lower triangle of A are stored
+					 'N', //int	    Decide if is non Unitary or Unitary A
+					   N, //int	    Order of A
+					   A, //double  Matrix A to decompose (works as input and output)
+					   N  //int     Leading dimension of A
 	);
 	return info;
 }
@@ -711,11 +711,11 @@ int cinverse(scomplex_t *A, int N, char *UoL){
 	int info;
 	info = LAPACKE_ctrtri(
 		LAPACK_ROW_MAJOR, //int     matrix_layout
-		            *UoL, //char    Decide if the Upper or the Lower triangle of A are stored
-		             'N', //int	    Decide if is non Unitary or Unitary A
-		               N, //int	    Order of A
-		               A, //complex Matrix A to decompose (works as input and output)
-		               N  //int     Leading dimension of A
+					*UoL, //char    Decide if the Upper or the Lower triangle of A are stored
+					 'N', //int	    Decide if is non Unitary or Unitary A
+					   N, //int	    Order of A
+					   A, //complex Matrix A to decompose (works as input and output)
+					   N  //int     Leading dimension of A
 	);
 	return info;
 }
@@ -727,11 +727,11 @@ int zinverse(dcomplex_t *A, int N, char *UoL){
 	int info;
 	info = LAPACKE_ztrtri(
 		LAPACK_ROW_MAJOR, //int     matrix_layout
-		            *UoL, //char    Decide if the Upper or the Lower triangle of A are stored
-		             'N', //int	    Decide if is non Unitary or Unitary A
-		               N, //int	    Order of A
-		               A, //complex Matrix A to decompose (works as input and output)
-		               N  //int     Leading dimension of A
+					*UoL, //char    Decide if the Upper or the Lower triangle of A are stored
+					 'N', //int	    Decide if is non Unitary or Unitary A
+					   N, //int	    Order of A
+					   A, //complex Matrix A to decompose (works as input and output)
+					   N  //int     Leading dimension of A
 	);
 	return info;
 }
@@ -854,11 +854,11 @@ void zsort(dcomplex_t *v, int *index, int n){
 
 void srandom_matrix(float *A, int m, int n){
 	// Seed the random number generator
-    srand((unsigned int)time(NULL));
+	srand((unsigned int)time(NULL));
 
-    for (int i = 0; i < m; i++) {
-        for (int j = 0; j < n; j++) {
-            A[i * n + j] = (float)rand() / RAND_MAX;
-        }
-    }
+	for (int i = 0; i < m; i++) {
+		for (int j = 0; j < n; j++) {
+			AC_MAT(A,n,i,j) = (float)(rand() / RAND_MAX);
+		}
+	}
 }
