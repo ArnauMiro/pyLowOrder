@@ -32,6 +32,7 @@ void   dvecmat(double *v, double *A, const int m, const int n);
 int    dinverse(double *A, int N, char *UoL);
 double dRMSE(double *A, double *B, const int m, const int n, MPI_Comm comm);
 void   dsort(double *v, int *index, int n);
+void   drandom_matrix(double *A, int m, int n);
 // Float complex version
 void   cmatmult(scomplex_t *C, scomplex_t *A, scomplex_t *B, const int m, const int n, const int k, const char *TA, const char *TB);
 void   cmatmul(scomplex_t *C, scomplex_t *A, scomplex_t *B, const int m, const int n, const int k);

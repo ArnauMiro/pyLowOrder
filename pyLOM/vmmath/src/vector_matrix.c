@@ -862,3 +862,14 @@ void srandom_matrix(float *A, int m, int n){
 		}
 	}
 }
+
+void drandom_matrix(double *A, int m, int n){
+	// Seed the random number generator
+    srand((unsigned int)time(NULL));
+
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            A[i * n + j] = (double)rand() / RAND_MAX;
+        }
+    }
+}

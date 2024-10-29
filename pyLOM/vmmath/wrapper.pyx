@@ -27,13 +27,13 @@ from ..utils.errors import raiseError
 cdef extern from "vector_matrix.h" nogil:
 	# Single precision
 	cdef void   c_stranspose        "stranspose"(float *A, float *B, const int m, const int n)
-	cdef double c_svector_norm      "svector_norm"(float *v, int start, int n)
+	cdef float  c_svector_norm      "svector_norm"(float *v, int start, int n)
 	cdef void   c_smatmult          "smatmult"(float *C, float *A, float *B, const int m, const int n, const int k, const char *TA, const char *TB)
 	cdef void   c_smatmul           "smatmul"(float *C, float *A, float *B, const int m, const int n, const int k)
 	cdef void   c_smatmulp          "smatmulp"(float *C, float *A, float *B, const int m, const int n, const int k)
 	cdef void   c_svecmat           "svecmat"(float *v, float *A, const int m, const int n)
 	cdef int    c_sinverse          "sinverse"(float *A, int N, char *UoL)
-	cdef double c_sRMSE             "sRMSE"(float *A, float *B, const int m, const int n, MPI_Comm comm)
+	cdef float  c_sRMSE             "sRMSE"(float *A, float *B, const int m, const int n, MPI_Comm comm)
 	cdef void   c_ssort             "ssort"(float *v, int *index, int n)
 	# Double precision
 	cdef void   c_dtranspose        "dtranspose"(double *A, double *B, const int m, const int n)
@@ -82,10 +82,11 @@ cdef extern from "svd.h":
 	cdef int c_stsqr_svd       "stsqr_svd"      (float *Ui, float *S, float *VT, float *Ai,   const int m, const int n, MPI_Comm comm)
 	cdef int c_srandomized_svd "srandomized_svd"(float *Ui, float *S, float *VT, float *Ai,   const int m, const int n, const int r, const int q, MPI_Comm comm)
 	# Double precision
-	cdef int c_dqr        "dqr"      (double *Q,  double *R, double *A,  const int m, const int n)
-	cdef int c_dsvd       "dsvd"     (double *U,  double *S, double *V,  double *Y,   const int m, const int n)
-	cdef int c_dtsqr      "dtsqr"    (double *Qi, double *R, double *Ai, const int m, const int n, MPI_Comm comm)
-	cdef int c_dtsqr_svd  "dtsqr_svd"(double *Ui, double *S, double *VT, double *Ai,  const int m, const int n, MPI_Comm comm)
+	cdef int c_dqr             "dqr"            (double *Q,  double *R, double *A,  const int m, const int n)
+	cdef int c_dsvd            "dsvd"           (double *U,  double *S, double *V,  double *Y,   const int m, const int n)
+	cdef int c_dtsqr           "dtsqr"          (double *Qi, double *R, double *Ai, const int m, const int n, MPI_Comm comm)
+	cdef int c_dtsqr_svd       "dtsqr_svd"      (double *Ui, double *S, double *VT, double *Ai,  const int m, const int n, MPI_Comm comm)
+	cdef int c_drandomized_svd "drandomized_svd"(double *Ui, double *S, double *VT, double *Ai,  const int m, const int n, const int r, const int q, MPI_Comm comm)
 	# Single complex precision
 	cdef int c_cqr        "cqr"      (np.complex64_t *Q,  np.complex64_t *R, np.complex64_t *A,  const int m,        const int n)
 	cdef int c_csvd       "csvd"     (np.complex64_t *U,  float *S,          np.complex64_t *V,  np.complex64_t *Y,  const int m, const int n)
@@ -1129,6 +1130,28 @@ def _srandomized_svd(float[:,:] A, int r, int q):
 	if not retval == 0: raiseError('Problems computing Randomized SVD!')
 	return U,S,V
 
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def _drandomized_svd(double[:,:] A, int r, int q):
+	'''
+	Parallel Randomized Single value decomposition (SVD) using Lapack.
+		U(m,n)   are the POD modes.
+		S(n)     are the singular values.
+		V(n,n)   are the right singular vectors.
+	'''
+	cdef int retval
+	cdef int m = A.shape[0], n = A.shape[1], mn = min(m,n)
+	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
+	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,r),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((r,) ,dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((r,n),dtype=np.double)
+	# Compute SVD using randomized algorithm
+	retval = c_drandomized_svd(&U[0,0],&S[0],&V[0,0],&A[0,0],m,n,r,q,MPI_COMM.ob_mpi)
+	if not retval == 0: raiseError('Problems computing Randomized SVD!')
+	return U,S,V
+
 @cr('math.randomized_svd')
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
@@ -1141,12 +1164,8 @@ def randomized_svd(real_full[:,:] A, const int r, const int q):
 		S(n)     are the singular values.
 		V(n,n)   are the right singular vectors.
 	'''
-	if real_full is np.complex128_t:
-		return _srandomized_svd(A,r,q)
-	elif real_full is np.complex64_t:
-		return _srandomized_svd(A,r,q)
-	elif real_full is double:
-		return _srandomized_svd(A,r,q)
+	if real_full is double:
+		return _drandomized_svd(A,r,q)
 	else:
 		return _srandomized_svd(A,r,q)
 
