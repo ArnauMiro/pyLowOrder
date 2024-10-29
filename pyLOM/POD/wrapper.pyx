@@ -39,16 +39,18 @@ cdef extern from "averaging.h":
 	cdef void c_dsubtract_mean "dsubtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
 cdef extern from "svd.h":
 	# Single precision
-	cdef int c_stsqr_svd "stsqr_svd"(float *Ui, float *S, float *VT, float *Ai, const int m, const int n, MPI_Comm comm)
+	cdef int c_stsqr_svd       "stsqr_svd"      (float *Ui, float *S, float *VT, float *Ai, const int m, const int n, MPI_Comm comm)
+	cdef int c_srandomized_svd "srandomized_svd"(float *Ui, float *S, float *VT, float *Ai,   const int m, const int n, const int r, const int q, MPI_Comm comm)
 	# Double precision
-	cdef int c_dtsqr_svd "dtsqr_svd"(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm)
+	cdef int c_dtsqr_svd       "dtsqr_svd"      (double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm)
+	cdef int c_drandomized_svd "drandomized_svd"(double *Ui, double *S, double *VT, double *Ai,  const int m, const int n, const int r, const int q, MPI_Comm comm)
 cdef extern from "truncation.h":
 	# Single precision
 	cdef int  c_scompute_truncation_residual "scompute_truncation_residual"(float *S, float res, const int n)
-	cdef void c_scompute_truncation          "scompute_truncation"(float *Ur, float *Sr, float *VTr, float *U, float *S, float *VT, const int m, const int n, const int N)
+	cdef void c_scompute_truncation          "scompute_truncation"(float *Ur, float *Sr, float *VTr, float *U, float *S, float *VT, const int m, const int n, const int nmod, const int N)
 	# Double precision
 	cdef int  c_dcompute_truncation_residual "dcompute_truncation_residual"(double *S, double res, const int n)
-	cdef void c_dcompute_truncation          "dcompute_truncation"(double *Ur, double *Sr, double *VTr, double *U, double *S, double *VT, const int m, const int n, const int N)
+	cdef void c_dcompute_truncation          "dcompute_truncation"(double *Ur, double *Sr, double *VTr, double *U, double *S, double *VT, const int m, const int n, const int nmod, const int N)
 
 
 ## Fused type between double and complex
@@ -81,9 +83,9 @@ def _srun(float[:,:] X, int remove_mean, int randomized, int r, int q):
 	cdef float *Y
 	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	# Output arrays
-	cdef np.ndarray[np.float32_t,ndim=2] U = np.zeros((m,mn),dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=1] S = np.zeros((mn,) ,dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=2] V = np.zeros((n,mn),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=2] U = np.zeros((m,mn),dtype=np.float32) if not randomized else np.zeros((m,r),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=1] S = np.zeros((mn,) ,dtype=np.float32) if not randomized else np.zeros((r,), dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=2] V = np.zeros((n,mn),dtype=np.float32) if not randomized else np.zeros((r,n),dtype=np.float32)
 	# Allocate memory
 	Y = <float*>malloc(m*n*sizeof(float))
 	if remove_mean:
@@ -100,7 +102,7 @@ def _srun(float[:,:] X, int remove_mean, int randomized, int r, int q):
 	# Compute SVD
 	cr_start('POD.SVD',0)
 	if randomized:
-		print('hola')
+		retval = c_srandomized_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,r,q,MPI_COMM.ob_mpi)
 	else:
 		retval = c_stsqr_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,MPI_COMM.ob_mpi)
 	cr_stop('POD.SVD',0)
@@ -132,9 +134,9 @@ def _drun(double[:,:] X, int remove_mean, int randomized, int r, int q):
 	cdef double *Y
 	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	# Output arrays
-	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,mn),dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((mn,) ,dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((n,mn),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,mn),dtype=np.double) if not randomized else np.zeros((m,r),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((mn,) ,dtype=np.double) if not randomized else np.zeros((r,),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((mn,n),dtype=np.double) if not randomized else np.zeros((r,n),dtype=np.double)
 	# Allocate memory
 	Y = <double*>malloc(m*n*sizeof(double))
 	if remove_mean:
@@ -150,7 +152,10 @@ def _drun(double[:,:] X, int remove_mean, int randomized, int r, int q):
 		memcpy(Y,&X[0,0],m*n*sizeof(double))
 	# Compute SVD
 	cr_start('POD.SVD',0)
-	retval = c_dtsqr_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,MPI_COMM.ob_mpi)
+	if randomized:
+		retval = c_drandomized_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,r,q,MPI_COMM.ob_mpi)
+	else:
+		retval = c_dtsqr_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,MPI_COMM.ob_mpi)
 	cr_stop('POD.SVD',0)
 	free(Y)
 	# Return
@@ -201,7 +206,7 @@ def _struncate(float[:,:] U, float[:] S, float[:,:] V, float r):
 		- S(N)    are the singular values (truncated at N).
 		- V(N,n)  are the right singular vectors (truncated at N).
 	'''
-	cdef int m = U.shape[0], n = S.shape[0], N
+	cdef int m = U.shape[0], n = V.shape[1], nmod = U.shape[1], N
 	# Compute N using S
 	N  = int(r) if r >=1 else c_scompute_truncation_residual(&S[0],r,n)
 	# Allocate output arrays
@@ -209,7 +214,7 @@ def _struncate(float[:,:] U, float[:] S, float[:,:] V, float r):
 	cdef np.ndarray[np.float32_t,ndim=1] Sr = np.zeros((N,), dtype=np.float32)
 	cdef np.ndarray[np.float32_t,ndim=2] Vr = np.zeros((N,n),dtype=np.float32)
 	# Truncate
-	c_scompute_truncation(&Ur[0,0],&Sr[0],&Vr[0,0],&U[0,0],&S[0],&V[0,0],m,n,N)
+	c_scompute_truncation(&Ur[0,0],&Sr[0],&Vr[0,0],&U[0,0],&S[0],&V[0,0],m,n,nmod,N)
 	# Return
 	return Ur, Sr, Vr
 
@@ -232,7 +237,7 @@ def _dtruncate(double[:,:] U, double[:] S, double[:,:] V, double r):
 		- S(N)    are the singular values (truncated at N).
 		- V(N,n)  are the right singular vectors (truncated at N).
 	'''
-	cdef int m = U.shape[0], n = S.shape[0], N
+	cdef int m = U.shape[0], n = V.shape[1], N, nmod = U.shape[1]
 	# Compute N using S
 	N  = int(r) if r >=1 else c_dcompute_truncation_residual(&S[0],r,n)
 	# Allocate output arrays
@@ -240,7 +245,7 @@ def _dtruncate(double[:,:] U, double[:] S, double[:,:] V, double r):
 	cdef np.ndarray[np.double_t,ndim=1] Sr = np.zeros((N,), dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=2] Vr = np.zeros((N,n),dtype=np.double)
 	# Truncate
-	c_dcompute_truncation(&Ur[0,0],&Sr[0],&Vr[0,0],&U[0,0],&S[0],&V[0,0],m,n,N)
+	c_dcompute_truncation(&Ur[0,0],&Sr[0],&Vr[0,0],&U[0,0],&S[0],&V[0,0],m,n,nmod,N)
 	# Return
 	return Ur, Sr, Vr
 

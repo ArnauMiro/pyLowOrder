@@ -71,10 +71,10 @@ cdef extern from "svd.h":
 cdef extern from "truncation.h":
 	# Single precision
 	cdef int  c_scompute_truncation_residual "scompute_truncation_residual"(float *S, float res, const int n)
-	cdef void c_scompute_truncation          "scompute_truncation"(float *Ur, float *Sr, float *VTr, float *U, float *S, float *VT, const int m, const int n, const int N)
+	cdef void c_scompute_truncation          "scompute_truncation"(float *Ur, float *Sr, float *VTr, float *U, float *S, float *VT, const int m, const int n, const int nmod, const int N)
 	# Double precision
 	cdef int  c_dcompute_truncation_residual "dcompute_truncation_residual"(double *S, double res, const int n)
-	cdef void c_dcompute_truncation          "dcompute_truncation"(double *Ur, double *Sr, double *VTr, double *U, double *S, double *VT, const int m, const int n, const int N)
+	cdef void c_dcompute_truncation          "dcompute_truncation"(double *Ur, double *Sr, double *VTr, double *U, double *S, double *VT, const int m, const int n, const int nmod, const int N)
 
 
 ## Fused type between double and complex
@@ -167,7 +167,7 @@ def _srun(float[:,:] X, float r, int remove_mean):
 	Ur = <float*>malloc(m*nr*sizeof(float))
 	Sr = <float*>malloc(nr*sizeof(float))
 	Vr = <float*>malloc(nr*mn*sizeof(float))
-	c_scompute_truncation(Ur,Sr,Vr,U,S,V,m,n-1,nr)
+	c_scompute_truncation(Ur,Sr,Vr,U,S,V,m,n-1,n-1,nr)
 	
 	free(U)
 	free(V)
@@ -447,7 +447,7 @@ def _drun(double[:,:] X, double r, int remove_mean):
 	Ur = <double*>malloc(m*nr*sizeof(double))
 	Sr = <double*>malloc(nr*sizeof(double))
 	Vr = <double*>malloc(nr*mn*sizeof(double))
-	c_dcompute_truncation(Ur,Sr,Vr,U,S,V,m,n-1,nr)
+	c_dcompute_truncation(Ur,Sr,Vr,U,S,V,m,n-1,n-1,nr)
 	
 	free(U)
 	free(V)

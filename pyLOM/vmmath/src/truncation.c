@@ -44,7 +44,7 @@ int dcompute_truncation_residual(double *S, double res, const int n){
 }
 
 void scompute_truncation(float *Ur, float *Sr, float *VTr, float *U,
-	float *S, float *VT, const int m, const int n, const int N){
+	float *S, float *VT, const int m, const int n, const int nmod, const int N){
 	/*
 	U(m,n)   are the POD modes and must come preallocated.
 	S(n)     are the singular values.
@@ -60,17 +60,17 @@ void scompute_truncation(float *Ur, float *Sr, float *VTr, float *U,
 	for(jj = 0; jj < N; ++jj){
 		//Copy U into Ur
 		for(ii = 0; ii < m; ++ii){
-			AC_MAT(Ur,N,ii,jj) = AC_MAT(U,n,ii,jj);
-    }
+			AC_MAT(Ur,N,ii,jj) = AC_MAT(U,nmod,ii,jj);
+    	}
 		//Copy S into Sr
 		Sr[jj] = S[jj];
 		//Copy VT into VTr
 		memcpy(VTr+n*jj,VT+n*jj,n*sizeof(float));
-  }
+  	}
 }
 
 void dcompute_truncation(double *Ur, double *Sr, double *VTr, double *U,
-	double *S, double *VT, const int m, const int n, const int N){
+	double *S, double *VT, const int m, const int n, const int nmod, const int N){
 	/*
 	U(m,n)   are the POD modes and must come preallocated.
 	S(n)     are the singular values.
@@ -86,11 +86,11 @@ void dcompute_truncation(double *Ur, double *Sr, double *VTr, double *U,
 	for(jj = 0; jj < N; ++jj){
 		//Copy U into Ur
 		for(ii = 0; ii < m; ++ii){
-			AC_MAT(Ur,N,ii,jj) = AC_MAT(U,n,ii,jj);
-    }
+			AC_MAT(Ur,N,ii,jj) = AC_MAT(U,nmod,ii,jj);
+    	}
 		//Copy S into Sr
 		Sr[jj] = S[jj];
 		//Copy VT into VTr
 		memcpy(VTr+n*jj,VT+n*jj,n*sizeof(double));
-  }
+    }
 }
