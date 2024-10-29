@@ -1157,14 +1157,14 @@ def _drandomized_svd(double[:,:] A, int r, int q):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def randomized_svd(real_full[:,:] A, const int r, const int q):
+def randomized_svd(real[:,:] A, const int r, const int q):
 	'''
 	Parallel Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
 		S(n)     are the singular values.
 		V(n,n)   are the right singular vectors.
 	'''
-	if real_full is double:
+	if real is double:
 		return _drandomized_svd(A,r,q)
 	else:
 		return _srandomized_svd(A,r,q)
