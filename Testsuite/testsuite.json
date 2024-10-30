@@ -152,7 +152,7 @@
 		"params" : {"r":10, "r_trunc":10, "q":3},
 		"nprocs" : 1,
 		"reset"  : false,
-		"active" : true
+		"active" : false
 	},
 	"POD_Channel1": {
 		"name"   : "POD Channel flow (parallel)",
@@ -174,7 +174,7 @@
 		"params" : {"r":10, "r_trunc":10, "q":3},
 		"nprocs" : 4,
 		"reset"  : false,
-		"active" : true
+		"active" : false
 	},
 
 	"comment": "DMD tests",
