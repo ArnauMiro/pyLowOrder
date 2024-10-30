@@ -208,5 +208,5 @@ setup(
     long_description = readme,
     url              = 'https://github.com/ArnauMiro/pyLowOrder',
     packages         = find_packages(exclude=('Deps','Examples','Docs','Converters')),
-	install_requires = ['numpy','matplotlib','cython>=3.0.0','h5py>=3.0.0','mpi4py','nfft','torch>=2.3.0','torchvision','torchsummary','tensorflow']
+	install_requires = ['numpy','matplotlib','cython>=3.0.0','h5py>=3.0.0','mpi4py','nfft']
 )

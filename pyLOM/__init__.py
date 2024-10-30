@@ -17,6 +17,16 @@ from .utils.parall import pprint
 from .utils.plots  import show_plots, close_plots
 
 # Import Low Order Models
-from . import POD, DMD, SPOD, NN
+from . import POD, DMD, SPOD
+
+# Import AI Models
+# Show a warning in case the modules cannot be loaded
+try:
+    from . import NN
+except:
+	from .utils.errors import raiseWarning
+	raiseWarning('Import - Cannot load NN! Ensure that the correct dependencies are installed',allranks=False)
+	del raiseWarning
+
 
 del dataset, partition_table, mesh

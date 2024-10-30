@@ -112,10 +112,7 @@ dependencies = [
     "matplotlib",
     "h5py>=3.0.0",
     "nfft",
-    "torch>=2.3.0",
-    "torchvision",
-    "torchsummary",
-    "tensorflow"
+
 ]
 
 # List additional groups of dependencies here (e.g. development
@@ -127,10 +124,18 @@ dependencies = [
 # Similar to `dependencies` above, these must be valid existing
 # projects.
 [project.optional-dependencies] 
-full = [
+# Dependencies to work with the NN module
+NN = [
+  "torch>=2.3.0",
+  "torchvision",
+  "torchsummary",
+  "tensorflow"
+  "optuna",
+]
+# Optional visualization dependencies
+optionals = [
   "ensight-reader",
   "pyvista",
-  "optuna",
 ]
 
 # List URLs that are relevant to your project
@@ -168,9 +173,5 @@ requires = [
   "matplotlib",
   "h5py>=3.0.0",
   "nfft",
-  "torch>=2.3.0",
-  "torchvision",
-  "torchsummary",
-  "tensorflow"
 ]
 build-backend = "setuptools.build_meta"
