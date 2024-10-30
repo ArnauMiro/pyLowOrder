@@ -1,0 +1,10 @@
+MPI startup(): Warning: I_MPI_PMI_LIBRARY will be ignored since the hydra process manager was found
+MPI startup(): Warning: I_MPI_PMI_LIBRARY will be ignored since the hydra process manager was found
+MPI startup(): Warning: I_MPI_PMI_LIBRARY will be ignored since the hydra process manager was found
+MPI startup(): Warning: I_MPI_PMI_LIBRARY will be ignored since the hydra process manager was found
+Rank 0: TSUITE RMSE  = 2.565718e-02
+Rank 0: TSUITE X     = -0.5932158579846074 1.5357523492540364 0.8791880593802975
+Rank 0: TSUITE S     = 26.13818252192792 1640.950472083237 366.44562619122206
+Rank 0: TSUITE V     = -0.43149198307032266 0.563732714617971 -0.047766943805780754
+Rank 0: TSUITE X_POD = -0.5051698451462853 1.5345626313010006 0.8791877892282459
+Rank 0: TSUITE modes = -0.011277384034984003 0.01744215435618221 -0.0002865872786055185
