@@ -15,6 +15,7 @@ from mpi4py  import MPI
 
 from libc.stdlib   cimport malloc, free
 from libc.string   cimport memcpy, memset
+from libc.time     cimport time
 from mpi4py.libmpi cimport MPI_Comm
 from mpi4py        cimport MPI
 
@@ -81,7 +82,7 @@ def _srun(float[:,:] X, int remove_mean, int randomized, int r, int q):
 	cdef int m = X.shape[0], n = X.shape[1], mn = min(m,n), retval
 	cdef float *X_mean
 	cdef float *Y
-	cdef unsigned int seed = 19
+	cdef unsigned int seed = <int>time(NULL)
 	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	# Output arrays
 	r = r if randomized else mn
@@ -134,7 +135,7 @@ def _drun(double[:,:] X, int remove_mean, int randomized, int r, int q):
 	cdef int m = X.shape[0], n = X.shape[1], mn = min(m,n), retval
 	cdef double *X_mean
 	cdef double *Y
-	cdef unsigned int seed = 19
+	cdef unsigned int seed = <int>time(NULL)
 	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	# Output arrays
 	r = r if randomized else mn

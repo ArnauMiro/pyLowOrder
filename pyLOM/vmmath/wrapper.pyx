@@ -16,6 +16,7 @@ from mpi4py  import MPI
 from libc.stdlib   cimport malloc, free
 from libc.string   cimport memcpy, memset
 from libc.math     cimport sqrt, atan2
+from libc.time     cimport time
 from mpi4py        cimport MPI
 from mpi4py.libmpi cimport MPI_Comm
 
@@ -1121,7 +1122,7 @@ def _srandomized_svd(float[:,:] A, int r, int q):
 	'''
 	cdef int retval
 	cdef int m = A.shape[0], n = A.shape[1], mn = min(m,n)
-	cdef unsigned int seed = 19
+	cdef unsigned int seed = <int>time(NULL)
 	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef np.ndarray[np.float32_t,ndim=2] U = np.zeros((m,r),dtype=np.float32)
 	cdef np.ndarray[np.float32_t,ndim=1] S = np.zeros((r,) ,dtype=np.float32)
@@ -1144,7 +1145,7 @@ def _drandomized_svd(double[:,:] A, int r, int q):
 	'''
 	cdef int retval
 	cdef int m = A.shape[0], n = A.shape[1], mn = min(m,n)
-	cdef unsigned int seed = 19
+	cdef unsigned int seed = <int>time(NULL)
 	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,r),dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((r,) ,dtype=np.double)
