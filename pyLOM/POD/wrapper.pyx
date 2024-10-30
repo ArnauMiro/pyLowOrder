@@ -83,9 +83,10 @@ def _srun(float[:,:] X, int remove_mean, int randomized, int r, int q):
 	cdef float *Y
 	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	# Output arrays
-	cdef np.ndarray[np.float32_t,ndim=2] U = np.zeros((m,mn),dtype=np.float32) if not randomized else np.zeros((m,r),dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=1] S = np.zeros((mn,) ,dtype=np.float32) if not randomized else np.zeros((r,), dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=2] V = np.zeros((n,mn),dtype=np.float32) if not randomized else np.zeros((r,n),dtype=np.float32)
+	r = r if randomized else mn
+	cdef np.ndarray[np.float32_t,ndim=2] U = np.zeros((m,r),dtype=np.float32) 
+	cdef np.ndarray[np.float32_t,ndim=1] S = np.zeros((r,) ,dtype=np.float32) 
+	cdef np.ndarray[np.float32_t,ndim=2] V = np.zeros((r,n),dtype=np.float32) 
 	# Allocate memory
 	Y = <float*>malloc(m*n*sizeof(float))
 	if remove_mean:
@@ -134,9 +135,10 @@ def _drun(double[:,:] X, int remove_mean, int randomized, int r, int q):
 	cdef double *Y
 	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	# Output arrays
-	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,mn),dtype=np.double) if not randomized else np.zeros((m,r),dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((mn,) ,dtype=np.double) if not randomized else np.zeros((r,),dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((mn,n),dtype=np.double) if not randomized else np.zeros((r,n),dtype=np.double)
+	r = r if randomized else mn
+	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,r),dtype=np.double) 
+	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((r,) ,dtype=np.double) 
+	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((r,n),dtype=np.double) 
 	# Allocate memory
 	Y = <double*>malloc(m*n*sizeof(double))
 	if remove_mean:
@@ -196,10 +198,11 @@ def _struncate(float[:,:] U, float[:] S, float[:,:] V, float r):
 	Truncate POD matrices (U,S,V) given a residual r.
 
 	Inputs:
-		- U(m,n)  are the POD modes.
-		- S(n)    are the singular values.
-		- V(n,n)  are the right singular vectors.
+		- U(m,nmod)  are the POD modes.
+		- S(nmod)    are the singular values.
+		- V(nmod,n)  are the right singular vectors.
 		- r       target residual (default 1e-8)
+		If the SVD was done with the randomized algorithm, nmod < n but should always be larger than the target number of modes after truncation N
 
 	Returns:
 		- U(m,N)  are the POD modes (truncated at N).
@@ -227,10 +230,12 @@ def _dtruncate(double[:,:] U, double[:] S, double[:,:] V, double r):
 	Truncate POD matrices (U,S,V) given a residual r.
 
 	Inputs:
-		- U(m,n)  are the POD modes.
-		- S(n)    are the singular values.
-		- V(n,n)  are the right singular vectors.
+		- U(m,nmod)  are the POD modes.
+		- S(nmod)    are the singular values.
+		- V(nmod,n)  are the right singular vectors.
 		- r       target residual (default 1e-8)
+		If the SVD was done with the randomized algorithm, nmod < n but should always be larger than the target number of modes after truncation N
+
 
 	Returns:
 		- U(m,N)  are the POD modes (truncated at N).

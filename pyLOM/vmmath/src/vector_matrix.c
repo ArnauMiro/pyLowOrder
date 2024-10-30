@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <time.h>
 #include "mpi.h"
 typedef float  _Complex scomplex_t;
 typedef double _Complex dcomplex_t;
@@ -421,17 +420,17 @@ int ceigen(float *real, float *imag, scomplex_t *w, float *A,
 	vecs = (float*)malloc(n*n*sizeof(float));
 	info = LAPACKE_sgeev(
 		LAPACK_ROW_MAJOR, // int  		matrix_layout
-				   'N',   // char       jobvl
-				   'V',   // char       jobvr
-					 n,   // int        n
-					 A,   // float*    A
-					 m,   // int        lda
-				  real,   // float*    wr
-				  imag,   // float*    wi
-					vl,   // float*    vl
-					 n,   // int        ldvl
-				  vecs,   // float*    vr
-					 n    // int        ldvr
+				     'N', // char       jobvl
+				     'V', // char       jobvr
+					   n, // int        n
+					   A, // float*    A
+					   m, // int        lda
+				    real, // float*    wr
+				    imag, // float*    wi
+				  	  vl, // float*    vl
+				  	   n, // int        ldvl
+				    vecs, // float*    vr
+				  	   n  // int        ldvr
 	);
 	//Define and allocate memory for the complex array of eigenvectors
 	//Change while for a for
@@ -475,17 +474,17 @@ int zeigen(double *real, double *imag, dcomplex_t *w, double *A,
 	vecs = (double*)malloc(n*n*sizeof(double));
 	info = LAPACKE_dgeev(
 		LAPACK_ROW_MAJOR, // int  		matrix_layout
-				   'N',   // char       jobvl
-				   'V',   // char       jobvr
-					 n,   // int        n
-					 A,   // double*    A
-					 m,   // int        lda
-				  real,   // double*    wr
-				  imag,   // double*    wi
-					vl,   // double*    vl
-					 n,   // int        ldvl
-				  vecs,   // double*    vr
-					 n    // int        ldvr
+				     'N', // char       jobvl
+				     'V', // char       jobvr
+					   n, // int        n
+					   A, // double*    A
+					   m, // int        lda
+				    real, // double*    wr
+				    imag, // double*    wi
+					  vl, // double*    vl
+					   n, // int        ldvl
+				    vecs, // double*    vr
+					   n  // int        ldvr
 	);
 	//Define and allocate memory for the complex array of eigenvectors
 	//Change while for a for
@@ -574,11 +573,11 @@ int ccholesky(scomplex_t *A, int N){
 	*/
 	int info, ii, jj;
 	info = LAPACKE_cpotrf(
-		LAPACK_ROW_MAJOR, // int  	matrix_layout
-					 'L', //char	Decide if the Upper or the Lower triangle of A are stored
-					   N, //int		Order of matrix A
-					   A, //complex	Matrix A to decompose (works as input and output)
-					   N  //int		Leading dimension of A
+		 LAPACK_ROW_MAJOR, // int  	matrix_layout
+					  'L', //char	Decide if the Upper or the Lower triangle of A are stored
+		 			    N, //int		Order of matrix A
+		 			    A, //complex	Matrix A to decompose (works as input and output)
+		 			    N  //int		Leading dimension of A
 	);
 	// Zero upper size part
 	#ifdef USE_OMP
@@ -596,11 +595,11 @@ int zcholesky(dcomplex_t *A, int N){
 	*/
 	int info, ii, jj;
 	info = LAPACKE_zpotrf(
-		LAPACK_ROW_MAJOR, // int  	matrix_layout
-					 'L', //char	Decide if the Upper or the Lower triangle of A are stored
-					   N, //int		Order of matrix A
-					   A, //complex	Matrix A to decompose (works as input and output)
-					   N  //int		Leading dimension of A
+		 LAPACK_ROW_MAJOR, // int  	matrix_layout
+					  'L', //char	Decide if the Upper or the Lower triangle of A are stored
+					    N, //int		Order of matrix A
+					    A, //complex	Matrix A to decompose (works as input and output)
+					    N  //int		Leading dimension of A
 	);
 	// Zero upper size part
 	#ifdef USE_OMP
@@ -678,12 +677,12 @@ int sinverse(float *A, int N, char *UoL){
 	*/
 	int info;
 	info = LAPACKE_strtri(
-		LAPACK_ROW_MAJOR, //int     matrix_layout
-					*UoL, //char    Decide if the Upper or the Lower triangle of A are stored
-					 'N', //int	    Decide if is non Unitary or Unitary A
-					   N, //int	    Order of A
-					   A, //double  Matrix A to decompose (works as input and output)
-					   N  //int     Leading dimension of A
+		 LAPACK_ROW_MAJOR, //int     matrix_layout
+					 *UoL, //char    Decide if the Upper or the Lower triangle of A are stored
+					  'N', //int	    Decide if is non Unitary or Unitary A
+					    N, //int	    Order of A
+					    A, //double  Matrix A to decompose (works as input and output)
+					    N  //int     Leading dimension of A
 	);
 	return info;
 }
@@ -694,12 +693,12 @@ int dinverse(double *A, int N, char *UoL){
 	*/
 	int info;
 	info = LAPACKE_dtrtri(
-		LAPACK_ROW_MAJOR, //int     matrix_layout
-					*UoL, //char    Decide if the Upper or the Lower triangle of A are stored
-					 'N', //int	    Decide if is non Unitary or Unitary A
-					   N, //int	    Order of A
-					   A, //double  Matrix A to decompose (works as input and output)
-					   N  //int     Leading dimension of A
+		 LAPACK_ROW_MAJOR, //int     matrix_layout
+					 *UoL, //char    Decide if the Upper or the Lower triangle of A are stored
+					  'N', //int	    Decide if is non Unitary or Unitary A
+					    N, //int	    Order of A
+					    A, //double  Matrix A to decompose (works as input and output)
+					    N  //int     Leading dimension of A
 	);
 	return info;
 }
@@ -710,12 +709,12 @@ int cinverse(scomplex_t *A, int N, char *UoL){
 	*/
 	int info;
 	info = LAPACKE_ctrtri(
-		LAPACK_ROW_MAJOR, //int     matrix_layout
-					*UoL, //char    Decide if the Upper or the Lower triangle of A are stored
-					 'N', //int	    Decide if is non Unitary or Unitary A
-					   N, //int	    Order of A
-					   A, //complex Matrix A to decompose (works as input and output)
-					   N  //int     Leading dimension of A
+		 LAPACK_ROW_MAJOR, //int     matrix_layout
+		 			 *UoL, //char    Decide if the Upper or the Lower triangle of A are stored
+					  'N', //int	    Decide if is non Unitary or Unitary A
+					    N, //int	    Order of A
+					    A, //complex Matrix A to decompose (works as input and output)
+					    N  //int     Leading dimension of A
 	);
 	return info;
 }
@@ -852,12 +851,12 @@ void zsort(dcomplex_t *v, int *index, int n){
 	free(w);
 }
 
-void srandom_matrix(float *A, int m, int n){
+void srandom_matrix(float *A, int m, int n, unsigned int seed){
 	/*
 		Generate a single precision random matrix
 	*/
 	// Seed the random number generator
-	srand((unsigned int)time(NULL));
+	srand(seed);
 
 	for (int i = 0; i < m; i++) {
 		for (int j = 0; j < n; j++) {
@@ -866,12 +865,12 @@ void srandom_matrix(float *A, int m, int n){
 	}
 }
 
-void drandom_matrix(double *A, int m, int n){
+void drandom_matrix(double *A, int m, int n, unsigned int seed){
 	/*
 		Generate a double precision random matrix
 	*/
 	// Seed the random number generator
-	srand((unsigned int)time(NULL));
+	srand(seed);
 
 	for (int i = 0; i < m; i++) {
 		for (int j = 0; j < n; j++) {

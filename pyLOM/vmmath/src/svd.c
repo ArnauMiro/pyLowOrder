@@ -6,6 +6,7 @@
 #include <math.h>
 #include <complex.h>
 #include <stdio.h>
+#include <time.h>
 #include "mpi.h"
 typedef float  _Complex scomplex_t;
 typedef double _Complex dcomplex_t;
@@ -1013,6 +1014,8 @@ int srandomized_svd(float *Ui, float *S, float *VT, float *Ai, const int m, cons
 	/*
 		Randomized single value decomposition (SVD) with oversampling and power iterations with the algorithm from
 		
+		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+
 		Ai(m,n)  data matrix dispersed on each processor.
 
 		Ui(m,n)  POD modes dispersed on each processor (must come preallocated).
@@ -1024,9 +1027,10 @@ int srandomized_svd(float *Ui, float *S, float *VT, float *Ai, const int m, cons
 	// Multiply per a random matrix
 	float *omega;
 	float *Y;
+	unsigned int seed = (unsigned int)time(NULL);
 	omega = (float*)malloc(n*r*sizeof(float));
 	Y     = (float*)malloc(m*r*sizeof(float));
-	srandom_matrix(omega,n,r);
+	srandom_matrix(omega,n,r,seed);
 	smatmul(Y,Ai,omega,m,r,n);
 	free(omega); 
 
@@ -1081,6 +1085,8 @@ int drandomized_svd(double *Ui, double *S, double *VT, double *Ai, const int m, 
 	/*
 		Randomized single value decomposition (SVD) with oversampling and power iterations with the algorithm from
 		
+		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+
 		Ai(m,n)  data matrix dispersed on each processor.
 
 		Ui(m,n)  POD modes dispersed on each processor (must come preallocated).
@@ -1092,9 +1098,10 @@ int drandomized_svd(double *Ui, double *S, double *VT, double *Ai, const int m, 
 	// Multiply per a random matrix
 	double *omega;
 	double *Y;
+	unsigned int seed = (unsigned int)time(NULL);
 	omega = (double*)malloc(n*r*sizeof(double));
 	Y     = (double*)malloc(m*r*sizeof(double));
-	drandom_matrix(omega,n,r);
+	drandom_matrix(omega,n,r,seed);
 	dmatmul(Y,Ai,omega,m,r,n);
 	free(omega); 
 
