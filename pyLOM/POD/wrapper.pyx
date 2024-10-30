@@ -40,10 +40,10 @@ cdef extern from "averaging.h":
 cdef extern from "svd.h":
 	# Single precision
 	cdef int c_stsqr_svd       "stsqr_svd"      (float *Ui, float *S, float *VT, float *Ai, const int m, const int n, MPI_Comm comm)
-	cdef int c_srandomized_svd "srandomized_svd"(float *Ui, float *S, float *VT, float *Ai,   const int m, const int n, const int r, const int q, MPI_Comm comm)
+	cdef int c_srandomized_svd "srandomized_svd"(float *Ui, float *S, float *VT, float *Ai,   const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
 	# Double precision
 	cdef int c_dtsqr_svd       "dtsqr_svd"      (double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm)
-	cdef int c_drandomized_svd "drandomized_svd"(double *Ui, double *S, double *VT, double *Ai,  const int m, const int n, const int r, const int q, MPI_Comm comm)
+	cdef int c_drandomized_svd "drandomized_svd"(double *Ui, double *S, double *VT, double *Ai,  const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
 cdef extern from "truncation.h":
 	# Single precision
 	cdef int  c_scompute_truncation_residual "scompute_truncation_residual"(float *S, float res, const int n)
@@ -81,6 +81,7 @@ def _srun(float[:,:] X, int remove_mean, int randomized, int r, int q):
 	cdef int m = X.shape[0], n = X.shape[1], mn = min(m,n), retval
 	cdef float *X_mean
 	cdef float *Y
+	cdef unsigned int seed = 19
 	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	# Output arrays
 	r = r if randomized else mn
@@ -103,7 +104,7 @@ def _srun(float[:,:] X, int remove_mean, int randomized, int r, int q):
 	# Compute SVD
 	cr_start('POD.SVD',0)
 	if randomized:
-		retval = c_srandomized_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,r,q,MPI_COMM.ob_mpi)
+		retval = c_srandomized_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,r,q,seed,MPI_COMM.ob_mpi)
 	else:
 		retval = c_stsqr_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,MPI_COMM.ob_mpi)
 	cr_stop('POD.SVD',0)
@@ -133,6 +134,7 @@ def _drun(double[:,:] X, int remove_mean, int randomized, int r, int q):
 	cdef int m = X.shape[0], n = X.shape[1], mn = min(m,n), retval
 	cdef double *X_mean
 	cdef double *Y
+	cdef unsigned int seed = 19
 	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	# Output arrays
 	r = r if randomized else mn
@@ -155,7 +157,7 @@ def _drun(double[:,:] X, int remove_mean, int randomized, int r, int q):
 	# Compute SVD
 	cr_start('POD.SVD',0)
 	if randomized:
-		retval = c_drandomized_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,r,q,MPI_COMM.ob_mpi)
+		retval = c_drandomized_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,r,q,seed,MPI_COMM.ob_mpi)
 	else:
 		retval = c_dtsqr_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,MPI_COMM.ob_mpi)
 	cr_stop('POD.SVD',0)

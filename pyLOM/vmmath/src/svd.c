@@ -6,7 +6,6 @@
 #include <math.h>
 #include <complex.h>
 #include <stdio.h>
-#include <time.h>
 #include "mpi.h"
 typedef float  _Complex scomplex_t;
 typedef double _Complex dcomplex_t;
@@ -1010,7 +1009,7 @@ int ztsqr_svd(dcomplex_t *Ui, double *S, dcomplex_t *VT, dcomplex_t *Ai, const i
 	return info;
 }
 
-int srandomized_svd(float *Ui, float *S, float *VT, float *Ai, const int m, const int n, const int r, const int q, MPI_Comm comm) {
+int srandomized_svd(float *Ui, float *S, float *VT, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm) {
 	/*
 		Randomized single value decomposition (SVD) with oversampling and power iterations with the algorithm from
 		
@@ -1027,7 +1026,6 @@ int srandomized_svd(float *Ui, float *S, float *VT, float *Ai, const int m, cons
 	// Multiply per a random matrix
 	float *omega;
 	float *Y;
-	unsigned int seed = (unsigned int)time(NULL);
 	omega = (float*)malloc(n*r*sizeof(float));
 	Y     = (float*)malloc(m*r*sizeof(float));
 	srandom_matrix(omega,n,r,seed);
@@ -1081,7 +1079,7 @@ int srandomized_svd(float *Ui, float *S, float *VT, float *Ai, const int m, cons
 	return info;
 }
 
-int drandomized_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, const int r, const int q, MPI_Comm comm) {
+int drandomized_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm) {
 	/*
 		Randomized single value decomposition (SVD) with oversampling and power iterations with the algorithm from
 		
@@ -1098,7 +1096,6 @@ int drandomized_svd(double *Ui, double *S, double *VT, double *Ai, const int m, 
 	// Multiply per a random matrix
 	double *omega;
 	double *Y;
-	unsigned int seed = (unsigned int)time(NULL);
 	omega = (double*)malloc(n*r*sizeof(double));
 	Y     = (double*)malloc(m*r*sizeof(double));
 	drandom_matrix(omega,n,r,seed);
