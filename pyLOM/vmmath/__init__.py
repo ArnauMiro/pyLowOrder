@@ -11,7 +11,7 @@ from .wrapper import transpose, vector_norm, matmul, matmulp, vecmat, argsort, e
 # Averaging routines
 from .wrapper import temporal_mean, subtract_mean, RMSE
 # SVD routines
-from .wrapper import qr, svd, tsqr, tsqr_svd
+from .wrapper import qr, svd, tsqr, tsqr_svd, randomized_svd
 # FFT routines
 from .wrapper import fft
 # Mesh related routines

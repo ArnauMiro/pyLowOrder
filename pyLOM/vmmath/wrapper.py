@@ -278,6 +278,35 @@ def tsqr_svd(Ai):
 	Ui = matmul(Qi, Ur)
 	return Ui, S, V
 
+@cr('math.randomized_svd')
+def randomized_svd(Ai, r, q):
+	'''
+	Ai(m,n)  data matrix dispersed on each processor.
+	r        target number of modes
+
+	Ui(m,n)  POD modes dispersed on each processor (must come preallocated).
+	S(n)     singular values.
+	VT(n,n)  right singular vectors (transposed).
+	'''
+	_, n  = Ai.shape
+	omega = np.random.rand(n, r).astype(Ai.dtype)
+	Yi = matmul(Ai,omega)
+	# QR factorization on A
+	for j in range(q):
+		Qi,_ = tsqr(Yi)
+		Q2i  = matmulp(Ai.T,Qi)
+		Yi   = matmul(Ai,Q2i)
+
+	Qi,_ = tsqr(Yi)
+	B    = matmulp(Qi.T,Ai)
+
+	Ur, S, V = svd(B)
+	
+	# Compute Ui = Qi x Ur
+	Ui = matmul(Qi, Ur)
+
+	return Ui, S, V
+
 @cr('math.fft')
 def fft(t,y,equispaced=True):
 	'''

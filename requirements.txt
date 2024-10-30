@@ -1,12 +1,6 @@
 numpy
 cython>=3.0.0
-mpi4py<4.0.0
+mpi4py
 matplotlib
 h5py>=3.0.0
 nfft
-ensight-reader
-pyvista
-torch>=2.3.0
-torchvision
-torchsummary
-tensorflow

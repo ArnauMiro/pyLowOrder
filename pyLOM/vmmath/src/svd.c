@@ -1009,6 +1009,146 @@ int ztsqr_svd(dcomplex_t *Ui, double *S, dcomplex_t *VT, dcomplex_t *Ai, const i
 	return info;
 }
 
+int srandomized_svd(float *Ui, float *S, float *VT, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm) {
+	/*
+		Randomized single value decomposition (SVD) with oversampling and power iterations with the algorithm from
+		
+		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+
+		Ai(m,n)  data matrix dispersed on each processor.
+
+		Ui(m,n)  POD modes dispersed on each processor (must come preallocated).
+		S(n)     singular values.
+		VT(n,n)  right singular vectors (transposed).
+	*/
+	int info = 0;
+	int ii   = 0;
+	// Multiply per a random matrix
+	float *omega;
+	float *Y;
+	omega = (float*)malloc(n*r*sizeof(float));
+	Y     = (float*)malloc(m*r*sizeof(float));
+	srandom_matrix(omega,n,r,seed);
+	smatmul(Y,Ai,omega,m,r,n);
+	free(omega); 
+
+	// Transpose A
+	float *At;
+	At = (float*)malloc(n*m*sizeof(float));
+	stranspose(Ai,At,m,n);
+
+	// Do power iterations
+	
+	float *Qi, *R, *Q2;
+	R  = (float*)malloc(r*r*sizeof(float));
+	Qi = (float*)malloc(m*r*sizeof(float));
+	Q2 = (float*)malloc(n*r*sizeof(float));
+	for(ii=0;ii<q;++ii){
+		info = stsqr(Qi,R,Y,m,r,comm);
+		smatmulp(Q2,At,Qi,n,r,m);
+		smatmul(Y,Ai,Q2,m,r,n);
+	}
+	free(At); free(Q2); 
+	
+	// Call TSQR routine with the results from the power iterations
+	info = stsqr(Qi,R,Y,m,r,comm);
+	free(R); free(Y); 
+
+	// Transpose Q
+	float *Qt;
+	Qt = (float*)malloc(r*m*sizeof(float));
+	stranspose(Qi,Qt,m,r);
+
+	// Compute B = Q.T x A
+	float *B;
+	B = (float*)malloc(r*n*sizeof(float));
+	smatmulp(B,Qt,Ai,r,n,m);
+	free(Qt);
+
+	// Call SVD routine
+	float *Ur;
+	Ur   = (float*)malloc(r*r*sizeof(float));
+	info = ssvd(Ur,S,VT,B,r,n); if (!(info==0)) return info;
+	free(B);
+
+	// Compute Ui = Qi x Ur
+	smatmul(Ui,Qi,Ur,m,r,r);
+	
+	free(Ur); free(Qi); 
+
+	return info;
+}
+
+int drandomized_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm) {
+	/*
+		Randomized single value decomposition (SVD) with oversampling and power iterations with the algorithm from
+		
+		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+
+		Ai(m,n)  data matrix dispersed on each processor.
+
+		Ui(m,n)  POD modes dispersed on each processor (must come preallocated).
+		S(n)     singular values.
+		VT(n,n)  right singular vectors (transposed).
+	*/
+	int info = 0;
+	int ii   = 0;
+	// Multiply per a random matrix
+	double *omega;
+	double *Y;
+	omega = (double*)malloc(n*r*sizeof(double));
+	Y     = (double*)malloc(m*r*sizeof(double));
+	drandom_matrix(omega,n,r,seed);
+	dmatmul(Y,Ai,omega,m,r,n);
+	free(omega); 
+
+	// Transpose A
+	double *At;
+	At = (double*)malloc(n*m*sizeof(double));
+	dtranspose(Ai,At,m,n);
+
+	// Do power iterations
+	
+	double *Qi, *R, *Q2;
+	R  = (double*)malloc(r*r*sizeof(double));
+	Qi = (double*)malloc(m*r*sizeof(double));
+	Q2 = (double*)malloc(n*r*sizeof(double));
+	for(ii=0;ii<q;++ii){
+		info = dtsqr(Qi,R,Y,m,r,comm);
+		dmatmulp(Q2,At,Qi,n,r,m);
+		dmatmul(Y,Ai,Q2,m,r,n);
+	}
+	free(At); free(Q2); 
+	
+	// Call TSQR routine with the results from the power iterations
+	info = dtsqr(Qi,R,Y,m,r,comm);
+	free(R); free(Y); 
+
+	// Transpose Q
+	double *Qt;
+	Qt = (double*)malloc(r*m*sizeof(double));
+	dtranspose(Qi,Qt,m,r);
+
+	// Compute B = Q.T x A
+	double *B;
+	B = (double*)malloc(r*n*sizeof(double));
+	dmatmulp(B,Qt,Ai,r,n,m);
+	free(Qt);
+
+	// Call SVD routine
+	double *Ur;
+	Ur   = (double*)malloc(r*r*sizeof(double));
+	info = dsvd(Ur,S,VT,B,r,n); if (!(info==0)) return info;
+	free(B);
+
+	// Compute Ui = Qi x Ur
+	dmatmul(Ui,Qi,Ur,m,r,r);
+	
+	free(Ur); free(Qi); 
+
+	return info;
+}
+
 // Deprecated old code to be deleted
 //int tsqr2(double *Qi, double *R, double *Ai, const int m, const int n, MPI_Comm comm) {
 //	/*

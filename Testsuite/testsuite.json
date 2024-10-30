@@ -11,6 +11,17 @@
 		"reset"  : false,
 		"active" : true
 	},
+	"POD_Cylinder_rand": {
+		"name"   : "POD randomized Cylinder 2D (parallel)",
+		"module" : "POD",
+		"file"   : "runs/tsuite_POD_randomized.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {"r":8, "r_trunc":6, "q":3},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
 	"POD_Cylinder1": {
 		"name"   : "POD Cylinder 2D (parallel)",
 		"module" : "POD",
@@ -18,6 +29,17 @@
 		"data"   : "DATA/CYLINDER.h5",
 		"var"    : ["VELOX"],
 		"params" : {},
+		"nprocs" : 4,
+		"reset"  : false,
+		"active" : true
+	},
+	"POD_Cylinder_rand1": {
+		"name"   : "POD randomized Cylinder 2D (parallel)",
+		"module" : "POD",
+		"file"   : "runs/tsuite_POD_randomized.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {"r":8, "r_trunc":6, "q":3},
 		"nprocs" : 4,
 		"reset"  : false,
 		"active" : true
@@ -33,6 +55,17 @@
 		"reset"  : false,
 		"active" : true
 	},
+	"POD_Jet_rand": {
+		"name"   : "POD randomized Jet 2D (parallel)",
+		"module" : "POD",
+		"file"   : "runs/tsuite_POD_randomized.py",
+		"data"   : "DATA/JET.h5",
+		"var"    : ["PRESS"],
+		"params" : {"r":8, "r_trunc":6, "q":3},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
 	"POD_Jet1": {
 		"name"   : "POD Jet 2D (parallel)",
 		"module" : "POD",
@@ -40,6 +73,17 @@
 		"data"   : "DATA/JET.h5",
 		"var"    : ["PRESS"],
 		"params" : {},
+		"nprocs" : 4,
+		"reset"  : false,
+		"active" : true
+	},
+	"POD_Jet_rand1": {
+		"name"   : "POD randomized Jet 2D (parallel)",
+		"module" : "POD",
+		"file"   : "runs/tsuite_POD_randomized.py",
+		"data"   : "DATA/JET.h5",
+		"var"    : ["PRESS"],
+		"params" : {"r":8, "r_trunc":6, "q":3},
 		"nprocs" : 4,
 		"reset"  : false,
 		"active" : true
@@ -55,6 +99,17 @@
 		"reset"  : false,
 		"active" : true
 	},
+	"POD_T280_rand": {
+		"name"   : "POD randomized Tensor280 3D (parallel)",
+		"module" : "POD",
+		"file"   : "runs/tsuite_POD_randomized.py",
+		"data"   : "DATA/TENSOR280.h5",
+		"var"    : ["VELOX"],
+		"params" : {"r":8, "r_trunc":6, "q":3},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
 	"POD_T2801": {
 		"name"   : "POD Tensor280 3D (parallel)",
 		"module" : "POD",
@@ -62,6 +117,17 @@
 		"data"   : "DATA/TENSOR280.h5",
 		"var"    : ["VELOX"],
 		"params" : {},
+		"nprocs" : 4,
+		"reset"  : false,
+		"active" : true
+	},
+	"POD_T280_rand1": {
+		"name"   : "POD randomized Tensor280 3D (parallel)",
+		"module" : "POD",
+		"file"   : "runs/tsuite_POD_randomized.py",
+		"data"   : "DATA/TENSOR280.h5",
+		"var"    : ["VELOX"],
+		"params" : {"r":8, "r_trunc":6, "q":3},
 		"nprocs" : 4,
 		"reset"  : false,
 		"active" : true
@@ -77,6 +143,17 @@
 		"reset"  : false,
 		"active" : true
 	},
+	"POD_Channel_rand": {
+		"name"   : "POD randomized Channel flow",
+		"module" : "POD",
+		"file"   : "runs/tsuite_POD_randomized.py",
+		"data"   : "DATA/CHANNEL.h5",
+		"var"    : ["VELOX","VELOY","VELOZ"],
+		"params" : {"r":10, "r_trunc":10, "q":3},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : false
+	},
 	"POD_Channel1": {
 		"name"   : "POD Channel flow (parallel)",
 		"module" : "POD",
@@ -87,6 +164,17 @@
 		"nprocs" : 4,
 		"reset"  : false,
 		"active" : true
+	},
+	"POD_Channel_rand1": {
+		"name"   : "POD randomized Channel flow (parallel)",
+		"module" : "POD",
+		"file"   : "runs/tsuite_POD_randomized.py",
+		"data"   : "DATA/CHANNEL.h5",
+		"var"    : ["VELOX","VELOY","VELOZ"],
+		"params" : {"r":10, "r_trunc":10, "q":3},
+		"nprocs" : 4,
+		"reset"  : false,
+		"active" : false
 	},
 
 	"comment": "DMD tests",

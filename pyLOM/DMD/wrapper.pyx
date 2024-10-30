@@ -11,12 +11,29 @@ cimport cython
 cimport numpy as np
 
 import numpy as np
-from mpi4py  import MPI
 
 from libc.stdlib   cimport malloc, free
 from libc.string   cimport memcpy, memset
 from libc.math     cimport sqrt, log, atan2
 from libc.complex  cimport creal, cimag
+
+# Fix as Open MPI does not support MPI-4 yet, and there is no nice way that I know to automatically adjust Cython to missing stuff in C header files.
+# Source: https://github.com/mpi4py/mpi4py/issues/525
+cdef extern from *:
+	"""
+	#include <mpi.h>
+	
+	#if (MPI_VERSION < 3) && !defined(PyMPI_HAVE_MPI_Message)
+	typedef void *PyMPI_MPI_Message;
+	#define MPI_Message PyMPI_MPI_Message
+	#endif
+	
+	#if (MPI_VERSION < 4) && !defined(PyMPI_HAVE_MPI_Session)
+	typedef void *PyMPI_MPI_Session;
+	#define MPI_Session PyMPI_MPI_Session
+	#endif
+	"""
+from mpi4py  import MPI
 from mpi4py.libmpi cimport MPI_Comm
 from mpi4py        cimport MPI
 
@@ -71,10 +88,10 @@ cdef extern from "svd.h":
 cdef extern from "truncation.h":
 	# Single precision
 	cdef int  c_scompute_truncation_residual "scompute_truncation_residual"(float *S, float res, const int n)
-	cdef void c_scompute_truncation          "scompute_truncation"(float *Ur, float *Sr, float *VTr, float *U, float *S, float *VT, const int m, const int n, const int N)
+	cdef void c_scompute_truncation          "scompute_truncation"(float *Ur, float *Sr, float *VTr, float *U, float *S, float *VT, const int m, const int n, const int nmod, const int N)
 	# Double precision
 	cdef int  c_dcompute_truncation_residual "dcompute_truncation_residual"(double *S, double res, const int n)
-	cdef void c_dcompute_truncation          "dcompute_truncation"(double *Ur, double *Sr, double *VTr, double *U, double *S, double *VT, const int m, const int n, const int N)
+	cdef void c_dcompute_truncation          "dcompute_truncation"(double *Ur, double *Sr, double *VTr, double *U, double *S, double *VT, const int m, const int n, const int nmod, const int N)
 
 
 ## Fused type between double and complex
@@ -167,7 +184,7 @@ def _srun(float[:,:] X, float r, int remove_mean):
 	Ur = <float*>malloc(m*nr*sizeof(float))
 	Sr = <float*>malloc(nr*sizeof(float))
 	Vr = <float*>malloc(nr*mn*sizeof(float))
-	c_scompute_truncation(Ur,Sr,Vr,U,S,V,m,n-1,nr)
+	c_scompute_truncation(Ur,Sr,Vr,U,S,V,m,n-1,n-1,nr)
 	
 	free(U)
 	free(V)
@@ -447,7 +464,7 @@ def _drun(double[:,:] X, double r, int remove_mean):
 	Ur = <double*>malloc(m*nr*sizeof(double))
 	Sr = <double*>malloc(nr*sizeof(double))
 	Vr = <double*>malloc(nr*mn*sizeof(double))
-	c_dcompute_truncation(Ur,Sr,Vr,U,S,V,m,n-1,nr)
+	c_dcompute_truncation(Ur,Sr,Vr,U,S,V,m,n-1,n-1,nr)
 	
 	free(U)
 	free(V)

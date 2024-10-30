@@ -38,7 +38,7 @@ readme = "README.md"
 # 'Programming Language' classifiers above, 'pip install' will check this
 # and refuse to install the project if the version does not match. See
 # https://packaging.python.org/guides/distributing-packages-using-setuptools/#python-requires
-requires-python = ">=3.7"
+requires-python = ">=3.9, <3.12"
 
 # This is either text indicating the license for the distribution, or a file
 # that contains the license
@@ -93,8 +93,6 @@ classifiers = [  # Optional
   # that you indicate you support Python 3. These classifiers are *not*
   # checked by "pip install". See instead "python_requires" below.
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.7",
-  "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -110,14 +108,10 @@ classifiers = [  # Optional
 dependencies = [
     "numpy",
     "cython>=3.0.0",
-    "mpi4py<4.0.0",
+    "mpi4py",
     "matplotlib",
     "h5py>=3.0.0",
     "nfft",
-    "torch>=2.3.0",
-    "torchvision",
-    "torchsummary",
-    "tensorflow"
 ]
 
 # List additional groups of dependencies here (e.g. development
@@ -129,10 +123,18 @@ dependencies = [
 # Similar to `dependencies` above, these must be valid existing
 # projects.
 [project.optional-dependencies] 
-full = [
+# Dependencies to work with the NN module
+NN = [
+  "torch>=2.3.0",
+  "torchvision",
+  "torchsummary",
+  "tensorflow",
+  "optuna",
+]
+# Optional visualization dependencies
+optionals = [
   "ensight-reader",
   "pyvista",
-  "optuna",
 ]
 
 # List URLs that are relevant to your project
@@ -153,6 +155,7 @@ full = [
 # This is configuration specific to the `setuptools` build backend.
 # If you are using a different build backend, you will need to change this.
 [tool.setuptools]
+packages = ["pyLOM"]
 # If there are data files included in your packages that need to be
 # installed, specify them here.
 package-data = {}
@@ -165,13 +168,9 @@ requires = [
   "wheel",
   "numpy",
   "cython>=3.0.0",
-  "mpi4py<4.0.0",
+  "mpi4py",
   "matplotlib",
   "h5py>=3.0.0",
   "nfft",
-  "torch>=2.3.0",
-  "torchvision",
-  "torchsummary",
-  "tensorflow"
 ]
 build-backend = "setuptools.build_meta"

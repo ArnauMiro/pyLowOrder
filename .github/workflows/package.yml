@@ -49,12 +49,12 @@ jobs:
           pip install setuptools build
       - name: Build package
         run: |
-          make requirements
+          make requirements_full
           sed -i 's/USE_COMPILED  = ON/USE_COMPILED  = OFF/g' options.cfg
           make package-build
           make install
       # Test suite
-      - name: Run test-suite POD
+      - name: Run test-suite
         run: cd Testsuite && python run_testsuite.py -f testsuite.json
       # Publish to PyPi once the test-sute has been successfully run
       - name: Publish package

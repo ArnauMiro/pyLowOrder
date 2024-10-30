@@ -31,10 +31,10 @@ jobs:
         uses: mpi4py/setup-mpi@v1
         with:
           mpi: openmpi
-      - name: Set up Python 3.8.5
+      - name: Set up Python 3.9.5
         uses: actions/setup-python@v3
         with:
-          python-version: 3.8.5
+          python-version: 3.9.5
       # Run pyLOM compilation and deployment
       - name: Set up configuration
         run: |
@@ -45,11 +45,11 @@ jobs:
           sudo apt install libhdf5-mpi-dev
           CC=mpicc HDF5_MPI="ON" pip install --no-binary=h5py h5py
       - name: Set up dependencies
-        run: make deps requirements
+        run: make deps requirements_full
       - name: Build compiled code
         run: make python
       - name: Install
         run: make install
       # Test suite
-      - name: Run test-suite POD
+      - name: Run test-suite
         run: cd Testsuite && python run_testsuite.py -f testsuite.json
