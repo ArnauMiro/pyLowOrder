@@ -45,17 +45,17 @@ jobs:
         run: |
           source /opt/intel/oneapi/setvars.sh
           printenv >> $GITHUB_ENV
-      - name: Set up Python 3.8.5
+      - name: Set up Python 3.9.5
         uses: actions/setup-python@v3
         with:
-          python-version: 3.8.5
+          python-version: 3.9.5
       # Run pyLOM compilation and deployment
       - name: Set up configuration
         run: |
           sed -i 's/USE_MKL       = OFF/USE_MKL       = ON/g' options.cfg
           sed -i 's/FORCE_GCC     = ON/FORCE_GCC     = OFF/g' options.cfg
       - name: Set up dependencies
-        run: make deps requirements
+        run: make deps requirements_full
 #      - name: Fix h5py
 #        run: CC=mpicc HDF5_MPI="ON" pip install --no-binary=h5py h5py
       - name: Build compiled code
