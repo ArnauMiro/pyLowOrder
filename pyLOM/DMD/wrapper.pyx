@@ -11,12 +11,29 @@ cimport cython
 cimport numpy as np
 
 import numpy as np
-from mpi4py  import MPI
 
 from libc.stdlib   cimport malloc, free
 from libc.string   cimport memcpy, memset
 from libc.math     cimport sqrt, log, atan2
 from libc.complex  cimport creal, cimag
+
+# Fix as Open MPI does not support MPI-4 yet, and there is no nice way that I know to automatically adjust Cython to missing stuff in C header files.
+# Source: https://github.com/mpi4py/mpi4py/issues/525
+cdef extern from *:
+	"""
+	#include <mpi.h>
+	
+	#if (MPI_VERSION < 3) && !defined(PyMPI_HAVE_MPI_Message)
+	typedef void *PyMPI_MPI_Message;
+	#define MPI_Message PyMPI_MPI_Message
+	#endif
+	
+	#if (MPI_VERSION < 4) && !defined(PyMPI_HAVE_MPI_Session)
+	typedef void *PyMPI_MPI_Session;
+	#define MPI_Session PyMPI_MPI_Session
+	#endif
+	"""
+from mpi4py  import MPI
 from mpi4py.libmpi cimport MPI_Comm
 from mpi4py        cimport MPI
 
