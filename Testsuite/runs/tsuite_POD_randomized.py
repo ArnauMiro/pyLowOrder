@@ -5,7 +5,7 @@
 # Last revision: 20/09/2024
 from __future__ import print_function, division
 
-import sys, os, numpy as np
+import sys, os, json, numpy as np
 import pyLOM
 
 
@@ -13,6 +13,7 @@ import pyLOM
 DATAFILE  = sys.argv[1]
 VARIABLES = eval(sys.argv[2])
 OUTDIR    = sys.argv[3]
+PARAMS    = json.loads(str(sys.argv[4]).replace("'",'"'))
 
 
 ## Data loading
@@ -23,13 +24,13 @@ t = d.get_variable('time')
 
 
 ## Run POD
-PSI,S,V = pyLOM.POD.run(X,remove_mean=False, randomized=True, r=8, q=3) # PSI are POD modes
+PSI,S,V = pyLOM.POD.run(X,remove_mean=False, randomized=True, r=PARAMS['r'], q=PARAMS['q']) # PSI are POD modes
 if pyLOM.utils.is_rank_or_serial(root=0): 
 	fig,_ = pyLOM.POD.plotResidual(S)
 	os.makedirs(OUTDIR,exist_ok=True)
 	fig.savefig(f'{OUTDIR}/residuals.png',dpi=300)
 # Truncate according to a residual
-PSI,S,V = pyLOM.POD.truncate(PSI,S,V,r=6)
+PSI,S,V = pyLOM.POD.truncate(PSI,S,V,r=PARAMS['r_trunc'])
 pyLOM.POD.save(f'{OUTDIR}/results.h5',PSI,S,V,d.partition_table,nvars=len(VARIABLES),pointData=d.point)
 # Reconstruct the flow
 X_POD = pyLOM.POD.reconstruct(PSI,S,V)
