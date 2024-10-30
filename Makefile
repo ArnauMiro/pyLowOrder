@@ -164,10 +164,10 @@ requirements_NN: requirements_NN.txt
 requirements_full: requirements requirements_optional requirements_NN
 
 
-install: deps requirements python
+install: requirements python
 	@CC="${CC}" CFLAGS="${CFLAGS} ${DFLAGS}" CXX="${CXX}" CXXFLAGS="${CXXFLAGS} ${DFLAGS}" LDSHARED="${CC} -shared" ${PIP} install --no-deps --use-pep517 .
 
-install_dev: deps requirements python
+install_dev: requirements python
 	@CC="${CC}" CFLAGS="${CFLAGS} ${DFLAGS}" CXX="${CXX}" CXXFLAGS="${CXXFLAGS} ${DFLAGS}" LDSHARED="${CC} -shared" ${PIP} install --no-deps --use-pep517 -e .
 
 package-build:

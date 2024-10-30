@@ -112,7 +112,6 @@ dependencies = [
     "matplotlib",
     "h5py>=3.0.0",
     "nfft",
-
 ]
 
 # List additional groups of dependencies here (e.g. development
@@ -129,7 +128,7 @@ NN = [
   "torch>=2.3.0",
   "torchvision",
   "torchsummary",
-  "tensorflow"
+  "tensorflow",
   "optuna",
 ]
 # Optional visualization dependencies
