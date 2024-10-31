@@ -6,7 +6,7 @@
 
 
 # Import essential tools
-from .                import inp_out as io, vmmath as math, utils
+from .                import inp_out as io, vmmath as math
 from .dataset         import Dataset
 from .partition_table import PartitionTable
 from .mesh            import Mesh
