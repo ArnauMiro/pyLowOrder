@@ -31,10 +31,10 @@ jobs:
         uses: mpi4py/setup-mpi@v1
         with:
           mpi: openmpi
-      - name: Set up Python 3.9.5
+      - name: Set up Python 3.9.12
         uses: actions/setup-python@v3
         with:
-          python-version: 3.9.5
+          python-version: 3.9.12
       # Run pyLOM compilation and deployment
       - name: Set up configuration
         run: |
