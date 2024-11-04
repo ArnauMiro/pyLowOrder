@@ -8,15 +8,17 @@ import torch.utils
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 
+from ... import pprint, cr # pyLOM/__init__.py
 from ..utils import Dataset
 
 
 class PINN(ABC):
     """
-    This class represents a Physics-Informed Neural Network (PINN) model.
+    This class represents a Physics-Informed Neural Network (PINN) model. It is an abstract class that needs to be subclassed to implement the pde_loss method.
+    That method should compute the residual from the partial differential equation (PDE) and then compute the loss from it (usually by squaring the residual).
 
     Args:
-        neural_net (torch.nn.Module): The neural network model.
+        neural_net (torch.nn.Module): A neural network model that implements torch.nn.Module.
         device (str): The device to run the model on (e.g., 'cpu', 'cuda').
 
     Attributes:
@@ -148,11 +150,14 @@ class PINN(ABC):
 
         return [self.pde_loss(pred, *input_variables)] + self.bc_data_loss(pred, y, boundary_conditions, use_bfloat16)
 
+    @cr("PINN.fit")
     def fit(
         self,
         train_dataset: Dataset,
         optimizer_class=torch.optim.Adam,
         optimizer_params={},
+        lr_scheduler_class=None,
+        lr_scheduler_params={},
         epochs=1000,
         boundary_conditions=[],
         update_logs_steps=1,
@@ -166,9 +171,11 @@ class PINN(ABC):
         Trains the PINN model.
 
         Args:
-            train_dataset (Dataset): The training dataset.
+            train_dataset (Dataset): The training dataset. If the dataset returns a tuple, the first element is the input and the second element is the target. If not, the PINN is trained without simulation data.
             optimizer_class (torch.optim.Optimizer, optional): The optimizer class. Defaults to ``torch.optim.Adam``.
             optimizer_params (dict, optional): The optimizer parameters. Defaults to ``{}``.
+            lr_scheduler_class (torch.optim.lr_scheduler._LRScheduler, optional): The learning rate scheduler class. Defaults to ``None``.
+            lr_scheduler_params (dict, optional): The learning rate scheduler parameters. Defaults to ``{}``.
             epochs (int, optional): The number of epochs to train for. Defaults to ``1000``.
             boundary_conditions (List[BoundaryCondition], optional): The list of boundary conditions. Defaults to ``[]``.
             update_logs_steps (int, optional): The interval for updating the progress. Defaults to ``100``.
@@ -199,6 +206,8 @@ class PINN(ABC):
             logs["test_loss"] = []
 
         optimizer = optimizer_class(self.model.parameters(), **optimizer_params)
+        if lr_scheduler_class is not None:
+            lr_scheduler = lr_scheduler_class(optimizer, **lr_scheduler_params)
         def closure():
             x_batch = batch[0].to(self.device)
             y_batch = batch[1].to(self.device) if len(batch) == 2 else None
@@ -234,6 +243,8 @@ class PINN(ABC):
 
                 for batch in train_data_loader: #data_iterable:
                     optimizer.step(closure=closure)
+                    if lr_scheduler_class is not None:
+                        lr_scheduler.step()
 
                 if test_data_loader is not None:
                     self.model.eval()
@@ -247,10 +258,11 @@ class PINN(ABC):
                     self.model.train()
 
         except KeyboardInterrupt:
-            print("Training stopped manually")
+            pprint(0, "Training stopped manually")
 
         return logs
     
+    @cr("PINN.predict")
     def predict(self, X: Dataset, **kwargs) -> np.ndarray:
         """
         Predicts for the input dataset.
@@ -275,7 +287,7 @@ class PINN(ABC):
             str: The string representation.
 
         """
-        print(f"Number of parameters: {sum(p.numel() for p in self.model.parameters())}")
+        pprint(0, f"Number of parameters: {sum(p.numel() for p in self.model.parameters())}")
         return self.model.__repr__()
 
     def plot_training_logs(self, logs):
