@@ -27,7 +27,7 @@ class MinMaxScaler:
 
 
     Args:
-            feature_range (Tuple): Desired range of transformed data. Default is ``(0, 1)``.
+        feature_range (Tuple): Desired range of transformed data. Default is ``(0, 1)``.
     """
     def __init__(self, feature_range=(0, 1)):
         self.feature_range = feature_range
@@ -41,7 +41,7 @@ class MinMaxScaler:
         """
         Compute the min and max values of each variable.
         Args:
-                variables: List of variables to be fitted. The variables should be 2d numpy arrays or torch tensors.
+            variables: List of variables to be fitted. The variables should be 2d numpy arrays or torch tensors.
         """
         min_max_values = []
         for variable in variables:
@@ -57,9 +57,9 @@ class MinMaxScaler:
         """
         Scale variables to the range defined on `feature_range` using min-max scaling.
         Args:
-                variables: List of variables to be scaled. The variables should be 2d numpy arrays or torch tensors.
+            variables: List of variables to be scaled. The variables should be 2d numpy arrays or torch tensors.
         Returns:
-                scaled_variables: List of scaled variables.
+            scaled_variables: List of scaled variables.
         """
 
         scaled_variables = []
@@ -80,9 +80,9 @@ class MinMaxScaler:
         """
         Fit and transform the variables using min-max scaling.
         Args:
-                variables: List of variables to be fitted and scaled. The variables should be 2d numpy arrays or torch tensors.
+            variables: List of variables to be fitted and scaled. The variables should be 2d numpy arrays or torch tensors.
         Returns:
-                scaled_variables: List of scaled variables.
+            scaled_variables: List of scaled variables.
         """
         self.fit(variables)
         return self.transform(variables)
@@ -91,10 +91,10 @@ class MinMaxScaler:
         """
         Inverse scale variables that have been scaled using min-max scaling.
         Args:
-                variables: List of variables to be inverse scaled. The variables should be 2d numpy arrays.
-                variable_scaling_params: List of dictionaries containing the min and max values of each variable.
+            variables: List of variables to be inverse scaled. The variables should be 2d numpy arrays.
+            variable_scaling_params: List of dictionaries containing the min and max values of each variable.
         Returns:
-                inverse_scaled_variables: List of inverse scaled variables.
+            inverse_scaled_variables: List of inverse scaled variables.
         """
 
         inverse_scaled_variables = []
@@ -128,13 +128,13 @@ class Dataset(torch.utils.data.Dataset):
 
 
     Args:
-            variables_out (Tuple): Tuple of variables to be used as output. Each variable should be a 2d numpy array or torch tensor. If only one variable wants to be provided, it should be passed as a tuple with one element. E.g. ``(variable,)``.
-            mesh_shape (Tuple): Shape of the mesh. If not mesh is used and the data is considered as points, leave this as default. Default is ``(1,)``.
-            variables_in (np.ndarray): Input variables. Default is ``None``.
-            parameters (List[List[Union[float, Tuple]]]): List of parameters to be used as input. All possible combinations of these parameters, i.e. its cartesian product, will appear along with variables_in. If there is only one inner list and its elements are tuples, they will be treated as a single element for the cartesiand produt, which is useful when the combination of the parameters was predefined. Default is ``None``.
-            inputs_scaler (MinMaxScaler): Scaler to scale the input variables. Default is ``None``.
-            outputs_scaler (MinMaxScaler): Scaler to scale the output variables. Default is ``None``.
-            snapshots_by_column (bool): If the snapshots from `variables_out` are stored by column. Default is ``True``.
+        variables_out (Tuple): Tuple of variables to be used as output. Each variable should be a 2d numpy array or torch tensor. If only one variable wants to be provided, it should be passed as a tuple with one element. E.g. ``(variable,)``.
+        mesh_shape (Tuple): Shape of the mesh. If not mesh is used and the data is considered as points, leave this as default. Default is ``(1,)``.
+        variables_in (np.ndarray): Input variables. Default is ``None``.
+        parameters (List[List[Union[float, Tuple]]]): List of parameters to be used as input. All possible combinations of these parameters, i.e. its cartesian product, will appear along with variables_in. If there is only one inner list and its elements are tuples, they will be treated as a single element for the cartesiand produt, which is useful when the combination of the parameters was predefined. Default is ``None``.
+        inputs_scaler (MinMaxScaler): Scaler to scale the input variables. If the scaler is not fitted, it will be fitted. Default is ``None``.
+        outputs_scaler (MinMaxScaler): Scaler to scale the output variables. If the scaler is not fitted, it will be fitted. Default is ``None``.
+        snapshots_by_column (bool): If the snapshots from `variables_out` are stored by column. The snapshots on `pyLOM.Dataset`s have this format. Default is ``True``.
     """
 
     def __init__(
@@ -143,9 +143,10 @@ class Dataset(torch.utils.data.Dataset):
         mesh_shape: Tuple = (1,),
         variables_in: np.ndarray = None,
         parameters: List[List[Union[float, Tuple]]] = None,
+        combine_parameters_with_cartesian_prod: bool = False,
         inputs_scaler=None,
         outputs_scaler=None,
-        snapshots_by_column=True
+        snapshots_by_column=True, 
     ):
         self.parameters = parameters
         self.num_channels = len(variables_out)
@@ -158,14 +159,20 @@ class Dataset(torch.utils.data.Dataset):
             variables_out = outputs_scaler.transform(variables_out)
         self.variables_out = self._process_variables_out(variables_out)
         if variables_in is not None:
-            self.variables_in = self._process_variables_in(variables_in, parameters)
+            self.parameters = self._process_parameters(parameters, combine_parameters_with_cartesian_prod)
+            self.variables_in = torch.tensor(variables_in, dtype=torch.float32)
             if inputs_scaler is not None:
+                variables_in_columns = [self.variables_in[:, i] for i in range(self.variables_in.shape[1])]
+                parameters_columns = [self.parameters[:, i] for i in range(self.parameters.shape[1])] if self.parameters is not None else []
                 if not inputs_scaler.is_fitted:
-                    inputs_scaler.fit([self.variables_in[:, i] for i in range(self.variables_in.shape[1])])
-                self.variables_in = inputs_scaler.transform([self.variables_in[:, i] for i in range(self.variables_in.shape[1])])
-                self.variables_in = torch.stack(self.variables_in, dim=1)
+                    inputs_scaler.fit(variables_in_columns + parameters_columns)
+                input_data_transformed = inputs_scaler.transform(variables_in_columns + parameters_columns)
+                self.variables_in = torch.stack(input_data_transformed[:self.variables_in.shape[1]], dim=1)
+                if self.parameters is not None:
+                    self.parameters = torch.stack(input_data_transformed[self.variables_in.shape[1]:], dim=1)
         else:
             self.variables_in = None
+            self.parameters = None
 
     def _process_variables_out(self, variables_out):
         variables_out_stacked = []
@@ -179,27 +186,22 @@ class Dataset(torch.utils.data.Dataset):
             variables_out_stacked = variables_out_stacked.squeeze(-1)
         return variables_out_stacked.float()
 
-    def _process_variables_in(self, variables_in, parameters):
+    def _process_parameters(self, parameters, combine_parameters_with_cartesian_prod):
         if parameters is None:
-            return torch.tensor(variables_in, dtype=torch.float32)
-        
-        variables_in = torch.tensor(variables_in, dtype=torch.float32)
-        # parameters is a list of lists of floats. Each contains the values that will be repeated for each input coordinate
-        # in some sense, it is like a cartesian product of the parameters with the input coordinates
-        if len(parameters) == 1:
-            cartesian_product = torch.tensor(parameters[0])
+            return None
+        if not combine_parameters_with_cartesian_prod:
+            # assert that all elements in the inner lists have the same length
+            if not all(len(parameters[0]) == len(inner_list) for inner_list in parameters):
+                raiseError("All parameter lists must have the same length")
+            parameters = torch.tensor(list(zip(*parameters)))
+            
         else:
-            cartesian_product = torch.tensor(list(product(*parameters)))
-
-        # repeat the variables_in for each element in the cartesian product
-        variables_in_repeated = variables_in.repeat(len(cartesian_product), 1)
-        # to repeat the cartesian product for each element in variables_in, we need to repeat each element in the cartesian product for the initial length of variables_in
-        # parameters_repeated = []
-        # for product_element in cartesian_product:
-            # parameters_repeated.append(product_element.repeat(len(variables_in), 1))
-        # cartesian_product = torch.cat(parameters_repeated, dim=0)
-        cartesian_product = cartesian_product.repeat_interleave(variables_in.size(0), dim=0)
-        return torch.cat([variables_in_repeated, cartesian_product], dim=1).float()
+            if len(parameters) == 1:
+                parameters = torch.tensor(parameters[0])
+            else:
+                parameters = torch.tensor(list(product(*parameters)))
+        # print(parameters, parameters.shape)
+        return parameters
 
     @property
     def shape(self):
@@ -209,19 +211,40 @@ class Dataset(torch.utils.data.Dataset):
         return len(self.variables_out)
 
     def __getitem__(self, idx):
-        if self.variables_in is None:
-            return self.variables_out[idx]
-        return self.variables_in[idx], self.variables_out[idx]
-    
+        if isinstance(idx, slice):
+            start = idx.start if idx.start is not None else 0
+            stop = idx.stop if idx.stop is not None else len(self)
+            step = idx.step if idx.step is not None else 1
+
+            variables_out = self.variables_out[start:stop:step]
+            if self.variables_in is None:
+                return variables_out
+            else:
+                variables_in_idx = torch.arange(start, stop, step) % len(self.variables_in)
+                parameters_idx = torch.arange(start, stop, step) // len(self.variables_in)
+                input_data = torch.cat([self.variables_in[variables_in_idx], self.parameters[parameters_idx]], dim=1)
+                return input_data, variables_out
+        else:
+            if self.variables_in is None:
+                return self.variables_out[idx]
+            else:
+                variables_in_idx = idx % len(self.variables_in)
+                parameters_idx = idx // len(self.variables_in)
+                input_data = torch.hstack([self.variables_in[variables_in_idx], self.parameters[parameters_idx]]).float()
+                return input_data, self.variables_out[idx]
+        
     def __add__(self, other):
         if not isinstance(other, Dataset):
             raiseError(f"Cannot add Dataset with {type(other)}")
-        if self.variables_in is None:
-            variables_in = None
-        else:
-            variables_in = torch.cat([self.variables_in, other.variables_in], dim=0)
+        if self.variables_in is not None:
+            if other.variables_in is None or other.variables_in.shape[0] != self.variables_in.shape[0]:
+                raiseError("Cannot add datasets with different number of input coordinates")
+            if self.parameters is not None:
+                if other.parameters is None or other.parameters.shape[1] != self.parameters.shape[1]:
+                    raiseError("Cannot add datasets with different number of parameters")
+                self.parameters = torch.cat([self.parameters, other.parameters], dim=0)
+
         variables_out = torch.cat([self.variables_out, other.variables_out], dim=0)
-        self.variables_in = variables_in
         self.variables_out = variables_out
         return self
 
@@ -291,8 +314,8 @@ class Dataset(torch.utils.data.Dataset):
         Optionally fix the generator for reproducible results.
 
         Args:
-                sizes (sequence): lengths or fractions of splits to be produced
-                generator (Generator): Generator used for the random permutation.
+            sizes (sequence): lengths or fractions of splits to be produced
+            generator (Generator): Generator used for the random permutation.
         """
         if np.isclose(sum(sizes), 1) and sum(sizes) <= 1:
             subset_lengths: List[int] = []
@@ -346,11 +369,14 @@ def select_device(device=DEVICE):
 
 
 class betaLinearScheduler:
-    """Beta schedule, linear growth to max value
+    """
+    Beta schedule, linear growth to max value
+
     Args:
-       start_value (float): initial value of beta
-       end_value (float): final value of beta
-       warmup (int): number of epochs to reach final value"""
+        start_value (float): initial value of beta
+        end_value (float): final value of beta
+        warmup (int): number of epochs to reach final value
+    """
 
     def __init__(self, start_value, end_value, start_epoch, warmup):
         self.start_value = start_value
