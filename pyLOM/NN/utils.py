@@ -224,6 +224,16 @@ class Dataset(torch.utils.data.Dataset):
                 parameters_idx = torch.arange(start, stop, step) // len(self.variables_in)
                 input_data = torch.cat([self.variables_in[variables_in_idx], self.parameters[parameters_idx]], dim=1)
                 return input_data, variables_out
+            
+        elif isinstance(idx, list) or isinstance(idx, torch.Tensor) or isinstance(idx, np.ndarray) or isinstance(idx, tuple):
+            variables_out = self.variables_out[idx]
+            if self.variables_in is None:
+                return variables_out
+            else:
+                variables_in_idx = torch.tensor(idx) % len(self.variables_in)
+                parameters_idx = torch.tensor(idx) // len(self.variables_in)
+                input_data = torch.cat([self.variables_in[variables_in_idx], self.parameters[parameters_idx]], dim=1)
+                return input_data, variables_out
         else:
             if self.variables_in is None:
                 return self.variables_out[idx]
@@ -247,6 +257,15 @@ class Dataset(torch.utils.data.Dataset):
         variables_out = torch.cat([self.variables_out, other.variables_out], dim=0)
         self.variables_out = variables_out
         return self
+    
+    def concatenate(self, other):
+        """
+        Alias for the `__add__` method.
+
+        Args:
+            other (Dataset): Dataset to be concatenated with.
+        """
+        return self.__add__(other)
 
     def _crop2D(self, nh, nw):
         self.variables_out = self.variables_out[:, :, :nh, :nw]
@@ -301,11 +320,11 @@ class Dataset(torch.utils.data.Dataset):
         generator: Optional[Generator] = default_generator,
     ):
         """
-        Randomly split a dataset into non-overlapping new datasets of given lengths.
+        Randomly split the dataset into non-overlapping new datasets of given lengths.
 
         If a list of fractions that sum up to 1 is given,
         the lengths will be computed automatically as
-        floor(frac * len(dataset)) for each fraction provided.
+        floor(frac * len(self)) for each fraction provided.
 
         After computing the lengths, if there are any remainders, 1 count will be
         distributed in round-robin fashion to the lengths
@@ -315,6 +334,7 @@ class Dataset(torch.utils.data.Dataset):
 
         Args:
             sizes (sequence): lengths or fractions of splits to be produced
+            random (bool): whether to shuffle the data before splitting. Default: ``True``
             generator (Generator): Generator used for the random permutation.
         """
         if np.isclose(sum(sizes), 1) and sum(sizes) <= 1:
@@ -353,7 +373,68 @@ class Dataset(torch.utils.data.Dataset):
             Subset(self, indices[offset - length : offset])
             for offset, length in zip(accumulate(sizes), sizes)
         ]
+    
+    def get_splits_by_parameters(self, sizes, random=True, generator: Optional[Generator] = default_generator): 
+        """
+        Split the dataset into non-overlapping new datasets with diferent sets of parameters of given length.
 
+        If a list of fractions that sum up to 1 is given,
+        the lengths will be computed automatically as
+        floor(frac * len(self.parameters)) for each fraction provided.
+
+        After computing the lengths, if there are any remainders, 1 count will be
+        distributed in round-robin fashion to the lengths
+        until there are no remainders left.
+
+        Optionally fix the generator for reproducible results.
+
+        Args:
+            sizes (sequence): lengths or fractions of splits to be produced
+            random (bool): whether to shuffle the data before splitting. Default: ``True``
+            generator (Generator): Generator used for the random permutation.
+        """
+        if self.parameters is None:
+            raiseError("This Dataset does not have parameters to split by")
+        if np.isclose(sum(sizes), 1) and sum(sizes) <= 1:
+            subset_lengths: List[int] = []
+            for i, frac in enumerate(sizes):
+                if frac < 0 or frac > 1:
+                    raise ValueError(f"Fraction at index {i} is not between 0 and 1")
+                n_items_in_split = int(
+                    np.floor(len(self.parameters) * frac)  # type: ignore[arg-type]
+                )
+                subset_lengths.append(n_items_in_split)
+            remainder = len(self.parameters) - sum(subset_lengths)
+            # add 1 to all the lengths in round-robin fashion until the remainder is 0
+            for i in range(remainder):
+                idx_to_add_at = i % len(subset_lengths)
+                subset_lengths[idx_to_add_at] += 1
+            sizes = subset_lengths
+            for i, length in enumerate(sizes):
+                if length == 0:
+                    raiseWarning(
+                        f"Length of split at index {i} is 0. "
+                        f"This might result in an empty dataset."
+                    )
+
+        # Cannot verify that dataset is Sized
+        if sum(sizes) != len(self.parameters):
+            raise ValueError(
+                "Sum of input lengths does not equal the length of the input dataset!"
+            )
+        if random:
+            indices = randperm(sum(sizes), generator=generator).tolist()  # type: ignore[arg-type, call-overload]
+        else:
+            indices = list(range(sum(sizes)))
+        sizes = cast(Sequence[int], sizes)
+        subsets = []
+        for offset, length in zip(accumulate(sizes), sizes):
+            new_indices = []
+            for index in indices[offset - length : offset]:
+                vars_in_extended_indices = list(range(index * len(self.variables_in), (index + 1) * len(self.variables_in)))
+                new_indices.extend(vars_in_extended_indices)
+            subsets.append(Subset(self, new_indices))
+        return subsets
 
 def create_results_folder(RESUDIR,echo=True):
     if not os.path.exists(RESUDIR):
