@@ -6,7 +6,7 @@
 #
 # Last rev: 02/10/2024
 
-import os, numpy as np, torch
+import os, json, numpy as np, torch
 import torch.nn.functional as F
 
 from torch.utils.data import Subset
@@ -37,12 +37,15 @@ class MinMaxScaler:
     def is_fitted(self):
         return self._is_fitted
     
-    def fit(self, variables: List[Union[np.ndarray, torch.tensor]]):
+    def fit(self, variables: Union[List[Union[np.ndarray, torch.tensor]], np.ndarray, torch.tensor]):
         """
         Compute the min and max values of each variable.
         Args:
-            variables: List of variables to be fitted. The variables should be 2d numpy arrays or torch tensors.
+            variables: List of variables to be fitted. The variables should be numpy arrays or torch tensors.
+            A numpy array or torch tensor can be passed directly and each column will be considered as a variable to be scaled.
         """
+        if isinstance(variables, (np.ndarray, torch.Tensor)):
+            variables = [variables[:, i].unsqueeze(1) for i in range(variables.shape[1])]
         min_max_values = []
         for variable in variables:
             min_val = variable.min()
@@ -52,16 +55,18 @@ class MinMaxScaler:
         self._is_fitted = True
 
     def transform(
-        self, variables: List[Union[np.ndarray, torch.tensor]]
+        self, variables: Union[List[Union[np.ndarray, torch.tensor]], np.ndarray, torch.tensor]
     ) -> List[Union[np.ndarray, torch.tensor]]:
         """
         Scale variables to the range defined on `feature_range` using min-max scaling.
         Args:
-            variables: List of variables to be scaled. The variables should be 2d numpy arrays or torch tensors.
+            variables: List of variables to be scaled. The variables should be numpy arrays or torch tensors.
+            A numpy array or torch tensor can be passed directly and each column will be considered as a variable to be scaled.
         Returns:
             scaled_variables: List of scaled variables.
         """
-
+        if isinstance(variables, (np.ndarray, torch.Tensor)):
+            variables = [variables[:, i].unsqueeze(1) for i in range(variables.shape[1])]
         scaled_variables = []
         for i, variable in enumerate(variables):
             min_val = self.variable_scaling_params[i]["min"]
@@ -80,23 +85,29 @@ class MinMaxScaler:
         """
         Fit and transform the variables using min-max scaling.
         Args:
-            variables: List of variables to be fitted and scaled. The variables should be 2d numpy arrays or torch tensors.
+            variables: List of variables to be fitted and scaled. The variables should be numpy arrays or torch tensors.
+            A numpy array or torch tensor can be passed directly and each column will be considered as a variable to be scaled.
         Returns:
             scaled_variables: List of scaled variables.
         """
         self.fit(variables)
         return self.transform(variables)
 
-    def inverse_transform(self, variables: List[np.ndarray]) -> List[np.ndarray]:
+    def inverse_transform(self, variables: List[Union[np.ndarray, torch.tensor]]) -> List[Union[np.ndarray, torch.tensor]]:
         """
         Inverse scale variables that have been scaled using min-max scaling.
         Args:
-            variables: List of variables to be inverse scaled. The variables should be 2d numpy arrays.
-            variable_scaling_params: List of dictionaries containing the min and max values of each variable.
+            variables: List of variables to be inverse scaled. The variables should be numpy arrays or torch tensors.
+            A numpy array or torch tensor can be passed directly and each column will be considered as a variable to be scaled.
         Returns:
             inverse_scaled_variables: List of inverse scaled variables.
         """
-
+        if isinstance(variables, (np.ndarray, torch.Tensor)):
+            variables = [variables[:, i].unsqueeze(1) for i in range(variables.shape[1])]
+        if len(variables) != len(self.variable_scaling_params):
+            raiseError(
+                f"Number of variables to inverse transform ({len(variables)}) does not match the number of variables fitted ({len(self.variable_scaling_params)})"
+            )
         inverse_scaled_variables = []
         for variable, scaling_params in zip(variables, self.variable_scaling_params):
             min_val = scaling_params["min"]
@@ -107,6 +118,58 @@ class MinMaxScaler:
             inverse_scaled_variable = inverse_scaled_variable * (max_val - min_val) + min_val
             inverse_scaled_variables.append(inverse_scaled_variable)
         return inverse_scaled_variables
+
+    def save(self, filepath: str) -> None:
+        """
+        Save the fitted scaler parameters to a JSON file.
+        
+        Args:
+            filepath (str): Path where the scaler parameters will be saved
+        """
+        if not self.is_fitted:
+            raiseError("Scaler must be fitted before it can be saved")
+        
+        # Convert the scaling parameters to a serializable format
+        serializable_params = []
+        for params in self.variable_scaling_params:
+            # Convert numpy/torch values to Python native types
+            min_val = float(params["min"])
+            max_val = float(params["max"])
+            serializable_params.append({"min": min_val, "max": max_val})
+        
+        save_dict = {
+            "feature_range": self.feature_range,
+            "variable_scaling_params": serializable_params,
+        }
+        
+        with open(filepath, 'w') as f:
+            json.dump(save_dict, f, indent=4)
+
+    @staticmethod
+    def load(filepath: str) -> 'MinMaxScaler':
+        """
+        Load a saved MinMaxScaler from a JSON file.
+        
+        Args:
+            filepath (str): Path to the saved scaler parameters
+            
+        Returns:
+            MinMaxScaler: A new MinMaxScaler instance with the loaded parameters
+
+        """
+        if not os.path.exists(filepath):
+            raiseError(f"No file found at {filepath}")
+        
+        with open(filepath, 'r') as f:
+            loaded_dict = json.load(f)
+        
+        scaler = MinMaxScaler(feature_range=tuple(loaded_dict["feature_range"]))
+        
+        # Restore the scaling parameters
+        scaler.variable_scaling_params = loaded_dict["variable_scaling_params"]
+        scaler._is_fitted = True
+        
+        return scaler   
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -136,7 +199,7 @@ class Dataset(torch.utils.data.Dataset):
         outputs_scaler (MinMaxScaler): Scaler to scale the output variables. If the scaler is not fitted, it will be fitted. Default is ``None``.
         snapshots_by_column (bool): If the snapshots from `variables_out` are stored by column. The snapshots on `pyLOM.Dataset`s have this format. Default is ``True``.
     """
-
+    @cr("Dataset.__init__")
     def __init__(
         self,
         variables_out: Tuple,
