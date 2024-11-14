@@ -17,6 +17,7 @@ from typing           import List, Optional, Tuple, cast, Sequence, Union
 from .                import DEVICE
 from ..utils.cr       import cr
 from ..utils.errors   import raiseWarning, raiseError
+from ..dataset        import Dataset as pyLOMDataset
 
 
 class MinMaxScaler:
@@ -48,8 +49,8 @@ class MinMaxScaler:
             variables = [variables[:, i].unsqueeze(1) for i in range(variables.shape[1])]
         min_max_values = []
         for variable in variables:
-            min_val = variable.min()
-            max_val = variable.max()
+            min_val = float(variable.min())
+            max_val = float(variable.max())
             min_max_values.append({"min": min_val, "max": max_val})
         self.variable_scaling_params = min_max_values
         self._is_fitted = True
@@ -71,7 +72,9 @@ class MinMaxScaler:
         for i, variable in enumerate(variables):
             min_val = self.variable_scaling_params[i]["min"]
             max_val = self.variable_scaling_params[i]["max"]
-            scaled_variable = (variable - min_val) / (max_val - min_val)
+            data_range = max_val - min_val
+            data_range = 1 if data_range == 0 else data_range
+            scaled_variable = (variable - min_val) / data_range
             # scale the variable to the desired feature_range
             scaled_variable = (
                 scaled_variable * (self.feature_range[1] - self.feature_range[0])
@@ -115,7 +118,9 @@ class MinMaxScaler:
             inverse_scaled_variable = (variable - self.feature_range[0]) / (
                 self.feature_range[1] - self.feature_range[0]
             )
-            inverse_scaled_variable = inverse_scaled_variable * (max_val - min_val) + min_val
+            data_range = max_val - min_val
+            data_range = 1 if data_range == 0 else data_range
+            inverse_scaled_variable = inverse_scaled_variable * data_range + min_val
             inverse_scaled_variables.append(inverse_scaled_variable)
         return inverse_scaled_variables
 
@@ -129,17 +134,9 @@ class MinMaxScaler:
         if not self.is_fitted:
             raiseError("Scaler must be fitted before it can be saved")
         
-        # Convert the scaling parameters to a serializable format
-        serializable_params = []
-        for params in self.variable_scaling_params:
-            # Convert numpy/torch values to Python native types
-            min_val = float(params["min"])
-            max_val = float(params["max"])
-            serializable_params.append({"min": min_val, "max": max_val})
-        
         save_dict = {
             "feature_range": self.feature_range,
-            "variable_scaling_params": serializable_params,
+            "variable_scaling_params": self.variable_scaling_params,
         }
         
         with open(filepath, 'w') as f:
@@ -199,7 +196,7 @@ class Dataset(torch.utils.data.Dataset):
         outputs_scaler (MinMaxScaler): Scaler to scale the output variables. If the scaler is not fitted, it will be fitted. Default is ``None``.
         snapshots_by_column (bool): If the snapshots from `variables_out` are stored by column. The snapshots on `pyLOM.Dataset`s have this format. Default is ``True``.
     """
-    @cr("Dataset.__init__")
+    @cr("NN.Dataset.__init__")
     def __init__(
         self,
         variables_out: Tuple,
@@ -379,7 +376,7 @@ class Dataset(torch.utils.data.Dataset):
     def get_splits(
         self,
         sizes,
-        random=True,
+        shuffle=True,
         generator: Optional[Generator] = default_generator,
     ):
         """
@@ -397,7 +394,7 @@ class Dataset(torch.utils.data.Dataset):
 
         Args:
             sizes (sequence): lengths or fractions of splits to be produced
-            random (bool): whether to shuffle the data before splitting. Default: ``True``
+            shuffle (bool): whether to shuffle the data before splitting. Default: ``True``
             generator (Generator): Generator used for the random permutation.
         """
         if np.isclose(sum(sizes), 1) and sum(sizes) <= 1:
@@ -427,7 +424,7 @@ class Dataset(torch.utils.data.Dataset):
             raise ValueError(
                 "Sum of input lengths does not equal the length of the input dataset!"
             )
-        if random:
+        if shuffle:
             indices = randperm(sum(sizes), generator=generator).tolist()  # type: ignore[arg-type, call-overload]
         else:
             indices = list(range(sum(sizes)))
@@ -436,8 +433,13 @@ class Dataset(torch.utils.data.Dataset):
             Subset(self, indices[offset - length : offset])
             for offset, length in zip(accumulate(sizes), sizes)
         ]
-    
-    def get_splits_by_parameters(self, sizes, random=True, generator: Optional[Generator] = default_generator): 
+
+    def get_splits_by_parameters(
+        self, 
+        sizes, 
+        shuffle=True, 
+        generator: Optional[Generator] = default_generator
+    ):
         """
         Split the dataset into non-overlapping new datasets with diferent sets of parameters of given length.
 
@@ -453,7 +455,7 @@ class Dataset(torch.utils.data.Dataset):
 
         Args:
             sizes (sequence): lengths or fractions of splits to be produced
-            random (bool): whether to shuffle the data before splitting. Default: ``True``
+            shuffle (bool): whether to shuffle the data before splitting. Default: ``True``
             generator (Generator): Generator used for the random permutation.
         """
         if self.parameters is None:
@@ -485,7 +487,7 @@ class Dataset(torch.utils.data.Dataset):
             raise ValueError(
                 "Sum of input lengths does not equal the length of the input dataset!"
             )
-        if random:
+        if shuffle:
             indices = randperm(sum(sizes), generator=generator).tolist()  # type: ignore[arg-type, call-overload]
         else:
             indices = list(range(sum(sizes)))
@@ -498,6 +500,65 @@ class Dataset(torch.utils.data.Dataset):
                 new_indices.extend(vars_in_extended_indices)
             subsets.append(Subset(self, new_indices))
         return subsets
+    
+    @classmethod
+    def load_from_file(
+        cls,
+        file_path,
+        field_names: List[str],
+        variables_names: List[str] = ['all'],
+        add_mesh_coordinates: bool = True,
+        **kwargs,
+    ):
+        """
+        Create a Dataset from a saved `pyLOM.Dataset` in one of its formats.
+
+        Args:
+            file_path (str): Path to the HDF5 file.
+            variables_out_names (List[str]): Names of the fields to be used as output. E.g. ``["CP"]``.
+            add_variables (bool): Whether to add the variables as input variables. Default is ``True``.
+            variables_names (List[str]): Names of the variables from pyLOM.Dataset.varnames to be used as input. If ``["all"]`` is passed, all variables will be used. Default is ``["all"]``.
+            kwargs: Additional arguments to be passed to the pyLOM.NN.Dataset constructor.
+
+        Returns:
+            Dataset: Dataset created from the saved `pyLOM.Dataset`.
+
+        Example:
+            >>> dataset = pyLOM.NN.Dataset.load_from_file(
+            ...     file_path,
+            ...     field_names=["CP"],
+            ...     add_variables=True,
+            ...     add_mesh_coordinates=True,
+            ...     inputs_scaler=inputs_scaler,
+            ...     outputs_scaler=outputs_scaler,
+            ... )
+        """
+        
+        original_dataset = pyLOMDataset.load(file_path)
+        if (len(variables_names) >= 0 and "combine_parameters_with_cartesian_prod" in kwargs):
+            raiseWarning(
+                """Be careful when using combine_parameters_with_cartesian_prod and passing variables_names.
+                You need to make sure that the length of cartesian product multiplied by the length 
+                of the mesh coordinates is equal to the length of the fields on field_names."""
+            )
+        if variables_names == ["all"]:
+            if not add_mesh_coordinates:
+                raiseError("Cannot use all variables without adding mesh coordinates")
+            if len(original_dataset.varnames) == 0:
+                raiseError("No variabele found in the dataset")
+            variables_names = original_dataset.varnames
+
+        parameters = [original_dataset.get_variable(var_name) for var_name in variables_names]
+
+        return cls(
+            variables_out=tuple(
+                [original_dataset[var_name] for var_name in field_names]
+            ),
+            parameters=parameters if len(parameters) > 0 else None,
+            variables_in=original_dataset.xyz if add_mesh_coordinates else None,
+            **kwargs,
+        )
+    
 
 def create_results_folder(RESUDIR,echo=True):
     if not os.path.exists(RESUDIR):
