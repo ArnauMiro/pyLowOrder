@@ -45,8 +45,7 @@ class MinMaxScaler:
             variables: List of variables to be fitted. The variables should be numpy arrays or torch tensors.
             A numpy array or torch tensor can be passed directly and each column will be considered as a variable to be scaled.
         """
-        if isinstance(variables, (np.ndarray, torch.Tensor)):
-            variables = [variables[:, i].unsqueeze(1) for i in range(variables.shape[1])]
+        variables = self._cast_variables(variables)
         min_max_values = []
         for variable in variables:
             min_val = float(variable.min())
@@ -66,8 +65,7 @@ class MinMaxScaler:
         Returns:
             scaled_variables: List of scaled variables.
         """
-        if isinstance(variables, (np.ndarray, torch.Tensor)):
-            variables = [variables[:, i].unsqueeze(1) for i in range(variables.shape[1])]
+        variables = self._cast_variables(variables)
         scaled_variables = []
         for i, variable in enumerate(variables):
             min_val = self.variable_scaling_params[i]["min"]
@@ -105,8 +103,7 @@ class MinMaxScaler:
         Returns:
             inverse_scaled_variables: List of inverse scaled variables.
         """
-        if isinstance(variables, (np.ndarray, torch.Tensor)):
-            variables = [variables[:, i].unsqueeze(1) for i in range(variables.shape[1])]
+        variables = self._cast_variables(variables)
         if len(variables) != len(self.variable_scaling_params):
             raiseError(
                 f"Number of variables to inverse transform ({len(variables)}) does not match the number of variables fitted ({len(self.variable_scaling_params)})"
@@ -167,6 +164,13 @@ class MinMaxScaler:
         scaler._is_fitted = True
         
         return scaler   
+
+    def _cast_variables(self, variables):
+        if isinstance(variables, (torch.Tensor)):
+            variables = [variables[:, i].unsqueeze(1) for i in range(variables.shape[1])]
+        elif isinstance(variables, (np.ndarray)):
+            variables = [np.expand_dims(variables[:, i], axis=1) for i in range(variables.shape[1])]
+        return variables
 
 
 class Dataset(torch.utils.data.Dataset):
