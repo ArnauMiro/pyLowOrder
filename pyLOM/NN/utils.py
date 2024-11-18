@@ -13,6 +13,7 @@ from torch.utils.data import Subset
 from torch            import Generator, randperm, default_generator
 from itertools        import product, accumulate
 from typing           import List, Optional, Tuple, cast, Sequence, Union
+from tqdm             import tqdm
 
 from .                import DEVICE
 from ..utils.cr       import cr
@@ -65,6 +66,8 @@ class MinMaxScaler:
         Returns:
             scaled_variables: List of scaled variables.
         """
+        is_array = isinstance(variables, (np.ndarray))
+        is_tensor = isinstance(variables, (torch.Tensor))
         variables = self._cast_variables(variables)
         scaled_variables = []
         for i, variable in enumerate(variables):
@@ -79,6 +82,11 @@ class MinMaxScaler:
                 + self.feature_range[0]
             )
             scaled_variables.append(scaled_variable)
+
+        if is_array:
+            scaled_variables = np.hstack(scaled_variables)
+        elif is_tensor:
+            scaled_variables = torch.hstack(scaled_variables)
 
         return scaled_variables
     
@@ -103,6 +111,8 @@ class MinMaxScaler:
         Returns:
             inverse_scaled_variables: List of inverse scaled variables.
         """
+        is_array = isinstance(variables, (np.ndarray))
+        is_tensor = isinstance(variables, (torch.Tensor))
         variables = self._cast_variables(variables)
         if len(variables) != len(self.variable_scaling_params):
             raiseError(
@@ -119,6 +129,11 @@ class MinMaxScaler:
             data_range = 1 if data_range == 0 else data_range
             inverse_scaled_variable = inverse_scaled_variable * data_range + min_val
             inverse_scaled_variables.append(inverse_scaled_variable)
+        if is_array:
+            inverse_scaled_variables = np.hstack(inverse_scaled_variables)
+        elif is_tensor:
+            inverse_scaled_variables = torch.hstack(inverse_scaled_variables)
+
         return inverse_scaled_variables
 
     def save(self, filepath: str) -> None:
@@ -270,11 +285,26 @@ class Dataset(torch.utils.data.Dataset):
     @property
     def shape(self):
         return self.variables_out.shape
+    
+    @property
+    def num_parameters(self):
+        return self.parameters.shape[1] if self.parameters is not None else 0
+    
+    # @property
+    # def variables_in(self):
+    #     """
+        
+    #     """
+    #     return self._variables_in
 
     def __len__(self):
         return len(self.variables_out)
 
     def __getitem__(self, idx):
+        """
+        
+        """
+
         if isinstance(idx, slice):
             start = idx.start if idx.start is not None else 0
             stop = idx.stop if idx.stop is not None else len(self)
@@ -286,17 +316,18 @@ class Dataset(torch.utils.data.Dataset):
             else:
                 variables_in_idx = torch.arange(start, stop, step) % len(self.variables_in)
                 parameters_idx = torch.arange(start, stop, step) // len(self.variables_in)
-                input_data = torch.cat([self.variables_in[variables_in_idx], self.parameters[parameters_idx]], dim=1)
+                input_data = torch.cat([self.variables_in[variables_in_idx], self.parameters[parameters_idx]], dim=1) if self.parameters is not None else self.variables_in[variables_in_idx]
                 return input_data, variables_out
             
-        elif isinstance(idx, list) or isinstance(idx, torch.Tensor) or isinstance(idx, np.ndarray) or isinstance(idx, tuple):
+        elif isinstance(idx, (list, torch.Tensor, np.ndarray, tuple)):
             variables_out = self.variables_out[idx]
             if self.variables_in is None:
                 return variables_out
             else:
-                variables_in_idx = torch.tensor(idx) % len(self.variables_in)
-                parameters_idx = torch.tensor(idx) // len(self.variables_in)
-                input_data = torch.cat([self.variables_in[variables_in_idx], self.parameters[parameters_idx]], dim=1)
+                idx = torch.tensor(idx) if not isinstance(idx, torch.Tensor) else idx
+                variables_in_idx = idx % len(self.variables_in)
+                parameters_idx = idx // len(self.variables_in)
+                input_data = torch.cat([self.variables_in[variables_in_idx], self.parameters[parameters_idx]], dim=1) if self.parameters is not None else self.variables_in[variables_in_idx]
                 return input_data, variables_out
         else:
             if self.variables_in is None:
@@ -304,8 +335,32 @@ class Dataset(torch.utils.data.Dataset):
             else:
                 variables_in_idx = idx % len(self.variables_in)
                 parameters_idx = idx // len(self.variables_in)
-                input_data = torch.hstack([self.variables_in[variables_in_idx], self.parameters[parameters_idx]]).float()
+                input_data = torch.hstack([self.variables_in[variables_in_idx], self.parameters[parameters_idx]]).float() if self.parameters is not None else self.variables_in[variables_in_idx].float()
                 return input_data, self.variables_out[idx]
+    
+    def __setitem__(self, idx, value):
+        if self.variables_in is None:
+            self.variables_out[idx] = value
+        else:
+            if len(value) != 2:
+                raiseError("Invalid value to set. Must be a tuple with two elements when variables_in takes some value")
+            if isinstance(idx, slice):
+                idx = torch.arange(
+                    idx.start if idx.start is not None else 0, 
+                    idx.stop if idx.stop is not None else len(self),
+                    idx.step if idx.step is not None else 1
+                )
+            else:
+                idx = torch.tensor(idx) if not isinstance(idx, torch.Tensor) else idx
+            input_data, variables_out = value
+            variables_in_idx = idx % len(self.variables_in)
+            parameters_idx = idx // len(self.variables_in)
+
+            self.variables_in[variables_in_idx] = input_data[:, :self.variables_in.shape[1]]
+            if self.parameters is not None:
+                self.parameters[parameters_idx] = input_data[:, self.variables_in.shape[1]:]
+            self.variables_out[idx] = variables_out
+
         
     def __add__(self, other):
         if not isinstance(other, Dataset):
@@ -381,6 +436,7 @@ class Dataset(torch.utils.data.Dataset):
         self,
         sizes,
         shuffle=True,
+        return_views=True,
         generator: Optional[Generator] = default_generator,
     ):
         """
@@ -397,9 +453,16 @@ class Dataset(torch.utils.data.Dataset):
         Optionally fix the generator for reproducible results.
 
         Args:
-            sizes (sequence): lengths or fractions of splits to be produced
-            shuffle (bool): whether to shuffle the data before splitting. Default: ``True``
+            sizes (sequence): lengths or fractions of splits to be produced.
+            shuffle (bool): whether to shuffle the data before splitting. Default: ``True``.
+            return_views (bool): If True, the splits will be returned as views of the original dataset in form of torch.utils.data.Subset.
+            If False, the splits will be returned as new Dataset instances. Default: ``True``.
+            Warning: If return_views is True, the original dataset must be kept alive, otherwise the views will point to invalid memory.
+            Be careful when using `return_views=False` with `variables_in` and `parameters`, the memory usage will be higher.
             generator (Generator): Generator used for the random permutation.
+        
+        Returns:
+            List[Subset]: List with the splits of the dataset.
         """
         if np.isclose(sum(sizes), 1) and sum(sizes) <= 1:
             subset_lengths: List[int] = []
@@ -425,23 +488,49 @@ class Dataset(torch.utils.data.Dataset):
 
         # Cannot verify that dataset is Sized
         if sum(sizes) != len(self):  # type: ignore[arg-type]
-            raise ValueError(
-                "Sum of input lengths does not equal the length of the input dataset!"
+            raiseError(
+                "Sum of input lengths does not equal the length of the dataset!"
             )
         if shuffle:
             indices = randperm(sum(sizes), generator=generator).tolist()  # type: ignore[arg-type, call-overload]
         else:
             indices = list(range(sum(sizes)))
         sizes = cast(Sequence[int], sizes)
-        return [
-            Subset(self, indices[offset - length : offset])
-            for offset, length in zip(accumulate(sizes), sizes)
-        ]
+
+        split_datasets = []
+        for offset, length in zip(accumulate(sizes), sizes):
+            new_indices = indices[offset - length : offset]
+            if not return_views:
+                data = self[new_indices]
+                if len(data) == 1:
+                    dataset = Dataset(
+                        variables_out=tuple([data[0][:, i].reshape(-1, *self.mesh_shape).numpy()
+                                    for i in range(self.num_channels)]),
+                        mesh_shape=self.mesh_shape,
+                        variables_in=self.variables_in,
+                        combine_parameters_with_cartesian_prod=False,
+                        snapshots_by_column=False  # Since the data is already reshaped
+                    )
+                else:
+                    dataset = Dataset(
+                        variables_out=tuple([data[1][:, i].reshape(-1, *self.mesh_shape).numpy()
+                                    for i in range(self.num_channels)]),
+                        mesh_shape=self.mesh_shape,
+                        variables_in=data[0],
+                        combine_parameters_with_cartesian_prod=False,
+                        snapshots_by_column=False  # Since the data is already reshaped
+                    )
+                split_datasets.append(dataset)
+            else:
+                split_datasets.append(Subset(self, new_indices))
+        return split_datasets
+
 
     def get_splits_by_parameters(
         self, 
         sizes, 
         shuffle=True, 
+        return_views=True,
         generator: Optional[Generator] = default_generator
     ):
         """
@@ -460,7 +549,13 @@ class Dataset(torch.utils.data.Dataset):
         Args:
             sizes (sequence): lengths or fractions of splits to be produced
             shuffle (bool): whether to shuffle the data before splitting. Default: ``True``
+            return_views (bool): If True, the splits will be returned as views of the original dataset in form of torch.utils.data.Subset.
+            If False, the splits will be returned as new Dataset instances. Default: ``True``.
+            Warning: If return_views is True, the original dataset must be kept alive, otherwise the views will point to invalid memory.
             generator (Generator): Generator used for the random permutation.
+
+        Returns:
+            List[Dataset]: List with the splits of the dataset.
         """
         if self.parameters is None:
             raiseError("This Dataset does not have parameters to split by")
@@ -488,22 +583,49 @@ class Dataset(torch.utils.data.Dataset):
 
         # Cannot verify that dataset is Sized
         if sum(sizes) != len(self.parameters):
-            raise ValueError(
-                "Sum of input lengths does not equal the length of the input dataset!"
+            raiseError(
+                "Sum of input lengths does not equal the length of the number of parameters!"
             )
         if shuffle:
             indices = randperm(sum(sizes), generator=generator).tolist()  # type: ignore[arg-type, call-overload]
         else:
             indices = list(range(sum(sizes)))
         sizes = cast(Sequence[int], sizes)
-        subsets = []
+        split_datasets = []
         for offset, length in zip(accumulate(sizes), sizes):
             new_indices = []
             for index in indices[offset - length : offset]:
                 vars_in_extended_indices = list(range(index * len(self.variables_in), (index + 1) * len(self.variables_in)))
                 new_indices.extend(vars_in_extended_indices)
-            subsets.append(Subset(self, new_indices))
-        return subsets
+            if not return_views:
+                # Get the split data
+                if self.variables_in is not None:
+                    split_variables_in = self.variables_in
+                    # print(self.parameters.shape, self.parameters[offset - length : offset])
+                    split_parameters = self.parameters[indices[offset - length : offset]]
+                else:
+                    split_variables_in = None
+                    split_parameters = None
+                    
+                # Get the split output variables
+                split_variables_out = self.variables_out[new_indices]
+
+                # Create a new dataset instance with the split data
+                split_dataset = Dataset(
+                    variables_out=tuple([split_variables_out[:, i].reshape(-1, *self.mesh_shape).numpy()
+                                    for i in range(self.num_channels)]),
+                    mesh_shape=self.mesh_shape,
+                    variables_in=split_variables_in.numpy() if split_variables_in is not None else None,
+                    # Parameters must be transposed to pass only as many list as the number of variables
+                    parameters=split_parameters.T.tolist() if split_parameters is not None else None,
+                    combine_parameters_with_cartesian_prod=False,
+                    snapshots_by_column=False  # Since the data is already reshaped
+                )
+                split_datasets.append(split_dataset)
+            else:
+                split_datasets.append(Subset(self, new_indices))
+
+        return split_datasets
     
     @classmethod
     def load_from_file(
@@ -563,6 +685,50 @@ class Dataset(torch.utils.data.Dataset):
             **kwargs,
         )
     
+    @cr("NN.Dataset.map")
+    def map(self, function, fn_kwargs={}, batched=False, batch_size=1000):
+        """
+        Apply a function to the dataset.
+
+        Args:
+            function (Callable): Function to be applied to the dataset with one of the following signatures:
+                - function(inputs: torch.Tensor, outputs: torch.Tensor, **kwargs) -> Tuple[torch.Tensor, torch.Tensor] if variables_in exists. Here `inputs` is the input data and `outputs` is the output data that __getitem__ returns, so `inputs` will include the parameters if they exist. 
+                - function(outputs: torch.Tensor, **kwargs) -> torch.Tensor if variables_in does not exist.
+                If batched is False, the tensors will have only one element in the first dimension.
+            fn_kwargs (Dict): Additional keyword arguments to be passed to the function.
+            batched (bool): If True, the function will be applied to the dataset in batches. Default is ``False``.
+            batch_size (int): Size of the batch. Default is ``1000``.
+
+        Returns:
+            List: List with the results of the function applied to the dataset.
+        """
+
+        if not batched:
+            batch_size = 1
+        pbar = tqdm(range(0, len(self), batch_size), desc="Mapping dataset", unit="iters")
+        for i in pbar:
+            batch = self[i:i + batch_size]
+            if self.variables_in is not None:
+                inputs, outputs = batch
+                fn_outputs = function(inputs, outputs, **fn_kwargs)
+            else:
+                fn_outputs = function(batch, **fn_kwargs)
+            self[i:i + batch_size] = fn_outputs
+
+        return self
+
+    def filter(self, function, fn_kwargs={}):
+        indices = []
+        for i in range(len(self)):
+            if self.variables_in is not None:
+                inputs, outputs = self[i]
+                if function(inputs, outputs, **fn_kwargs):
+                    indices.append(i)
+            else:
+                outputs = self[i]
+                if function(outputs, **fn_kwargs):
+                    indices.append(i)
+        return Subset(self, indices)
 
 def create_results_folder(RESUDIR,echo=True):
     if not os.path.exists(RESUDIR):
