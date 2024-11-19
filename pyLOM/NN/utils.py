@@ -687,7 +687,9 @@ class Dataset(torch.utils.data.Dataset):
             batched (bool): If True, the function will be applied to the dataset in batches. Default is ``False``.
             batch_size (int): Size of the batch. Default is ``1000``.
             return_views (bool): If True, the filtered dataset will be returned as a view of the original dataset in form of torch.utils.data.Subset. Default is ``True``.
-
+            Warning: If return_views is True, the original dataset must be kept alive, otherwise the views will point to invalid memory.
+            Be careful when using `return_views=False` with `variables_in` and `parameters`, the memory usage will be higher.
+            
         Returns:
             Subset | Dataset: Subset of the dataset that passed the filter.
         """
