@@ -210,7 +210,7 @@ class Dataset(torch.utils.data.Dataset):
         variables_out (Tuple): Tuple of variables to be used as output. Each variable should be a 2d numpy array or torch tensor. If only one variable wants to be provided, it should be passed as a tuple with one element. E.g. ``(variable,)``.
         mesh_shape (Tuple): Shape of the mesh. If not mesh is used and the data is considered as points, leave this as default. Default is ``(1,)``.
         variables_in (np.ndarray): Input variables. Default is ``None``.
-        parameters (List[List[Union[float, Tuple]]]): List of parameters to be used as input. All possible combinations of these parameters, i.e. its cartesian product, will appear along with variables_in. If there is only one inner list and its elements are tuples, they will be treated as a single element for the cartesiand produt, which is useful when the combination of the parameters was predefined. Default is ``None``.
+        parameters (List[List[float]]): List of parameters to be used as input. All possible combinations of these parameters, i.e. its cartesian product, will appear along with variables_in. If there is only one inner list and its elements are tuples, they will be treated as a single element for the cartesiand produt, which is useful when the combination of the parameters was predefined. Default is ``None``.
         inputs_scaler (MinMaxScaler): Scaler to scale the input variables. If the scaler is not fitted, it will be fitted. Default is ``None``.
         outputs_scaler (MinMaxScaler): Scaler to scale the output variables. If the scaler is not fitted, it will be fitted. Default is ``None``.
         snapshots_by_column (bool): If the snapshots from `variables_out` are stored by column. The snapshots on `pyLOM.Dataset`s have this format. Default is ``True``.
@@ -221,7 +221,7 @@ class Dataset(torch.utils.data.Dataset):
         variables_out: Tuple,
         mesh_shape: Tuple = (1,),
         variables_in: np.ndarray = None,
-        parameters: List[List[Union[float, Tuple]]] = None,
+        parameters: List[List[float]] = None,
         combine_parameters_with_cartesian_prod: bool = False,
         inputs_scaler=None,
         outputs_scaler=None,
@@ -251,6 +251,8 @@ class Dataset(torch.utils.data.Dataset):
                     self.parameters = torch.stack(input_data_transformed[self.variables_in.shape[1]:], dim=1)
         else:
             self.variables_in = None
+            if parameters is not None:
+                raiseWarning("Parameters were passed but no input variables were passed. Parameters will be ignored.")
             self.parameters = None
 
     def _process_variables_out(self, variables_out):
@@ -289,54 +291,31 @@ class Dataset(torch.utils.data.Dataset):
     @property
     def num_parameters(self):
         return self.parameters.shape[1] if self.parameters is not None else 0
-    
-    # @property
-    # def variables_in(self):
-    #     """
-        
-    #     """
-    #     return self._variables_in
 
     def __len__(self):
         return len(self.variables_out)
 
     def __getitem__(self, idx):
         """
-        
-        """
-
+        Return the input data and the output data for a given index as a tuple. If there is no input data, only the output data will be returned.
+        If parameters are used, the parameters will be concatenated with the input data at the end.
+        """            
         if isinstance(idx, slice):
-            start = idx.start if idx.start is not None else 0
-            stop = idx.stop if idx.stop is not None else len(self)
-            step = idx.step if idx.step is not None else 1
-
-            variables_out = self.variables_out[start:stop:step]
-            if self.variables_in is None:
-                return variables_out
-            else:
-                variables_in_idx = torch.arange(start, stop, step) % len(self.variables_in)
-                parameters_idx = torch.arange(start, stop, step) // len(self.variables_in)
-                input_data = torch.cat([self.variables_in[variables_in_idx], self.parameters[parameters_idx]], dim=1) if self.parameters is not None else self.variables_in[variables_in_idx]
-                return input_data, variables_out
-            
-        elif isinstance(idx, (list, torch.Tensor, np.ndarray, tuple)):
-            variables_out = self.variables_out[idx]
-            if self.variables_in is None:
-                return variables_out
-            else:
-                idx = torch.tensor(idx) if not isinstance(idx, torch.Tensor) else idx
-                variables_in_idx = idx % len(self.variables_in)
-                parameters_idx = idx // len(self.variables_in)
-                input_data = torch.cat([self.variables_in[variables_in_idx], self.parameters[parameters_idx]], dim=1) if self.parameters is not None else self.variables_in[variables_in_idx]
-                return input_data, variables_out
+            idx = torch.arange(
+                idx.start if idx.start is not None else 0, 
+                idx.stop if idx.stop is not None else len(self),
+                idx.step if idx.step is not None else 1
+            )
         else:
-            if self.variables_in is None:
-                return self.variables_out[idx]
-            else:
-                variables_in_idx = idx % len(self.variables_in)
-                parameters_idx = idx // len(self.variables_in)
-                input_data = torch.hstack([self.variables_in[variables_in_idx], self.parameters[parameters_idx]]).float() if self.parameters is not None else self.variables_in[variables_in_idx].float()
-                return input_data, self.variables_out[idx]
+            idx = torch.tensor(idx) if not isinstance(idx, torch.Tensor) else idx
+        
+        if self.variables_in is None:
+            return self.variables_out[idx]
+        else:
+            variables_in_idx = idx % len(self.variables_in)
+            parameters_idx = idx // len(self.variables_in)
+            input_data = torch.hstack([self.variables_in[variables_in_idx], self.parameters[parameters_idx]]).float() if self.parameters is not None else self.variables_in[variables_in_idx].float()
+            return input_data, self.variables_out[idx]
     
     def __setitem__(self, idx, value):
         if self.variables_in is None:
@@ -462,7 +441,7 @@ class Dataset(torch.utils.data.Dataset):
             generator (Generator): Generator used for the random permutation.
         
         Returns:
-            List[Subset]: List with the splits of the dataset.
+            List[Dataset | Subset]: List with the splits of the dataset.
         """
         if np.isclose(sum(sizes), 1) and sum(sizes) <= 1:
             subset_lengths: List[int] = []
@@ -500,31 +479,8 @@ class Dataset(torch.utils.data.Dataset):
         split_datasets = []
         for offset, length in zip(accumulate(sizes), sizes):
             new_indices = indices[offset - length : offset]
-            if not return_views:
-                data = self[new_indices]
-                if len(data) == 1:
-                    dataset = Dataset(
-                        variables_out=tuple([data[0][:, i].reshape(-1, *self.mesh_shape).numpy()
-                                    for i in range(self.num_channels)]),
-                        mesh_shape=self.mesh_shape,
-                        variables_in=self.variables_in,
-                        combine_parameters_with_cartesian_prod=False,
-                        snapshots_by_column=False  # Since the data is already reshaped
-                    )
-                else:
-                    dataset = Dataset(
-                        variables_out=tuple([data[1][:, i].reshape(-1, *self.mesh_shape).numpy()
-                                    for i in range(self.num_channels)]),
-                        mesh_shape=self.mesh_shape,
-                        variables_in=data[0],
-                        combine_parameters_with_cartesian_prod=False,
-                        snapshots_by_column=False  # Since the data is already reshaped
-                    )
-                split_datasets.append(dataset)
-            else:
-                split_datasets.append(Subset(self, new_indices))
+            split_datasets.append(self._create_subset_from_indices(new_indices, return_views))
         return split_datasets
-
 
     def get_splits_by_parameters(
         self, 
@@ -555,7 +511,7 @@ class Dataset(torch.utils.data.Dataset):
             generator (Generator): Generator used for the random permutation.
 
         Returns:
-            List[Dataset]: List with the splits of the dataset.
+            List[Dataset | Subset]: List with the splits of the dataset.
         """
         if self.parameters is None:
             raiseError("This Dataset does not have parameters to split by")
@@ -700,7 +656,7 @@ class Dataset(torch.utils.data.Dataset):
             batch_size (int): Size of the batch. Default is ``1000``.
 
         Returns:
-            List: List with the results of the function applied to the dataset.
+            Dataset: A reference to the dataset with the function applied.
         """
 
         if not batched:
@@ -717,18 +673,90 @@ class Dataset(torch.utils.data.Dataset):
 
         return self
 
-    def filter(self, function, fn_kwargs={}):
+    @cr("NN.Dataset.filter")
+    def filter(self, function, fn_kwargs={}, batched=False, batch_size=1000, return_views=True):
+        """
+        Filter the dataset using a function.
+
+        Args:
+            function (Callable): Function to be applied to the dataset with one of the following signatures:
+                - function(inputs: torch.Tensor, outputs: torch.Tensor, **kwargs) -> bool if variables_in exists. Here `inputs` is the input data and `outputs` is the output data that __getitem__ returns, so `inputs` will include the parameters if they exist. 
+                - function(outputs: torch.Tensor, **kwargs) -> bool if variables_in does not exist.
+                If batched is True, the function should return a list of booleans.
+            fn_kwargs (Dict): Additional keyword arguments to be passed to the function.
+            batched (bool): If True, the function will be applied to the dataset in batches. Default is ``False``.
+            batch_size (int): Size of the batch. Default is ``1000``.
+            return_views (bool): If True, the filtered dataset will be returned as a view of the original dataset in form of torch.utils.data.Subset. Default is ``True``.
+
+        Returns:
+            Subset | Dataset: Subset of the dataset that passed the filter.
+        """
+
+        if not batched:
+            batch_size = 1
         indices = []
-        for i in range(len(self)):
+        pbar = tqdm(range(0, len(self), batch_size), desc="Filtering dataset", unit="iters")
+        for i in pbar:
+            batch = self[i:i + batch_size]
             if self.variables_in is not None:
-                inputs, outputs = self[i]
-                if function(inputs, outputs, **fn_kwargs):
-                    indices.append(i)
+                inputs, outputs = batch
+                function_outputs = function(inputs, outputs, **fn_kwargs)
             else:
-                outputs = self[i]
-                if function(outputs, **fn_kwargs):
-                    indices.append(i)
-        return Subset(self, indices)
+                outputs = batch
+                function_outputs = function(outputs, **fn_kwargs)
+            indices.extend(filter(lambda x: function_outputs[x], range(i, i + batch_size)))
+        
+        return self._create_subset_from_indices(indices, return_views)
+
+    def _create_subset_from_indices(self, indices, return_views):
+        if not return_views:
+            data = self[indices]
+            if self.variables_in is None:
+                dataset = Dataset(
+                    variables_out=tuple([data[:, i].reshape(-1, *self.mesh_shape).numpy()
+                                for i in range(self.num_channels)]),
+                    mesh_shape=self.mesh_shape,
+                    variables_in=self.variables_in.numpy(),
+                    combine_parameters_with_cartesian_prod=False,
+                    snapshots_by_column=False  # Since the data is already reshaped
+                )
+            else:
+                dataset = Dataset(
+                    variables_out=tuple([data[1][:, i].reshape(-1, *self.mesh_shape).numpy()
+                                for i in range(self.num_channels)]),
+                    mesh_shape=self.mesh_shape,
+                    variables_in=data[0].numpy(),
+                    combine_parameters_with_cartesian_prod=False,
+                    snapshots_by_column=False  # Since the data is already reshaped
+                )
+            return dataset
+        else:
+            return Subset(self, indices)
+        
+    def remove_column(self, column_idx, from_variables_out):
+        """
+        Remove a column from the dataset.
+
+        Args:
+            column_idx (int): Index of the column to be removed.
+            from_variables_out (bool): If True, the column will be removed from the output variables. If False, the column will be removed from the input variables, if `column_idx` is greater than the number of columns on variables_in, the column will be removed from parameters.
+        """
+        if from_variables_out:
+            if column_idx >= self.variables_out.shape[1]:
+                raiseError(f"Invalid column index {column_idx}, there are only {self.variables_out.shape[1]} columns in variables_out")
+            self.variables_out = torch.cat(
+                [self.variables_out[:, :column_idx], self.variables_out[:, column_idx + 1 :]], dim=1
+            )
+        elif column_idx < self.variables_in.shape[1]:
+            self.variables_in = torch.cat(
+                [self.variables_in[:, :column_idx], self.variables_in[:, column_idx + 1 :]], dim=1
+            )
+        elif column_idx < self.parameters.shape[1] + self.variables_in.shape[1]:
+            self.parameters = torch.cat(
+                [self.parameters[:, :column_idx - self.variables_in.shape[1]], self.parameters[:, column_idx - self.variables_in.shape[1] + 1 :]], dim=1
+            )
+        else:
+            raiseError(f"Invalid column index {column_idx}, there are only {self.variables_in.shape[1]} columns in variables_in and {self.parameters.shape[1]} columns in parameters")
 
 def create_results_folder(RESUDIR,echo=True):
     if not os.path.exists(RESUDIR):

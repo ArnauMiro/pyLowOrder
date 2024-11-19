@@ -85,7 +85,7 @@ td_val   = load_dataset(os.path.join(BASEDIR,f'{CASESTR}_VAL.h5'),input_scaler,o
 # if we want to split by flight conditions instead of using the provided split, we can do the following
 dataset = td_train + td_test + td_val
 generator = torch.Generator().manual_seed(seed) # set seed for reproducibility
-td_train, td_test, td_val = dataset.get_splits_by_parameters([0.7, 0.15, 0.15], shuffle=True, generator=generator)
+td_train, td_test, td_val = dataset.get_splits([0.7, 0.15, 0.15], shuffle=True, generator=generator, return_views=True)
 
 print_dset_stats('train',td_train)
 print_dset_stats('test', td_test)
@@ -94,8 +94,8 @@ print_dset_stats('val',  td_val)
 model = pyLOM.NN.MLP(
     input_size=4, # x, y, AoA, Mach
     output_size=1, # CP
-    hidden_size=256,
-    n_layers=2,
+    hidden_size=129,
+    n_layers=6,
     p_dropouts=0.15,
 )
 
@@ -110,8 +110,6 @@ training_params = {
     "lr": 0.000838, 
     "lr_gamma": 0.99, 
     "batch_size": 119, 
-    "hidden_size": 129,
-    "n_layers": 6,
 }
 
 pipeline = pyLOM.NN.Pipeline(
@@ -139,8 +137,8 @@ preds = model.predict(td_test, batch_size=2048)
 # to predict from a tensor
 # preds = model(torch.tensor(dataset_test[:][0], device=model.device)).cpu().detach().numpy()
 
-scaled_preds = output_scaler.inverse_transform(preds)[0]
-scaled_y     = output_scaler.inverse_transform(td_test[:][1])[0]
+scaled_preds = output_scaler.inverse_transform(preds)
+scaled_y     = output_scaler.inverse_transform(td_test[:][1])
 
 # check that the scaling is correct
 pyLOM.pprint(0,scaled_y.min(), scaled_y.max())

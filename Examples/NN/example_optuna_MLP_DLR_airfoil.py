@@ -125,8 +125,8 @@ model = pyLOM.NN.MLP.load(RESUDIR + "/model.pth")
 preds = model.predict(td_test, batch_size=2048)
 # to predict from a tensor
 # preds = model(torch.tensor(dataset_test[:][0], device=model.device)).cpu().detach().numpy()
-scaled_preds = output_scaler.inverse_transform(preds)[0]
-scaled_y     = output_scaler.inverse_transform(td_test[:][1])[0]
+scaled_preds = output_scaler.inverse_transform(preds)
+scaled_y     = output_scaler.inverse_transform(td_test[:][1])
 
 # check that the scaling is correct
 pyLOM.pprint(0,scaled_y.min(), scaled_y.max())
