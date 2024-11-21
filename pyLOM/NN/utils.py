@@ -246,7 +246,7 @@ class Dataset(torch.utils.data.Dataset):
                 if not inputs_scaler.is_fitted:
                     inputs_scaler.fit(variables_in_columns + parameters_columns)
                 input_data_transformed = inputs_scaler.transform(variables_in_columns + parameters_columns)
-                self.variables_in = torch.stack(input_data_transformed[:self.variables_in.shape[1]], dim=1)
+                self.variables_in = torch.stack(input_data_transformed[:self.variables_in.shape[1]], dim=1).float()
                 if self.parameters is not None:
                     self.parameters = torch.stack(input_data_transformed[self.variables_in.shape[1]:], dim=1)
         else:
@@ -281,8 +281,7 @@ class Dataset(torch.utils.data.Dataset):
                 parameters = torch.tensor(parameters[0])
             else:
                 parameters = torch.tensor(list(product(*parameters)))
-        # print(parameters, parameters.shape)
-        return parameters
+        return parameters.float()
 
     @property
     def shape(self):
@@ -314,7 +313,7 @@ class Dataset(torch.utils.data.Dataset):
         else:
             variables_in_idx = idx % len(self.variables_in)
             parameters_idx = idx // len(self.variables_in)
-            input_data = torch.hstack([self.variables_in[variables_in_idx], self.parameters[parameters_idx]]).float() if self.parameters is not None else self.variables_in[variables_in_idx].float()
+            input_data = torch.hstack([self.variables_in[variables_in_idx], self.parameters[parameters_idx]]) if self.parameters is not None else self.variables_in[variables_in_idx]
             return input_data, self.variables_out[idx]
     
     def __setitem__(self, idx, value):
