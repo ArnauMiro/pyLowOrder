@@ -299,6 +299,9 @@ class Dataset(torch.utils.data.Dataset):
         Return the input data and the output data for a given index as a tuple. If there is no input data, only the output data will be returned.
         If parameters are used, the parameters will be concatenated with the input data at the end.
         """            
+        if self.variables_in is None:
+            return self.variables_out[idx]
+        
         if isinstance(idx, slice):
             idx = torch.arange(
                 idx.start if idx.start is not None else 0, 
@@ -308,14 +311,12 @@ class Dataset(torch.utils.data.Dataset):
         else:
             idx = torch.tensor(idx) if not isinstance(idx, torch.Tensor) else idx
         
-        if self.variables_in is None:
-            return self.variables_out[idx]
-        else:
-            variables_in_idx = idx % len(self.variables_in)
-            parameters_idx = idx // len(self.variables_in)
-            input_data = torch.hstack([self.variables_in[variables_in_idx], self.parameters[parameters_idx]]) if self.parameters is not None else self.variables_in[variables_in_idx]
-            return input_data, self.variables_out[idx]
-    
+        variables_in_idx = idx % len(self.variables_in)
+        parameters_idx = idx // len(self.variables_in)
+        input_data = torch.hstack([self.variables_in[variables_in_idx], self.parameters[parameters_idx]]) if self.parameters is not None else self.variables_in[variables_in_idx]
+        return input_data, self.variables_out[idx]
+
+
     def __setitem__(self, idx, value):
         if self.variables_in is None:
             self.variables_out[idx] = value
