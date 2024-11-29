@@ -15,7 +15,7 @@ def load_dataset(fname,inputs_scaler,outputs_scaler):
     Auxiliary function to load a dataset into a pyLOM
     NN dataset
     '''
-    return pyLOM.NN.Dataset.load_from_file(
+    return pyLOM.NN.Dataset.load(
         fname,
         field_names=["CP"],
         add_mesh_coordinates=True,

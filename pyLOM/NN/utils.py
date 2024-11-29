@@ -584,7 +584,7 @@ class Dataset(torch.utils.data.Dataset):
         return split_datasets
     
     @classmethod
-    def load_from_file(
+    def load(
         cls,
         file_path,
         field_names: List[str],
@@ -606,7 +606,7 @@ class Dataset(torch.utils.data.Dataset):
             Dataset: Dataset created from the saved `pyLOM.Dataset`.
 
         Example:
-            >>> dataset = pyLOM.NN.Dataset.load_from_file(
+            >>> dataset = pyLOM.NN.Dataset.load(
             ...     file_path,
             ...     field_names=["CP"],
             ...     add_variables=True,
