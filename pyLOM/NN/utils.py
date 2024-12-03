@@ -345,12 +345,16 @@ class Dataset(torch.utils.data.Dataset):
         if not isinstance(other, Dataset):
             raiseError(f"Cannot add Dataset with {type(other)}")
         if self.variables_in is not None:
-            if other.variables_in is None or other.variables_in.shape[0] != self.variables_in.shape[0]:
-                raiseError("Cannot add datasets with different number of input coordinates")
+            if other.variables_in is None or other.variables_in.shape[1] != self.variables_in.shape[1]:
+                raiseError(f"Cannot add datasets with different number of columns on input coordinates, got {other.variables_in.shape[1]} and {self.variables_in.shape[1]}")
             if self.parameters is not None:
                 if other.parameters is None or other.parameters.shape[1] != self.parameters.shape[1]:
                     raiseError("Cannot add datasets with different number of parameters")
+                if other.variables_in is None or other.variables_in.shape[0] != self.variables_in.shape[0]:
+                    raiseError(f"Cannot add datasets with different number of input coordinates, got {other.variables_in.shape[0]} and {self.variables_in.shape[0]}")
                 self.parameters = torch.cat([self.parameters, other.parameters], dim=0)
+            else:
+                self.variables_in = torch.cat([self.variables_in, other.variables_in], dim=0)
 
         variables_out = torch.cat([self.variables_out, other.variables_out], dim=0)
         self.variables_out = variables_out
