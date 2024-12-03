@@ -561,7 +561,6 @@ class Dataset(torch.utils.data.Dataset):
                 # Get the split data
                 if self.variables_in is not None:
                     split_variables_in = self.variables_in
-                    # print(self.parameters.shape, self.parameters[offset - length : offset])
                     split_parameters = self.parameters[indices[offset - length : offset]]
                 else:
                     split_variables_in = None
@@ -722,7 +721,7 @@ class Dataset(torch.utils.data.Dataset):
                     variables_out=tuple([data[:, i].reshape(-1, *self.mesh_shape).numpy()
                                 for i in range(self.num_channels)]),
                     mesh_shape=self.mesh_shape,
-                    variables_in=self.variables_in.numpy(),
+                    variables_in=None,
                     combine_parameters_with_cartesian_prod=False,
                     snapshots_by_column=False  # Since the data is already reshaped
                 )
