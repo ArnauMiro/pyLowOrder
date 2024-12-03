@@ -6,7 +6,7 @@
 # Last revision: 23/10/2024
 from __future__ import print_function, division
 
-import sys, os, numpy as np, torch
+import sys, os
 import pyLOM
 
 
@@ -36,7 +36,7 @@ output_scaler = pyLOM.NN.MinMaxScaler()
 
 dataset = pyLOM.NN.Dataset(
     variables_out       = (y,), 
-    variables_in        = d.xyz[:,:1],
+    variables_in        = d.xyz,
     parameters          = [d.get_variable('Re'), d.get_variable('AoA')],
     inputs_scaler       = input_scaler,
     outputs_scaler      = output_scaler,
