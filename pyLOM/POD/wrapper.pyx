@@ -32,9 +32,9 @@ cdef extern from *:
 	#define MPI_Session PyMPI_MPI_Session
 	#endif
 	"""
-from mpi4py  import MPI
 from mpi4py.libmpi cimport MPI_Comm
 from mpi4py        cimport MPI
+from mpi4py         import MPI
 
 from ..utils.cr     import cr, cr_start, cr_stop
 from ..utils.errors import raiseError
