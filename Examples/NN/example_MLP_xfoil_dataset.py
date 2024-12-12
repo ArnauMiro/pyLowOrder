@@ -5,7 +5,7 @@
 # Last revision: 23/10/2024
 
 import os, numpy as np, torch, matplotlib.pyplot as plt
-import pyLOM
+import pyLOM, pyLOM.NN
 
 device = pyLOM.NN.select_device("cpu") # Force CPU for this example, if left in blank it will automatically select the device
 

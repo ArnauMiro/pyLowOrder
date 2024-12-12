@@ -7,7 +7,7 @@
 from __future__ import print_function, division
 
 import sys, os, numpy as np, torch
-import pyLOM
+import pyLOM, pyLOM.NN
 
 
 DATAFILE  = sys.argv[1]

@@ -5,7 +5,7 @@
 # Last revision: 09/10/2024
 
 import os, numpy as np, torch, matplotlib.pyplot as plt
-import pyLOM
+import pyLOM, pyLOM.NN
 
 
 def load_dataset(fname,inputs_scaler,outputs_scaler):

@@ -9,7 +9,7 @@ import mpi4py
 mpi4py.rc.recv_mprobe = False
 
 import sys, os, numpy as np
-import pyLOM
+import pyLOM, pyLOM.NN
 
 DATAFILE  = sys.argv[1]
 VARIABLES = eval(sys.argv[2])
