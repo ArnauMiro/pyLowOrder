@@ -9,14 +9,14 @@ from __future__ import print_function
 
 import numpy as np
 
-from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd
+from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, randomized_svd
 from ..utils.cr     import cr, cr_start, cr_stop
 from ..utils.errors import raiseError
 
 
 ## POD run method
 @cr('POD.run')
-def run(X,remove_mean=True):
+def run(X,remove_mean=True, randomized=False, r=1, q=3):
 	'''
 	Run POD analysis of a matrix X.
 
@@ -40,7 +40,7 @@ def run(X,remove_mean=True):
 		Y = X.copy()
 	# Compute SVD
 	cr_start('POD.SVD',0)
-	U,S,V = tsqr_svd(Y)
+	U,S,V = tsqr_svd(Y) if not randomized else randomized_svd(Y, r, q)
 	cr_stop('POD.SVD',0)
 	# Return
 	return U,S,V

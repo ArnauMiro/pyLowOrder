@@ -14,7 +14,7 @@ If you find this repository useful, please cite it:
 ```
 @misc{pyLOM,
   author    = {Eiximeno, Benet and Begiashvili, Beka and Miro, Arnau and Valero, Eusebio and Lehmkuhl, Oriol},
-  title     = {pyLOM: Low order modelling in python,
+  title     = {pyLOM: Low order modelling in Python},
   year      = {2022},
   publisher = {Barcelona Supercomputing Center},
   journal   = {GitHub repository},

@@ -7,9 +7,10 @@
 # Last rev: 26/01/2023
 from __future__ import print_function, division
 
-import numpy as np
+import os, numpy as np
 
-from .vmmath       import cellCenters
+from .             import inp_out as io
+from .vmmath       import cellCenters, normals
 from .utils.cr     import cr
 from .utils.mem    import mem
 from .utils.errors import raiseError
@@ -67,18 +68,19 @@ class Mesh(object):
 	'''
 	The Mesh class wraps the mesh details of the case.
 	'''
-	@mem('Mesh')
-	def __init__(self,mtype,xyz,connectivity,eltype,cellOrder,pointOrder):
+	def __init__(self,mtype,xyz,connectivity,eltype,cellOrder,pointOrder,ptable):
 		'''
 		Class constructor
 		'''
 		self._type   = mtype
 		self._xyz    = xyz
 		self._xyzc   = None
+		self._normal = None
 		self._conec  = connectivity
 		self._eltype = eltype
 		self._cellO  = cellOrder
 		self._pointO = pointOrder
+		self._ptable = ptable
 
 	def __str__(self):
 		'''
@@ -164,34 +166,70 @@ class Mesh(object):
 			out = np.hstack((out,np.zeros((npoints,1))))
 		return out
 
+	@cr('Mesh.save')
+	def save(self,fname,**kwargs):
+		'''
+		Store the mesh in various formats.
+		'''
+		# Guess format from extension
+		fmt = os.path.splitext(fname)[1][1:] # skip the .
+		# Pickle format
+		if fmt.lower() == 'pkl': 
+			io.pkl_save(fname,self)
+		# H5 format
+		if fmt.lower() == 'h5':
+			# Set default parameters
+			if not 'mpio' in kwargs.keys():        kwargs['mpio']        = True
+			if not 'nopartition' in kwargs.keys(): kwargs['nopartition'] = False
+			# Save
+			io.h5_save_mesh(fname,self.type,self.xyz,self.connectivity,self.eltype,self.cellOrder,self.pointOrder,self.partition_table,**kwargs)
+
+	@classmethod
+	@cr('Mesh.load')
+	def load(cls,fname,**kwargs):
+		'''
+		Load a mesh from various formats
+		'''
+		# Guess format from extension
+		fmt = os.path.splitext(fname)[1][1:] # skip the .
+		# Pickle format
+		if fmt.lower() == 'pkl': 
+			return io.pkl_load(fname)
+		# H5 format
+		if fmt.lower() == 'h5':
+			if not 'mpio' in kwargs.keys(): kwargs['mpio'] = True
+			mtype, xyz, conec, eltype, cellO, pointO, ptable = io.h5_load_mesh(fname,**kwargs)
+			return cls(mtype,xyz,conec,eltype,cellO,pointO,ptable)
+		raiseError('Cannot load file <%s>!'%fname)
+
 	@classmethod
 	@cr('Mesh.new_struct2D')
-	def new_struct2D(cls,nx,ny,x,y,dimsx,dimsy):
+	def new_struct2D(cls,nx,ny,x,y,dimsx,dimsy,ptable=None):
 		xyz    = _struct2d_compute_xyz(nx,ny,x,y,dimsx,dimsy)
 		conec  = _struct2d_compute_conec(nx,ny,xyz)
 		eltype = 3*np.ones(((nx-1)*(ny-1),),np.uint8)
 		cellO  = np.arange((nx-1)*(ny-1),dtype=np.int32)
 		pointO = np.arange(nx*ny,dtype=np.int32)
-		return cls('STRUCT2D',xyz,conec,eltype,cellO,pointO)
+		return cls('STRUCT2D',xyz,conec,eltype,cellO,pointO,ptable)
 
 	@classmethod
 	@cr('Mesh.new_struct3D')
-	def new_struct3D(cls,nx,ny,nz,x,y,z,dimsx,dimsy,dimsz):
+	def new_struct3D(cls,nx,ny,nz,x,y,z,dimsx,dimsy,dimsz,ptable=None):
 		xyz    = _struct3d_compute_xyz(nx,ny,nz,x,y,z,dimsx,dimsy,dimsz)
 		conec  = _struct3d_compute_conec(nx,ny,nz,xyz)
 		eltype = 5*np.ones(((nx-1)*(ny-1)*(nz-1),),np.uint8)
 		cellO  = np.arange((nx-1)*(ny-1)*(nz-1),dtype=np.int32)
 		pointO = np.arange(nx*ny*nz,dtype=np.int32)
-		return cls('STRUCT3D',xyz,conec,eltype,cellO,pointO)
+		return cls('STRUCT3D',xyz,conec,eltype,cellO,pointO,ptable)
 
 	@classmethod
-	@cr('Mesh.from_pyAlya')
-	def from_pyAlya(cls,mesh,sod=False):
+	@cr('Mesh.from_pyQvarsi')
+	def from_pyQvarsi(cls,mesh,ptable=None,sod=False):
 		'''
-		Create the mesh structure from a pyAlya mesh structure
+		Create the mesh structure from a pyQvarsi mesh structure
 		'''
-		eltype = np.array([ALYA2ELTYP[t] for t in mesh.eltype],np.uint8)
-		return cls('UNSTRUCT',mesh.xyz,mesh.connectivity_vtk if sod else mesh.connectivity,eltype,mesh.leinv,mesh.lninv)
+		eltype = np.array([ALYA2ELTYP[t] for t in mesh.eltype_linear],np.uint8)
+		return cls('UNSTRUCT',mesh.xyz,mesh.connectivity_vtk if sod else mesh.connectivity,eltype,mesh.leinv_linear,mesh.lninv,ptable)
 
 	@property
 	def type(self):
@@ -204,7 +242,11 @@ class Mesh(object):
 		return mpi_reduce(self.npoints,op='sum',all=True)
 	@property
 	def npointsG2(self):
-		return mpi_reduce(self.pointOrder.max(),op='max',all=True) + 1
+		if self.pointOrder.shape[0] > 0:
+			npoints = self.pointOrder.max()
+		else:
+			npoints = 0
+		return mpi_reduce(npoints,op='max',all=True) + 1
 	@property
 	def ndim(self):
 		return self._xyz.shape[1]
@@ -216,7 +258,11 @@ class Mesh(object):
 		return mpi_reduce(self.ncells,op='sum',all=True)
 	@property
 	def ncellsG2(self):
-		return mpi_reduce(self.cellOrder.max(),op='max',all=True) + 1
+		if self.cellOrder.shape[0] > 0:
+			ncells = self.cellOrder.max()
+		else:
+			ncells = 0
+		return mpi_reduce(ncells,op='max',all=True) + 1
 	@property
 	def nnodcell(self):
 		return self._conec.shape[1]
@@ -237,6 +283,10 @@ class Mesh(object):
 	def xyzc(self):
 		if self._xyzc is None: self._xyzc = self.cellcenters()
 		return self._xyzc
+	@property
+	def normal(self):
+		if self._normal is None: self._normal = normals(self._xyz,self._conec)
+		return self._normal
 
 	@property
 	def connectivity(self):
@@ -247,6 +297,13 @@ class Mesh(object):
 	@property
 	def pointOrder(self):
 		return self._pointO
+
+	@property
+	def partition_table(self):
+		return self._ptable
+	@partition_table.setter
+	def partition_table(self,value):
+		self._ptable = value
 
 	@property
 	def eltype(self):
