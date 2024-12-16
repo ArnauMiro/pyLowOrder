@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   deploy:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     env:
       CC: mpicc
       CXX: mpc++
@@ -38,10 +38,8 @@ jobs:
         uses: mpi4py/setup-mpi@v1
         with:
           mpi: openmpi
-      - name: Set up Python 3.9.15
+      - name: Set up Python 3.x
         uses: actions/setup-python@v3
-        with:
-          python-version: 3.9.15
       # Install dependencies, build and install
       - name: Install dependencies
         run: |
