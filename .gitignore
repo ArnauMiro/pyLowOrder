@@ -45,6 +45,9 @@ pyLOM/vmmath/wrapper.html
 pyLOM/inp_out/*.c
 pyLOM/inp_out/*.html
 
+DATA/*.txt
+DATA/*.h5
+
 # C extensions
 *.so
 
@@ -172,5 +175,11 @@ dmypy.json
 
 # Examples data
 *.h5
+*.mat
 Examples/Data/*
-l_BaseKit_p_2021.3.0.3219/
+
+# Outputs
+*-vtk.hdf
+flow/*
+events*
+model_state

@@ -63,12 +63,33 @@ else
 		# Intel compiler
 		ln -s "/opt/cesga/2020/software/MPI/intel/2021.3.0/impi/2021.3.0/fftw/${VERS}/include" "${INSTALL_PREFIX}/"
 		ln -s "/opt/cesga/2020/software/MPI/intel/2021.3.0/impi/2021.3.0/fftw/${VERS}/lib" "${INSTALL_PREFIX}/"
+	elif [[ "$PLATFORM" == "HX1" ]]; then # HX1 Imperial college
+		# Intel compiler
+		ln -s "/gpfs/easybuild/prod/software/FFTW/${VERS}/include" "${INSTALL_PREFIX}/"
+		ln -s "/gpfs/easybuild/prod/software/FFTW/${VERS}/lib" "${INSTALL_PREFIX}/"
 	else
 		cd Deps/
 		# Clone repository and checkout version tag
 		wget -O ${TAR} ${SRC}
 		tar xvzf ${TAR}
-		# Configure CMAKE build
+		# Configure CMAKE build for float
+		mkdir -p build_deps_float
+		cd build_deps_float
+		cmake ../fftw-${VERS} \
+			-DCMAKE_BUILD_TYPE=Release \
+			-DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX \
+			-DCMAKE_INSTALL_LIBDIR=$INSTALL_PREFIX/lib \
+			-DENABLE_THREADS=${USE_OMP} -DENABLE_OPENMP=${USE_OMP} \
+			-DENABLE_FLOAT=ON -DENABLE_SSE=ON -DENABLE_SSE2=ON -DENABLE_AVX=ON -DENABLE_AVX2=ON \
+			-DDISABLE_FORTRAN=ON \
+			-DBUILD_SHARED_LIBS=OFF \
+			-DCMAKE_C_COMPILER="${CCOMPILER}" -DCMAKE_C_FLAGS="${CFLAGS}" \
+			-DCMAKE_REQUIRED_LIBRARIES="m"
+		# Build
+		make -j $(getconf _NPROCESSORS_ONLN)
+		make install
+		cd ..
+		# Configure CMAKE build for double
 		mkdir -p build_deps
 		cd build_deps
 		cmake ../fftw-${VERS} \
@@ -76,15 +97,16 @@ else
 			-DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX \
 			-DCMAKE_INSTALL_LIBDIR=$INSTALL_PREFIX/lib \
 			-DENABLE_THREADS=${USE_OMP} -DENABLE_OPENMP=${USE_OMP} \
-			-DENABLE_SSE=ON -DENABLE_SSE2=ON -DENABLE_AVX=ON -DENABLE_AVX2=ON \
+			-DENABLE_FLOAT=OFF -DENABLE_SSE=ON -DENABLE_SSE2=ON -DENABLE_AVX=ON -DENABLE_AVX2=ON \
+			-DDISABLE_FORTRAN=ON \
 			-DBUILD_SHARED_LIBS=OFF \
 			-DCMAKE_C_COMPILER="${CCOMPILER}" -DCMAKE_C_FLAGS="${CFLAGS}" \
 			-DCMAKE_REQUIRED_LIBRARIES="m"
 		# Build
 		make -j $(getconf _NPROCESSORS_ONLN)
 		make install
-		# Cleanup
 		cd ..
-		rm -rf fftw-${VERS}.tar.gz fftw-${VERS} build_deps
+		# Cleanup
+		rm -rf fftw-${VERS}.tar.gz fftw-${VERS} build_deps build_deps_float
 	fi
 fi

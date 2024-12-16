@@ -28,9 +28,13 @@ for partID,partName in zip(ids,names):
 	print(mesh)
 	# Create a serial partition table
 	ptable = pyLOM.PartitionTable.new(1,mesh.ncells,mesh.npoints)
+	mesh.partition_table = ptable
 	print(ptable)
 	# Create a pyLOM dataset
-	d = pyLOM.Dataset(ptable=ptable, mesh=mesh, time=np.zeros((1,), dtype=np.double))
+	d = pyLOM.Dataset(xyz=mesh.xyz, ptable=ptable, order=mesh.pointOrder, point=True,
+		# Add the time as the only variable
+		vars  = {'time':{'idim':0,'value':np.zeros((1,), dtype=np.double)}},
+	)
 	# Add variables to dataset
 	X_VAR = np.zeros((mesh.npoints,1),dtype=np.double)
 	for v in case.get_variables():
@@ -38,8 +42,9 @@ for partID,partName in zip(ids,names):
 		d.add_variable(v,True,1,X_VAR.copy())
 	print(d)
 	# Store dataset to disk - pyLOM format
+	mesh.save(name+'.h5') 
 	d.save(name+'.h5')
 	# Store dataset to disk - vtkhdf format
-	d.write(name+'.hdf',vars=case.get_variables(),fmt='vtkhdf')
+	pyLOM.io.pv_writer(mesh,d,name+'.hdf',vars=case.get_variables(),fmt='vtkhdf')
 
 pyLOM.cr_info()

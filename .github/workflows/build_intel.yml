@@ -13,12 +13,20 @@ defaults:
 
 jobs:    
   build_intel:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       CC: mpiicc
       CXX: mpiicpc
       FC: mpiifort
     steps:
+      # Free up some disk space in the runner
+      - name: Maximize build space
+        uses: AdityaGarg8/remove-unwanted-software@v4.1
+        with:
+          remove-android: 'true'
+          remove-dotnet:  'true'
+          remove-haskell: 'true'
+          remove-codeql:  'true'
       - uses: actions/checkout@v3
       # Setup Intel MPI and Python for this job
       - name: Intel Apt repository
@@ -31,23 +39,23 @@ jobs:
           sudo apt-get update
       - name: Install Intel oneAPI
         timeout-minutes: 5
-        run: sudo apt-get install intel-oneapi-compiler-fortran intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic intel-oneapi-mpi intel-oneapi-mpi-devel 
+        run: sudo apt-get install intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic intel-oneapi-mpi intel-oneapi-mpi-devel 
         #intel-oneapi-mkl
       - name: Setup Intel oneAPI environment
         run: |
           source /opt/intel/oneapi/setvars.sh
           printenv >> $GITHUB_ENV
-      - name: Set up Python 3.8.5
+      - name: Set up Python 3.9.15
         uses: actions/setup-python@v3
         with:
-          python-version: 3.8.5
+          python-version: 3.9.15
       # Run pyLOM compilation and deployment
       - name: Set up configuration
         run: |
           sed -i 's/USE_MKL       = OFF/USE_MKL       = ON/g' options.cfg
           sed -i 's/FORCE_GCC     = ON/FORCE_GCC     = OFF/g' options.cfg
       - name: Set up dependencies
-        run: make deps requirements
+        run: make deps requirements_full
 #      - name: Fix h5py
 #        run: CC=mpicc HDF5_MPI="ON" pip install --no-binary=h5py h5py
       - name: Build compiled code

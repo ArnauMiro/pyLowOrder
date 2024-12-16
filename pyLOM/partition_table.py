@@ -20,16 +20,16 @@ class PartitionTable(object):
 	partition used for the given dataset or  it can generate
 	a new partition
 	'''
-	@mem('PartTable')
 	def __init__(self,nparts,ids,elements,points,has_master=False):
 		'''
 		Class constructor
 		'''
-		self._nparts      = nparts
-		self._ids         = ids
-		self._elements    = elements
-		self._master      = has_master if MPI_SIZE > 1 else False
-		self._points      = points
+		self._nparts   = nparts
+		self._ids      = ids
+		self._elements = elements
+		self._master   = has_master if MPI_SIZE > 1 else False
+		self._points   = points
+		self._inods    = None
 
 	def __str__(self):
 		out  = 'Partition Table:\nnumber of partitions: %d\n' % self.n_partitions
@@ -53,17 +53,23 @@ class PartitionTable(object):
 		iend     = istart + table[this_idx][0]*ndim
 		return istart, iend
 
+	@cr('PartTable.set_ppoints')
+	def create_partition_points(self,conec):
+		'''
+		Find which nodes this partition has
+		'''
+		self._inods = np.unique(conec.flatten())
+		self.update_points(self._inods.shape[0])
+
 	@cr('PartTable.ppoints')
-	def partition_points(self,rank,npoints,conec,ndim=1):
+	def partition_points(self,npoints,ndim=1):
 		'''
 		Compute the points to be read for this partition
 		'''
-		# Find which nodes this partition has
-		thenods = np.unique(conec.flatten())
 		mynods  = np.array([],np.int32)
 		# Deal with multiple dimensions
 		for idim in range(ndim):
-			mynods = np.hstack((mynods,thenods+idim*npoints))
+			mynods = np.hstack((mynods,self._inods+idim*npoints))
 		return mynods		
 
 	@cr('PartTable.reorder')
@@ -121,16 +127,16 @@ class PartitionTable(object):
 		return cls(nparts,ids,elements,points,has_master=has_master)
 
 	@classmethod
-	@cr('PartTable.from_pyAlya')
-	def from_pyAlya(cls,ptable,has_master=True):
+	@cr('PartTable.from_pyQvarsi')
+	def from_pyQvarsi(cls,ptable,porder=1,has_master=False):
 		'''
 		Create a partition table from a partition table coming
-		from Alya
+		from pyQvarsi
 		'''
 		nparts   = ptable.n_partitions
 		ids      = np.arange(1,nparts+1,dtype=np.int32)
 		points   = ptable.Points
-		elements = ptable.Elements
+		elements = ptable.Elements*porder**3
 		return cls(nparts,ids,elements,points,has_master=has_master)		
 
 	@property
@@ -148,3 +154,9 @@ class PartitionTable(object):
 	@property
 	def has_master(self):
 		return self._master
+	@property
+	def nodes(self):
+		return self._inods
+	@nodes.setter
+	def nodes(self,inods):
+		self._inods = inods

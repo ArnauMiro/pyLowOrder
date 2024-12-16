@@ -31,18 +31,22 @@ print(mesh)
 
 ## Create partition table
 ptable = pyLOM.PartitionTable.new(1,mesh.ncells,mesh.npoints)
+mesh.partition_table = ptable
 print(ptable)
 
 
 ## Create dataset for pyLOM
-d = pyLOM.Dataset(ptable=ptable, mesh=mesh, time=DT*np.arange(mat['p'].shape[2])+0.04,
+d = pyLOM.Dataset(xyz=mesh.xyz, ptable=ptable, order=mesh.pointOrder, point=True,
+	# Add the time as the only variable
+	vars  = {'time':{'idim':0,'value':DT*np.arange(mat['p'].shape[2])+0.04}},
 	# Now add all the arrays to be stored in the dataset
 	# It is important to convert them as C contiguous arrays
-	PRESS = {'point':True,'ndim':1,'value':np.ascontiguousarray(mat['p'].reshape((mesh.npoints, 5000)).astype(np.double))},
+	PRESS = {'ndim':1,'value':np.ascontiguousarray(mat['p'].reshape((mesh.npoints, 5000)).astype(np.double))},
 )
 print(d)
 
-# Store dataset
-d.save(OUTFILE)
+mesh.save(OUTFILE) # Store the mesh
+d.save(OUTFILE)    # Store dataset
+
 
 pyLOM.cr_info()

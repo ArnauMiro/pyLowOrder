@@ -143,7 +143,7 @@ endif
 
 # General rule to build dependencies
 #
-deps: vector_matrix fft requirements
+deps: vector_matrix fft
 
 
 # Python
@@ -154,6 +154,15 @@ python: setup.py
 
 requirements: requirements.txt
 	@${PIP} install -r $<
+
+requirements_optional: requirements_optional.txt
+	@${PIP} install -r $<
+
+requirements_NN: requirements_NN.txt
+	@${PIP} install -r $<
+
+requirements_full: requirements requirements_optional requirements_NN
+
 
 install: requirements python
 	@CC="${CC}" CFLAGS="${CFLAGS} ${DFLAGS}" CXX="${CXX}" CXXFLAGS="${CXXFLAGS} ${DFLAGS}" LDSHARED="${CC} -shared" ${PIP} install --no-deps --use-pep517 .

@@ -14,16 +14,18 @@ If you find this repository useful, please cite it:
 ```
 @misc{pyLOM,
   author    = {Eiximeno, Benet and Begiashvili, Beka and Miro, Arnau and Valero, Eusebio and Lehmkuhl, Oriol},
-  title     = {pyLOM: Low order modelling in python,
+  title     = {pyLOM: Low order modelling in Python},
   year      = {2022},
   publisher = {Barcelona Supercomputing Center},
   journal   = {GitHub repository},
   url       = {https://github.com/ArnauMiro/UPM_BSC_LowOrder},
 }
 ```
-The POD formulation used in this tool can be found in the following paper:
+The POD formulation used in this tool can be found in the following papers:
 
 Eiximeno, B., Miró, A., Cajas, J.C., Lehmkuhl, O., Rodriguez, I., 2022. On the Wake Dynamics of an Oscillating Cylinder via Proper Orthogonal Decomposition. Fluids 7, 292. https://doi.org/10.3390/fluids7090292
+
+Eiximeno, B., Miró, A., Begiashvili, B., Valero, E., Rodriguez, I., Lehmkhul, O., 2025. PyLOM: A HPC open source reduced order model suite for fluid dynamics applications. Computer Physics Communications 308, 109459. https://doi.org/10.1016/j.cpc.2024.109459
 
 <details><summary>Bibtex</summary>
 <p>
@@ -39,6 +41,18 @@ Eiximeno, B., Miró, A., Cajas, J.C., Lehmkuhl, O., Rodriguez, I., 2022. On the 
 	author = {Eiximeno, Benet and Miró, Arnau and Cajas, Juan Carlos and Lehmkuhl, Oriol and Rodriguez, Ivette},
 	year = {2022},
 	pages = {292},
+}
+
+@article{eiximeno_pylom_2025,
+	title = {{PyLOM}: {A} {HPC} open source reduced order model suite for fluid dynamics applications},
+	volume = {308},
+	issn = {00104655},
+	doi = {10.1016/j.cpc.2024.109459},
+	journal = {Computer Physics Communications},
+	author = {Eiximeno, Benet and Miró, Arnau and Begiashvili, Beka and Valero, Eusebio and Rodriguez, Ivette and Lehmkhul, Oriol},
+	month = mar,
+	year = {2025},
+	pages = {109459},
 }
 ```
 	
