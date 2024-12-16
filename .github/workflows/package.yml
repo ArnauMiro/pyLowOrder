@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   deploy:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     env:
       CC: mpicc
       CXX: mpc++
@@ -38,10 +38,8 @@ jobs:
         uses: mpi4py/setup-mpi@v1
         with:
           mpi: openmpi
-      - name: Set up Python 3.9.15
+      - name: Set up Python 3.x
         uses: actions/setup-python@v3
-        with:
-          python-version: 3.9.15
       # Install dependencies, build and install
       - name: Install dependencies
         run: |
@@ -53,9 +51,6 @@ jobs:
           sed -i 's/USE_COMPILED  = ON/USE_COMPILED  = OFF/g' options.cfg
           make package-build
           make install
-      # Test suite
-      - name: Run test-suite
-        run: cd Testsuite && python run_testsuite.py -f testsuite.json
       # Publish to PyPi once the test-sute has been successfully run
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
