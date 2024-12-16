@@ -8,7 +8,7 @@
 from __future__ import print_function
 
 import numpy as np
-from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, matmulp, vandermondeTime, variable_projection_optimizer
+from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, randomized_svd, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, matmulp, vandermondeTime, variable_projection_optimizer
 from ..POD          import truncate
 from ..utils.cr     import cr, cr_start, cr_stop
 from ..utils.errors import raiseError
@@ -50,7 +50,7 @@ def _optimized_modes(U, S, VT, Atilde, t):
 	H = np.matmul(np.diag(S), VT).T
 
 	#Eigendecomposition of Atilde for initailization of the variable projection optimization algorithm
-	iniReal, iniImag, iniW=  eigen(Atilde)
+	iniReal, iniImag, iniW = eigen(Atilde)
 	#Optimization of eigenvalues
 	B, alpha = variable_projection_optimizer(H, iniReal, iniImag, t[:H.shape[0]])
 	#Compute modes and amplitudes
@@ -133,7 +133,7 @@ def run(X, r, remove_mean = True):
 		return muReal, muImag, Phi, bJov
 
 @cr('DMD.run_optimized')
-def run_optimized(X, t, r, constraints=None, remove_mean=True):
+def run_optimized(X, t, r, constraints=None, remove_mean=True, q=3):
 	'''
 	DMD analysis of snapshot matrix X
 	Inputs:
@@ -161,14 +161,12 @@ def run_optimized(X, t, r, constraints=None, remove_mean=True):
 	##Initialize the eigenvalues using the exact DMD
 	#Compute SVD
 	cr_start('DMD.SVD',0)
-	U, S, VT = tsqr_svd(Y[:, :-1])
+	U, S, VT = randomized_svd(Y[:,:-1], int(r), q) if r >= 1 else tsqr_svd(Y[:, :-1])
 	cr_stop('DMD.SVD',0)
 	# Truncate according to residual
-	cr_start('DMD.truncate', 0)
-	U, S, VT = truncate(U, S, VT, r)
-	cr_stop('DMD.truncate', 0)
+	U, S, VT = truncate(U, S, VT, r) if r < 1 else U, S, VT
 
-	#Project A (Jacobian of the snapshots) into POD basis
+	#Project into POD basis
 	cr_start('DMD.linear_mapping',0)
 	aux1   = matmulp(transpose(U), Y[:, 1:])
 	aux2   = transpose(vecmat(1./S, VT))
