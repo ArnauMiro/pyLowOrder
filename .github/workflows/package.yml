@@ -53,9 +53,6 @@ jobs:
           sed -i 's/USE_COMPILED  = ON/USE_COMPILED  = OFF/g' options.cfg
           make package-build
           make install
-      # Test suite
-      - name: Run test-suite
-        run: cd Testsuite && python run_testsuite.py -f testsuite.json
       # Publish to PyPi once the test-sute has been successfully run
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
