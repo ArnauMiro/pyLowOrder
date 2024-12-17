@@ -251,7 +251,7 @@ def tsqr(Ai):
 	Qi = matmul(Q1i, QW)
 	return Qi,R
 
-@cr('math.randomized_svd')
+@cr('math.randomized_qr')
 def randomized_qr(Ai, r, q):
 	'''
 	Ai(m,n)  data matrix dispersed on each processor.
