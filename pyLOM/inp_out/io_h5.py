@@ -61,7 +61,7 @@ def h5_save_meshes(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	file.create_dataset('npoints',(1,),dtype='i4',data=npointG)
 	file.create_dataset('ncells' ,(1,),dtype='i4',data=ncellG)
 	# Create the rest of the datasets for parallel storage
-	dxyz   = file.create_dataset('xyz',(npointG,ndim),dtype='f8')
+	dxyz   = file.create_dataset('xyz',(npointG,ndim),dtype=xyz.dtype)
 	dconec = file.create_dataset('connectivity',(ncellG,nnodcell),dtype='i4')
 	deltyp = file.create_dataset('eltype',(ncellG,),dtype='u1')
 	dcellO = file.create_dataset('cellOrder',(ncellG,),dtype='i4')
@@ -94,7 +94,7 @@ def h5_save_meshes_nopartition(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	file.create_dataset('npoints',(1,),dtype='i4',data=npointG)
 	file.create_dataset('ncells' ,(1,),dtype='i4',data=ncellG)
 	# Create the rest of the datasets for parallel storage
-	dxyz   = file.create_dataset('xyz',(npointG,ndim),dtype='f8')
+	dxyz   = file.create_dataset('xyz',(npointG,ndim),dtype=xyz.dtype)
 	dconec = file.create_dataset('connectivity',(ncellG,nnodcell),dtype='i4')
 	deltyp = file.create_dataset('eltype',(ncellG,),dtype='u1')
 	dcellO = file.create_dataset('cellOrder',(ncellG,),dtype='i4')
@@ -689,9 +689,9 @@ def h5_save_POD(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
 	group.create_dataset('pointData',(1,),dtype='u1',data=pointData)
 	group.create_dataset('n_variables',(1,),dtype='u1',data=nvars)
 	Usize = (mpi_reduce(U.shape[0],op='sum',all=True),U.shape[1])
-	dsetU = group.create_dataset('U',Usize,dtype='f8')
-	dsetS = group.create_dataset('S',S.shape,dtype='f8')
-	dsetV = group.create_dataset('V',V.shape,dtype='f8')
+	dsetU = group.create_dataset('U',Usize,dtype=U.dtype)
+	dsetS = group.create_dataset('S',S.shape,dtype=S.dtype)
+	dsetV = group.create_dataset('V',V.shape,dtype=V.dtype)
 	# Store S and U that are repeated across the ranks
 	# So it is enough that one rank stores them
 	if is_rank_or_serial(0):
@@ -749,7 +749,7 @@ def h5_save_DMD(fname,muReal,muImag,Phi,bJov,ptable,nvars=1,pointData=True,mode=
 	group.create_dataset('n_variables',(1,),dtype='u1',data=nvars)
 	Phisz = (mpi_reduce(Phi.shape[0],op='sum',all=True),Phi.shape[1])
 	dsPhi = group.create_dataset('Phi',Phisz,dtype=Phi.dtype)
-	dsMu  = group.create_dataset('Mu',(muReal.shape[0],2),dtype='f8')
+	dsMu  = group.create_dataset('Mu',(muReal.shape[0],2),dtype=muReal.dtype)
 	dsJov = group.create_dataset('bJov',bJov.shape,dtype=bJov.dtype)
 	# Store S and U that are repeated across the ranks
 	# So it is enough that one rank stores them
