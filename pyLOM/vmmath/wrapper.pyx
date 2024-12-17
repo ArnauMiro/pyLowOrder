@@ -98,12 +98,14 @@ cdef extern from "svd.h":
 	cdef int c_ssvd            "ssvd"           (float *U,  float *S, float *V,  float *Y,    const int m, const int n)
 	cdef int c_stsqr           "stsqr"          (float *Qi, float *R, float *Ai, const int m, const int n, MPI_Comm comm)
 	cdef int c_stsqr_svd       "stsqr_svd"      (float *Ui, float *S, float *VT, float *Ai,   const int m, const int n, MPI_Comm comm)
+	cdef int c_srandomized_qr  "srandomized_qr" (float *Qi, float *B, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
 	cdef int c_srandomized_svd "srandomized_svd"(float *Ui, float *S, float *VT, float *Ai,   const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
 	# Double precision
 	cdef int c_dqr             "dqr"            (double *Q,  double *R, double *A,  const int m, const int n)
 	cdef int c_dsvd            "dsvd"           (double *U,  double *S, double *V,  double *Y,   const int m, const int n)
 	cdef int c_dtsqr           "dtsqr"          (double *Qi, double *R, double *Ai, const int m, const int n, MPI_Comm comm)
 	cdef int c_dtsqr_svd       "dtsqr_svd"      (double *Ui, double *S, double *VT, double *Ai,  const int m, const int n, MPI_Comm comm)
+	cdef int c_drandomized_qr  "drandomized_qr" (double *Qi, double *R, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
 	cdef int c_drandomized_svd "drandomized_svd"(double *Ui, double *S, double *VT, double *Ai,  const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
 	# Single complex precision
 	cdef int c_cqr        "cqr"      (np.complex64_t *Q,  np.complex64_t *R, np.complex64_t *A,  const int m,        const int n)
@@ -1125,6 +1127,64 @@ def tsqr_svd(real_full[:,:] A):
 		return _dtsqr_svd(A)
 	else:
 		return _stsqr_svd(A)
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def _srandomized_qr(float[:,:] A, int r, int q):
+	'''
+	Parallel Randomized QR factorization using Lapack.
+		Q(m,r)   
+		B(r,n)  
+	'''
+	cdef int retval
+	cdef int m = A.shape[0], n = A.shape[1]
+	cdef unsigned int seed = <int>time(NULL)
+	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
+	cdef np.ndarray[np.float32_t,ndim=2] Q = np.zeros((m,r),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=2] B = np.zeros((r,n),dtype=np.float32)
+	# Compute SVD using randomized algorithm
+	retval = c_srandomized_qr(&Q[0,0],&B[0,0],&A[0,0],m,n,r,q,seed,MPI_COMM.ob_mpi)
+	if not retval == 0: raiseError('Problems computing Randomized SVD!')
+	return Q,B
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def _drandomized_qr(double[:,:] A, int r, int q):
+	'''
+	Parallel Randomized QR factorization using Lapack.
+		Q(m,r)   
+		B(n,n)    
+	'''
+	cdef int retval
+	cdef int m = A.shape[0], n = A.shape[1]
+	cdef unsigned int seed = <int>time(NULL)
+	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
+	cdef np.ndarray[np.double_t,ndim=2] Q = np.zeros((m,r),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] B = np.zeros((r,n),dtype=np.double)
+	# Compute SVD using randomized algorithm
+	retval = c_drandomized_qr(&Q[0,0],&B[0,0],&A[0,0],m,n,r,q,seed,MPI_COMM.ob_mpi)
+	if not retval == 0: raiseError('Problems computing Randomized SVD!')
+	return Q,B
+
+@cr('math.randomized_qr')
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def randomized_qr(real[:,:] A, const int r, const int q):
+	'''
+	Parallel Single value decomposition (SVD) using Lapack.
+		Q(m,r)   
+		B(n,r)   
+	'''
+	if real is double:
+		return _drandomized_qr(A,r,q)
+	else:
+		return _srandomized_qr(A,r,q)
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
