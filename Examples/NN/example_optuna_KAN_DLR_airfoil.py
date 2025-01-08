@@ -2,7 +2,7 @@
 #
 # Example of KAN with optuna.
 #
-# Last revision: 25/10/2024
+# Last revision: 08/01/2024
 
 import os, torch, numpy as np, optuna, matplotlib.pyplot as plt
 import pyLOM, pyLOM.NN
@@ -93,8 +93,12 @@ optimization_params = {
     "n_layers": (1, 4),
     "print_eval_rate": 2,
     "epochs": 10,
-    "lr_gamma": 0.98,
-    "lr_step_size": 3,
+    "optimizer_class": torch.optim.Adam,
+    "lr_kwargs":{
+        "gamma": (0.95, 0.99),
+        "step_size": 7000
+    },
+    "max_norm_grad": 0.5,
     "model_name": "kan_test_optuna",
     'device': device,
     "layer_type": (pyLOM.NN.ChebyshevLayer, pyLOM.NN.JacobiLayer),
