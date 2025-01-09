@@ -27,7 +27,7 @@ class KAN(nn.Module):
         model_name (str): The name of the model.
         p_dropouts (float, optional): The dropout probability (default: ``0.0``).
         device (torch.device, optional): The device where the model is loaded (default: gpu if available).
-        intro (bool, optional): Whether to print the model information (default: ``True``).
+        verbose (bool, optional): Whether to print the model information (default: ``True``).
         **layer_kwargs: Additional keyword arguments to pass to the layer type. For example, the order of the Taylor series or the degree of the Chebyshev polynomial.
     """
 
@@ -41,7 +41,7 @@ class KAN(nn.Module):
         model_name: str = "KAN",
         p_dropouts: float = 0.0,
         device: torch.device = DEVICE,
-        intro: bool = True,
+        verbose: bool = True,
         **layer_kwargs,
     ):
         super().__init__()
@@ -67,8 +67,8 @@ class KAN(nn.Module):
         self.output = layer_type(hidden_size, output_size, **layer_kwargs)
 
         self.to(self.device)
-        if intro:
-            print(f"Creating model KAN: {self.model_name}")
+        if verbose:
+            pprint(0, f"Creating model KAN: {self.model_name}")
             keys_print = [
                 "input_size",
                 "output_size",
@@ -80,7 +80,7 @@ class KAN(nn.Module):
             ]
             for key in keys_print:
                 print(f"   {key}: {getattr(self, key)}")
-            print(
+            pprint(0,
                 f"   total_size (trained params):   {sum(p.numel() for p in self.parameters() if p.requires_grad)}"
             )
 
@@ -108,7 +108,7 @@ class KAN(nn.Module):
         print_eval_rate: int = 2,
         loss_fn=nn.MSELoss(),
         save_logs_path=None,
-        intro: bool = True,
+        verbose: bool = True,
         max_norm_grad=float("inf"),
         **kwargs,
     ):
@@ -139,7 +139,7 @@ class KAN(nn.Module):
             print_eval_rate (int, optional): The model will be evaluated every ``print_eval_rate`` epochs and the losses will be printed. If set to 0, nothing will be printed (default: ``2``).
             loss_fn (torch.nn.Module, optional): The loss function (default: ``nn.MSELoss()``).
             save_logs_path (str, optional): Path to save the training and evaluation losses (default: ``None``).
-            intro (bool, optional): Whether to print the training information (default: ``True``).
+            verbose (bool, optional): Whether to print the training information (default: ``True``).
             max_norm_grad (float, optional): The maximum norm of the gradients (default: ``float('inf')``).
             kwargs (dict, optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):
                 - batch_size (int, optional): Batch size (default: ``32``).
@@ -147,20 +147,19 @@ class KAN(nn.Module):
                 - num_workers (int, optional): Number of workers to use (default: ``0``).
                 - pin_memory (bool, optional): Pin memory (default: ``True``).
         """
-        if intro:
-            print("   ")
-            print(f"TRAINNING MODEL {self.model_name}")
-            print("   ")
-
-            print("Conditions:")
-            print(f"    epochs:     {epochs}")
-            print(f"    batch size: 2**{int(np.log2(batch_size))}")
-            print(f"    optimizer class:  {optimizer_class}")
-            print(f"    scheduler:  {scheduler_type}")
-            print(f"    loss_fn:  {loss_fn}")
-            print(f"    save_path:  {save_logs_path}")
-            print("   ")
-            print("Scheduler conditions:")
+        if verbose:
+            pprint(0, "   ")
+            pprint(0, f"TRAINNING MODEL {self.model_name}")
+            pprint(0, "   ")
+            pprint(0, "Conditions:")
+            pprint(0, f"    epochs:     {epochs}")
+            pprint(0, f"    batch size: 2**{int(np.log2(batch_size))}")
+            pprint(0, f"    optimizer class:  {optimizer_class}")
+            pprint(0, f"    scheduler:  {scheduler_type}")
+            pprint(0, f"    loss_fn:  {loss_fn}")
+            pprint(0, f"    save_path:  {save_logs_path}")
+            pprint(0, "   ")
+            pprint(0, "Scheduler conditions:")
             for key, value in sorted(lr_kwargs.items()):
                 if isinstance(value, dict):
                     print(f"    {key}:")
@@ -168,7 +167,7 @@ class KAN(nn.Module):
                         print(f"        {subkey}: {subvalue}")
                 else:
                     print(f"    {key}: {value}")
-            print("   ")
+            pprint(0, "   ")
         dataloader_params = {
             "batch_size": batch_size,
             "shuffle": True,
