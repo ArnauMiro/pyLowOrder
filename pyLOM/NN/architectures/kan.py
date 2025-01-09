@@ -2,7 +2,6 @@ import os
 from typing import Dict, Tuple
 
 import numpy as np
-import psutil
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -79,9 +78,9 @@ class KAN(nn.Module):
                 "device",
             ]
             for key in keys_print:
-                print(f"   {key}: {getattr(self, key)}")
+                pprint(0, f"\t{key}: {getattr(self, key)}")
             pprint(0,
-                f"   total_size (trained params):   {sum(p.numel() for p in self.parameters() if p.requires_grad)}"
+                f"\ttotal_size (trained params):\t{sum(p.numel() for p in self.parameters() if p.requires_grad)}"
             )
 
     def forward(self, x):
@@ -148,25 +147,25 @@ class KAN(nn.Module):
                 - pin_memory (bool, optional): Pin memory (default: ``True``).
         """
         if verbose:
-            pprint(0, "   ")
+            pprint(0, "")
             pprint(0, f"TRAINNING MODEL {self.model_name}")
-            pprint(0, "   ")
+            pprint(0, "")
             pprint(0, "Conditions:")
-            pprint(0, f"    epochs:     {epochs}")
-            pprint(0, f"    batch size: 2**{int(np.log2(batch_size))}")
-            pprint(0, f"    optimizer class:  {optimizer_class}")
-            pprint(0, f"    scheduler:  {scheduler_type}")
-            pprint(0, f"    loss_fn:  {loss_fn}")
-            pprint(0, f"    save_path:  {save_logs_path}")
-            pprint(0, "   ")
+            pprint(0, f"\tepochs:     {epochs}")
+            pprint(0, f"\tbatch size: 2**{int(np.log2(batch_size))}")
+            pprint(0, f"\toptimizer class:  {optimizer_class}")
+            pprint(0, f"\tscheduler:  {scheduler_type}")
+            pprint(0, f"\tloss_fn:  {loss_fn}")
+            pprint(0, f"\tsave_path:  {save_logs_path}")
+            pprint(0, "\t")
             pprint(0, "Scheduler conditions:")
             for key, value in sorted(lr_kwargs.items()):
                 if isinstance(value, dict):
-                    print(f"    {key}:")
+                    pprint(0, f"\t{key}:")
                     for subkey, subvalue in sorted(value.items()):
-                        print(f"        {subkey}: {subvalue}")
+                        pprint(0, f"\t{subkey}: {subvalue}")
                 else:
-                    print(f"    {key}: {value}")
+                    pprint(0, f"\t{key}: {value}")
             pprint(0, "   ")
         dataloader_params = {
             "batch_size": batch_size,
@@ -276,15 +275,14 @@ class KAN(nn.Module):
                 current_lr_vec.append(current_lr)
                 if torch.cuda.is_available():
                     mem_used = torch.cuda.memory_allocated() / (1024**2)  # Memory usage in MB
-
+                    memory_usage_str = f", MEM: {mem_used:.2f} MB"
                 else:
-                    mem = psutil.virtual_memory()
-                    mem_used = mem.used / (1024**2)  # Memory usage in MB
+                    memory_usage_str = ""
 
                 pprint(
                     0,
                     f"Epoch {epoch + 1}/{epochs}, Train Loss: {train_loss:.4e}, Test Loss: {test_loss:.4e}, "
-                    f"LR: {current_lr:.2e}, MEM: {mem_used:.2f} MB",
+                    f"LR: {current_lr:.2e}{memory_usage_str}",
                 )
 
         if save_logs_path is not None:
@@ -504,8 +502,10 @@ class KAN(nn.Module):
             >>>     "n_layers": (1, 4),
             >>>     "print_eval_rate": 2,
             >>>     "epochs": 10, # non-optimizable parameter
-            >>>     "lr_gamma": 0.98,
-            >>>     "lr_step_size": 3,
+            >>>    "lr_kwargs":{
+            >>>        "gamma": (0.95, 0.99),
+            >>>        "step_size": 7000
+            >>>    },
             >>>     "model_name": "kan_test_optuna",
             >>>     'device': device,
             >>>     "layer_type": (pyLOM.NN.ChebyshevLayer, pyLOM.NN.JacobiLayer),
