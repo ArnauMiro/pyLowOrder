@@ -2,7 +2,7 @@
 #
 # Example of KAN with xfoil dataset.
 #
-# Last revision: 23/10/2024
+# Last revision: 08/01/2024
 
 import os, numpy as np, torch, matplotlib.pyplot as plt
 import pyLOM, pyLOM.NN
@@ -87,6 +87,12 @@ training_params = {
     'lr_scheduler_step': 10,
     'batch_size': 8,
     "print_eval_rate": 1,
+    "optimizer_class": torch.optim.Adam,
+    "lr_kwargs":{
+        "gamma": 0.95,
+        "step_size": 3 * len(td_train) // 8 # each 3 epochs
+    },
+    "max_norm_grad": 0.5,
     "save_logs_path":RESUDIR,
 }
 
