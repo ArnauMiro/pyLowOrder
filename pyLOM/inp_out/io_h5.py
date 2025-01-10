@@ -174,7 +174,7 @@ def h5_save_points_nopartition(file,xyz,order,ptable,point):
 	Save the points inside the HDF5 file
 	'''
 	# Assume we might be dealing with a parallel mesh
-	npointG = mpi_reduce(order.max(),op='max',all=True) + 1
+	npointG = mpi_reduce(order.max() if order.shape[0] > 0 else 0,op='max',all=True) + 1
 	ndim    = xyz.shape[1]
 	file.create_dataset('pointData',(1,),dtype='i4',data=point)
 	file.create_dataset('npoints',(1,),dtype='i4',data=npointG)
@@ -461,17 +461,7 @@ def h5_append_dset_serial(fname,xyz,varDict,fieldDict,ordering,point,ptable):
 		h5_append_dset_serial.idx     = idx
 		h5_append_dset_serial.npoints = npoints
 	# Check the file version
-	version = tuple(file.attrs['Version'])
-	if not version == PYLOM_H5_VERSION:
-		raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
-	# Obtain from function
-	group   = file['DATASET']
-	ipart   = h5_append_dset_serial.ipart
-	inods   = h5_append_dset_serial.inods
-	idx     = h5_append_dset_serial.idx
-	npoints = h5_append_dset_serial.npoints 
-	# Store the variables
-	h5_fill_variable_datasets(h5_create_variable_datasets(group,varDict,ptable,ipart=ipart),varDict)
+	version = tuple(file.attrs['Version'])point_datasets(group,varDict,ptable,ipart=ipart),varDict)
 	# Store the fields
 	h5_fill_field_datasets(h5_create_field_datasets(group,fieldDict,ptable,ipart=ipart),fieldDict,ptable,point,inods,idx)
 	# Increase the partition counter
