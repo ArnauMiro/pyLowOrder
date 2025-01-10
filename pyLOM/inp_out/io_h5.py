@@ -425,7 +425,7 @@ def h5_append_dset_serial(fname,xyz,varDict,fieldDict,ordering,point,ptable):
 	'''
 	Save a dataset in HDF5 in serial mode
 	'''
-	file = h5py.File(fname,'a')
+	file = h5py.File(fname,'w' if not os.path.exists(fname) else 'a')
 	if not hasattr(h5_append_dset_serial,'ipart'):
 		# Input file does not exist, we create it with the whole structure
 		file.attrs['Version'] = PYLOM_H5_VERSION
@@ -460,7 +460,7 @@ def h5_append_dset_mpio(fname,xyz,varDict,fieldDict,ordering,point,ptable,nopart
 	'''
 	Save a dataset in HDF5 in parallel mode
 	'''
-	file = h5py.File(fname,'a',driver='mpio',comm=MPI_COMM)
+	file = h5py.File(fname,'w' if not os.path.exists(fname) else 'a',driver='mpio',comm=MPI_COMM)
 	if not hasattr(h5_append_dset_mpio,'ipart'):
 		# Input file does not exist, we create it with the whole structure
 		file.attrs['Version'] = PYLOM_H5_VERSION
