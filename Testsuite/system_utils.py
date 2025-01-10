@@ -106,6 +106,6 @@ def assumeOK(n1,n2,relTol=1e-4,zeroTol=1e-15):
 	if (abs(n1) < zeroTol): n1 = 0.
 	if (abs(n2) < zeroTol): n2 = 0.
 	if (abs(n1) < zeroTol) and (abs(n2) < zeroTol): return True
-	m = min(abs(n1),abs(n2))
+	m = min(abs(n1),abs(n2)) + 1e-15
 	d = abs(n1-n2)
 	return True if d/m < relTol else False
