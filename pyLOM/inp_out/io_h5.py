@@ -247,6 +247,28 @@ def h5_load_variables_single(file):
 	# Return
 	return varDict
 
+def h5_load_variables_multi(file,npart):
+	'''
+	Load the variables inside the HDF5 file
+	'''
+	# Scan for variables in first partition and build variable dictionary
+	varDict = {}
+	for v in file['VARIABLES_0'].keys():
+		vargroup = file['VARIABLES_0'][v]
+		# Load point and dimensions
+		ndim = int(vargroup['ndim'][0])
+		# Now allocate output array
+		value =  np.array(vargroup['value'])
+		# Generate dictionary
+		varDict[v] = {'ndim':ndim,'value':value}
+	# Read variables per partition
+	for ipart in range(npart):
+		# Compute start and end of my partition in time
+		vargroup = file['VARIABLES_%d'%ipart][v]
+		varDict[v]['value'] = np.concatenate(varDict[v]['value'],vargroup['value'])
+	# Return
+	return varDict
+
 def h5_create_field_datasets(file,fieldDict,ptable,ipart=-1):
 	'''
 	Create the variable datasets inside an HDF5 file
@@ -449,7 +471,7 @@ def h5_append_dset_serial(fname,xyz,varDict,fieldDict,ordering,point,ptable):
 	idx     = h5_append_dset_serial.idx
 	npoints = h5_append_dset_serial.npoints 
 	# Store the variables
-	h5_fill_variable_datasets(h5_create_variable_datasets(group,varDict,ptable),varDict,ipart=ipart)
+	h5_fill_variable_datasets(h5_create_variable_datasets(group,varDict,ptable,ipart=ipart),varDict)
 	# Store the fields
 	h5_fill_field_datasets(h5_create_field_datasets(group,fieldDict,ptable,ipart=ipart),fieldDict,ptable,point,inods,idx)
 	# Increase the partition counter
@@ -484,7 +506,7 @@ def h5_append_dset_mpio(fname,xyz,varDict,fieldDict,ordering,point,ptable,nopart
 	idx     = h5_append_dset_mpio.idx
 	npoints = h5_append_dset_mpio.npoints 
 	# Store the variables
-	h5_fill_variable_datasets(h5_create_variable_datasets(group,varDict,ptable),varDict,ipart=ipart)
+	h5_fill_variable_datasets(h5_create_variable_datasets(group,varDict,ptable,ipart=ipart),varDict)
 	# Store the fields
 	h5_fill_field_datasets(h5_create_field_datasets(group,fieldDict,ptable,ipart=ipart),fieldDict,ptable,point,inods,idx)
 	# Increase the partition counter
@@ -525,7 +547,7 @@ def h5_load_dset_serial(fname,ptable):
 	# Figure out how many partitions we have
 	npart = np.sum(['VAR' in key for key in group.keys()])
 	# Read the variables
-	varDict   = h5_load_variables_single(group)
+	varDict   = h5_load_variables_single(group) if npart == 1 else h5_load_variables_multi(group,npart)
 	fieldDict = h5_load_fields_single(group,npoints,ptable,varDict,point) if npart == 1 else h5_load_fields_multi(group,npoints,ptable,varDict,point,npart)
 	file.close()
 	return xyz, order, point, ptable, varDict, fieldDict
@@ -554,7 +576,7 @@ def h5_load_dset_mpio(fname,ptable):
 	npoints = xyz.shape[0]
 	npart   = np.sum(['VAR' in key for key in group.keys()])
 	# Read the variables
-	varDict   = h5_load_variables_single(group)
+	varDict   = h5_load_variables_single(group) if npart == 1 else h5_load_variables_multi(group,npart)
 	fieldDict = h5_load_fields_single(group,npoints,ptable,varDict,point) if npart == 1 else h5_load_fields_multi(group,npoints,ptable,varDict,point,npart)
 	file.close()
 	return xyz, order, point, ptable, varDict, fieldDict
