@@ -860,7 +860,7 @@ void srandom_matrix(float *A, int m, int n, unsigned int seed){
 
 	for (int i = 0; i < m; i++) {
 		for (int j = 0; j < n; j++) {
-			AC_MAT(A,n,i,j) = (float)rand() / (float)RAND_MAX;
+			AC_MAT(A,n,i,j) = (float)(rand()) / (float)(RAND_MAX);
 		}
 	}
 }
@@ -874,7 +874,7 @@ void drandom_matrix(double *A, int m, int n, unsigned int seed){
 
 	for (int i = 0; i < m; i++) {
 		for (int j = 0; j < n; j++) {
-			AC_MAT(A,n,i,j) = (double)rand() / (double)RAND_MAX;
+			AC_MAT(A,n,i,j) = (double)(rand()) / (double)(RAND_MAX);
 		}
 	}
 }
