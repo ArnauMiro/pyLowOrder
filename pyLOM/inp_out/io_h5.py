@@ -461,7 +461,17 @@ def h5_append_dset_serial(fname,xyz,varDict,fieldDict,ordering,point,ptable):
 		h5_append_dset_serial.idx     = idx
 		h5_append_dset_serial.npoints = npoints
 	# Check the file version
-	version = tuple(file.attrs['Version'])point_datasets(group,varDict,ptable,ipart=ipart),varDict)
+	version = tuple(file.attrs['Version'])
+	if not version == PYLOM_H5_VERSION:
+		raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
+	# Obtain from function
+	group   = file['DATASET']
+	ipart   = h5_append_dset_serial.ipart
+	inods   = h5_append_dset_serial.inods
+	idx     = h5_append_dset_serial.idx
+	npoints = h5_append_dset_serial.npoints 
+	# Store the variables
+	h5_fill_variable_datasets(h5_create_variable_datasets(group,varDict,ptable,ipart=ipart),varDict)
 	# Store the fields
 	h5_fill_field_datasets(h5_create_field_datasets(group,fieldDict,ptable,ipart=ipart),fieldDict,ptable,point,inods,idx)
 	# Increase the partition counter
