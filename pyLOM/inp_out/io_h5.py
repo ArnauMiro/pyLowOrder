@@ -489,7 +489,7 @@ def h5_append_dset_mpio(fname,xyz,varDict,fieldDict,ordering,point,ptable,nopart
 		# Create dataset group
 		group = file.create_group('DATASET')
 		# Save points
-		inods,idx,npoints = h5_save_points(group,xyz,ordering,ptable,point)
+		inods,idx,npoints = h5_save_points(group,xyz,ordering,ptable,point) if not nopartition else h5_save_points_nopartition(group,xyz,ordering,ptable,point)
 		# Start the partition counter
 		h5_append_dset_mpio.ipart   = 0
 		h5_append_dset_mpio.inods   = inods
