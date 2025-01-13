@@ -11,7 +11,7 @@ import os, torch, numpy as np, torch.nn as nn
 from torch.utils.data import DataLoader
 from typing           import Dict, List, Tuple
 from ..optimizer      import OptunaOptimizer, TrialPruned
-from ..               import DEVICE # pyLOM/NN/__init__.py
+from ..               import DEVICE, set_seed # pyLOM/NN/__init__.py
 from ...              import pprint, cr # pyLOM/__init__.py
 
 
@@ -29,6 +29,7 @@ class MLP(nn.Module):
         checkpoint_file (str, optional): Path to a checkpoint file to load the model from (default: ``None``).
         activation (torch.nn.Module, optional): Activation function to use (default: ``torch.nn.functional.relu``).
         device (torch.device, optional): Device to use (default: ``torch.device("cpu")``).
+        seed (int, optional): Seed for reproducibility (default: ``None``).
         kwargs: Additional keyword arguments.
     """
     def __init__(
@@ -40,6 +41,7 @@ class MLP(nn.Module):
         p_dropouts: float = 0.0,
         activation: torch.nn.Module = torch.nn.functional.relu,
         device: torch.device = DEVICE,
+        seed: int = None,
         **kwargs: Dict,
     ):
         self.input_size = input_size
@@ -51,6 +53,8 @@ class MLP(nn.Module):
         self.device = device
 
         super().__init__()
+        if seed is not None:
+            set_seed(seed)
         self.layers = nn.ModuleList()
         for i in range(n_layers):
             in_size = input_size if i == 0 else hidden_size
