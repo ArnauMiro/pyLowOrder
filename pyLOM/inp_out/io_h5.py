@@ -183,6 +183,8 @@ def h5_save_points_nopartition(file,xyz,order,ptable,point):
 	dpoinO = file.create_dataset('order',(npointG,),dtype='i4')
 	# Skip master if needed
 	if ptable.has_master and MPI_RANK == 0: return None, None, None
+	# Skip empty part
+	if order.shape[0] == 0: return None, None, None
 	# Get the position where the points should be stored
 	inods,idx = np.unique(order,return_index=True)
 	# Write dataset - points
@@ -304,6 +306,7 @@ def h5_fill_field_datasets(dsetDict,fieldDict,ptable,point,inods,idx):
 	'''
 	Fill in the variable datasets inside an HDF5 file
 	'''
+	# TODO: Fix bug here!!
 	# Skip master if needed
 	if ptable.has_master and MPI_RANK == 0: return
 	for var in dsetDict.keys():
