@@ -392,21 +392,21 @@ def h5_load_fields_multi(file,npoints,ptable,varDict,point,npart):
 
 
 @cr('h5IO.save_dset')
-def h5_save_dset(fname,xyz,varDict,fieldDict,ordering,point,ptable,mpio=True,nopartition=False):
+def h5_save_dset(fname,xyz,varDict,fieldDict,ordering,point,ptable,mode='w',mpio=True,nopartition=False):
 	'''
 	Save a Dataset in HDF5
 	'''
 	if mpio and not MPI_SIZE == 1:
-		h5_save_dset_mpio(fname,xyz,varDict,fieldDict,ordering,point,ptable,nopartition)
+		h5_save_dset_mpio(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable,nopartition)
 	else:
-		h5_save_dset_serial(fname,xyz,varDict,fieldDict,ordering,point,ptable)
+		h5_save_dset_serial(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable)
 
-def h5_save_dset_serial(fname,xyz,varDict,fieldDict,ordering,point,ptable):
+def h5_save_dset_serial(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable):
 	'''
 	Save a Dataset in HDF5 in serial mode
 	'''
 	# Open file for writing
-	file = h5py.File(fname,'w' if not os.path.exists(fname) else 'a')
+	file = h5py.File(fname,mode)
 	file.attrs['Version'] = PYLOM_H5_VERSION
 	# Create dataset group
 	group = file.create_group('DATASET')
@@ -418,12 +418,12 @@ def h5_save_dset_serial(fname,xyz,varDict,fieldDict,ordering,point,ptable):
 	h5_fill_field_datasets(h5_create_field_datasets(group,fieldDict,ptable),fieldDict,ptable,point,inods,idx)
 	file.close()
 
-def h5_save_dset_mpio(fname,xyz,varDict,fieldDict,ordering,point,ptable,nopartition):
+def h5_save_dset_mpio(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable,nopartition):
 	'''
 	Save a Dataset in HDF5 in parallel mode
 	'''
 	# Open file
-	file = h5py.File(fname,'w' if not os.path.exists(fname) else 'a',driver='mpio',comm=MPI_COMM)
+	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM)
 	file.attrs['Version'] = PYLOM_H5_VERSION
 	# Create dataset group
 	group = file.create_group('DATASET')
@@ -437,20 +437,20 @@ def h5_save_dset_mpio(fname,xyz,varDict,fieldDict,ordering,point,ptable,nopartit
 
 
 @cr('h5IO.append_dset')
-def h5_append_dset(fname,xyz,varDict,fieldDict,ordering,point,ptable,mpio=True,nopartition=False):
+def h5_append_dset(fname,xyz,varDict,fieldDict,ordering,point,ptable,mode='a',mpio=True,nopartition=False):
 	'''
 	Save a Dataset in HDF5
 	'''
 	if mpio and not MPI_SIZE == 1:
-		h5_append_dset_mpio(fname,xyz,varDict,fieldDict,ordering,point,ptable,nopartition)
+		h5_append_dset_mpio(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable,nopartition)
 	else:
-		h5_append_dset_serial(fname,xyz,varDict,fieldDict,ordering,point,ptable)
+		h5_append_dset_serial(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable)
 
-def h5_append_dset_serial(fname,xyz,varDict,fieldDict,ordering,point,ptable):
+def h5_append_dset_serial(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable):
 	'''
 	Save a dataset in HDF5 in serial mode
 	'''
-	file = h5py.File(fname,'w' if not os.path.exists(fname) else 'a')
+	file = h5py.File(fname,mode)
 	if not hasattr(h5_append_dset_serial,'ipart'):
 		# Input file does not exist, we create it with the whole structure
 		file.attrs['Version'] = PYLOM_H5_VERSION
@@ -481,11 +481,11 @@ def h5_append_dset_serial(fname,xyz,varDict,fieldDict,ordering,point,ptable):
 	h5_append_dset_serial.ipart += 1
 	file.close()
 
-def h5_append_dset_mpio(fname,xyz,varDict,fieldDict,ordering,point,ptable,nopartition):
+def h5_append_dset_mpio(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable,nopartition):
 	'''
 	Save a dataset in HDF5 in parallel mode
 	'''
-	file = h5py.File(fname,'w' if not os.path.exists(fname) else 'a',driver='mpio',comm=MPI_COMM)
+	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM)
 	if not hasattr(h5_append_dset_mpio,'ipart'):
 		# Input file does not exist, we create it with the whole structure
 		file.attrs['Version'] = PYLOM_H5_VERSION
@@ -586,21 +586,21 @@ def h5_load_dset_mpio(fname,ptable):
 
 
 @cr('h5IO.save_mesh')
-def h5_save_mesh(fname,mtype,xyz,conec,eltype,cellO,pointO,ptable,mpio=True,nopartition=False):
+def h5_save_mesh(fname,mtype,xyz,conec,eltype,cellO,pointO,ptable,mode='w',mpio=True,nopartition=False):
 	'''
 	Save a Mesh in HDF5
 	'''
 	if mpio and not MPI_SIZE == 1:
-		h5_save_mesh_mpio(fname,mtype,xyz,conec,eltype,cellO,pointO,ptable,nopartition)
+		h5_save_mesh_mpio(fname,mode,mtype,xyz,conec,eltype,cellO,pointO,ptable,nopartition)
 	else:
-		h5_save_mesh_serial(fname,mtype,xyz,conec,eltype,cellO,pointO,ptable)
+		h5_save_mesh_serial(fname,mode,mtype,xyz,conec,eltype,cellO,pointO,ptable)
 
-def h5_save_mesh_serial(fname,mtype,xyz,conec,eltype,cellO,pointO,ptable):
+def h5_save_mesh_serial(fname,mode,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	'''
 	Save a Mesh in HDF5 in serial mode
 	'''
 	# Open file for writing
-	file = h5py.File(fname,'w' if not os.path.exists(fname) else 'a')
+	file = h5py.File(fname,mode)
 	file.attrs['Version'] = PYLOM_H5_VERSION
 	# Store partition table
 	h5_save_partition(file,ptable)
@@ -610,12 +610,12 @@ def h5_save_mesh_serial(fname,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	h5_save_meshes(group,mtype,xyz,conec,eltype,cellO,pointO,ptable)
 	file.close()
 
-def h5_save_mesh_mpio(fname,mtype,xyz,conec,eltype,cellO,pointO,ptable,nopartition):
+def h5_save_mesh_mpio(fname,mode,mtype,xyz,conec,eltype,cellO,pointO,ptable,nopartition):
 	'''
 	Save a dataset in HDF5 in parallel mode
 	'''
 	# Open file
-	file = h5py.File(fname,'w',driver='mpio',comm=MPI_COMM)
+	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM)
 	file.attrs['Version'] = PYLOM_H5_VERSION
 	# Store partition table
 	h5_save_partition(file,ptable)
