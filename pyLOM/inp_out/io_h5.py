@@ -306,9 +306,10 @@ def h5_fill_field_datasets(dsetDict,fieldDict,ptable,point,inods,idx):
 	'''
 	Fill in the variable datasets inside an HDF5 file
 	'''
-	# TODO: Fix bug here!!
 	# Skip master if needed
 	if ptable.has_master and MPI_RANK == 0: return
+	# Skip empty partition
+	if idx is None: return
 	for var in dsetDict.keys():
 		# Fill dataset
 		dsetDict[var]['ndim'][:]  = fieldDict[var]['ndim']
