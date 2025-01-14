@@ -235,6 +235,15 @@ def h5_create_variable_datasets(file,varDict,ptable,ipart=-1):
 		}
 	return dsetDict
 
+def h5_fill_variable_datasets(dsetDict,varDict):
+	'''
+	Fill in the variable datasets inside an HDF5 file
+	'''
+	for var in dsetDict.keys():
+		# Fill dataset
+		dsetDict[var]['idim'][:]  = varDict[var]['idim']
+		dsetDict[var]['value'][:] = varDict[var]['value']
+
 def h5_load_variables_single(file):
 	'''
 	Load the variables inside the HDF5 file
@@ -292,15 +301,6 @@ def h5_create_field_datasets(file,fieldDict,ptable,ipart=-1):
 			'value' : vargroup.create_dataset('value',dims,dtype=fieldDict[var]['value'].dtype),
 		}
 	return dsetDict
-
-def h5_fill_variable_datasets(dsetDict,varDict):
-	'''
-	Fill in the variable datasets inside an HDF5 file
-	'''
-	for var in dsetDict.keys():
-		# Fill dataset
-		dsetDict[var]['idim'][:]  = varDict[var]['idim']
-		dsetDict[var]['value'][:] = varDict[var]['value']
 
 def h5_fill_field_datasets(dsetDict,fieldDict,ptable,point,inods,idx):
 	'''
