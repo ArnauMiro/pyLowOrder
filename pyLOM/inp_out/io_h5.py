@@ -153,7 +153,7 @@ def h5_save_points(file,xyz,order,ptable,point):
 	'''
 	Save the points inside the HDF5 file
 	'''
-	npointG = mpi_reduce(xyz.shape[0],op='sum',all=True)
+	npointG = mpi_reduce(xyz.shape[0] if not np.any(np.isnan(xyz)) else 0,op='sum',all=True)
 	ndim    = xyz.shape[1]
 	if ptable.has_master: npointG -= 1
 	file.create_dataset('pointData',(1,),dtype='i4',data=point)
@@ -289,7 +289,7 @@ def h5_create_field_datasets(file,fieldDict,ptable,ipart=-1):
 	dsetDict = {}
 	for var in fieldDict.keys():
 		vargroup = group.create_group(var)
-		n     = mpi_reduce(fieldDict[var]['value'].shape[0],op='sum',all=True)
+		n     = mpi_reduce(fieldDict[var]['value'].shape[0] if not np.any(np.isnan(fieldDict[var]['value'])) else 0,op='sum',all=True)
 		if ptable.has_master: n -= 1
 		npoin = int(file['xyz'].shape[0])
 		ndim  = n//npoin
