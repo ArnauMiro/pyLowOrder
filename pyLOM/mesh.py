@@ -179,6 +179,7 @@ class Mesh(object):
 		# H5 format
 		if fmt.lower() == 'h5':
 			# Set default parameters
+			if not 'mode' in kwargs.keys():        kwargs['mode']        = 'w' if not os.path.exists(fname) else 'a'
 			if not 'mpio' in kwargs.keys():        kwargs['mpio']        = True
 			if not 'nopartition' in kwargs.keys(): kwargs['nopartition'] = False
 			# Save
