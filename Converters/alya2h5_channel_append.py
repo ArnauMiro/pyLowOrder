@@ -35,7 +35,7 @@ d = pyLOM.Dataset(xyz=m.xyz, ptable=p, order=m.pointOrder, point=True,
 	# Add the time as the only variable
 	vars  = {'time':{'idim':0,'value':None}}
 )
-m.save('%s.h5'%CASESTR,nopartition=True) 
+m.save('%s_a.h5'%CASESTR,nopartition=True) 
 
 
 ## Build dataset from the instants
