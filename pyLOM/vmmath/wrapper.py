@@ -277,6 +277,54 @@ def randomized_qr(Ai, r, q, seed=None):
 
 	return Qi, B
 
+@cr('math.init_qr_streaming')
+def init_qr_streaming(Ai, r, q, seed=None):
+	'''
+	Ai(m,n)  data matrix dispersed on each processor.
+	r        target number of modes
+
+	Qi(m,r)  
+	B (r,n) 
+	'''
+	_, n  = Ai.shape
+	seed = int(time.time()) if seed == None else seed
+	np.random.seed(seed=seed)
+	omega = np.random.rand(n, r).astype(Ai.dtype)
+	Yi    = matmul(Ai,omega)
+	# QR factorization on A
+	for j in range(q):
+		Qi,_ = tsqr(Yi)
+		Q2i  = matmulp(Ai.T,Qi)
+		Yi   = matmul(Ai,Q2i)
+
+	Qi,_ = tsqr(Yi)
+	B    = matmulp(Qi.T,Ai)
+
+	return Qi, B, Yi
+
+@cr('math.qr_iteration')
+def update_qr_streaming(Ai, Q1, B1, Yo, r, q, seed=None):
+	'''
+	Ai(m,n)  data matrix dispersed on each processor.
+	r        target number of modes
+
+	Qi(m,r)  
+	B (r,n) 
+	'''
+	_, n  = Ai.shape
+	seed = int(time.time()) if seed == None else seed
+	np.random.seed(seed=seed)
+	omega = np.random.rand(n, r).astype(Ai.dtype)
+	Yn    = matmul(Ai,omega)
+	Yo  += Yn
+	Q2,_ = tsqr(Yo)
+	Q2Q1 = matmulp(Q2.T.copy(), Q1)
+	B2o  = matmul(Q2Q1, B1)
+	B2n  = matmulp (Q2.T.copy(), Ai)
+	B2   = np.hstack((B2o, B2n))
+
+	return Q2, B2, Yo
+
 @cr('math.tsqr_svd')
 def tsqr_svd(Ai):
 	'''
@@ -314,9 +362,6 @@ def randomized_svd(Ai, r, q, seed=None):
 	S(n)     singular values.
 	VT(n,n)  right singular vectors (transposed).
 	'''
-	seed = int(time.time()) if seed == None else seed
-	np.random.seed(seed=seed)
-
 	Qi, B    = randomized_qr(Ai,r,q,seed=seed)
 	Ur, S, V = svd(B)
 	
