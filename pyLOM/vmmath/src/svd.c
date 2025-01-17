@@ -1161,7 +1161,11 @@ int supdate_randomized_qr(float *Q1, float *B1, float *B2, float *Yo, float *Ai,
 	}
 	free(At); free(O2); free(Qpi); */
 	
-	// Yo += Yn
+	for (int i = 0; i < m; ++i) {
+        for (int j = 0; j < n; ++j) {
+            AC_MAT(Yo, n, i, j) += AC_MAT(Yn, n, i, j);
+        }
+    }
 
 	// Call TSQR routine with the results from the power iterations
 	float *Q2;
@@ -1191,6 +1195,12 @@ int supdate_randomized_qr(float *Q1, float *B1, float *B2, float *Yo, float *Ai,
 	free(Q2t);
 
 	// Concatenate B2o and B2n
+	memcpy(B2, B2o, r*n1*sizeof(float));
+	memcpy(B2+r*n1, B2n, r* n*sizeof(float));
+
+	//Copy Q2 into Q1
+	memcpy(Q1, Q2, m*r*sizeof(float));
+	free(Q2);
 	
 	return info;
 }
