@@ -1132,7 +1132,7 @@ def tsqr_svd(real_full[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _srandomized_qr(float[:,:] A, int r, int q):
+def _srandomized_qr(float[:,:] A, int r, int q, int seed):
 	'''
 	Parallel Randomized QR factorization using Lapack.
 		Q(m,r)   
@@ -1140,7 +1140,6 @@ def _srandomized_qr(float[:,:] A, int r, int q):
 	'''
 	cdef int retval
 	cdef int m = A.shape[0], n = A.shape[1]
-	cdef unsigned int seed = <int>time(NULL)
 	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef np.ndarray[np.float32_t,ndim=2] Q = np.zeros((m,r),dtype=np.float32)
 	cdef np.ndarray[np.float32_t,ndim=2] B = np.zeros((r,n),dtype=np.float32)
@@ -1153,7 +1152,7 @@ def _srandomized_qr(float[:,:] A, int r, int q):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _drandomized_qr(double[:,:] A, int r, int q):
+def _drandomized_qr(double[:,:] A, int r, int q, int seed):
 	'''
 	Parallel Randomized QR factorization using Lapack.
 		Q(m,r)   
@@ -1161,7 +1160,6 @@ def _drandomized_qr(double[:,:] A, int r, int q):
 	'''
 	cdef int retval
 	cdef int m = A.shape[0], n = A.shape[1]
-	cdef unsigned int seed = <int>time(NULL)
 	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef np.ndarray[np.double_t,ndim=2] Q = np.zeros((m,r),dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=2] B = np.zeros((r,n),dtype=np.double)
@@ -1175,22 +1173,23 @@ def _drandomized_qr(double[:,:] A, int r, int q):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def randomized_qr(real[:,:] A, const int r, const int q):
+def randomized_qr(real[:,:] A, const int r, const int q, seed=None):
 	'''
 	Parallel Single value decomposition (SVD) using Lapack.
 		Q(m,r)   
 		B(n,r)   
 	'''
+	cdef unsigned int seed2 = <int>time(NULL) if seed == None else int(seed)
 	if real is double:
-		return _drandomized_qr(A,r,q)
+		return _drandomized_qr(A,r,q,seed2)
 	else:
-		return _srandomized_qr(A,r,q)
+		return _srandomized_qr(A,r,q,seed2)
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _srandomized_svd(float[:,:] A, int r, int q):
+def _srandomized_svd(float[:,:] A, int r, int q, int seed):
 	'''
 	Parallel Randomized Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
@@ -1199,7 +1198,6 @@ def _srandomized_svd(float[:,:] A, int r, int q):
 	'''
 	cdef int retval
 	cdef int m = A.shape[0], n = A.shape[1], mn = min(m,n)
-	cdef unsigned int seed = <int>time(NULL)
 	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef np.ndarray[np.float32_t,ndim=2] U = np.zeros((m,r),dtype=np.float32)
 	cdef np.ndarray[np.float32_t,ndim=1] S = np.zeros((r,) ,dtype=np.float32)
@@ -1213,7 +1211,7 @@ def _srandomized_svd(float[:,:] A, int r, int q):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _drandomized_svd(double[:,:] A, int r, int q):
+def _drandomized_svd(double[:,:] A, int r, int q, int seed):
 	'''
 	Parallel Randomized Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
@@ -1222,7 +1220,6 @@ def _drandomized_svd(double[:,:] A, int r, int q):
 	'''
 	cdef int retval
 	cdef int m = A.shape[0], n = A.shape[1], mn = min(m,n)
-	cdef unsigned int seed = <int>time(NULL)
 	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,r),dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((r,) ,dtype=np.double)
@@ -1237,17 +1234,18 @@ def _drandomized_svd(double[:,:] A, int r, int q):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def randomized_svd(real[:,:] A, const int r, const int q):
+def randomized_svd(real[:,:] A, const int r, const int q, seed=None):
 	'''
 	Parallel Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
 		S(n)     are the singular values.
 		V(n,n)   are the right singular vectors.
 	'''
+	cdef unsigned int seed2 = <int>time(NULL) if seed == None else int(seed)
 	if real is double:
-		return _drandomized_svd(A,r,q)
+		return _drandomized_svd(A,r,q,seed2)
 	else:
-		return _srandomized_svd(A,r,q)
+		return _srandomized_svd(A,r,q,seed2)
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
