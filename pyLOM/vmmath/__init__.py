@@ -9,7 +9,7 @@
 # Vector matrix routines
 from .wrapper import transpose, vector_norm, matmul, matmulp, vecmat, argsort, eigen, polar, cholesky, vandermonde, conj, diag, inv, flip, vandermondeTime
 # Averaging routines
-from .wrapper import temporal_mean, subtract_mean, RMSE
+from .wrapper import temporal_mean, subtract_mean, RMSE, get_Ek
 # SVD routines
 from .wrapper import qr, svd, tsqr, randomized_qr, init_qr_streaming, update_qr_streaming, tsqr_svd, randomized_svd
 # FFT routines
