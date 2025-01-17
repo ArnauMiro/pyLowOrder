@@ -12,7 +12,7 @@
 		"active" : true
 	},
 	"POD_Cylinder_rand": {
-		"name"   : "POD randomized Cylinder 2D (parallel)",
+		"name"   : "POD randomized Cylinder 2D",
 		"module" : "POD",
 		"file"   : "runs/tsuite_POD_randomized.py",
 		"data"   : "DATA/CYLINDER.h5",
@@ -56,7 +56,7 @@
 		"active" : true
 	},
 	"POD_Jet_rand": {
-		"name"   : "POD randomized Jet 2D (parallel)",
+		"name"   : "POD randomized Jet 2D",
 		"module" : "POD",
 		"file"   : "runs/tsuite_POD_randomized.py",
 		"data"   : "DATA/JET.h5",
@@ -100,7 +100,7 @@
 		"active" : true
 	},
 	"POD_T280_rand": {
-		"name"   : "POD randomized Tensor280 3D (parallel)",
+		"name"   : "POD randomized Tensor280 3D",
 		"module" : "POD",
 		"file"   : "runs/tsuite_POD_randomized.py",
 		"data"   : "DATA/TENSOR280.h5",
