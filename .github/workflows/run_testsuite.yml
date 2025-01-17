@@ -3,7 +3,7 @@ run-name: Running test suite of pyLOM by @${{ github.actor }}
 
 on:
   push:
-    branches: [ "main", "develop", "85-fix-random-seed" ]
+    branches: [ "main", "develop" ]
 
 defaults:
   run:
