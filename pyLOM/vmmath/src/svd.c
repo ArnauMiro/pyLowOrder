@@ -1392,15 +1392,15 @@ int dupdate_randomized_qr(double *Q2, double *B2, double *Yn, double *Q1, double
 	// Multiply per a random matrix
 	double *omega;
 	omega = (double*)malloc(n*r*sizeof(double));
-	srandom_matrix(omega,n,r,seed);
-	smatmul(Yn,Ai,omega,m,r,n);
+	drandom_matrix(omega,n,r,seed);
+	dmatmul(Yn,Ai,omega,m,r,n);
 	free(omega); 
 
 	// Transpose A
 	
 	double *At;
 	At = (double*)malloc(n*m*sizeof(double));
-	stranspose(Ai,At,m,n);
+	dtranspose(Ai,At,m,n);
 
 	// Do power iterations
 	
@@ -1409,9 +1409,9 @@ int dupdate_randomized_qr(double *Q2, double *B2, double *Yn, double *Q1, double
 	Qpi = (double*)malloc(m*r*sizeof(double));
 	O2  = (double*)malloc(n*r*sizeof(double));
 	for(ii=0;ii<q;++ii){
-		info = stsqr(Qpi,R,Yn,m,r,comm);
-		smatmulp(O2,At,Qpi,n,r,m);
-		smatmul(Yn,Ai,O2,m,r,n);
+		info = dtsqr(Qpi,R,Yn,m,r,comm);
+		dmatmulp(O2,At,Qpi,n,r,m);
+		dmatmul(Yn,Ai,O2,m,r,n);
 	}
 	free(At); free(O2); free(Qpi);
 	
@@ -1422,29 +1422,29 @@ int dupdate_randomized_qr(double *Q2, double *B2, double *Yn, double *Q1, double
     }
 
 	// Call TSQR routine with the results from the power iterations
-	info = stsqr(Q2,R,Yn,m,r,comm);
+	info = dtsqr(Q2,R,Yn,m,r,comm);
 	free(R);
 
 	// Transpose Q2t
 	double *Q2t;
 	Q2t = (double*)malloc(r*m*sizeof(double));
-	stranspose(Q2,Q2t,m,r);
+	dtranspose(Q2,Q2t,m,r);
 
 	//Compute B modifier Q2.T*Q1
 	double *Q2Q1;
 	Q2Q1 = (double*)malloc(r*r*sizeof(double));
-	smatmulp(Q2Q1,Q2t,Q1,r,r,m);
+	dmatmulp(Q2Q1,Q2t,Q1,r,r,m);
 
 	// Modify current B
 	double *B2o;
 	B2o = (double*)malloc(r*n1*sizeof(double));
-	smatmul(B2o,Q2Q1,B1,r,n1,r);
+	dmatmul(B2o,Q2Q1,B1,r,n1,r);
 	free(Q2Q1);
 
 	// Compute new chunk of B = Q2.T x A
 	double *B2n;
 	B2n = (double*)malloc(r*n*sizeof(double));
-	smatmulp(B2n,Q2t,Ai,r,n,m);
+	dmatmulp(B2n,Q2t,Ai,r,n,m);
 	free(Q2t);
 
 	// Concatenate B2o and B2n

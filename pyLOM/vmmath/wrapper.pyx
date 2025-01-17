@@ -111,6 +111,7 @@ cdef extern from "svd.h":
 	cdef int c_dtsqr_svd            "dtsqr_svd"      (double *Ui, double *S, double *VT, double *Ai,  const int m, const int n, MPI_Comm comm)
 	cdef int c_drandomized_qr       "drandomized_qr" (double *Qi, double *R, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
 	cdef int c_dinit_randomized_qr  "dinit_randomized_qr" (double *Qi, double *R, double *Y, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
+	cdef int c_dupdate_randomized_qr  "dupdate_randomized_qr" (double *Q2, double *B2, double *Yn, double *Q1, double *B1, double *Yo, double *Ai, const int m, const int n, const int n1, const int n2, const int r, const int q, unsigned int seed, MPI_Comm comm)
 	cdef int c_drandomized_svd      "drandomized_svd"(double *Ui, double *S, double *VT, double *Ai,  const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
 	# Single complex precision
 	cdef int c_cqr        "cqr"      (np.complex64_t *Q,  np.complex64_t *R, np.complex64_t *A,  const int m,        const int n)
@@ -1263,11 +1264,33 @@ def _supdate_qr_streaming(float[:,:] Q1, float[:,:] B1, float[:,:] Yo, float[:,:
 	cdef int m  = A.shape[0], n = A.shape[1], n1 = B1.shape[1]
 	cdef int n2 = n1+n
 	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
-	cdef np.ndarray[np.float32_t,ndim=2] Q2 = np.zeros((m,r),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=2] Q2 = np.zeros((m,r), dtype=np.float32)
 	cdef np.ndarray[np.float32_t,ndim=2] B2 = np.zeros((r,n2),dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=2] Yn = np.zeros((m,r),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=2] Yn = np.zeros((m,r), dtype=np.float32)
 	# Compute SVD using randomized algorithm
 	retval = c_supdate_randomized_qr(&Q2[0,0],&B2[0,0],&Yn[0,0],&Q1[0,0],&B1[0,0],&Yo[0,0],&A[0,0],m,n,n1,n2,r,q,seed,MPI_COMM.ob_mpi)
+	if not retval == 0: raiseError('Problems updating randomized QR!')
+	return Q2,B2,Yn
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def _dupdate_qr_streaming(double[:,:] Q1, double[:,:] B1, double[:,:] Yo, double[:,:] A, int r, int q, int seed):
+	'''
+	Parallel Randomized QR factorization using Lapack.
+		Q(m,r)   
+		B(r,n)  
+	'''
+	cdef int retval
+	cdef int m  = A.shape[0], n = A.shape[1], n1 = B1.shape[1]
+	cdef int n2 = n1+n
+	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
+	cdef np.ndarray[np.double_t,ndim=2] Q2 = np.zeros((m,r), dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] B2 = np.zeros((r,n2),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] Yn = np.zeros((m,r), dtype=np.double)
+	# Compute SVD using randomized algorithm
+	retval = c_dupdate_randomized_qr(&Q2[0,0],&B2[0,0],&Yn[0,0],&Q1[0,0],&B1[0,0],&Yo[0,0],&A[0,0],m,n,n1,n2,r,q,seed,MPI_COMM.ob_mpi)
 	if not retval == 0: raiseError('Problems updating randomized QR!')
 	return Q2,B2,Yn
 
@@ -1284,7 +1307,7 @@ def update_qr_streaming(real[:,:] A, real [:,:] Q1, real[:,:] B1, real[:,:] Yo, 
 	'''
 	cdef unsigned int seed = <int>time(NULL)
 	if real is double:
-		return _dinit_qr_streaming(A,r,q)
+		return _dupdate_qr_streaming(Q1,B1,Yo,A,r,q,seed)
 	else:
 		return _supdate_qr_streaming(Q1,B1,Yo,A,r,q,seed)
 
