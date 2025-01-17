@@ -1271,7 +1271,7 @@ def _supdate_qr_streaming(float[:,:] Q1, float[:,:] B1, float[:,:] Yo, float[:,:
 	if not retval == 0: raiseError('Problems updating randomized QR!')
 	return Q2,B2,Yn
 
-@cr('math.update_qr_streaming')
+@cr('math.qr_iteration')
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
