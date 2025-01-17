@@ -17,7 +17,7 @@
 		"file"   : "runs/tsuite_POD_randomized.py",
 		"data"   : "DATA/CYLINDER.h5",
 		"var"    : ["VELOX"],
-		"params" : {"r":8, "r_trunc":6, "q":3},
+		"params" : {"r":8, "r_trunc":6, "q":3, "seed":25},
 		"nprocs" : 1,
 		"reset"  : false,
 		"active" : true
@@ -39,7 +39,7 @@
 		"file"   : "runs/tsuite_POD_randomized.py",
 		"data"   : "DATA/CYLINDER.h5",
 		"var"    : ["VELOX"],
-		"params" : {"r":8, "r_trunc":6, "q":3},
+		"params" : {"r":8, "r_trunc":6, "q":3, "seed":25},
 		"nprocs" : 4,
 		"reset"  : false,
 		"active" : true
@@ -61,7 +61,7 @@
 		"file"   : "runs/tsuite_POD_randomized.py",
 		"data"   : "DATA/JET.h5",
 		"var"    : ["PRESS"],
-		"params" : {"r":8, "r_trunc":6, "q":3},
+		"params" : {"r":8, "r_trunc":6, "q":3, "seed":25},
 		"nprocs" : 1,
 		"reset"  : false,
 		"active" : true
@@ -83,7 +83,7 @@
 		"file"   : "runs/tsuite_POD_randomized.py",
 		"data"   : "DATA/JET.h5",
 		"var"    : ["PRESS"],
-		"params" : {"r":8, "r_trunc":6, "q":3},
+		"params" : {"r":8, "r_trunc":6, "q":3, "seed":25},
 		"nprocs" : 4,
 		"reset"  : false,
 		"active" : true
@@ -105,7 +105,7 @@
 		"file"   : "runs/tsuite_POD_randomized.py",
 		"data"   : "DATA/TENSOR280.h5",
 		"var"    : ["VELOX"],
-		"params" : {"r":8, "r_trunc":6, "q":3},
+		"params" : {"r":8, "r_trunc":6, "q":3, "seed":25},
 		"nprocs" : 1,
 		"reset"  : false,
 		"active" : true
@@ -127,7 +127,7 @@
 		"file"   : "runs/tsuite_POD_randomized.py",
 		"data"   : "DATA/TENSOR280.h5",
 		"var"    : ["VELOX"],
-		"params" : {"r":8, "r_trunc":6, "q":3},
+		"params" : {"r":8, "r_trunc":6, "q":3, "seed":25},
 		"nprocs" : 4,
 		"reset"  : false,
 		"active" : true
