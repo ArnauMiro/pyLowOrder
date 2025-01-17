@@ -1117,7 +1117,7 @@ int sinit_randomized_qr(float *Qi, float *B, float *Y, float *Ai, const int m, c
 	return info;
 }
 
-int supdate_randomized_qr(float *Q1, float *B1, float *B2, float *Yo, float *Ai, const int m, const int n, const int n1, const int n2, const int r, const int q, unsigned int seed, MPI_Comm comm) {
+int supdate_randomized_qr(float *Q2, float *B2, float *Yn, float *Q1, float *B1, float *Yo, float *Ai, const int m, const int n, const int n1, const int n2, const int r, const int q, unsigned int seed, MPI_Comm comm) {
 	/*
 		Randomized QR factorization with oversampling and power iterations with the algorithm from
 		
@@ -1132,15 +1132,10 @@ int supdate_randomized_qr(float *Q1, float *B1, float *B2, float *Yo, float *Ai,
 	int ii   = 0;
 	// Multiply per a random matrix
 	float *omega;
-	float *Yn;
 	omega = (float*)malloc(n*r*sizeof(float));
-	Yn    = (float*)malloc(m*r*sizeof(float));
 	srandom_matrix(omega,n,r,seed);
 	smatmul(Yn,Ai,omega,m,r,n);
 	free(omega); 
-
-	float *R;
-	R   = (float*)malloc(r*r*sizeof(float));
 
 	// Transpose A
 	/*
@@ -1163,14 +1158,14 @@ int supdate_randomized_qr(float *Q1, float *B1, float *B2, float *Yo, float *Ai,
 	
 	for (int i = 0; i < m; ++i) {
         for (int j = 0; j < n; ++j) {
-            AC_MAT(Yo, n, i, j) += AC_MAT(Yn, n, i, j);
+            AC_MAT(Yn, n, i, j) += AC_MAT(Yo, n, i, j);
         }
     }
 
 	// Call TSQR routine with the results from the power iterations
-	float *Q2;
-	Q2   = (float*)malloc(m*r*sizeof(float));
-	info = stsqr(Q2,R,Yo,m,r,comm);
+	float *R;
+	R    = (float*)malloc(r*r*sizeof(float));
+	info = stsqr(Q2,R,Yn,m,r,comm);
 	free(R);
 
 	// Transpose Q2t
@@ -1187,6 +1182,7 @@ int supdate_randomized_qr(float *Q1, float *B1, float *B2, float *Yo, float *Ai,
 	float *B2o;
 	B2o = (float*)malloc(r*n1*sizeof(float));
 	smatmul(B2o,Q2Q1,B1,r,n1,r);
+	free(Q2Q1);
 
 	// Compute new chunk of B = Q2.T x A
 	float *B2n;
@@ -1195,13 +1191,10 @@ int supdate_randomized_qr(float *Q1, float *B1, float *B2, float *Yo, float *Ai,
 	free(Q2t);
 
 	// Concatenate B2o and B2n
-	memcpy(B2, B2o, r*n1*sizeof(float));
-	memcpy(B2+r*n1, B2n, r* n*sizeof(float));
+	//memcpy(B2, B2o, r*n1*sizeof(float));
+	//memcpy(B2+r*n1, B2n, r*n*sizeof(float));
+	free(B2n); free(B2o);
 
-	//Copy Q2 into Q1
-	memcpy(Q1, Q2, m*r*sizeof(float));
-	free(Q2);
-	
 	return info;
 }
 

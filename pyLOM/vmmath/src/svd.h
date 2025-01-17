@@ -16,7 +16,7 @@ int stsqr(float *Qi, float *R, float *Ai, const int m, const int n, MPI_Comm com
 int stsqr_svd(float *Ui, float *S, float *VT, float *Ai, const int m, const int n, MPI_Comm comm);
 int srandomized_qr(float *Qi, float *B, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm);
 int sinit_randomized_qr(float *Qi, float *B, float *Y, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm);
-int supdate_randomized_qr(float *Q1, float *B1, float *B2, float *Yo, float *Ai, const int m, const int n, const int n1, const int n2, const int r, const int q, unsigned int seed, MPI_Comm comm);
+int supdate_randomized_qr(float *Q2, float *B2, float *Yn, float *Q1, float *B1, float *Yo, float *Ai, const int m, const int n, const int n1, const int n2, const int r, const int q, unsigned int seed, MPI_Comm comm);
 int srandomized_svd(float *Ui, float *S, float *VT, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm);
 // Double precision version
 int dqr(double *Q, double *R, double *A, const int m, const int n);
