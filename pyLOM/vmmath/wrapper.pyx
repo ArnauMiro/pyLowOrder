@@ -1252,6 +1252,62 @@ def init_qr_streaming(real[:,:] A, const int r, const int q, seed=None):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
+def _supdate_qr_streaming(float[:,:] A, float[:,:] Q1, float[:,:] B1, float[:,:] Yo, int r, int q, int seed):
+	'''
+	Parallel Randomized QR factorization using Lapack.
+		Q(m,r)   
+		B(r,n)  
+	'''
+	cdef int retval
+	cdef int m = A.shape[0], n = A.shape[1], nold = B1.shape[1]
+	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
+	cdef np.ndarray[np.float32_t,ndim=2] B2 = np.zeros((r,nold+n),dtype=np.float32)
+	# Compute SVD using randomized algorithm
+	retval = c_supdate_randomized_qr(&Q1[0,0],&B2[0,0],&B1[0,0],&Yo[0,0],&A[0,0],m,n,r,q,seed,MPI_COMM.ob_mpi)
+	if not retval == 0: raiseError('Problems computing Randomized SVD!')
+	return Q1,B2,Yo
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def _dupdate_qr_streaming(double[:,:] A, int r, int q, int seed):
+	'''
+	Parallel Randomized QR factorization using Lapack.
+		Q(m,r)   
+		B(n,n)    
+	'''
+	cdef int retval
+	cdef int m = A.shape[0], n = A.shape[1]
+	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
+	cdef np.ndarray[np.double_t,ndim=2] Q = np.zeros((m,r),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] Y = np.zeros((m,r),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] B = np.zeros((r,n),dtype=np.double)
+	# Compute SVD using randomized algorithm
+	retval = c_dupdate_randomized_qr(&Q[0,0],&B[0,0],&Y[0,0],&A[0,0],m,n,r,q,seed,MPI_COMM.ob_mpi)
+	if not retval == 0: raiseError('Problems computing Randomized SVD!')
+	return Q,B,Y
+
+@cr('math.update_qr_streaming')
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def update_qr_streaming(real[:,:] A, const int r, const int q):
+	'''
+	Parallel Single value decomposition (SVD) using Lapack.
+		Q(m,r)   
+		B(n,r)   
+	'''
+	if real is double:
+		return _dinit_qr_streaming(A,r,q)
+	else:
+		return _sinit_qr_streaming(A,r,q)
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
 def _srandomized_svd(float[:,:] A, int r, int q, int seed):
 	'''
 	Parallel Randomized Single value decomposition (SVD) using Lapack.

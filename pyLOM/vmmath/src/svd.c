@@ -1117,6 +1117,84 @@ int sinit_randomized_qr(float *Qi, float *B, float *Y, float *Ai, const int m, c
 	return info;
 }
 
+int supdate_randomized_qr(float *Q1, float *B1, float *B2, float *Yo, float *Ai, const int m, const int n, const int n1, const int n2, const int r, const int q, unsigned int seed, MPI_Comm comm) {
+	/*
+		Randomized QR factorization with oversampling and power iterations with the algorithm from
+		
+		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+
+		Ai(m,n)  data matrix dispersed on each processor.
+
+		Qi(m,r)  
+		B (r,n)  
+	*/
+	int info = 0;
+	int ii   = 0;
+	// Multiply per a random matrix
+	float *omega;
+	float *Yn;
+	omega = (float*)malloc(n*r*sizeof(float));
+	Yn    = (float*)malloc(m*r*sizeof(float));
+	srandom_matrix(omega,n,r,seed);
+	smatmul(Yn,Ai,omega,m,r,n);
+	free(omega); 
+
+	float *R;
+	R   = (float*)malloc(r*r*sizeof(float));
+
+	// Transpose A
+	/*
+	float *At;
+	At = (float*)malloc(n*m*sizeof(float));
+	stranspose(Ai,At,m,n);
+
+	// Do power iterations
+	
+	float *R, *O2, *Qpi;
+	R   = (float*)malloc(r*r*sizeof(float));
+	Qpi = (float*)malloc(m*r*sizeof(float));
+	O2  = (float*)malloc(n*r*sizeof(float));
+	for(ii=0;ii<q;++ii){
+		info = stsqr(Qpi,R,Yn,m,r,comm);
+		smatmulp(O2,At,Qpi,n,r,m);
+		smatmul(Yn,Ai,O2,m,r,n);
+	}
+	free(At); free(O2); free(Qpi); */
+	
+	// Yo += Yn
+
+	// Call TSQR routine with the results from the power iterations
+	float *Q2;
+	Q2   = (float*)malloc(m*r*sizeof(float));
+	info = stsqr(Q2,R,Yo,m,r,comm);
+	free(R);
+
+	// Transpose Q2t
+	float *Q2t;
+	Q2t = (float*)malloc(r*m*sizeof(float));
+	stranspose(Q2,Q2t,m,r);
+
+	//Compute B modifier Q2.T*Q1
+	float *Q2Q1;
+	Q2Q1 = (float*)malloc(r*r*sizeof(float));
+	smatmulp(Q2Q1,Q2t,Q1,r,r,m);
+
+	// Modify current B
+	float *B2o;
+	B2o = (float*)malloc(r*n1*sizeof(float));
+	smatmul(B2o,Q2Q1,B1,r,n1,r);
+
+	// Compute new chunk of B = Q2.T x A
+	float *B2n;
+	B2n = (float*)malloc(r*n*sizeof(float));
+	smatmulp(B2n,Q2t,Ai,r,n,m);
+	free(Q2t);
+
+	// Concatenate B2o and B2n
+	
+	return info;
+}
+
 int srandomized_svd(float *Ui, float *S, float *VT, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm) {
 	/*
 		Randomized single value decomposition (SVD) with oversampling and power iterations with the algorithm from
