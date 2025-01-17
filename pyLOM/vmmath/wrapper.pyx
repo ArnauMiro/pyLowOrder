@@ -1268,7 +1268,7 @@ def _supdate_qr_streaming(float[:,:] Q1, float[:,:] B1, float[:,:] Yo, float[:,:
 	cdef np.ndarray[np.float32_t,ndim=2] Yn = np.zeros((m,r),dtype=np.float32)
 	# Compute SVD using randomized algorithm
 	retval = c_supdate_randomized_qr(&Q2[0,0],&B2[0,0],&Yn[0,0],&Q1[0,0],&B1[0,0],&Yo[0,0],&A[0,0],m,n,n1,n2,r,q,seed,MPI_COMM.ob_mpi)
-	if not retval == 0: raiseError('Problems computing Randomized SVD!')
+	if not retval == 0: raiseError('Problems updating randomized QR!')
 	return Q2,B2,Yn
 
 @cr('math.update_qr_streaming')
@@ -1276,7 +1276,7 @@ def _supdate_qr_streaming(float[:,:] Q1, float[:,:] B1, float[:,:] Yo, float[:,:
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def update_qr_streaming(real [:,:] Q1, real[:,:] B1, real[:,:] Yo, real[:,:] A, const int r, const int q):
+def update_qr_streaming(real[:,:] A, real [:,:] Q1, real[:,:] B1, real[:,:] Yo, const int r, const int q):
 	'''
 	Parallel Single value decomposition (SVD) using Lapack.
 		Q(m,r)   

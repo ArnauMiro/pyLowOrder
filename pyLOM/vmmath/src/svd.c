@@ -1156,11 +1156,12 @@ int supdate_randomized_qr(float *Q2, float *B2, float *Yn, float *Q1, float *B1,
 	}
 	free(At); free(O2); free(Qpi); */
 	
-	for (int i = 0; i < m; ++i) {
+	/*for (int i = 0; i < m; ++i) {
         for (int j = 0; j < n; ++j) {
             AC_MAT(Yn, n, i, j) += AC_MAT(Yo, n, i, j);
         }
-    }
+    }*/
+
 
 	// Call TSQR routine with the results from the power iterations
 	float *R;
