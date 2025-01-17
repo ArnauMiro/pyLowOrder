@@ -314,7 +314,6 @@ def update_qr_streaming(Ai, Q1, B1, Yo, r, q):
 	_, n  = Ai.shape
 	omega = np.random.rand(n, r).astype(Ai.dtype)
 	Yn    = matmul(Ai,omega)
-	pprint(0, Yn, flush=True)
 	for jj in range(q):
 		Qpi,_ = tsqr(Yn)
 		O2    = matmulp(Ai.T, Qpi)
