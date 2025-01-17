@@ -1157,8 +1157,8 @@ int supdate_randomized_qr(float *Q2, float *B2, float *Yn, float *Q1, float *B1,
 	free(At); free(O2); free(Qpi); */
 	
 	/*for (int i = 0; i < m; ++i) {
-        for (int j = 0; j < n; ++j) {
-            AC_MAT(Yn, n, i, j) += AC_MAT(Yo, n, i, j);
+        for (int j = 0; j < r; ++j) {
+            AC_MAT(Yn, r, i, j) += AC_MAT(Yo, r, i, j);
         }
     }*/
 
@@ -1192,8 +1192,8 @@ int supdate_randomized_qr(float *Q2, float *B2, float *Yn, float *Q1, float *B1,
 	free(Q2t);
 
 	// Concatenate B2o and B2n
-	//memcpy(B2, B2o, r*n1*sizeof(float));
-	//memcpy(B2+r*n1, B2n, r*n*sizeof(float));
+	memcpy(B2, B2o, r*n1*sizeof(float));
+	memcpy(B2+r*n1, B2n, r*n*sizeof(float));
 	free(B2n); free(B2o);
 
 	return info;
