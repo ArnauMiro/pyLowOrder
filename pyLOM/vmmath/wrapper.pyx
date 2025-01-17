@@ -96,19 +96,21 @@ cdef extern from "averaging.h":
 	cdef void c_dsubtract_mean "dsubtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
 cdef extern from "svd.h":
 	# Single precision
-	cdef int c_sqr             "sqr"            (float *Q,  float *R, float *A,  const int m, const int n)
-	cdef int c_ssvd            "ssvd"           (float *U,  float *S, float *V,  float *Y,    const int m, const int n)
-	cdef int c_stsqr           "stsqr"          (float *Qi, float *R, float *Ai, const int m, const int n, MPI_Comm comm)
-	cdef int c_stsqr_svd       "stsqr_svd"      (float *Ui, float *S, float *VT, float *Ai,   const int m, const int n, MPI_Comm comm)
-	cdef int c_srandomized_qr  "srandomized_qr" (float *Qi, float *B, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
-	cdef int c_srandomized_svd "srandomized_svd"(float *Ui, float *S, float *VT, float *Ai,   const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
+	cdef int c_sqr                  "sqr"            (float *Q,  float *R, float *A,  const int m, const int n)
+	cdef int c_ssvd                 "ssvd"           (float *U,  float *S, float *V,  float *Y,    const int m, const int n)
+	cdef int c_stsqr                "stsqr"          (float *Qi, float *R, float *Ai, const int m, const int n, MPI_Comm comm)
+	cdef int c_stsqr_svd            "stsqr_svd"      (float *Ui, float *S, float *VT, float *Ai,   const int m, const int n, MPI_Comm comm)
+	cdef int c_srandomized_qr       "srandomized_qr" (float *Qi, float *B, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
+	cdef int c_sinit_randomized_qr  "sinit_randomized_qr" (float *Qi, float *B, float *Y, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
+	cdef int c_srandomized_svd      "srandomized_svd"(float *Ui, float *S, float *VT, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
 	# Double precision
-	cdef int c_dqr             "dqr"            (double *Q,  double *R, double *A,  const int m, const int n)
-	cdef int c_dsvd            "dsvd"           (double *U,  double *S, double *V,  double *Y,   const int m, const int n)
-	cdef int c_dtsqr           "dtsqr"          (double *Qi, double *R, double *Ai, const int m, const int n, MPI_Comm comm)
-	cdef int c_dtsqr_svd       "dtsqr_svd"      (double *Ui, double *S, double *VT, double *Ai,  const int m, const int n, MPI_Comm comm)
-	cdef int c_drandomized_qr  "drandomized_qr" (double *Qi, double *R, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
-	cdef int c_drandomized_svd "drandomized_svd"(double *Ui, double *S, double *VT, double *Ai,  const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
+	cdef int c_dqr                  "dqr"            (double *Q,  double *R, double *A,  const int m, const int n)
+	cdef int c_dsvd                 "dsvd"           (double *U,  double *S, double *V,  double *Y,   const int m, const int n)
+	cdef int c_dtsqr                "dtsqr"          (double *Qi, double *R, double *Ai, const int m, const int n, MPI_Comm comm)
+	cdef int c_dtsqr_svd            "dtsqr_svd"      (double *Ui, double *S, double *VT, double *Ai,  const int m, const int n, MPI_Comm comm)
+	cdef int c_drandomized_qr       "drandomized_qr" (double *Qi, double *R, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
+	cdef int c_dinit_randomized_qr  "dinit_randomized_qr" (double *Qi, double *R, double *Y, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
+	cdef int c_drandomized_svd      "drandomized_svd"(double *Ui, double *S, double *VT, double *Ai,  const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
 	# Single complex precision
 	cdef int c_cqr        "cqr"      (np.complex64_t *Q,  np.complex64_t *R, np.complex64_t *A,  const int m,        const int n)
 	cdef int c_csvd       "csvd"     (np.complex64_t *U,  float *S,          np.complex64_t *V,  np.complex64_t *Y,  const int m, const int n)
@@ -1186,6 +1188,65 @@ def randomized_qr(real[:,:] A, const int r, const int q, seed=None):
 		return _drandomized_qr(A,r,q,seed2)
 	else:
 		return _srandomized_qr(A,r,q,seed2)
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def _sinit_qr_streaming(float[:,:] A, int r, int q, int seed):
+	'''
+	Parallel Randomized QR factorization using Lapack.
+		Q(m,r)   
+		B(r,n)  
+	'''
+	cdef int retval
+	cdef int m = A.shape[0], n = A.shape[1]
+	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
+	cdef np.ndarray[np.float32_t,ndim=2] Q = np.zeros((m,r),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=2] Y = np.zeros((m,r),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=2] B = np.zeros((r,n),dtype=np.float32)
+	# Compute SVD using randomized algorithm
+	retval = c_sinit_randomized_qr(&Q[0,0],&B[0,0],&Y[0,0],&A[0,0],m,n,r,q,seed,MPI_COMM.ob_mpi)
+	if not retval == 0: raiseError('Problems computing Randomized SVD!')
+	return Q,B,Y
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def _dinit_qr_streaming(double[:,:] A, int r, int q, int seed):
+	'''
+	Parallel Randomized QR factorization using Lapack.
+		Q(m,r)   
+		B(n,n)    
+	'''
+	cdef int retval
+	cdef int m = A.shape[0], n = A.shape[1]
+	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
+	cdef np.ndarray[np.double_t,ndim=2] Q = np.zeros((m,r),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] Y = np.zeros((m,r),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] B = np.zeros((r,n),dtype=np.double)
+	# Compute SVD using randomized algorithm
+	retval = c_dinit_randomized_qr(&Q[0,0],&B[0,0],&Y[0,0],&A[0,0],m,n,r,q,seed,MPI_COMM.ob_mpi)
+	if not retval == 0: raiseError('Problems computing Randomized SVD!')
+	return Q,B,Y
+
+@cr('math.init_qr_streaming')
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def init_qr_streaming(real[:,:] A, const int r, const int q, seed=None):
+	'''
+	Parallel Single value decomposition (SVD) using Lapack.
+		Q(m,r)   
+		B(n,r)   
+	'''
+	cdef unsigned int seed2 = <int>time(NULL) if seed == None else int(seed)
+	if real is double:
+		return _dinit_qr_streaming(A,r,q,seed2)
+	else:
+		return _sinit_qr_streaming(A,r,q,seed2)
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function

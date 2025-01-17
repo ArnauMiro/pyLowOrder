@@ -1064,6 +1064,59 @@ int srandomized_qr(float *Qi, float *B, float *Ai, const int m, const int n, con
 	return info;
 }
 
+int sinit_randomized_qr(float *Qi, float *B, float *Y, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm) {
+	/*
+		Randomized QR factorization with oversampling and power iterations with the algorithm from
+		
+		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+
+		Ai(m,n)  data matrix dispersed on each processor.
+
+		Qi(m,r)  
+		B (r,n)  
+	*/
+	int info = 0;
+	int ii   = 0;
+	// Multiply per a random matrix
+	float *omega;
+	omega = (float*)malloc(n*r*sizeof(float));
+	srandom_matrix(omega,n,r,seed);
+	smatmul(Y,Ai,omega,m,r,n);
+	free(omega); 
+
+	// Transpose A
+	float *At;
+	At = (float*)malloc(n*m*sizeof(float));
+	stranspose(Ai,At,m,n);
+
+	// Do power iterations
+	
+	float *R, *Q2;
+	R  = (float*)malloc(r*r*sizeof(float));
+	Q2 = (float*)malloc(n*r*sizeof(float));
+	for(ii=0;ii<q;++ii){
+		info = stsqr(Qi,R,Y,m,r,comm);
+		smatmulp(Q2,At,Qi,n,r,m);
+		smatmul(Y,Ai,Q2,m,r,n);
+	}
+	free(At); free(Q2); 
+	
+	// Call TSQR routine with the results from the power iterations
+	info = stsqr(Qi,R,Y,m,r,comm);
+	free(R); 
+
+	// Transpose Q
+	float *Qt;
+	Qt = (float*)malloc(r*m*sizeof(float));
+	stranspose(Qi,Qt,m,r);
+
+	// Compute B = Q.T x A
+	smatmulp(B,Qt,Ai,r,n,m);
+	free(Qt);
+	
+	return info;
+}
+
 int srandomized_svd(float *Ui, float *S, float *VT, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm) {
 	/*
 		Randomized single value decomposition (SVD) with oversampling and power iterations with the algorithm from
@@ -1177,6 +1230,59 @@ int drandomized_qr(double *Qi, double *B, double *Ai, const int m, const int n, 
 	// Call TSQR routine with the results from the power iterations
 	info = dtsqr(Qi,R,Y,m,r,comm);
 	free(R); free(Y); 
+
+	// Transpose Q
+	double *Qt;
+	Qt = (double*)malloc(r*m*sizeof(double));
+	dtranspose(Qi,Qt,m,r);
+
+	// Compute B = Q.T x A
+	dmatmulp(B,Qt,Ai,r,n,m);
+	free(Qt);
+
+	return info;
+}
+
+int dinit_randomized_qr(double *Qi, double *B, double *Y, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm) {
+	/*
+		Randomized QR factorization with oversampling and power iterations with the algorithm from
+		
+		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+
+		Ai(m,n)  data matrix dispersed on each processor.
+
+		Qi(m,r)  
+		B (r,n)  
+	*/
+	int info = 0;
+	int ii   = 0;
+	// Multiply per a random matrix
+	double *omega;
+	omega = (double*)malloc(n*r*sizeof(double));
+	drandom_matrix(omega,n,r,seed);
+	dmatmul(Y,Ai,omega,m,r,n);
+	free(omega); 
+
+	// Transpose A
+	double *At;
+	At = (double*)malloc(n*m*sizeof(double));
+	dtranspose(Ai,At,m,n);
+
+	// Do power iterations
+	
+	double *R, *Q2;
+	R  = (double*)malloc(r*r*sizeof(double));
+	Q2 = (double*)malloc(n*r*sizeof(double));
+	for(ii=0;ii<q;++ii){
+		info = dtsqr(Qi,R,Y,m,r,comm);
+		dmatmulp(Q2,At,Qi,n,r,m);
+		dmatmul(Y,Ai,Q2,m,r,n);
+	}
+	free(At); free(Q2); 
+	
+	// Call TSQR routine with the results from the power iterations
+	info = dtsqr(Qi,R,Y,m,r,comm);
+	free(R);
 
 	// Transpose Q
 	double *Qt;
