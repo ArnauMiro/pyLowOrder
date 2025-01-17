@@ -16,7 +16,7 @@ from ..utils.errors import raiseError
 
 ## POD run method
 @cr('POD.run')
-def run(X,remove_mean=True, randomized=False, r=1, q=3):
+def run(X,remove_mean=True, randomized=False, r=1, q=3, seed=None):
 	'''
 	Run POD analysis of a matrix X.
 
@@ -40,7 +40,7 @@ def run(X,remove_mean=True, randomized=False, r=1, q=3):
 		Y = X.copy()
 	# Compute SVD
 	cr_start('POD.SVD',0)
-	U,S,V = tsqr_svd(Y) if not randomized else randomized_svd(Y, r, q)
+	U,S,V = tsqr_svd(Y) if not randomized else randomized_svd(Y,r,q,seed=seed)
 	cr_stop('POD.SVD',0)
 	# Return
 	return U,S,V

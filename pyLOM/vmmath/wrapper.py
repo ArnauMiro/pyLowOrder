@@ -7,6 +7,7 @@
 # Last rev: 27/10/2021
 from __future__ import print_function, division
 
+import time
 import numpy as np, scipy, nfft
 from mpi4py import MPI
 
@@ -252,7 +253,7 @@ def tsqr(Ai):
 	return Qi,R
 
 @cr('math.randomized_qr')
-def randomized_qr(Ai, r, q):
+def randomized_qr(Ai, r, q, seed=None):
 	'''
 	Ai(m,n)  data matrix dispersed on each processor.
 	r        target number of modes
@@ -261,6 +262,8 @@ def randomized_qr(Ai, r, q):
 	B (r,n) 
 	'''
 	_, n  = Ai.shape
+	seed = int(time.time()) if seed == None else seed
+	np.random.seed(seed=seed)
 	omega = np.random.rand(n, r).astype(Ai.dtype)
 	Yi = matmul(Ai,omega)
 	# QR factorization on A
@@ -302,7 +305,7 @@ def tsqr_svd(Ai):
 	return Ui, S, V
 
 @cr('math.randomized_svd')
-def randomized_svd(Ai, r, q):
+def randomized_svd(Ai, r, q, seed=None):
 	'''
 	Ai(m,n)  data matrix dispersed on each processor.
 	r        target number of modes
@@ -311,7 +314,10 @@ def randomized_svd(Ai, r, q):
 	S(n)     singular values.
 	VT(n,n)  right singular vectors (transposed).
 	'''
-	Qi, B    = randomized_qr(Ai,r,q)
+	seed = int(time.time()) if seed == None else seed
+	np.random.seed(seed=seed)
+
+	Qi, B    = randomized_qr(Ai,r,q,seed=seed)
 	Ur, S, V = svd(B)
 	
 	# Compute Ui = Qi x Ur
