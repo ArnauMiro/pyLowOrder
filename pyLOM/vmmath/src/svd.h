@@ -25,6 +25,7 @@ int dtsqr(double *Qi, double *R, double *Ai, const int m, const int n, MPI_Comm 
 int dtsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm);
 int drandomized_qr(double *Qi, double *B, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm);
 int dinit_randomized_qr(double *Qi, double *B, double *Y, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm);
+int dupdate_randomized_qr(double *Q2, double *B2, double *Yn, double *Q1, double *B1, double *Yo, double *Ai, const int m, const int n, const int n1, const int n2, const int r, const int q, unsigned int seed, MPI_Comm comm);
 int drandomized_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm);
 // Single complex version
 int cqr(scomplex_t *Q, scomplex_t *R, scomplex_t *A, const int m, const int n);
