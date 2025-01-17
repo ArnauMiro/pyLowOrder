@@ -303,7 +303,7 @@ def init_qr_streaming(Ai, r, q, seed=None):
 	return Qi, B, Yi
 
 @cr('math.qr_iteration')
-def update_qr_streaming(Ai, Q1, B1, Yo, r, q, seed=None):
+def update_qr_streaming(Ai, Q1, B1, Yo, r, q):
 	'''
 	Ai(m,n)  data matrix dispersed on each processor.
 	r        target number of modes
@@ -312,16 +312,14 @@ def update_qr_streaming(Ai, Q1, B1, Yo, r, q, seed=None):
 	B (r,n) 
 	'''
 	_, n  = Ai.shape
-	seed = int(time.time()) if seed == None else seed
-	np.random.seed(seed=seed)
 	omega = np.random.rand(n, r).astype(Ai.dtype)
 	Yn    = matmul(Ai,omega)
-	Yo  += Yn
-	Q2,_ = tsqr(Yo)
-	Q2Q1 = matmulp(Q2.T.copy(), Q1)
-	B2o  = matmul(Q2Q1, B1)
-	B2n  = matmulp (Q2.T.copy(), Ai)
-	B2   = np.hstack((B2o, B2n))
+	Yo   += Yn
+	Q2,_  = tsqr(Yo)
+	Q2Q1  = matmulp(Q2.T, Q1)
+	B2o   = matmul(Q2Q1, B1)
+	B2n   = matmulp (Q2.T, Ai)
+	B2    = np.hstack((B2o, B2n))
 
 	return Q2, B2, Yo
 
