@@ -82,7 +82,7 @@ ctypedef fused real:
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _srun(float[:,:] X, int remove_mean, int randomized, int r, int q):
+def _srun(float[:,:] X, int remove_mean, int randomized, int r, int q, int seed):
 	'''
 	Run POD analysis of a matrix X.
 
@@ -99,7 +99,6 @@ def _srun(float[:,:] X, int remove_mean, int randomized, int r, int q):
 	cdef int m = X.shape[0], n = X.shape[1], mn = min(m,n), retval
 	cdef float *X_mean
 	cdef float *Y
-	cdef unsigned int seed = <int>time(NULL)
 	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	# Output arrays
 	r = r if randomized else mn
@@ -135,7 +134,7 @@ def _srun(float[:,:] X, int remove_mean, int randomized, int r, int q):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _drun(double[:,:] X, int remove_mean, int randomized, int r, int q):
+def _drun(double[:,:] X, int remove_mean, int randomized, int r, int q, int seed):
 	'''
 	Run POD analysis of a matrix X.
 
@@ -152,7 +151,6 @@ def _drun(double[:,:] X, int remove_mean, int randomized, int r, int q):
 	cdef int m = X.shape[0], n = X.shape[1], mn = min(m,n), retval
 	cdef double *X_mean
 	cdef double *Y
-	cdef unsigned int seed = <int>time(NULL)
 	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	# Output arrays
 	r = r if randomized else mn
@@ -189,7 +187,7 @@ def _drun(double[:,:] X, int remove_mean, int randomized, int r, int q):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def run(real[:,:] X, int remove_mean=True, int randomized=False, int r=1, int q=3):
+def run(real[:,:] X, int remove_mean=True, int randomized=False, const int r=1, const int q=3, const int seed=-1):
 	'''
 	Run POD analysis of a matrix X.
 
@@ -202,10 +200,11 @@ def run(real[:,:] X, int remove_mean=True, int randomized=False, int r=1, int q=
 		- S:  are the singular values.
 		- V:  are the right singular vectors.
 	'''
+	seed = <int>time(NULL) if seed < 0 else seed
 	if real is double:
-		return _drun(X,remove_mean, randomized, r, q)
+		return _drun(X,remove_mean, randomized, r, q, seed)
 	else:
-		return _srun(X,remove_mean, randomized, r, q)
+		return _srun(X,remove_mean, randomized, r, q, seed)
 
 
 ## POD truncate method

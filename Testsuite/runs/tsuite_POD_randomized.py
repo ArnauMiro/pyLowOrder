@@ -24,7 +24,7 @@ t = d.get_variable('time')
 
 
 ## Run POD
-PSI,S,V = pyLOM.POD.run(X,remove_mean=False, randomized=True, r=PARAMS['r'], q=PARAMS['q']) # PSI are POD modes
+PSI,S,V = pyLOM.POD.run(X,remove_mean=False, randomized=True, r=PARAMS['r'], q=PARAMS['q'], seed=PARAMS['seed']) # PSI are POD modes
 if pyLOM.utils.is_rank_or_serial(root=0): 
 	fig,_ = pyLOM.POD.plotResidual(S)
 	os.makedirs(OUTDIR,exist_ok=True)
