@@ -253,7 +253,7 @@ def tsqr(Ai):
 	return Qi,R
 
 @cr('math.randomized_qr')
-def randomized_qr(Ai, r, q, seed=None):
+def randomized_qr(Ai, r, q, seed=-1):
 	'''
 	Ai(m,n)  data matrix dispersed on each processor.
 	r        target number of modes
@@ -262,7 +262,7 @@ def randomized_qr(Ai, r, q, seed=None):
 	B (r,n) 
 	'''
 	_, n  = Ai.shape
-	seed = int(time.time()) if seed == None else seed
+	seed = int(time.time()) if seed == -1 else seed
 	np.random.seed(seed=seed)
 	omega = np.random.rand(n, r).astype(Ai.dtype)
 	Yi = matmul(Ai,omega)
@@ -305,7 +305,7 @@ def tsqr_svd(Ai):
 	return Ui, S, V
 
 @cr('math.randomized_svd')
-def randomized_svd(Ai, r, q, seed=None):
+def randomized_svd(Ai, r, q, seed=-1):
 	'''
 	Ai(m,n)  data matrix dispersed on each processor.
 	r        target number of modes
@@ -314,7 +314,7 @@ def randomized_svd(Ai, r, q, seed=None):
 	S(n)     singular values.
 	VT(n,n)  right singular vectors (transposed).
 	'''
-	seed = int(time.time()) if seed == None else seed
+	seed = int(time.time()) if seed == -1 else seed
 	np.random.seed(seed=seed)
 
 	Qi, B    = randomized_qr(Ai,r,q,seed=seed)

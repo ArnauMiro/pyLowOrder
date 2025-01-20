@@ -16,7 +16,7 @@ from ..utils.errors import raiseError
 
 ## POD run method
 @cr('POD.run')
-def run(X,remove_mean=True, randomized=False, r=1, q=3, seed=None):
+def run(X,remove_mean=True, randomized=False, r=1, q=3, seed=-1):
 	'''
 	Run POD analysis of a matrix X.
 

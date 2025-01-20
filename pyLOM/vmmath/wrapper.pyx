@@ -1173,13 +1173,13 @@ def _drandomized_qr(double[:,:] A, int r, int q, int seed):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def randomized_qr(real[:,:] A, const int r, const int q, seed=None):
+def randomized_qr(real[:,:] A, const int r, const int q, const int seed=-1):
 	'''
 	Parallel Single value decomposition (SVD) using Lapack.
 		Q(m,r)   
 		B(n,r)   
 	'''
-	cdef unsigned int seed2 = <int>time(NULL) if seed == None else int(seed)
+	cdef unsigned int seed2 = <int>time(NULL) if seed == -1 else int(seed)
 	if real is double:
 		return _drandomized_qr(A,r,q,seed2)
 	else:
@@ -1234,14 +1234,14 @@ def _drandomized_svd(double[:,:] A, int r, int q, int seed):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def randomized_svd(real[:,:] A, const int r, const int q, seed=None):
+def randomized_svd(real[:,:] A, const int r, const int q, const int seed=-1):
 	'''
 	Parallel Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
 		S(n)     are the singular values.
 		V(n,n)   are the right singular vectors.
 	'''
-	cdef unsigned int seed2 = <int>time(NULL) if seed == None else int(seed)
+	cdef unsigned int seed2 = <int>time(NULL) if seed == -1 else int(seed)
 	if real is double:
 		return _drandomized_svd(A,r,q,seed2)
 	else:
