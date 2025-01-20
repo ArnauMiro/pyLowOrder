@@ -89,8 +89,8 @@ def h5_save_meshes_nopartition(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	# Assume we might be dealing with a parallel mesh
 	ndim     = xyz.shape[1]
 	nnodcell = conec.shape[1]
-	npointG  = mpi_reduce(pointO.max(),op='max',all=True) + 1
-	ncellG   = mpi_reduce(cellO.max(),op='max',all=True)  + 1
+	npointG  = mpi_reduce(pointO.max() if pointO.shape[0] > 0 else 0,op='max',all=True) + 1
+	ncellG   = mpi_reduce(cellO.max() if cellO.shape[0] > 0 else 0,op='max',all=True)  + 1
 	file.create_dataset('npoints',(1,),dtype='i4',data=npointG)
 	file.create_dataset('ncells' ,(1,),dtype='i4',data=ncellG)
 	# Create the rest of the datasets for parallel storage
