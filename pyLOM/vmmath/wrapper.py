@@ -262,7 +262,7 @@ def randomized_qr(Ai, r, q, seed=-1):
 	B (r,n) 
 	'''
 	_, n  = Ai.shape
-	seed = int(time.time()) if seed == -1 else seed
+	seed = int(time.time()) if seed < 0 else seed
 	np.random.seed(seed=seed)
 	omega = np.random.rand(n, r).astype(Ai.dtype)
 	Yi = matmul(Ai,omega)
@@ -314,7 +314,7 @@ def randomized_svd(Ai, r, q, seed=-1):
 	S(n)     singular values.
 	VT(n,n)  right singular vectors (transposed).
 	'''
-	seed = int(time.time()) if seed == -1 else seed
+	seed = int(time.time()) if seed < 0 else seed
 	np.random.seed(seed=seed)
 
 	Qi, B    = randomized_qr(Ai,r,q,seed=seed)

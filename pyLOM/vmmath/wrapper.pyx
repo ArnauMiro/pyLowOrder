@@ -1179,11 +1179,11 @@ def randomized_qr(real[:,:] A, const int r, const int q, const int seed=-1):
 		Q(m,r)   
 		B(n,r)   
 	'''
-	cdef unsigned int seed2 = <int>time(NULL) if seed == -1 else int(seed)
+	seed = <int>time(NULL) if seed < 0 else int(seed)
 	if real is double:
-		return _drandomized_qr(A,r,q,seed2)
+		return _drandomized_qr(A,r,q,seed)
 	else:
-		return _srandomized_qr(A,r,q,seed2)
+		return _srandomized_qr(A,r,q,seed)
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
@@ -1241,11 +1241,11 @@ def randomized_svd(real[:,:] A, const int r, const int q, const int seed=-1):
 		S(n)     are the singular values.
 		V(n,n)   are the right singular vectors.
 	'''
-	cdef unsigned int seed2 = <int>time(NULL) if seed == -1 else int(seed)
+	seed = <int>time(NULL) if seed < 0 else int(seed)
 	if real is double:
-		return _drandomized_svd(A,r,q,seed2)
+		return _drandomized_svd(A,r,q,seed)
 	else:
-		return _srandomized_svd(A,r,q,seed2)
+		return _srandomized_svd(A,r,q,seed)
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
