@@ -187,7 +187,7 @@ def _drun(double[:,:] X, int remove_mean, int randomized, int r, int q, int seed
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def run(real[:,:] X, int remove_mean=True, int randomized=False, int r=1, int q=3, seed=-1):
+def run(real[:,:] X, int remove_mean=True, int randomized=False, const int r=1, const int q=3, const int seed=-1):
 	'''
 	Run POD analysis of a matrix X.
 
@@ -200,7 +200,7 @@ def run(real[:,:] X, int remove_mean=True, int randomized=False, int r=1, int q=
 		- S:  are the singular values.
 		- V:  are the right singular vectors.
 	'''
-	seed = <int>time(NULL) if seed < 0 else int(seed)
+	seed = <int>time(NULL) if seed < 0 else seed
 	if real is double:
 		return _drun(X,remove_mean, randomized, r, q, seed)
 	else:

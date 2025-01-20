@@ -1179,7 +1179,7 @@ def randomized_qr(real[:,:] A, const int r, const int q, const int seed=-1):
 		Q(m,r)   
 		B(n,r)   
 	'''
-	seed = <int>time(NULL) if seed < 0 else int(seed)
+	seed = <int>time(NULL) if seed < 0 else seed
 	if real is double:
 		return _drandomized_qr(A,r,q,seed)
 	else:
@@ -1241,7 +1241,7 @@ def randomized_svd(real[:,:] A, const int r, const int q, const int seed=-1):
 		S(n)     are the singular values.
 		V(n,n)   are the right singular vectors.
 	'''
-	seed = <int>time(NULL) if seed < 0 else int(seed)
+	seed = <int>time(NULL) if seed < 0 else seed
 	if real is double:
 		return _drandomized_svd(A,r,q,seed)
 	else:
