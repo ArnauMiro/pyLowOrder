@@ -15,6 +15,8 @@ int ssvd(float *U, float *S, float *VT, float *Y, const int m, const int n);
 int stsqr(float *Qi, float *R, float *Ai, const int m, const int n, MPI_Comm comm);
 int stsqr_svd(float *Ui, float *S, float *VT, float *Ai, const int m, const int n, MPI_Comm comm);
 int srandomized_qr(float *Qi, float *B, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm);
+int sinit_randomized_qr(float *Qi, float *B, float *Y, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm);
+int supdate_randomized_qr(float *Q2, float *B2, float *Yn, float *Q1, float *B1, float *Yo, float *Ai, const int m, const int n, const int n1, const int n2, const int r, const int q, unsigned int seed, MPI_Comm comm);
 int srandomized_svd(float *Ui, float *S, float *VT, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm);
 // Double precision version
 int dqr(double *Q, double *R, double *A, const int m, const int n);
@@ -22,6 +24,8 @@ int dsvd(double *U, double *S, double *VT, double *Y, const int m, const int n);
 int dtsqr(double *Qi, double *R, double *Ai, const int m, const int n, MPI_Comm comm);
 int dtsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm);
 int drandomized_qr(double *Qi, double *B, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm);
+int dinit_randomized_qr(double *Qi, double *B, double *Y, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm);
+int dupdate_randomized_qr(double *Q2, double *B2, double *Yn, double *Q1, double *B1, double *Yo, double *Ai, const int m, const int n, const int n1, const int n2, const int r, const int q, unsigned int seed, MPI_Comm comm);
 int drandomized_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm);
 // Single complex version
 int cqr(scomplex_t *Q, scomplex_t *R, scomplex_t *A, const int m, const int n);

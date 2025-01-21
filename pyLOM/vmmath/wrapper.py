@@ -14,7 +14,6 @@ from mpi4py import MPI
 from ..utils.cr     import cr
 from ..utils.parall import mpi_gather, mpi_reduce, pprint, mpi_send, mpi_recv, is_rank_or_serial
 from ..utils.errors import raiseError
-import h5py
 
 
 ## Python functions
@@ -277,6 +276,56 @@ def randomized_qr(Ai, r, q, seed=-1):
 
 	return Qi, B
 
+@cr('math.init_qr_streaming')
+def init_qr_streaming(Ai, r, q, seed=None):
+	'''
+	Ai(m,n)  data matrix dispersed on each processor.
+	r        target number of modes
+
+	Qi(m,r)  
+	B (r,n) 
+	'''
+	_, n  = Ai.shape
+	seed = int(time.time()) if seed == None else seed
+	np.random.seed(seed=seed)
+	omega = np.random.rand(n, r).astype(Ai.dtype)
+	Yi    = matmul(Ai,omega)
+	# QR factorization on A
+	for j in range(q):
+		Qi,_ = tsqr(Yi)
+		Q2i  = matmulp(Ai.T,Qi)
+		Yi   = matmul(Ai,Q2i)
+
+	Qi,_ = tsqr(Yi)
+	B    = matmulp(Qi.T,Ai)
+
+	return Qi, B, Yi
+
+@cr('math.qr_iteration')
+def update_qr_streaming(Ai, Q1, B1, Yo, r, q):
+	'''
+	Ai(m,n)  data matrix dispersed on each processor.
+	r        target number of modes
+
+	Qi(m,r)  
+	B (r,n) 
+	'''
+	_, n  = Ai.shape
+	omega = np.random.rand(n, r).astype(Ai.dtype)
+	Yn    = matmul(Ai,omega)
+	for jj in range(q):
+		Qpi,_ = tsqr(Yn)
+		O2    = matmulp(Ai.T, Qpi)
+		Yn    = matmul(Ai,O2)
+	Yo   += Yn
+	Q2,_  = tsqr(Yo)
+	Q2Q1  = matmulp(Q2.T, Q1)
+	B2o   = matmul(Q2Q1, B1)
+	B2n   = matmulp (Q2.T, Ai)
+	B2    = np.hstack((B2o, B2n))
+
+	return Q2, B2, Yo
+
 @cr('math.tsqr_svd')
 def tsqr_svd(Ai):
 	'''
@@ -356,6 +405,26 @@ def RMSE(A,B):
 	sum2g = mpi_reduce(np.sum(A*A),op='sum',all=True)
 	rmse  = np.sqrt(sum1g/sum2g)
 	return rmse
+
+@cr('math.energy')
+def energy(original, rec):
+	'''
+	Compute reconstruction energy as in:
+	Eivazi, H., Le Clainche, S., Hoyas, S., & Vinuesa, R. (2022). 
+	Towards extraction of orthogonal and parsimonious non-linear modes from turbulent flows. 
+	Expert Systems with Applications, 202, 117038.
+	https://doi.org/10.1016
+	'''
+	# Compute local sums
+	local_num = np.sum((original - rec) ** 2)
+	local_den = np.sum(original ** 2)
+
+	# Use Allreduce to compute global sums and make them available on all ranks
+	global_num = mpi_reduce(local_num,op='sum',all=True)
+	global_den = mpi_reduce(local_den,op='sum',all=True)
+
+	# Compute Ek (this will be identical on all ranks)
+	return 1 - global_num / global_den
 
 @cr('math.vandermonde')
 def vandermonde(real, imag, m, n):
