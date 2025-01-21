@@ -2,11 +2,12 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../..'))
-
+# import pyLOM
 # -- Project information -----------------------------------------------------
 project = 'pyLOM'
-copyright = '2024, [Your Name]'
-author = '[Your Name]'
+copyright = '2023-2025'
+author = 'pyLOM developers'
+version = '2.0.1' # pyLOM.__version__ is not defined
 
 # -- General configuration ---------------------------------------------------
 extensions = [
