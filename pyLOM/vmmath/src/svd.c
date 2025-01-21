@@ -1011,12 +1011,8 @@ int ztsqr_svd(dcomplex_t *Ui, double *S, dcomplex_t *VT, dcomplex_t *Ai, const i
 
 int srandomized_qr(float *Qi, float *B, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm) {
 	/*
-		Randomized QR factorization with oversampling and power iterations with the algorithm from
-		
-		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
-
+		Randomized QR factorization with oversampling and power iterations with the algorithm from Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
 		Ai(m,n)  data matrix dispersed on each processor.
-
 		Qi(m,r)  
 		B (r,n)  
 	*/
@@ -1066,12 +1062,8 @@ int srandomized_qr(float *Qi, float *B, float *Ai, const int m, const int n, con
 
 int sinit_randomized_qr(float *Qi, float *B, float *Y, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm) {
 	/*
-		Randomized QR factorization with oversampling and power iterations with the algorithm from
-		
-		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
-
+		Randomized QR factorization with oversampling and power iterations with the algorithm from Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
 		Ai(m,n)  data matrix dispersed on each processor.
-
 		Qi(m,r)  
 		B (r,n)  
 	*/
@@ -1119,12 +1111,8 @@ int sinit_randomized_qr(float *Qi, float *B, float *Y, float *Ai, const int m, c
 
 int supdate_randomized_qr(float *Q2, float *B2, float *Yn, float *Q1, float *B1, float *Yo, float *Ai, const int m, const int n, const int n1, const int n2, const int r, const int q, unsigned int seed, MPI_Comm comm) {
 	/*
-		Randomized QR factorization with oversampling and power iterations with the algorithm from
-		
-		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
-
+		Randomized QR factorization with oversampling and power iterations with the algorithm from Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
 		Ai(m,n)  data matrix dispersed on each processor.
-
 		Qi(m,r)  
 		B (r,n)  
 	*/
@@ -1200,12 +1188,8 @@ int supdate_randomized_qr(float *Q2, float *B2, float *Yn, float *Q1, float *B1,
 
 int srandomized_svd(float *Ui, float *S, float *VT, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm) {
 	/*
-		Randomized single value decomposition (SVD) with oversampling and power iterations with the algorithm from
-		
-		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
-
+		Randomized single value decomposition (SVD) with oversampling and power iterations with the algorithm from Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
 		Ai(m,n)  data matrix dispersed on each processor.
-
 		Ui(m,n)  POD modes dispersed on each processor (must come preallocated).
 		S(n)     singular values.
 		VT(n,n)  right singular vectors (transposed).
@@ -1270,12 +1254,8 @@ int srandomized_svd(float *Ui, float *S, float *VT, float *Ai, const int m, cons
 
 int drandomized_qr(double *Qi, double *B, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm) {
 	/*
-		Randomized QR factorization with oversampling and power iterations with the algorithm from
-		
-		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
-
+		Randomized QR factorization with oversampling and power iterations with the algorithm from	Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
 		Ai(m,n)  data matrix dispersed on each processor.
-
 		Qi(m,r)  
 		B (r,n)  
 	*/
@@ -1325,12 +1305,8 @@ int drandomized_qr(double *Qi, double *B, double *Ai, const int m, const int n, 
 
 int dinit_randomized_qr(double *Qi, double *B, double *Y, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm) {
 	/*
-		Randomized QR factorization with oversampling and power iterations with the algorithm from
-		
-		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
-
+		Randomized QR factorization with oversampling and power iterations with the algorithm from Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
 		Ai(m,n)  data matrix dispersed on each processor.
-
 		Qi(m,r)  
 		B (r,n)  
 	*/
@@ -1378,12 +1354,8 @@ int dinit_randomized_qr(double *Qi, double *B, double *Y, double *Ai, const int 
 
 int dupdate_randomized_qr(double *Q2, double *B2, double *Yn, double *Q1, double *B1, double *Yo, double *Ai, const int m, const int n, const int n1, const int n2, const int r, const int q, unsigned int seed, MPI_Comm comm) {
 	/*
-		Randomized QR factorization with oversampling and power iterations with the algorithm from
-		
-		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
-
+		Randomized QR factorization with oversampling and power iterations with the algorithm from Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
 		Ai(m,n)  data matrix dispersed on each processor.
-
 		Qi(m,r)  
 		B (r,n)  
 	*/
@@ -1459,12 +1431,8 @@ int dupdate_randomized_qr(double *Q2, double *B2, double *Yn, double *Q1, double
 
 int drandomized_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm) {
 	/*
-		Randomized single value decomposition (SVD) with oversampling and power iterations with the algorithm from
-		
-		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
-
-		Ai(m,n)  data matrix dispersed on each processor.
-
+		Randomized single value decomposition (SVD) with oversampling and power iterations with the algorithm from Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+		Ai(m,n)  data matrix dispersed on each processor
 		Ui(m,n)  POD modes dispersed on each processor (must come preallocated).
 		S(n)     singular values.
 		VT(n,n)  right singular vectors (transposed).
