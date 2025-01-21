@@ -12,7 +12,7 @@ import torch.nn.functional as F
 from torch.utils.data import Subset
 from torch            import Generator, randperm, default_generator
 from itertools        import product, accumulate
-from typing           import List, Optional, Tuple, cast, Sequence, Union
+from typing           import List, Optional, Tuple, cast, Sequence, Union, Callable
 from tqdm             import tqdm
 
 from .                import DEVICE
@@ -22,15 +22,15 @@ from ..dataset        import Dataset as pyLOMDataset
 
 
 class MinMaxScaler:
-    """
+    r"""
     Min-max scaling to scale variables to a desired range. The formula is given by:
     .. math::
         X_{scaled} = (X - X_{min}) / (X_{max} - X_{min}) * (feature-range_{max} - feature-range_{min}) + feature-range_{min}
 
-
     Args:
         feature_range (Tuple): Desired range of transformed data. Default is ``(0, 1)``.
     """
+
     def __init__(self, feature_range=(0, 1)):
         self.feature_range = feature_range
         self._is_fitted = False
@@ -43,7 +43,7 @@ class MinMaxScaler:
         """
         Compute the min and max values of each variable.
         Args:
-            variables: List of variables to be fitted. The variables should be numpy arrays or torch tensors.
+            variables (List): List of variables to be fitted. The variables should be numpy arrays or torch tensors.
             A numpy array or torch tensor can be passed directly and each column will be considered as a variable to be scaled.
         """
         variables = self._cast_variables(variables)
@@ -61,7 +61,7 @@ class MinMaxScaler:
         """
         Scale variables to the range defined on `feature_range` using min-max scaling.
         Args:
-            variables: List of variables to be scaled. The variables should be numpy arrays or torch tensors.
+            variables (List): List of variables to be scaled. The variables should be numpy arrays or torch tensors.
             A numpy array or torch tensor can be passed directly and each column will be considered as a variable to be scaled.
         Returns:
             scaled_variables: List of scaled variables.
@@ -94,7 +94,7 @@ class MinMaxScaler:
         """
         Fit and transform the variables using min-max scaling.
         Args:
-            variables: List of variables to be fitted and scaled. The variables should be numpy arrays or torch tensors.
+            variables (List): List of variables to be fitted and scaled. The variables should be numpy arrays or torch tensors.
             A numpy array or torch tensor can be passed directly and each column will be considered as a variable to be scaled.
         Returns:
             scaled_variables: List of scaled variables.
@@ -106,7 +106,7 @@ class MinMaxScaler:
         """
         Inverse scale variables that have been scaled using min-max scaling.
         Args:
-            variables: List of variables to be inverse scaled. The variables should be numpy arrays or torch tensors.
+            variables (List): List of variables to be inverse scaled. The variables should be numpy arrays or torch tensors.
             A numpy array or torch tensor can be passed directly and each column will be considered as a variable to be scaled.
         Returns:
             inverse_scaled_variables: List of inverse scaled variables.
@@ -294,10 +294,13 @@ class Dataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.variables_out)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: Union[int, slice]):
         """
         Return the input data and the output data for a given index as a tuple. If there is no input data, only the output data will be returned.
         If parameters are used, the parameters will be concatenated with the input data at the end.
+
+        Args:
+            idx (int, slice): Index of the data to be returned.
         """            
         if self.variables_in is None:
             return self.variables_out[idx]
@@ -317,7 +320,15 @@ class Dataset(torch.utils.data.Dataset):
         return input_data, self.variables_out[idx]
 
 
-    def __setitem__(self, idx, value):
+    def __setitem__(self, idx: Union[int, slice], value: Tuple):
+        """
+        Set the input data and the output data for a given index. If there is no input data, only the output data will be set.
+        If parameters are used, the parameters will be concatenated with the input data at the end.
+
+        Args:
+            idx (int, slice): Index of the data to be set.
+            value (Tuple): Tuple with the input data and the output data. If there is no input data, the tuple should have only one element.
+        """
         if self.variables_in is None:
             self.variables_out[idx] = value
         else:
@@ -342,6 +353,12 @@ class Dataset(torch.utils.data.Dataset):
 
         
     def __add__(self, other):
+        """
+        Concatenate two datasets. The datasets must have the same number of input coordinates and parameters.
+
+        Args:
+            other (Dataset): Dataset to be concatenated with.
+        """
         if not isinstance(other, Dataset):
             raiseError(f"Cannot add Dataset with {type(other)}")
         if self.variables_in is not None:
@@ -417,9 +434,9 @@ class Dataset(torch.utils.data.Dataset):
 
     def get_splits(
         self,
-        sizes,
-        shuffle=True,
-        return_views=True,
+        sizes: Sequence[int],
+        shuffle: bool = True,
+        return_views: bool = True,
         generator: Optional[Generator] = default_generator,
     ):
         """
@@ -442,7 +459,7 @@ class Dataset(torch.utils.data.Dataset):
             If False, the splits will be returned as new Dataset instances. Default: ``True``.
             Warning: If return_views is True, the original dataset must be kept alive, otherwise the views will point to invalid memory.
             Be careful when using `return_views=False` with `variables_in` and `parameters`, the memory usage will be higher.
-            generator (Generator): Generator used for the random permutation.
+            generator (Generator): Generator used for the random permutation. Default: ``default_generator``.
         
         Returns:
             List[Dataset | Subset]: List with the splits of the dataset.
@@ -488,9 +505,9 @@ class Dataset(torch.utils.data.Dataset):
 
     def get_splits_by_parameters(
         self, 
-        sizes, 
-        shuffle=True, 
-        return_views=True,
+        sizes: Sequence[int], 
+        shuffle: bool = True, 
+        return_views: bool = True,
         generator: Optional[Generator] = default_generator
     ):
         """
@@ -512,7 +529,7 @@ class Dataset(torch.utils.data.Dataset):
             return_views (bool): If True, the splits will be returned as views of the original dataset in form of torch.utils.data.Subset.
             If False, the splits will be returned as new Dataset instances. Default: ``True``.
             Warning: If return_views is True, the original dataset must be kept alive, otherwise the views will point to invalid memory.
-            generator (Generator): Generator used for the random permutation.
+            generator (Generator): Generator used for the random permutation. Default: ``default_generator``.
 
         Returns:
             List[Dataset | Subset]: List with the splits of the dataset.
@@ -645,21 +662,29 @@ class Dataset(torch.utils.data.Dataset):
         )
     
     @cr("NN.Dataset.map")
-    def map(self, function, fn_kwargs={}, batched=False, batch_size=1000):
+    def map(
+        self,
+        function: Callable,
+        fn_kwargs: dict = {},
+        batched: bool = False,
+        batch_size: int = 1000,
+    ):
         """
         Apply a function to the dataset.
 
         Args:
             function (Callable): Function to be applied to the dataset with one of the following signatures:
-                - function(inputs: torch.Tensor, outputs: torch.Tensor, **kwargs) -> Tuple[torch.Tensor, torch.Tensor] if variables_in exists. Here `inputs` is the input data and `outputs` is the output data that __getitem__ returns, so `inputs` will include the parameters if they exist. 
-                - function(outputs: torch.Tensor, **kwargs) -> torch.Tensor if variables_in does not exist.
+                
+                - function (inputs: torch.Tensor, outputs: torch.Tensor, \*\*kwargs) -> Tuple[torch.Tensor, torch.Tensor] if variables_in exists. Here `inputs` is the input data and `outputs` is the output data that __getitem__ returns, so `inputs` will include the parameters if they exist. 
+                - function (outputs: torch.Tensor, \*\*kwargs) -> torch.Tensor if variables_in does not exist.
+                
                 If batched is False, the tensors will have only one element in the first dimension.
             fn_kwargs (Dict): Additional keyword arguments to be passed to the function.
             batched (bool): If True, the function will be applied to the dataset in batches. Default is ``False``.
             batch_size (int): Size of the batch. Default is ``1000``.
 
         Returns:
-            Dataset: A reference to the dataset with the function applied.
+            Dataset: A reference to the dataset with th e function applied.
         """
 
         if not batched:
@@ -677,14 +702,23 @@ class Dataset(torch.utils.data.Dataset):
         return self
 
     @cr("NN.Dataset.filter")
-    def filter(self, function, fn_kwargs={}, batched=False, batch_size=1000, return_views=True):
+    def filter(
+        self,
+        function: Callable,
+        fn_kwargs: dict = {},
+        batched: bool = False,
+        batch_size: int = 1000,
+        return_views: bool = True,
+    ):
         """
         Filter the dataset using a function.
 
         Args:
             function (Callable): Function to be applied to the dataset with one of the following signatures:
-                - function(inputs: torch.Tensor, outputs: torch.Tensor, **kwargs) -> bool if variables_in exists. Here `inputs` is the input data and `outputs` is the output data that __getitem__ returns, so `inputs` will include the parameters if they exist. 
-                - function(outputs: torch.Tensor, **kwargs) -> bool if variables_in does not exist.
+
+                - function (inputs: torch.Tensor, outputs: torch.Tensor, \*\*kwargs) -> bool if variables_in exists. Here `inputs` is the input data and `outputs` is the output data that __getitem__ returns, so `inputs` will include the parameters if they exist. 
+                - function (outputs: torch.Tensor, \*\*kwargs) -> bool if variables_in does not exist.
+
                 If batched is True, the function should return a list of booleans.
             fn_kwargs (Dict): Additional keyword arguments to be passed to the function.
             batched (bool): If True, the function will be applied to the dataset in batches. Default is ``False``.
@@ -738,7 +772,7 @@ class Dataset(torch.utils.data.Dataset):
         else:
             return Subset(self, indices)
         
-    def remove_column(self, column_idx, from_variables_out):
+    def remove_column(self, column_idx: int, from_variables_out: bool):
         """
         Remove a column from the dataset.
 
@@ -763,22 +797,36 @@ class Dataset(torch.utils.data.Dataset):
         else:
             raiseError(f"Invalid column index {column_idx}, there are only {self.variables_in.shape[1]} columns in variables_in and {self.parameters.shape[1]} columns in parameters")
 
-def create_results_folder(RESUDIR,echo=True):
+def create_results_folder(RESUDIR: str, verbose: bool=True):
+    r"""
+    Create a folder to store the results of the neural network training.
+
+    Args:
+        RESUDIR (str): Path to the folder to be created.
+        verbose (bool): If True, print messages to the console. Default is ``True``.
+    """
     if not os.path.exists(RESUDIR):
         os.makedirs(RESUDIR)
-        if echo: print(f"Folder created: {RESUDIR}")
-    else:
-        if echo: print(f"Folder already exists: {RESUDIR}")
+        if verbose: 
+            print(f"Folder created: {RESUDIR}")
+    elif verbose:
+        print(f"Folder already exists: {RESUDIR}")
 
 
-def select_device(device=DEVICE):
+def select_device(device: str = DEVICE):
+    r"""
+    Select the device to be used for the training.
+
+    Args:
+        device (str): Device to be used. Default is cuda if available, otherwise cpu.
+    """
     torch.device(device)
     return device
 
 
 class betaLinearScheduler:
-    """
-    Beta schedule, linear growth to max value
+    r"""
+    Linear scheduler for beta parameter in the loss function of the Autoencoders.
 
     Args:
         start_value (float): initial value of beta
@@ -793,6 +841,12 @@ class betaLinearScheduler:
         self.warmup = warmup
 
     def getBeta(self, epoch):
+        r"""
+        Get the value of beta for a given epoch.
+
+        Args:
+            epoch (int): current epoch
+        """
         if epoch < self.start_epoch:
             return 0
         else:
