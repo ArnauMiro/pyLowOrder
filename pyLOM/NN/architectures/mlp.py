@@ -40,7 +40,7 @@ class MLP(nn.Module):
         p_dropouts: float = 0.0,
         activation: torch.nn.Module = torch.nn.functional.relu,
         device: torch.device = DEVICE,
-        **kwargs: Dict,
+        **kwargs,
     ):
         self.input_size = input_size
         self.output_size = output_size

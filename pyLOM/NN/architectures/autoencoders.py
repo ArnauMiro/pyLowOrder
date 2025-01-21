@@ -294,7 +294,7 @@ class VariationalAutoencoder(Autoencoder):
             train_dataset (torch.utils.data.Dataset): Training dataset.
             eval_dataset (torch.utils.data.Dataset): Evaluation dataset.
             epochs (int): Number of epochs to train the model. Default is ``100``.
-            callback: Callback object. Default is ``None``.
+            callback: Callback object to change the value of beta during training. Default is ``None``.
             lr (float): Learning rate. Default is ``1e-3``.
             BASEDIR (str): Directory to save the model. Default is ``"./"``.
             reduction (str): Reduction method for the loss function. Default is ``"mean"``.
