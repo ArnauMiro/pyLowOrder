@@ -407,7 +407,7 @@ def RMSE(A,B):
 	return rmse
 
 @cr('math.energy')
-def get_Ek(original, rec):
+def energy(original, rec):
 	'''
 	Compute reconstruction energy as in:
 	Eivazi, H., Le Clainche, S., Hoyas, S., & Vinuesa, R. (2022). 

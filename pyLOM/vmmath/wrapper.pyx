@@ -52,7 +52,7 @@ cdef extern from "vector_matrix.h" nogil:
 	cdef void   c_svecmat           "svecmat"(float *v, float *A, const int m, const int n)
 	cdef int    c_sinverse          "sinverse"(float *A, int N, char *UoL)
 	cdef float  c_sRMSE             "sRMSE"(float *A, float *B, const int m, const int n, MPI_Comm comm)
-	cdef float  c_sget_Ek           "sget_Ek"(float *A, float *B, const int m, const int n, MPI_Comm comm)
+	cdef float  c_senergy           "senergy"(float *A, float *B, const int m, const int n, MPI_Comm comm)
 	cdef void   c_ssort             "ssort"(float *v, int *index, int n)
 	# Double precision
 	cdef void   c_dtranspose        "dtranspose"(double *A, double *B, const int m, const int n)
@@ -63,7 +63,7 @@ cdef extern from "vector_matrix.h" nogil:
 	cdef void   c_dvecmat           "dvecmat"(double *v, double *A, const int m, const int n)
 	cdef int    c_dinverse          "dinverse"(double *A, int N, char *UoL)
 	cdef double c_dRMSE             "dRMSE"(double *A, double *B, const int m, const int n, MPI_Comm comm)
-	cdef double c_dget_Ek           "dget_Ek"(double *A, double *B, const int m, const int n, MPI_Comm comm)
+	cdef double c_denergy           "denergy"(double *A, double *B, const int m, const int n, MPI_Comm comm)
 	cdef void   c_dsort             "dsort"(double *v, int *index, int n)
 	# Single complex precision
 	cdef void   c_cmatmult          "cmatmult"(np.complex64_t *C, np.complex64_t *A, np.complex64_t *B, const int m, const int n, const int k, const char *TA, const char *TB)
@@ -1498,28 +1498,28 @@ def RMSE(real[:,:] A, real[:,:] B):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef double _sget_Ek(float[:,:] A, float[:,:] B):
+cdef float _senergy(float[:,:] A, float[:,:] B):
 	'''
 	Compute RMSE between X_POD and X
 	'''
 	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef int m = A.shape[0], n = B.shape[1]
 	cdef double rmse = 0.
-	Ek = c_sget_Ek(&A[0,0],&B[0,0],m,n,MPI_COMM.ob_mpi)
+	Ek = c_senergy(&A[0,0],&B[0,0],m,n,MPI_COMM.ob_mpi)
 	return Ek
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef double _dget_Ek(double[:,:] A, double[:,:] B):
+cdef double _denergy(double[:,:] A, double[:,:] B):
 	'''
 	Compute RMSE between X_POD and X
 	'''
 	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef int m = A.shape[0], n = B.shape[1]
 	cdef double rmse = 0.
-	Ek = c_dget_Ek(&A[0,0],&B[0,0],m,n,MPI_COMM.ob_mpi)
+	Ek = c_denergy(&A[0,0],&B[0,0],m,n,MPI_COMM.ob_mpi)
 	return Ek
 
 @cr('math.energy')
@@ -1527,14 +1527,14 @@ cdef double _dget_Ek(double[:,:] A, double[:,:] B):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def get_Ek(real[:,:] A, real[:,:] B):
+def energy(real[:,:] A, real[:,:] B):
 	'''
 	Compute RMSE between X_POD and X
 	'''
 	if real is double:
-		return _dget_Ek(A,B)
+		return _denergy(A,B)
 	else:
-		return _sget_Ek(A,B)
+		return _senergy(A,B)
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function

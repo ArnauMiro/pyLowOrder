@@ -32,7 +32,7 @@ q         = 1
 X        = U[:,:batchsize]
 Q1,B1,Yo = pyLOM.math.init_qr_streaming(X, nmod, q)
 Xr       = pyLOM.math.matmul(Q1,B1)
-Ek       = pyLOM.math.get_Ek(Xr,X)
+Ek       = pyLOM.math.energy(Xr,X)
 pyLOM.pprint(0, 'Partial energy recovered', Ek, flush=True)
 
 ## Iterate over the rest of batches
@@ -40,5 +40,5 @@ for ii in range(nbatches-1):
 	X        = U[:,(ii+1)*batchsize:(ii+2)*batchsize]
 	Q1,B1,Yo = pyLOM.math.update_qr_streaming(X,Q1,B1,Yo,nmod,q)
 	Xr       = pyLOM.math.matmul(Q1,B1[:,-batchsize:].copy())
-	Ek       = pyLOM.math.get_Ek(Xr,X)
+	Ek       = pyLOM.math.energy(Xr,X)
 	pyLOM.pprint(0, ii, 'Partial energy recovered', Ek, flush=True)

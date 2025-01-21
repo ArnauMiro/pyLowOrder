@@ -567,7 +567,7 @@ double dRMSE(double *A, double *B, const int m, const int n, MPI_Comm comm) {
 	return sqrt(sum1g/sum2g);
 }
 
-float sget_Ek(float *A, float *B, const int m, const int n, MPI_Comm comm) {
+float senergy(float *A, float *B, const int m, const int n, MPI_Comm comm) {
 	/*
 		Compute reconstruction energy as in:
 		Eivazi, H., Le Clainche, S., Hoyas, S., & Vinuesa, R. (2022). 
@@ -598,7 +598,7 @@ float sget_Ek(float *A, float *B, const int m, const int n, MPI_Comm comm) {
 	return 1 - sum1g/sum2g;
 }
 
-double dget_Ek(double *A, double *B, const int m, const int n, MPI_Comm comm) {
+double denergy(double *A, double *B, const int m, const int n, MPI_Comm comm) {
 	/*
 		Compute the Root Meean Square Error (RMSE) between two
 		matrices and return it

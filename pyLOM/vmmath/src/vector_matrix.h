@@ -19,7 +19,7 @@ void   smatmulp(float *C, float *A, float *B, const int m, const int n, const in
 void   svecmat(float *v, float *A, const int m, const int n);
 int    sinverse(float *A, int N, char *UoL);
 float  sRMSE(float *A, float *B, const int m, const int n, MPI_Comm comm);
-float  sget_Ek(float *A, float *B, const int m, const int n, MPI_Comm comm);
+float  senergy(float *A, float *B, const int m, const int n, MPI_Comm comm);
 void   ssort(float *v, int *index, int n);
 void   srandom_matrix(float *A, int m, int n, unsigned int seed);
 // Double version
@@ -32,7 +32,7 @@ void   dmatmulp(double *C, double *A, double *B, const int m, const int n, const
 void   dvecmat(double *v, double *A, const int m, const int n);
 int    dinverse(double *A, int N, char *UoL);
 double dRMSE(double *A, double *B, const int m, const int n, MPI_Comm comm);
-double dget_Ek(double *A, double *B, const int m, const int n, MPI_Comm comm);
+double denergy(double *A, double *B, const int m, const int n, MPI_Comm comm);
 void   dsort(double *v, int *index, int n);
 void   drandom_matrix(double *A, int m, int n, unsigned int seed);
 // Float complex version
