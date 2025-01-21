@@ -24,8 +24,10 @@ from ..dataset        import Dataset as pyLOMDataset
 class MinMaxScaler:
     r"""
     Min-max scaling to scale variables to a desired range. The formula is given by:
+
     .. math::
-        X_{scaled} = (X - X_{min}) / (X_{max} - X_{min}) * (feature-range_{max} - feature-range_{min}) + feature-range_{min}
+
+        X_{scaled} = \frac{X - X_{min}}{X_{max} - X_{min}} * (feature\_range_{max} - feature\_range_{min}) + feature\_range_{min}
 
     Args:
         feature_range (Tuple): Desired range of transformed data. Default is ``(0, 1)``.
