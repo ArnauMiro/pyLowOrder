@@ -16,6 +16,15 @@ from libc.stdlib   cimport malloc, free
 from libc.string   cimport memcpy, memset
 from libc.math     cimport sqrt, atan2
 from libc.time     cimport time
+#from libc.complex  cimport creal, cimag
+cdef extern from "<complex.h>" nogil:
+	float  complex I
+	# Decomposing complex values
+	float cimagf(float complex z)
+	float crealf(float complex z)
+	double cimag(double complex z)
+	double creal(double complex z)
+cdef double complex J = 1j
 
 # Fix as Open MPI does not support MPI-4 yet, and there is no nice way that I know to automatically adjust Cython to missing stuff in C header files.
 # Source: https://github.com/mpi4py/mpi4py/issues/525
@@ -1723,7 +1732,7 @@ cdef np.ndarray[np.complex64_t,ndim=2] _cconj(np.complex64_t[:,:] A):
 	cdef np.ndarray[np.complex64_t,ndim=2] B = np.zeros((m,n),dtype=np.complex64)
 	for ii in range(m):
 		for jj in range(n):
-			B[ii, jj] = A[ii][jj].real - A[ii][jj].imag*1j
+			B[ii, jj] = crealf(A[ii][jj]) - cimagf(A[ii][jj])*I
 	return B
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -1741,7 +1750,7 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zconj(np.complex128_t[:,:] A):
 	cdef np.ndarray[np.complex128_t,ndim=2] B = np.zeros((m,n),dtype=np.complex128)
 	for ii in range(m):
 		for jj in range(n):
-			B[ii, jj] = A[ii][jj].real - A[ii][jj].imag*1j
+			B[ii, jj] = creal(A[ii][jj]) - cimag(A[ii][jj])*J
 	return B
 
 @cr('math.conj')

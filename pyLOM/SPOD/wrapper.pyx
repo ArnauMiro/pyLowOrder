@@ -15,7 +15,14 @@ import numpy as np
 from libc.stdlib   cimport malloc, free
 from libc.string   cimport memcpy, memset
 from libc.math     cimport pow, floor, ceil, log2, cos, M_PI, sqrt
-from libc.complex  cimport creal, cimag
+#from libc.complex  cimport creal, cimag
+cdef extern from "<complex.h>" nogil:
+	float  complex I
+	# Decomposing complex values
+	float cimagf(float complex z)
+	float crealf(float complex z)
+	double cimag(double complex z)
+	double creal(double complex z)
 
 # Fix as Open MPI does not support MPI-4 yet, and there is no nice way that I know to automatically adjust Cython to missing stuff in C header files.
 # Source: https://github.com/mpi4py/mpi4py/issues/525
@@ -320,7 +327,7 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean):
 			_sfft(&qk[nf*ip],Xf,winWeight,nDFT,nf)
 			# Multiply qk
 			for i in range(1,nf-1):
-				qk[nf*ip + i] *= 2.0
+				qk[nf*ip + i] *= <float>(2.0)
 		# Populate Q
 		for ip in range(M):
 			for i in range(nf):
@@ -342,13 +349,14 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean):
 		# Load block in qf
 		for i in range(M):
 			for iblk in range(nBlks):
-				qf[nBlks*i + iblk] = Q[nf*nBlks*i + nBlks*ifreq + iblk]/sqrt(nBlks)
+				winWeight = sqrt(nBlks) # reused variable
+				qf[nBlks*i + iblk] = crealf(Q[nf*nBlks*i + nBlks*ifreq + iblk])/winWeight + cimagf(Q[nf*nBlks*i + nBlks*ifreq + iblk])/winWeight
 		# Run SVD
 		c_ctsqr_svd(U,S,V,qf,M,nBlks,MPI_COMM.ob_mpi)
 		# Store P
 		for i in range(M):
 			for iblk in range(nBlks):
-				P[i + M*iblk,ifreq] = creal(U[nBlks*i + iblk])
+				P[i + M*iblk,ifreq] = crealf(U[nBlks*i + iblk])
 		# Store L
 		for iblk in range(nBlks):
 			L[ifreq,iblk] = S[iblk]*S[iblk]
