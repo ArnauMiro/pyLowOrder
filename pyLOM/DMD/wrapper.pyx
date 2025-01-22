@@ -14,7 +14,15 @@ import numpy as np
 
 from libc.stdlib   cimport malloc, free
 from libc.string   cimport memcpy, memset
-from libc.math     cimport sqrt, log, atan2
+from libc.math     cimport sqrt, log, atan
+#from libc.complex  cimport creal, cimag
+cdef extern from "<complex.h>" nogil:
+	float  complex I
+	# Decomposing complex values
+	float cimagf(float complex z)
+	float crealf(float complex z)
+	double cimag(double complex z)
+	double creal(double complex z)
 
 # Fix as Open MPI does not support MPI-4 yet, and there is no nice way that I know to automatically adjust Cython to missing stuff in C header files.
 # Source: https://github.com/mpi4py/mpi4py/issues/525
@@ -38,15 +46,6 @@ from mpi4py         import MPI
 
 from ..utils.cr     import cr, cr_start, cr_stop
 from ..utils.errors import raiseError
-
-#from libc.complex  cimport creal, cimag
-cdef extern from "<complex.h>" nogil:
-	float  complex I
-	# Decomposing complex values
-	float cimagf(float complex z)
-	float crealf(float complex z)
-	double cimag(double complex z)
-	double creal(double complex z)
 
 cdef extern from "vector_matrix.h":
 	# Single precision
