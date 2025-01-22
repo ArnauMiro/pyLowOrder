@@ -24,6 +24,7 @@ cdef extern from "<complex.h>" nogil:
 	float crealf(float complex z)
 	double cimag(double complex z)
 	double creal(double complex z)
+cdef double complex J = 1j
 
 # Fix as Open MPI does not support MPI-4 yet, and there is no nice way that I know to automatically adjust Cython to missing stuff in C header files.
 # Source: https://github.com/mpi4py/mpi4py/issues/525
@@ -1749,7 +1750,7 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zconj(np.complex128_t[:,:] A):
 	cdef np.ndarray[np.complex128_t,ndim=2] B = np.zeros((m,n),dtype=np.complex128)
 	for ii in range(m):
 		for jj in range(n):
-			B[ii, jj] = creal(A[ii][jj]) - cimag(A[ii][jj])*<double>(I)
+			B[ii, jj] = creal(A[ii][jj]) - cimag(A[ii][jj])*J
 	return B
 
 @cr('math.conj')
