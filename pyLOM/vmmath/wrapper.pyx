@@ -1746,11 +1746,10 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zconj(np.complex128_t[:,:] A):
 	cdef int n = A.shape[1]
 	cdef int ii
 	cdef int jj
-	cdef double complex I = <double>I
 	cdef np.ndarray[np.complex128_t,ndim=2] B = np.zeros((m,n),dtype=np.complex128)
 	for ii in range(m):
 		for jj in range(n):
-			B[ii, jj] = creal(A[ii][jj]) - cimag(A[ii][jj])*I
+			B[ii, jj] = creal(A[ii][jj]) - cimag(A[ii][jj])*<double>(I)
 	return B
 
 @cr('math.conj')
