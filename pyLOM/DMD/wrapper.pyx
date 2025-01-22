@@ -14,7 +14,7 @@ import numpy as np
 
 from libc.stdlib   cimport malloc, free
 from libc.string   cimport memcpy, memset
-from libc.math     cimport sqrt, log, atan
+from libc.math     cimport sqrt, log, atan2
 #from libc.complex  cimport creal, cimag
 cdef extern from "<complex.h>" nogil:
 	float  complex I
