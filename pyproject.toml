@@ -109,7 +109,7 @@ classifiers = [  # Optional
 dependencies = [
     "numpy",
     "cython>=3.0.0",
-    "mpi4py",
+    "mpi4py>=4.0.0",
     "matplotlib",
     "h5py>=3.0.0",
     "nfft",
@@ -160,6 +160,9 @@ optionals = [
 # installed, specify them here.
 package-data = {}
 
+[tool.setuptools.packages.find]
+exclude = ["Converters", "DATA","Deps","Examples","Testsuite","Tools"]
+
 [build-system]
 # These are the assumed default build requirements from pip:
 # https://pip.pypa.io/en/stable/reference/pip/#pep-517-and-518-support
@@ -168,7 +171,7 @@ requires = [
   "wheel",
   "numpy",
   "cython>=3.0.0",
-  "mpi4py",
+  "mpi4py>=4.0.0",
   "matplotlib",
   "h5py>=3.0.0",
   "nfft",
