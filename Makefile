@@ -13,84 +13,101 @@
 # Include user-defined build configuration file
 include options.cfg
 
+
+# Dardel is based on CRAY so force the override here
+ifeq ($(PLATFORM),DARDEL)
+	OVERRIDE_COMPILERS = ON
+	# C Compiler
+	CC  = cc
+	# C++ Compiler
+	CXX = CC
+	# Fortran Compiler
+	FC  = ftn
+endif
+
+
 # Compilers
 #
 # Automatically detect if the intel compilers are installed and use
 # them, otherwise default to the GNU compilers
-ifeq ($(FORCE_GCC),ON)
-	# Forcing the use of GCC
-	# C Compiler
-	CC  = mpicc
-	# C++ Compiler
-	CXX = mpicxx
-	# Fortran Compiler
-	FC  = mpif90
-else
-	ifeq (,$(shell which mpiicc))
+ifeq ($(OVERRIDE_COMPILERS),OFF)
+	ifeq ($(FORCE_GCC),ON) 
+		# Forcing the use of GCC
 		# C Compiler
-		CC  = mpicc
+		CC = mpicc
 		# C++ Compiler
 		CXX = mpicxx
 		# Fortran Compiler
-		FC  = mpif90
+		FC = mpifort
 	else
-		# C Compiler
-		CC  = mpiicc
-		# C++ Compiler
-		CXX = mpiicpc
-		# Fortran Compiler
-		FC  = mpiifort
+		ifeq (,$(shell which icc))
+			# C Compiler
+			CC = mpicc
+			# C++ Compiler
+			CXX = mpicxx
+			# Fortran Compiler
+			FC = mpifort
+		else
+			# C Compiler
+			CC = mpiicc
+			# C++ Compiler
+			CXX = mpiicpc
+			# Fortran Compiler
+			FC = mpiifort
+		endif
 	endif
 endif
 
 
 # Compiler flags
 #
-ifeq ($(CC),mpicc)
-	# Using GCC as a compiler
-	ifeq ($(DEBUGGING),ON)
-		# Debugging flags
-		CFLAGS   += -O0 -g -rdynamic -fPIC
-		CXXFLAGS += -O0 -g -rdynamic -fPIC
-		FFLAGS   += -O0 -g -rdynamic -fPIC
+ifeq ($(OVERRIDE_COMPILERS),OFF)
+	ifeq ($(CC),mpicc)
+		# Using GCC as a compiler
+		ifeq ($(DEBUGGING),ON)
+			# Debugging flags
+			CFLAGS   += -O0 -g -rdynamic -fPIC
+			CXXFLAGS += -O0 -g -rdynamic -fPIC
+			FFLAGS   += -O0 -g -rdynamic -fPIC
+		else
+			CFLAGS   += -O$(OPTL) -ffast-math -fPIC
+			CXXFLAGS += -O$(OPTL) -ffast-math -fPIC
+			FFLAGS   += -O$(OPTL) -ffast-math -fPIC
+		endif
+		# Vectorization flags
+		ifeq ($(VECTORIZATION),ON)
+			CFLAGS   += -march=native -ftree-vectorize
+			CXXFLAGS += -march=native -ftree-vectorize
+			FFLAGS   += -march=native -ftree-vectorize
+		endif
+		# OpenMP flag
+		ifeq ($(OPENMP_PARALL),ON)
+			CFLAGS   += -fopenmp
+			CXXFLAGS += -fopenmp
+		endif
 	else
-		CFLAGS   += -O$(OPTL) -ffast-math -fPIC
-		CXXFLAGS += -O$(OPTL) -ffast-math -fPIC
-		FFLAGS   += -O$(OPTL) -ffast-math -fPIC
-	endif
-	# Vectorization flags
-	ifeq ($(VECTORIZATION),ON)
-		CFLAGS   += -march=native -ftree-vectorize
-		CXXFLAGS += -march=native -ftree-vectorize
-		FFLAGS   += -march=native -ftree-vectorize
-	endif
-	# OpenMP flag
-	ifeq ($(OPENMP_PARALL),ON)
-		CFLAGS   += -fopenmp -DUSE_OMP
-		CXXFLAGS += -fopenmp -DUSE_OMP
-	endif
-else
-	# Using INTEL as a compiler
-	ifeq ($(DEBUGGING),ON)
-		# Debugging flags
-		CFLAGS   += -O0 -g -traceback -fPIC
-		CXXFLAGS += -O0 -g -traceback -fPIC
-		FFLAGS   += -O0 -g -traceback -fPIC
-	else
-		CFLAGS   += -O$(OPTL) -fPIC
-		CXXFLAGS += -O$(OPTL) -fPIC
-		FFLAGS   += -O$(OPTL) -fPIC
-	endif
-	# Vectorization flags
-	ifeq ($(VECTORIZATION),ON)
-		CFLAGS   += -x$(HOST) -mtune=$(TUNE)
-		CXXFLAGS += -x$(HOST) -mtune=$(TUNE)
-		FFLAGS   += -x$(HOST) -mtune=$(TUNE)
-	endif
-	# OpenMP flag
-	ifeq ($(OPENMP_PARALL),ON)
-		CFLAGS   += -qopenmp -DUSE_OMP
-		CXXFLAGS += -qopenmp -DUSE_OMP
+		# Using INTEL as a compiler
+		ifeq ($(DEBUGGING),ON)
+			# Debugging flags
+			CFLAGS   += -O0 -g -traceback -fPIC
+			CXXFLAGS += -O0 -g -traceback -fPIC
+			FFLAGS   += -O0 -g -traceback -fPIC
+		else
+			CFLAGS   += -O$(OPTL) -fPIC
+			CXXFLAGS += -O$(OPTL) -fPIC
+			FFLAGS   += -O$(OPTL) -fPIC
+		endif
+		# Vectorization flags
+		ifeq ($(VECTORIZATION),ON)
+			CFLAGS   += -x$(HOST) -mtune=$(TUNE)
+			CXXFLAGS += -x$(HOST) -mtune=$(TUNE)
+			FFLAGS   += -x$(HOST) -mtune=$(TUNE)
+		endif
+		# OpenMP flag
+		ifeq ($(OPENMP_PARALL),ON)
+			CFLAGS   += -qopenmp
+			CXXFLAGS += -qopenmp
+		endif
 	endif
 endif
 # C standard

@@ -31,29 +31,36 @@ else
     echo "Fortran compiler '${FCOMPILER}' with flags '${FFLAGS}'"
     echo "Install path ${INSTALL_PREFIX}"
 
-	# Clone repository and checkout version tag
-	cd Deps/
-	git clone ${SRC} lapack-src
-	cd lapack-src
-	git checkout tags/v${VERS}
-	cd ..
+	# Decide according to the accepted platforms which
+	# OPENBLAS version is used
+	if [ "$PLATFORM" = "DARDEL" ]; then # Dardel
+		cp -r /pdc/software/23.12/eb/software/openblas/${VERS}/lib $INSTALL_PREFIX/
+		cp -r /pdc/software/23.12/eb/software/openblas/${VERS}/include $INSTALL_PREFIX/
+	else
+		# Clone repository and checkout version tag
+		cd Deps/
+		git clone ${SRC} lapack-src
+		cd lapack-src
+		git checkout tags/v${VERS}
+		cd ..
 
-	# Configure CMAKE build
-	mkdir -p build_deps
-	cd build_deps
-	cmake ../lapack-src \
-		-DCMAKE_BUILD_TYPE=Release \
-		-DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX \
-		-DCMAKE_INSTALL_LIBDIR=$INSTALL_PREFIX/lib \
-		-DDYNAMIC_ARCH=ON \
-		-DCMAKE_C_COMPILER="${CCOMPILER}" -DCMAKE_C_FLAGS="${CFLAGS}" \
-		-DCMAKE_Fortran_COMPILER="${FCOMPILER}" -DCMAKE_Fortran_FLAGS="${FFLAGS}"
+		# Configure CMAKE build
+		mkdir -p build_deps
+		cd build_deps
+		cmake ../lapack-src \
+			-DCMAKE_BUILD_TYPE=Release \
+			-DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX \
+			-DCMAKE_INSTALL_LIBDIR=$INSTALL_PREFIX/lib \
+			-DDYNAMIC_ARCH=ON \
+			-DCMAKE_C_COMPILER="${CCOMPILER}" -DCMAKE_C_FLAGS="${CFLAGS}" \
+			-DCMAKE_Fortran_COMPILER="${FCOMPILER}" -DCMAKE_Fortran_FLAGS="${FFLAGS}"
 
-	# Build
-	make -j $(getconf _NPROCESSORS_ONLN)
-	make install
+		# Build
+		make -j $(getconf _NPROCESSORS_ONLN)
+		make install
 
-	# Cleanup
-	cd ..
-	rm -rf lapack-src build_deps
+		# Cleanup
+		cd ..
+		rm -rf lapack-src build_deps
+	fi
 fi
