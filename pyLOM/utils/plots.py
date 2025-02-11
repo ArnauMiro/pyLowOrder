@@ -140,13 +140,13 @@ try:
 		return plotter.show(**kwargs)
 
 except:
-	def plotSnapshot(dset,vars=[],instant=0,**kwargs):
+	def plotSnapshot(mesh,dset,vars=[],idim=0,instant=0,**kwargs):
 		'''
 		Plot using pyVista
 		'''
 		raiseWarning('Import - Problems loading pyVista!',False)
 
-	def plotLayout(Phi,mesh,nrows,ncols,vars=[],title='',**kwargs):
+	def plotLayout(mesh,dset,nrows,ncols,imode,vars=[],cmap='jet',title='',off_screen=False,**kwargs):
 		'''
 		Plot using pyVista
 		'''
