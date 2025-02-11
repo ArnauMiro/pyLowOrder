@@ -23,5 +23,7 @@ t = d.get_variable('time')
 
 Y = mds(X.T,2)
 
+print(Y)
+
 plt.scatter(Y[0,:],Y[1,:],s=10,c='b')
 plt.show()
