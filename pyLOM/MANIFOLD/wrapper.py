@@ -10,7 +10,7 @@ from scipy.spatial.distance import pdist, squareform
 
 from ..utils.errors import raiseError
 
-def isomap(X:np.ndarray, dims:int, n_size:int, comp:int=1 ,verbose:bool=True):
+def isomap(X:np.ndarray, dims:int, n_size:int, comp:int=1 ,verbose:bool = True):
     """
     Computes Isomap embedding using the algorithm of Tenenbaum, de Silva, and Langford (2000).
     
@@ -33,9 +33,7 @@ def isomap(X:np.ndarray, dims:int, n_size:int, comp:int=1 ,verbose:bool=True):
         Residual variances for the embedding in Y.
     E : ndarray
         Edge matrix for neighborhood graph.
-    """
-    
-    
+    """    
     # Compute pairwise distances in a condensed form and convert to a square form
     D = squareform(pdist(X, metric='euclidean'))
     # Step 0: Initialization and Parameters
@@ -48,9 +46,7 @@ def isomap(X:np.ndarray, dims:int, n_size:int, comp:int=1 ,verbose:bool=True):
         raiseError("Number of neighbors for 'k' method must be a positive integer")
     
     INF = 1000 * np.max(D) * N  # Effectively infinite distance
-    
-    R = np.zeros(1)
-    
+        
     # Step 1: Construct neighborhood graph
     if verbose:
         print("Constructing neighborhood graph...")
@@ -122,7 +118,7 @@ def isomap(X:np.ndarray, dims:int, n_size:int, comp:int=1 ,verbose:bool=True):
     return Y, R, E
 
 
-def mds(X: np.ndarray, dims: int, verbose: bool = True):
+def mds(X:np.ndarray, dims:int, verbose:bool = True):
     """
     Computes the MDS embedding using a custom approach with squared distances and eigen-decomposition.
     

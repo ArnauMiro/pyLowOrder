@@ -3,8 +3,6 @@
 # Isomap analysis.
 #
 # Last revision: 11/02/2025
-
-
 import os, numpy as np
 import pyLOM
 from pyLOM.MANIFOLD.wrapper import mds
@@ -14,7 +12,6 @@ import matplotlib.pyplot as plt
 DATAFILE = './Testsuite/DATA/CYLINDER.h5'
 VARIABLE = 'VELOC'
 
-
 ## Data loading
 m = pyLOM.Mesh.load(DATAFILE)
 d = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table)
@@ -22,8 +19,6 @@ X = d[VARIABLE]
 t = d.get_variable('time')
 
 Y = mds(X.T,2)
-
-print(Y)
 
 plt.scatter(Y[0,:],Y[1,:],s=10,c='b')
 plt.show()
