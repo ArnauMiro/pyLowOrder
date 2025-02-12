@@ -361,7 +361,7 @@ def h5_load_fields_multi(file,npoints,ptable,varDict,point,npart):
 		fieldgroup = file['FIELDS_0'][v]
 		# Load point and dimensions
 		ndim = int(fieldgroup['ndim'][0])
-		dims = [ndim*npoints] + list(np.sum([file['FIELDS_%d'%ipart][v]['vars'] for ipart in range(npart)],axis=0s))
+		dims = [ndim*npoints] + list(np.sum([file['FIELDS_%d'%ipart][v]['vars'] for ipart in range(npart)],axis=0))
 		# Now allocate output array
 		value = np.zeros(dims,fieldgroup['value'].dtype)	
 		# Generate dictionary
