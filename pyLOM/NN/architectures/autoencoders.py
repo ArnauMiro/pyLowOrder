@@ -326,6 +326,77 @@ class VariationalAutoencoder(Autoencoder):
             _,_,_, z = self(batch)
         return z
 
+    def fine_tune(self, train_dataset, shape_, eval_dataset=None, epochs=1000, callback=None, lr=1e-4, BASEDIR='./', batch_size=32, shuffle=True, num_workers=0, pin_memory=True):
+        dataloader_params = {
+            "batch_size": batch_size,
+            "shuffle": shuffle,
+            "num_workers": num_workers,
+            "pin_memory": pin_memory,
+        }
+        train_data = DataLoader(torch.from_numpy(train_dataset).to(torch.float32), **dataloader_params)
+        eval_data  = DataLoader(torch.from_numpy(eval_dataset).to(torch.float32), **dataloader_params)
+        prev_train_loss = 1e99
+        writer    = SummaryWriter(BASEDIR)
+        decoder_model = self.decoder
+        optimizer = torch.optim.Adam(decoder_model.parameters(), lr=lr, weight_decay=0, amsgrad=False if self._device == "cpu" else True, fused=False if self._device == "cpu" else True)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, epochs, eta_min=lr*1e-3)
+        scaler    = GradScaler()
+        
+        for epoch in range(epochs):
+            ## Training
+            decoder_model.train()
+            tr_loss = 0
+            for batch0 in train_data:
+                batch = batch0.to(self._device)
+                optimizer.zero_grad()
+                with autocast(device_type=self._device):
+                    in_data = batch[:, :self.lat_dim]
+                    recon   = decoder_model(in_data)
+                    loss    = self._lossfunc(torch.reshape(batch[:, self.lat_dim:], recon.shape), recon, reduction='sum')
+                    
+                scaler.scale(loss).backward()
+                scaler.step(optimizer)
+                scaler.update()
+                tr_loss += loss.item()
+            
+            num_batches = len(train_data)
+            tr_loss /= num_batches
+            
+            ## Validation
+            decoder_model.eval()
+            va_loss     = 0
+            with torch.no_grad():
+                for val_batch0 in eval_data:
+                    val_batch = val_batch0.to(self._device)
+                    with autocast(device_type=self._device):
+                        val_in_data   = val_batch[:, :self.lat_dim]
+                        val_recon     = decoder_model(val_in_data)
+                        vali_loss     = self._lossfunc(torch.reshape(batch[:, self.lat_dim:], val_recon.shape), val_recon, reduction='sum')
+                        
+                    va_loss  += vali_loss.item()
+
+            num_batches = len(eval_data)
+            va_loss    /=num_batches
+            writer.add_scalar("Ft/Loss/train",tr_loss,epoch+1)
+            writer.add_scalar("Ft/Loss/vali", va_loss,epoch+1)
+            
+            if callback is not None:
+                if callback.early_stop(va_loss, prev_train_loss, tr_loss):
+                    print('Early Stopper Activated at epoch %i' %epoch, flush=True)
+                    break
+            prev_train_loss = tr_loss   
+            print('Epoch [%d / %d] average training loss: %.5e | average validation loss: %.5e' % (epoch+1, epochs, tr_loss, va_loss), flush=True)
+            # Learning rate scheduling
+            scheduler.step()
+
+        writer.flush()
+        writer.close()
+        torch.save(decoder_model.state_dict(), '%s/decoder_state' % BASEDIR)
+        
+        self.decoder.load_state_dict(torch.load('%s/decoder_state' % BASEDIR, weights_only=True))
+
+        return 0
+
     def decode(self, z):
         zt  = torch.tensor(z, dtype=torch.float32)
         var = self.decoder(zt)
