@@ -184,7 +184,7 @@ if __name__ == "__main__":
 	if not args.reltol:  args.reltol  = RELTOL
 	if not args.zerotol: args.zerotol = ZEROTOL
 	if not args.outroot: args.outroot = '/tmp/TESTSUITE/' # WARNING: OUTROOT IS ERASED BEFORE EVERY RUN
-	if not args.modules: args.modules = ['POD','DMD','SPOD','NN']
+	if not args.modules: args.modules = ['POD','DMD','SPOD','NN','MANIFOLD']
 
 
 	## Load tests
