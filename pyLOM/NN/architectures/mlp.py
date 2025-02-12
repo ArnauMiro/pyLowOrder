@@ -6,7 +6,7 @@
 #
 # Last rev: 09/10/2024
 
-import os, torch, numpy as np, torch.nn as nn
+import os, torch, warning, numpy as np, torch.nn as nn
 
 from torch.utils.data import DataLoader
 from typing           import Dict, List, Tuple
@@ -274,15 +274,17 @@ class MLP(nn.Module):
             path (str): Path to save the model. It can be either a path to a directory or a file name. 
             If it is a directory, the model will be saved with a filename that includes the number of epochs trained.
         """
-        checkpoint = {"input_size": self.input_size, 
-                      "output_size": self.output_size, 
-                      "n_layers": self.n_layers, 
-                      "hidden_size": self.hidden_size, 
-                      "p_dropouts": self.p_dropouts, 
-                      "activation": self.activation, 
-                      "device": self.device, 
-                      "state_dict": self.state_dict(),
-                      "state": self.state}
+        checkpoint = {
+            "input_size": self.input_size,
+            "output_size": self.output_size,
+            "n_layers": self.n_layers,
+            "hidden_size": self.hidden_size,
+            "p_dropouts": self.p_dropouts,
+            "activation": self.activation,
+            "device": self.device,
+            "state_dict": self.state_dict(),
+            "state": self.state,
+        }
         
         if os.path.isdir(path):
             filename = "/trained_model_{:06d}".format(len(self.state[2])) + ".pth"
@@ -305,15 +307,18 @@ class MLP(nn.Module):
         Returns:
             Model (MLP): The loaded model.
         """
-        checkpoint = torch.load(path, map_location=device)
+        checkpoint = torch.load(path, map_location=device, weights_only=False)
+        warning.warn("The model has been loaded with weights_only set to False. According with torch documentation, this is not recommended if you do not trust the source of your saved model, as it could lead to arbitrary code execution.")
         checkpoint['device'] = device
-        model = cls(checkpoint["input_size"], 
-                    checkpoint["output_size"], 
-                    checkpoint["n_layers"], 
-                    checkpoint["hidden_size"], 
-                    checkpoint["p_dropouts"], 
-                    checkpoint["activation"], 
-                    checkpoint["device"])
+        model = cls(
+            checkpoint["input_size"],
+            checkpoint["output_size"],
+            checkpoint["n_layers"],
+            checkpoint["hidden_size"],
+            checkpoint["p_dropouts"],
+            checkpoint["activation"],
+            checkpoint["device"],
+        )
         
         model.load_state_dict(checkpoint["state_dict"])
         model.checkpoint = checkpoint
