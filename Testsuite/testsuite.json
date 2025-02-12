@@ -342,7 +342,7 @@
 		"file"   : "runs/tsuite_ISOMAP.py",
 		"data"   : "DATA/CYLINDER.h5",
 		"var"    : ["VELOC"],
-		"params" : {},
+		"params" : {"K":12},
 		"nprocs" : 1,
 		"reset"  : false,
 		"active" : true

@@ -5,13 +5,14 @@
 # Last revision: 11/01/2025
 from __future__ import print_function, division
 
-import sys
+import sys, json
 import pyLOM
 
 ## Parameters
 DATAFILE  = sys.argv[1]
 VARIABLES = eval(sys.argv[2])
 OUTDIR    = sys.argv[3]
+PARAMS    = json.loads(str(sys.argv[4]).replace("'",'"'))
 
 ## Data loading
 m = pyLOM.Mesh.load(DATAFILE)
@@ -20,7 +21,7 @@ X = d.X(*VARIABLES)
 t = d.get_variable('time')
 
 # Define the number of neighbours
-K = 12
+K = PARAMS['K']
 
 ## Run Isomap
 Y,R,_ = pyLOM.MANIFOLD.isomap(X.T,2,K)
