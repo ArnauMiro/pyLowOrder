@@ -7,7 +7,6 @@ from __future__ import print_function, division
 
 import sys
 import pyLOM
-import pyLOM.MANIFOLD
 
 ## Parameters
 DATAFILE  = sys.argv[1]

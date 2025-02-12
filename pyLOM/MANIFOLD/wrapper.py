@@ -8,9 +8,10 @@ from scipy.sparse.csgraph import shortest_path
 from scipy.linalg import eigh
 from scipy.spatial.distance import pdist, squareform
 
-from ..utils.errors import raiseError
+from ..utils import raiseError, pprint
 
-def isomap(X:np.ndarray, dims:int, n_size:int, comp:int=1 ,verbose:bool = True):
+
+def isomap(X:np.ndarray, dims:int, n_size:int, comp:int = 1 ,verbose:bool = True):
     """
     Computes Isomap embedding using the algorithm of Tenenbaum, de Silva, and Langford (2000).
     
@@ -49,7 +50,7 @@ def isomap(X:np.ndarray, dims:int, n_size:int, comp:int=1 ,verbose:bool = True):
         
     # Step 1: Construct neighborhood graph
     if verbose:
-        print("Constructing neighborhood graph...")
+        pprint(0,"Constructing neighborhood graph...",flush=True)
         
     # Sort distances and keep only K-nearest neighbors
     sorted_indices = np.argsort(D, axis=1)
@@ -62,7 +63,7 @@ def isomap(X:np.ndarray, dims:int, n_size:int, comp:int=1 ,verbose:bool = True):
 
     # Step 2: Compute shortest paths using Floyd-Warshall algorithm
     if verbose:
-        print("Computing shortest paths...")
+        pprint(0,"Computing shortest paths...",flush=True)
 
     G = shortest_path(D, method='FW', directed=False, unweighted=False)
 
@@ -79,8 +80,8 @@ def isomap(X:np.ndarray, dims:int, n_size:int, comp:int=1 ,verbose:bool = True):
         comp = 1  # Default to largest component if specified component is out of range
 
     if verbose:
-        print(f"Number of connected components in graph: {len(comps)}")
-        print(f"Embedding component {comp} with {size_comps[comp-1]} points.")
+        pprint(0,f"Number of connected components in graph: {len(comps)}",flush=True)
+        pprint(0,f"Embedding component {comp} with {size_comps[comp-1]} points.",flush=True)
 
     # Select the largest connected component
     index = np.where(firsts == comps[comp-1])[0]
@@ -88,7 +89,6 @@ def isomap(X:np.ndarray, dims:int, n_size:int, comp:int=1 ,verbose:bool = True):
     N = len(index)
 
     # Step 4: Construct low-dimensional embeddings using Classical MDS
-
     H = np.eye(N) - np.ones((N, N)) / N
     B = -0.5 * H @ (G**2) @ H  # Centering the matrix
     
@@ -110,7 +110,7 @@ def isomap(X:np.ndarray, dims:int, n_size:int, comp:int=1 ,verbose:bool = True):
         R = r2
 
         if verbose:
-            print(f"Isomap on {N} points with dimensionality {dims} --> residual variance = {R}")
+            pprint(0,f"Isomap on {N} points with dimensionality {dims} --> residual variance = {R}",flush=True)
     else:
         raiseError('Selected number of dimensions is higher than the number of samples')
         return None, None, None

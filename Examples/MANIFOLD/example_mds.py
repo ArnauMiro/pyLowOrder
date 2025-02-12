@@ -5,7 +5,6 @@
 # Last revision: 11/02/2025
 import os, numpy as np
 import pyLOM
-from pyLOM.MANIFOLD.wrapper import mds
 import matplotlib.pyplot as plt
 
 ## Parameters
@@ -18,7 +17,7 @@ d = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table)
 X = d[VARIABLE]
 t = d.get_variable('time')
 
-Y = mds(X.T,2)
+Y = pyLOM.MANIFOLD.mds(X.T,2)
 
 plt.scatter(Y[0,:],Y[1,:],s=10,c='b')
 plt.show()
