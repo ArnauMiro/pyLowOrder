@@ -21,6 +21,8 @@ from   operator                import mul
 
 from   ..                      import DEVICE
 from   ...utils.cr             import cr
+from   ...utils.parall         import pprint
+
 
 
 ## Wrapper of a variational autoencoder
@@ -244,10 +246,10 @@ class VariationalAutoencoder(Autoencoder):
 
             if callback is not None:
                 if callback.early_stop(va_loss, prev_train_loss, tr_loss):
-                    print('Early Stopper Activated at epoch %i' %epoch, flush=True)
+                    pprint(0, 'Early Stopper Activated at epoch %i' %epoch, flush=True)
                     break
             prev_train_loss = tr_loss   
-            print('Epoch [%d / %d] average training loss: %.5e (MSE = %.5e KLD = %.5e) | average validation loss: %.5e' % (epoch+1, epochs, tr_loss, mse, kld, va_loss), flush=True)
+            pprint(0, 'Epoch [%d / %d] average training loss: %.5e (MSE = %.5e KLD = %.5e) | average validation loss: %.5e' % (epoch+1, epochs, tr_loss, mse, kld, va_loss), flush=True)
             # Learning rate scheduling
             scheduler.step()
 
@@ -326,13 +328,7 @@ class VariationalAutoencoder(Autoencoder):
             _,_,_, z = self(batch)
         return z
 
-    def fine_tune(self, train_dataset, shape_, eval_dataset=None, epochs=1000, callback=None, lr=1e-4, BASEDIR='./', batch_size=32, shuffle=True, num_workers=0, pin_memory=True):
-        dataloader_params = {
-            "batch_size": batch_size,
-            "shuffle": shuffle,
-            "num_workers": num_workers,
-            "pin_memory": pin_memory,
-        }
+    def fine_tune(self, train_dataset, shape_, eval_dataset=None, epochs=1000, callback=None, lr=1e-4, BASEDIR='./', **dataloader_params):
         train_data = DataLoader(torch.from_numpy(train_dataset).to(torch.float32), **dataloader_params)
         eval_data  = DataLoader(torch.from_numpy(eval_dataset).to(torch.float32), **dataloader_params)
         prev_train_loss = 1e99
@@ -382,10 +378,10 @@ class VariationalAutoencoder(Autoencoder):
             
             if callback is not None:
                 if callback.early_stop(va_loss, prev_train_loss, tr_loss):
-                    print('Early Stopper Activated at epoch %i' %epoch, flush=True)
+                    pprint(0, 'Early Stopper Activated at epoch %i' %epoch, flush=True)
                     break
             prev_train_loss = tr_loss   
-            print('Epoch [%d / %d] average training loss: %.5e | average validation loss: %.5e' % (epoch+1, epochs, tr_loss, va_loss), flush=True)
+            pprint(0, 'Epoch [%d / %d] average training loss: %.5e | average validation loss: %.5e' % (epoch+1, epochs, tr_loss, va_loss), flush=True)
             # Learning rate scheduling
             scheduler.step()
 
