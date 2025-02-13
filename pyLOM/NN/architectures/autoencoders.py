@@ -24,7 +24,6 @@ from   ...utils.cr             import cr
 from   ...utils.parall         import pprint
 
 
-
 ## Wrapper of a variational autoencoder
 class Autoencoder(nn.Module):
     def __init__(self, latent_dim, in_shape, input_channels, encoder, decoder, device=DEVICE):
