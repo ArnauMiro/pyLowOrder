@@ -1,6 +1,5 @@
 import os
 import torch
-import warnings
 import numpy as np
 import torch.nn as nn
 
@@ -9,6 +8,7 @@ from typing import Dict, List, Tuple
 from ..optimizer import OptunaOptimizer, TrialPruned
 from .. import DEVICE, set_seed  # pyLOM/NN/__init__.py
 from ... import pprint, cr  # pyLOM/__init__.py
+from ...utils.errors import raiseWarning
 
 
 class MLP(nn.Module):
@@ -304,7 +304,7 @@ class MLP(nn.Module):
             Model (MLP): The loaded model.
         """
         checkpoint = torch.load(path, map_location=device, weights_only=False)
-        warnings.warn("The model has been loaded with weights_only set to False. According with torch documentation, this is not recommended if you do not trust the source of your saved model, as it could lead to arbitrary code execution.")
+        raiseWarning("The model has been loaded with weights_only set to False. According with torch documentation, this is not recommended if you do not trust the source of your saved model, as it could lead to arbitrary code execution.")
         checkpoint['device'] = device
         model = cls(
             checkpoint["input_size"],

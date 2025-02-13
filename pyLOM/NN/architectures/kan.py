@@ -1,5 +1,4 @@
 import os
-import warnings
 from typing import Dict, Tuple
 
 import numpy as np
@@ -10,7 +9,7 @@ from torch.utils.data import DataLoader
 
 from ... import cr, pprint  # pyLOM/__init__.py
 from .. import DEVICE  # pyLOM/NN/__init__.py
-from ...utils.errors import raiseError
+from ...utils.errors import raiseError, raiseWarning
 from ..optimizer import OptunaOptimizer
 
 
@@ -435,7 +434,7 @@ class KAN(nn.Module):
 
         pprint(0, "Loading model...")
         checkpoint = torch.load(path, map_location=device, weights_only=False)
-        warnings.warn("The model has been loaded with weights_only set to False. According with torch documentation, this is not recommended if you do not trust the source of your saved model, as it could lead to arbitrary code execution.")
+        raiseWarning("The model has been loaded with weights_only set to False. According with torch documentation, this is not recommended if you do not trust the source of your saved model, as it could lead to arbitrary code execution.")
 
         degree = checkpoint["degree"]
         layer_kwargs = {"degree": degree}
