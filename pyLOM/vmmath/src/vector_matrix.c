@@ -952,7 +952,7 @@ void seuclidean_d(float *D, float *X, const int m, const int n){
 	float d, d2, d2G, dG;
 
 	for (int i = 0; i < n; i++) {
-		for (int j = i+1; j < n; i++) {
+		for (int j = i+1; j < n; j++) {
 			d2 = 0.;
 			// Local sum on the partition
 			for (int k = 0; k<m; k++) {
@@ -960,7 +960,7 @@ void seuclidean_d(float *D, float *X, const int m, const int n){
 				d2 += d*d;
 			}
 			// Global sum on the partitions
-			MPI_Allreduce(d2, d2G, 1, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+			MPI_Allreduce(&d2,&d2G,1,MPI_FLOAT,MPI_SUM,MPI_COMM_WORLD);
 			dG = sqrt(d2G);
 			// Fill output
 			AC_MAT(D,m,i,j) = dG;
@@ -981,7 +981,7 @@ void deuclidean_d(double *D, double *X, const int m, const int n){
 	double d, d2, d2G, dG;
 
 	for (int i = 0; i < n; i++) {
-		for (int j = i+1; j < n; i++) {
+		for (int j = i+1; j < n; j++) {
 			d2 = 0.;
 			// Local sum on the partition
 			for (int k = 0; k<m; k++) {
@@ -989,7 +989,7 @@ void deuclidean_d(double *D, double *X, const int m, const int n){
 				d2 += d*d;
 			}
 			// Global sum on the partitions
-			MPI_Allreduce(d2, d2G, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+			MPI_Allreduce(&d2,&d2G,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
 			dG = sqrt(d2G);
 			// Fill output
 			AC_MAT(D,m,i,j) = dG;
