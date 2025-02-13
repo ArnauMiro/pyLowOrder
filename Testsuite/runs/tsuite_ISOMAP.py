@@ -24,16 +24,16 @@ t = d.get_variable('time')
 K = PARAMS['K']
 
 ## Run Isomap
-Y,R,_ = pyLOM.MANIFOLD.isomap(X.T,2,K)
+Y,R,_ = pyLOM.MANIFOLD.isomap(X,2,K)
 ## Testsuite output
 pyLOM.pprint(0,'TSUITE R = %.10f'%R)
 values = ''
 for val in Y[0,:]:
-    values += str(val) + ' '
+    values += str(abs(val)) + ' '
 pyLOM.pprint(0,'TSUITE X = ',values)
 values = ''
 for val in Y[1,:]:
-    values += str(val) + ' '
+    values += str(abs(val)) + ' '
 pyLOM.pprint(0,'TSUITE Y = ',values)
 
 ## Show and print timings

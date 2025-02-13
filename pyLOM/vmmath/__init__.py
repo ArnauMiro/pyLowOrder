@@ -12,6 +12,8 @@ from .wrapper import transpose, vector_norm, matmul, matmulp, vecmat, argsort, e
 from .wrapper import temporal_mean, subtract_mean, RMSE, energy
 # SVD routines
 from .wrapper import qr, svd, tsqr, randomized_qr, init_qr_streaming, update_qr_streaming, tsqr_svd, randomized_svd
+# MANIFOLD ROUTINES
+from .wrapper import euclidean_d
 # FFT routines
 from .wrapper import fft
 # Mesh related routines
