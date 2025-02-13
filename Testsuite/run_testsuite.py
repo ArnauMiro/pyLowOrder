@@ -180,11 +180,11 @@ if __name__ == "__main__":
 	args = argpar.parse_args()
 	if args.modules:     args.modules = [m for m in args.modules.split(',')]
 	# set default values
-	if not args.file:    args.file    = 'Testsuite/tests.json'
+	if not args.file:    args.file    = 'Testsuite/testsuite.json'
 	if not args.reltol:  args.reltol  = RELTOL
 	if not args.zerotol: args.zerotol = ZEROTOL
 	if not args.outroot: args.outroot = '/tmp/TESTSUITE/' # WARNING: OUTROOT IS ERASED BEFORE EVERY RUN
-	if not args.modules: args.modules = ['POD','DMD','SPOD','NN']
+	if not args.modules: args.modules = ['POD','DMD','SPOD','NN','MANIFOLD']
 
 
 	## Load tests

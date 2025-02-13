@@ -268,16 +268,17 @@ def h5_load_variables_multi(file,npart):
 	for v in file['VARIABLES_0'].keys():
 		vargroup = file['VARIABLES_0'][v]
 		# Load point and dimensions
-		ndim = int(vargroup['ndim'][0])
+		idim = int(vargroup['idim'][0])
 		# Now allocate output array
 		value =  np.array(vargroup['value'])
 		# Generate dictionary
-		varDict[v] = {'ndim':ndim,'value':value}
+		varDict[v] = {'idim':idim,'value':value}
 	# Read variables per partition
-	for ipart in range(npart):
+	for ipart in range(1,npart):
 		# Compute start and end of my partition in time
 		vargroup = file['VARIABLES_%d'%ipart][v]
-		varDict[v]['value'] = np.concatenate(varDict[v]['value'],vargroup['value'])
+		value    =  np.array(vargroup['value'])
+		varDict[v]['value'] = np.concatenate((varDict[v]['value'],value))
 	# Return
 	return varDict
 
@@ -361,7 +362,7 @@ def h5_load_fields_multi(file,npoints,ptable,varDict,point,npart):
 		fieldgroup = file['FIELDS_0'][v]
 		# Load point and dimensions
 		ndim = int(fieldgroup['ndim'][0])
-		dims = [ndim*npoints] + list(fieldgroup['vars'])
+		dims = [ndim*npoints] + list(np.sum([file['FIELDS_%d'%ipart][v]['vars'] for ipart in range(npart)],axis=0))
 		# Now allocate output array
 		value = np.zeros(dims,fieldgroup['value'].dtype)	
 		# Generate dictionary
@@ -373,7 +374,7 @@ def h5_load_fields_multi(file,npoints,ptable,varDict,point,npart):
 		# Compute start and end of my partition in time
 		pname  = 'FIELDS_%d'%ipart
 		pstart = [ipart*p for p in psize]
-		pend   = [(ipart+1)*psize for p in psize]
+		pend   = [(ipart+1)*p for p in psize]
 		# Read the partition
 		for v in file[pname].keys():
 			fieldgroup = file[pname][v]
