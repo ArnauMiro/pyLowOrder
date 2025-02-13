@@ -22,6 +22,7 @@ float  sRMSE(float *A, float *B, const int m, const int n, MPI_Comm comm);
 float  senergy(float *A, float *B, const int m, const int n, MPI_Comm comm);
 void   ssort(float *v, int *index, int n);
 void   srandom_matrix(float *A, int m, int n, unsigned int seed);
+void   seuclidean_d(float *D, float *X, const int m, const int n);
 // Double version
 void   dtranspose(double *A, double *B, const int m, const int n);
 double dvector_norm(double *v, int start, int n);
@@ -35,6 +36,7 @@ double dRMSE(double *A, double *B, const int m, const int n, MPI_Comm comm);
 double denergy(double *A, double *B, const int m, const int n, MPI_Comm comm);
 void   dsort(double *v, int *index, int n);
 void   drandom_matrix(double *A, int m, int n, unsigned int seed);
+void   deuclidean_d(double *D, double *X, const int m, const int n);
 // Float complex version
 void   cmatmult(scomplex_t *C, scomplex_t *A, scomplex_t *B, const int m, const int n, const int k, const char *TA, const char *TB);
 void   cmatmul(scomplex_t *C, scomplex_t *A, scomplex_t *B, const int m, const int n, const int k);

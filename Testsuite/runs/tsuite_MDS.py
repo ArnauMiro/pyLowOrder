@@ -21,15 +21,15 @@ t = d.get_variable('time')
 
 
 ## Run MDS
-Y = pyLOM.MANIFOLD.mds(X.T,2)
+Y = pyLOM.MANIFOLD.mds(X,2)
 ## Testsuite output
 values = ''
 for val in Y[0,:]:
-    values += str(val) + ' '
+    values += str(abs(val)) + ' '
 pyLOM.pprint(0,'TSUITE X = ',values)
 values = ''
 for val in Y[1,:]:
-    values += str(val) + ' '
+    values += str(abs(val)) + ' '
 pyLOM.pprint(0,'TSUITE Y = ',values)
 
 ## Show and print timings

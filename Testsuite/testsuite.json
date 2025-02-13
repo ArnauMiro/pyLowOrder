@@ -336,6 +336,8 @@
 		"reset"  : false,
 		"active" : true
 	},
+
+	"comment": "MANIFOLD tests",
 	"ISOMAP_Cylinder": {
 		"name"   : "ISOMAP cylinder data",
 		"module" : "MANIFOLD",
@@ -347,6 +349,17 @@
 		"reset"  : false,
 		"active" : true
 	},
+	"ISOMAP_Cylinder1": {
+		"name"   : "ISOMAP cylinder data",
+		"module" : "MANIFOLD",
+		"file"   : "runs/tsuite_ISOMAP.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOC"],
+		"params" : {"K":12},
+		"nprocs" : 4,
+		"reset"  : false,
+		"active" : true
+	},
 	"MDS_Cylinder": {
 		"name"   : "MDS cylinder data",
 		"module" : "MANIFOLD",
@@ -355,6 +368,17 @@
 		"var"    : ["VELOC"],
 		"params" : {},
 		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"MDS_Cylinder1": {
+		"name"   : "MDS cylinder data",
+		"module" : "MANIFOLD",
+		"file"   : "runs/tsuite_MDS.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOC"],
+		"params" : {},
+		"nprocs" : 4,
 		"reset"  : false,
 		"active" : true
 	}
