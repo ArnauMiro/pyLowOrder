@@ -36,13 +36,11 @@ DSETDIR = os.path.join(BASEDIR,f'{CASESTR}.h5')
 RESUDIR = 'vae_beta_%.2e_ld_%i' % (beta, lat_dim)
 pyLOM.NN.create_results_folder(RESUDIR)
 
-
 ## Mesh size (HARDCODED BUT MUST BE INCLUDED IN PYLOM DATASET)
 n0h = 449
 n0w = 199
 nh  = 448
 nw  = 192
-
 
 ## Create a torch dataset
 m    = pyLOM.Mesh.load(DSETDIR)
@@ -68,12 +66,13 @@ pipeline = pyLOM.NN.Pipeline(
     model=model,
     training_params={
         "batch_size": 4,
-        "epochs": 100,
+        "epochs": 100, 
         "lr": 1e-4,
         "betasch": betasch,
         "BASEDIR": RESUDIR
     },
 )
+
 pipeline.run()
 
 
@@ -85,8 +84,32 @@ td.pad(n0h, n0w)
 d.add_field('urec',1,rd[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
 d.add_field('utra',1,td[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
 pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec', 'VELOX', 'utra'],fmt='vtkh5')
-pyLOM.NN.plotSnapshot(m,d,vars=['urec'],instant=0,component=0,cmap='jet',cpos='xy')
-pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet',cpos='xy')
 
+
+## Fine tuning
+RESUDIR_FT = f"{RESUDIR}/ft_vae_beta_{beta}_{lat_dim}"
+pyLOM.NN.create_results_folder(RESUDIR_FT)
+
+td_ft   = pyLOM.NN.Dataset((u_xm,), (n0h, n0w))
+td_ft.crop(nh, nw)
+z = model.latent_space(td_ft).cpu().numpy()
+z_noisy = z + 10*np.random.rand(z.shape[0], z.shape[1])
+td_rs = np.reshape(td_ft, (td_ft.shape[0]*td_ft.shape[1], td_ft.shape[2]*td_ft.shape[3]))
+dataset_train = np.column_stack((z_noisy, td_rs))
+dataloader_params = {
+            "batch_size": 32,
+            "shuffle": True,
+            "num_workers": 0,
+            "pin_memory": True,
+        }
+
+model.fine_tune(train_dataset=dataset_train, eval_dataset=dataset_train, epochs=50, shape_=td_ft.shape, BASEDIR=RESUDIR_FT, **dataloader_params)
+rec_ft = model.reconstruct(td_ft)
+rd_ft  = pyLOM.NN.Dataset((rec_ft,), (nh, nw))
+rd_ft.pad(n0h, n0w)
+td_ft.pad(n0h, n0w)
+d.add_field('urec_ft',1,rd_ft[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
+d.add_field('utra_ft',1,td_ft[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
+pyLOM.io.pv_writer(m,d,'reco_ft',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec_ft', 'VELOX', 'utra_ft'],fmt='vtkh5')
 
 pyLOM.cr_info()

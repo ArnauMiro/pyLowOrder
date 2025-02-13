@@ -292,6 +292,17 @@
 		"reset"  : false,
 		"active" : true
 	},
+	"VAE_Cylinder_2D_finetune": {
+		"name"   : "VAE Cylinder 2D fine-tuning",
+		"module" : "NN",
+		"file"   : "runs/tsuite_VAE2D_finetune.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],	
+		"params" : {"epochs_ft":50},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
 	"VAE_Tensor280_3D": {
 		"name"   : "VAE Tensor280 3D",
 		"module" : "NN",
