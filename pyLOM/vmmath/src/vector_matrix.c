@@ -945,9 +945,9 @@ void seuclidean_d(float *D, float *X, const int m, const int n){
 		Compute the Euclidean distance matrix
 
 		In:
-			- X: NxM Data matrix with N points in the mesh for M simulations
+			- X: MxN Data matrix with N points in the mesh for M simulations
 		Returns:
-			- D: MxM distance matrix
+			- D: NxN distance matrix
 	*/
 	float d, d2, d2G, dG;
 
@@ -963,8 +963,8 @@ void seuclidean_d(float *D, float *X, const int m, const int n){
 			MPI_Allreduce(&d2,&d2G,1,MPI_FLOAT,MPI_SUM,MPI_COMM_WORLD);
 			dG = sqrt(d2G);
 			// Fill output
-			AC_MAT(D,m,i,j) = dG;
-			AC_MAT(D,m,j,i) = dG;
+			AC_MAT(D,n,i,j) = dG;
+			AC_MAT(D,n,j,i) = dG;
 		}
 	}
 }
@@ -974,9 +974,9 @@ void deuclidean_d(double *D, double *X, const int m, const int n){
 		Compute the Euclidean distance matrix
 
 		In:
-			- X: NxM Data matrix with N points in the mesh for M simulations
+			- X: MxN Data matrix with N points in the mesh for M simulations
 		Returns:
-			- D: MxM distance matrix
+			- D: NxN distance matrix
 	*/
 	double d, d2, d2G, dG;
 
@@ -992,8 +992,8 @@ void deuclidean_d(double *D, double *X, const int m, const int n){
 			MPI_Allreduce(&d2,&d2G,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
 			dG = sqrt(d2G);
 			// Fill output
-			AC_MAT(D,m,i,j) = dG;
-			AC_MAT(D,m,j,i) = dG;
+			AC_MAT(D,n,i,j) = dG;
+			AC_MAT(D,n,j,i) = dG;
 		}
 	}
 }
