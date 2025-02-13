@@ -507,7 +507,7 @@ int zeigen(double *real, double *imag, dcomplex_t *w, double *A,
 	return info;
 }
 
-float sRMSE(float *A, float *B, const int m, const int n, MPI_Comm comm) {
+float sRMSE(float *A, float *B, const int m, const int n) {
 	/*
 		Compute the Root Meean Square Error (RMSE) between two
 		matrices and return it
@@ -531,13 +531,13 @@ float sRMSE(float *A, float *B, const int m, const int n, MPI_Comm comm) {
 		sum2 += norm2;
 	}
 	// Reduce MPI parallel run
-	MPI_Allreduce(&sum1,&sum1g,1,MPI_FLOAT,MPI_SUM,comm);
-	MPI_Allreduce(&sum2,&sum2g,1,MPI_FLOAT,MPI_SUM,comm);
+	MPI_Allreduce(&sum1,&sum1g,1,MPI_FLOAT,MPI_SUM,MPI_COMM_WORLD);
+	MPI_Allreduce(&sum2,&sum2g,1,MPI_FLOAT,MPI_SUM,MPI_COMM_WORLD);
 	// Return
 	return sqrt(sum1g/sum2g);
 }
 
-double dRMSE(double *A, double *B, const int m, const int n, MPI_Comm comm) {
+double dRMSE(double *A, double *B, const int m, const int n) {
 	/*
 		Compute the Root Meean Square Error (RMSE) between two
 		matrices and return it
@@ -561,13 +561,13 @@ double dRMSE(double *A, double *B, const int m, const int n, MPI_Comm comm) {
 		sum2 += norm2;
 	}
 	// Reduce MPI parallel run
-	MPI_Allreduce(&sum1,&sum1g,1,MPI_DOUBLE,MPI_SUM,comm);
-	MPI_Allreduce(&sum2,&sum2g,1,MPI_DOUBLE,MPI_SUM,comm);
+	MPI_Allreduce(&sum1,&sum1g,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+	MPI_Allreduce(&sum2,&sum2g,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
 	// Return
 	return sqrt(sum1g/sum2g);
 }
 
-float senergy(float *A, float *B, const int m, const int n, MPI_Comm comm) {
+float senergy(float *A, float *B, const int m, const int n) {
 	/*
 		Compute reconstruction energy as in:
 		Eivazi, H., Le Clainche, S., Hoyas, S., & Vinuesa, R. (2022). 
@@ -592,13 +592,13 @@ float senergy(float *A, float *B, const int m, const int n, MPI_Comm comm) {
 		sum2 += norm2;
 	}
 	// Reduce MPI parallel run
-	MPI_Allreduce(&sum1,&sum1g,1,MPI_FLOAT,MPI_SUM,comm);
-	MPI_Allreduce(&sum2,&sum2g,1,MPI_FLOAT,MPI_SUM,comm);
+	MPI_Allreduce(&sum1,&sum1g,1,MPI_FLOAT,MPI_SUM,MPI_COMM_WORLD);
+	MPI_Allreduce(&sum2,&sum2g,1,MPI_FLOAT,MPI_SUM,MPI_COMM_WORLD);
 	// Return
 	return 1 - sum1g/sum2g;
 }
 
-double denergy(double *A, double *B, const int m, const int n, MPI_Comm comm) {
+double denergy(double *A, double *B, const int m, const int n) {
 	/*
 		Compute the Root Meean Square Error (RMSE) between two
 		matrices and return it
@@ -622,8 +622,8 @@ double denergy(double *A, double *B, const int m, const int n, MPI_Comm comm) {
 		sum2 += norm2;
 	}
 	// Reduce MPI parallel run
-	MPI_Allreduce(&sum1,&sum1g,1,MPI_DOUBLE,MPI_SUM,comm);
-	MPI_Allreduce(&sum2,&sum2g,1,MPI_DOUBLE,MPI_SUM,comm);
+	MPI_Allreduce(&sum1,&sum1g,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+	MPI_Allreduce(&sum2,&sum2g,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
 	// Return
 	return 1 - sum1g/sum2g;
 }

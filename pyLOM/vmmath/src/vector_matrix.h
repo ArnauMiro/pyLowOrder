@@ -18,8 +18,8 @@ void   smatmul(float *C, float *A, float *B, const int m, const int n, const int
 void   smatmulp(float *C, float *A, float *B, const int m, const int n, const int k);
 void   svecmat(float *v, float *A, const int m, const int n);
 int    sinverse(float *A, int N, char *UoL);
-float  sRMSE(float *A, float *B, const int m, const int n, MPI_Comm comm);
-float  senergy(float *A, float *B, const int m, const int n, MPI_Comm comm);
+float  sRMSE(float *A, float *B, const int m, const int n);
+float  senergy(float *A, float *B, const int m, const int n);
 void   ssort(float *v, int *index, int n);
 void   srandom_matrix(float *A, int m, int n, unsigned int seed);
 // Double version
@@ -31,8 +31,8 @@ void   dmatmul(double *C, double *A, double *B, const int m, const int n, const 
 void   dmatmulp(double *C, double *A, double *B, const int m, const int n, const int k);
 void   dvecmat(double *v, double *A, const int m, const int n);
 int    dinverse(double *A, int N, char *UoL);
-double dRMSE(double *A, double *B, const int m, const int n, MPI_Comm comm);
-double denergy(double *A, double *B, const int m, const int n, MPI_Comm comm);
+double dRMSE(double *A, double *B, const int m, const int n);
+double denergy(double *A, double *B, const int m, const int n);
 void   dsort(double *v, int *index, int n);
 void   drandom_matrix(double *A, int m, int n, unsigned int seed);
 // Float complex version

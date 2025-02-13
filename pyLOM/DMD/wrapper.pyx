@@ -25,26 +25,6 @@ cdef extern from "<complex.h>" nogil:
 	double creal(double complex z)
 cdef double complex J = 1j
 
-# Fix as Open MPI does not support MPI-4 yet, and there is no nice way that I know to automatically adjust Cython to missing stuff in C header files.
-# Source: https://github.com/mpi4py/mpi4py/issues/525
-cdef extern from *:
-	"""
-	#include <mpi.h>
-	
-	#if (MPI_VERSION < 3) && !defined(PyMPI_HAVE_MPI_Message)
-	typedef void *PyMPI_MPI_Message;
-	#define MPI_Message PyMPI_MPI_Message
-	#endif
-	
-	#if (MPI_VERSION < 4) && !defined(PyMPI_HAVE_MPI_Session)
-	typedef void *PyMPI_MPI_Session;
-	#define MPI_Session PyMPI_MPI_Session
-	#endif
-	"""
-from mpi4py.libmpi cimport MPI_Comm
-from mpi4py        cimport MPI
-from mpi4py         import MPI
-
 from ..utils.cr     import cr, cr_start, cr_stop
 from ..utils.errors import raiseError
 
@@ -88,10 +68,10 @@ cdef extern from "averaging.h":
 	cdef void c_dsubtract_mean "dsubtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
 cdef extern from "svd.h":
 	# Single precision
-	cdef int c_stsqr_svd "stsqr_svd"(float *Ui, float *S, float *VT, float *Ai, const int m, const int n, MPI_Comm comm)
+	cdef int c_stsqr_svd "stsqr_svd"(float *Ui, float *S, float *VT, float *Ai, const int m, const int n)
 	cdef int c_ssvd      "ssvd"(float *U, float *S, float *VT, float *Y, const int m, const int n)
 	# Double precision
-	cdef int c_dtsqr_svd "dtsqr_svd"(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm)
+	cdef int c_dtsqr_svd "dtsqr_svd"(double *Ui, double *S, double *VT, double *Ai, const int m, const int n)
 	cdef int c_dsvd      "dsvd"(double *U, double *S, double *VT, double *Y, const int m, const int n)
 cdef extern from "truncation.h":
 	# Single precision
@@ -137,7 +117,6 @@ def _srun(float[:,:] X, float r, int remove_mean):
 	cdef float *X_mean
 	cdef float *Y
 	cdef int iaux, icol, irow
-	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	# Output arrays:
 	# Allocate memory
 	Y  = <float*>malloc(m*n*sizeof(float))
@@ -176,7 +155,7 @@ def _srun(float[:,:] X, float r, int remove_mean):
 	U  = <float*>malloc(m*mn*sizeof(float))
 	S  = <float*>malloc(mn*sizeof(float))
 	V  = <float*>malloc((n-1)*mn*sizeof(float))
-	retval = c_stsqr_svd(U, S, V, Y1, m, mn, MPI_COMM.ob_mpi)
+	retval = c_stsqr_svd(U, S, V, Y1, m, mn)
 	cr_stop('DMD.SVD',0)
 	if not retval == 0: raiseError('Problems computing SVD!')
 	free(Y1)
@@ -417,7 +396,6 @@ def _drun(double[:,:] X, double r, int remove_mean):
 	cdef double *X_mean
 	cdef double *Y
 	cdef int iaux, icol, irow
-	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	# Output arrays:
 	# Allocate memory
 	Y  = <double*>malloc(m*n*sizeof(double))
@@ -456,7 +434,7 @@ def _drun(double[:,:] X, double r, int remove_mean):
 	U  = <double*>malloc(m*mn*sizeof(double))
 	S  = <double*>malloc(mn*sizeof(double))
 	V  = <double*>malloc((n-1)*mn*sizeof(double))
-	retval = c_dtsqr_svd(U, S, V, Y1, m, mn, MPI_COMM.ob_mpi)
+	retval = c_dtsqr_svd(U, S, V, Y1, m, mn)
 	cr_stop('DMD.SVD',0)
 	if not retval == 0: raiseError('Problems computing SVD!')
 	free(Y1)
