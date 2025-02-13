@@ -43,6 +43,7 @@ cdef extern from "vector_matrix.h" nogil:
 	cdef float  c_sRMSE             "sRMSE"(float *A, float *B, const int m, const int n)
 	cdef float  c_senergy           "senergy"(float *A, float *B, const int m, const int n)
 	cdef void   c_ssort             "ssort"(float *v, int *index, int n)
+	cdef void   c_seuclidean_d      "seuclidean_d"(float *D, float *X, const int m, const int n)
 	# Double precision
 	cdef void   c_dtranspose        "dtranspose"(double *A, double *B, const int m, const int n)
 	cdef double c_dvector_norm      "dvector_norm"(double *v, int start, int n)
@@ -54,6 +55,7 @@ cdef extern from "vector_matrix.h" nogil:
 	cdef double c_dRMSE             "dRMSE"(double *A, double *B, const int m, const int n)
 	cdef double c_denergy           "denergy"(double *A, double *B, const int m, const int n)
 	cdef void   c_dsort             "dsort"(double *v, int *index, int n)
+	cdef void   c_deuclidean_d      "deuclidean_d"(double *D, double *X, const int m, const int n);
 	# Single complex precision
 	cdef void   c_cmatmult          "cmatmult"(np.complex64_t *C, np.complex64_t *A, np.complex64_t *B, const int m, const int n, const int k, const char *TA, const char *TB)
 	cdef void   c_cmatmul           "cmatmul"(np.complex64_t *C, np.complex64_t *A, np.complex64_t *B, const int m, const int n, const int k)
@@ -2001,3 +2003,64 @@ def normals(real[:,:] xyz, int[:,:] conec):
 		return _dnormals(xyz,conec)
 	else:
 		return _snormals(xyz,conec)
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.float32_t,ndim=2] _seuclidean_d(float[:,:] X):
+	'''
+	Compute Euclidean distances between simulations.
+
+	In:
+		- X: NxM Data matrix with N points in the mesh for M simulations
+	Returns:
+		- D: MxM distance matrix 
+	'''
+	# Initialize
+	cdef int n = X.shape[0], m = X.shape[1]
+	cdef np.ndarray[np.float32_t,ndim=2] D = np.zeros((m,m),dtype=np.float32)
+	# Call C function
+	c_seuclidean_d(&D[0,0],&X[0,0],n,m);
+	# Return the distance matrix
+	return D
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.double_t,ndim=2] _deuclidean_d(double[:,:] X):
+	'''
+	Compute Euclidean distances between simulations.
+
+	In:
+		- X: NxM Data matrix with N points in the mesh for M simulations
+	Returns:
+		- D: MxM distance matrix 
+	'''
+	# Initialize
+	cdef int n = X.shape[0], m = X.shape[1]
+	cdef np.ndarray[np.double_t,ndim=2] D = np.zeros((m,m),dtype=np.double)
+	# Call C function
+	c_deuclidean_d(&D[0,0],&X[0,0],n,m);
+	# Return the distance matrix
+	return D
+
+@cr('math.euclidean_d')
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def euclidean_d(real[:,:] X):
+	'''
+	Compute Euclidean distances between simulations.
+
+	In:
+		- X: NxM Data matrix with N points in the mesh for M simulations
+	Returns:
+		- D: MxM distance matrix 
+	'''
+	if real is double:
+		return _deuclidean_d(X)
+	else:
+		return _seuclidean_d(X)

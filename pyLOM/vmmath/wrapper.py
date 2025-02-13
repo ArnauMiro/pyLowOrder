@@ -505,3 +505,29 @@ def normals(xyz,conec):
 			v = xyzel[inod-1] - cen
 			normals[ielem,:] += 0.5*np.cross(u,v)
 	return normals
+
+@cr('math.euclidean_d')
+def euclidean_d(X):
+	'''
+	Compute Euclidean distances between simulations.
+
+	In:
+		- X: NxM Data matrix with N points in the mesh for M simulations
+	Returns:
+		- D: MxM distance matrix 
+	'''
+	# Extract dimensions
+	_,M = X.shape
+	# Initialize distance matrix
+	D = np.zeros((M,M),X.dtype)
+	for i in range(M):
+		for j in range(i+1,M,1):
+			# Local sum on the partition
+			d2 = np.sum((X[:,i]-X[:,j])*(X[:,i]-X[:,j]))
+			# Global sum over the partitions
+			dG = np.sqrt(mpi_reduce(d2,all=True))
+			# Fill output
+			D[i,j] = dG
+			D[j,i] = dG
+	# Return the mdistance matrix
+	return D

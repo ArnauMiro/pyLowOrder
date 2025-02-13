@@ -939,3 +939,61 @@ void drandom_matrix(double *A, int m, int n, unsigned int seed){
 		}
 	}
 }
+
+void seuclidean_d(float *D, float *X, const int m, const int n){
+	/*
+		Compute the Euclidean distance matrix
+
+		In:
+			- X: MxN Data matrix with N points in the mesh for M simulations
+		Returns:
+			- D: NxN distance matrix
+	*/
+	float d, d2, d2G, dG;
+
+	for (int i = 0; i < n; i++) {
+		for (int j = i+1; j < n; j++) {
+			d2 = 0.;
+			// Local sum on the partition
+			for (int k = 0; k<m; k++) {
+				d = AC_MAT(X,n,k,i) - AC_MAT(X,n,k,j);
+				d2 += d*d;
+			}
+			// Global sum on the partitions
+			MPI_Allreduce(&d2,&d2G,1,MPI_FLOAT,MPI_SUM,MPI_COMM_WORLD);
+			dG = sqrt(d2G);
+			// Fill output
+			AC_MAT(D,n,i,j) = dG;
+			AC_MAT(D,n,j,i) = dG;
+		}
+	}
+}
+
+void deuclidean_d(double *D, double *X, const int m, const int n){
+	/*
+		Compute the Euclidean distance matrix
+
+		In:
+			- X: MxN Data matrix with N points in the mesh for M simulations
+		Returns:
+			- D: NxN distance matrix
+	*/
+	double d, d2, d2G, dG;
+
+	for (int i = 0; i < n; i++) {
+		for (int j = i+1; j < n; j++) {
+			d2 = 0.;
+			// Local sum on the partition
+			for (int k = 0; k<m; k++) {
+				d = AC_MAT(X,n,k,i) - AC_MAT(X,n,k,j);
+				d2 += d*d;
+			}
+			// Global sum on the partitions
+			MPI_Allreduce(&d2,&d2G,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+			dG = sqrt(d2G);
+			// Fill output
+			AC_MAT(D,n,i,j) = dG;
+			AC_MAT(D,n,j,i) = dG;
+		}
+	}
+}

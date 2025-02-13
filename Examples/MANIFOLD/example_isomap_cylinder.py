@@ -8,7 +8,7 @@ import pyLOM
 import matplotlib.pyplot as plt
 
 ## Parameters
-DATAFILE = './Testsuite/DATA/CYLINDER.h5'
+DATAFILE = './DATA/CYLINDER.h5'
 VARIABLE = 'VELOC'
 
 ## Data loading
@@ -17,7 +17,7 @@ d = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table)
 X = d[VARIABLE]
 t = d.get_variable('time')
 
-Y,R,_ = pyLOM.MANIFOLD.isomap(X.T,2,12)
+Y,R,_ = pyLOM.MANIFOLD.isomap(X,2,12)
 
 plt.scatter(-Y[0,:],-Y[1,:],s=15,c='b')
 plt.show()
