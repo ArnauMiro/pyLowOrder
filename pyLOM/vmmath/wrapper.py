@@ -8,12 +8,11 @@
 from __future__ import print_function, division
 
 import time
-import numpy as np, scipy, nfft
+import cupy as np, scipy, nfft
 from mpi4py import MPI
 
-from ..utils.cr     import cr
-from ..utils.parall import mpi_gather, mpi_reduce, pprint, mpi_send, mpi_recv, is_rank_or_serial
-from ..utils.errors import raiseError
+from ..utils import cr, is_rank_or_serial, raiseError
+from ..utils import MPI_RANK, MPI_SIZE, mpi_gather, mpi_reduce, pprint, mpi_send, mpi_recv
 
 
 ## Python functions
@@ -184,10 +183,6 @@ def tsqr(Ai):
 		Q(m,n) is the Q matrix
 		R(n,n) is the R matrix
 	'''
-	#Recover rank and size
-	MPI_COMM = MPI.COMM_WORLD      # Communications macro
-	MPI_RANK = MPI_COMM.Get_rank() # Who are you? who? who?
-	MPI_SIZE = MPI_COMM.Get_size() # Total number of processors used (workers)
 	m, n = Ai.shape
 	# Algorithm 1 from Demmel et al (2012)
 	# 1: QR Factorization on Ai to obtain Q1i and Ri

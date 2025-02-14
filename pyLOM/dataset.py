@@ -11,11 +11,8 @@ import os, mpi4py, numpy as np
 mpi4py.rc.recv_mprobe = False
 from mpi4py import MPI
 
-from .             import inp_out as io
-from .utils.cr     import cr
-from .utils.mem    import mem
-from .utils.errors import raiseError
-from .utils.parall import mpi_reduce
+from .      import inp_out as io
+from .utils import cr, mem, raiseError, mpi_reduce
 
 
 class Dataset(object):

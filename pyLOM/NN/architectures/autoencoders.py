@@ -20,8 +20,7 @@ from   functools               import reduce
 from   operator                import mul
 
 from   ..                      import DEVICE
-from   ...utils.cr             import cr
-from   ...utils.parall         import pprint
+from   ...utils                import cr, pprint
 
 
 ## Wrapper of a variational autoencoder

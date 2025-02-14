@@ -14,6 +14,7 @@ from .mesh            import Mesh
 # Import utilities
 from .utils.cr     import cr, cr_start, cr_stop, cr_reset, cr_info
 from .utils.parall import pprint
+from .utils.gpu    import gpu_device
 from .utils.plots  import show_plots, close_plots
 
 # Import Low Order Models
