@@ -11,8 +11,10 @@ import cupy
 from .mpi import MPI_RANK
 
 
-def gpu_device(id=MPI_RANK):
+def gpu_device(id=MPI_RANK,gpu_per_node=4):
 	'''
 	Setup the GPU to be used
 	'''
-	cupy.cuda.Device(id).use()
+	local_id = int(cupy.mod(id,gpu_per_node))
+	print(local_id)
+	cupy.cuda.Device(local_id).use()
