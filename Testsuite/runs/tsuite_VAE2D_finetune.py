@@ -18,7 +18,7 @@ PARAMS    = json.loads(str(sys.argv[4]).replace("'",'"'))
 
 
 ## Set device
-device = pyLOM.NN.select_device('cuda')
+device = pyLOM.NN.select_device('cpu')
 
 
 ## Specify autoencoder parameters
