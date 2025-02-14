@@ -7,7 +7,7 @@
 # Last rev: 09/07/2021
 from __future__ import print_function
 
-import numpy as np
+import cupy as np
 
 from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, randomized_svd
 from ..utils.cr     import cr, cr_start, cr_stop
