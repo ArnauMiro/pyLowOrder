@@ -16,5 +16,4 @@ def gpu_device(id=MPI_RANK,gpu_per_node=4):
 	Setup the GPU to be used
 	'''
 	local_id = int(cupy.mod(id,gpu_per_node))
-	print(local_id)
 	cupy.cuda.Device(local_id).use()
