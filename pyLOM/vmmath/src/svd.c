@@ -413,7 +413,7 @@ int nextPowerOf2(int n) {
 	return p;
 }
 
-int stsqr(float *Qi, float *R, float *Ai, const int m, const int n, MPI_Comm comm) {
+int stsqr(float *Qi, float *R, float *Ai, const int m, const int n) {
 	/*
 		Single value decomposition (SVD) using TSQR algorithm from
 		J. Demmel, L. Grigori, M. Hoemmen, and J. Langou, ‘Communication-optimal Parallel
@@ -431,8 +431,8 @@ int stsqr(float *Qi, float *R, float *Ai, const int m, const int n, MPI_Comm com
 	int mpi_rank, mpi_size;
 	float *Q1i, *Q2i, *Q2l, *QW, *C;
 	// Recover rank and size
-	MPI_Comm_rank(comm,&mpi_rank);
-	MPI_Comm_size(comm,&mpi_size);
+	MPI_Comm_rank(MPI_COMM_WORLD,&mpi_rank);
+	MPI_Comm_size(MPI_COMM_WORLD,&mpi_size);
 	// Memory allocation
 	Q1i = (float*)malloc(m*n*sizeof(float));
 	Q2i = (float*)malloc(n2*n*sizeof(float));
@@ -458,11 +458,11 @@ int stsqr(float *Qi, float *R, float *Ai, const int m, const int n, MPI_Comm com
 		// Decide who sends and who recieves, use R as buffer
 		prank = mpi_rank^blevel;
 		if (mpi_rank&blevel) {
-			if (prank < mpi_size) MPI_Send(R,n*n,MPI_FLOAT,prank,0,comm);
+			if (prank < mpi_size) MPI_Send(R,n*n,MPI_FLOAT,prank,0,MPI_COMM_WORLD);
 		} else {
 			// Receive R
 			if (prank < mpi_size) {
-				MPI_Recv(R,n*n,MPI_FLOAT,prank,0,comm,MPI_STATUS_IGNORE);
+				MPI_Recv(R,n*n,MPI_FLOAT,prank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 				// Store R in the lower part of the C matrix
 				for (ii=0; ii<n; ++ii)
 					for (jj=0; jj<n; ++jj)
@@ -493,7 +493,7 @@ int stsqr(float *Qi, float *R, float *Ai, const int m, const int n, MPI_Comm com
 				prank = mpi_rank^blevel;
 				if ( ((mpi_rank^0)&blevel)) {
 					if (prank < mpi_size) { // Recieve
-						MPI_Recv(C,n2*n,MPI_FLOAT,prank,0,comm,MPI_STATUS_IGNORE);
+						MPI_Recv(C,n2*n,MPI_FLOAT,prank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 						// Recover R from the upper part of C and QW from the lower part
 						for (ii=0; ii<n; ++ii)
 							for (jj=0; jj<n; ++jj) {
@@ -512,7 +512,7 @@ int stsqr(float *Qi, float *R, float *Ai, const int m, const int n, MPI_Comm com
 								AC_MAT(C,n,ii+n,jj) = AC_MAT(Q2i,n,ii+n,jj);
 								AC_MAT(QW,n,ii,jj)  = AC_MAT(Q2i,n,ii,jj);
 							}
-						MPI_Send(C,n2*n,MPI_FLOAT,prank,0,comm);
+						MPI_Send(C,n2*n,MPI_FLOAT,prank,0,MPI_COMM_WORLD);
 					}
 				}
 			}
@@ -526,7 +526,7 @@ int stsqr(float *Qi, float *R, float *Ai, const int m, const int n, MPI_Comm com
 	return info;
 }
 
-int stsqr_svd(float *Ui, float *S, float *VT, float *Ai, const int m, const int n, MPI_Comm comm) {
+int stsqr_svd(float *Ui, float *S, float *VT, float *Ai, const int m, const int n) {
 	/*
 		Single value decomposition (SVD) using TSQR algorithm from
 		J. Demmel, L. Grigori, M. Hoemmen, and J. Langou, ‘Communication-optimal Parallel
@@ -547,7 +547,7 @@ int stsqr_svd(float *Ui, float *S, float *VT, float *Ai, const int m, const int 
 	R    = (float*)malloc(n*n*sizeof(float));
 	Qi   = (float*)malloc(m*n*sizeof(float));
 	// Call TSQR routine
-	info = stsqr(Qi,R,Ai,m,n,comm);
+	info = stsqr(Qi,R,Ai,m,n);
 
 	// Algorithm 2 from Sayadi and Schmid (2016) - Ui, S and VT
 	// At this point we have R and Qi scattered on the processors
@@ -562,7 +562,7 @@ int stsqr_svd(float *Ui, float *S, float *VT, float *Ai, const int m, const int 
 	return info;
 }
 
-int dtsqr(double *Qi, double *R, double *Ai, const int m, const int n, MPI_Comm comm) {
+int dtsqr(double *Qi, double *R, double *Ai, const int m, const int n) {
 	/*
 		Single value decomposition (SVD) using TSQR algorithm from
 		J. Demmel, L. Grigori, M. Hoemmen, and J. Langou, ‘Communication-optimal Parallel
@@ -580,8 +580,8 @@ int dtsqr(double *Qi, double *R, double *Ai, const int m, const int n, MPI_Comm 
 	int mpi_rank, mpi_size;
 	double *Q1i, *Q2i, *Q2l, *QW, *C;
 	// Recover rank and size
-	MPI_Comm_rank(comm,&mpi_rank);
-	MPI_Comm_size(comm,&mpi_size);
+	MPI_Comm_rank(MPI_COMM_WORLD,&mpi_rank);
+	MPI_Comm_size(MPI_COMM_WORLD,&mpi_size);
 	// Memory allocation
 	Q1i = (double*)malloc(m*n*sizeof(double));
 	Q2i = (double*)malloc(n2*n*sizeof(double));
@@ -607,11 +607,11 @@ int dtsqr(double *Qi, double *R, double *Ai, const int m, const int n, MPI_Comm 
 		// Decide who sends and who recieves, use R as buffer
 		prank = mpi_rank^blevel;
 		if (mpi_rank&blevel) {
-			if (prank < mpi_size) MPI_Send(R,n*n,MPI_DOUBLE,prank,0,comm);
+			if (prank < mpi_size) MPI_Send(R,n*n,MPI_DOUBLE,prank,0,MPI_COMM_WORLD);
 		} else {
 			// Receive R
 			if (prank < mpi_size) {
-				MPI_Recv(R,n*n,MPI_DOUBLE,prank,0,comm,MPI_STATUS_IGNORE);
+				MPI_Recv(R,n*n,MPI_DOUBLE,prank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 				// Store R in the lower part of the C matrix
 				for (ii=0; ii<n; ++ii)
 					for (jj=0; jj<n; ++jj)
@@ -642,7 +642,7 @@ int dtsqr(double *Qi, double *R, double *Ai, const int m, const int n, MPI_Comm 
 				prank = mpi_rank^blevel;
 				if ( ((mpi_rank^0)&blevel)) {
 					if (prank < mpi_size) { // Recieve
-						MPI_Recv(C,n2*n,MPI_DOUBLE,prank,0,comm,MPI_STATUS_IGNORE);
+						MPI_Recv(C,n2*n,MPI_DOUBLE,prank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 						// Recover R from the upper part of C and QW from the lower part
 						for (ii=0; ii<n; ++ii)
 							for (jj=0; jj<n; ++jj) {
@@ -661,7 +661,7 @@ int dtsqr(double *Qi, double *R, double *Ai, const int m, const int n, MPI_Comm 
 								AC_MAT(C,n,ii+n,jj) = AC_MAT(Q2i,n,ii+n,jj);
 								AC_MAT(QW,n,ii,jj)  = AC_MAT(Q2i,n,ii,jj);
 							}
-						MPI_Send(C,n2*n,MPI_DOUBLE,prank,0,comm);
+						MPI_Send(C,n2*n,MPI_DOUBLE,prank,0,MPI_COMM_WORLD);
 					}
 				}
 			}
@@ -675,7 +675,7 @@ int dtsqr(double *Qi, double *R, double *Ai, const int m, const int n, MPI_Comm 
 	return info;
 }
 
-int dtsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm) {
+int dtsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const int n) {
 	/*
 		Single value decomposition (SVD) using TSQR algorithm from
 		J. Demmel, L. Grigori, M. Hoemmen, and J. Langou, ‘Communication-optimal Parallel
@@ -696,7 +696,7 @@ int dtsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const 
 	R    = (double*)malloc(n*n*sizeof(double));
 	Qi   = (double*)malloc(m*n*sizeof(double));
 	// Call TSQR routine
-	info = dtsqr(Qi,R,Ai,m,n,comm);
+	info = dtsqr(Qi,R,Ai,m,n);
 
 	// Algorithm 2 from Sayadi and Schmid (2016) - Ui, S and VT
 	// At this point we have R and Qi scattered on the processors
@@ -711,7 +711,7 @@ int dtsqr_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const 
 	return info;
 }
 
-int ctsqr(scomplex_t *Qi, scomplex_t *R, scomplex_t *Ai, const int m, const int n, MPI_Comm comm) {
+int ctsqr(scomplex_t *Qi, scomplex_t *R, scomplex_t *Ai, const int m, const int n) {
 	/*
 		Single value decomposition (SVD) using TSQR algorithm from
 		J. Demmel, L. Grigori, M. Hoemmen, and J. Langou, ‘Communication-optimal Parallel
@@ -729,8 +729,8 @@ int ctsqr(scomplex_t *Qi, scomplex_t *R, scomplex_t *Ai, const int m, const int 
 	int mpi_rank, mpi_size;
 	scomplex_t *Q1i, *Q2i, *Q2l, *QW, *C;
 	// Recover rank and size
-	MPI_Comm_rank(comm,&mpi_rank);
-	MPI_Comm_size(comm,&mpi_size);
+	MPI_Comm_rank(MPI_COMM_WORLD,&mpi_rank);
+	MPI_Comm_size(MPI_COMM_WORLD,&mpi_size);
 	// Memory allocation
 	Q1i = (scomplex_t*)malloc(m*n*sizeof(scomplex_t));
 	Q2i = (scomplex_t*)malloc(n2*n*sizeof(scomplex_t));
@@ -756,11 +756,11 @@ int ctsqr(scomplex_t *Qi, scomplex_t *R, scomplex_t *Ai, const int m, const int 
 		// Decide who sends and who recieves, use R as buffer
 		prank = mpi_rank^blevel;
 		if (mpi_rank&blevel) {
-			if (prank < mpi_size) MPI_Send(R,n*n,MPI_C_FLOAT_COMPLEX,prank,0,comm);
+			if (prank < mpi_size) MPI_Send(R,n*n,MPI_C_FLOAT_COMPLEX,prank,0,MPI_COMM_WORLD);
 		} else {
 			// Receive R
 			if (prank < mpi_size) {
-				MPI_Recv(R,n*n,MPI_C_FLOAT_COMPLEX,prank,0,comm,MPI_STATUS_IGNORE);
+				MPI_Recv(R,n*n,MPI_C_FLOAT_COMPLEX,prank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 				// Store R in the lower part of the C matrix
 				for (ii=0; ii<n; ++ii)
 					for (jj=0; jj<n; ++jj)
@@ -791,7 +791,7 @@ int ctsqr(scomplex_t *Qi, scomplex_t *R, scomplex_t *Ai, const int m, const int 
 				prank = mpi_rank^blevel;
 				if ( ((mpi_rank^0)&blevel)) {
 					if (prank < mpi_size) { // Recieve
-						MPI_Recv(C,n2*n,MPI_C_FLOAT_COMPLEX,prank,0,comm,MPI_STATUS_IGNORE);
+						MPI_Recv(C,n2*n,MPI_C_FLOAT_COMPLEX,prank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 						// Recover R from the upper part of C and QW from the lower part
 						for (ii=0; ii<n; ++ii)
 							for (jj=0; jj<n; ++jj) {
@@ -810,7 +810,7 @@ int ctsqr(scomplex_t *Qi, scomplex_t *R, scomplex_t *Ai, const int m, const int 
 								AC_MAT(C,n,ii+n,jj) = AC_MAT(Q2i,n,ii+n,jj);
 								AC_MAT(QW,n,ii,jj)  = AC_MAT(Q2i,n,ii,jj);
 							}
-						MPI_Send(C,n2*n,MPI_C_FLOAT_COMPLEX,prank,0,comm);
+						MPI_Send(C,n2*n,MPI_C_FLOAT_COMPLEX,prank,0,MPI_COMM_WORLD);
 					}
 				}
 			}
@@ -824,7 +824,7 @@ int ctsqr(scomplex_t *Qi, scomplex_t *R, scomplex_t *Ai, const int m, const int 
 	return info;
 }
 
-int ctsqr_svd(scomplex_t *Ui, float *S, scomplex_t *VT, scomplex_t *Ai, const int m, const int n, MPI_Comm comm) {
+int ctsqr_svd(scomplex_t *Ui, float *S, scomplex_t *VT, scomplex_t *Ai, const int m, const int n) {
 	/*
 		Single value decomposition (SVD) using TSQR algorithm from
 		J. Demmel, L. Grigori, M. Hoemmen, and J. Langou, ‘Communication-optimal Parallel
@@ -845,7 +845,7 @@ int ctsqr_svd(scomplex_t *Ui, float *S, scomplex_t *VT, scomplex_t *Ai, const in
 	R    = (scomplex_t*)malloc(n*n*sizeof(scomplex_t));
 	Qi   = (scomplex_t*)malloc(m*n*sizeof(scomplex_t));
 	// Call TSQR routine
-	info = ctsqr(Qi,R,Ai,m,n,comm);
+	info = ctsqr(Qi,R,Ai,m,n);
 
 	// Algorithm 2 from Sayadi and Schmid (2016) - Ui, S and VT
 	// At this point we have R and Qi scattered on the processors
@@ -860,7 +860,7 @@ int ctsqr_svd(scomplex_t *Ui, float *S, scomplex_t *VT, scomplex_t *Ai, const in
 	return info;
 }
 
-int ztsqr(dcomplex_t *Qi, dcomplex_t *R, dcomplex_t *Ai, const int m, const int n, MPI_Comm comm) {
+int ztsqr(dcomplex_t *Qi, dcomplex_t *R, dcomplex_t *Ai, const int m, const int n) {
 	/*
 		Single value decomposition (SVD) using TSQR algorithm from
 		J. Demmel, L. Grigori, M. Hoemmen, and J. Langou, ‘Communication-optimal Parallel
@@ -878,8 +878,8 @@ int ztsqr(dcomplex_t *Qi, dcomplex_t *R, dcomplex_t *Ai, const int m, const int 
 	int mpi_rank, mpi_size;
 	dcomplex_t *Q1i, *Q2i, *Q2l, *QW, *C;
 	// Recover rank and size
-	MPI_Comm_rank(comm,&mpi_rank);
-	MPI_Comm_size(comm,&mpi_size);
+	MPI_Comm_rank(MPI_COMM_WORLD,&mpi_rank);
+	MPI_Comm_size(MPI_COMM_WORLD,&mpi_size);
 	// Memory allocation
 	Q1i = (dcomplex_t*)malloc(m*n*sizeof(dcomplex_t));
 	Q2i = (dcomplex_t*)malloc(n2*n*sizeof(dcomplex_t));
@@ -905,11 +905,11 @@ int ztsqr(dcomplex_t *Qi, dcomplex_t *R, dcomplex_t *Ai, const int m, const int 
 		// Decide who sends and who recieves, use R as buffer
 		prank = mpi_rank^blevel;
 		if (mpi_rank&blevel) {
-			if (prank < mpi_size) MPI_Send(R,n*n,MPI_C_DOUBLE_COMPLEX,prank,0,comm);
+			if (prank < mpi_size) MPI_Send(R,n*n,MPI_C_DOUBLE_COMPLEX,prank,0,MPI_COMM_WORLD);
 		} else {
 			// Receive R
 			if (prank < mpi_size) {
-				MPI_Recv(R,n*n,MPI_C_DOUBLE_COMPLEX,prank,0,comm,MPI_STATUS_IGNORE);
+				MPI_Recv(R,n*n,MPI_C_DOUBLE_COMPLEX,prank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 				// Store R in the lower part of the C matrix
 				for (ii=0; ii<n; ++ii)
 					for (jj=0; jj<n; ++jj)
@@ -940,7 +940,7 @@ int ztsqr(dcomplex_t *Qi, dcomplex_t *R, dcomplex_t *Ai, const int m, const int 
 				prank = mpi_rank^blevel;
 				if ( ((mpi_rank^0)&blevel)) {
 					if (prank < mpi_size) { // Recieve
-						MPI_Recv(C,n2*n,MPI_C_DOUBLE_COMPLEX,prank,0,comm,MPI_STATUS_IGNORE);
+						MPI_Recv(C,n2*n,MPI_C_DOUBLE_COMPLEX,prank,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 						// Recover R from the upper part of C and QW from the lower part
 						for (ii=0; ii<n; ++ii)
 							for (jj=0; jj<n; ++jj) {
@@ -959,7 +959,7 @@ int ztsqr(dcomplex_t *Qi, dcomplex_t *R, dcomplex_t *Ai, const int m, const int 
 								AC_MAT(C,n,ii+n,jj) = AC_MAT(Q2i,n,ii+n,jj);
 								AC_MAT(QW,n,ii,jj)  = AC_MAT(Q2i,n,ii,jj);
 							}
-						MPI_Send(C,n2*n,MPI_C_DOUBLE_COMPLEX,prank,0,comm);
+						MPI_Send(C,n2*n,MPI_C_DOUBLE_COMPLEX,prank,0,MPI_COMM_WORLD);
 					}
 				}
 			}
@@ -973,7 +973,7 @@ int ztsqr(dcomplex_t *Qi, dcomplex_t *R, dcomplex_t *Ai, const int m, const int 
 	return info;
 }
 
-int ztsqr_svd(dcomplex_t *Ui, double *S, dcomplex_t *VT, dcomplex_t *Ai, const int m, const int n, MPI_Comm comm) {
+int ztsqr_svd(dcomplex_t *Ui, double *S, dcomplex_t *VT, dcomplex_t *Ai, const int m, const int n) {
 	/*
 		Single value decomposition (SVD) using TSQR algorithm from
 		J. Demmel, L. Grigori, M. Hoemmen, and J. Langou, ‘Communication-optimal Parallel
@@ -994,7 +994,7 @@ int ztsqr_svd(dcomplex_t *Ui, double *S, dcomplex_t *VT, dcomplex_t *Ai, const i
 	R    = (dcomplex_t*)malloc(n*n*sizeof(dcomplex_t));
 	Qi   = (dcomplex_t*)malloc(m*n*sizeof(dcomplex_t));
 	// Call TSQR routine
-	info = ztsqr(Qi,R,Ai,m,n,comm);
+	info = ztsqr(Qi,R,Ai,m,n);
 
 	// Algorithm 2 from Sayadi and Schmid (2016) - Ui, S and VT
 	// At this point we have R and Qi scattered on the processors
@@ -1009,9 +1009,12 @@ int ztsqr_svd(dcomplex_t *Ui, double *S, dcomplex_t *VT, dcomplex_t *Ai, const i
 	return info;
 }
 
-int srandomized_qr(float *Qi, float *B, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm) {
+int srandomized_qr(float *Qi, float *B, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed) {
 	/*
-		Randomized QR factorization with oversampling and power iterations with the algorithm from Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+		Randomized QR factorization with oversampling and power iterations with the algorithm from 
+		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). 
+		Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+		
 		Ai(m,n)  data matrix dispersed on each processor.
 		Qi(m,r)  
 		B (r,n)  
@@ -1038,14 +1041,14 @@ int srandomized_qr(float *Qi, float *B, float *Ai, const int m, const int n, con
 	R  = (float*)malloc(r*r*sizeof(float));
 	Q2 = (float*)malloc(n*r*sizeof(float));
 	for(ii=0;ii<q;++ii){
-		info = stsqr(Qi,R,Y,m,r,comm);
+		info = stsqr(Qi,R,Y,m,r);
 		smatmulp(Q2,At,Qi,n,r,m);
 		smatmul(Y,Ai,Q2,m,r,n);
 	}
 	free(At); free(Q2); 
 	
 	// Call TSQR routine with the results from the power iterations
-	info = stsqr(Qi,R,Y,m,r,comm);
+	info = stsqr(Qi,R,Y,m,r);
 	free(R); free(Y); 
 
 	// Transpose Q
@@ -1060,9 +1063,12 @@ int srandomized_qr(float *Qi, float *B, float *Ai, const int m, const int n, con
 	return info;
 }
 
-int sinit_randomized_qr(float *Qi, float *B, float *Y, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm) {
+int sinit_randomized_qr(float *Qi, float *B, float *Y, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed) {
 	/*
-		Randomized QR factorization with oversampling and power iterations with the algorithm from Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+		Randomized QR factorization with oversampling and power iterations with the algorithm from 
+		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). 
+		Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+
 		Ai(m,n)  data matrix dispersed on each processor.
 		Qi(m,r)  
 		B (r,n)  
@@ -1087,14 +1093,14 @@ int sinit_randomized_qr(float *Qi, float *B, float *Y, float *Ai, const int m, c
 	R  = (float*)malloc(r*r*sizeof(float));
 	Q2 = (float*)malloc(n*r*sizeof(float));
 	for(ii=0;ii<q;++ii){
-		info = stsqr(Qi,R,Y,m,r,comm);
+		info = stsqr(Qi,R,Y,m,r);
 		smatmulp(Q2,At,Qi,n,r,m);
 		smatmul(Y,Ai,Q2,m,r,n);
 	}
 	free(At); free(Q2); 
 	
 	// Call TSQR routine with the results from the power iterations
-	info = stsqr(Qi,R,Y,m,r,comm);
+	info = stsqr(Qi,R,Y,m,r);
 	free(R); 
 
 	// Transpose Q
@@ -1109,9 +1115,12 @@ int sinit_randomized_qr(float *Qi, float *B, float *Y, float *Ai, const int m, c
 	return info;
 }
 
-int supdate_randomized_qr(float *Q2, float *B2, float *Yn, float *Q1, float *B1, float *Yo, float *Ai, const int m, const int n, const int n1, const int n2, const int r, const int q, unsigned int seed, MPI_Comm comm) {
+int supdate_randomized_qr(float *Q2, float *B2, float *Yn, float *Q1, float *B1, float *Yo, float *Ai, const int m, const int n, const int n1, const int n2, const int r, const int q, unsigned int seed) {
 	/*
-		Randomized QR factorization with oversampling and power iterations with the algorithm from Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+		Randomized QR factorization with oversampling and power iterations with the algorithm from 
+		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). 
+		Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+
 		Ai(m,n)  data matrix dispersed on each processor.
 		Qi(m,r)  
 		B (r,n)  
@@ -1138,7 +1147,7 @@ int supdate_randomized_qr(float *Q2, float *B2, float *Yn, float *Q1, float *B1,
 	Qpi = (float*)malloc(m*r*sizeof(float));
 	O2  = (float*)malloc(n*r*sizeof(float));
 	for(ii=0;ii<q;++ii){
-		info = stsqr(Qpi,R,Yn,m,r,comm);
+		info = stsqr(Qpi,R,Yn,m,r);
 		smatmulp(O2,At,Qpi,n,r,m);
 		smatmul(Yn,Ai,O2,m,r,n);
 	}
@@ -1151,7 +1160,7 @@ int supdate_randomized_qr(float *Q2, float *B2, float *Yn, float *Q1, float *B1,
     }
 
 	// Call TSQR routine with the results from the power iterations
-	info = stsqr(Q2,R,Yn,m,r,comm);
+	info = stsqr(Q2,R,Yn,m,r);
 	free(R);
 
 	// Transpose Q2t
@@ -1186,9 +1195,12 @@ int supdate_randomized_qr(float *Q2, float *B2, float *Yn, float *Q1, float *B1,
 	return info;
 }
 
-int srandomized_svd(float *Ui, float *S, float *VT, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm) {
+int srandomized_svd(float *Ui, float *S, float *VT, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed) {
 	/*
-		Randomized single value decomposition (SVD) with oversampling and power iterations with the algorithm from Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+		Randomized single value decomposition (SVD) with oversampling and power iterations with the algorithm from 
+		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). 
+		Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+
 		Ai(m,n)  data matrix dispersed on each processor.
 		Ui(m,n)  POD modes dispersed on each processor (must come preallocated).
 		S(n)     singular values.
@@ -1217,14 +1229,14 @@ int srandomized_svd(float *Ui, float *S, float *VT, float *Ai, const int m, cons
 	Qi = (float*)malloc(m*r*sizeof(float));
 	Q2 = (float*)malloc(n*r*sizeof(float));
 	for(ii=0;ii<q;++ii){
-		info = stsqr(Qi,R,Y,m,r,comm);
+		info = stsqr(Qi,R,Y,m,r);
 		smatmulp(Q2,At,Qi,n,r,m);
 		smatmul(Y,Ai,Q2,m,r,n);
 	}
 	free(At); free(Q2); 
 	
 	// Call TSQR routine with the results from the power iterations
-	info = stsqr(Qi,R,Y,m,r,comm);
+	info = stsqr(Qi,R,Y,m,r);
 	free(R); free(Y); 
 
 	// Transpose Q
@@ -1252,9 +1264,12 @@ int srandomized_svd(float *Ui, float *S, float *VT, float *Ai, const int m, cons
 	return info;
 }
 
-int drandomized_qr(double *Qi, double *B, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm) {
+int drandomized_qr(double *Qi, double *B, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed) {
 	/*
-		Randomized QR factorization with oversampling and power iterations with the algorithm from	Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+		Randomized QR factorization with oversampling and power iterations with the algorithm from	
+		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). 
+		Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+
 		Ai(m,n)  data matrix dispersed on each processor.
 		Qi(m,r)  
 		B (r,n)  
@@ -1281,14 +1296,14 @@ int drandomized_qr(double *Qi, double *B, double *Ai, const int m, const int n, 
 	R  = (double*)malloc(r*r*sizeof(double));
 	Q2 = (double*)malloc(n*r*sizeof(double));
 	for(ii=0;ii<q;++ii){
-		info = dtsqr(Qi,R,Y,m,r,comm);
+		info = dtsqr(Qi,R,Y,m,r);
 		dmatmulp(Q2,At,Qi,n,r,m);
 		dmatmul(Y,Ai,Q2,m,r,n);
 	}
 	free(At); free(Q2); 
 	
 	// Call TSQR routine with the results from the power iterations
-	info = dtsqr(Qi,R,Y,m,r,comm);
+	info = dtsqr(Qi,R,Y,m,r);
 	free(R); free(Y); 
 
 	// Transpose Q
@@ -1303,9 +1318,12 @@ int drandomized_qr(double *Qi, double *B, double *Ai, const int m, const int n, 
 	return info;
 }
 
-int dinit_randomized_qr(double *Qi, double *B, double *Y, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm) {
+int dinit_randomized_qr(double *Qi, double *B, double *Y, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed) {
 	/*
-		Randomized QR factorization with oversampling and power iterations with the algorithm from Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+		Randomized QR factorization with oversampling and power iterations with the algorithm from 
+		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). 
+		Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+
 		Ai(m,n)  data matrix dispersed on each processor.
 		Qi(m,r)  
 		B (r,n)  
@@ -1330,14 +1348,14 @@ int dinit_randomized_qr(double *Qi, double *B, double *Y, double *Ai, const int 
 	R  = (double*)malloc(r*r*sizeof(double));
 	Q2 = (double*)malloc(n*r*sizeof(double));
 	for(ii=0;ii<q;++ii){
-		info = dtsqr(Qi,R,Y,m,r,comm);
+		info = dtsqr(Qi,R,Y,m,r);
 		dmatmulp(Q2,At,Qi,n,r,m);
 		dmatmul(Y,Ai,Q2,m,r,n);
 	}
 	free(At); free(Q2); 
 	
 	// Call TSQR routine with the results from the power iterations
-	info = dtsqr(Qi,R,Y,m,r,comm);
+	info = dtsqr(Qi,R,Y,m,r);
 	free(R);
 
 	// Transpose Q
@@ -1352,9 +1370,12 @@ int dinit_randomized_qr(double *Qi, double *B, double *Y, double *Ai, const int 
 	return info;
 }
 
-int dupdate_randomized_qr(double *Q2, double *B2, double *Yn, double *Q1, double *B1, double *Yo, double *Ai, const int m, const int n, const int n1, const int n2, const int r, const int q, unsigned int seed, MPI_Comm comm) {
+int dupdate_randomized_qr(double *Q2, double *B2, double *Yn, double *Q1, double *B1, double *Yo, double *Ai, const int m, const int n, const int n1, const int n2, const int r, const int q, unsigned int seed) {
 	/*
-		Randomized QR factorization with oversampling and power iterations with the algorithm from Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+		Randomized QR factorization with oversampling and power iterations with the algorithm from 
+		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). 
+		Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+
 		Ai(m,n)  data matrix dispersed on each processor.
 		Qi(m,r)  
 		B (r,n)  
@@ -1381,7 +1402,7 @@ int dupdate_randomized_qr(double *Q2, double *B2, double *Yn, double *Q1, double
 	Qpi = (double*)malloc(m*r*sizeof(double));
 	O2  = (double*)malloc(n*r*sizeof(double));
 	for(ii=0;ii<q;++ii){
-		info = dtsqr(Qpi,R,Yn,m,r,comm);
+		info = dtsqr(Qpi,R,Yn,m,r);
 		dmatmulp(O2,At,Qpi,n,r,m);
 		dmatmul(Yn,Ai,O2,m,r,n);
 	}
@@ -1394,7 +1415,7 @@ int dupdate_randomized_qr(double *Q2, double *B2, double *Yn, double *Q1, double
     }
 
 	// Call TSQR routine with the results from the power iterations
-	info = dtsqr(Q2,R,Yn,m,r,comm);
+	info = dtsqr(Q2,R,Yn,m,r);
 	free(R);
 
 	// Transpose Q2t
@@ -1429,9 +1450,12 @@ int dupdate_randomized_qr(double *Q2, double *B2, double *Yn, double *Q1, double
 	return info;
 }
 
-int drandomized_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm) {
+int drandomized_svd(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed) {
 	/*
-		Randomized single value decomposition (SVD) with oversampling and power iterations with the algorithm from Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+		Randomized single value decomposition (SVD) with oversampling and power iterations with the algorithm from 
+		Erichson, N. B., Voronin, S., Brunton, S. L., & Kutz, J. N. (2016). 
+		Randomized matrix decompositions using R. arXiv preprint arXiv:1608.02148.
+
 		Ai(m,n)  data matrix dispersed on each processor
 		Ui(m,n)  POD modes dispersed on each processor (must come preallocated).
 		S(n)     singular values.
@@ -1460,14 +1484,14 @@ int drandomized_svd(double *Ui, double *S, double *VT, double *Ai, const int m, 
 	Qi = (double*)malloc(m*r*sizeof(double));
 	Q2 = (double*)malloc(n*r*sizeof(double));
 	for(ii=0;ii<q;++ii){
-		info = dtsqr(Qi,R,Y,m,r,comm);
+		info = dtsqr(Qi,R,Y,m,r);
 		dmatmulp(Q2,At,Qi,n,r,m);
 		dmatmul(Y,Ai,Q2,m,r,n);
 	}
 	free(At); free(Q2); 
 	
 	// Call TSQR routine with the results from the power iterations
-	info = dtsqr(Qi,R,Y,m,r,comm);
+	info = dtsqr(Qi,R,Y,m,r);
 	free(R); free(Y); 
 
 	// Transpose Q
