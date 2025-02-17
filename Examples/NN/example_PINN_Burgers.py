@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#
 # Example of PINN on Burgers equation.
 # The PDE is:
 #   u_t + u * u_x - 0.01 * u_xx = 0, x in [-1, 1], t in [0, 1]
@@ -7,8 +5,7 @@
 #   u(0, x) = -sin(pi * x), x in [-1, 1]
 # and boundary conditions:
 #   u(t, -1) = u(t, 1) = 0, t in [0, 1]
-#
-# Last revision: 04/11/2024
+
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -94,7 +91,6 @@ training_params = {
     'lr_scheduler_params': {'step_size': 1000, 'gamma': 0.99},
     'epochs': 3000,
     'boundary_conditions': [initial_bc, boundary_bc],
-    'print_every': 1000,
 }
 
 # Create the pipeline and train the model with Adam
