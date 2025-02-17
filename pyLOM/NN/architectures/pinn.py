@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.utils
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from ... import pprint, cr # pyLOM/__init__.py
@@ -62,24 +62,6 @@ class PINN(ABC):
             flow_variable.requires_grad_(True)
             input_variables.append(flow_variable)
         return input_variables
-
-    def _create_dataset(self, x, y=None):
-        """
-        Creates a PyTorch dataset.
-
-        Args:
-            x (torch.Tensor): The input tensor.
-            y (torch.Tensor, optional): The target tensor. Defaults to None.
-
-        Returns:
-            torch.utils.data.TensorDataset: The created dataset.
-
-        """
-        if y is not None:
-            dataset = TensorDataset(x, y)
-        else:
-            dataset = TensorDataset(x)
-        return dataset
 
     def _get_dataloader(self, dataset, batch_size=None):
         """
@@ -203,7 +185,8 @@ class PINN(ABC):
         test_data_loader = None
         if eval_dataset is not None:
             test_data_loader = self._get_dataloader(eval_dataset, batch_size)
-            logs["test_loss"] = []
+            if "test_loss" not in logs:
+                logs["test_loss"] = []
 
         optimizer = optimizer_class(self.model.parameters(), **optimizer_params)
         if lr_scheduler_class is not None:
@@ -241,7 +224,7 @@ class PINN(ABC):
             for epoch in pbar:
                 closure.iteration = 0
 
-                for batch in train_data_loader: #data_iterable:
+                for batch in train_data_loader: 
                     optimizer.step(closure=closure)
                     if lr_scheduler_class is not None:
                         lr_scheduler.step()
@@ -303,10 +286,10 @@ class PINN(ABC):
         plt.plot(logs["loss_from_data_and_bc"], label="Data Conditions and BC Loss")
         plt.plot(logs["total_loss"], label="Total Loss")
         if "test_loss" in logs and len(logs["test_loss"]) != 0:
-            total_epochs = len(logs["test_loss"])
-            total_iters = len(logs["total_loss"])
+            total_epochs = len(logs["test_loss"]) 
+            total_iters = len(logs["total_loss"]) 
             iters_per_epoch = total_iters // total_epochs
-            plt.plot(np.arange(iters_per_epoch, total_iters+1, step=iters_per_epoch), logs["test_loss"], label="Test Loss")
+            plt.plot(np.arange(iters_per_epoch + total_iters % total_epochs, total_iters+1, step=iters_per_epoch), logs["test_loss"], label="Test Loss")
         plt.xlabel("Iteration")
         plt.ylabel("Loss")
         plt.yscale("log")
@@ -368,7 +351,7 @@ class BoundaryCondition(ABC):
         points (Tensor): The points where the boundary condition is defined.
 
     Attributes:
-        _points (Tensor): The points  where the boundary condition is defined.
+        points (Tensor): The points where the boundary condition is defined.
     """
     def __init__(self, points):
         self._points = points
@@ -397,7 +380,7 @@ class DirichletCondition(BoundaryCondition):
     This class represents a Dirichlet boundary condition.
 
     Args:
-        points (Tensor): The predicted values on the points where the boundary condition is defined..
+        points (Tensor): The predicted values on the points where the boundary condition is defined.
         values (Tensor): The values of the boundary condition.
     """
     def __init__(self, points, values):
