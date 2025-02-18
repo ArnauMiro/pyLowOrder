@@ -3,4 +3,3 @@ torchvision
 torchsummary
 tensorflow
 optuna
-tqdm

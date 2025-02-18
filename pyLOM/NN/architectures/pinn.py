@@ -6,7 +6,6 @@ import numpy as np
 import torch
 import torch.utils
 from torch.utils.data import DataLoader
-from tqdm import tqdm
 
 from ... import pprint, cr # pyLOM/__init__.py
 from ..utils import Dataset
@@ -191,6 +190,7 @@ class PINN(ABC):
         optimizer = optimizer_class(self.model.parameters(), **optimizer_params)
         if lr_scheduler_class is not None:
             lr_scheduler = lr_scheduler_class(optimizer, **lr_scheduler_params)
+
         def closure():
             x_batch = batch[0].to(self.device)
             y_batch = batch[1].to(self.device) if len(batch) == 2 else None
@@ -212,16 +212,15 @@ class PINN(ABC):
                 if 'test_loss' in logs and len(logs['test_loss']) > 0:
                     extended_desc += f", test loss: {logs['test_loss'][-1]:.4e}"
                 desc = f"Epoch {epoch+1}/{epochs} Iteration {closure.iteration}. Pde loss: {loss_from_pde:.4e}" + extended_desc
-                pbar.set_description(desc)
+                pprint(0, desc)
 
             closure.iteration += 1
             return loss
         
         try:
             self.model.train()
-            desc = f"Epoch 1/{epochs} Iteration 0."
-            pbar = tqdm(range(epochs), desc=desc)
-            for epoch in pbar:
+
+            for epoch in range(epochs):
                 closure.iteration = 0
 
                 for batch in train_data_loader: 

@@ -90,6 +90,7 @@ training_params = {
     'lr_scheduler_class': torch.optim.lr_scheduler.StepLR,
     'lr_scheduler_params': {'step_size': 1000, 'gamma': 0.99},
     'epochs': 3000,
+    'update_logs_steps': 100,
     'boundary_conditions': [initial_bc, boundary_bc],
 }
 
