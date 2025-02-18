@@ -58,26 +58,37 @@ def _compute_truncation_residual(S, r):
 		N += 1
 	return N
 
+## POD truncate method
+def _cumulative_energy(S):
+    """
+    """
+    return np.cumsum(S) / np.sum(S)
+
 @cr('POD.truncate')
-def truncate(U,S,V,r=1e-8):
+def truncate(U,S,V,r=1e-8, energy = False):
 	'''
-	Truncate POD matrices (U,S,V) given a residual or number of modes r.
+	Truncate POD matrices (U, S, V) given a residual, number of modes or cumulative energy r.
 
 	Inputs:
 		- U(m,n)  are the POD modes.
 		- S(n)    are the singular values.
 		- V(n,n)  are the right singular vectors.
-		- r       target residual or number of modes (if it is greater than 1 is treated as number of modes, else is treated as residual. Default 1e-8)
-
-	Returns:
-		- U(m,N)  are the POD modes (truncated at N).
-		- S(N)    are the singular values (truncated at N).
-		- V(N,n)  are the right singular vectors (truncated at N).
+		- r       target residual, number of modes, or cumulative energy threshold.
+					* If energy is False:
+						- If r > 1, it is treated as the number of modes.
+						- Otherwise, it is treated as the residual target.
+					* If energy is True:
+						- r must be in (0,1] and represents the fraction of cumulative energy to retain.
+					(Default: 1e-8)
+		- energy  boolean flag indicating whether to interpret r as a cumulative energy fraction.
 	'''
 	# Compute N using S
 	N = int(r) if r >= 1 else _compute_truncation_residual(S, r)
 
-	# Truncate
+	if energy == True:
+		N = np.searchsorted(_cumulative_energy(S), r)
+	
+ 	# Truncate
 	Ur = U[:,:N]
 	Sr = S[:N]
 	Vr = V[:N,:]

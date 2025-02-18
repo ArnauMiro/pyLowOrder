@@ -44,6 +44,17 @@
 		"reset"  : false,
 		"active" : true
 	},
+	"POD_Cylinder_energy": {
+		"name"   : "POD Cylinder 2D Energy",
+		"module" : "POD",
+		"file"   : "runs/tsuite_POD_energy.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOC"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
 	"POD_Jet": {
 		"name"   : "POD Jet 2D",
 		"module" : "POD",
