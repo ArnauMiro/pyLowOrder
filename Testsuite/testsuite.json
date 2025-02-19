@@ -335,5 +335,16 @@
 		"nprocs" : 1,
 		"reset"  : false,
 		"active" : true
+	},
+	"PINN_burgers": {
+		"name"   : "PINN Burgers equations",
+		"module" : "NN",
+		"file"   : "runs/tsuite_PINN_Burgers.py",
+		"data"   : "Burgers",
+		"var"    : [],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
 	}
 }

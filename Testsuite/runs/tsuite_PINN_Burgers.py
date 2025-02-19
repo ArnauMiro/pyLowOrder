@@ -7,14 +7,18 @@
 #   u(t, -1) = u(t, 1) = 0, t in [0, 1]
 
 
-import numpy as np
+import sys, os, numpy as np
 import torch
 import pyLOM
 
 
-device = 'cpu'
-RESUDIR = 'PINN_Burgers'
-pyLOM.NN.create_results_folder(RESUDIR)
+DATAFILE  = sys.argv[1]
+VARIABLES = eval(sys.argv[2])
+OUTDIR    = sys.argv[3]
+
+device  = 'cpu'
+RESUDIR = os.path.join(OUTDIR,f'PINN_{DATAFILE}')
+pyLOM.NN.create_results_folder(RESUDIR,echo=False)
 
 # Define the domain and the amount of points to sample
 POINTS_ON_X = 256
@@ -137,8 +141,10 @@ burgers_pinn_loaded = pyLOM.NN.BurgersPINN.load(RESUDIR + '/burgers_pinn.pt', de
 
 pyLOM.pprint(0, "Model loaded")
 
-
 u = burgers_pinn.predict(test_dataset).reshape(POINTS_ON_X, POINTS_ON_T)
+
+## Testsuite output
+pyLOM.pprint(0,'TSUITE u     =',u.min(),u.max(),u.mean())
 
 pyLOM.cr_info()
 pyLOM.pprint(0,'End of output')
