@@ -216,31 +216,27 @@ class PINN(ABC):
 
             closure.iteration += 1
             return loss
-        
-        try:
-            self.model.train()
 
-            for epoch in range(epochs):
-                closure.iteration = 0
+        self.model.train()
 
-                for batch in train_data_loader: 
-                    optimizer.step(closure=closure)
-                    if lr_scheduler_class is not None:
-                        lr_scheduler.step()
+        for epoch in range(epochs):
+            closure.iteration = 0
 
-                if test_data_loader is not None:
-                    self.model.eval()
-                    test_loss = 0
-                    for batch in test_data_loader:
-                        x_batch = batch[0].to(self.device)
-                        y_batch = batch[1].to(self.device) if len(batch) == 2 else None
-                        losses = self.compute_loss(x_batch, y_batch, boundary_conditions)
-                        test_loss += sum(losses).item()
-                    logs["test_loss"].append(test_loss / len(test_data_loader))
-                    self.model.train()
+            for batch in train_data_loader: 
+                optimizer.step(closure=closure)
+                if lr_scheduler_class is not None:
+                    lr_scheduler.step()
 
-        except KeyboardInterrupt:
-            pprint(0, "Training stopped manually")
+            if test_data_loader is not None:
+                self.model.eval()
+                test_loss = 0
+                for batch in test_data_loader:
+                    x_batch = batch[0].to(self.device)
+                    y_batch = batch[1].to(self.device) if len(batch) == 2 else None
+                    losses = self.compute_loss(x_batch, y_batch, boundary_conditions)
+                    test_loss += sum(losses).item()
+                logs["test_loss"].append(test_loss / len(test_data_loader))
+                self.model.train()
 
         return logs
     
