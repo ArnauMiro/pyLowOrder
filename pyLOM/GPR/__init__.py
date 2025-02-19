@@ -2,13 +2,13 @@
 #
 # pyLOM - Python Low Order Modeling.
 #
-# POD Module
+# GPR Module
 #
-# Last rev: 09/07/2021
+# Last rev: 19/02/2025
 
 __VERSION__ = "1.0.0"
 
-from .wrapper import GPR, MF_GPR
+from .wrapper import SF_GPR, MF_GPR
 
 
 del wrapper

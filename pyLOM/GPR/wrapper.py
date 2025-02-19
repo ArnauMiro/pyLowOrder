@@ -1,9 +1,15 @@
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# GPR Module
+#
+# Last rev: 19/02/2025
+
 import numpy as np
 import GPy
 
-# ============================================================
 # KernelSelector: instantiates kernels with bounds and provides information
-# ============================================================
 class KernelSelector:
     """
     A kernel selector with a limited list of available kernels.
@@ -76,9 +82,7 @@ class KernelSelector:
         return list(self.available_kernels.keys()) + super().__dir__()
 
 
-# ============================================================
 # Base class with common utilities
-# ============================================================
 class GPRBase:
     def __init__(self):
         self.model = None
@@ -97,10 +101,8 @@ class GPRBase:
         return arr
 
 
-# ============================================================
 # Single Fidelity GPR Model
-# ============================================================
-class GPR(GPRBase):
+class SF_GPR(GPRBase):
     """
     Class for Single Fidelity Gaussian Process Regression (GPR) using GPy.
 
@@ -129,7 +131,7 @@ class GPR(GPRBase):
         """
         if self._kernel_selector is None:
             raise RuntimeError(
-                "Call fit() or provide input_dim in the constructor before accessing the kernel."
+                "Provide input_dim in the constructor before accessing the kernel."
             )
         return self._kernel_selector
 
@@ -138,8 +140,8 @@ class GPR(GPRBase):
     ):
         """
         Fits the GPR model:
-          - X_train, y_train: training data (converted to column matrix)
-          - kernel: expects a kernel already created (e.g., using self.kernel.RBF(...))
+          - X_train, y_train: training data (converted to column matrix).
+          - kernel: expects a kernel already created.
           - noise_var: if provided (not None), the Gaussian noise variance is fixed;
                        otherwise, it is left free for optimization.
           - num_restarts and verbose: parameters for optimization.
@@ -175,14 +177,11 @@ class GPR(GPRBase):
         """
         Displays the model summary.
         """
-        if self.model is None:
-            raise RuntimeError("Fit the model before displaying it.")
         print(self.model)
 
 
-# ============================================================
-# Multi Fidelity GPR Model using Emukit
-# ============================================================
+
+# Multi Fidelity GPR Model
 from emukit.multi_fidelity.convert_lists_to_array import (
     convert_x_list_to_array,
     convert_xy_lists_to_arrays,
@@ -194,7 +193,7 @@ from emukit.model_wrappers.gpy_model_wrappers import GPyMultiOutputWrapper
 
 class MF_GPR(GPRBase):
     """
-    Model for multi-fidelity Gaussian Process Regression using Emukit.
+    Model for multi-fidelity Gaussian Process Regression.
 
     Interface similar to sklearn:
       - fit(train_features_list, train_labels_list, kernels, noise_vars, num_restarts, verbose)
@@ -222,7 +221,7 @@ class MF_GPR(GPRBase):
         """
         if self._kernel_selector is None:
             raise RuntimeError(
-                "Call fit() or provide input_dim in the constructor before accessing the kernel."
+                "Provide input_dim in the constructor before accessing the kernel."
             )
         return self._kernel_selector
 
@@ -324,6 +323,5 @@ class MF_GPR(GPRBase):
         """
         Displays the multi-fidelity model summary.
         """
-        if self.wrapper is None:
-            raise RuntimeError("Fit the model before displaying it.")
         print(self.wrapper.gpy_model)
+
