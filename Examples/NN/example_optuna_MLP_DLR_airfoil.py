@@ -4,33 +4,32 @@
 #
 # Last revision: 09/10/2024
 
-import os, numpy as np, optuna, matplotlib.pyplot as plt
-import pyLOM
+import os, torch, numpy as np, optuna, matplotlib.pyplot as plt
+import pyLOM, pyLOM.NN
 
+
+seed = 19
 
 def load_dataset(fname,inputs_scaler,outputs_scaler):
     '''
     Auxiliary function to load a dataset into a pyLOM
     NN dataset
     '''
-    d  = pyLOM.Dataset.load(fname)
-    td = pyLOM.NN.Dataset(
-        variables_out  = (d["CP"],), 
-        variables_in   = d.xyz,
-        # to have each Mach and AoA pair just once. 
-        # To have all possible combinations, use [d.get_variable('AoA'), d.get_variable("Mach")]
-        parameters     = [[*zip(d.get_variable('AoA'), d.get_variable('Mach'))]], 
-        inputs_scaler  = inputs_scaler,
-        outputs_scaler = outputs_scaler,
+    return pyLOM.NN.Dataset.load(
+        fname,
+        field_names=["CP"],
+        add_mesh_coordinates=True,
+        variables_names=["AoA", "Mach"],
+        inputs_scaler=inputs_scaler,
+        outputs_scaler=outputs_scaler,
     )
-    return d, td
 
 def print_dset_stats(name,td):
     '''
     Auxiliary function to print the statistics
     of a NN dataset
     '''
-    x, y = td[:]
+    x, y = next(iter(torch.utils.data.DataLoader(td, batch_size=len(td))))
     pyLOM.pprint(0,f'name={name} ({len(td)}), x ({x.shape}) = [{x.min(dim=0)},{x.max(dim=0)}], y ({y.shape}) = [{y.min(dim=0)},{y.max(dim=0)}]')
 
 def true_vs_pred_plot(y_true, y_pred, path):
@@ -74,9 +73,14 @@ pyLOM.NN.create_results_folder(RESUDIR)
 
 input_scaler     = pyLOM.NN.MinMaxScaler()
 output_scaler     = pyLOM.NN.MinMaxScaler()
-_,td_train = load_dataset(os.path.join(BASEDIR,f'{CASESTR}_TRAIN.h5'),input_scaler,output_scaler)
-_,td_test  = load_dataset(os.path.join(BASEDIR,f'{CASESTR}_TEST.h5'),input_scaler,output_scaler)
-_,td_val   = load_dataset(os.path.join(BASEDIR,f'{CASESTR}_VAL.h5'),input_scaler,output_scaler)
+td_train = load_dataset(os.path.join(BASEDIR,f'{CASESTR}_TRAIN.h5'),input_scaler,output_scaler)
+td_test  = load_dataset(os.path.join(BASEDIR,f'{CASESTR}_TEST.h5'),input_scaler,output_scaler)
+td_val   = load_dataset(os.path.join(BASEDIR,f'{CASESTR}_VAL.h5'),input_scaler,output_scaler)
+
+# if we want to split by flight conditions instead of using the provided split, we can do the following
+dataset = td_train + td_test + td_val
+generator = torch.Generator().manual_seed(seed) # set seed for reproducibility
+td_train, td_test, td_val = dataset.get_splits_by_parameters([0.7, 0.15, 0.15], shuffle=True, generator=generator)
 
 print_dset_stats('train',td_train)
 print_dset_stats('test', td_test)
@@ -121,8 +125,8 @@ model = pyLOM.NN.MLP.load(RESUDIR + "/model.pth")
 preds = model.predict(td_test, batch_size=2048)
 # to predict from a tensor
 # preds = model(torch.tensor(dataset_test[:][0], device=model.device)).cpu().detach().numpy()
-scaled_preds = output_scaler.inverse_transform([preds])[0]
-scaled_y     = output_scaler.inverse_transform([td_test[:][1]])[0]
+scaled_preds = output_scaler.inverse_transform(preds)
+scaled_y     = output_scaler.inverse_transform(td_test[:][1])
 
 # check that the scaling is correct
 pyLOM.pprint(0,scaled_y.min(), scaled_y.max())

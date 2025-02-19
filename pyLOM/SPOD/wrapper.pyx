@@ -15,27 +15,14 @@ import numpy as np
 from libc.stdlib   cimport malloc, free
 from libc.string   cimport memcpy, memset
 from libc.math     cimport pow, floor, ceil, log2, cos, M_PI, sqrt
-from libc.complex  cimport creal, cimag
-
-# Fix as Open MPI does not support MPI-4 yet, and there is no nice way that I know to automatically adjust Cython to missing stuff in C header files.
-# Source: https://github.com/mpi4py/mpi4py/issues/525
-cdef extern from *:
-	"""
-	#include <mpi.h>
-	
-	#if (MPI_VERSION < 3) && !defined(PyMPI_HAVE_MPI_Message)
-	typedef void *PyMPI_MPI_Message;
-	#define MPI_Message PyMPI_MPI_Message
-	#endif
-	
-	#if (MPI_VERSION < 4) && !defined(PyMPI_HAVE_MPI_Session)
-	typedef void *PyMPI_MPI_Session;
-	#define MPI_Session PyMPI_MPI_Session
-	#endif
-	"""
-from mpi4py  import MPI
-from mpi4py.libmpi cimport MPI_Comm
-from mpi4py        cimport MPI
+#from libc.complex  cimport creal, cimag
+cdef extern from "<complex.h>" nogil:
+	float  complex I
+	# Decomposing complex values
+	float cimagf(float complex z)
+	float crealf(float complex z)
+	double cimag(double complex z)
+	double creal(double complex z)
 
 from ..utils.cr     import cr, cr_start, cr_stop
 from ..utils.errors import raiseError
@@ -54,9 +41,9 @@ cdef extern from "averaging.h":
 	cdef void c_dsubtract_mean "dsubtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
 cdef extern from "svd.h":
 	# Single complex precision
-	cdef int c_ctsqr_svd "ctsqr_svd"(np.complex64_t *Ui, float *S, np.complex64_t *VT, np.complex64_t *Ai, const int m, const int n, MPI_Comm comm)
+	cdef int c_ctsqr_svd "ctsqr_svd"(np.complex64_t *Ui, float *S, np.complex64_t *VT, np.complex64_t *Ai, const int m, const int n)
 	# Double complex precision
-	cdef int c_ztsqr_svd "ztsqr_svd"(np.complex128_t *Ui, double *S, np.complex128_t *VT, np.complex128_t *Ai, const int m, const int n, MPI_Comm comm)
+	cdef int c_ztsqr_svd "ztsqr_svd"(np.complex128_t *Ui, double *S, np.complex128_t *VT, np.complex128_t *Ai, const int m, const int n)
 cdef extern from "fft.h":
 	# Single complex precision
 	cdef void c_sfft1D "sfft1D"(np.complex64_t *out, float *y, const int n)
@@ -247,7 +234,6 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean):
 	''' 
 	cdef int i, iblk, ifreq, ip, i0, nBlks, nf, M = X.shape[0], N = X.shape[1]
 	cdef float winWeight, dt = t[1] - t[0]
-	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 
 	cdef float *window
 	cdef float *X_mean
@@ -320,7 +306,7 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean):
 			_sfft(&qk[nf*ip],Xf,winWeight,nDFT,nf)
 			# Multiply qk
 			for i in range(1,nf-1):
-				qk[nf*ip + i] *= 2.0
+				qk[nf*ip + i] *= <float>(2.0)
 		# Populate Q
 		for ip in range(M):
 			for i in range(nf):
@@ -342,13 +328,14 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean):
 		# Load block in qf
 		for i in range(M):
 			for iblk in range(nBlks):
-				qf[nBlks*i + iblk] = Q[nf*nBlks*i + nBlks*ifreq + iblk]/sqrt(nBlks)
+				winWeight = sqrt(nBlks) # reused variable
+				qf[nBlks*i + iblk] = crealf(Q[nf*nBlks*i + nBlks*ifreq + iblk])/winWeight + cimagf(Q[nf*nBlks*i + nBlks*ifreq + iblk])/winWeight
 		# Run SVD
-		c_ctsqr_svd(U,S,V,qf,M,nBlks,MPI_COMM.ob_mpi)
+		c_ctsqr_svd(U,S,V,qf,M,nBlks)
 		# Store P
 		for i in range(M):
 			for iblk in range(nBlks):
-				P[i + M*iblk,ifreq] = creal(U[nBlks*i + iblk])
+				P[i + M*iblk,ifreq] = crealf(U[nBlks*i + iblk])
 		# Store L
 		for iblk in range(nBlks):
 			L[ifreq,iblk] = S[iblk]*S[iblk]
@@ -389,7 +376,6 @@ def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean):
 	''' 
 	cdef int i, iblk, ifreq, ip, i0, nBlks, nf, M = X.shape[0], N = X.shape[1]
 	cdef double winWeight, dt = t[1] - t[0]
-	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 
 	cdef double *window
 	cdef double *X_mean
@@ -486,7 +472,7 @@ def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean):
 			for iblk in range(nBlks):
 				qf[nBlks*i + iblk] = Q[nf*nBlks*i + nBlks*ifreq + iblk]/sqrt(nBlks)
 		# Run SVD
-		c_ztsqr_svd(U,S,V,qf,M,nBlks,MPI_COMM.ob_mpi)
+		c_ztsqr_svd(U,S,V,qf,M,nBlks)
 		# Store P
 		for i in range(M):
 			for iblk in range(nBlks):

@@ -2,10 +2,10 @@
 #
 # Example of MLP.
 #
-# Last revision: 23/10/2024
+# Last revision: 14/11/2024
 
 import os, numpy as np, torch, matplotlib.pyplot as plt
-import pyLOM
+import pyLOM, pyLOM.NN
 
 device = pyLOM.NN.select_device("cpu") # Force CPU for this example, if left in blank it will automatically select the device
 
@@ -64,7 +64,7 @@ dataset = pyLOM.NN.Dataset(
     outputs_scaler=output_scaler,
     snapshots_by_column=True
 )
-td_train, td_test = dataset.get_splits([0.8, 0.2])
+td_train, td_test = dataset.get_splits_by_parameters([0.8, 0.2])
 
 training_params = {
     "epochs": 250,

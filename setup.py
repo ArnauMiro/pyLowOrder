@@ -7,7 +7,7 @@
 # Last rev: 28/10/2021
 from __future__ import print_function, division
 
-import os, sys, numpy as np
+import os, sys, numpy as np, mpi4py
 from setuptools import setup, Extension, find_packages
 from Cython.Build import cythonize
 
@@ -132,7 +132,7 @@ Module_math = Extension('pyLOM.vmmath.wrapper',
 										 'pyLOM/vmmath/src/fft.c',
 									    ],
 						language      = 'c',
-						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include()],
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
 						extra_objects = extra_objects,
 						libraries     = libraries,
 					   )
@@ -152,7 +152,7 @@ Module_POD = Extension('pyLOM.POD.wrapper',
 										 'pyLOM/vmmath/src/truncation.c',
 									    ],
 						language      = 'c',
-						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include()],
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
 						extra_objects = extra_objects,
 						libraries     = libraries,
 					   )
@@ -164,7 +164,7 @@ Module_DMD = Extension('pyLOM.DMD.wrapper',
 										 'pyLOM/vmmath/src/truncation.c',
 									    ],
 						language      = 'c',
-						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include()],
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
 						extra_objects = extra_objects,
 						libraries     = libraries,
 					   )
@@ -176,7 +176,7 @@ Module_SPOD = Extension('pyLOM.SPOD.wrapper',
 										 'pyLOM/vmmath/src/fft.c',
 									    ],
 						language      = 'c',
-						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include()],
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
 						extra_objects = extra_objects,
 						libraries     = libraries,
 					   )
@@ -196,7 +196,7 @@ modules_list = [
 ## Main setup
 setup(
 	name             = 'pyLowOrder',
-	version          = '2.0.1',
+	version          = '2.1.0',
 	author           = 'Benet Eiximeno, Beka Begiashvili, Arnau Miro, Eusebio Valero, Oriol Lehmkuhl',
 	author_email     = 'benet.eiximeno@bsc.es, beka.begiashvili@alumnos.upm.es, arnau.mirojane@bsc.es, eusebio.valero@upm.es, oriol.lehmkuhl@bsc.es',
 	maintainer       = 'Benet Eiximeno, Arnau Miro',
@@ -207,6 +207,6 @@ setup(
 	),
     long_description = readme,
     url              = 'https://github.com/ArnauMiro/pyLowOrder',
-    packages         = find_packages(exclude=('Deps','Examples','Docs','Converters')),
-	install_requires = ['numpy','matplotlib','cython>=3.0.0','h5py>=3.0.0','mpi4py','nfft']
+    packages         = find_packages(exclude=('Converters','Examples','Deps','Testsuite','Tools')),
+	install_requires = ['numpy','matplotlib','cython>=3.0.0','h5py>=3.0.0','mpi4py>=4.0.0','nfft']
 )

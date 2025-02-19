@@ -3,11 +3,13 @@
 # PYLOM Testsuite
 # Run KAN on the synthetic dataset
 #
-# Last revision: 23/10/2024
+# Last revision: 08/01/2025
 from __future__ import print_function, division
 
-import sys, os, numpy as np, torch
-import pyLOM
+import sys, os
+
+import torch
+import pyLOM, pyLOM.NN
 
 
 DATAFILE  = sys.argv[1]
@@ -36,7 +38,7 @@ output_scaler = pyLOM.NN.MinMaxScaler()
 
 dataset = pyLOM.NN.Dataset(
     variables_out       = (y,), 
-    variables_in        = d.xyz[:,:1],
+    variables_in        = d.xyz,
     parameters          = [d.get_variable('Re'), d.get_variable('AoA')],
     inputs_scaler       = input_scaler,
     outputs_scaler      = output_scaler,
@@ -51,10 +53,14 @@ sample_input, sample_output = td_train[0]
 training_params = {
     "epochs": 5,
     "lr": 1e-5,
-    'lr_gamma': 0.95,
-    'lr_scheduler_step': 10,
+    "optimizer_class": torch.optim.Adam,
+    "lr_kwargs":{
+        "gamma": 0.95,
+        "step_size": len(td_train) // 8
+    },
     'batch_size': 8,
     "print_eval_rate": 1,
+    "verbose":False,
     "save_logs_path":RESUDIR,
 }
 
@@ -67,6 +73,7 @@ model = pyLOM.NN.KAN(
     layer_type=pyLOM.NN.ChebyshevLayer,
     model_name="kan_example",
     device=device,
+    verbose=False,
     degree=7
 )
 

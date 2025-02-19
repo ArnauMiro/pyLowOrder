@@ -16,26 +16,15 @@ from libc.stdlib   cimport malloc, free
 from libc.string   cimport memcpy, memset
 from libc.math     cimport sqrt, atan2
 from libc.time     cimport time
-
-# Fix as Open MPI does not support MPI-4 yet, and there is no nice way that I know to automatically adjust Cython to missing stuff in C header files.
-# Source: https://github.com/mpi4py/mpi4py/issues/525
-cdef extern from *:
-	"""
-	#include <mpi.h>
-	
-	#if (MPI_VERSION < 3) && !defined(PyMPI_HAVE_MPI_Message)
-	typedef void *PyMPI_MPI_Message;
-	#define MPI_Message PyMPI_MPI_Message
-	#endif
-	
-	#if (MPI_VERSION < 4) && !defined(PyMPI_HAVE_MPI_Session)
-	typedef void *PyMPI_MPI_Session;
-	#define MPI_Session PyMPI_MPI_Session
-	#endif
-	"""
-from mpi4py  import MPI
-from mpi4py.libmpi cimport MPI_Comm
-from mpi4py        cimport MPI
+#from libc.complex  cimport creal, cimag
+cdef extern from "<complex.h>" nogil:
+	float  complex I
+	# Decomposing complex values
+	float cimagf(float complex z)
+	float crealf(float complex z)
+	double cimag(double complex z)
+	double creal(double complex z)
+cdef double complex J = 1j
 
 from ..utils.cr     import cr
 from ..utils.errors import raiseError
@@ -51,8 +40,10 @@ cdef extern from "vector_matrix.h" nogil:
 	cdef void   c_smatmulp          "smatmulp"(float *C, float *A, float *B, const int m, const int n, const int k)
 	cdef void   c_svecmat           "svecmat"(float *v, float *A, const int m, const int n)
 	cdef int    c_sinverse          "sinverse"(float *A, int N, char *UoL)
-	cdef float  c_sRMSE             "sRMSE"(float *A, float *B, const int m, const int n, MPI_Comm comm)
+	cdef float  c_sRMSE             "sRMSE"(float *A, float *B, const int m, const int n)
+	cdef float  c_senergy           "senergy"(float *A, float *B, const int m, const int n)
 	cdef void   c_ssort             "ssort"(float *v, int *index, int n)
+	cdef void   c_seuclidean_d      "seuclidean_d"(float *D, float *X, const int m, const int n)
 	# Double precision
 	cdef void   c_dtranspose        "dtranspose"(double *A, double *B, const int m, const int n)
 	cdef double c_dvector_norm      "dvector_norm"(double *v, int start, int n)
@@ -61,8 +52,10 @@ cdef extern from "vector_matrix.h" nogil:
 	cdef void   c_dmatmulp          "dmatmulp"(double *C, double *A, double *B, const int m, const int n, const int k)
 	cdef void   c_dvecmat           "dvecmat"(double *v, double *A, const int m, const int n)
 	cdef int    c_dinverse          "dinverse"(double *A, int N, char *UoL)
-	cdef double c_dRMSE             "dRMSE"(double *A, double *B, const int m, const int n, MPI_Comm comm)
+	cdef double c_dRMSE             "dRMSE"(double *A, double *B, const int m, const int n)
+	cdef double c_denergy           "denergy"(double *A, double *B, const int m, const int n)
 	cdef void   c_dsort             "dsort"(double *v, int *index, int n)
+	cdef void   c_deuclidean_d      "deuclidean_d"(double *D, double *X, const int m, const int n);
 	# Single complex precision
 	cdef void   c_cmatmult          "cmatmult"(np.complex64_t *C, np.complex64_t *A, np.complex64_t *B, const int m, const int n, const int k, const char *TA, const char *TB)
 	cdef void   c_cmatmul           "cmatmul"(np.complex64_t *C, np.complex64_t *A, np.complex64_t *B, const int m, const int n, const int k)
@@ -94,27 +87,33 @@ cdef extern from "averaging.h":
 	cdef void c_dsubtract_mean "dsubtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
 cdef extern from "svd.h":
 	# Single precision
-	cdef int c_sqr             "sqr"            (float *Q,  float *R, float *A,  const int m, const int n)
-	cdef int c_ssvd            "ssvd"           (float *U,  float *S, float *V,  float *Y,    const int m, const int n)
-	cdef int c_stsqr           "stsqr"          (float *Qi, float *R, float *Ai, const int m, const int n, MPI_Comm comm)
-	cdef int c_stsqr_svd       "stsqr_svd"      (float *Ui, float *S, float *VT, float *Ai,   const int m, const int n, MPI_Comm comm)
-	cdef int c_srandomized_svd "srandomized_svd"(float *Ui, float *S, float *VT, float *Ai,   const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
+	cdef int c_sqr                  "sqr"            (float *Q,  float *R, float *A,  const int m, const int n)
+	cdef int c_ssvd                 "ssvd"           (float *U,  float *S, float *V,  float *Y,    const int m, const int n)
+	cdef int c_stsqr                "stsqr"          (float *Qi, float *R, float *Ai, const int m, const int n)
+	cdef int c_stsqr_svd            "stsqr_svd"      (float *Ui, float *S, float *VT, float *Ai,   const int m, const int n)
+	cdef int c_srandomized_qr       "srandomized_qr" (float *Qi, float *B, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed)
+	cdef int c_sinit_randomized_qr  "sinit_randomized_qr" (float *Qi, float *B, float *Y, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed)
+	cdef int c_supdate_randomized_qr  "supdate_randomized_qr" (float *Q2, float *B2, float *Yn, float *Q1, float *B1, float *Yo, float *Ai, const int m, const int n, const int n1, const int n2, const int r, const int q, unsigned int seed)
+	cdef int c_srandomized_svd      "srandomized_svd"(float *Ui, float *S, float *VT, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed)
 	# Double precision
-	cdef int c_dqr             "dqr"            (double *Q,  double *R, double *A,  const int m, const int n)
-	cdef int c_dsvd            "dsvd"           (double *U,  double *S, double *V,  double *Y,   const int m, const int n)
-	cdef int c_dtsqr           "dtsqr"          (double *Qi, double *R, double *Ai, const int m, const int n, MPI_Comm comm)
-	cdef int c_dtsqr_svd       "dtsqr_svd"      (double *Ui, double *S, double *VT, double *Ai,  const int m, const int n, MPI_Comm comm)
-	cdef int c_drandomized_svd "drandomized_svd"(double *Ui, double *S, double *VT, double *Ai,  const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
+	cdef int c_dqr                  "dqr"            (double *Q,  double *R, double *A,  const int m, const int n)
+	cdef int c_dsvd                 "dsvd"           (double *U,  double *S, double *V,  double *Y,   const int m, const int n)
+	cdef int c_dtsqr                "dtsqr"          (double *Qi, double *R, double *Ai, const int m, const int n)
+	cdef int c_dtsqr_svd            "dtsqr_svd"      (double *Ui, double *S, double *VT, double *Ai,  const int m, const int n)
+	cdef int c_drandomized_qr       "drandomized_qr" (double *Qi, double *R, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed)
+	cdef int c_dinit_randomized_qr  "dinit_randomized_qr" (double *Qi, double *R, double *Y, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed)
+	cdef int c_dupdate_randomized_qr  "dupdate_randomized_qr" (double *Q2, double *B2, double *Yn, double *Q1, double *B1, double *Yo, double *Ai, const int m, const int n, const int n1, const int n2, const int r, const int q, unsigned int seed)
+	cdef int c_drandomized_svd      "drandomized_svd"(double *Ui, double *S, double *VT, double *Ai,  const int m, const int n, const int r, const int q, unsigned int seed)
 	# Single complex precision
 	cdef int c_cqr        "cqr"      (np.complex64_t *Q,  np.complex64_t *R, np.complex64_t *A,  const int m,        const int n)
 	cdef int c_csvd       "csvd"     (np.complex64_t *U,  float *S,          np.complex64_t *V,  np.complex64_t *Y,  const int m, const int n)
-	cdef int c_ctsqr      "ctsqr"    (np.complex64_t *Qi, np.complex64_t *R, np.complex64_t *Ai, const int m,        const int n, MPI_Comm comm)
-	cdef int c_ctsqr_svd  "ctsqr_svd"(np.complex64_t *Ui, float *S,          np.complex64_t *VT, np.complex64_t *Ai, const int m, const int n, MPI_Comm comm)
+	cdef int c_ctsqr      "ctsqr"    (np.complex64_t *Qi, np.complex64_t *R, np.complex64_t *Ai, const int m,        const int n)
+	cdef int c_ctsqr_svd  "ctsqr_svd"(np.complex64_t *Ui, float *S,          np.complex64_t *VT, np.complex64_t *Ai, const int m, const int n)
 	# Double complex precision
 	cdef int c_zqr        "zqr"      (np.complex128_t *Q,  np.complex128_t *R, np.complex128_t *A,  const int m,         const int n)
 	cdef int c_zsvd       "zsvd"     (np.complex128_t *U,  double *S,          np.complex128_t *V,  np.complex128_t *Y,  const int m, const int n)
-	cdef int c_ztsqr      "ztsqr"    (np.complex128_t *Qi, np.complex128_t *R, np.complex128_t *Ai, const int m,         const int n, MPI_Comm comm)
-	cdef int c_ztsqr_svd  "ztsqr_svd"(np.complex128_t *Ui, double *S,          np.complex128_t *VT, np.complex128_t *Ai, const int m, const int n, MPI_Comm comm)
+	cdef int c_ztsqr      "ztsqr"    (np.complex128_t *Qi, np.complex128_t *R, np.complex128_t *Ai, const int m,         const int n)
+	cdef int c_ztsqr_svd  "ztsqr_svd"(np.complex128_t *Ui, double *S,          np.complex128_t *VT, np.complex128_t *Ai, const int m, const int n)
 cdef extern from "fft.h":
 	cdef int USE_FFTW3 "_USE_FFTW3"
 	# Single precision
@@ -929,11 +928,10 @@ def _stsqr(float[:,:] A):
 	'''
 	cdef int retval
 	cdef int m = A.shape[0], n = A.shape[1]
-	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef np.ndarray[np.float32_t,ndim=2] Qi = np.zeros((m,n),dtype=np.float32)
 	cdef np.ndarray[np.float32_t,ndim=2] R  = np.zeros((n,n),dtype=np.float32)
 	# Compute SVD using TSQR algorithm
-	retval = c_stsqr(&Qi[0,0],&R[0,0],&A[0,0],m,n,MPI_COMM.ob_mpi)
+	retval = c_stsqr(&Qi[0,0],&R[0,0],&A[0,0],m,n)
 	if not retval == 0: raiseError('Problems computing TSQR!')
 	return Qi,R
 
@@ -949,11 +947,10 @@ def _dtsqr(double[:,:] A):
 	'''
 	cdef int retval
 	cdef int m = A.shape[0], n = A.shape[1]
-	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef np.ndarray[np.double_t,ndim=2] Qi = np.zeros((m,n),dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=2] R  = np.zeros((n,n),dtype=np.double)
 	# Compute SVD using TSQR algorithm
-	retval = c_dtsqr(&Qi[0,0],&R[0,0],&A[0,0],m,n,MPI_COMM.ob_mpi)
+	retval = c_dtsqr(&Qi[0,0],&R[0,0],&A[0,0],m,n)
 	if not retval == 0: raiseError('Problems computing TSQR!')
 	return Qi,R
 
@@ -969,11 +966,10 @@ def _ctsqr(np.complex64_t[:,:] A):
 	'''
 	cdef int retval
 	cdef int m = A.shape[0], n = A.shape[1]
-	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef np.ndarray[np.complex64_t,ndim=2] Qi = np.zeros((m,n),dtype=np.complex64)
 	cdef np.ndarray[np.complex64_t,ndim=2] R  = np.zeros((n,n),dtype=np.complex64)
 	# Compute SVD using TSQR algorithm
-	retval = c_ctsqr(&Qi[0,0],&R[0,0],&A[0,0],m,n,MPI_COMM.ob_mpi)
+	retval = c_ctsqr(&Qi[0,0],&R[0,0],&A[0,0],m,n)
 	if not retval == 0: raiseError('Problems computing TSQR!')
 	return Qi,R
 
@@ -989,11 +985,10 @@ def _ztsqr(np.complex128_t[:,:] A):
 	'''
 	cdef int retval
 	cdef int m = A.shape[0], n = A.shape[1]
-	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef np.ndarray[np.complex128_t,ndim=2] Qi = np.zeros((m,n),dtype=np.complex128)
 	cdef np.ndarray[np.complex128_t,ndim=2] R  = np.zeros((n,n),dtype=np.complex128)
 	# Compute SVD using TSQR algorithm
-	retval = c_ztsqr(&Qi[0,0],&R[0,0],&A[0,0],m,n,MPI_COMM.ob_mpi)
+	retval = c_ztsqr(&Qi[0,0],&R[0,0],&A[0,0],m,n)
 	if not retval == 0: raiseError('Problems computing TSQR!')
 	return Qi,R
 
@@ -1030,12 +1025,11 @@ def _stsqr_svd(float[:,:] A):
 	'''
 	cdef int retval
 	cdef int m = A.shape[0], n = A.shape[1], mn = min(m,n)
-	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef np.ndarray[np.float32_t,ndim=2] U = np.zeros((m,mn),dtype=np.float32)
 	cdef np.ndarray[np.float32_t,ndim=1] S = np.zeros((mn,) ,dtype=np.float32)
 	cdef np.ndarray[np.float32_t,ndim=2] V = np.zeros((n,mn),dtype=np.float32)
 	# Compute SVD using TSQR algorithm
-	retval = c_stsqr_svd(&U[0,0],&S[0],&V[0,0],&A[0,0],m,n,MPI_COMM.ob_mpi)
+	retval = c_stsqr_svd(&U[0,0],&S[0],&V[0,0],&A[0,0],m,n)
 	if not retval == 0: raiseError('Problems computing TSQR SVD!')
 	return U,S,V
 
@@ -1052,12 +1046,11 @@ def _dtsqr_svd(double[:,:] A):
 	'''
 	cdef int retval
 	cdef int m = A.shape[0], n = A.shape[1], mn = min(m,n)
-	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,mn),dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((mn,) ,dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((n,mn),dtype=np.double)
 	# Compute SVD using TSQR algorithm
-	retval = c_dtsqr_svd(&U[0,0],&S[0],&V[0,0],&A[0,0],m,n,MPI_COMM.ob_mpi)
+	retval = c_dtsqr_svd(&U[0,0],&S[0],&V[0,0],&A[0,0],m,n)
 	if not retval == 0: raiseError('Problems computing TSQR SVD!')
 	return U,S,V
 
@@ -1074,12 +1067,11 @@ def _ctsqr_svd(np.complex64_t[:,:] A):
 	'''
 	cdef int retval
 	cdef int m = A.shape[0], n = A.shape[1], mn = min(m,n)
-	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef np.ndarray[np.complex64_t,ndim=2] U = np.zeros((m,mn),dtype=np.complex64)
 	cdef np.ndarray[np.float32_t,ndim=1]     S = np.zeros((mn,) ,dtype=np.float32)
 	cdef np.ndarray[np.complex64_t,ndim=2] V = np.zeros((n,mn),dtype=np.complex64)
 	# Compute SVD using TSQR algorithm
-	retval = c_ctsqr_svd(&U[0,0],&S[0],&V[0,0],&A[0,0],m,n,MPI_COMM.ob_mpi)
+	retval = c_ctsqr_svd(&U[0,0],&S[0],&V[0,0],&A[0,0],m,n)
 	if not retval == 0: raiseError('Problems computing TSQR SVD!')
 	return U,S,V
 
@@ -1096,12 +1088,11 @@ def _ztsqr_svd(np.complex128_t[:,:] A):
 	'''
 	cdef int retval
 	cdef int m = A.shape[0], n = A.shape[1], mn = min(m,n)
-	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef np.ndarray[np.complex128_t,ndim=2] U = np.zeros((m,mn),dtype=np.complex128)
 	cdef np.ndarray[np.double_t,ndim=1]     S = np.zeros((mn,) ,dtype=np.double)
 	cdef np.ndarray[np.complex128_t,ndim=2] V = np.zeros((n,mn),dtype=np.complex128)
 	# Compute SVD using TSQR algorithm
-	retval = c_ztsqr_svd(&U[0,0],&S[0],&V[0,0],&A[0,0],m,n,MPI_COMM.ob_mpi)
+	retval = c_ztsqr_svd(&U[0,0],&S[0],&V[0,0],&A[0,0],m,n)
 	if not retval == 0: raiseError('Problems computing TSQR SVD!')
 	return U,S,V
 
@@ -1130,7 +1121,178 @@ def tsqr_svd(real_full[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _srandomized_svd(float[:,:] A, int r, int q):
+def _srandomized_qr(float[:,:] A, int r, int q, int seed):
+	'''
+	Parallel Randomized QR factorization using Lapack.
+		Q(m,r)   
+		B(r,n)  
+	'''
+	cdef int retval
+	cdef int m = A.shape[0], n = A.shape[1]
+	cdef np.ndarray[np.float32_t,ndim=2] Q = np.zeros((m,r),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=2] B = np.zeros((r,n),dtype=np.float32)
+	# Compute SVD using randomized algorithm
+	retval = c_srandomized_qr(&Q[0,0],&B[0,0],&A[0,0],m,n,r,q,seed)
+	if not retval == 0: raiseError('Problems computing Randomized SVD!')
+	return Q,B
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def _drandomized_qr(double[:,:] A, int r, int q, int seed):
+	'''
+	Parallel Randomized QR factorization using Lapack.
+		Q(m,r)   
+		B(n,n)    
+	'''
+	cdef int retval
+	cdef int m = A.shape[0], n = A.shape[1]
+	cdef np.ndarray[np.double_t,ndim=2] Q = np.zeros((m,r),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] B = np.zeros((r,n),dtype=np.double)
+	# Compute SVD using randomized algorithm
+	retval = c_drandomized_qr(&Q[0,0],&B[0,0],&A[0,0],m,n,r,q,seed)
+	if not retval == 0: raiseError('Problems computing Randomized SVD!')
+	return Q,B
+
+@cr('math.randomized_qr')
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def randomized_qr(real[:,:] A, const int r, const int q, const int seed=-1):
+	'''
+	Parallel Single value decomposition (SVD) using Lapack.
+		Q(m,r)   
+		B(n,r)   
+	'''
+	seed = <int>time(NULL) if seed < 0 else seed
+	if real is double:
+		return _drandomized_qr(A,r,q,seed)
+	else:
+		return _srandomized_qr(A,r,q,seed)
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def _sinit_qr_streaming(float[:,:] A, int r, int q, int seed):
+	'''
+	Parallel Randomized QR factorization using Lapack.
+		Q(m,r)   
+		B(r,n)  
+	'''
+	cdef int retval
+	cdef int m = A.shape[0], n = A.shape[1]
+	cdef np.ndarray[np.float32_t,ndim=2] Q = np.zeros((m,r),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=2] Y = np.zeros((m,r),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=2] B = np.zeros((r,n),dtype=np.float32)
+	# Compute SVD using randomized algorithm
+	retval = c_sinit_randomized_qr(&Q[0,0],&B[0,0],&Y[0,0],&A[0,0],m,n,r,q,seed)
+	if not retval == 0: raiseError('Problems computing Randomized SVD!')
+	return Q,B,Y
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def _dinit_qr_streaming(double[:,:] A, int r, int q, int seed):
+	'''
+	Parallel Randomized QR factorization using Lapack.
+		Q(m,r)   
+		B(n,n)    
+	'''
+	cdef int retval
+	cdef int m = A.shape[0], n = A.shape[1]
+	cdef np.ndarray[np.double_t,ndim=2] Q = np.zeros((m,r),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] Y = np.zeros((m,r),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] B = np.zeros((r,n),dtype=np.double)
+	# Compute SVD using randomized algorithm
+	retval = c_dinit_randomized_qr(&Q[0,0],&B[0,0],&Y[0,0],&A[0,0],m,n,r,q,seed)
+	if not retval == 0: raiseError('Problems computing Randomized SVD!')
+	return Q,B,Y
+
+@cr('math.init_qr_streaming')
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def init_qr_streaming(real[:,:] A, const int r, const int q, seed=None):
+	'''
+	Parallel Single value decomposition (SVD) using Lapack.
+		Q(m,r)   
+		B(n,r)   
+	'''
+	cdef unsigned int seed2 = <int>time(NULL) if seed == None else int(seed)
+	if real is double:
+		return _dinit_qr_streaming(A,r,q,seed2)
+	else:
+		return _sinit_qr_streaming(A,r,q,seed2)
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def _supdate_qr_streaming(float[:,:] Q1, float[:,:] B1, float[:,:] Yo, float[:,:] A, int r, int q, int seed):
+	'''
+	Parallel Randomized QR factorization using Lapack.
+		Q(m,r)   
+		B(r,n)  
+	'''
+	cdef int retval
+	cdef int m  = A.shape[0], n = A.shape[1], n1 = B1.shape[1]
+	cdef int n2 = n1+n
+	cdef np.ndarray[np.float32_t,ndim=2] Q2 = np.zeros((m,r), dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=2] B2 = np.zeros((r,n2),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=2] Yn = np.zeros((m,r), dtype=np.float32)
+	# Compute SVD using randomized algorithm
+	retval = c_supdate_randomized_qr(&Q2[0,0],&B2[0,0],&Yn[0,0],&Q1[0,0],&B1[0,0],&Yo[0,0],&A[0,0],m,n,n1,n2,r,q,seed)
+	if not retval == 0: raiseError('Problems updating randomized QR!')
+	return Q2,B2,Yn
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def _dupdate_qr_streaming(double[:,:] Q1, double[:,:] B1, double[:,:] Yo, double[:,:] A, int r, int q, int seed):
+	'''
+	Parallel Randomized QR factorization using Lapack.
+		Q(m,r)   
+		B(r,n)  
+	'''
+	cdef int retval
+	cdef int m  = A.shape[0], n = A.shape[1], n1 = B1.shape[1]
+	cdef int n2 = n1+n
+	cdef np.ndarray[np.double_t,ndim=2] Q2 = np.zeros((m,r), dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] B2 = np.zeros((r,n2),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] Yn = np.zeros((m,r), dtype=np.double)
+	# Compute SVD using randomized algorithm
+	retval = c_dupdate_randomized_qr(&Q2[0,0],&B2[0,0],&Yn[0,0],&Q1[0,0],&B1[0,0],&Yo[0,0],&A[0,0],m,n,n1,n2,r,q,seed)
+	if not retval == 0: raiseError('Problems updating randomized QR!')
+	return Q2,B2,Yn
+
+@cr('math.qr_iteration')
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def update_qr_streaming(real[:,:] A, real [:,:] Q1, real[:,:] B1, real[:,:] Yo, const int r, const int q):
+	'''
+	Parallel Single value decomposition (SVD) using Lapack.
+		Q(m,r)   
+		B(n,r)   
+	'''
+	cdef unsigned int seed = <int>time(NULL)
+	if real is double:
+		return _dupdate_qr_streaming(Q1,B1,Yo,A,r,q,seed)
+	else:
+		return _supdate_qr_streaming(Q1,B1,Yo,A,r,q,seed)
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def _srandomized_svd(float[:,:] A, int r, int q, int seed):
 	'''
 	Parallel Randomized Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
@@ -1139,13 +1301,11 @@ def _srandomized_svd(float[:,:] A, int r, int q):
 	'''
 	cdef int retval
 	cdef int m = A.shape[0], n = A.shape[1], mn = min(m,n)
-	cdef unsigned int seed = <int>time(NULL)
-	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef np.ndarray[np.float32_t,ndim=2] U = np.zeros((m,r),dtype=np.float32)
 	cdef np.ndarray[np.float32_t,ndim=1] S = np.zeros((r,) ,dtype=np.float32)
 	cdef np.ndarray[np.float32_t,ndim=2] V = np.zeros((r,n),dtype=np.float32)
 	# Compute SVD using randomized algorithm
-	retval = c_srandomized_svd(&U[0,0],&S[0],&V[0,0],&A[0,0],m,n,r,q,seed,MPI_COMM.ob_mpi)
+	retval = c_srandomized_svd(&U[0,0],&S[0],&V[0,0],&A[0,0],m,n,r,q,seed)
 	if not retval == 0: raiseError('Problems computing Randomized SVD!')
 	return U,S,V
 
@@ -1153,7 +1313,7 @@ def _srandomized_svd(float[:,:] A, int r, int q):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _drandomized_svd(double[:,:] A, int r, int q):
+def _drandomized_svd(double[:,:] A, int r, int q, int seed):
 	'''
 	Parallel Randomized Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
@@ -1162,13 +1322,11 @@ def _drandomized_svd(double[:,:] A, int r, int q):
 	'''
 	cdef int retval
 	cdef int m = A.shape[0], n = A.shape[1], mn = min(m,n)
-	cdef unsigned int seed = <int>time(NULL)
-	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,r),dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((r,) ,dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((r,n),dtype=np.double)
 	# Compute SVD using randomized algorithm
-	retval = c_drandomized_svd(&U[0,0],&S[0],&V[0,0],&A[0,0],m,n,r,q,seed,MPI_COMM.ob_mpi)
+	retval = c_drandomized_svd(&U[0,0],&S[0],&V[0,0],&A[0,0],m,n,r,q,seed)
 	if not retval == 0: raiseError('Problems computing Randomized SVD!')
 	return U,S,V
 
@@ -1177,17 +1335,18 @@ def _drandomized_svd(double[:,:] A, int r, int q):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def randomized_svd(real[:,:] A, const int r, const int q):
+def randomized_svd(real[:,:] A, const int r, const int q, const int seed=-1):
 	'''
 	Parallel Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
 		S(n)     are the singular values.
 		V(n,n)   are the right singular vectors.
 	'''
+	seed = <int>time(NULL) if seed < 0 else seed
 	if real is double:
-		return _drandomized_svd(A,r,q)
+		return _drandomized_svd(A,r,q,seed)
 	else:
-		return _srandomized_svd(A,r,q)
+		return _srandomized_svd(A,r,q,seed)
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
@@ -1276,10 +1435,9 @@ cdef float _sRMSE(float[:,:] A, float[:,:] B):
 	'''
 	Compute RMSE between X_POD and X
 	'''
-	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef int m = A.shape[0], n = B.shape[1]
 	cdef float rmse = 0.
-	rmse = c_sRMSE(&A[0,0],&B[0,0],m,n,MPI_COMM.ob_mpi)
+	rmse = c_sRMSE(&A[0,0],&B[0,0],m,n)
 	return rmse
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -1290,10 +1448,9 @@ cdef double _dRMSE(double[:,:] A, double[:,:] B):
 	'''
 	Compute RMSE between X_POD and X
 	'''
-	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	cdef int m = A.shape[0], n = B.shape[1]
 	cdef double rmse = 0.
-	rmse = c_dRMSE(&A[0,0],&B[0,0],m,n,MPI_COMM.ob_mpi)
+	rmse = c_dRMSE(&A[0,0],&B[0,0],m,n)
 	return rmse
 
 @cr('math.RMSE')
@@ -1309,6 +1466,46 @@ def RMSE(real[:,:] A, real[:,:] B):
 		return _dRMSE(A,B)
 	else:
 		return _sRMSE(A,B)
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef float _senergy(float[:,:] A, float[:,:] B):
+	'''
+	Compute RMSE between X_POD and X
+	'''
+	cdef int m = A.shape[0], n = B.shape[1]
+	cdef double rmse = 0.
+	Ek = c_senergy(&A[0,0],&B[0,0],m,n)
+	return Ek
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef double _denergy(double[:,:] A, double[:,:] B):
+	'''
+	Compute RMSE between X_POD and X
+	'''
+	cdef int m = A.shape[0], n = B.shape[1]
+	cdef double rmse = 0.
+	Ek = c_denergy(&A[0,0],&B[0,0],m,n)
+	return Ek
+
+@cr('math.energy')
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def energy(real[:,:] A, real[:,:] B):
+	'''
+	Compute RMSE between X_POD and X
+	'''
+	if real is double:
+		return _denergy(A,B)
+	else:
+		return _senergy(A,B)
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
@@ -1497,7 +1694,7 @@ cdef np.ndarray[np.complex64_t,ndim=2] _cconj(np.complex64_t[:,:] A):
 	cdef np.ndarray[np.complex64_t,ndim=2] B = np.zeros((m,n),dtype=np.complex64)
 	for ii in range(m):
 		for jj in range(n):
-			B[ii, jj] = A[ii][jj].real - A[ii][jj].imag*1j
+			B[ii, jj] = crealf(A[ii][jj]) - cimagf(A[ii][jj])*I
 	return B
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -1515,7 +1712,7 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zconj(np.complex128_t[:,:] A):
 	cdef np.ndarray[np.complex128_t,ndim=2] B = np.zeros((m,n),dtype=np.complex128)
 	for ii in range(m):
 		for jj in range(n):
-			B[ii, jj] = A[ii][jj].real - A[ii][jj].imag*1j
+			B[ii, jj] = creal(A[ii][jj]) - cimag(A[ii][jj])*J
 	return B
 
 @cr('math.conj')
@@ -1806,3 +2003,64 @@ def normals(real[:,:] xyz, int[:,:] conec):
 		return _dnormals(xyz,conec)
 	else:
 		return _snormals(xyz,conec)
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.float32_t,ndim=2] _seuclidean_d(float[:,:] X):
+	'''
+	Compute Euclidean distances between simulations.
+
+	In:
+		- X: NxM Data matrix with N points in the mesh for M simulations
+	Returns:
+		- D: MxM distance matrix 
+	'''
+	# Initialize
+	cdef int n = X.shape[0], m = X.shape[1]
+	cdef np.ndarray[np.float32_t,ndim=2] D = np.zeros((m,m),dtype=np.float32)
+	# Call C function
+	c_seuclidean_d(&D[0,0],&X[0,0],n,m);
+	# Return the distance matrix
+	return D
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.double_t,ndim=2] _deuclidean_d(double[:,:] X):
+	'''
+	Compute Euclidean distances between simulations.
+
+	In:
+		- X: NxM Data matrix with N points in the mesh for M simulations
+	Returns:
+		- D: MxM distance matrix 
+	'''
+	# Initialize
+	cdef int n = X.shape[0], m = X.shape[1]
+	cdef np.ndarray[np.double_t,ndim=2] D = np.zeros((m,m),dtype=np.double)
+	# Call C function
+	c_deuclidean_d(&D[0,0],&X[0,0],n,m);
+	# Return the distance matrix
+	return D
+
+@cr('math.euclidean_d')
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def euclidean_d(real[:,:] X):
+	'''
+	Compute Euclidean distances between simulations.
+
+	In:
+		- X: NxM Data matrix with N points in the mesh for M simulations
+	Returns:
+		- D: MxM distance matrix 
+	'''
+	if real is double:
+		return _deuclidean_d(X)
+	else:
+		return _seuclidean_d(X)

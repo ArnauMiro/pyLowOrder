@@ -5,7 +5,7 @@
 # Last revision: 09/10/2024
 
 import numpy as np
-import pyLOM
+import pyLOM, pyLOM.NN
 
 import matplotlib.pyplot as plt
 

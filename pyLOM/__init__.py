@@ -17,16 +17,18 @@ from .utils.parall import pprint
 from .utils.plots  import show_plots, close_plots
 
 # Import Low Order Models
-from . import POD, DMD, SPOD
+from . import POD, DMD, SPOD, MANIFOLD
 
 # Import AI Models
+# Leaving this commented as the NN module overloads the memory when loaded
+# to load the NN module use `import pyLOM.NN` instead
 # Show a warning in case the modules cannot be loaded
-try:
-    from . import NN
-except:
-	from .utils.errors import raiseWarning
-	raiseWarning('Import - Cannot load NN! Ensure that the correct dependencies are installed',allranks=False)
-	del raiseWarning
+#try:
+#    from . import NN
+#except:
+#	from .utils.errors import raiseWarning
+#	raiseWarning('Import - Cannot load NN! Ensure that the correct dependencies are installed',allranks=False)
+#	del raiseWarning
 
 
 del dataset, partition_table, mesh

@@ -1,6 +1,7 @@
+setuptools>=43.0.0
 numpy
 cython>=3.0.0
-mpi4py
+mpi4py>=4.0.0
 matplotlib
 h5py>=3.0.0
 nfft

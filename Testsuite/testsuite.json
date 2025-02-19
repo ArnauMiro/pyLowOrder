@@ -12,12 +12,12 @@
 		"active" : true
 	},
 	"POD_Cylinder_rand": {
-		"name"   : "POD randomized Cylinder 2D (parallel)",
+		"name"   : "POD randomized Cylinder 2D",
 		"module" : "POD",
 		"file"   : "runs/tsuite_POD_randomized.py",
 		"data"   : "DATA/CYLINDER.h5",
 		"var"    : ["VELOX"],
-		"params" : {"r":8, "r_trunc":6, "q":3},
+		"params" : {"r":8, "r_trunc":6, "q":3, "seed":25},
 		"nprocs" : 1,
 		"reset"  : false,
 		"active" : true
@@ -39,7 +39,7 @@
 		"file"   : "runs/tsuite_POD_randomized.py",
 		"data"   : "DATA/CYLINDER.h5",
 		"var"    : ["VELOX"],
-		"params" : {"r":8, "r_trunc":6, "q":3},
+		"params" : {"r":8, "r_trunc":6, "q":3, "seed":25},
 		"nprocs" : 4,
 		"reset"  : false,
 		"active" : true
@@ -56,12 +56,12 @@
 		"active" : true
 	},
 	"POD_Jet_rand": {
-		"name"   : "POD randomized Jet 2D (parallel)",
+		"name"   : "POD randomized Jet 2D",
 		"module" : "POD",
 		"file"   : "runs/tsuite_POD_randomized.py",
 		"data"   : "DATA/JET.h5",
 		"var"    : ["PRESS"],
-		"params" : {"r":8, "r_trunc":6, "q":3},
+		"params" : {"r":8, "r_trunc":6, "q":3, "seed":25},
 		"nprocs" : 1,
 		"reset"  : false,
 		"active" : true
@@ -83,7 +83,7 @@
 		"file"   : "runs/tsuite_POD_randomized.py",
 		"data"   : "DATA/JET.h5",
 		"var"    : ["PRESS"],
-		"params" : {"r":8, "r_trunc":6, "q":3},
+		"params" : {"r":8, "r_trunc":6, "q":3, "seed":25},
 		"nprocs" : 4,
 		"reset"  : false,
 		"active" : true
@@ -100,12 +100,12 @@
 		"active" : true
 	},
 	"POD_T280_rand": {
-		"name"   : "POD randomized Tensor280 3D (parallel)",
+		"name"   : "POD randomized Tensor280 3D",
 		"module" : "POD",
 		"file"   : "runs/tsuite_POD_randomized.py",
 		"data"   : "DATA/TENSOR280.h5",
 		"var"    : ["VELOX"],
-		"params" : {"r":8, "r_trunc":6, "q":3},
+		"params" : {"r":8, "r_trunc":6, "q":3, "seed":25},
 		"nprocs" : 1,
 		"reset"  : false,
 		"active" : true
@@ -127,7 +127,7 @@
 		"file"   : "runs/tsuite_POD_randomized.py",
 		"data"   : "DATA/TENSOR280.h5",
 		"var"    : ["VELOX"],
-		"params" : {"r":8, "r_trunc":6, "q":3},
+		"params" : {"r":8, "r_trunc":6, "q":3, "seed":25},
 		"nprocs" : 4,
 		"reset"  : false,
 		"active" : true
@@ -292,6 +292,17 @@
 		"reset"  : false,
 		"active" : true
 	},
+	"VAE_Cylinder_2D_finetune": {
+		"name"   : "VAE Cylinder 2D fine-tuning",
+		"module" : "NN",
+		"file"   : "runs/tsuite_VAE2D_finetune.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],	
+		"params" : {"epochs_ft":50},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
 	"VAE_Tensor280_3D": {
 		"name"   : "VAE Tensor280 3D",
 		"module" : "NN",
@@ -344,6 +355,52 @@
 		"var"    : [],
 		"params" : {},
 		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	
+	"comment": "MANIFOLD tests",
+	"ISOMAP_Cylinder": {
+		"name"   : "ISOMAP cylinder data",
+		"module" : "MANIFOLD",
+		"file"   : "runs/tsuite_ISOMAP.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOC"],
+		"params" : {"K":12},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"ISOMAP_Cylinder1": {
+		"name"   : "ISOMAP cylinder data",
+		"module" : "MANIFOLD",
+		"file"   : "runs/tsuite_ISOMAP.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOC"],
+		"params" : {"K":12},
+		"nprocs" : 4,
+		"reset"  : false,
+		"active" : true
+	},
+	"MDS_Cylinder": {
+		"name"   : "MDS cylinder data",
+		"module" : "MANIFOLD",
+		"file"   : "runs/tsuite_MDS.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOC"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"MDS_Cylinder1": {
+		"name"   : "MDS cylinder data",
+		"module" : "MANIFOLD",
+		"file"   : "runs/tsuite_MDS.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOC"],
+		"params" : {},
+		"nprocs" : 4,
 		"reset"  : false,
 		"active" : true
 	}

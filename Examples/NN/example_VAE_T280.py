@@ -9,7 +9,7 @@ import mpi4py
 mpi4py.rc.recv_mprobe = False
 
 import os, numpy as np
-import pyLOM
+import pyLOM, pyLOM.NN
 
 
 ## Set device

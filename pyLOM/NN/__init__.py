@@ -14,7 +14,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 from ..utils.plots  import plotSnapshot
 
 from .callbacks     import EarlyStopper
-from .utils         import Dataset, create_results_folder, select_device, betaLinearScheduler, MinMaxScaler
+from .utils         import Dataset, create_results_folder, select_device, betaLinearScheduler, MinMaxScaler, set_seed
 
 from .stats         import RegressionEvaluator
 
