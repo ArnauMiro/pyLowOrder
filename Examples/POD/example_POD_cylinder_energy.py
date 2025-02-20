@@ -27,8 +27,8 @@ t = d.get_variable('time')
 ## Run POD
 PSI,S,V = pyLOM.POD.run(X,remove_mean=False) # PSI are POD modes
 if pyLOM.utils.is_rank_or_serial(root=0): pyLOM.POD.plotResidual(S)
-# Truncate according to a residual
-PSI,S,V = pyLOM.POD.truncate(PSI,S,V,r=0.99, energy=True)
+# Truncate to capture a percentage of the energy (r must be negative)
+PSI,S,V = pyLOM.POD.truncate(PSI,S,V,r=-0.99)
 pyLOM.POD.save('results.h5',PSI,S,V,d.partition_table,nvars=2,pointData=d.point)
 # Reconstruct the flow
 X_POD = pyLOM.POD.reconstruct(PSI,S,V)

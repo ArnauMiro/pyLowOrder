@@ -49,23 +49,30 @@ def run(X,remove_mean=True, randomized=False, r=1, q=3, seed=-1):
 ## POD truncate method
 def _compute_truncation_residual(S, r):
 	'''
+	Compute the truncation residual.
+	r must be a float precision (r<1) where:
+		- r > 0: target residual
+		- r < 0: fraction of cumulative energy to retain
 	'''
 	N = 0
-	normS = vector_norm(S,0)
-	for ii in range(S.shape[0]):
-		accumulative = vector_norm(S,ii)/normS
-		if accumulative < r: break
-		N += 1
+	if r > 0:
+		normS = vector_norm(S,0)
+		for ii in range(S.shape[0]):
+			accumulative = vector_norm(S,ii)/normS
+			if accumulative < r: break
+			N += 1
+	else:
+		r = abs(r)
+		normS = np.sum(S)
+		accumulative = 0
+		for ii in range(S.shape[0]):
+			accumulative += S[ii]/normS
+			if accumulative > r: break
+			N += 1		
 	return N
 
-## POD truncate method
-def _cumulative_energy(S):
-    """
-    """
-    return np.cumsum(S) / np.sum(S)
-
 @cr('POD.truncate')
-def truncate(U,S,V,r=1e-8, energy = False):
+def truncate(U,S,V,r=1e-8):
 	'''
 	Truncate POD matrices (U, S, V) given a residual, number of modes or cumulative energy r.
 
@@ -74,19 +81,13 @@ def truncate(U,S,V,r=1e-8, energy = False):
 		- S(n)    are the singular values.
 		- V(n,n)  are the right singular vectors.
 		- r       target residual, number of modes, or cumulative energy threshold.
-					* If energy is False:
-						- If r > 1, it is treated as the number of modes.
-						- Otherwise, it is treated as the residual target.
-					* If energy is True:
-						- r must be in (0,1] and represents the fraction of cumulative energy to retain.
-					(Default: 1e-8)
-		- energy  boolean flag indicating whether to interpret r as a cumulative energy fraction.
+					* If r >= 1, it is treated as the number of modes.
+					* If r < 1 and r > 0 it is treated as the residual target.
+					* If r < 1 and r < 0 it is treated as the fraction of cumulative energy to retain.
+					Note:  must be in (0,-1] and r = -1 is valid
 	'''
 	# Compute N using S
 	N = int(r) if r >= 1 else _compute_truncation_residual(S, r)
-
-	if energy == True:
-		N = np.searchsorted(_cumulative_energy(S), r)
 	
  	# Truncate
 	Ur = U[:,:N]
