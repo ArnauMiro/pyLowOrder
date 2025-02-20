@@ -12,10 +12,8 @@ import pyLOM, pyLOM.GPR
 # Single Fidelity GPR
 
 # TESTDATA
-BASEDIR = "./DATA"
-CASESTR = "AIRFOIL"
-DSETDIR = "%s/%s.h5" % (BASEDIR, CASESTR)
-d = pyLOM.Dataset.load(DSETDIR)
+DATAFILE = './DATA/AIRFOIL.h5'
+d = pyLOM.Dataset.load(DATAFILE)
 
 # Data selection
 selected_snapshot = 5
@@ -33,8 +31,8 @@ x_pred = coordinates
 
 # GPR
 gpr = pyLOM.GPR.SF_GPR(input_dim=2)
-print(gpr.kernel.available_kernels)  # Dict of available kernels
-print(
+pyLOM.pprint(0,gpr.kernel.available_kernels)  # Dict of available kernels
+pyLOM.pprint(0,
     gpr.kernel.get_kernel_parameters("RBF")
 )  # Dict of available parameters for the selecter kernel
 kernel = gpr.kernel.Matern32(variance=0.1, lengthscale=1.0, ARD=True)
@@ -88,8 +86,8 @@ x_pred_high = np.linspace(0, 1, 100)[:, None]
 
 # MF_GPR
 mf_gpr = pyLOM.GPR.MF_GPR(input_dim=1)
-print(mf_gpr.kernel.available_kernels)  # Dict of available kernels
-print(
+pyLOM.pprint(0,mf_gpr.kernel.available_kernels)  # Dict of available kernels
+pyLOM.pprint(0,
     mf_gpr.kernel.get_kernel_parameters("Matern32")
 )  # Dict of available parameters for the selecter kernel
 kernel_low = mf_gpr.kernel.Matern32(
@@ -173,4 +171,6 @@ plt.xlabel("$x$")
 plt.ylabel("$y$")
 plt.legend(loc=2)
 plt.tight_layout()
+
+pyLOM.cr_info()
 plt.show()
