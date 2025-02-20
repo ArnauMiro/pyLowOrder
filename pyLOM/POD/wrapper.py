@@ -67,8 +67,8 @@ def _compute_truncation_residual(S, r):
 		accumulative = 0
 		for ii in range(S.shape[0]):
 			accumulative += S[ii]/normS
-			if accumulative > r: break
 			N += 1		
+			if accumulative > r: break
 	return N
 
 @cr('POD.truncate')

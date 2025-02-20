@@ -64,7 +64,7 @@ int dcompute_truncation_residual(double *S, double res, const int n){
 		res = -res;
 		for(ii = 0; ii < n; ++ii){
 			accumulative += S[ii]/normS;
-			if(accumulative > res) return ii;
+			if(accumulative > res) return ii+1;
 		}
   	}
 
