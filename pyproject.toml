@@ -113,6 +113,8 @@ dependencies = [
     "matplotlib",
     "h5py>=3.0.0",
     "nfft",
+    "GPy",
+    "emukit"
 ]
 
 # List additional groups of dependencies here (e.g. development
