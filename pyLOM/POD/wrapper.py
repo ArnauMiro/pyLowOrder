@@ -9,7 +9,7 @@ from __future__ import print_function
 
 import numpy as np
 
-from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, randomized_svd
+from ..vmmath       import vector_sum, vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, randomized_svd
 from ..utils.cr     import cr, cr_start, cr_stop
 from ..utils.errors import raiseError
 
@@ -63,7 +63,7 @@ def _compute_truncation_residual(S, r):
 			N += 1
 	else:
 		r = abs(r)
-		normS = np.sum(S)
+		normS = vector_sum(S,0)
 		accumulative = 0
 		for ii in range(S.shape[0]):
 			accumulative += S[ii]/normS
@@ -85,6 +85,11 @@ def truncate(U,S,V,r=1e-8):
 					* If r < 1 and r > 0 it is treated as the residual target.
 					* If r < 1 and r < 0 it is treated as the fraction of cumulative energy to retain.
 					Note:  must be in (0,-1] and r = -1 is valid
+
+	Returns:
+		- U(m,N)  are the POD modes (truncated at N).
+		- S(N)    are the singular values (truncated at N).
+		- V(N,n)  are the right singular vectors (truncated at N).
 	'''
 	# Compute N using S
 	N = int(r) if r >= 1 else _compute_truncation_residual(S, r)

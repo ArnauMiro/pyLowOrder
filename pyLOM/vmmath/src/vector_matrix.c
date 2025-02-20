@@ -51,6 +51,34 @@ void dtranspose(double *A, double *B, const int m, const int n) {
 	}
 }
 
+float svector_sum(float *v, int start, int n) {
+	/*
+		Compute the sum of the n-dim vector v from the position start
+	*/
+	int ii;
+	float sum = 0;
+	#ifdef USE_OMP
+	#pragma omp parallel for reduction(+:sum) private(ii) shared(v) firstprivate(start,n)
+	#endif
+	for(ii = start; ii < n; ++ii)
+		sum += v[ii];
+	return sum;
+}
+
+double dvector_sum(double *v, int start, int n) {
+	/*
+		Compute the sum of the n-dim vector v from the position start
+	*/
+	int ii;
+	double sum = 0;
+	#ifdef USE_OMP
+	#pragma omp parallel for reduction(+:sum) private(ii) shared(v) firstprivate(start,n)
+	#endif
+	for(ii = start; ii < n; ++ii)
+		sum += v[ii];
+	return sum;
+}
+
 float svector_norm(float *v, int start, int n) {
 	/*
 		Compute the norm of the n-dim vector v from the position start

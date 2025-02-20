@@ -13,16 +13,31 @@ int scompute_truncation_residual(float *S, float res, const int n){
 	/*
 	Function which computes the accumulative residual of the vector S (of size n) and it
 	returns truncation instant according to the desired residual, res, imposed by the user.
+
+	If res < 0  it computes the cummulative energy threshold.
 	*/
 	float accumulative;
-	float normS = svector_norm(S,0,n);
+	float normS;
 	int ii;
-	for(ii = 0; ii < n; ++ii){
-		accumulative = svector_norm(S,ii,n)/normS;
-		if(accumulative < res){
-      return ii;
-    }
-  }
+
+	if (res > 0.) {
+		// Residual is positive
+		normS = svector_norm(S,0,n);
+		for(ii = 0; ii < n; ++ii){
+			accumulative = svector_norm(S,ii,n)/normS;
+			if(accumulative < res) return ii;
+		}
+	} else {
+		// Residual is positive
+		normS = svector_sum(S,0,n);
+		accumulative = 0.;
+		res = -res;
+		for(ii = 0; ii < n; ++ii){
+			accumulative += S[ii]/normS;
+			if(accumulative > res) return ii;
+		}
+  	}
+
 	return n;
 }
 
@@ -32,14 +47,27 @@ int dcompute_truncation_residual(double *S, double res, const int n){
 	returns truncation instant according to the desired residual, res, imposed by the user.
 	*/
 	double accumulative;
-	double normS = dvector_norm(S,0,n);
+	double normS;
 	int ii;
-	for(ii = 0; ii < n; ++ii){
-		accumulative = dvector_norm(S,ii,n)/normS;
-		if(accumulative < res){
-      return ii;
-    }
-  }
+
+	if (res > 0.) {
+		// Residual is positive
+		normS = dvector_norm(S,0,n);
+		for(ii = 0; ii < n; ++ii){
+			accumulative = dvector_norm(S,ii,n)/normS;
+			if(accumulative < res) return ii;
+		}
+	} else {
+		// Residual is positive
+		normS = dvector_sum(S,0,n);
+		accumulative = 0.;
+		res = -res;
+		for(ii = 0; ii < n; ++ii){
+			accumulative += S[ii]/normS;
+			if(accumulative > res) return ii;
+		}
+  	}
+
 	return n;
 }
 
