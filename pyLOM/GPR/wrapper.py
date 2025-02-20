@@ -6,8 +6,16 @@
 #
 # Last rev: 19/02/2025
 
-import numpy as np
-import GPy
+import numpy as np, GPy
+
+# Multi Fidelity GPR Model
+from emukit.multi_fidelity.convert_lists_to_array import convert_x_list_to_array, convert_xy_lists_to_arrays
+from emukit.multi_fidelity.kernels                import LinearMultiFidelityKernel
+from emukit.multi_fidelity.models                 import GPyLinearMultiFidelityModel
+from emukit.model_wrappers.gpy_model_wrappers     import GPyMultiOutputWrapper
+
+from ..utils  import cr, raiseError, pprint
+
 
 # KernelSelector: instantiates kernels with bounds and provides information
 class KernelSelector:
@@ -178,17 +186,6 @@ class SF_GPR(GPRBase):
         Displays the model summary.
         """
         print(self.model)
-
-
-
-# Multi Fidelity GPR Model
-from emukit.multi_fidelity.convert_lists_to_array import (
-    convert_x_list_to_array,
-    convert_xy_lists_to_arrays,
-)
-from emukit.multi_fidelity.kernels import LinearMultiFidelityKernel
-from emukit.multi_fidelity.models import GPyLinearMultiFidelityModel
-from emukit.model_wrappers.gpy_model_wrappers import GPyMultiOutputWrapper
 
 
 class MF_GPR(GPRBase):
