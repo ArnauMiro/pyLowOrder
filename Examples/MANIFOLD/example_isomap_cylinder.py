@@ -20,4 +20,6 @@ t = d.get_variable('time')
 Y,R,_ = pyLOM.MANIFOLD.isomap(X,2,12)
 
 plt.scatter(-Y[0,:],-Y[1,:],s=15,c='b')
+
+pyLOM.cr_info()
 plt.show()
