@@ -51,6 +51,34 @@ void dtranspose(double *A, double *B, const int m, const int n) {
 	}
 }
 
+float svector_sum(float *v, int start, int n) {
+	/*
+		Compute the sum of the n-dim vector v from the position start
+	*/
+	int ii;
+	float sum = 0;
+	#ifdef USE_OMP
+	#pragma omp parallel for reduction(+:sum) private(ii) shared(v) firstprivate(start,n)
+	#endif
+	for(ii = start; ii < n; ++ii)
+		sum += v[ii];
+	return sum;
+}
+
+double dvector_sum(double *v, int start, int n) {
+	/*
+		Compute the sum of the n-dim vector v from the position start
+	*/
+	int ii;
+	double sum = 0;
+	#ifdef USE_OMP
+	#pragma omp parallel for reduction(+:sum) private(ii) shared(v) firstprivate(start,n)
+	#endif
+	for(ii = start; ii < n; ++ii)
+		sum += v[ii];
+	return sum;
+}
+
 float svector_norm(float *v, int start, int n) {
 	/*
 		Compute the norm of the n-dim vector v from the position start
@@ -507,7 +535,7 @@ int zeigen(double *real, double *imag, dcomplex_t *w, double *A,
 	return info;
 }
 
-float sRMSE(float *A, float *B, const int m, const int n, MPI_Comm comm) {
+float sRMSE(float *A, float *B, const int m, const int n) {
 	/*
 		Compute the Root Meean Square Error (RMSE) between two
 		matrices and return it
@@ -531,13 +559,13 @@ float sRMSE(float *A, float *B, const int m, const int n, MPI_Comm comm) {
 		sum2 += norm2;
 	}
 	// Reduce MPI parallel run
-	MPI_Allreduce(&sum1,&sum1g,1,MPI_FLOAT,MPI_SUM,comm);
-	MPI_Allreduce(&sum2,&sum2g,1,MPI_FLOAT,MPI_SUM,comm);
+	MPI_Allreduce(&sum1,&sum1g,1,MPI_FLOAT,MPI_SUM,MPI_COMM_WORLD);
+	MPI_Allreduce(&sum2,&sum2g,1,MPI_FLOAT,MPI_SUM,MPI_COMM_WORLD);
 	// Return
 	return sqrt(sum1g/sum2g);
 }
 
-double dRMSE(double *A, double *B, const int m, const int n, MPI_Comm comm) {
+double dRMSE(double *A, double *B, const int m, const int n) {
 	/*
 		Compute the Root Meean Square Error (RMSE) between two
 		matrices and return it
@@ -561,13 +589,13 @@ double dRMSE(double *A, double *B, const int m, const int n, MPI_Comm comm) {
 		sum2 += norm2;
 	}
 	// Reduce MPI parallel run
-	MPI_Allreduce(&sum1,&sum1g,1,MPI_DOUBLE,MPI_SUM,comm);
-	MPI_Allreduce(&sum2,&sum2g,1,MPI_DOUBLE,MPI_SUM,comm);
+	MPI_Allreduce(&sum1,&sum1g,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+	MPI_Allreduce(&sum2,&sum2g,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
 	// Return
 	return sqrt(sum1g/sum2g);
 }
 
-float senergy(float *A, float *B, const int m, const int n, MPI_Comm comm) {
+float senergy(float *A, float *B, const int m, const int n) {
 	/*
 		Compute reconstruction energy as in:
 		Eivazi, H., Le Clainche, S., Hoyas, S., & Vinuesa, R. (2022). 
@@ -592,13 +620,13 @@ float senergy(float *A, float *B, const int m, const int n, MPI_Comm comm) {
 		sum2 += norm2;
 	}
 	// Reduce MPI parallel run
-	MPI_Allreduce(&sum1,&sum1g,1,MPI_FLOAT,MPI_SUM,comm);
-	MPI_Allreduce(&sum2,&sum2g,1,MPI_FLOAT,MPI_SUM,comm);
+	MPI_Allreduce(&sum1,&sum1g,1,MPI_FLOAT,MPI_SUM,MPI_COMM_WORLD);
+	MPI_Allreduce(&sum2,&sum2g,1,MPI_FLOAT,MPI_SUM,MPI_COMM_WORLD);
 	// Return
 	return 1 - sum1g/sum2g;
 }
 
-double denergy(double *A, double *B, const int m, const int n, MPI_Comm comm) {
+double denergy(double *A, double *B, const int m, const int n) {
 	/*
 		Compute the Root Meean Square Error (RMSE) between two
 		matrices and return it
@@ -622,8 +650,8 @@ double denergy(double *A, double *B, const int m, const int n, MPI_Comm comm) {
 		sum2 += norm2;
 	}
 	// Reduce MPI parallel run
-	MPI_Allreduce(&sum1,&sum1g,1,MPI_DOUBLE,MPI_SUM,comm);
-	MPI_Allreduce(&sum2,&sum2g,1,MPI_DOUBLE,MPI_SUM,comm);
+	MPI_Allreduce(&sum1,&sum1g,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+	MPI_Allreduce(&sum2,&sum2g,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
 	// Return
 	return 1 - sum1g/sum2g;
 }
@@ -936,6 +964,64 @@ void drandom_matrix(double *A, int m, int n, unsigned int seed){
 	for (int i = 0; i < m; i++) {
 		for (int j = 0; j < n; j++) {
 			AC_MAT(A,n,i,j) = (double)(rand()) / (double)(RAND_MAX);
+		}
+	}
+}
+
+void seuclidean_d(float *D, float *X, const int m, const int n){
+	/*
+		Compute the Euclidean distance matrix
+
+		In:
+			- X: MxN Data matrix with N points in the mesh for M simulations
+		Returns:
+			- D: NxN distance matrix
+	*/
+	float d, d2, d2G, dG;
+
+	for (int i = 0; i < n; i++) {
+		for (int j = i+1; j < n; j++) {
+			d2 = 0.;
+			// Local sum on the partition
+			for (int k = 0; k<m; k++) {
+				d = AC_MAT(X,n,k,i) - AC_MAT(X,n,k,j);
+				d2 += d*d;
+			}
+			// Global sum on the partitions
+			MPI_Allreduce(&d2,&d2G,1,MPI_FLOAT,MPI_SUM,MPI_COMM_WORLD);
+			dG = sqrt(d2G);
+			// Fill output
+			AC_MAT(D,n,i,j) = dG;
+			AC_MAT(D,n,j,i) = dG;
+		}
+	}
+}
+
+void deuclidean_d(double *D, double *X, const int m, const int n){
+	/*
+		Compute the Euclidean distance matrix
+
+		In:
+			- X: MxN Data matrix with N points in the mesh for M simulations
+		Returns:
+			- D: NxN distance matrix
+	*/
+	double d, d2, d2G, dG;
+
+	for (int i = 0; i < n; i++) {
+		for (int j = i+1; j < n; j++) {
+			d2 = 0.;
+			// Local sum on the partition
+			for (int k = 0; k<m; k++) {
+				d = AC_MAT(X,n,k,i) - AC_MAT(X,n,k,j);
+				d2 += d*d;
+			}
+			// Global sum on the partitions
+			MPI_Allreduce(&d2,&d2G,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+			dG = sqrt(d2G);
+			// Fill output
+			AC_MAT(D,n,i,j) = dG;
+			AC_MAT(D,n,j,i) = dG;
 		}
 	}
 }
