@@ -1,0 +1,91 @@
+{
+    "comment": "NN tests",
+	"AE_Cylinder_2D": {
+		"name"   : "AE Cylinder 2D",
+		"module" : "NN",
+		"file"   : "runs/tsuite_AE2D.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"VAE_Cylinder_2D": {
+		"name"   : "VAE Cylinder 2D",
+		"module" : "NN",
+		"file"   : "runs/tsuite_VAE2D.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"VAE_Cylinder_2D_finetune": {
+		"name"   : "VAE Cylinder 2D fine-tuning",
+		"module" : "NN",
+		"file"   : "runs/tsuite_VAE2D_finetune.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],	
+		"params" : {"epochs_ft":50},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"VAE_Tensor280_3D": {
+		"name"   : "VAE Tensor280 3D",
+		"module" : "NN",
+		"file"   : "runs/tsuite_VAE3D.py",
+		"data"   : "DATA/TENSOR280.h5",
+		"var"    : ["VELOX"],
+		"params" : {"nx":96,"ny":32,"nz":64},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"VAE_Channel_3D": {
+		"name"   : "VAE Channel 3D",
+		"module" : "NN",
+		"file"   : "runs/tsuite_VAE3D.py",
+		"data"   : "DATA/CHANNEL.h5",
+		"var"    : ["VELOX"],
+		"params" : {"nx":64,"ny":64,"nz":64},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"MLP_airfoil": {
+		"name"   : "MLP airfoil data",
+		"module" : "NN",
+		"file"   : "runs/tsuite_MLP.py",
+		"data"   : "DATA/AIRFOIL.h5",
+		"var"    : ["cp"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"KAN_airfoil": {
+		"name"   : "KAN airfoil data",
+		"module" : "NN",
+		"file"   : "runs/tsuite_KAN.py",
+		"data"   : "DATA/AIRFOIL.h5",
+		"var"    : ["cp"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"PINN_burgers": {
+		"name"   : "PINN Burgers equations",
+		"module" : "NN",
+		"file"   : "runs/tsuite_PINN_Burgers.py",
+		"data"   : "Burgers",
+		"var"    : [],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	}
+}
