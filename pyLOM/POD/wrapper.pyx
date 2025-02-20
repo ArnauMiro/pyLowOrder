@@ -195,11 +195,14 @@ def _struncate(float[:,:] U, float[:] S, float[:,:] V, float r):
 	Truncate POD matrices (U,S,V) given a residual r.
 
 	Inputs:
-		- U(m,nmod)  are the POD modes.
-		- S(nmod)    are the singular values.
-		- V(nmod,n)  are the right singular vectors.
-		- r       target residual (default 1e-8)
-		If the SVD was done with the randomized algorithm, nmod < n but should always be larger than the target number of modes after truncation N
+		- U(m,n)  are the POD modes.
+		- S(n)    are the singular values.
+		- V(n,n)  are the right singular vectors.
+		- r       target residual, number of modes, or cumulative energy threshold.
+					* If r >= 1, it is treated as the number of modes.
+					* If r < 1 and r > 0 it is treated as the residual target.
+					* If r < 1 and r < 0 it is treated as the fraction of cumulative energy to retain.
+					Note:  must be in (0,-1] and r = -1 is valid
 
 	Returns:
 		- U(m,N)  are the POD modes (truncated at N).
@@ -227,12 +230,14 @@ def _dtruncate(double[:,:] U, double[:] S, double[:,:] V, double r):
 	Truncate POD matrices (U,S,V) given a residual r.
 
 	Inputs:
-		- U(m,nmod)  are the POD modes.
-		- S(nmod)    are the singular values.
-		- V(nmod,n)  are the right singular vectors.
-		- r       target residual (default 1e-8)
-		If the SVD was done with the randomized algorithm, nmod < n but should always be larger than the target number of modes after truncation N
-
+		- U(m,n)  are the POD modes.
+		- S(n)    are the singular values.
+		- V(n,n)  are the right singular vectors.
+		- r       target residual, number of modes, or cumulative energy threshold.
+					* If r >= 1, it is treated as the number of modes.
+					* If r < 1 and r > 0 it is treated as the residual target.
+					* If r < 1 and r < 0 it is treated as the fraction of cumulative energy to retain.
+					Note:  must be in (0,-1] and r = -1 is valid
 
 	Returns:
 		- U(m,N)  are the POD modes (truncated at N).
@@ -264,7 +269,11 @@ def truncate(real[:,:] U, real[:] S, real[:,:] V, real r=1e-8):
 		- U(m,n)  are the POD modes.
 		- S(n)    are the singular values.
 		- V(n,n)  are the right singular vectors.
-		- r       target residual (default 1e-8)
+		- r       target residual, number of modes, or cumulative energy threshold.
+					* If r >= 1, it is treated as the number of modes.
+					* If r < 1 and r > 0 it is treated as the residual target.
+					* If r < 1 and r < 0 it is treated as the fraction of cumulative energy to retain.
+					Note:  must be in (0,-1] and r = -1 is valid
 
 	Returns:
 		- U(m,N)  are the POD modes (truncated at N).

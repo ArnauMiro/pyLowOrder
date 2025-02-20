@@ -34,6 +34,7 @@ from ..utils.errors import raiseError
 cdef extern from "vector_matrix.h" nogil:
 	# Single precision
 	cdef void   c_stranspose        "stranspose"(float *A, float *B, const int m, const int n)
+	cdef float  c_svector_sum       "svector_sum"(float *v, int start, int n)
 	cdef float  c_svector_norm      "svector_norm"(float *v, int start, int n)
 	cdef void   c_smatmult          "smatmult"(float *C, float *A, float *B, const int m, const int n, const int k, const char *TA, const char *TB)
 	cdef void   c_smatmul           "smatmul"(float *C, float *A, float *B, const int m, const int n, const int k)
@@ -46,6 +47,7 @@ cdef extern from "vector_matrix.h" nogil:
 	cdef void   c_seuclidean_d      "seuclidean_d"(float *D, float *X, const int m, const int n)
 	# Double precision
 	cdef void   c_dtranspose        "dtranspose"(double *A, double *B, const int m, const int n)
+	cdef double c_dvector_sum       "dvector_sum"(double *v, int start, int n)
 	cdef double c_dvector_norm      "dvector_norm"(double *v, int start, int n)
 	cdef void   c_dmatmult          "dmatmult"(double *C, double *A, double *B, const int m, const int n, const int k, const char *TA, const char *TB)
 	cdef void   c_dmatmul           "dmatmul"(double *C, double *A, double *B, const int m, const int n, const int k)
@@ -178,6 +180,46 @@ def transpose(real[:,:] A):
 		return _dtranspose(A)
 	else:
 		return _stranspose(A)
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef float _svector_sum(float[:] v, int start=0):
+	'''
+	Sum of a vector
+	'''
+	cdef int n = v.shape[0]
+	cdef float norm = 0.
+	norm = c_svector_sum(&v[0],start,n)
+	return norm
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef double _dvector_sum(double[:] v, int start=0):
+	'''
+	Sum of a vector
+	'''
+	cdef int n = v.shape[0]
+	cdef double norm = 0.
+	norm = c_dvector_sum(&v[0],start,n)
+	return norm
+
+@cr('math.vector_sum')
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def vector_sum(real[:] v, int start=0):
+	'''
+	Sum of a vector
+	'''
+	if real is double:
+		return _dvector_sum(v,start)
+	else:
+		return _svector_sum(v,start)
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
