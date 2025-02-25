@@ -7,7 +7,7 @@
 # Last rev: 27/10/2021
 from __future__ import print_function, division
 
-import numpy as np
+import numpy as np, cupy as cp
 import matplotlib.pyplot as plt
 
 from ..vmmath      import fft
@@ -19,6 +19,7 @@ def plotMode(V,t,modes=np.array([1],np.int32),fftfun=fft,scale_freq=1.,fig=[],ax
 	Given U, VT and a mode, plot their
 	representation in a figure.
 	'''
+	V = cp.asnumpy(V) if type(V) is cp.ndarray else V
 	for imode, mode in enumerate(modes):
 		if len(fig) < imode + 1:
 			fig.append( plt.figure(figsize=(8,6),dpi=100) )
