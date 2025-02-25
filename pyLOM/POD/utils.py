@@ -7,7 +7,7 @@
 # Last rev: 29/10/2021
 from __future__ import print_function, division
 
-import numpy as np
+import numpy as np, cupy as cp
 
 from ..         import inp_out as io
 from ..utils.cr import cr
@@ -18,11 +18,12 @@ def extract_modes(U,ivar,npoints,modes=[],reshape=True):
 	'''
 	Extract modes for a certain variables
 	'''
+	p = cp if type(U) is cp.ndarray else np
 	nvars = U.shape[0]//npoints
 	# Define modes to extract
-	if len(modes) == 0: modes = np.arange(1,U.shape[1]+1,dtype=np.int32)
+	if len(modes) == 0: modes = p.arange(1,U.shape[1]+1,dtype=np.int32)
 	# Allocate output array
-	out =np.zeros((npoints,len(modes)),np.double)
+	out =p.zeros((npoints,len(modes)),p.double)
 	for i,m in enumerate(modes):
 		out[:,i] = U[ivar-1:nvars*npoints:nvars,m-1]
 	# Return reshaped output
@@ -35,7 +36,10 @@ def save(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
 	Store POD variables in serial or parallel
 	according to the partition used to compute the POD.
 	'''
-	io.h5_save_POD(fname,U,S,V,ptable,nvars=nvars,pointData=pointData,mode=mode)
+	if type(U) is cp.ndarray:
+		io.h5_save_POD(fname,U.get(),S.get(),V.get(),ptable,nvars=nvars,pointData=pointData,mode=mode)
+	else:
+		io.h5_save_POD(fname,U,S,V,ptable,nvars=nvars,pointData=pointData,mode=mode)
 
 
 @cr('POD.load')

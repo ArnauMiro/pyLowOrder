@@ -8,11 +8,10 @@
 from __future__ import print_function, division
 
 import time
-import cupy as np, scipy, nfft
-from mpi4py import MPI
+import numpy as np, cupy as cp, scipy, nfft
 
-from ..utils import cr, is_rank_or_serial, raiseError
-from ..utils import MPI_RANK, MPI_SIZE, mpi_gather, mpi_reduce, pprint, mpi_send, mpi_recv
+from ..utils import cr
+from ..utils import MPI_RANK, MPI_SIZE, mpi_reduce, mpi_send, mpi_recv
 
 
 ## Python functions
@@ -35,21 +34,23 @@ def vector_norm(v,start=0):
 	'''
 	L2 norm of a vector
 	'''
-	return np.linalg.norm(v[start:],2)
+	p = cp if type(v) is cp.ndarray else np
+	return p.linalg.norm(v[start:],2)
 
 @cr('math.matmul')
 def matmul(A,B):
 	'''
 	Matrix multiplication C = A x B
 	'''
-	return np.matmul(A,B)
+	p = cp if type(A) is cp.ndarray else np
+	return p.matmul(A,B)
 
 @cr('math.matmulp')
 def matmulp(A,B):
 	'''
 	Matrix multiplication C = A x B where A and B are distributed along the processors and C is the same for all of them
 	'''
-	aux = np.matmul(A,B)
+	aux = matmul(A,B)
 	return mpi_reduce(aux, root = 0, op = 'sum', all = True)
 
 @cr('math.vecmat')
@@ -57,7 +58,8 @@ def vecmat(v,A):
 	'''
 	Vector times a matrix C = v x A
 	'''
-	C = np.zeros_like(A)
+	p = cp if type(A) is cp.ndarray else np
+	C = p.zeros_like(A)
 	for ii in range(v.shape[0]):
 		C[ii,:] = v[ii]*A[ii,:]
 	return C
@@ -67,7 +69,8 @@ def argsort(v):
 	'''
 	Returns the indices that sort a vector
 	'''
-	return np.argsort(v)
+	p = cp if type(v) is cp.ndarray else np
+	return p.argsort(v)
 
 @cr('math.diag')
 def diag(A):
@@ -85,9 +88,10 @@ def eigen(A):
 		imag(n)   are the imaginary eigenvalues.
 		vecs(n,n) are the right eigenvectors.
 	'''
-	w,vecs = np.linalg.eig(A)
-	real   = np.real(w)
-	imag   = np.imag(w)
+	p = cp if type(A) is cp.ndarray else np
+	w,vecs = p.linalg.eig(A)
+	real   = p.real(w)
+	imag   = p.imag(w)
 	return real,imag,vecs
 
 @cr('math.polar')
@@ -95,8 +99,9 @@ def polar(real, imag):
 	'''
 	Present a complex number in its polar form given its real and imaginary part
 	'''
-	mod = np.sqrt(real*real + imag*imag)
-	arg = np.arctan2(imag, real)
+	p = cp if type(real) is cp.ndarray else np
+	mod = p.sqrt(real*real + imag*imag)
+	arg = p.arctan2(imag, real)
 	return mod, arg
 
 @cr('math.temporal_mean')
@@ -105,7 +110,8 @@ def temporal_mean(X):
 	Temporal mean of matrix X(m,n) where m is the spatial coordinates
 	and n is the number of snapshots.
 	'''
-	return np.mean(X,axis=1)
+	p = cp if type(X) is cp.ndarray else np
+	return p.mean(X,axis=1)
 
 @cr('math.subtract_mean')
 def subtract_mean(X,X_mean):
@@ -113,7 +119,8 @@ def subtract_mean(X,X_mean):
 	Computes out(m,n) = X(m,n) - X_mean(m) where m is the spatial coordinates
 	and n is the number of snapshots.
 	'''
-	return X - np.tile(X_mean,(X.shape[1],1)).T
+	p = cp if type(X) is cp.ndarray else np
+	return X - p.tile(X_mean,(X.shape[1],1)).T
 
 @cr('math.qr')
 def qr(A):
@@ -122,7 +129,8 @@ def qr(A):
 		Q(m,n) is the Q matrix
 		R(n,n) is the R matrix
 	'''
-	return np.linalg.qr(A)
+	p = cp if type(A) is cp.ndarray else np
+	return p.linalg.qr(A)
 
 @cr('math.svd')
 def svd(A,method='gesdd'):
@@ -132,8 +140,8 @@ def svd(A,method='gesdd'):
 		S(n)     are the singular values.
 		V(n,n)   are the right singular vectors.
 	'''
-#	return np.linalg.svd(A,lapack_driver=method,check_finite=False,full_matrices=False)
-	return np.linalg.svd(A,full_matrices=False)
+	p = cp if type(A) is cp.ndarray else np
+	return p.linalg.svd(A,full_matrices=False)
 
 def next_power_of_2(n):
 	'''
@@ -152,15 +160,16 @@ def tsqr(Ai):
 		Q(m,n) is the Q matrix
 		R(n,n) is the R matrix
 	'''
-	m, n = Ai.shape
+	p = cp if type(Ai) is cp.ndarray else np
+	_, n = Ai.shape
 	# Algorithm 1 from Demmel et al (2012)
 	# 1: QR Factorization on Ai to obtain Q1i and Ri
 	Q1i, R    = qr(Ai)
 	nextPower = next_power_of_2(MPI_SIZE)
-	nlevels   = int(np.log2(nextPower))
-	QW        = np.eye(n, dtype = Ai.dtype)
-	C         = np.zeros((2*n, n), Ai.dtype)
-	Q2l       = np.zeros((2*n*nlevels, n), Ai.dtype)
+	nlevels   = int(p.log2(nextPower))
+	QW        = p.eye(n, dtype = Ai.dtype)
+	C         = p.zeros((2*n, n), Ai.dtype)
+	Q2l       = p.zeros((2*n*nlevels, n), Ai.dtype)
 	blevel    = 1
 	for ilevel in range(nlevels):
 		# Store R in the upper part of the C matrix
@@ -224,10 +233,11 @@ def randomized_qr(Ai, r, q, seed=-1):
 	Qi(m,r)  
 	B (r,n) 
 	'''
+	p = cp if type(Ai) is cp.ndarray else np
 	_, n  = Ai.shape
 	seed = int(time.time()) if seed < 0 else seed
-	np.random.seed(seed=seed)
-	omega = np.random.rand(n, r).astype(Ai.dtype)
+	p.random.seed(seed=seed)
+	omega = p.random.rand(n, r).astype(Ai.dtype)
 	Yi = matmul(Ai,omega)
 	# QR factorization on A
 	for j in range(q):
@@ -249,10 +259,11 @@ def init_qr_streaming(Ai, r, q, seed=None):
 	Qi(m,r)  
 	B (r,n) 
 	'''
+	p = cp if type(Ai) is cp.ndarray else np
 	_, n  = Ai.shape
 	seed = int(time.time()) if seed == None else seed
-	np.random.seed(seed=seed)
-	omega = np.random.rand(n, r).astype(Ai.dtype)
+	p.random.seed(seed=seed)
+	omega = p.random.rand(n, r).astype(Ai.dtype)
 	Yi    = matmul(Ai,omega)
 	# QR factorization on A
 	for j in range(q):
@@ -274,8 +285,9 @@ def update_qr_streaming(Ai, Q1, B1, Yo, r, q):
 	Qi(m,r)  
 	B (r,n) 
 	'''
+	p = cp if type(Ai) is cp.ndarray else np
 	_, n  = Ai.shape
-	omega = np.random.rand(n, r).astype(Ai.dtype)
+	omega = p.random.rand(n, r).astype(Ai.dtype)
 	Yn    = matmul(Ai,omega)
 	for jj in range(q):
 		Qpi,_ = tsqr(Yn)
@@ -286,7 +298,7 @@ def update_qr_streaming(Ai, Q1, B1, Yo, r, q):
 	Q2Q1  = matmulp(Q2.T, Q1)
 	B2o   = matmul(Q2Q1, B1)
 	B2n   = matmulp (Q2.T, Ai)
-	B2    = np.hstack((B2o, B2n))
+	B2    = p.hstack((B2o, B2n))
 
 	return Q2, B2, Yo
 
@@ -327,8 +339,9 @@ def randomized_svd(Ai, r, q, seed=-1):
 	S(n)     singular values.
 	VT(n,n)  right singular vectors (transposed).
 	'''
+	p = cp if type(Ai) is cp.ndarray else np
 	seed = int(time.time()) if seed < 0 else seed
-	np.random.seed(seed=seed)
+	p.random.seed(seed=seed)
 
 	Qi, B    = randomized_qr(Ai,r,q,seed=seed)
 	Ur, S, V = svd(B)
@@ -364,10 +377,11 @@ def RMSE(A,B):
 	'''
 	Compute RMSE between X_POD and X
 	'''
+	p = cp if type(A) is cp.ndarray else np
 	diff  = (A-B)
-	sum1g = mpi_reduce(np.sum(diff*diff),op='sum',all=True)
-	sum2g = mpi_reduce(np.sum(A*A),op='sum',all=True)
-	rmse  = np.sqrt(sum1g/sum2g)
+	sum1g = mpi_reduce(p.sum(diff*diff),op='sum',all=True)
+	sum2g = mpi_reduce(p.sum(A*A),op='sum',all=True)
+	rmse  = p.sqrt(sum1g/sum2g)
 	return rmse
 
 @cr('math.energy')
@@ -396,7 +410,8 @@ def vandermonde(real, imag, m, n):
 	Builds a Vandermonde matrix of (m x n) with the real and
 	imaginary parts of the eigenvalues
 	'''
-	Vand  = np.zeros((m, n), dtype = 'complex_')
+	p = cp if type(real) is cp.ndarray else np
+	Vand  = p.zeros((m, n), dtype = 'complex_')
 	for icol in range(n):
 		Vand[:, icol] = (real + imag*1j)**icol
 	return Vand
@@ -407,8 +422,9 @@ def vandermondeTime(real, imag, m, time):
 	Builds a Vandermonde matrix of (m x n) with the real and
 	imaginary parts of the eigenvalues
 	'''
+	p = cp if type(real) is cp.ndarray else np
 	n = time.shape[0]
-	Vand  = np.zeros((m, n), dtype = 'complex_')
+	Vand  = p.zeros((m, n), dtype = 'complex_')
 	for it, t in enumerate(time):
 		Vand[:, it] = (real + imag*1j)**t
 	return Vand
@@ -418,28 +434,32 @@ def cholesky(A):
 	'''
 	Returns the Cholesky decompositon of A
 	'''
-	return np.linalg.cholesky(A)
+	p = cp if type(A) is cp.ndarray else np
+	return p.linalg.cholesky(A)
 
 @cr('math.conj')
 def conj(A):
 	'''
 	Conjugates complex number A
 	'''
-	return np.conj(A)
+	p = cp if type(A) is cp.ndarray else np
+	return p.conj(A)
 
 @cr('math.inv')
 def inv(A):
 	'''
 	Computes the inverse matrix of A
 	'''
-	return np.linalg.inv(A)
+	p = cp if type(A) is cp.ndarray else np
+	return p.linalg.inv(A)
 
 @cr('math.flip')
 def flip(A):
 	'''
 	Changes order of the vector
 	'''
-	return np.flip(A)
+	p = cp if type(A) is cp.ndarray else np
+	return p.flip(A)
 
 @cr('math.cellCenters')
 def cellCenters(xyz,conec):
@@ -447,27 +467,29 @@ def cellCenters(xyz,conec):
 	Compute the cell centers given a list 
 	of elements.
 	'''
-	xyz_cen = np.zeros((conec.shape[0],xyz.shape[1]),xyz.dtype)
+	p = cp if type(xyz) is cp.ndarray else np
+	xyz_cen = p.zeros((conec.shape[0],xyz.shape[1]),xyz.dtype)
 	for ielem in range(conec.shape[0]):
 		# Get the values of the field and the positions of the element
 		c = conec[ielem,conec[ielem,:]>=0]
-		xyz_cen[ielem,:] = np.mean(xyz[c,:],axis=0)
+		xyz_cen[ielem,:] = p.mean(xyz[c,:],axis=0)
 	return xyz_cen
 
 @cr('math.normals')
 def normals(xyz,conec):
-	normals = np.zeros(((conec.shape[0],3)),xyz.dtype)
+	p = cp if type(xyz) is cp.ndarray else np
+	normals = p.zeros(((conec.shape[0],3)),xyz.dtype)
 	for ielem in range(conec.shape[0]):
 		# Get the values of the field and the positions of the element
 		c     = conec[ielem,conec[ielem,:]>=0]
 		xyzel =  xyz[c,:]
 		# Compute centroid
-		cen  = np.mean(xyzel,axis=0)
+		cen  = p.mean(xyzel,axis=0)
 		# Compute normal
 		for inod in range(len(c)):
 			u = xyzel[inod]   - cen
 			v = xyzel[inod-1] - cen
-			normals[ielem,:] += 0.5*np.cross(u,v)
+			normals[ielem,:] += 0.5*p.cross(u,v)
 	return normals
 
 @cr('math.euclidean_d')
@@ -480,16 +502,17 @@ def euclidean_d(X):
 	Returns:
 		- D: MxM distance matrix 
 	'''
+	p = cp if type(X) is cp.ndarray else np
 	# Extract dimensions
 	_,M = X.shape
 	# Initialize distance matrix
-	D = np.zeros((M,M),X.dtype)
+	D = p.zeros((M,M),X.dtype)
 	for i in range(M):
 		for j in range(i+1,M,1):
 			# Local sum on the partition
-			d2 = np.sum((X[:,i]-X[:,j])*(X[:,i]-X[:,j]))
+			d2 = p.sum((X[:,i]-X[:,j])*(X[:,i]-X[:,j]))
 			# Global sum over the partitions
-			dG = np.sqrt(mpi_reduce(d2,all=True))
+			dG = p.sqrt(mpi_reduce(d2,all=True))
 			# Fill output
 			D[i,j] = dG
 			D[j,i] = dG

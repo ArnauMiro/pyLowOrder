@@ -7,7 +7,7 @@
 # Last rev: 27/10/2021
 from __future__ import print_function, division
 
-import numpy as np
+import numpy as np, cupy as cp
 import matplotlib.pyplot as plt
 
 from ..vmmath       import vector_norm
@@ -50,6 +50,7 @@ def plotResidual(S,fig=None,ax=None):
 	Given the S matrix as a vector, plot
 	the accumulated residual.
 	'''
+	S = cp.asnumpy(S) if type(S) is cp.ndarray else S
 	# Build figure and axes
 	if fig is None:
 		fig = plt.figure(figsize=(8,6),dpi=100)
