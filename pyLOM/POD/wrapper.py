@@ -9,7 +9,7 @@ from __future__ import print_function
 
 import cupy as np
 
-from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, randomized_svd
+from ..vmmath       import vector_sum, vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, randomized_svd
 from ..utils.cr     import cr, cr_start, cr_stop
 from ..utils.errors import raiseError
 
@@ -49,25 +49,42 @@ def run(X,remove_mean=True, randomized=False, r=1, q=3, seed=-1):
 ## POD truncate method
 def _compute_truncation_residual(S, r):
 	'''
+	Compute the truncation residual.
+	r must be a float precision (r<1) where:
+		- r > 0: target residual
+		- r < 0: fraction of cumulative energy to retain
 	'''
 	N = 0
-	normS = vector_norm(S,0)
-	for ii in range(S.shape[0]):
-		accumulative = vector_norm(S,ii)/normS
-		if accumulative < r: break
-		N += 1
+	if r > 0:
+		normS = vector_norm(S,0)
+		for ii in range(S.shape[0]):
+			accumulative = vector_norm(S,ii)/normS
+			if accumulative < r: break
+			N += 1
+	else:
+		r = abs(r)
+		normS = vector_sum(S,0)
+		accumulative = 0
+		for ii in range(S.shape[0]):
+			accumulative += S[ii]/normS
+			N += 1		
+			if accumulative > r: break
 	return N
 
 @cr('POD.truncate')
 def truncate(U,S,V,r=1e-8):
 	'''
-	Truncate POD matrices (U,S,V) given a residual or number of modes r.
+	Truncate POD matrices (U, S, V) given a residual, number of modes or cumulative energy r.
 
 	Inputs:
 		- U(m,n)  are the POD modes.
 		- S(n)    are the singular values.
 		- V(n,n)  are the right singular vectors.
-		- r       target residual or number of modes (if it is greater than 1 is treated as number of modes, else is treated as residual. Default 1e-8)
+		- r       target residual, number of modes, or cumulative energy threshold.
+					* If r >= 1, it is treated as the number of modes.
+					* If r < 1 and r > 0 it is treated as the residual target.
+					* If r < 1 and r < 0 it is treated as the fraction of cumulative energy to retain.
+					Note:  must be in (0,-1] and r = -1 is valid
 
 	Returns:
 		- U(m,N)  are the POD modes (truncated at N).
@@ -76,8 +93,8 @@ def truncate(U,S,V,r=1e-8):
 	'''
 	# Compute N using S
 	N = int(r) if r >= 1 else _compute_truncation_residual(S, r)
-
-	# Truncate
+	
+ 	# Truncate
 	Ur = U[:,:N]
 	Sr = S[:N]
 	Vr = V[:N,:]

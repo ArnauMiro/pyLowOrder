@@ -6,7 +6,7 @@
 		"file"   : "runs/tsuite_POD.py",
 		"data"   : "DATA/CYLINDER.h5",
 		"var"    : ["VELOX"],
-		"params" : {},
+		"params" : {"run":{"remove_mean":false},"r_trunc":5e-6,"modes":[1,4,6,2,5,3]},
 		"nprocs" : 1,
 		"reset"  : false,
 		"active" : true
@@ -14,10 +14,10 @@
 	"POD_Cylinder_rand": {
 		"name"   : "POD randomized Cylinder 2D",
 		"module" : "POD",
-		"file"   : "runs/tsuite_POD_randomized.py",
+		"file"   : "runs/tsuite_POD.py",
 		"data"   : "DATA/CYLINDER.h5",
 		"var"    : ["VELOX"],
-		"params" : {"r":8, "r_trunc":6, "q":3, "seed":25},
+		"params" : {"run":{"remove_mean":false,"randomized":true,"r":8,"q":3,"seed":25},"r_trunc":6,"modes":[1,4,6,2,5,3]},
 		"nprocs" : 1,
 		"reset"  : false,
 		"active" : true
@@ -28,7 +28,7 @@
 		"file"   : "runs/tsuite_POD.py",
 		"data"   : "DATA/CYLINDER.h5",
 		"var"    : ["VELOX"],
-		"params" : {},
+		"params" : {"run":{"remove_mean":false},"r_trunc":5e-6,"modes":[1,4,6,2,5,3]},
 		"nprocs" : 4,
 		"reset"  : false,
 		"active" : true
@@ -36,10 +36,32 @@
 	"POD_Cylinder_rand1": {
 		"name"   : "POD randomized Cylinder 2D (parallel)",
 		"module" : "POD",
-		"file"   : "runs/tsuite_POD_randomized.py",
+		"file"   : "runs/tsuite_POD.py",
 		"data"   : "DATA/CYLINDER.h5",
 		"var"    : ["VELOX"],
-		"params" : {"r":8, "r_trunc":6, "q":3, "seed":25},
+		"params" : {"run":{"remove_mean":false,"randomized":true,"r":8,"q":3,"seed":25},"r_trunc":6,"modes":[1,4,6,2,5,3]},
+		"nprocs" : 4,
+		"reset"  : false,
+		"active" : true
+	},
+	"POD_Cylinder_energy": {
+		"name"   : "POD Cylinder 2D Energy",
+		"module" : "POD",
+		"file"   : "runs/tsuite_POD.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {"run":{"remove_mean":false},"r_trunc":-0.99,"modes":[1,2,3]},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"POD_Cylinder_energy1": {
+		"name"   : "POD Cylinder 2D Energy (parallel)",
+		"module" : "POD",
+		"file"   : "runs/tsuite_POD.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {"run":{"remove_mean":false},"r_trunc":-0.99,"modes":[1,2,3]},
 		"nprocs" : 4,
 		"reset"  : false,
 		"active" : true
@@ -50,7 +72,7 @@
 		"file"   : "runs/tsuite_POD.py",
 		"data"   : "DATA/JET.h5",
 		"var"    : ["PRESS"],
-		"params" : {},
+		"params" : {"run":{"remove_mean":false},"r_trunc":5e-6,"modes":[1,4,6,2,5,3]},
 		"nprocs" : 1,
 		"reset"  : false,
 		"active" : true
@@ -58,10 +80,10 @@
 	"POD_Jet_rand": {
 		"name"   : "POD randomized Jet 2D",
 		"module" : "POD",
-		"file"   : "runs/tsuite_POD_randomized.py",
+		"file"   : "runs/tsuite_POD.py",
 		"data"   : "DATA/JET.h5",
 		"var"    : ["PRESS"],
-		"params" : {"r":8, "r_trunc":6, "q":3, "seed":25},
+		"params" : {"run":{"remove_mean":false,"randomized":true,"r":8,"q":3,"seed":25},"r_trunc":6,"modes":[1,4,6,2,5,3]},
 		"nprocs" : 1,
 		"reset"  : false,
 		"active" : true
@@ -72,7 +94,7 @@
 		"file"   : "runs/tsuite_POD.py",
 		"data"   : "DATA/JET.h5",
 		"var"    : ["PRESS"],
-		"params" : {},
+		"params" : {"run":{"remove_mean":false},"r_trunc":5e-6,"modes":[1,4,6,2,5,3]},
 		"nprocs" : 4,
 		"reset"  : false,
 		"active" : true
@@ -80,10 +102,10 @@
 	"POD_Jet_rand1": {
 		"name"   : "POD randomized Jet 2D (parallel)",
 		"module" : "POD",
-		"file"   : "runs/tsuite_POD_randomized.py",
+		"file"   : "runs/tsuite_POD.py",
 		"data"   : "DATA/JET.h5",
 		"var"    : ["PRESS"],
-		"params" : {"r":8, "r_trunc":6, "q":3, "seed":25},
+		"params" : {"run":{"remove_mean":false,"randomized":true,"r":8,"q":3,"seed":25},"r_trunc":6,"modes":[1,4,6,2,5,3]},
 		"nprocs" : 4,
 		"reset"  : false,
 		"active" : true
@@ -94,7 +116,7 @@
 		"file"   : "runs/tsuite_POD.py",
 		"data"   : "DATA/TENSOR280.h5",
 		"var"    : ["VELOX"],
-		"params" : {},
+		"params" : {"run":{"remove_mean":false},"r_trunc":5e-6,"modes":[1,4,6,2,5,3]},
 		"nprocs" : 1,
 		"reset"  : false,
 		"active" : true
@@ -102,10 +124,10 @@
 	"POD_T280_rand": {
 		"name"   : "POD randomized Tensor280 3D",
 		"module" : "POD",
-		"file"   : "runs/tsuite_POD_randomized.py",
+		"file"   : "runs/tsuite_POD.py",
 		"data"   : "DATA/TENSOR280.h5",
 		"var"    : ["VELOX"],
-		"params" : {"r":8, "r_trunc":6, "q":3, "seed":25},
+		"params" : {"run":{"remove_mean":false,"randomized":true,"r":8,"q":3,"seed":25},"r_trunc":6,"modes":[1,4,6,2,5,3]},
 		"nprocs" : 1,
 		"reset"  : false,
 		"active" : true
@@ -116,7 +138,7 @@
 		"file"   : "runs/tsuite_POD.py",
 		"data"   : "DATA/TENSOR280.h5",
 		"var"    : ["VELOX"],
-		"params" : {},
+		"params" : {"run":{"remove_mean":false},"r_trunc":5e-6,"modes":[1,4,6,2,5,3]},
 		"nprocs" : 4,
 		"reset"  : false,
 		"active" : true
@@ -124,10 +146,10 @@
 	"POD_T280_rand1": {
 		"name"   : "POD randomized Tensor280 3D (parallel)",
 		"module" : "POD",
-		"file"   : "runs/tsuite_POD_randomized.py",
+		"file"   : "runs/tsuite_POD.py",
 		"data"   : "DATA/TENSOR280.h5",
 		"var"    : ["VELOX"],
-		"params" : {"r":8, "r_trunc":6, "q":3, "seed":25},
+		"params" : {"run":{"remove_mean":false,"randomized":true,"r":8,"q":3,"seed":25},"r_trunc":6,"modes":[1,4,6,2,5,3]},
 		"nprocs" : 4,
 		"reset"  : false,
 		"active" : true
@@ -138,7 +160,7 @@
 		"file"   : "runs/tsuite_POD.py",
 		"data"   : "DATA/CHANNEL.h5",
 		"var"    : ["VELOX","VELOY","VELOZ"],
-		"params" : {},
+		"params" : {"run":{"remove_mean":false},"r_trunc":5e-6,"modes":[1,4,6,2,5,3]},
 		"nprocs" : 1,
 		"reset"  : false,
 		"active" : true
@@ -149,7 +171,7 @@
 		"file"   : "runs/tsuite_POD.py",
 		"data"   : "DATA/CHANNEL.h5",
 		"var"    : ["VELOX","VELOY","VELOZ"],
-		"params" : {},
+		"params" : {"run":{"remove_mean":false},"r_trunc":5e-6,"modes":[1,4,6,2,5,3]},
 		"nprocs" : 4,
 		"reset"  : false,
 		"active" : true
@@ -268,86 +290,7 @@
 		"reset"  : false,
 		"active" : true
 	},
-
-	"comment": "NN tests",
-	"AE_Cylinder_2D": {
-		"name"   : "AE Cylinder 2D",
-		"module" : "NN",
-		"file"   : "runs/tsuite_AE2D.py",
-		"data"   : "DATA/CYLINDER.h5",
-		"var"    : ["VELOX"],
-		"params" : {},
-		"nprocs" : 1,
-		"reset"  : false,
-		"active" : true
-	},
-	"VAE_Cylinder_2D": {
-		"name"   : "VAE Cylinder 2D",
-		"module" : "NN",
-		"file"   : "runs/tsuite_VAE2D.py",
-		"data"   : "DATA/CYLINDER.h5",
-		"var"    : ["VELOX"],
-		"params" : {},
-		"nprocs" : 1,
-		"reset"  : false,
-		"active" : true
-	},
-	"VAE_Cylinder_2D_finetune": {
-		"name"   : "VAE Cylinder 2D fine-tuning",
-		"module" : "NN",
-		"file"   : "runs/tsuite_VAE2D_finetune.py",
-		"data"   : "DATA/CYLINDER.h5",
-		"var"    : ["VELOX"],	
-		"params" : {"epochs_ft":50},
-		"nprocs" : 1,
-		"reset"  : false,
-		"active" : true
-	},
-	"VAE_Tensor280_3D": {
-		"name"   : "VAE Tensor280 3D",
-		"module" : "NN",
-		"file"   : "runs/tsuite_VAE3D.py",
-		"data"   : "DATA/TENSOR280.h5",
-		"var"    : ["VELOX"],
-		"params" : {"nx":96,"ny":32,"nz":64},
-		"nprocs" : 1,
-		"reset"  : false,
-		"active" : true
-	},
-	"VAE_Channel_3D": {
-		"name"   : "VAE Channel 3D",
-		"module" : "NN",
-		"file"   : "runs/tsuite_VAE3D.py",
-		"data"   : "DATA/CHANNEL.h5",
-		"var"    : ["VELOX"],
-		"params" : {"nx":64,"ny":64,"nz":64},
-		"nprocs" : 1,
-		"reset"  : false,
-		"active" : true
-	},
-	"MLP_airfoil": {
-		"name"   : "MLP airfoil data",
-		"module" : "NN",
-		"file"   : "runs/tsuite_MLP.py",
-		"data"   : "DATA/AIRFOIL.h5",
-		"var"    : ["cp"],
-		"params" : {},
-		"nprocs" : 1,
-		"reset"  : false,
-		"active" : true
-	},
-	"KAN_airfoil": {
-		"name"   : "KAN airfoil data",
-		"module" : "NN",
-		"file"   : "runs/tsuite_KAN.py",
-		"data"   : "DATA/AIRFOIL.h5",
-		"var"    : ["cp"],
-		"params" : {},
-		"nprocs" : 1,
-		"reset"  : false,
-		"active" : true
-	},
-
+	
 	"comment": "MANIFOLD tests",
 	"ISOMAP_Cylinder": {
 		"name"   : "ISOMAP cylinder data",
@@ -361,7 +304,7 @@
 		"active" : true
 	},
 	"ISOMAP_Cylinder1": {
-		"name"   : "ISOMAP cylinder data",
+		"name"   : "ISOMAP cylinder data (parallel)",
 		"module" : "MANIFOLD",
 		"file"   : "runs/tsuite_ISOMAP.py",
 		"data"   : "DATA/CYLINDER.h5",
@@ -383,7 +326,7 @@
 		"active" : true
 	},
 	"MDS_Cylinder1": {
-		"name"   : "MDS cylinder data",
+		"name"   : "MDS cylinder data (parallel)",
 		"module" : "MANIFOLD",
 		"file"   : "runs/tsuite_MDS.py",
 		"data"   : "DATA/CYLINDER.h5",
@@ -392,5 +335,18 @@
 		"nprocs" : 4,
 		"reset"  : false,
 		"active" : true
+	},
+
+	"comment": "GPR tests",
+	"GPR_airfoil": {
+		"name"   : "GPR airfoil data",
+		"module" : "GPR",
+		"file"   : "runs/tsuite_GPR.py",
+		"data"   : "DATA/AIRFOIL.h5",
+		"var"    : ["cp"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : false
 	}
 }

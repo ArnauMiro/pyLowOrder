@@ -133,6 +133,12 @@ NN = [
   "tensorflow",
   "optuna",
 ]
+# Dependencies to work with the GPR module
+GPR = [
+  "GPy",
+  "emukit",
+  "h5py<=3.10.0",
+]
 # Optional visualization dependencies
 optionals = [
   "ensight-reader",

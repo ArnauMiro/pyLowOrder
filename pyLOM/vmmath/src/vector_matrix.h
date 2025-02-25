@@ -11,6 +11,7 @@ typedef double _Complex dcomplex_t;
 #endif
 // Float version
 void   stranspose(float *A, float *B, const int m, const int n);
+float  svector_sum(float *v, int start, int n);
 float  svector_norm(float *v, int start, int n);
 void   sreorder(float *A, int m, int n, int N);
 void   smatmult(float *C, float *A, float *B, const int m, const int n, const int k, const char *TA, const char *TB);
@@ -25,6 +26,7 @@ void   srandom_matrix(float *A, int m, int n, unsigned int seed);
 void   seuclidean_d(float *D, float *X, const int m, const int n);
 // Double version
 void   dtranspose(double *A, double *B, const int m, const int n);
+double dvector_sum(double *v, int start, int n);
 double dvector_norm(double *v, int start, int n);
 void   dreorder(double *A, int m, int n, int N);
 void   dmatmult(double *C, double *A, double *B, const int m, const int n, const int k, const char *TA, const char *TB);
