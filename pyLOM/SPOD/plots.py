@@ -7,7 +7,7 @@
 # Last rev: 27/10/2021
 from __future__ import print_function, division
 
-import numpy as np
+import numpy as np, cupy as cp
 import matplotlib.pyplot as plt
 
 from .utils        import extract_modes
@@ -19,6 +19,8 @@ def plotMode(L, P, freqs, mesh, dset, ivar, pointData=True, modes=np.array([1],n
 	'''
 	Plot the real and imaginary parts of a mode
 	'''
+	L = cp.asnumpy(L) if type(L) is cp.ndarray else L
+	P = cp.asnumpy(P) if type(P) is cp.ndarray else P
 	# Extract the modes to be plotted
 	npoints = mesh.size(pointData)
 	P_modes = extract_modes(L,P,ivar,npoints,modes=modes)
@@ -34,6 +36,8 @@ def plotMode(L, P, freqs, mesh, dset, ivar, pointData=True, modes=np.array([1],n
 	dset.delete('P_MODES')
 
 def plotSpectra(f, L, fig=None, ax=None):
+	L = cp.asnumpy(L) if type(L) is cp.ndarray else L
+	f = cp.asnumpy(f) if type(f) is cp.ndarray else f
 	# Get or recover axis and figure
 	if fig is None:
 		fig = plt.figure(figsize=(8,6),dpi=100)
