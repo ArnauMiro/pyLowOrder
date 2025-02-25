@@ -87,11 +87,14 @@ def eigen(A):
 		real(n)   are the real eigenvalues.
 		imag(n)   are the imaginary eigenvalues.
 		vecs(n,n) are the right eigenvectors.
+
+	NOTE: there is no implementation of eig in cupy yet
+	https://github.com/cupy/cupy/issues/6359
 	'''
-	p = cp if type(A) is cp.ndarray else np
-	w,vecs = p.linalg.eigh(A)
-	real   = p.real(w)
-	imag   = p.imag(w)
+	A = cp.asnumpy(A) if type(A) is cp.ndarray else A
+	w,vecs = np.linalg.eig(A)
+	real   = np.real(w)
+	imag   = np.imag(w)
 	return real,imag,vecs
 
 @cr('math.polar')
