@@ -89,7 +89,7 @@ def eigen(A):
 		vecs(n,n) are the right eigenvectors.
 	'''
 	p = cp if type(A) is cp.ndarray else np
-	w,vecs = p.linalg.eig(A)
+	w,vecs = p.linalg.eigh(A)
 	real   = p.real(w)
 	imag   = p.imag(w)
 	return real,imag,vecs

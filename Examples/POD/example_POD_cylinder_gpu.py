@@ -8,7 +8,7 @@ from __future__ import print_function, division
 import mpi4py
 mpi4py.rc.recv_mprobe = False
 
-import numpy as np, cupy  as cp
+import numpy as np
 import pyLOM
 
 pyLOM.gpu_device()

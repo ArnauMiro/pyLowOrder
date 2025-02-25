@@ -21,9 +21,9 @@ def extract_modes(U,ivar,npoints,modes=[],reshape=True):
 	p = cp if type(U) is cp.ndarray else np
 	nvars = U.shape[0]//npoints
 	# Define modes to extract
-	if len(modes) == 0: modes = p.arange(1,U.shape[1]+1,dtype=np.int32)
+	if len(modes) == 0: modes = p.arange(1,U.shape[1]+1,dtype=p.int32)
 	# Allocate output array
-	out =p.zeros((npoints,len(modes)),p.double)
+	out =p.zeros((npoints,len(modes)),U.dtype)
 	for i,m in enumerate(modes):
 		out[:,i] = U[ivar-1:nvars*npoints:nvars,m-1]
 	# Return reshaped output

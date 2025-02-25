@@ -7,20 +7,21 @@
 # Last rev: 30/09/2021
 from __future__ import print_function
 
-import numpy as np
-from ..vmmath import vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, matmulp, vandermondeTime
+import numpy as np, cupy as cp
+from ..vmmath import vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, matmulp, vandermondeTime
 from ..POD    import truncate
-from ..utils  import cr, cr_start, cr_stop, mpi_gather, mpi_reduce, raiseError, pprint
+from ..utils  import cr, cr_start, cr_stop
 
 
 def _order_modes(muReal, muImag, Phi, bJov):
 	'''
     Order the modes according to its amplitude, forcing that in case of a conjugate eigenvalue, the positive part always is the first one
 	'''
-	muReal = muReal[flip(np.abs(bJov).argsort())]
-	muImag = muImag[flip(np.abs(bJov).argsort())]
-	Phi    = transpose(transpose(Phi)[flip(np.abs(bJov).argsort())])
-	bJov   = bJov[flip(np.abs(bJov).argsort())]
+	cnp    = cp if type(muReal) is cp.ndarray else np
+	muReal = muReal[flip(cnp.abs(bJov).argsort())]
+	muImag = muImag[flip(cnp.abs(bJov).argsort())]
+	Phi    = transpose(transpose(Phi)[flip(cnp.abs(bJov).argsort())])
+	bJov   = bJov[flip(cnp.abs(bJov).argsort())]
 	p = False
 	for ii in range(muImag.shape[0]):
 		if p == True:
@@ -114,9 +115,10 @@ def frequency_damping(real, imag, dt):
 	'''
 	Computation of the damping ratio and the frequency of each mode
 	'''
+	p = cp if type(real) is cp.ndarray else np
 	mod, arg = polar(real, imag) #Create vmmath/complex.c?
 	#Computation of the damping ratio of the mode
-	delta = np.log(mod)/dt
+	delta = p.log(mod)/dt
 	#Computation of the frequency of the mode
 	omega = arg/dt
 	return delta, omega
@@ -126,7 +128,8 @@ def mode_computation(X, V, S, W):
 	'''
 	Computation of DMD Modes
 	'''
-	return  matmul(matmul(matmul(X, transpose(V)), diag(1/S)), np.abs(W))
+	p = cp if type(X) is cp.ndarray else np
+	return  matmul(matmul(matmul(X, transpose(V)), diag(1/S)), p.abs(W))
 
 @cr('DMD.reconstruction_jovanovic')
 def reconstruction_jovanovic(Phi, real, imag, t, bJov):
