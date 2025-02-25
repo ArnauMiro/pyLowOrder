@@ -7,7 +7,7 @@
 # Last rev: 30/09/2021
 from __future__ import print_function
 
-import cupy as np
+import numpy as np
 from ..vmmath import vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, matmulp, vandermondeTime
 from ..POD    import truncate
 from ..utils  import cr, cr_start, cr_stop, mpi_gather, mpi_reduce, raiseError, pprint
