@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Example of POD.
+# Example of POD (GPU implementation).
 #
 # Last revision: 19/07/2021
 from __future__ import print_function, division
@@ -8,11 +8,11 @@ from __future__ import print_function, division
 import mpi4py
 mpi4py.rc.recv_mprobe = False
 
-import numpy as np
-import cupy  as cp
+import numpy as np, cupy  as cp
 import pyLOM
 
 pyLOM.gpu_device()
+
 
 ## Parameters
 DATAFILE = './DATA/CYLINDER.h5'
@@ -55,7 +55,7 @@ pyLOM.POD.plotSnapshot(m,d.to_cpu(['VELOR']),vars=['VELOR'],instant=0,component=
 ## Plot POD mode
 if pyLOM.utils.is_rank_or_serial(0):
 	# 0 - module, 1,2 - components
-	pyLOM.POD.plotMode(V[:,:-1].get(),t[:-1],modes=[1,2,3,4])
+	pyLOM.POD.plotMode(V[:,:-1],t[:-1],modes=[1,2,3,4])
 
 
 
