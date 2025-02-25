@@ -57,7 +57,7 @@ class KernelSelector:
                     if hasattr(kernel, param):
                         kernel[param].constrain_bounded(lower, upper)
                     else:
-                        raise ValueError(
+                        raiseError(
                             f"The kernel '{kernel_name}' does not have the parameter '{param}'."
                         )
             return kernel
@@ -70,11 +70,11 @@ class KernelSelector:
         """
         kernel_class = self.available_kernels.get(kernel_name)
         if kernel_class is None:
-            raise ValueError(f"Kernel class '{kernel_name}' not found.")
+            raiseError(f"Kernel class '{kernel_name}' not found.")
         try:
             kernel_instance = kernel_class(self.input_dim)
         except TypeError:
-            raise ValueError(
+            raiseError(
                 f"Could not instantiate '{kernel_name}' with input_dim={self.input_dim}."
             )
         param_names = list(kernel_instance.parameter_names())
@@ -138,11 +138,12 @@ class SF_GPR(GPRBase):
         Allows access to the KernelSelector to create kernels (e.g., model.kernel.RBF(...)).
         """
         if self._kernel_selector is None:
-            raise RuntimeError(
+            raiseError(
                 "Provide input_dim in the constructor before accessing the kernel."
             )
         return self._kernel_selector
 
+    @cr('SF_GPR.fit')
     def fit(
         self, X_train, y_train, kernel, noise_var=None, num_restarts=5, verbose=True
     ):
@@ -176,7 +177,7 @@ class SF_GPR(GPRBase):
         Ensures that X_test is in column matrix shape and returns a dictionary with 'mean' and 'std'.
         """
         if self.model is None:
-            raise RuntimeError("Fit the model before predicting.")
+            raiseError("Fit the model before predicting.")
         X_test = self.ensure_column_matrix(X_test)
         mean, var = self.model.predict(X_test)
         return {"mean": mean, "std": np.sqrt(var)}
@@ -185,7 +186,7 @@ class SF_GPR(GPRBase):
         """
         Displays the model summary.
         """
-        print(self.model)
+        pprint(0,self.model)
 
 
 class MF_GPR(GPRBase):
@@ -217,11 +218,12 @@ class MF_GPR(GPRBase):
         Allows access to the KernelSelector to create kernels for each fidelity.
         """
         if self._kernel_selector is None:
-            raise RuntimeError(
+            raiseError(
                 "Provide input_dim in the constructor before accessing the kernel."
             )
         return self._kernel_selector
 
+    @cr('MF_GPR.fit')
     def fit(
         self,
         train_features_list,
@@ -252,7 +254,7 @@ class MF_GPR(GPRBase):
         if self._kernel_selector is None:
             self._kernel_selector = KernelSelector(self.input_dim)
         if not isinstance(kernels, list) or len(kernels) != self.n_fidelities:
-            raise ValueError(
+            raiseError(
                 "Provide a list of kernels equal in length to the number of fidelities."
             )
         self.kernel_MF = LinearMultiFidelityKernel(kernels)
@@ -286,7 +288,7 @@ class MF_GPR(GPRBase):
         if isinstance(noise_vars, (int, float)):
             noise_vars = [noise_vars] * len(noise_params)
         if len(noise_vars) != len(noise_params):
-            raise ValueError(
+            raiseError(
                 f"Expected {len(noise_params)} noise variances, but got {len(noise_vars)}."
             )
         for param, noise_var in zip(noise_params, noise_vars):
@@ -299,7 +301,7 @@ class MF_GPR(GPRBase):
         Returns a dictionary with predictions for each fidelity (keys 'fidelity_1', etc.).
         """
         if not isinstance(predict_features_list, list):
-            raise ValueError(
+            raiseError(
                 "predict_features_list must be a list of arrays (one per fidelity)."
             )
         predict_features_list = [
@@ -320,5 +322,5 @@ class MF_GPR(GPRBase):
         """
         Displays the multi-fidelity model summary.
         """
-        print(self.wrapper.gpy_model)
+        pprint(0,self.wrapper.gpy_model)
 
