@@ -10,7 +10,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
-import pyLOM
+import pyLOM, pyLOM.NN
 
 
 device = 'cpu'

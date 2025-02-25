@@ -9,7 +9,7 @@
 
 import sys, os, numpy as np
 import torch
-import pyLOM
+import pyLOM, pyLOM.NN
 
 
 DATAFILE  = sys.argv[1]
