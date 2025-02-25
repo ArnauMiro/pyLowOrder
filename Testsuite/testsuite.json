@@ -347,6 +347,6 @@
 		"params" : {},
 		"nprocs" : 1,
 		"reset"  : false,
-		"active" : true
+		"active" : false
 	}
 }

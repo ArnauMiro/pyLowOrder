@@ -5,22 +5,17 @@
 # Last revision: 19/02/2025
 from __future__ import print_function, division
 
-import sys, os, numpy as np
-import matplotlib.pyplot as plt
+import sys, os, json, numpy as np
 import pyLOM, pyLOM.GPR
 
 ## Parameters
 DATAFILE  = sys.argv[1]
 VARIABLES = eval(sys.argv[2])
 OUTDIR    = sys.argv[3]
+PARAMS    = json.loads(str(sys.argv[4]).replace("'",'"'))
 
-# Single Fidelity GPR
-
-# TESTDATA
-BASEDIR = "./DATA"
-CASESTR = "AIRFOIL"
-DSETDIR = "%s/%s.h5" % (BASEDIR, CASESTR)
-d = pyLOM.Dataset.load(DSETDIR)
+## Data loading
+d = pyLOM.Dataset.load(DATAFILE)
 
 # Data selection
 selected_snapshot = 5
