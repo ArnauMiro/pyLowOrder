@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Isomap analysis.
+# MDS analysis.
 #
 # Last revision: 11/02/2025
 import os, numpy as np
