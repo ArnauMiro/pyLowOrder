@@ -133,7 +133,7 @@ NN = [
   "optuna",
 ]
 # Dependencies to work with the GPR module
-NN = [
+GPR = [
   "GPy",
   "emukit",
   "h5py<=3.10.0",
