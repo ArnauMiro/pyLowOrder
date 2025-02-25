@@ -16,7 +16,7 @@ from dragon       import dragon, dragonAllOK, dragonAlmostOK, dragonAngry
 RELTOL  = 1e-3
 ZEROTOL = 1e-4
 OUTROOT = '/tmp/TESTSUITE/' # WARNING: OUTROOT IS ERASED BEFORE EVERY RUN
-MODULES = ['POD','DMD','SPOD','NN','MANIFOLD']
+MODULES = ['POD','DMD','SPOD','NN','MANIFOLD','GPR']
 
 
 ## Testsuite aux functions
@@ -184,7 +184,11 @@ if __name__ == "__main__":
 	if not args.reltol:  args.reltol  = RELTOL
 	if not args.zerotol: args.zerotol = ZEROTOL
 	if not args.outroot: args.outroot = '/tmp/TESTSUITE/' # WARNING: OUTROOT IS ERASED BEFORE EVERY RUN
+<<<<<<< HEAD
+	if not args.modules: args.modules = ['POD','DMD','SPOD','NN', 'GPR']
+=======
 	if not args.modules: args.modules = ['POD','DMD','SPOD','NN','MANIFOLD']
+>>>>>>> d79838aa31748f63b90f2865095b29238bea89c3
 
 
 	## Load tests

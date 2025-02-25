@@ -1,0 +1,3 @@
+GPy
+emukit
+h5py<=3.10.0

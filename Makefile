@@ -161,6 +161,9 @@ requirements_optional: requirements_optional.txt
 requirements_NN: requirements_NN.txt
 	@${PIP} install -r $<
 
+requirements_GPR: requirements_GPR.txt
+	@${PIP} install -r $<
+
 requirements_full: requirements requirements_optional requirements_NN
 
 

@@ -335,5 +335,18 @@
 		"nprocs" : 4,
 		"reset"  : false,
 		"active" : true
+	},
+
+	"comment": "GPR tests",
+	"GPR_airfoil": {
+		"name"   : "GPR airfoil data",
+		"module" : "GPR",
+		"file"   : "runs/tsuite_GPR.py",
+		"data"   : "DATA/AIRFOIL.h5",
+		"var"    : ["cp"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : false
 	}
 }
