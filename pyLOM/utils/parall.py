@@ -63,13 +63,6 @@ def writesplit(npoints,write_master):
 	return istart, iend
 
 
-def split(array,root=0):
-	'''
-	Split an array among the processors
-	'''
-	return np.vsplit(array,[worksplit(0,array.shape[0],i)[1] for i in range(MPI_SIZE-1)]) if MPI_RANK==root else None
-
-
 def is_rank_or_serial(root=0):
 	'''
 	Return whether the rank is active or True

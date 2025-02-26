@@ -58,6 +58,13 @@ def mpi_sendrecv(buff,**kwargs):
 	return MPI_COMM.sendrecv(buff,**kwargs)
 
 
+def split(array,root=0):
+	'''
+	Split an array among the processors
+	'''
+	return np.vsplit(array,[worksplit(0,array.shape[0],i)[1] for i in range(MPI_SIZE-1)]) if MPI_RANK==root else None
+
+
 def mpi_scatter(sendbuff,root=0,do_split=False):
 	'''
 	Send an array among the processors and split
