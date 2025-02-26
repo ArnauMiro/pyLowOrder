@@ -25,6 +25,13 @@ def transpose(A):
 	return np.transpose(A)
 
 @cr('math.vector_norm')
+def vector_sum(v,start=0):
+	'''
+	Sum of a vector
+	'''
+	return np.sum(v[start:])
+
+@cr('math.vector_norm')
 def vector_norm(v,start=0):
 	'''
 	L2 norm of a vector
@@ -128,44 +135,6 @@ def svd(A,method='gesdd'):
 	'''
 #	return np.linalg.svd(A,lapack_driver=method,check_finite=False,full_matrices=False)
 	return np.linalg.svd(A,full_matrices=False)
-
-@cr('math.tsqr2')
-def tsqr2(A):
-	'''
-	Parallel QR factorization using Lapack
-		Q(m,n) is the Q matrix
-		R(n,n) is the R matrix
-	'''
-	# Algorithm 1 from Sayadi and Schmid (2016) - Q and R matrices
-	# QR factorization on A
-	Q1i, R = qr(A)
-	# Gather all Rs into Rp
-	Rp = mpi_gather(R,all=True)
-	# QR factorization on Rp
-	Q2i, R = qr(Rp)
-	# Compute Q = Q1 x Q2
-	Q = matmul(Q1i,Q2i[A.shape[1]*MPI_RANK:A.shape[1]*(MPI_RANK+1),:])
-	return Q,R
-
-@cr('math.tsqr_svd2')
-def tsqr_svd2(A):
-	'''
-	Single value decomposition (SVD) using Lapack.
-		U(m,n)   are the POD modes.
-		S(n)     are the singular values.
-		V(n,n)   are the right singular vectors.
-	'''
-	# Algorithm 1 from Sayadi and Schmid (2016) - Q and R matrices
-	# QR factorization on A
-	Q,R = tsqr2(A)
-
-	# Algorithm 2 from Sayadi and Schmid (2016) - Ui, S and VT
-	# At this point we have R and Qi scattered on the processors
-	# Call SVD routine
-	Ur, S, V = svd(R)
-	# Compute U = Q x Ur
-	U = matmul(Q,Ur)
-	return U,S,V
 
 def next_power_of_2(n):
 	'''
@@ -505,3 +474,29 @@ def normals(xyz,conec):
 			v = xyzel[inod-1] - cen
 			normals[ielem,:] += 0.5*np.cross(u,v)
 	return normals
+
+@cr('math.euclidean_d')
+def euclidean_d(X):
+	'''
+	Compute Euclidean distances between simulations.
+
+	In:
+		- X: NxM Data matrix with N points in the mesh for M simulations
+	Returns:
+		- D: MxM distance matrix 
+	'''
+	# Extract dimensions
+	_,M = X.shape
+	# Initialize distance matrix
+	D = np.zeros((M,M),X.dtype)
+	for i in range(M):
+		for j in range(i+1,M,1):
+			# Local sum on the partition
+			d2 = np.sum((X[:,i]-X[:,j])*(X[:,i]-X[:,j]))
+			# Global sum over the partitions
+			dG = np.sqrt(mpi_reduce(d2,all=True))
+			# Fill output
+			D[i,j] = dG
+			D[j,i] = dG
+	# Return the mdistance matrix
+	return D

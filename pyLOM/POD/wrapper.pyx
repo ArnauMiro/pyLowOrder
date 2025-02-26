@@ -16,26 +16,6 @@ from libc.stdlib   cimport malloc, free
 from libc.string   cimport memcpy, memset
 from libc.time     cimport time
 
-# Fix as Open MPI does not support MPI-4 yet, and there is no nice way that I know to automatically adjust Cython to missing stuff in C header files.
-# Source: https://github.com/mpi4py/mpi4py/issues/525
-cdef extern from *:
-	"""
-	#include <mpi.h>
-	
-	#if (MPI_VERSION < 3) && !defined(PyMPI_HAVE_MPI_Message)
-	typedef void *PyMPI_MPI_Message;
-	#define MPI_Message PyMPI_MPI_Message
-	#endif
-	
-	#if (MPI_VERSION < 4) && !defined(PyMPI_HAVE_MPI_Session)
-	typedef void *PyMPI_MPI_Session;
-	#define MPI_Session PyMPI_MPI_Session
-	#endif
-	"""
-from mpi4py.libmpi cimport MPI_Comm
-from mpi4py        cimport MPI
-from mpi4py         import MPI
-
 from ..utils.cr     import cr, cr_start, cr_stop
 from ..utils.errors import raiseError
 
@@ -57,11 +37,11 @@ cdef extern from "averaging.h":
 	cdef void c_dsubtract_mean "dsubtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
 cdef extern from "svd.h":
 	# Single precision
-	cdef int c_stsqr_svd       "stsqr_svd"      (float *Ui, float *S, float *VT, float *Ai, const int m, const int n, MPI_Comm comm)
-	cdef int c_srandomized_svd "srandomized_svd"(float *Ui, float *S, float *VT, float *Ai,   const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
+	cdef int c_stsqr_svd       "stsqr_svd"      (float *Ui, float *S, float *VT, float *Ai, const int m, const int n)
+	cdef int c_srandomized_svd "srandomized_svd"(float *Ui, float *S, float *VT, float *Ai,   const int m, const int n, const int r, const int q, unsigned int seed)
 	# Double precision
-	cdef int c_dtsqr_svd       "dtsqr_svd"      (double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm)
-	cdef int c_drandomized_svd "drandomized_svd"(double *Ui, double *S, double *VT, double *Ai,  const int m, const int n, const int r, const int q, unsigned int seed, MPI_Comm comm)
+	cdef int c_dtsqr_svd       "dtsqr_svd"      (double *Ui, double *S, double *VT, double *Ai, const int m, const int n)
+	cdef int c_drandomized_svd "drandomized_svd"(double *Ui, double *S, double *VT, double *Ai,  const int m, const int n, const int r, const int q, unsigned int seed)
 cdef extern from "truncation.h":
 	# Single precision
 	cdef int  c_scompute_truncation_residual "scompute_truncation_residual"(float *S, float res, const int n)
@@ -99,7 +79,6 @@ def _srun(float[:,:] X, int remove_mean, int randomized, int r, int q, int seed)
 	cdef int m = X.shape[0], n = X.shape[1], mn = min(m,n), retval
 	cdef float *X_mean
 	cdef float *Y
-	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	# Output arrays
 	r = r if randomized else mn
 	cdef np.ndarray[np.float32_t,ndim=2] U = np.zeros((m,r),dtype=np.float32) 
@@ -121,9 +100,9 @@ def _srun(float[:,:] X, int remove_mean, int randomized, int r, int q, int seed)
 	# Compute SVD
 	cr_start('POD.SVD',0)
 	if randomized:
-		retval = c_srandomized_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,r,q,seed,MPI_COMM.ob_mpi)
+		retval = c_srandomized_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,r,q,seed)
 	else:
-		retval = c_stsqr_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,MPI_COMM.ob_mpi)
+		retval = c_stsqr_svd(&U[0,0],&S[0],&V[0,0],Y,m,n)
 	cr_stop('POD.SVD',0)
 	free(Y)
 	# Return
@@ -151,7 +130,6 @@ def _drun(double[:,:] X, int remove_mean, int randomized, int r, int q, int seed
 	cdef int m = X.shape[0], n = X.shape[1], mn = min(m,n), retval
 	cdef double *X_mean
 	cdef double *Y
-	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	# Output arrays
 	r = r if randomized else mn
 	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,r),dtype=np.double) 
@@ -173,9 +151,9 @@ def _drun(double[:,:] X, int remove_mean, int randomized, int r, int q, int seed
 	# Compute SVD
 	cr_start('POD.SVD',0)
 	if randomized:
-		retval = c_drandomized_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,r,q,seed,MPI_COMM.ob_mpi)
+		retval = c_drandomized_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,r,q,seed)
 	else:
-		retval = c_dtsqr_svd(&U[0,0],&S[0],&V[0,0],Y,m,n,MPI_COMM.ob_mpi)
+		retval = c_dtsqr_svd(&U[0,0],&S[0],&V[0,0],Y,m,n)
 	cr_stop('POD.SVD',0)
 	free(Y)
 	# Return
@@ -217,11 +195,14 @@ def _struncate(float[:,:] U, float[:] S, float[:,:] V, float r):
 	Truncate POD matrices (U,S,V) given a residual r.
 
 	Inputs:
-		- U(m,nmod)  are the POD modes.
-		- S(nmod)    are the singular values.
-		- V(nmod,n)  are the right singular vectors.
-		- r       target residual (default 1e-8)
-		If the SVD was done with the randomized algorithm, nmod < n but should always be larger than the target number of modes after truncation N
+		- U(m,n)  are the POD modes.
+		- S(n)    are the singular values.
+		- V(n,n)  are the right singular vectors.
+		- r       target residual, number of modes, or cumulative energy threshold.
+					* If r >= 1, it is treated as the number of modes.
+					* If r < 1 and r > 0 it is treated as the residual target.
+					* If r < 1 and r < 0 it is treated as the fraction of cumulative energy to retain.
+					Note:  must be in (0,-1] and r = -1 is valid
 
 	Returns:
 		- U(m,N)  are the POD modes (truncated at N).
@@ -249,12 +230,14 @@ def _dtruncate(double[:,:] U, double[:] S, double[:,:] V, double r):
 	Truncate POD matrices (U,S,V) given a residual r.
 
 	Inputs:
-		- U(m,nmod)  are the POD modes.
-		- S(nmod)    are the singular values.
-		- V(nmod,n)  are the right singular vectors.
-		- r       target residual (default 1e-8)
-		If the SVD was done with the randomized algorithm, nmod < n but should always be larger than the target number of modes after truncation N
-
+		- U(m,n)  are the POD modes.
+		- S(n)    are the singular values.
+		- V(n,n)  are the right singular vectors.
+		- r       target residual, number of modes, or cumulative energy threshold.
+					* If r >= 1, it is treated as the number of modes.
+					* If r < 1 and r > 0 it is treated as the residual target.
+					* If r < 1 and r < 0 it is treated as the fraction of cumulative energy to retain.
+					Note:  must be in (0,-1] and r = -1 is valid
 
 	Returns:
 		- U(m,N)  are the POD modes (truncated at N).
@@ -286,7 +269,11 @@ def truncate(real[:,:] U, real[:] S, real[:,:] V, real r=1e-8):
 		- U(m,n)  are the POD modes.
 		- S(n)    are the singular values.
 		- V(n,n)  are the right singular vectors.
-		- r       target residual (default 1e-8)
+		- r       target residual, number of modes, or cumulative energy threshold.
+					* If r >= 1, it is treated as the number of modes.
+					* If r < 1 and r > 0 it is treated as the residual target.
+					* If r < 1 and r < 0 it is treated as the fraction of cumulative energy to retain.
+					Note:  must be in (0,-1] and r = -1 is valid
 
 	Returns:
 		- U(m,N)  are the POD modes (truncated at N).
