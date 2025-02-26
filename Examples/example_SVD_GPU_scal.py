@@ -1,0 +1,30 @@
+#!/bin/env python
+# 
+# Test pyLOM multi-gpu using cupy
+# Efficiency test, all GPUs have a different size
+#
+# Last revision: 26/02/2025
+from __future__ import print_function, division
+
+import numpy as np, cupy as cp
+import pyLOM
+
+from pyLOM.utils.mpi import MPI_SIZE
+
+pyLOM.gpu_device(gpu_per_node=4) # MN5 has 4 GPU per node
+
+# Define the matrix and run SVD
+if pyLOM.utils.is_rank_or_serial(0):
+    A = np.random.rand(int(10e6),2000).astype(cp.float32)
+else:
+	A = None
+
+# Scatter A among the processors and send to GPU
+Ai = cp.asarray(pyLOM.utils.mpi_scatter(A,root=0,do_split=True))
+
+# Run pyLOM TSQR-SVD algorithm
+Ui, S, V = pyLOM.math.tsqr_svd(Ai)
+
+# Print results
+pyLOM.pprint(0,f'RUNNING WITH {MPI_SIZE} GPUs')
+pyLOM.cr_info()
