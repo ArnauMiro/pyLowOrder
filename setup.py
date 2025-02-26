@@ -27,9 +27,10 @@ with open('options.cfg') as f:
 
 
 ## Set up compiler options and flags
-CC  = 'mpicc'   if options['FORCE_GCC'] or not os.system('which icc > /dev/null') == 0 else 'mpiicc'
-CXX = 'mpicxx'  if options['FORCE_GCC'] or not os.system('which icc > /dev/null') == 0 else 'mpiicpc'
-FC  = 'mpifort' if options['FORCE_GCC'] or not os.system('which icc > /dev/null') == 0 else 'mpiifort'
+ICC = 'icx' if 'ACC' in options['PLATFORM'] else 'icc'
+CC  = 'mpicc'   if options['FORCE_GCC'] or not os.system('which %s > /dev/null'%ICC) == 0 else 'mpiicc'
+CXX = 'mpicxx'  if options['FORCE_GCC'] or not os.system('which %s > /dev/null'%ICC) == 0 else 'mpiicpc'
+FC  = 'mpifort' if options['FORCE_GCC'] or not os.system('which %s > /dev/null'%ICC) == 0 else 'mpiifort'
 
 CFLAGS   = ''
 CXXFLAGS = ' -std=c++11'
