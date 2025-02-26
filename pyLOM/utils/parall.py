@@ -7,9 +7,18 @@
 # Last rev: 14/02/2025
 from __future__ import print_function, division
 
+import mpi4py, numpy as np
+mpi4py.rc.recv_mprobe = False
+from mpi4py import MPI
+
 import numpy as np
 
-from .mpi import MPI_RANK, MPI_SIZE, mpi_send, mpi_recv
+MPI_COMM = MPI.COMM_WORLD
+MPI_RANK = MPI_COMM.Get_rank()
+MPI_SIZE = MPI_COMM.Get_size()
+
+mpi_send = MPI_COMM.send
+mpi_recv = MPI_COMM.recv
 
 
 def worksplit(istart,iend,whoAmI,nWorkers=MPI_SIZE):
@@ -62,6 +71,11 @@ def writesplit(npoints,write_master):
 		mpi_send(iend,dest=MPI_RANK+1) 
 	return istart, iend
 
+def split(array,root=0):
+	'''
+	Split an array among the processors
+	'''
+	return np.vsplit(array,[worksplit(0,array.shape[0],i)[1] for i in range(MPI_SIZE-1)]) if MPI_RANK==root else None
 
 def is_rank_or_serial(root=0):
 	'''
