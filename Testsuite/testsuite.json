@@ -177,6 +177,19 @@
 		"active" : true
 	},
 
+	"comment": "GPOD tests",
+	"GPOD_Cylinder": {
+		"name"   : "GPOD Cylinder 2D",
+		"module" : "GPOD",
+		"file"   : "runs/tsuite_GPOD.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+
 	"comment": "DMD tests",
 	"DMD_Cylinder": {
 		"name"   : "DMD Cylinder 2D",

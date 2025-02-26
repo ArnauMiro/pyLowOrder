@@ -12,8 +12,7 @@ class GappyPOD:
         self,
         centered=False,
         apply_truncation=False,
-        truncation_method="energy",
-        truncation_param=0.99,
+        truncation_param=-0.99,
         reconstruction_method="standard",
         ridge_lambda=0.01,
     ):
@@ -22,17 +21,15 @@ class GappyPOD:
 
         Args:
             centered (bool): Whether to center the data by subtracting the mean.
-            apply_truncation (bool): Whether to apply mode truncation.
-            truncate_mode (str): Truncation method {'residual', 'energy', 'modes'}.
+            apply_truncation (bool): Whether to apply truncation.
             truncation_method (float or int): Threshold for truncation.
             reconstruction_method (str): Reconstruction method ('standard' or 'ridge').
             ridge_lambda (float): Regularization parameter for ridge reconstruction.
         """
-        self._validate_parameters(truncation_method, reconstruction_method)
+        self._validate_parameters(reconstruction_method)
 
         self.centered = centered
         self.truncate = apply_truncation
-        self.truncate_mode = truncation_method
         self.truncation_param = truncation_param
         self.reconstruction_type = reconstruction_method
         self.ridge_lambda = ridge_lambda
@@ -41,11 +38,7 @@ class GappyPOD:
         self.mean = None
         self.U_truncated_scaled = None
 
-    def _validate_parameters(self, truncation_method, reconstruction_method):
-        if truncation_method not in {"residual", "energy", "modes"}:
-            raise ValueError(
-                "Truncation method must be one of {'residual', 'energy', 'modes'}."
-            )
+    def _validate_parameters(self, reconstruction_method):
         if reconstruction_method not in {"standard", "ridge"}:
             raise ValueError(
                 "Reconstruction method must be either 'standard' or 'ridge'."
@@ -80,8 +73,7 @@ class GappyPOD:
         # Apply truncation if specified
         if self.truncate:
             self.U_truncated, self.S_truncated, _ = truncate(
-                U, S, VT, self.truncation_param, mode=self.truncate_mode
-            )
+                U, S, VT, self.truncation_param)
         else:
             self.U_truncated, self.S_truncated = U, S
 
