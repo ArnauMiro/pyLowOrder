@@ -9,18 +9,17 @@ from __future__ import print_function, division
 import numpy as np, cupy as cp
 import pyLOM
 
-from pyLOM.utils.mpi import MPI_SIZE
+from pyLOM.utils.mpi import MPI_RANK, MPI_SIZE
 
 pyLOM.gpu_device(gpu_per_node=4) # MN5 has 4 GPU per node
 
-# Define the matrix and run SVD
-if pyLOM.utils.is_rank_or_serial(0):
-    A = np.random.rand(int(10e6),2000).astype(cp.float32)
-else:
-	A = None
+# Define the matrix size
+N = int(10e5)
+istart, iend = worksplit(0,N,MPI_RANK,nWorkers=MPI_SIZE)
+Ni = iend-istart
 
-# Scatter A among the processors and send to GPU
-Ai = cp.asarray(pyLOM.utils.mpi_scatter(A,root=0,do_split=True))
+# Generate random matrix
+Ai = cp.random.rand(Ni,2000).astype(cp.float32)
 
 # Run pyLOM TSQR-SVD algorithm
 Ui, S, V = pyLOM.math.tsqr_svd(Ai)
