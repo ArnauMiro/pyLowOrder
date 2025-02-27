@@ -15,7 +15,7 @@ pyLOM.gpu_device(gpu_per_node=4) # MN5 has 4 GPU per node
 
 # Define the matrix size
 N = int(10e5)
-istart, iend = worksplit(0,N,MPI_RANK,nWorkers=MPI_SIZE)
+istart, iend = pyLOM.utils.worksplit(0,N,MPI_RANK,nWorkers=MPI_SIZE)
 Ni = iend-istart
 
 # Generate random matrix
