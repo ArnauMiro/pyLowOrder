@@ -4,8 +4,9 @@ import numpy as np
 import os
 from contextlib import redirect_stdout
 
-from ..POD import run, truncate
-
+from ..utils  import cr, raiseError
+from ..vmmath import temporal_mean, subtract_mean
+from ..POD    import run, truncate
 
 class GappyPOD:
     def __init__(
@@ -26,23 +27,19 @@ class GappyPOD:
             reconstruction_method (str): Reconstruction method ('standard' or 'ridge').
             ridge_lambda (float): Regularization parameter for ridge reconstruction.
         """
-        self._validate_parameters(reconstruction_method)
+        # Validate reconstruction method
+        if not reconstruction_method.lower() in ["standard", "ridge"]:
+            raiseError("Reconstruction method must be either 'standard' or 'ridge'.")
 
-        self.centered = centered
-        self.truncate = apply_truncation
-        self.truncation_param = truncation_param
+        self.centered            = centered
+        self.truncate            = apply_truncation
+        self.truncation_param    = truncation_param
         self.reconstruction_type = reconstruction_method
-        self.ridge_lambda = ridge_lambda
+        self.ridge_lambda        = ridge_lambda
 
         # Attributes to store fitted data
-        self.mean = None
+        self.mean               = None
         self.U_truncated_scaled = None
-
-    def _validate_parameters(self, reconstruction_method):
-        if reconstruction_method not in {"standard", "ridge"}:
-            raise ValueError(
-                "Reconstruction method must be either 'standard' or 'ridge'."
-            )
 
     def _ridge_regresion(self, masked_U, gappy_input):
         I = np.sqrt(self.ridge_lambda) * np.eye(masked_U.shape[1])
@@ -51,31 +48,24 @@ class GappyPOD:
         coef = np.linalg.lstsq(augmented_U, augmented_input, rcond=None)[0]
         return coef
 
-    def fit(self, snapshot_matrix: np.ndarray) -> None:
+    @cr('GPOD.fit')
+    def fit(self, snapshot_matrix: np.ndarray, **kwargs) -> None:
         """
         Fit the Gappy POD model using the snapshot matrix.
 
         Args:
             snapshot_matrix  (np.ndarray): Training matrix [n_features, n_samples].
         """
-
         # Center data if required
-        self.mean = (
-            np.mean(snapshot_matrix, axis=1)
-            if self.centered
-            else np.zeros(snapshot_matrix.shape[0])
-        )
-        X = snapshot_matrix - self.mean[:, None]
+        self.mean = temporal_mean(snapshot_matrix) if self.centered else np.zeros(snapshot_matrix.shape[0])
+        X = subtract_mean(snapshot_matrix,self.mean)
 
-        # Compute SVD
-        U, S, VT = run(X, remove_mean=False)
+        # Compute SVD through POD this way we can reuse some nice features
+        self.U_truncated, self.S_truncated, VT = run(X, remove_mean=False, **kwargs)
 
         # Apply truncation if specified
         if self.truncate:
-            self.U_truncated, self.S_truncated, _ = truncate(
-                U, S, VT, self.truncation_param)
-        else:
-            self.U_truncated, self.S_truncated = U, S
+            self.U_truncated, self.S_truncated, _ = truncate(U,S,VT,self.truncation_param)
 
         # Masked and scaled POD modes
         self.U_truncated_scaled = self.U_truncated * self.S_truncated
