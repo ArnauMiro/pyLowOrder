@@ -1,9 +1,23 @@
 #!/bin/env python
 # 
 # Test pyLOM multi-gpu using cupy
-# Efficiency test, all GPUs have a different size
+# Strong scalability test, the global size of the problem is kept constant
 #
-# Last revision: 26/02/2025
+# Matrix size guidelines depending on the machine tested:
+#
+#### A node of MareNostrum 5 (4 NVIDIA H100 GPUs per node with 64 Gb of VRAM each) can handle the following sizes:
+######## M = XXX, N = 50
+######## M = XXX, N = 100
+######## M = XXX, N = 200
+#
+#### A single GPU of Juno 3 (48 Gb of VRAM) can handle the following sizes:
+######## M = XXX, N = 50
+######## M = XXX, N = 100
+######## M = XXX, N = 200
+#
+#### Add any other tested machine ####
+#
+# Last revision: 28/02/2025
 from __future__ import print_function, division
 
 import numpy as np, cupy as cp
@@ -11,15 +25,22 @@ import pyLOM
 
 from pyLOM.utils.mpi import MPI_RANK, MPI_SIZE
 
-pyLOM.gpu_device(gpu_per_node=4) # MN5 has 4 GPU per node
+# Run on GPU. Adjust accordingly to the number of GPUs per node of your machine
+pyLOM.gpu_device(gpu_per_node=4) 
 
-# Define the matrix size
-N = int(10e5)
-istart, iend = pyLOM.utils.worksplit(0,N,MPI_RANK,nWorkers=MPI_SIZE)
-Ni = iend-istart
+# Define the global matrix size according to the capabilities of your machine
+M = int(10e5)
+N = 100
+
+# Split the number of rows between the number of processors
+istart, iend = pyLOM.utils.worksplit(0,M,MPI_RANK,nWorkers=MPI_SIZE)
+Mi = iend-istart
 
 # Generate random matrix
-Ai = cp.random.rand(Ni,2000).astype(cp.float32)
+Ai = cp.random.rand(Mi,N).astype(cp.float32)
+
+## Add mpi_barrier for timing consistency
+pyLOM.utils.mpi_barrier()
 
 # Run pyLOM TSQR-SVD algorithm
 Ui, S, V = pyLOM.math.tsqr_svd(Ai)
