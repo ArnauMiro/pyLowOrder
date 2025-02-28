@@ -20,14 +20,16 @@ def transpose(A):
 	'''
 	Transposed of matrix A
 	'''
-	return np.transpose(A)
+	p = cp if type(A) is cp.ndarray else np
+	return p.transpose(A)
 
 @cr('math.vector_norm')
 def vector_sum(v,start=0):
 	'''
 	Sum of a vector
 	'''
-	return np.sum(v[start:])
+	p = cp if type(v) is cp.ndarray else np
+	return p.sum(v[start:])
 
 @cr('math.vector_norm')
 def vector_norm(v,start=0):
