@@ -22,6 +22,7 @@ from __future__ import print_function, division
 
 import numpy as np, cupy as cp
 import pyLOM
+import sys
 
 from pyLOM.utils.mpi import MPI_RANK, MPI_SIZE
 
@@ -29,8 +30,8 @@ from pyLOM.utils.mpi import MPI_RANK, MPI_SIZE
 pyLOM.gpu_device(gpu_per_node=4) 
 
 # Define the global matrix size according to the capabilities of your machine
-M = int(10e5)
-N = 100
+M = int(np.double(sys.argv[1]))
+N = int(sys.argv[2])
 
 # Split the number of rows between the number of processors
 istart, iend = pyLOM.utils.worksplit(0,M,MPI_RANK,nWorkers=MPI_SIZE)
