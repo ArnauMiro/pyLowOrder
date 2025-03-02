@@ -6,8 +6,8 @@
 # Adjust script path accordingly
 
 # Matrix sizes to run scalability. They are inputs to the python scripts. A folder will be created for each combination of M and N
-Ms=(1e6 2e6)
-Ns=(100 200)
+Ms=(2e6 3e6 4e6)
+Ns=(2000)
 
 # Number of nodes to test (NPROCS=NNODES*NPROCSXNODE)
 NNODES=(1)
@@ -15,7 +15,7 @@ NPROCNODE=4 #MN5 has 4 GPU per node
 
 # Function to test the scalability of
 FUNC='SVD'
-TEST='weak'
+TEST='weakM'
 
 # Script to run
 SCRIPT="../example_${FUNC}_GPU_${TEST}.py"
@@ -44,6 +44,7 @@ for M in ${Ms[@]}; do
 #SBATCH --time=0:20:00
 #SBATCH --qos=acc_debug
 #SBATCH --account=bsc21
+#SBATCH --exclusive
 module purge
 module load mkl/2023.2.0 nvidia-hpc-sdk/24.3 hdf5/1.14.1-2-nvidia-nvhpcx python/3.12.1-gcc cuda/12.2 && source ~/gpumpi/bin/activate && unset PYTHONPATH
 export PYTHONPATH=/home/bsc/bsc021893/pyLowOrder:$PYTHONPATH

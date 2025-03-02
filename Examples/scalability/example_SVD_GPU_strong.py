@@ -6,9 +6,9 @@
 # Matrix size guidelines depending on the machine tested:
 #
 #### A node of MareNostrum 5 (4 NVIDIA H100 GPUs per node with 64 Gb of VRAM each) can handle the following sizes:
-######## M = XXX, N = 50
-######## M = XXX, N = 100
-######## M = XXX, N = 200
+######## M = 8e6, N = 500
+######## M = 4e6, N = 1000
+######## M = 2e6, N = 2000
 #
 #### A single GPU of Juno 3 (48 Gb of VRAM) can handle the following sizes:
 ######## M = XXX, N = 50
