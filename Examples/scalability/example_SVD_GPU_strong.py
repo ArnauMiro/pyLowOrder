@@ -11,9 +11,9 @@
 ######## M = 2e6, N = 2000
 #
 #### A single GPU of Juno 3 (48 Gb of VRAM) can handle the following sizes:
-######## M = XXX, N = 50
-######## M = XXX, N = 100
-######## M = XXX, N = 200
+######## M = 8e6, N = 250
+######## M = 4e6, N = 500
+######## M = 2e6, N = 1000
 #
 #### Add any other tested machine ####
 #
