@@ -143,6 +143,7 @@ GPR = [
 optionals = [
   "ensight-reader",
   "pyvista",
+  "nvtx",
 ]
 
 # List URLs that are relevant to your project

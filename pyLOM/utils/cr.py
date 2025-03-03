@@ -10,7 +10,7 @@ from __future__ import print_function, division
 import numpy as np, copy, functools
 
 from .mpi    import MPI, MPI_RANK, MPI_SIZE, mpi_reduce
-from .errors import raiseError
+from .errors import raiseError, raiseWarning
 
 
 CHANNEL_DICT = {}
@@ -232,6 +232,9 @@ def cr_time(ch_name,suff):
 	return channel.elapsed(end)
 
 def cr(ch_name,suff=0):
+	'''
+	CR decorator
+	'''
 	def decorator(func):
 		@functools.wraps(func)
 		def wrapper(*args,**kwargs):
@@ -241,3 +244,38 @@ def cr(ch_name,suff=0):
 			return out
 		return wrapper
 	return decorator
+
+try:
+	import nvtx
+
+	def cr_nvtx(ch_name,suff=0,color="green"):
+		'''
+		CR NVTX decorator
+		'''
+		def decorator(func):
+			@functools.wraps(func)
+			def wrapper(*args,**kwargs):
+				cr_start(ch_name,suff)
+				with nvtx.annotate(message=ch_name,color=color):
+					out = func(*args,**kwargs)
+				cr_stop(ch_name,suff)
+				return out
+			return wrapper
+		return decorator
+
+except:
+	raiseWarning('Import - NVTX not present!',False)
+
+	def cr_nvtx(ch_name,suff=0):
+		'''
+		CR NVTX decorator
+		'''
+		def decorator(func):
+			@functools.wraps(func)
+			def wrapper(*args,**kwargs):
+				cr_start(ch_name,suff)
+				out = func(*args,**kwargs)
+				cr_stop(ch_name,suff)
+				return out
+			return wrapper
+		return decorator

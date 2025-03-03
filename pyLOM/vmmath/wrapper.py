@@ -10,7 +10,7 @@ from __future__ import print_function, division
 import time
 import numpy as np, cupy as cp, scipy, nfft
 
-from ..utils import cr
+from ..utils import cr_nvtx as cr
 from ..utils import MPI_RANK, MPI_SIZE, mpi_reduce, mpi_send, mpi_recv
 
 

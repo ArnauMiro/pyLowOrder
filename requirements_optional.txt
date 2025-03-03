@@ -1,2 +1,3 @@
 ensight-reader
 pyvista
+nvtx
