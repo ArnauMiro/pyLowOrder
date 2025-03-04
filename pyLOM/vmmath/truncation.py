@@ -9,9 +9,34 @@ from __future__ import print_function, division
 
 import numpy as np
 
+from .maths         import vector_norm, vector_sum
 from ..utils.cr     import cr
 from ..utils.parall import mpi_reduce
 
+
+def compute_truncation_residual(S, r):
+	'''
+	Compute the truncation residual.
+	r must be a float precision (r<1) where:
+		- r > 0: target residual
+		- r < 0: fraction of cumulative energy to retain
+	'''
+	N = 0
+	if r > 0:
+		normS = vector_norm(S,0)
+		for ii in range(S.shape[0]):
+			accumulative = vector_norm(S,ii)/normS
+			if accumulative < r: break
+			N += 1
+	else:
+		r = abs(r)
+		normS = vector_sum(S,0)
+		accumulative = 0
+		for ii in range(S.shape[0]):
+			accumulative += S[ii]/normS
+			N += 1		
+			if accumulative > r: break
+	return N
 
 @cr('math.energy')
 def energy(original, rec):
