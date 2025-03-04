@@ -8,6 +8,7 @@
 #include "vector_matrix.h"
 
 #define AC_MAT(A,n,i,j) *((A)+(n)*(i)+(j))
+#define POW2(x)         ((x)*(x))
 
 int scompute_truncation_residual(float *S, float res, const int n){
 	/*
@@ -121,4 +122,65 @@ void dcompute_truncation(double *Ur, double *Sr, double *VTr, double *U,
 		//Copy VT into VTr
 		memcpy(VTr+n*jj,VT+n*jj,n*sizeof(double));
     }
+}
+
+float senergy(float *A, float *B, const int m, const int n) {
+	/*
+		Compute reconstruction energy as in:
+		Eivazi, H., Le Clainche, S., Hoyas, S., & Vinuesa, R. (2022). 
+		Towards extraction of orthogonal and parsimonious non-linear modes from turbulent flows. 
+		Expert Systems with Applications, 202, 117038.
+		https://doi.org/10.1016
+	*/
+	int ii, jj;
+	float sum1 = 0., norm1 = 0., sum1g = 0.;
+	float sum2 = 0., norm2 = 0., sum2g = 0.;
+	#ifdef USE_OMP
+	#pragma omp parallel for private(ii,jj) shared(A,B) firstprivate(m,n)
+	#endif
+	for(ii = 0; ii < m; ++ii) {
+		norm1 = 0.;
+		norm2 = 0.;
+		for(jj = 0; jj < n; ++jj){
+			norm1 += POW2(AC_MAT(A,n,ii,jj) - AC_MAT(B,n,ii,jj));
+			norm2 += POW2(AC_MAT(A,n,ii,jj));
+		}
+		sum1 += norm1;
+		sum2 += norm2;
+	}
+	// Reduce MPI parallel run
+	MPI_Allreduce(&sum1,&sum1g,1,MPI_FLOAT,MPI_SUM,MPI_COMM_WORLD);
+	MPI_Allreduce(&sum2,&sum2g,1,MPI_FLOAT,MPI_SUM,MPI_COMM_WORLD);
+	// Return
+	return 1 - sum1g/sum2g;
+}
+
+double denergy(double *A, double *B, const int m, const int n) {
+	/*
+		Compute the Root Meean Square Error (RMSE) between two
+		matrices and return it
+
+		A(m,n), B(m,n)
+	*/
+	int ii, jj;
+	double sum1 = 0., norm1 = 0., sum1g = 0.;
+	double sum2 = 0., norm2 = 0., sum2g = 0.;
+	#ifdef USE_OMP
+	#pragma omp parallel for private(ii,jj) shared(A,B) firstprivate(m,n)
+	#endif
+	for(ii = 0; ii < m; ++ii) {
+		norm1 = 0.;
+		norm2 = 0.;
+		for(jj = 0; jj < n; ++jj){
+			norm1 += POW2(AC_MAT(A,n,ii,jj) - AC_MAT(B,n,ii,jj));
+			norm2 += POW2(AC_MAT(A,n,ii,jj));
+		}
+		sum1 += norm1;
+		sum2 += norm2;
+	}
+	// Reduce MPI parallel run
+	MPI_Allreduce(&sum1,&sum1g,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+	MPI_Allreduce(&sum2,&sum2g,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
+	// Return
+	return 1 - sum1g/sum2g;
 }
