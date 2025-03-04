@@ -13,7 +13,7 @@ cimport numpy as np
 import numpy as np
 
 from libc.stdlib     cimport malloc, free
-from libc.string     cimport memcpy, memset
+from libc.string     cimport memcpy
 from libc.time       cimport time
 from ..vmmath.cfuncs cimport real
 from ..vmmath.cfuncs cimport c_svector_norm, c_smatmul, c_svecmat, c_stemporal_mean, c_ssubtract_mean, c_stsqr_svd, c_srandomized_svd, c_scompute_truncation_residual, c_scompute_truncation
