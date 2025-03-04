@@ -11,7 +11,6 @@ import numpy as np
 
 from ..vmmath       import vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, randomized_svd, compute_truncation_residual
 from ..utils.cr     import cr, cr_start, cr_stop
-from ..utils.errors import raiseError
 
 
 ## POD run method
