@@ -20,6 +20,15 @@ def RMSE(A,B):
 	'''
 	diff  = (A-B)
 	sum1g = mpi_reduce(np.sum(diff*diff),op='sum',all=True)
-	sum2g = mpi_reduce(np.sum(A*A),op='sum',all=True)
+	sum2g = np.prod(mpi_reduce(np.array(A.shape),op='sum',all=True))
+#	sum2g = mpi_reduce(np.sum(A*A),op='sum',all=True)
 	rmse  = np.sqrt(sum1g/sum2g)
 	return rmse
+
+@cr('math.MAE')
+def MAE(A,B):
+	'''
+	Compute MAE between A and B
+	'''
+	diff  = np.abs(A-B)
+	return mpi_reduce(np.sum(diff),op='sum',all=True)
