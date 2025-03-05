@@ -124,12 +124,64 @@ else:
 
 ## Modules
 # vmmath module
-Module_math = Extension('pyLOM.vmmath.wrapper',
-						sources       = ['pyLOM/vmmath/wrapper.pyx',
+Module_maths     = Extension('pyLOM.vmmath.maths',
+						sources       = ['pyLOM/vmmath/maths.pyx',
 										 'pyLOM/vmmath/src/vector_matrix.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
+Module_averaging = Extension('pyLOM.vmmath.averaging',
+						sources       = ['pyLOM/vmmath/averaging.pyx',
 										 'pyLOM/vmmath/src/averaging.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
+Module_svd       = Extension('pyLOM.vmmath.svd',
+						sources       = ['pyLOM/vmmath/svd.pyx',
+										 'pyLOM/vmmath/src/vector_matrix.c',
 										 'pyLOM/vmmath/src/svd.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
+Module_fft       = Extension('pyLOM.vmmath.fft',
+						sources       = ['pyLOM/vmmath/fft.pyx',
 										 'pyLOM/vmmath/src/fft.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
+Module_geometric = Extension('pyLOM.vmmath.geometric',
+						sources       = ['pyLOM/vmmath/geometric.pyx',
+										 'pyLOM/vmmath/src/geometric.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
+Module_truncation = Extension('pyLOM.vmmath.truncation',
+						sources       = ['pyLOM/vmmath/truncation.pyx',
+										 'pyLOM/vmmath/src/truncation.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
+Module_stats     = Extension('pyLOM.vmmath.stats',
+						sources       = ['pyLOM/vmmath/stats.pyx',
+										 'pyLOM/vmmath/src/stats.c',
 									    ],
 						language      = 'c',
 						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
@@ -185,7 +237,7 @@ Module_SPOD = Extension('pyLOM.SPOD.wrapper',
 ## Decide which modules to compile
 modules_list = [
 	# Math module
-	Module_math,
+	Module_maths, Module_averaging, Module_svd, Module_fft, Module_geometric, Module_truncation, Module_stats,
 	# IO module
 	Module_IO_ensight,
 	# Low order algorithms

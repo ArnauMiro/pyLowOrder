@@ -9,9 +9,8 @@ from __future__ import print_function
 
 import numpy as np
 
-from ..vmmath       import vector_sum, vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, randomized_svd
+from ..vmmath       import vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, randomized_svd, compute_truncation_residual
 from ..utils.cr     import cr, cr_start, cr_stop
-from ..utils.errors import raiseError
 
 
 ## POD run method
@@ -47,30 +46,6 @@ def run(X,remove_mean=True, randomized=False, r=1, q=3, seed=-1):
 
 
 ## POD truncate method
-def _compute_truncation_residual(S, r):
-	'''
-	Compute the truncation residual.
-	r must be a float precision (r<1) where:
-		- r > 0: target residual
-		- r < 0: fraction of cumulative energy to retain
-	'''
-	N = 0
-	if r > 0:
-		normS = vector_norm(S,0)
-		for ii in range(S.shape[0]):
-			accumulative = vector_norm(S,ii)/normS
-			if accumulative < r: break
-			N += 1
-	else:
-		r = abs(r)
-		normS = vector_sum(S,0)
-		accumulative = 0
-		for ii in range(S.shape[0]):
-			accumulative += S[ii]/normS
-			N += 1		
-			if accumulative > r: break
-	return N
-
 @cr('POD.truncate')
 def truncate(U,S,V,r=1e-8):
 	'''
@@ -92,7 +67,7 @@ def truncate(U,S,V,r=1e-8):
 		- V(N,n)  are the right singular vectors (truncated at N).
 	'''
 	# Compute N using S
-	N = int(r) if r >= 1 else _compute_truncation_residual(S, r)
+	N = int(r) if r >= 1 else compute_truncation_residual(S, r)
 	
  	# Truncate
 	Ur = U[:,:N]
