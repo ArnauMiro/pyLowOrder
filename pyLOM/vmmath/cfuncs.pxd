@@ -21,7 +21,6 @@ cdef extern from "vector_matrix.h" nogil:
 	cdef void   c_smatmulp           "smatmulp"(float *C, float *A, float *B, const int m, const int n, const int k)
 	cdef void   c_svecmat            "svecmat"(float *v, float *A, const int m, const int n)
 	cdef int    c_sinverse           "sinverse"(float *A, int N, char *UoL)
-	cdef float  c_sRMSE              "sRMSE"(float *A, float *B, const int m, const int n)
 	cdef void   c_ssort              "ssort"(float *v, int *index, int n)
 	# Double precision
 	cdef void   c_dtranspose         "dtranspose"(double *A, double *B, const int m, const int n)
@@ -33,7 +32,6 @@ cdef extern from "vector_matrix.h" nogil:
 	cdef void   c_dmatmulp           "dmatmulp"(double *C, double *A, double *B, const int m, const int n, const int k)
 	cdef void   c_dvecmat            "dvecmat"(double *v, double *A, const int m, const int n)
 	cdef int    c_dinverse           "dinverse"(double *A, int N, char *UoL)
-	cdef double c_dRMSE              "dRMSE"(double *A, double *B, const int m, const int n)
 	cdef void   c_dsort              "dsort"(double *v, int *index, int n)
 	# Single complex precision
 	cdef void   c_cmatmult           "cmatmult"(np.complex64_t *C, np.complex64_t *A, np.complex64_t *B, const int m, const int n, const int k, const char *TA, const char *TB)
@@ -93,6 +91,15 @@ cdef extern from "svd.h" nogil:
 	cdef int c_zsvd                  "zsvd"(np.complex128_t *U,  double *S, np.complex128_t *V,  np.complex128_t *Y,  const int m, const int n)
 	cdef int c_ztsqr                 "ztsqr"(np.complex128_t *Qi, np.complex128_t *R, np.complex128_t *Ai, const int m, const int n)
 	cdef int c_ztsqr_svd             "ztsqr_svd"(np.complex128_t *Ui, double *S, np.complex128_t *VT, np.complex128_t *Ai, const int m, const int n)
+cdef extern from "stats.h" nogil:
+	# Single precision
+	cdef float  c_sRMSE              "sRMSE"(float *A, float *B, const int m, const int n)
+	cdef float  c_sMAE               "sMAE"(float *A, float *B, const int m, const int n)
+	cdef float  c_sr2                "sr2"(float *A, float *B, const int m, const int n)
+	# Double precision
+	cdef double  c_dRMSE             "dRMSE"(double *A, double *B, const int m, const int n)
+	cdef double  c_dMAE              "dMAE"(double *A, double *B, const int m, const int n)
+	cdef double  c_dr2               "dr2"(double *A, double *B, const int m, const int n)
 cdef extern from "fft.h" nogil:
 	cdef int USE_FFTW3               "_USE_FFTW3"
 	# Single precision
