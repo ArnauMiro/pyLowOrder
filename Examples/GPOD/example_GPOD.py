@@ -4,15 +4,14 @@
 #
 # Last revision: 26/02/2025
 from __future__ import print_function, division
-import mpi4py
-import pyLOM.GPOD
 
+import mpi4py
 mpi4py.rc.recv_mprobe = False
 
-import os, numpy as np
-import pyLOM
-from sklearn.metrics import root_mean_squared_error, mean_absolute_error, r2_score
+import numpy as np
 import matplotlib.pyplot as plt
+import pyLOM
+
 
 ## Parameters
 DATAFILE = "./DATA/CYLINDER.h5"
@@ -47,9 +46,9 @@ gappy_model.fit(snapshot_POD)  # Fit model
 velox_recons = gappy_model.predict(velox_gappy)  # Reconstruct gappy vector
 
 # Compute and display metrics
-mae_vector = mean_absolute_error(X[:, snap], velox_recons)
+mae_vector  = pyLOM.math.MAE(X[:, snap], velox_recons)
 rmse_vector = pyLOM.math.RMSE(X[:, snap], velox_recons)
-r2_vector = r2_score(X[:, snap], velox_recons)
+r2_vector   = pyLOM.math.r2(X[:, snap], velox_recons)
 print(f"MAE_snapshot = {mae_vector}\nRMSE_snapshot = {rmse_vector}\nR2_snapshot = {r2_vector}")
 
 
@@ -114,9 +113,9 @@ X_recons, eig_spec_iter, c_e = gappy_model_recons.reconstruct_full_set(
 )
 
 # Compute metrics
-mae_recons = mean_absolute_error(X, X_recons)
+mae_recons  = pyLOM.math.MAE(X, X_recons)
 rmse_recons = pyLOM.math.RMSE(X, X_recons)
-r2_recons = r2_score(X, X_recons)
+r2_recons   = pyLOM.math.r2(X, X_recons)
 print(f"MAE_database = {mae_recons}\nRMSE_database = {rmse_recons}\nR2_database = {r2_recons}")
 
 # Eigenvalue spectrum and cumulative energy for original data
@@ -150,3 +149,5 @@ ax.set_title("Ridge Gappy POD")
 ax.legend()
 ax.set(xlabel="Eigenvalue", ylabel="Cumulative energy")
 plt.show()
+
+pyLOM.cr_info()
