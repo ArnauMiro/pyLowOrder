@@ -2,23 +2,11 @@
 #
 # pyLOM - Python Low Order Modeling.
 #
-# Math operations module.
+# Math operations module - exporting of C functions.
 #
 # Last rev: 27/10/2021
 
 cimport numpy as np
-
-
-## Complex treatment
-#from libc.complex  cimport creal, cimag
-cdef extern from "<complex.h>" nogil:
-	float  complex I
-	# Decomposing complex values
-	float cimagf(float complex z)
-	float crealf(float complex z)
-	double cimag(double complex z)
-	double creal(double complex z)
-cdef double complex J = 1j
 
 
 ## Expose C functions
@@ -27,6 +15,7 @@ cdef extern from "vector_matrix.h" nogil:
 	cdef void   c_stranspose         "stranspose"(float *A, float *B, const int m, const int n)
 	cdef float  c_svector_sum        "svector_sum"(float *v, int start, int n)
 	cdef float  c_svector_norm       "svector_norm"(float *v, int start, int n)
+	cdef float  c_svector_mean       "svector_mean"(float *v, int start, int n)
 	cdef void   c_smatmult           "smatmult"(float *C, float *A, float *B, const int m, const int n, const int k, const char *TA, const char *TB)
 	cdef void   c_smatmul            "smatmul"(float *C, float *A, float *B, const int m, const int n, const int k)
 	cdef void   c_smatmulp           "smatmulp"(float *C, float *A, float *B, const int m, const int n, const int k)
@@ -38,6 +27,7 @@ cdef extern from "vector_matrix.h" nogil:
 	cdef void   c_dtranspose         "dtranspose"(double *A, double *B, const int m, const int n)
 	cdef double c_dvector_sum        "dvector_sum"(double *v, int start, int n)
 	cdef double c_dvector_norm       "dvector_norm"(double *v, int start, int n)
+	cdef double c_dvector_mean       "dvector_mean"(double *v, int start, int n)
 	cdef void   c_dmatmult           "dmatmult"(double *C, double *A, double *B, const int m, const int n, const int k, const char *TA, const char *TB)
 	cdef void   c_dmatmul            "dmatmul"(double *C, double *A, double *B, const int m, const int n, const int k)
 	cdef void   c_dmatmulp           "dmatmulp"(double *C, double *A, double *B, const int m, const int n, const int k)
@@ -106,10 +96,14 @@ cdef extern from "svd.h" nogil:
 cdef extern from "fft.h" nogil:
 	cdef int USE_FFTW3               "_USE_FFTW3"
 	# Single precision
-	cdef void c_sfft                 "sfft" (float *psd, float *y, const float dt, const int n)
+	cdef void c_shammwin             "shammwin"(float *out, const int N)
+	cdef void c_sfft1D               "sfft1D"(np.complex64_t *out, float *y, const int n)
+	cdef void c_sfft                 "sfft"(float *psd, float *y, const float dt, const int n)
 	cdef void c_snfft                "snfft"(float *psd, float *t, float* y, const int n)
 	# Double precision
-	cdef void c_dfft                 "dfft" (double *psd, double *y, const double dt, const int n)
+	cdef void c_dhammwin             "dhammwin"(double *out, const int N)
+	cdef void c_dfft1D               "dfft1D"(np.complex128_t *out, double *y, const int n)
+	cdef void c_dfft                 "dfft"(double *psd, double *y, const double dt, const int n)
 	cdef void c_dnfft                "dnfft"(double *psd, double *t, double* y, const int n)
 cdef extern from "geometric.h" nogil:
 	# Single precision

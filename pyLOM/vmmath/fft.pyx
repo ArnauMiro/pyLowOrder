@@ -12,9 +12,22 @@ cimport numpy as np
 import numpy as np
 
 from libc.string cimport memcpy
-from .cfuncs     cimport real, USE_FFTW3, c_sfft, c_dfft, c_snfft, c_dnfft
+from .cfuncs     cimport real, USE_FFTW3, c_sfft, c_dfft, c_snfft, c_dnfft, c_dhammwin
 from ..utils.cr   import cr
 
+@cr('math.hammwin')
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def hammwin(int N):
+	'''
+	Hamming window
+	'''
+	cdef np.ndarray[np.double_t,ndim=1] out = np.zeros((N,), dtype=np.double)
+	c_dhammwin(&out[0],N)
+	return out
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -30,8 +43,8 @@ def _sfft(float[:] t, float[:] y, int equispaced):
 	cdef float ts = t[1] - t[0], k_left
 	cdef np.ndarray[np.float32_t,ndim=1]     x
 	cdef np.ndarray[np.complex64_t,ndim=1] yf
-	cdef np.ndarray[np.float32_t,ndim=1] f   = np.zeros((n,) ,dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=1] PSD = np.zeros((n,) ,dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=1] f   = np.zeros((n,), dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=1] PSD = np.zeros((n,), dtype=np.float32)
 	memcpy(&f[0],&y[0],n*sizeof(float))
 	if equispaced:
 		c_sfft(&PSD[0],&f[0],ts,n)
@@ -63,8 +76,8 @@ def _dfft(double[:] t, double[:] y, int equispaced):
 	cdef double ts = t[1] - t[0], k_left
 	cdef np.ndarray[np.double_t,ndim=1]     x
 	cdef np.ndarray[np.complex128_t,ndim=1] yf
-	cdef np.ndarray[np.double_t,ndim=1] f   = np.zeros((n,) ,dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=1] PSD = np.zeros((n,) ,dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=1] f   = np.zeros((n,), dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=1] PSD = np.zeros((n,), dtype=np.double)
 	memcpy(&f[0],&y[0],n*sizeof(double))
 	if equispaced:
 		c_dfft(&PSD[0],&f[0],ts,n)

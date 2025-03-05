@@ -6,6 +6,7 @@
 #include <string.h>
 #include "mpi.h"
 #include "vector_matrix.h"
+#include "truncation.h"
 
 #define AC_MAT(A,n,i,j) *((A)+(n)*(i)+(j))
 #define POW2(x)         ((x)*(x))

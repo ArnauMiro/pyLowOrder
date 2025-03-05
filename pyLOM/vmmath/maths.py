@@ -35,6 +35,13 @@ def vector_norm(v,start=0):
 	'''
 	return np.linalg.norm(v[start:],2)
 
+@cr('math.vector_mean')
+def vector_mean(v,start=0):
+	'''
+	Mean of a vector
+	'''
+	return np.mean(v[start:])
+
 @cr('math.matmul')
 def matmul(A,B):
 	'''
@@ -103,7 +110,8 @@ def vandermonde(real, imag, m, n):
 	Builds a Vandermonde matrix of (m x n) with the real and
 	imaginary parts of the eigenvalues
 	'''
-	Vand  = np.zeros((m, n), dtype = 'complex_')
+	dtype = np.complex128 if real.dtype is np.double else np.complex64
+	Vand  = np.zeros((m, n), dtype=dtype)
 	for icol in range(n):
 		Vand[:, icol] = (real + imag*1j)**icol
 	return Vand
@@ -114,8 +122,9 @@ def vandermondeTime(real, imag, m, time):
 	Builds a Vandermonde matrix of (m x n) with the real and
 	imaginary parts of the eigenvalues
 	'''
+	dtype = np.complex128 if real.dtype is np.double else np.complex64
 	n = time.shape[0]
-	Vand  = np.zeros((m, n), dtype = 'complex_')
+	Vand  = np.zeros((m, n), dtype=dtype)
 	for it, t in enumerate(time):
 		Vand[:, it] = (real + imag*1j)**t
 	return Vand

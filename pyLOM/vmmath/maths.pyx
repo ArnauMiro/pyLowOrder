@@ -11,12 +11,21 @@ cimport numpy as np
 
 import numpy as np
 
+#from libc.complex  cimport creal, cimag
+cdef extern from "<complex.h>" nogil:
+	float  complex I
+	# Decomposing complex values
+	float cimagf(float complex z)
+	float crealf(float complex z)
+	double cimag(double complex z)
+	double creal(double complex z)
+cdef double complex J = 1j
 from libc.stdlib   cimport malloc, free
 from libc.string   cimport memcpy, memset
 from libc.math     cimport sqrt, atan2
-from .cfuncs       cimport real, real_complex, real_full, I, crealf, cimagf, J, creal, cimag
-from .cfuncs       cimport c_stranspose, c_svector_sum, c_svector_norm, c_smatmul, c_smatmulp, c_svecmat, c_sinverse, c_ssort
-from .cfuncs       cimport c_dtranspose, c_dvector_sum, c_dvector_norm, c_dmatmul, c_dmatmulp, c_dvecmat, c_dinverse, c_dsort
+from .cfuncs       cimport real, real_complex, real_full
+from .cfuncs       cimport c_stranspose, c_svector_sum, c_svector_norm, c_svector_mean, c_smatmul, c_smatmulp, c_svecmat, c_sinverse, c_ssort
+from .cfuncs       cimport c_dtranspose, c_dvector_sum, c_dvector_norm, c_dvector_mean, c_dmatmul, c_dmatmulp, c_dvecmat, c_dinverse, c_dsort
 from .cfuncs       cimport c_cmatmul, c_cmatmulp, c_cvecmat, c_cinverse, c_ceigen, c_ccholesky, c_cvandermonde, c_cvandermonde_time, c_csort
 from .cfuncs       cimport c_zmatmul, c_zmatmulp, c_zvecmat, c_zinverse, c_zeigen, c_zcholesky, c_zvandermonde, c_zvandermonde_time, c_zsort
 
@@ -153,6 +162,49 @@ def vector_norm(real[:] v, int start=0):
 		return _dvector_norm(v,start)
 	else:
 		return _svector_norm(v,start)
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef float _svector_mean(float[:] v, int start=0):
+	'''
+	Sum of a vector
+	'''
+	cdef int n = v.shape[0]
+	cdef float norm = 0.
+	norm = c_svector_mean(&v[0],start,n)
+	return norm
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef double _dvector_mean(double[:] v, int start=0):
+	'''
+	Sum of a vector
+	'''
+	cdef int n = v.shape[0]
+	cdef double norm = 0.
+	norm = c_dvector_mean(&v[0],start,n)
+	return norm
+
+@cr('math.vector_mean')
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def vector_mean(real[:] v, int start=0):
+	'''
+	Mean of a vector
+	'''
+	if real is double:
+		return _dvector_mean(v,start)
+	else:
+		return _svector_mean(v,start)
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function

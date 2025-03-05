@@ -106,6 +106,22 @@ double dvector_norm(double *v, int start, int n) {
 	return sqrt(norm);
 }
 
+float svector_mean(float *v, int start, int n) {
+	/*
+		Compute the mean of the n-dim vector v from the position start
+	*/
+	float sum = svector_sum(v,start,n);
+	return sum/(float)(n);
+}
+
+double dvector_mean(double *v, int start, int n) {
+	/*
+		Compute the mean of the n-dim vector v from the position start
+	*/
+	double sum = dvector_sum(v,start,n);
+	return sum/(double)(n);
+}
+
 void sreorder(float *A, int m, int n, int N) {
 	/*
 		Function which reorders the matrix A(m,n) to a matrix A(m,N)

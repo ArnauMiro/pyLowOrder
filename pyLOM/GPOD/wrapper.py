@@ -5,7 +5,7 @@ import os
 from contextlib import redirect_stdout
 
 from ..utils  import cr, raiseError
-from ..vmmath import temporal_mean, subtract_mean
+from ..vmmath import temporal_mean, subtract_mean, matmul
 from ..POD    import run, truncate
 
 class GappyPOD:
@@ -65,11 +65,12 @@ class GappyPOD:
 
         # Apply truncation if specified
         if self.truncate:
-            self.U_truncated, self.S_truncated, _ = truncate(U,S,VT,self.truncation_param)
+            self.U_truncated, self.S_truncated, _ = truncate(self.U_truncated,self.S_truncated,VT,self.truncation_param)
 
         # Masked and scaled POD modes
         self.U_truncated_scaled = self.U_truncated * self.S_truncated
 
+    @cr('GPOD.predict')
     def predict(self, gappy_vector: np.ndarray) -> np.ndarray:
         """
         Reconstruct missing data using the fitted Gappy POD model.
@@ -81,24 +82,24 @@ class GappyPOD:
             np.ndarray: Reconstructed data vector.
         """
         if self.U_truncated_scaled is None:
-            raise ValueError("The model must be fitted before calling predict.")
+            raiseError("The model must be fitted before calling predict.")
 
         # Prepare the masked input
-        gappy_input = gappy_vector - (self.mean * (gappy_vector != 0))
-        mask = (gappy_vector != 0).astype(int)  # Binary mask for observed data
-        PT_U = mask[:, None] * self.U_truncated_scaled
-        gappy_input_reshaped = gappy_input[:, None]
+        mask        = (gappy_vector != 0) # Binary mask for observed data
+        gappy_input = gappy_vector - self.mean*mask
+        PT_U        = mask[:,None]*self.U_truncated_scaled
 
         # Solve for coefficients
         if self.reconstruction_type == "standard":
-            coef = np.linalg.lstsq(PT_U, gappy_input_reshaped, rcond=None)[0]
+            coef = np.linalg.lstsq(PT_U, gappy_input, rcond=None)[0]
         else:  # Ridge Gappy POD
             coef = self._ridge_regresion(PT_U, gappy_input)
 
         # Reconstruct missing data
-        vector_reconstructed = (self.U_truncated_scaled @ coef).flatten() + self.mean
+        vector_reconstructed = matmul(self.U_truncated_scaled,coef).flatten() + self.mean
         return vector_reconstructed
 
+    @cr('GPOD.reconstruct')
     def reconstruct_full_set(
         self, incomplete_snapshot: np.ndarray, iter_num: int
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:

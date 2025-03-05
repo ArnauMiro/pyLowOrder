@@ -12,6 +12,13 @@ import numpy as np, scipy, nfft
 from ..utils.cr     import cr
 
 
+@cr('math.hammwin')
+def hammwin(N):
+	'''
+	Hamming windowing
+	'''
+	return np.transpose(0.54-0.46*np.cos(2*np.pi*np.arange(N)/(N-1)))
+
 @cr('math.fft')
 def fft(t,y,equispaced=True):
 	'''

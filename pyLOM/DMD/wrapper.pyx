@@ -12,11 +12,19 @@ cimport numpy as np
 
 import numpy as np
 
+#from libc.complex  cimport creal, cimag
+cdef extern from "<complex.h>" nogil:
+	float  complex I
+	# Decomposing complex values
+	float cimagf(float complex z)
+	float crealf(float complex z)
+	double cimag(double complex z)
+	double creal(double complex z)
+cdef double complex J = 1j
 from libc.stdlib     cimport malloc, free
-from libc.string     cimport memcpy
+from libc.string     cimport memcpy, memset
 from libc.math       cimport sqrt, log, atan2
-
-from ..vmmath.cfuncs cimport real, real_complex, I, crealf, cimagf, J, creal, cimag
+from ..vmmath.cfuncs cimport real, real_complex
 from ..vmmath.cfuncs cimport c_stranspose, c_smatmul, c_smatmulp, c_svecmat, c_stemporal_mean, c_ssubtract_mean, c_stsqr_svd, c_ssvd, c_scompute_truncation_residual, c_scompute_truncation
 from ..vmmath.cfuncs cimport c_dtranspose, c_dmatmul, c_dmatmulp, c_dvecmat, c_dtemporal_mean, c_dsubtract_mean, c_dtsqr_svd, c_dsvd, c_dcompute_truncation_residual, c_dcompute_truncation
 from ..vmmath.cfuncs cimport c_cmatmult, c_cvecmat, c_cinverse, c_ccholesky, c_ceigen, c_cvandermonde, c_cvandermonde_time, c_csort
@@ -27,7 +35,6 @@ from ..utils.errors   import raiseError
 
 
 ## DMD run method
-@cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -307,7 +314,6 @@ def _srun(float[:,:] X, float r, int remove_mean):
 	# Return
 	return muReal, muImag, Phi, bJov
 
-@cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -588,7 +594,6 @@ def _drun(double[:,:] X, double r, int remove_mean):
 	return muReal, muImag, Phi, bJov
 
 @cr('DMD.run')
-@cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -616,7 +621,6 @@ def run(real[:,:] X, real r, int remove_mean=True):
 
 
 ## DMD frequency damping
-@cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -639,7 +643,6 @@ def _sfrequency_damping(float[:] rreal, float[:] iimag, float dt):
 		omega[ii] = arg/dt
 	return delta, omega
 
-@cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -663,7 +666,6 @@ def _dfrequency_damping(double[:] rreal, double[:] iimag, double dt):
 	return delta, omega
 
 @cr('DMD.frequency_damping')
-@cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -679,7 +681,6 @@ def frequency_damping(real[:] rreal, real[:] iimag, real dt):
 
 
 ## Flow reconstruction
-@cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -702,7 +703,6 @@ def _sreconstruction_jovanovic(np.complex64_t[:,:] Phi, float[:] muReal, float[:
 
 	return Zdmd.real
 
-@cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -726,7 +726,6 @@ def _dreconstruction_jovanovic(np.complex128_t[:,:] Phi, double[:] muReal, doubl
 	return Zdmd.real
 
 @cr('DMD.reconstruction_jovanovic')
-@cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
