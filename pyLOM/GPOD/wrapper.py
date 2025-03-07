@@ -5,7 +5,7 @@ import os
 from contextlib import redirect_stdout
 
 from ..utils  import cr, raiseError
-from ..vmmath import temporal_mean, subtract_mean, matmul
+from ..vmmath import temporal_mean, subtract_mean, matmul, vector_sum, inv, transpose
 from ..POD    import run, truncate
 
 class GappyPOD:
@@ -41,11 +41,21 @@ class GappyPOD:
         self.mean               = None
         self.U_truncated_scaled = None
 
+    # This equation could be moved to the vmath module
+    def _least_square(self,a,b):
+        #(a^T * a)^-1 * a^T * b
+        a_t = transpose(a)
+        normal_matrix = matmul(a_t, a)
+        inv_normal_matrix = inv(normal_matrix)
+        a_t_b = matmul(a_t, b)
+        coef = matmul(inv_normal_matrix, a_t_b)
+        return coef
+        
     def _ridge_regresion(self, masked_U, gappy_input):
         I = np.sqrt(self.ridge_lambda) * np.eye(masked_U.shape[1])
         augmented_U = np.vstack([masked_U, I])
         augmented_input = np.vstack([gappy_input[:, None], np.zeros((I.shape[0], 1))])
-        coef = np.linalg.lstsq(augmented_U, augmented_input, rcond=None)[0]
+        coef = self._least_square(augmented_U,augmented_input)
         return coef
 
     @cr('GPOD.fit')
@@ -91,7 +101,7 @@ class GappyPOD:
 
         # Solve for coefficients
         if self.reconstruction_type == "standard":
-            coef = np.linalg.lstsq(PT_U, gappy_input, rcond=None)[0]
+            coef = self._least_square(PT_U,gappy_input)
         else:  # Ridge Gappy POD
             coef = self._ridge_regresion(PT_U, gappy_input)
 
@@ -118,12 +128,13 @@ class GappyPOD:
         mask_incomplete = (incomplete_snapshot != 0).astype(int)
 
         # Step 2: Compute row-wise mean for non-missing values
-        g_i_mean = np.sum(incomplete_snapshot, axis=1) / np.sum(mask_incomplete, axis=1)
+        g_i_mean = np.array([vector_sum(incomplete_snapshot[i, :]) / vector_sum(mask_incomplete[i, :])
+        for i in range(incomplete_snapshot.shape[0])])
 
         # Initialize the reconstructed snapshot matrix
-        h_recons = np.where(
-            mask_incomplete == 0, g_i_mean[:, np.newaxis], incomplete_snapshot
-        )
+        h_recons = incomplete_snapshot.copy()
+        for i in range(h_recons.shape[0]):
+            h_recons[i, mask_incomplete[i] == 0] = g_i_mean[i]
 
         # Step 3: Initialize arrays to store results
         eig_spec_iter = np.empty((h_recons.shape[1], iter_num))
@@ -132,9 +143,7 @@ class GappyPOD:
         # Iterative reconstruction
         for k in range(iter_num):
             # Fit the model with the current reconstructed snapshot matrix
-            with open(os.devnull, "w") as fnull:
-                with redirect_stdout(fnull):
-                    self.fit(h_recons)
+            self.fit(h_recons)
 
             # Reconstruct all snapshots
             snapshots_recons = np.empty(h_recons.shape)
@@ -143,14 +152,18 @@ class GappyPOD:
                 snapshots_recons[:, i] = self.predict(gappy_vector)
 
             # Update the reconstruction matrix
-            h_recons = np.copy(incomplete_snapshot)
+            h_recons = incomplete_snapshot.copy()
             for j in range(h_recons.shape[1]):
-                where_zero = np.where(mask_incomplete[:, j] == 0)[0]
-                h_recons[:, j][where_zero] = snapshots_recons[:, j][where_zero]
+                mask = mask_incomplete[:, j] == 0
+                h_recons[mask, j] = snapshots_recons[mask, j]
 
             # Compute the eigenvalue spectrum and cumulative energy
             _, S, _ = run(h_recons, remove_mean=True)
-            eig_spec_iter[:, k] = S**2 / np.sum(S**2)
-            c_e[:, k] = np.cumsum(S) / np.sum(S)
-
+            eig_spec_iter[:, k] = S**2/ vector_sum(S**2,0)
+            normS = vector_sum(S,0)
+            cumulative = 0
+            for ii in range(S.shape[0]):
+                cumulative += S[ii]
+                c_e[ii, k] = cumulative / normS
+                
         return h_recons, eig_spec_iter, c_e
