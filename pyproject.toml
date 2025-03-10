@@ -17,7 +17,7 @@ name = "pyLowOrder"
 #
 # For a discussion on single-sourcing the version, see
 # https://packaging.python.org/guides/single-sourcing-package-version/
-version = "2.0.1"
+version = "2.1.0"
 
 # This is a one-line description or tagline of what your project does. This
 # corresponds to the "Summary" metadata field:
@@ -109,7 +109,7 @@ classifiers = [  # Optional
 dependencies = [
     "numpy",
     "cython>=3.0.0",
-    "mpi4py",
+    "mpi4py>=4.0.0",
     "matplotlib",
     "h5py>=3.0.0",
     "nfft",
@@ -131,6 +131,12 @@ NN = [
   "torchsummary",
   "tensorflow",
   "optuna",
+]
+# Dependencies to work with the GPR module
+GPR = [
+  "GPy",
+  "emukit",
+  "h5py<=3.10.0",
 ]
 # Optional visualization dependencies
 optionals = [
@@ -160,6 +166,9 @@ optionals = [
 # installed, specify them here.
 package-data = {}
 
+[tool.setuptools.packages.find]
+exclude = ["Converters", "DATA","Deps","Examples","Testsuite","Tools"]
+
 [build-system]
 # These are the assumed default build requirements from pip:
 # https://pip.pypa.io/en/stable/reference/pip/#pep-517-and-518-support
@@ -168,7 +177,7 @@ requires = [
   "wheel",
   "numpy",
   "cython>=3.0.0",
-  "mpi4py",
+  "mpi4py>=4.0.0",
   "matplotlib",
   "h5py>=3.0.0",
   "nfft",

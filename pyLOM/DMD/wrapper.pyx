@@ -15,27 +15,15 @@ import numpy as np
 from libc.stdlib   cimport malloc, free
 from libc.string   cimport memcpy, memset
 from libc.math     cimport sqrt, log, atan2
-from libc.complex  cimport creal, cimag
-
-# Fix as Open MPI does not support MPI-4 yet, and there is no nice way that I know to automatically adjust Cython to missing stuff in C header files.
-# Source: https://github.com/mpi4py/mpi4py/issues/525
-cdef extern from *:
-	"""
-	#include <mpi.h>
-	
-	#if (MPI_VERSION < 3) && !defined(PyMPI_HAVE_MPI_Message)
-	typedef void *PyMPI_MPI_Message;
-	#define MPI_Message PyMPI_MPI_Message
-	#endif
-	
-	#if (MPI_VERSION < 4) && !defined(PyMPI_HAVE_MPI_Session)
-	typedef void *PyMPI_MPI_Session;
-	#define MPI_Session PyMPI_MPI_Session
-	#endif
-	"""
-from mpi4py.libmpi cimport MPI_Comm
-from mpi4py        cimport MPI
-from mpi4py         import MPI
+#from libc.complex  cimport creal, cimag
+cdef extern from "<complex.h>" nogil:
+	float  complex I
+	# Decomposing complex values
+	float cimagf(float complex z)
+	float crealf(float complex z)
+	double cimag(double complex z)
+	double creal(double complex z)
+cdef double complex J = 1j
 
 from ..utils.cr     import cr, cr_start, cr_stop
 from ..utils.errors import raiseError
@@ -80,10 +68,10 @@ cdef extern from "averaging.h":
 	cdef void c_dsubtract_mean "dsubtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
 cdef extern from "svd.h":
 	# Single precision
-	cdef int c_stsqr_svd "stsqr_svd"(float *Ui, float *S, float *VT, float *Ai, const int m, const int n, MPI_Comm comm)
+	cdef int c_stsqr_svd "stsqr_svd"(float *Ui, float *S, float *VT, float *Ai, const int m, const int n)
 	cdef int c_ssvd      "ssvd"(float *U, float *S, float *VT, float *Y, const int m, const int n)
 	# Double precision
-	cdef int c_dtsqr_svd "dtsqr_svd"(double *Ui, double *S, double *VT, double *Ai, const int m, const int n, MPI_Comm comm)
+	cdef int c_dtsqr_svd "dtsqr_svd"(double *Ui, double *S, double *VT, double *Ai, const int m, const int n)
 	cdef int c_dsvd      "dsvd"(double *U, double *S, double *VT, double *Y, const int m, const int n)
 cdef extern from "truncation.h":
 	# Single precision
@@ -129,7 +117,6 @@ def _srun(float[:,:] X, float r, int remove_mean):
 	cdef float *X_mean
 	cdef float *Y
 	cdef int iaux, icol, irow
-	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	# Output arrays:
 	# Allocate memory
 	Y  = <float*>malloc(m*n*sizeof(float))
@@ -168,7 +155,7 @@ def _srun(float[:,:] X, float r, int remove_mean):
 	U  = <float*>malloc(m*mn*sizeof(float))
 	S  = <float*>malloc(mn*sizeof(float))
 	V  = <float*>malloc((n-1)*mn*sizeof(float))
-	retval = c_stsqr_svd(U, S, V, Y1, m, mn, MPI_COMM.ob_mpi)
+	retval = c_stsqr_svd(U, S, V, Y1, m, mn)
 	cr_stop('DMD.SVD',0)
 	if not retval == 0: raiseError('Problems computing SVD!')
 	free(Y1)
@@ -236,7 +223,7 @@ def _srun(float[:,:] X, float r, int remove_mean):
 	aux2C  = <np.complex64_t*>malloc(nr*sizeof(np.complex64_t))
 	for iaux in range(m):
 		for icol in range(nr):
-			aux1C[icol] = 0 + 0*1j
+			aux1C[icol] = 0 + 0*I
 			for irow in range(n-1):
 				aux1C[icol] += Y2[iaux*(n-1) + irow]*aux2[irow*nr + icol]
 		c_cmatmult(aux2C, aux1C, w, 1, nr, nr, 'N', 'N')
@@ -253,9 +240,9 @@ def _srun(float[:,:] X, float r, int remove_mean):
 		d = auxmuImag[icol]
 		div = c*c + d*d
 		for iaux in range(m):
-			a = creal(auxPhi[iaux*nr + icol])
-			b = cimag(auxPhi[iaux*nr + icol])
-			auxPhi[iaux*nr + icol] = (a*c + b*d)/div + (b*c - a*d)/div*1j
+			a = crealf(auxPhi[iaux*nr + icol])
+			b = cimagf(auxPhi[iaux*nr + icol])
+			auxPhi[iaux*nr + icol] = (a*c + b*d)/div + (b*c - a*d)/div*I
 	cr_stop('DMD.modes',0)
 
 	# Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
@@ -281,18 +268,18 @@ def _srun(float[:,:] X, float r, int remove_mean):
 
 	for irow in range(nr):
 		for icol in range(nr): # Loop on the columns of the Vandermonde matrix
-			P[irow*nr + icol]  = creal(aux3C[irow*nr + icol])*creal(aux4C[irow*nr + icol])
-			P[irow*nr + icol] += -creal(aux3C[irow*nr + icol])*cimag(aux4C[irow*nr + icol])*1j 
-			P[irow*nr + icol] += cimag(aux3C[irow*nr + icol])*creal(aux4C[irow*nr + icol])*1j
-			P[irow*nr + icol] += cimag(aux3C[irow*nr + icol])*cimag(aux4C[irow*nr + icol])
+			P[irow*nr + icol]  = crealf(aux3C[irow*nr + icol])*crealf(aux4C[irow*nr + icol])
+			P[irow*nr + icol] += -crealf(aux3C[irow*nr + icol])*cimagf(aux4C[irow*nr + icol])*I 
+			P[irow*nr + icol] += cimagf(aux3C[irow*nr + icol])*crealf(aux4C[irow*nr + icol])*I
+			P[irow*nr + icol] += cimagf(aux3C[irow*nr + icol])*cimagf(aux4C[irow*nr + icol])
 	retval = c_ccholesky(P, nr)
 	if not retval == 0: raiseError('Problems computing Cholesky factorization!')
 
 	for iaux in range(nr):
 		for irow in range(nr):
-			aux1C[irow] = 0 + 0*1j
+			aux1C[irow] = 0 + 0*I
 			for icol in range(n-1):# casting Vr to a complex, at the same time, it is multipilied per S and Vand
-				aux1C[irow] += Sr[irow]*Vr[irow*(n-1) + icol]*(creal(Vand[iaux*(n-1) + icol])+cimag(Vand[iaux*(n-1) + icol])*1j)
+				aux1C[irow] += Sr[irow]*Vr[irow*(n-1) + icol]*(crealf(Vand[iaux*(n-1) + icol])+cimagf(Vand[iaux*(n-1) + icol])*I)
 			aux2C[irow] = w[irow*nr + iaux]
 		c_cmatmult(&q[iaux], aux1C, aux2C, 1, 1, nr, 'N', 'N')
 
@@ -300,10 +287,10 @@ def _srun(float[:,:] X, float r, int remove_mean):
 	cdef int ii
 	cdef int jj
 	for ii in range(nr):
-		q[ii] = creal(q[ii]) - cimag(q[ii])*1j
+		q[ii] = crealf(q[ii]) - cimagf(q[ii])*I
 		for jj in range(nr - ii):
-			P[ii*nr + ii+jj]   = creal(P[(ii+jj)*nr + ii])  - cimag(P[(ii+jj)*nr + ii])*1j
-			P[(ii+jj)*nr + ii] = creal(Pinv[ii*nr + ii+jj]) - cimag(Pinv[ii*nr + ii+jj])*1j
+			P[ii*nr + ii+jj]   = crealf(P[(ii+jj)*nr + ii])  - cimagf(P[(ii+jj)*nr + ii])*I
+			P[(ii+jj)*nr + ii] = crealf(Pinv[ii*nr + ii+jj]) - cimagf(Pinv[ii*nr + ii+jj])*I
 
 	retval = c_cinverse(Pinv, nr, 'L')
 	if not retval == 0: raiseError('Problems computing the Inverse!')
@@ -369,11 +356,11 @@ def _srun(float[:,:] X, float r, int remove_mean):
 		if iimag < 0:
 			muImag[ii]   =  muImag[ii+1]
 			muImag[ii+1] = -muImag[ii]
-			bJov[ii]     = creal(bJov[ii])   + cimag(bJov[ii+1])*1j
-			bJov[ii+1]   = creal(bJov[ii+1]) - cimag(bJov[ii])*1j
+			bJov[ii]     = crealf(bJov[ii])   + cimagf(bJov[ii+1])*I
+			bJov[ii+1]   = crealf(bJov[ii+1]) - cimagf(bJov[ii])*I
 			for jj in range(m):
-				Phi[jj,ii]   = creal(Phi[jj,ii])   + cimag(Phi[jj,ii+1])*1j
-				Phi[jj,ii+1] = creal(Phi[jj,ii+1]) - cimag(Phi[jj,ii+1])*1j
+				Phi[jj,ii]   = crealf(Phi[jj,ii])   + cimagf(Phi[jj,ii+1])*I
+				Phi[jj,ii+1] = crealf(Phi[jj,ii+1]) - cimagf(Phi[jj,ii+1])*I
 			p = 1
 			continue
 		if iimag > 0:
@@ -409,7 +396,6 @@ def _drun(double[:,:] X, double r, int remove_mean):
 	cdef double *X_mean
 	cdef double *Y
 	cdef int iaux, icol, irow
-	cdef MPI.Comm MPI_COMM = MPI.COMM_WORLD
 	# Output arrays:
 	# Allocate memory
 	Y  = <double*>malloc(m*n*sizeof(double))
@@ -448,7 +434,7 @@ def _drun(double[:,:] X, double r, int remove_mean):
 	U  = <double*>malloc(m*mn*sizeof(double))
 	S  = <double*>malloc(mn*sizeof(double))
 	V  = <double*>malloc((n-1)*mn*sizeof(double))
-	retval = c_dtsqr_svd(U, S, V, Y1, m, mn, MPI_COMM.ob_mpi)
+	retval = c_dtsqr_svd(U, S, V, Y1, m, mn)
 	cr_stop('DMD.SVD',0)
 	if not retval == 0: raiseError('Problems computing SVD!')
 	free(Y1)
@@ -516,7 +502,7 @@ def _drun(double[:,:] X, double r, int remove_mean):
 	aux2C  = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
 	for iaux in range(m):
 		for icol in range(nr):
-			aux1C[icol] = 0 + 0*1j
+			aux1C[icol] = 0 + 0*J
 			for irow in range(n-1):
 				aux1C[icol] += Y2[iaux*(n-1) + irow]*aux2[irow*nr + icol]
 		c_zmatmult(aux2C, aux1C, w, 1, nr, nr, 'N', 'N')
@@ -535,7 +521,7 @@ def _drun(double[:,:] X, double r, int remove_mean):
 		for iaux in range(m):
 			a = creal(auxPhi[iaux*nr + icol])
 			b = cimag(auxPhi[iaux*nr + icol])
-			auxPhi[iaux*nr + icol] = (a*c + b*d)/div + (b*c - a*d)/div*1j
+			auxPhi[iaux*nr + icol] = (a*c + b*d)/div + (b*c - a*d)/div*J
 	cr_stop('DMD.modes',0)
 
 	# Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
@@ -562,17 +548,17 @@ def _drun(double[:,:] X, double r, int remove_mean):
 	for irow in range(nr):
 		for icol in range(nr): #Loop on the columns of the Vandermonde matrix
 			P[irow*nr + icol]  = creal(aux3C[irow*nr + icol])*creal(aux4C[irow*nr + icol])
-			P[irow*nr + icol] += -creal(aux3C[irow*nr + icol])*cimag(aux4C[irow*nr + icol])*1j 
-			P[irow*nr + icol] += cimag(aux3C[irow*nr + icol])*creal(aux4C[irow*nr + icol])*1j
+			P[irow*nr + icol] += -creal(aux3C[irow*nr + icol])*cimag(aux4C[irow*nr + icol])*J
+			P[irow*nr + icol] += cimag(aux3C[irow*nr + icol])*creal(aux4C[irow*nr + icol])*J
 			P[irow*nr + icol] += cimag(aux3C[irow*nr + icol])*cimag(aux4C[irow*nr + icol])
 	retval = c_zcholesky(P, nr)
 	if not retval == 0: raiseError('Problems computing Cholesky factorization!')
 
 	for iaux in range(nr):
 		for irow in range(nr):
-			aux1C[irow] = 0 + 0*1j
+			aux1C[irow] = 0 + 0*J
 			for icol in range(n-1):#casting Vr to a complex, at the same time, it is multipilied per S and Vand
-				aux1C[irow] += Sr[irow]*Vr[irow*(n-1) + icol]*(creal(Vand[iaux*(n-1) + icol])+cimag(Vand[iaux*(n-1) + icol])*1j)
+				aux1C[irow] += Sr[irow]*Vr[irow*(n-1) + icol]*(creal(Vand[iaux*(n-1) + icol])+cimag(Vand[iaux*(n-1) + icol])*J)
 			aux2C[irow] = w[irow*nr + iaux]
 		c_zmatmult(&q[iaux], aux1C, aux2C, 1, 1, nr, 'N', 'N')
 
@@ -580,10 +566,10 @@ def _drun(double[:,:] X, double r, int remove_mean):
 	cdef int ii
 	cdef int jj
 	for ii in range(nr):
-		q[ii] = creal(q[ii]) - cimag(q[ii])*1j
+		q[ii] = creal(q[ii]) - cimag(q[ii])*J
 		for jj in range(nr - ii):
-			P[ii*nr + ii+jj]   = creal(P[(ii+jj)*nr + ii])  - cimag(P[(ii+jj)*nr + ii])*1j
-			P[(ii+jj)*nr + ii] = creal(Pinv[ii*nr + ii+jj]) - cimag(Pinv[ii*nr + ii+jj])*1j
+			P[ii*nr + ii+jj]   = creal(P[(ii+jj)*nr + ii])  - cimag(P[(ii+jj)*nr + ii])*J
+			P[(ii+jj)*nr + ii] = creal(Pinv[ii*nr + ii+jj]) - cimag(Pinv[ii*nr + ii+jj])*J
 
 	retval = c_zinverse(Pinv, nr, 'L')
 	if not retval == 0: raiseError('Problems computing the Inverse!')
@@ -649,11 +635,11 @@ def _drun(double[:,:] X, double r, int remove_mean):
 		if iimag < 0:
 			muImag[ii]   =  muImag[ii+1]
 			muImag[ii+1] = -muImag[ii]
-			bJov[ii]     = creal(bJov[ii])   + cimag(bJov[ii+1])*1j
-			bJov[ii+1]   = creal(bJov[ii+1]) - cimag(bJov[ii])*1j
+			bJov[ii]     = creal(bJov[ii])   + cimag(bJov[ii+1])*J
+			bJov[ii+1]   = creal(bJov[ii+1]) - cimag(bJov[ii])*J
 			for jj in range(m):
-				Phi[jj,ii]   = creal(Phi[jj,ii])   + cimag(Phi[jj,ii+1])*1j
-				Phi[jj,ii+1] = creal(Phi[jj,ii+1]) - cimag(Phi[jj,ii+1])*1j
+				Phi[jj,ii]   = creal(Phi[jj,ii])   + cimag(Phi[jj,ii+1])*J
+				Phi[jj,ii+1] = creal(Phi[jj,ii+1]) - cimag(Phi[jj,ii+1])*J
 			p = 1
 			continue
 		if iimag > 0:
