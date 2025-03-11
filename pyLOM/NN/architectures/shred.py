@@ -92,7 +92,7 @@ class SHRED(nn.Module):
 		den  = torch.sqrt(torch.sum(x*x, axis=1))
 		return torch.mean(num/den)
 
-	@cr.start('SHRED.fit')
+	@cr('SHRED.fit')
 	def fit(self, train_dataset, valid_dataset, batch_size=64, epochs=4000, optim=torch.optim.Adam, lr=1e-3, reduction='mean', verbose=False, patience=5):
 		'''
 		Neural networks training
@@ -147,3 +147,9 @@ class SHRED(nn.Module):
 		train_error = self._mre(train_dataset.Y, self(train_dataset.X))
 		valid_error = self._mre(valid_dataset.Y, self(valid_dataset.X))
 		print("Training done: Training loss = %.2f Validation loss = %.2f \r" % (train_error*100, valid_error*100), flush=True)
+
+	def save(self, path, scaler_path, sensors):
+		torch.save({
+		    'model_state_dict': self.state_dict(),
+		    'scaler_path': scaler_path,
+			'sensors' : sensors,}, "%s.pth" % path)
