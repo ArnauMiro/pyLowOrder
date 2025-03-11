@@ -24,10 +24,10 @@ from libc.stdlib   cimport malloc, free
 from libc.string   cimport memcpy, memset
 from libc.math     cimport sqrt, atan2
 from .cfuncs       cimport real, real_complex, real_full
-from .cfuncs       cimport c_stranspose, c_svector_sum, c_svector_norm, c_svector_mean, c_smatmul, c_smatmulp, c_svecmat, c_sinverse, c_ssort
-from .cfuncs       cimport c_dtranspose, c_dvector_sum, c_dvector_norm, c_dvector_mean, c_dmatmul, c_dmatmulp, c_dvecmat, c_dinverse, c_dsort
-from .cfuncs       cimport c_cmatmul, c_cmatmulp, c_cvecmat, c_cinverse, c_ceigen, c_ccholesky, c_cvandermonde, c_cvandermonde_time, c_csort
-from .cfuncs       cimport c_zmatmul, c_zmatmulp, c_zvecmat, c_zinverse, c_zeigen, c_zcholesky, c_zvandermonde, c_zvandermonde_time, c_zsort
+from .cfuncs       cimport c_stranspose, c_svector_sum, c_svector_norm, c_svector_mean, c_smatmul, c_smatmulp, c_svecmat, c_sinv, c_ssort
+from .cfuncs       cimport c_dtranspose, c_dvector_sum, c_dvector_norm, c_dvector_mean, c_dmatmul, c_dmatmulp, c_dvecmat, c_dinv, c_dsort
+from .cfuncs       cimport c_cmatmul, c_cmatmulp, c_cvecmat, c_cinv, c_ceigen, c_ccholesky, c_cvandermonde, c_cvandermonde_time, c_csort
+from .cfuncs       cimport c_zmatmul, c_zmatmulp, c_zvecmat, c_zinv, c_zeigen, c_zcholesky, c_zvandermonde, c_zvandermonde_time, c_zsort
 
 from ..utils.cr     import cr
 from ..utils.errors import raiseError
@@ -860,7 +860,7 @@ cdef np.ndarray[np.float32_t,ndim=2] _sinv(float[:,:] A):
 	'''
 	Returns the inverse of A
 	'''
-	retval = c_sinverse(&A[0,0], A.shape[0], 'L')
+	retval = c_sinv(&A[0,0], A.shape[0], A.shape[1])
 	return np.asarray(A)
 
 @cython.initializedcheck(False)
@@ -872,7 +872,7 @@ cdef np.ndarray[np.double_t,ndim=2] _dinv(double[:,:] A):
 	'''
 	Returns the inverse of A
 	'''
-	retval = c_dinverse(&A[0,0], A.shape[0], 'L')
+	retval = c_dinv(&A[0,0], A.shape[0], A.shape[1])
 	return np.asarray(A)
 
 @cython.initializedcheck(False)
@@ -884,7 +884,7 @@ cdef np.ndarray[np.complex64_t,ndim=2] _cinv(np.complex64_t[:,:] A):
 	'''
 	Returns the inverse of A
 	'''
-	retval = c_cinverse(&A[0,0], A.shape[0], 'L')
+	retval = c_cinv(&A[0,0], A.shape[0], A.shape[1])
 	return np.asarray(A)
 
 @cython.initializedcheck(False)
@@ -896,7 +896,7 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zinv(np.complex128_t[:,:] A):
 	'''
 	Returns the inverse of A
 	'''
-	retval = c_zinverse(&A[0,0], A.shape[0], 'L')
+	retval = c_zinv(&A[0,0], A.shape[0], A.shape[1])
 	return np.asarray(A)
 
 @cr('math.inv')

@@ -23,6 +23,7 @@ typedef double _Complex dcomplex_t;
 
 #define BLK_LIM         5000
 #define AC_MAT(A,n,i,j) *((A)+(n)*(i)+(j))
+#define MIN(a,b)        ((a)<(b)) ? (a) : (b)
 #define POW2(x)         ((x)*(x))
 
 
@@ -654,9 +655,118 @@ void zvandermondeTime(dcomplex_t *Vand, double *real, double *imag, int m, int n
 	}
 }
 
+int sinv(float *A, int m, int n) {
+	/*
+		Compute the inverse of A
+	*/
+	int info, *ipiv, mn = MIN(m,n);
+	ipiv = (int*)malloc(mn*sizeof(int));
+
+	info = LAPACKE_sgetrf(
+		LAPACK_ROW_MAJOR, // int    matrix_layout
+		               m, // int 	The number of rows of the matrix A.
+                       n, // int	The number of columns of the matrix A.
+					   A, // A is FLOAT PRECISION array, dimension (LDA,N), On exit, the factors L and U from the factorization
+					   m, // int	The leading dimension of the array A.
+					ipiv  // IPIV is INTEGER array, dimension (min(M,N))
+	);
+	if (info < 0) return info;
+
+	info = LAPACKE_sgetri(
+		LAPACK_ROW_MAJOR, // int    matrix_layout
+		               n, // int	The order of the matrix A.
+					   A, //  A is FLOAT PRECISION array, dimension (LDA,N). On entry, the factors L and U from the factorization
+					   m, // int	The leading dimension of the array A.
+					ipiv  // IPIV is INTEGER array, dimension (min(M,N))
+	);
+	return info;
+}
+
+int dinv(double *A, int m, int n) {
+	/*
+		Compute the inverse of A
+	*/
+	int info, *ipiv, mn = MIN(m,n);
+	ipiv = (int*)malloc(mn*sizeof(int));
+
+	info = LAPACKE_dgetrf(
+		LAPACK_ROW_MAJOR, // int    matrix_layout
+		               m, // int 	The number of rows of the matrix A.
+                       n, // int	The number of columns of the matrix A.
+					   A, // A is DOUBLE PRECISION array, dimension (LDA,N), On exit, the factors L and U from the factorization
+					   m, // int	The leading dimension of the array A.
+					ipiv  // IPIV is INTEGER array, dimension (min(M,N))
+	);
+	if (info < 0) return info;
+
+	info = LAPACKE_dgetri(
+		LAPACK_ROW_MAJOR, // int    matrix_layout
+		               n, // int	The order of the matrix A.
+					   A, //  A is DOUBLE PRECISION array, dimension (LDA,N). On entry, the factors L and U from the factorization
+					   m, // int	The leading dimension of the array A.
+					ipiv  // IPIV is INTEGER array, dimension (min(M,N))
+	);
+	return info;
+}
+
+int cinv(scomplex_t *A, int m, int n) {
+	/*
+		Compute the inverse of A
+	*/
+	int info, *ipiv, mn = MIN(m,n);
+	ipiv = (int*)malloc(mn*sizeof(int));
+
+	info = LAPACKE_cgetrf(
+		LAPACK_ROW_MAJOR, // int    matrix_layout
+		               m, // int 	The number of rows of the matrix A.
+                       n, // int	The number of columns of the matrix A.
+					   A, // A is COMPLEX PRECISION array, dimension (LDA,N), On exit, the factors L and U from the factorization
+					   m, // int	The leading dimension of the array A.
+					ipiv  // IPIV is INTEGER array, dimension (min(M,N))
+	);
+	if (info < 0) return info;
+
+	info = LAPACKE_cgetri(
+		LAPACK_ROW_MAJOR, // int    matrix_layout
+		               n, // int	The order of the matrix A.
+					   A, //  A is COMPLEX PRECISION array, dimension (LDA,N). On entry, the factors L and U from the factorization
+					   m, // int	The leading dimension of the array A.
+					ipiv  // IPIV is INTEGER array, dimension (min(M,N))
+	);
+	return info;
+}
+
+int zinv(dcomplex_t *A, int m, int n) {
+	/*
+		Compute the inverse of A
+	*/
+	int info, *ipiv, mn = MIN(m,n);
+	ipiv = (int*)malloc(mn*sizeof(int));
+
+	info = LAPACKE_zgetrf(
+		LAPACK_ROW_MAJOR, // int    matrix_layout
+		               m, // int 	The number of rows of the matrix A.
+                       n, // int	The number of columns of the matrix A.
+					   A, // A is COMPLEX PRECISION array, dimension (LDA,N), On exit, the factors L and U from the factorization
+					   m, // int	The leading dimension of the array A.
+					ipiv  // IPIV is INTEGER array, dimension (min(M,N))
+	);
+	if (info < 0) return info;
+
+	info = LAPACKE_zgetri(
+		LAPACK_ROW_MAJOR, // int    matrix_layout
+		               n, // int	The order of the matrix A.
+					   A, //  A is COMPLEX PRECISION array, dimension (LDA,N). On entry, the factors L and U from the factorization
+					   m, // int	The leading dimension of the array A.
+					ipiv  // IPIV is INTEGER array, dimension (min(M,N))
+	);
+	return info;
+}
+
 int sinverse(float *A, int N, char *UoL){
 	/*
 		Compute the inverse of A
+		A must be an upper or lower triangular matrix
 	*/
 	int info;
 	info = LAPACKE_strtri(
@@ -673,6 +783,7 @@ int sinverse(float *A, int N, char *UoL){
 int dinverse(double *A, int N, char *UoL){
 	/*
 		Compute the inverse of A
+		A must be an upper or lower triangular matrix
 	*/
 	int info;
 	info = LAPACKE_dtrtri(
@@ -689,6 +800,7 @@ int dinverse(double *A, int N, char *UoL){
 int cinverse(scomplex_t *A, int N, char *UoL){
 	/*
 		Compute the inverse of A
+		A must be an upper or lower triangular matrix
 	*/
 	int info;
 	info = LAPACKE_ctrtri(
@@ -705,6 +817,7 @@ int cinverse(scomplex_t *A, int N, char *UoL){
 int zinverse(dcomplex_t *A, int N, char *UoL){
 	/*
 		Compute the inverse of A
+		A must be an upper or lower triangular matrix
 	*/
 	int info;
 	info = LAPACKE_ztrtri(
