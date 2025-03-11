@@ -31,7 +31,7 @@ ouscaler = 'out/scaler_pod.json'
 shreds   = 'out/shred_'
 
 # SHRED sensor configurations for uncertainty quantification
-sensxconfig = 3  # number of snesors per configuration
+sensxconfig = 3 # number of snesors per configuration
 nconfigs    = 3 # number of configurations
 
 # SHRED parameters (ask!!)
@@ -56,7 +56,7 @@ rescaled_pod = pod_scaler.transform(stacked_pod.reshape(-1, sum(Nmodes))).reshap
 data_out     = Padding(torch.from_numpy(rescaled_pod), 1).squeeze(1).to(device)
 output_size  = data_out.shape[-1]
 
-## Build shred architecture
+## Build SHRED architecture
 shred   = pyLOM.NN.SHRED(sensxconfig, output_size, device, nsens, nconfigs=nconfigs)
 
 ## Fit all SHREDs for uncertainty quantification
