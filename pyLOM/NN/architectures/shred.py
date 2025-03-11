@@ -35,7 +35,7 @@ class Decoder(nn.Module):
 		return output
 
 class SHRED(nn.Module):
-	def __init__(self, input_size, output_size, device, total_sensors, hidden_size=64, hidden_layers=2, decoder_sizes=[350, 400], dropout=0.0, nconfigs=1, sensxconfig=3, compile=False, seed=-1):
+	def __init__(self, input_size, output_size, device, total_sensors, hidden_size=64, hidden_layers=2, decoder_sizes=[350, 400], dropout=0.0, nconfigs=1, compile=False, seed=-1):
 		'''
 		SHRED model definition
 		Inputs
@@ -55,7 +55,7 @@ class SHRED(nn.Module):
 			self.lstm    = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=hidden_layers, batch_first=True)
 			self.decoder = Decoder(output_size, hidden_size, decoder_sizes, dropout)
 
-		self.sensxconfig   = sensxconfig
+		self.sensxconfig   = input_size
 		self.nconfigs      = nconfigs
 		self.hidden_layers = hidden_layers
 		self.hidden_size = hidden_size

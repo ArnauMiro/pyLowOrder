@@ -73,6 +73,6 @@ for kk, mysensors in enumerate(shred.configs):
     test_dataset  = TimeSeriesDataset(data_in[teidx], data_out[teidx])
     # Fit SHRED
     shred.fit(train_dataset, valid_dataset, batch_size=64, epochs=500, lr=1e-3, verbose=False, patience=100)
-    myshred   = pyLOM.NN.SHRED(sensxconfig, output_size, device, hidden_size=64, hidden_layers=2, decoder_sizes=[350,400], dropout=0.1)
+    myshred = pyLOM.NN.SHRED(sensxconfig, output_size, device, sensxconfig, hidden_size=64, hidden_layers=2, decoder_sizes=[350,400], dropout=0.1)
     myshred.load_state_dict(shred.state_dict())
     shreds.append(myshred)
