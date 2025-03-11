@@ -21,9 +21,9 @@ d = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table)
 
 ## Extract sensors
 # Generate random sensors
-nsens  = 20 # Number of sensors
+nsens  = 20     # Number of sensors
 x0, x1 = 0.5, 8 # Bounds at the X axis of the region where the sensor will be located
-y0, y1 = -1, 1 # Bounds at the Y axis of the region where the sensor will be located
+y0, y1 = -1, 1  # Bounds at the Y axis of the region where the sensor will be located
 bounds = np.array([x0,x1,y0,y1])
 dsens  = d.select_random_sensors(nsens, bounds, VARLIST)
 dsens.save('sensors.h5', nopartition=True)
