@@ -10,6 +10,7 @@
 
 import torch
 
+import numpy               as np
 import torch.nn            as nn
 import torch.nn.functional as F
 
@@ -34,7 +35,7 @@ class Decoder(nn.Module):
 		return output
 
 class SHRED(nn.Module):
-	def __init__(self, input_size, output_size, device, hidden_size=64, hidden_layers=2, decoder_sizes=[350, 400], dropout=0.0, compile=False):
+	def __init__(self, input_size, output_size, device, hidden_size=64, hidden_layers=2, decoder_sizes=[350, 400], dropout=0.0, nconfigs=1, sensxconfig=3, compile=False, seed=-1):
 		'''
 		SHRED model definition
 		Inputs
@@ -46,7 +47,7 @@ class SHRED(nn.Module):
 			dropout parameter (default to 0)
 		'''
 		super(SHRED,self).__init__()
-
+		np.random.seed(0) if seed == -1 else np.random.seed(seed)
 		if compile:
 			self.lstm    = torch.compile(nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=hidden_layers, batch_first=True), mode="max-autotune")
 			self.decoder = torch.compile(Decoder(output_size, hidden_size, decoder_sizes, dropout), mode="max-autotune")
@@ -54,10 +55,18 @@ class SHRED(nn.Module):
 			self.lstm    = nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=hidden_layers, batch_first=True)
 			self.decoder = Decoder(output_size, hidden_size, decoder_sizes, dropout)
 
+		self.sensxconfig   = sensxconfig
+		self.nconfigs      = nconfigs
 		self.hidden_layers = hidden_layers
 		self.hidden_size = hidden_size
 		self.device = device
 		self.to(device)
+
+	def generate_configs(self, total_sensors, seed=0):
+		configs = np.zeros((self.nconfigs, self.sensxconfig), dtype=int)
+		for kk in range(self.nconfigs):
+			configs[kk,:] = np.random.choice(total_sensors, size=self.sensxconfig, replace=False)
+		return configs
 
 	def forward(self, x):
 		_, (output, _) = self.lstm(x)

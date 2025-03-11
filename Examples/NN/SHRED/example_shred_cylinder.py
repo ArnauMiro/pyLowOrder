@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import sys
-import time
 import pyLOM, pyLOM.NN
 
 sys.path.append('/gpfs/scratch/bsc21/bsc021893/parametrize/SHRED-ROM') ## Maybe change for pySHRED or add directly in pyLOM?
@@ -27,7 +26,7 @@ senspath = '/gpfs/scratch/bsc21/bsc021893/parametrize/data_points.npz'          
 sensvar  = 'velox'                                     # Variable from the sensor measurements we'll be working with
 # SHRED sensor configurations for uncertainty quantification
 sensxconfig = 3  # number of snesors per configuration
-nconfigs    = 1 # number of configurations
+nconfigs    = 10 # number of configurations
 # SHRED parameters (ask!!)
 lags   = 50
 
@@ -50,17 +49,17 @@ rescaled_pod = pod_scaler.transform(stacked_pod.reshape(-1, sum(Nmodes))).reshap
 data_out     = Padding(torch.from_numpy(rescaled_pod), 1).squeeze(1).to(device)
 output_size  = data_out.shape[-1]
 ## Build shred architecture
-shred = pyLOM.NN.SHRED(sensxconfig, output_size, device, hidden_size=64, hidden_layers=2, decoder_sizes=[350,400], dropout=0.1)
-
+shred   = pyLOM.NN.SHRED(sensxconfig, output_size, device, hidden_size=64, hidden_layers=2, decoder_sizes=[350,400], dropout=0.1, nconfigs=10)
+configs = shred.generate_configs(nsens)
+print(configs)
 ## Generate ensambles of SHREDs for uncertainty quantification
 sens_idx    = np.zeros((sensxconfig, nconfigs), dtype=int)
 vals_config = np.zeros((nconfigs, 1, Nt, sensxconfig), dtype=sens_vals.dtype)
-np.random.seed(10) 
 inputs  = list()
 shreds  = list()
-for kk in range(nconfigs):
+for kk, mysensors in enumerate(configs):
     # Select the sensors
-    mysensors = np.random.choice(nsens, size=sensxconfig, replace=False)
+    print(mysensors)
     sens_idx[:,kk] = np.asarray(mysensors, dtype=int)
     # Get the values and scale them
     myvalues = sens_vals[mysensors,:].T
@@ -74,11 +73,7 @@ for kk in range(nconfigs):
     valid_dataset = TimeSeriesDataset(data_in[vaidx], data_out[vaidx])
     test_dataset  = TimeSeriesDataset(data_in[teidx], data_out[teidx])
     # Fit SHRED
-    shred.fit(train_dataset, valid_dataset, batch_size=64, epochs=1500, lr=1e-3, verbose=True, patience=100)
+    shred.fit(train_dataset, valid_dataset, batch_size=64, epochs=500, lr=1e-3, verbose=False, patience=100)
     myshred   = pyLOM.NN.SHRED(sensxconfig, output_size, device, hidden_size=64, hidden_layers=2, decoder_sizes=[350,400], dropout=0.1)
-    new_state_dict = {}
-    for key, value in shred.state_dict().items():
-        new_key = key.replace("._orig_mod", "")  # Remove the "_orig_mod" prefix
-        new_state_dict[new_key] = value
-    myshred.load_state_dict(new_state_dict)
+    myshred.load_state_dict(shred.state_dict())
     shreds.append(myshred)
