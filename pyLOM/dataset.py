@@ -172,17 +172,23 @@ class Dataset(object):
 		y = np.random.uniform(bounds[2], bounds[3], nsensors)
 		z = np.random.uniform(bounds[4], bounds[5], nsensors) if len(bounds) > 4 else None
 		# Stack them into an Nxndim
-		randcoords = np.vstack((x, y, z)).T if z is not None else np.vstack((x, y)).T 
-		 
-		senscoord = np.zeros((nsensors, self.xyz.shape[1]))                # Sensor real coordinates
-		sensdata  = np.zeros((nsensors, self['VELOX'].shape[1])) # Sensor data
+		randcoords  = np.vstack((x, y, z)).T if z is not None else np.vstack((x, y)).T 
+
+		# Initialize new dataset
+		senscoord = np.zeros((nsensors, self.xyz.shape[1]))
+		time      = self.get_variable('time')
+		sd        = self.__class__(xyz=senscoord, point=True, vars ={'time':{'idim':0,'value':time}})
+		for field in self.fieldnames:
+			sd.add_field(field,self[field].ndim,np.zeros((nsensors, time.shape[0]),dtype=self[field].dtype))
+		# Populate new dataset with the data
 		for ii, sensor in enumerate(randcoords):
-			dist = np.sum((sensor-self.xyz)**2, axis=1)
-			imin = np.argmin(dist)
-			senscoord[ii,:] = self.xyz[imin]
-			sensdata[ii,:]  = self['VELOX'][imin]
-		ptable = PartitionTable.new(1, 0, nsensors)
-		return self.__class__(xyz=senscoord, point=True, ptable=ptable, vars ={'time':{'idim':0,'value':self.get_variable('time')}},VELOX = {'ndim':1,'value':sensdata})
+			dist      = np.sum((sensor-self.xyz)**2, axis=1)
+			imin      = np.argmin(dist)
+			sd.xyz[ii,:] = self.xyz[imin]
+			for field in self.fieldnames:
+				sd[field][ii,:] = self[field][imin]
+		sd._ptable = PartitionTable.new(1, 0, nsensors)
+		return sd
 
 	@cr('Dataset.reshape')
 	def reshape(self,field,info):
