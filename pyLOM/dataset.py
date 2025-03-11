@@ -11,11 +11,12 @@ import os, mpi4py, numpy as np
 mpi4py.rc.recv_mprobe = False
 from mpi4py import MPI
 
-from .             import inp_out as io
-from .utils.cr     import cr
-from .utils.mem    import mem
-from .utils.errors import raiseError
-from .utils.parall import mpi_reduce
+from .                import inp_out as io
+from .utils.cr        import cr
+from .utils.mem       import mem
+from .utils.errors    import raiseError
+from .utils.parall    import mpi_reduce
+from .partition_table import PartitionTable
 
 
 class Dataset(object):
@@ -62,9 +63,9 @@ class Dataset(object):
 			field  = self.fields[key]['value']
 			nanstr = ' (has NaNs) ' if np.any(np.isnan(field)) else ' '
 			s     += '  > ' +  key + nanstr + '- max = ' + str(np.nanmax(field)) \
-										    + ', min = ' + str(np.nanmin(field)) \
-										    + ', avg = ' + str(np.nanmean(field)) \
-										    + '\n'
+											+ ', min = ' + str(np.nanmin(field)) \
+											+ ', avg = ' + str(np.nanmean(field)) \
+											+ '\n'
 		return s
 		
 	# Set and get functions
@@ -157,6 +158,31 @@ class Dataset(object):
 		for v in fieldict:
 			aux = np.concatenate((self[v][:,:,idim],fieldict[v]),axis=1)[:,idx]
 			self[v][:,:,idim] = aux
+
+	def select_random_sensors(self, nsensors, bounds, seed=-1):
+		'''
+		Generates a set of coordinats of nsensors random sensors inside the region defined by bounds.
+		Then for each sensor finds the nearest point from the dataset to get its coordinates and dataset value.
+		It creates a new dataset containing all the sensor coordinates and values
+		'''
+		np.random.seed(0) if seed == -1 else np.random.seed(seed)
+
+		# Generate random points using numpy's uniform distribution
+		x = np.random.uniform(bounds[0], bounds[1], nsensors)
+		y = np.random.uniform(bounds[2], bounds[3], nsensors)
+		z = np.random.uniform(bounds[4], bounds[5], nsensors) if len(bounds) > 4 else None
+		# Stack them into an Nxndim
+		randcoords = np.vstack((x, y, z)).T if z is not None else np.vstack((x, y)).T 
+		 
+		senscoord = np.zeros((nsensors, self.xyz.shape[1]))                # Sensor real coordinates
+		sensdata  = np.zeros((nsensors, self['VELOX'].shape[1])) # Sensor data
+		for ii, sensor in enumerate(randcoords):
+			dist = np.sum((sensor-self.xyz)**2, axis=1)
+			imin = np.argmin(dist)
+			senscoord[ii,:] = self.xyz[imin]
+			sensdata[ii,:]  = self['VELOX'][imin]
+		ptable = PartitionTable.new(1, 0, nsensors)
+		return self.__class__(xyz=senscoord, point=True, ptable=ptable, vars ={'time':{'idim':0,'value':self.get_variable('time')}},VELOX = {'ndim':1,'value':sensdata})
 
 	@cr('Dataset.reshape')
 	def reshape(self,field,info):
