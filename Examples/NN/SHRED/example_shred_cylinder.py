@@ -25,6 +25,11 @@ podpath  = '/gpfs/scratch/bsc21/bsc021893/parametrize/latent_noncompiled_fp32_3_
 senspath = '/gpfs/scratch/bsc21/bsc021893/parametrize/data_points.npz'                           # Path to sensor measurements
 sensvar  = 'velox'                                                                               # Variable from the sensor measurements we'll be working with
 
+# Output paths
+inscaler = 'out/scaler_'
+ouscaler = 'out/scaler_pod.json'
+shreds   = 'out/shred_'
+
 # SHRED sensor configurations for uncertainty quantification
 sensxconfig = 3  # number of snesors per configuration
 nconfigs    = 3 # number of configurations
@@ -59,7 +64,7 @@ for kk, mysensors in enumerate(shred.configs):
     # Get the values and scale them
     myvalues = sens_vals[mysensors,:].T
     myscaler = pyLOM.NN.MinMaxScaler()
-    scalpath = 'out/scaler_%i.json' % kk
+    scalpath = '%s%i.json' % (inscaler, kk)
     myscaler.fit(myvalues)
     myscaler.save(scalpath)
     vals_config = myscaler.transform(myvalues)[np.newaxis,:,:]
@@ -70,6 +75,6 @@ for kk, mysensors in enumerate(shred.configs):
     test_dataset  = TimeSeriesDataset(data_in[teidx], data_out[teidx])
     # Fit SHRED
     shred.fit(train_dataset, valid_dataset, batch_size=64, epochs=500, lr=1e-3, verbose=False, patience=100)
-    shred.save('out/shred_%i' % kk, scalpath, mysensors)
+    shred.save('%s%i' % (shreds,kk), scalpath, mysensors)
 
 pyLOM.cr_info()
