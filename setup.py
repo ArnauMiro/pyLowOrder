@@ -133,6 +133,7 @@ Module_cfuncs     = Extension('pyLOM.vmmath.cfuncs',
 										 'pyLOM/vmmath/src/geometric.c',
 										 'pyLOM/vmmath/src/truncation.c',
 										 'pyLOM/vmmath/src/stats.c',
+										 'pyLOM/vmmath/src/regression.c',
 									    ],
 						language      = 'c',
 						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
@@ -204,6 +205,16 @@ Module_stats     = Extension('pyLOM.vmmath.stats',
 						extra_objects = extra_objects,
 						libraries     = libraries,
 					   )
+Module_regression = Extension('pyLOM.vmmath.regression',
+						sources       = ['pyLOM/vmmath/regression.pyx',
+										 'pyLOM/vmmath/src/vector_matrix.c',
+										 'pyLOM/vmmath/src/regression.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
 # input output module
 Module_IO_ensight  = Extension('pyLOM.inp_out.io_ensight',
 						sources      = ['pyLOM/inp_out/io_ensight.pyx'],
@@ -253,7 +264,7 @@ Module_SPOD = Extension('pyLOM.SPOD.wrapper',
 ## Decide which modules to compile
 modules_list = [
 	# Math module
-	Module_cfuncs, Module_maths, Module_averaging, Module_svd, Module_fft, Module_geometric, Module_truncation, Module_stats,
+	Module_cfuncs, Module_maths, Module_averaging, Module_svd, Module_fft, Module_geometric, Module_truncation, Module_stats, Module_regression,
 	# IO module
 	Module_IO_ensight,
 	# Low order algorithms

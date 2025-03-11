@@ -20,6 +20,7 @@ cdef extern from "vector_matrix.h" nogil:
 	cdef void   c_smatmul            "smatmul"(float *C, float *A, float *B, const int m, const int n, const int k)
 	cdef void   c_smatmulp           "smatmulp"(float *C, float *A, float *B, const int m, const int n, const int k)
 	cdef void   c_svecmat            "svecmat"(float *v, float *A, const int m, const int n)
+	cdef int    c_sinv               "sinv"(float *A, int m, int n)
 	cdef int    c_sinverse           "sinverse"(float *A, int N, char *UoL)
 	cdef void   c_ssort              "ssort"(float *v, int *index, int n)
 	# Double precision
@@ -31,6 +32,7 @@ cdef extern from "vector_matrix.h" nogil:
 	cdef void   c_dmatmul            "dmatmul"(double *C, double *A, double *B, const int m, const int n, const int k)
 	cdef void   c_dmatmulp           "dmatmulp"(double *C, double *A, double *B, const int m, const int n, const int k)
 	cdef void   c_dvecmat            "dvecmat"(double *v, double *A, const int m, const int n)
+	cdef int    c_dinv               "dinv"(double *A, int m, int n)
 	cdef int    c_dinverse           "dinverse"(double *A, int N, char *UoL)
 	cdef void   c_dsort              "dsort"(double *v, int *index, int n)
 	# Single complex precision
@@ -38,6 +40,7 @@ cdef extern from "vector_matrix.h" nogil:
 	cdef void   c_cmatmul            "cmatmul"(np.complex64_t *C, np.complex64_t *A, np.complex64_t *B, const int m, const int n, const int k)
 	cdef void 	c_cmatmulp           "cmatmulp"(np.complex64_t *C, np.complex64_t *A, np.complex64_t *B, const int m, const int n, const int k)
 	cdef void   c_cvecmat            "cvecmat"(np.complex64_t *v, np.complex64_t *A, const int m, const int n)
+	cdef int    c_cinv               "cinv"(np.complex64_t *A, int m, int n)
 	cdef int    c_cinverse           "cinverse"(np.complex64_t *A, int N, char *UoL)
 	cdef int    c_ceigen             "ceigen"(float *real, float *imag, np.complex64_t *vecs, float *A, const int m, const int n)
 	cdef int    c_ccholesky          "ccholesky"(np.complex64_t *A, int N)
@@ -49,6 +52,7 @@ cdef extern from "vector_matrix.h" nogil:
 	cdef void   c_zmatmul            "zmatmul"(np.complex128_t *C, np.complex128_t *A, np.complex128_t *B, const int m, const int n, const int k)
 	cdef void 	c_zmatmulp           "zmatmulp"(np.complex128_t *C, np.complex128_t *A, np.complex128_t *B, const int m, const int n, const int k)
 	cdef void   c_zvecmat            "zvecmat"(np.complex128_t *v, np.complex128_t *A, const int m, const int n)
+	cdef int    c_zinv               "zinv"(np.complex128_t *A, int m, int n)
 	cdef int    c_zinverse           "zinverse"(np.complex128_t *A, int N, char *UoL)
 	cdef int    c_zeigen             "zeigen"(double *real, double *imag, np.complex128_t *vecs, double *A, const int m, const int n)
 	cdef int    c_zcholesky          "zcholesky"(np.complex128_t *A, int N)
@@ -130,6 +134,13 @@ cdef extern from "truncation.h" nogil:
 	cdef int  c_dcompute_truncation_residual "dcompute_truncation_residual"(double *S, double res, const int n)
 	cdef void c_dcompute_truncation          "dcompute_truncation"(double *Ur, double *Sr, double *VTr, double *U, double *S, double *VT, const int m, const int n, const int nmod, const int N)
 	cdef double c_denergy                    "denergy"(double *A, double *B, const int m, const int n)
+cdef extern from "regression.h" nogil:
+	# Float version
+	cdef void c_sleast_squares    "sleast_squares"(float *out, float *A, float *b, const int m, const int n)
+	cdef void c_sridge_regression "sridge_regression"(float *out, float *A, float *b, float lam, const int m, const int n)
+	# Double version
+	cdef void c_dleast_squares    "dleast_squares"(double *out, double *A, double *b, const int m, const int n)
+	cdef void c_dridge_regression "dridge_regression"(double *out, double *A, double *b, double lam, const int m, const int n)
 
 
 ## Fused type between double and complex
