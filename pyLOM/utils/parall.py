@@ -158,6 +158,7 @@ def mpi_reduce(sendbuff,root=0,op='sum',all=False):
 			if 'sum'    in op: opf = MPI.SUM
 			if 'max'    in op: opf = MPI.MAX
 			if 'min'    in op: opf = MPI.MIN
+			if 'argmin' in op: opf = MPI.MINLOC
 			if 'nanmin' in op: opf = mpi_nanmin
 			if 'nanmax' in op: opf = mpi_nanmax
 			if 'nansum' in op: opf = mpi_nansum
