@@ -159,7 +159,7 @@ class Dataset(object):
 			aux = np.concatenate((self[v][:,:,idim],fieldict[v]),axis=1)[:,idx]
 			self[v][:,:,idim] = aux
 
-	def select_random_sensors(self, nsensors, bounds, seed=-1):
+	def select_random_sensors(self, nsensors, bounds, VARLIST, seed=-1):
 		'''
 		Generates a set of coordinats of nsensors random sensors inside the region defined by bounds.
 		Then for each sensor finds the nearest point from the dataset to get its coordinates and dataset value.
@@ -196,6 +196,8 @@ class Dataset(object):
 		order     = np.linspace(start=sp, stop=ep-1, num=ep-sp, dtype=int)
 		sd        = self.__class__(xyz=self.xyz[mysensors], ptable=ptable, order=order, point=True, vars ={'time':{'idim':0,'value':time}})
 		for field in self.fieldnames:
+			if field not in VARLIST:
+				continue
 			if self.fields[field]["ndim"] > 1:
 				pprint(0, "WARNING!! Multidimensional variables are skipped as sensor datasets must be saved in nopartition mode. Separate each dimension of your variable", flush=True)
 				continue

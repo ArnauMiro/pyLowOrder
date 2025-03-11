@@ -13,7 +13,7 @@ import pyLOM
 
 ## Parameters
 DATAFILE = '../../../Testsuite/DATA/CYLINDER.h5'
-VARIABLE = 'VELOX'
+VARLIST  = ['VELOX', 'VORTI']
 
 ## Data loading
 m = pyLOM.Mesh.load(DATAFILE)
@@ -25,14 +25,15 @@ nsens  = 20 # Number of sensors
 x0, x1 = 0.5, 8 # Bounds at the X axis of the region where the sensor will be located
 y0, y1 = -1, 1 # Bounds at the Y axis of the region where the sensor will be located
 bounds = np.array([x0,x1,y0,y1])
-dsens  = d.select_random_sensors(nsens, bounds)
+dsens  = d.select_random_sensors(nsens, bounds, VARLIST)
 dsens.save('sensors.h5', nopartition=True)
 
-## Run POD
-PSI,S,V = pyLOM.POD.run(X,remove_mean=True,randomized=True,r=8,q=3)
-
-## Save POD to fit SHRED
-pyLOM.POD.save('POD_modes.h5',PSI,S,V,d.partition_table,nvars=1,pointData=d.point)
+## Run POD (separately for each variable in order to reduce memory usage during the SVD)
+for var in VARLIST:
+    X = d[var]
+    PSI,S,V = pyLOM.POD.run(X,remove_mean=True,randomized=True,r=8,q=3)
+    ## Save POD of each variable
+    pyLOM.POD.save('POD_modes_%s.h5'%var,PSI,S,V,d.partition_table,nvars=1,pointData=d.point)
 
 ## print timings
 pyLOM.cr_info()
