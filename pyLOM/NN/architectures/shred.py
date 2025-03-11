@@ -15,6 +15,7 @@ import torch.nn            as nn
 import torch.nn.functional as F
 
 from   torch.utils.data    import DataLoader
+from   ...utils.cr             import cr
 
 class Decoder(nn.Module):
 	def __init__(self, output_size, hidden_size, decoder_sizes, dropout):
@@ -91,6 +92,7 @@ class SHRED(nn.Module):
 		den  = torch.sqrt(torch.sum(x*x, axis=1))
 		return torch.mean(num/den)
 
+	@cr.start('SHRED.fit')
 	def fit(self, train_dataset, valid_dataset, batch_size=64, epochs=4000, optim=torch.optim.Adam, lr=1e-3, reduction='mean', verbose=False, patience=5):
 		'''
 		Neural networks training
