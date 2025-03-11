@@ -1,12 +1,11 @@
 from __future__ import print_function
 
 import numpy as np
-import os
-from contextlib import redirect_stdout
 
 from ..utils  import cr, raiseError
-from ..vmmath import temporal_mean, subtract_mean, matmul, vector_sum, inv, transpose
+from ..vmmath import temporal_mean, subtract_mean, matmul, vector_sum, least_squares, ridge_regresion
 from ..POD    import run, truncate
+
 
 class GappyPOD:
     def __init__(
@@ -34,29 +33,11 @@ class GappyPOD:
         self.centered            = centered
         self.truncate            = apply_truncation
         self.truncation_param    = truncation_param
-        self.reconstruction_type = reconstruction_method
-        self.ridge_lambda        = ridge_lambda
+        self.reconstruction_type = least_squares if reconstruction_method.lower() == "standard" else lambda a,b : ridge_regresion(a,b,ridge_lambda)
 
         # Attributes to store fitted data
         self.mean               = None
         self.U_truncated_scaled = None
-
-    # This equation could be moved to the vmath module
-    def _least_square(self,a,b):
-        #(a^T * a)^-1 * a^T * b
-        a_t = transpose(a)
-        normal_matrix = matmul(a_t, a)
-        inv_normal_matrix = inv(normal_matrix)
-        a_t_b = matmul(a_t, b)
-        coef = matmul(inv_normal_matrix, a_t_b)
-        return coef
-        
-    def _ridge_regresion(self, masked_U, gappy_input):
-        I = np.sqrt(self.ridge_lambda) * np.eye(masked_U.shape[1])
-        augmented_U = np.vstack([masked_U, I])
-        augmented_input = np.vstack([gappy_input[:, None], np.zeros((I.shape[0], 1))])
-        coef = self._least_square(augmented_U,augmented_input)
-        return coef
 
     @cr('GPOD.fit')
     def fit(self, snapshot_matrix: np.ndarray, **kwargs) -> None:
@@ -100,13 +81,10 @@ class GappyPOD:
         PT_U        = mask[:,None]*self.U_truncated_scaled
 
         # Solve for coefficients
-        if self.reconstruction_type == "standard":
-            coef = self._least_square(PT_U,gappy_input)
-        else:  # Ridge Gappy POD
-            coef = self._ridge_regresion(PT_U, gappy_input)
+        coef = self.reconstruction_type(PT_U,gappy_input)
 
         # Reconstruct missing data
-        vector_reconstructed = matmul(self.U_truncated_scaled,coef).flatten() + self.mean
+        vector_reconstructed = matmul(self.U_truncated_scaled,coef[:,None]).flatten() + self.mean
         return vector_reconstructed
 
     @cr('GPOD.reconstruct')
@@ -128,7 +106,7 @@ class GappyPOD:
         mask_incomplete = (incomplete_snapshot != 0).astype(int)
 
         # Step 2: Compute row-wise mean for non-missing values
-        g_i_mean = np.array([vector_sum(incomplete_snapshot[i, :]) / vector_sum(mask_incomplete[i, :])
+        g_i_mean = np.array([vector_sum(incomplete_snapshot[i, :]) / vector_sum(mask_incomplete[i, :].astype(incomplete_snapshot.dtype))
         for i in range(incomplete_snapshot.shape[0])])
 
         # Initialize the reconstructed snapshot matrix
