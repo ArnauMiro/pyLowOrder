@@ -15,7 +15,7 @@ from .                import inp_out as io
 from .utils.cr        import cr
 from .utils.mem       import mem
 from .utils.errors    import raiseError
-from .utils.parall    import mpi_reduce
+from .utils.parall    import mpi_reduce, mpi_gather, MPI_RANK, MPI_SIZE, pprint
 from .partition_table import PartitionTable
 
 
@@ -174,20 +174,32 @@ class Dataset(object):
 		# Stack them into an Nxndim
 		randcoords  = np.vstack((x, y, z)).T if z is not None else np.vstack((x, y)).T 
 
-		# Initialize new dataset
-		senscoord = np.zeros((nsensors, self.xyz.shape[1]))
-		time      = self.get_variable('time')
-		sd        = self.__class__(xyz=senscoord, point=True, vars ={'time':{'idim':0,'value':time}})
-		for field in self.fieldnames:
-			sd.add_field(field,self[field].ndim,np.zeros((nsensors, time.shape[0]),dtype=self[field].dtype))
-		# Populate new dataset with the data
+		# Find which rank has the closest point to the sensors
+		mysensors = list()
 		for ii, sensor in enumerate(randcoords):
-			dist      = np.sum((sensor-self.xyz)**2, axis=1)
-			imin      = np.argmin(dist)
-			sd.xyz[ii,:] = self.xyz[imin]
-			for field in self.fieldnames:
-				sd[field][ii,:] = self[field][imin]
-		sd._ptable = PartitionTable.new(1, 0, nsensors)
+			dist       = np.sum((sensor-self.xyz)**2, axis=1)
+			mindist    = np.min(dist)
+			_,minrank  = mpi_reduce((mindist, MPI_RANK), all=True, op='argmin')
+			if minrank == MPI_RANK:
+				mysensors.append(np.argmin(dist))
+		mysensors  = np.array(mysensors)
+		myNsensors = len(mysensors)
+
+		# Initialize new dataset
+		time      = self.get_variable('time')
+		nparts    = MPI_SIZE
+		ids       = np.arange(1,nparts+1,dtype=np.int32)
+		points    = mpi_gather(myNsensors, all=True) if MPI_SIZE > 1 else np.array([myNsensors])
+		elements  = np.zeros((MPI_SIZE,), dtype=int)
+		ptable    = PartitionTable(nparts, ids, elements, points, has_master=False)
+		sp, ep    = ptable.partition_bounds(MPI_RANK)
+		order     = np.linspace(start=sp, stop=ep-1, num=ep-sp, dtype=int)
+		sd        = self.__class__(xyz=self.xyz[mysensors], ptable=ptable, order=order, point=True, vars ={'time':{'idim':0,'value':time}})
+		for field in self.fieldnames:
+			if self.fields[field]["ndim"] > 1:
+				pprint(0, "WARNING!! Multidimensional variables are skipped as sensor datasets must be saved in nopartition mode. Separate each dimension of your variable", flush=True)
+				continue
+			sd.add_field(field,1,self[field][mysensors])
 		return sd
 
 	@cr('Dataset.reshape')
