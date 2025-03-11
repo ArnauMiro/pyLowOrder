@@ -49,15 +49,14 @@ rescaled_pod = pod_scaler.transform(stacked_pod.reshape(-1, sum(Nmodes))).reshap
 data_out     = Padding(torch.from_numpy(rescaled_pod), 1).squeeze(1).to(device)
 output_size  = data_out.shape[-1]
 ## Build shred architecture
-shred   = pyLOM.NN.SHRED(sensxconfig, output_size, device, hidden_size=64, hidden_layers=2, decoder_sizes=[350,400], dropout=0.1, nconfigs=10)
-configs = shred.generate_configs(nsens)
-print(configs)
+shred   = pyLOM.NN.SHRED(sensxconfig, output_size, device, nsens, hidden_size=64, hidden_layers=2, decoder_sizes=[350,400], dropout=0.1, nconfigs=nconfigs)
+print(shred.configs)
 ## Generate ensambles of SHREDs for uncertainty quantification
 sens_idx    = np.zeros((sensxconfig, nconfigs), dtype=int)
 vals_config = np.zeros((nconfigs, 1, Nt, sensxconfig), dtype=sens_vals.dtype)
 inputs  = list()
 shreds  = list()
-for kk, mysensors in enumerate(configs):
+for kk, mysensors in enumerate(shred.configs):
     # Select the sensors
     print(mysensors)
     sens_idx[:,kk] = np.asarray(mysensors, dtype=int)
