@@ -7,12 +7,12 @@
 # Last rev: 30/07/2021
 from __future__ import print_function, division
 
-import os, mpi4py, numpy as np, cupy as cp
+import os, mpi4py, numpy as np
 mpi4py.rc.recv_mprobe = False
 from mpi4py import MPI
 
 from .      import inp_out as io
-from .utils import cr, mem, raiseError, mpi_reduce
+from .utils import cr_nvtx as cr, mem, raiseError, gpu_to_cpu, cpu_to_gpu
 
 
 class Dataset(object):
@@ -128,7 +128,7 @@ class Dataset(object):
 		'''
 		fields = fields if not fields is None else self.fieldnames
 		for key in fields:
-			self._fieldict[key]['value'] = cp.asarray(self._fieldict[key]['value'])
+			self._fieldict[key]['value'] = cpu_to_gpu(self._fieldict[key]['value'])
 		return self
 
 	def to_cpu(self,fields=None):
@@ -137,7 +137,7 @@ class Dataset(object):
 		'''
 		fields = fields if not fields is None else self.fieldnames
 		for key in fields:
-			self._fieldict[key]['value'] = cp.asnumpy(self._fieldict[key]['value'])
+			self._fieldict[key]['value'] = gpu_to_cpu(self._fieldict[key]['value'])
 		return self
 
 	def add_field(self,varname,ndim,var):

@@ -11,7 +11,7 @@ import os, numpy as np
 
 from .       import inp_out as io
 from .vmmath import cellCenters, normals
-from .utils  import cr, mem, raiseError, mpi_reduce
+from .utils  import cr_nvtx as cr, mem, raiseError, mpi_reduce
 
 
 ALYA2ELTYP = {
