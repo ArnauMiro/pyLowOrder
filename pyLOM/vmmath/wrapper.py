@@ -517,3 +517,17 @@ def time_delay_embedding(X, dimension=50):
 				X_delay[i,j-1,:] = X[i,j-dimension:j]
 
 	return X_delay
+
+def data_splitting(Nt, mode='reconstruct', seed=-1):
+	## Splitting into train, test and validation for reconstruction mode of SHRED
+	np.random.seed(0) if seed < 0 else np.random.seed(seed)
+	if mode =='reconstruct':
+		tridx       = np.sort(np.random.choice(Nt, size=int(0.7*Nt), replace=False))
+		mask        = np.ones(Nt)
+		mask[tridx] = 0
+		vate_idx    = np.arange(0, Nt)[np.where(mask!=0)[0]]
+		vaidx       = vate_idx[::2]
+		teidx       = vate_idx[1::2]
+	else:
+		raiseError('Data split mode not implemented yet')
+	return tridx, vaidx, teidx
