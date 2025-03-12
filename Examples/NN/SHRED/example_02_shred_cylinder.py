@@ -8,6 +8,7 @@ from utils.processdata     import Padding, TimeSeriesDataset
 
 def split_reconstruct(Nt):
     ## Splitting into train, test and validation for reconstruction mode of SHRED
+    np.random.seed(0)
     tridx       = np.sort(np.random.choice(Nt, size=int(0.7*Nt), replace=False))
     mask        = np.ones(Nt)
     mask[tridx] = 0
@@ -25,7 +26,7 @@ class TimeSeriesDatasetMine(torch.utils.data.Dataset):
     def __init__(self, X, Y):
         self.X = X
         self.Y = Y.T
-        self.len = X.shape[1]
+        self.len = X.shape[0]
         
     def __getitem__(self, index):
         return self.X[index], self.Y[index]
@@ -60,13 +61,13 @@ Nt          = sens_vals.shape[1]
 tridx, vaidx, teidx = split_reconstruct(Nt)
 
 ## Import POD coefficients. Stack and rescale them.
-pod_coeff   = pyLOM.POD.load('POD_modes_%s.h5' % podvar, vars='V')[0].T.astype(np.float32) # pyLOM actually saving VT and we need to transpose to get V
+pod_coeff   = pyLOM.POD.load('POD_modes_%s.h5' % podvar, vars='V')[0].astype(np.float32)
 pod_scaler  = pyLOM.NN.MinMaxScaler()
 pod_scaler.fit(pod_coeff)
 pod_scaler.save(ouscaler)
 rescaled_pod = pod_scaler.transform(pod_coeff)
 data_out     = torch.from_numpy(rescaled_pod).to(device)
-output_size  = data_out.shape[1]
+output_size  = data_out.shape[0]
 
 ## Build SHRED architecture
 shred   = pyLOM.NN.SHRED(output_size, device, nsens, nconfigs=nconfigs)
@@ -84,10 +85,10 @@ for kk, mysensors in enumerate(shred.configs):
     #data_in = torch.from_numpy(pyLOM.math.time_delay_embedding(X)).to(device)
     data_in = Padding(torch.from_numpy(vals_config)).to(device) #TODO: do our padding function for time-delay embedding
     # Generate training validation and test datasets both for reconstruction of states
-    train_dataset = TimeSeriesDataset(data_in[tridx], data_out[tridx]) #TODO: use the pyLOM dataset or torch tensor dataset
-    valid_dataset = TimeSeriesDataset(data_in[vaidx], data_out[vaidx]) #TODO: use the pyLOM dataset
+    train_dataset = TimeSeriesDatasetMine(data_in[tridx], data_out[:,tridx]) #TODO: use the pyLOM dataset or torch tensor dataset
+    valid_dataset = TimeSeriesDatasetMine(data_in[vaidx], data_out[:,vaidx]) #TODO: use the pyLOM dataset
     # Fit SHRED
-    shred.fit(train_dataset, valid_dataset, epochs=500, patience=100, verbose=True)
+    shred.fit(train_dataset, valid_dataset, epochs=1500, patience=100, verbose=True)
     shred.save('%s%i' % (shreds,kk), scalpath, mysensors)
 
 pyLOM.cr_info()
