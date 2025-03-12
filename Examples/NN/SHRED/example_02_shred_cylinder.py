@@ -51,14 +51,14 @@ pod_coeff   = np.load(podpath)
 pod_scaler  = pyLOM.NN.MinMaxScaler()
 pod_scaler.fit(pod_coeff)
 pod_scaler.save(ouscaler)
-rescaled_pod = pod_scaler.transform(pod_coeff)[np.newaxis,:,:]
-data_out     = Padding(torch.from_numpy(rescaled_pod), 1).squeeze(1).to(device)
+rescaled_pod = pod_scaler.transform(pod_coeff)
+data_out     = torch.from_numpy(rescaled_pod).to(device)
 output_size  = data_out.shape[-1]
 
 ## Build SHRED architecture
 shred   = pyLOM.NN.SHRED(sensxconfig, output_size, device, nsens, nconfigs=nconfigs)
 
-## Fit all SHREDs for uncertainty quantification
+## Fit all SHRED configurations using the data from the sensors
 for kk, mysensors in enumerate(shred.configs):
     # Get the values and scale them
     myvalues = sens_vals[mysensors,:].T
