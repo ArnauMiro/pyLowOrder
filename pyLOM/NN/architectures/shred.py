@@ -112,9 +112,13 @@ class SHRED(nn.Module):
 			patience parameter (default to 5)
 		'''
 
+		train_dataset.X = train_dataset.X.to(self.device)
+		valid_dataset.X = valid_dataset.X.to(self.device)
+		train_dataset.Y = train_dataset.Y.to(self.device)
+		valid_dataset.Y = valid_dataset.Y.to(self.device)
 		train_loader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size)
-		optimizer = optim(self.parameters(), lr = lr)
-		scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, epochs, eta_min=lr*1e-4)
+		optimizer    = optim(self.parameters(), lr = lr)
+		scheduler    = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, epochs, eta_min=lr*1e-4)
 		valid_error_list = []
 		patience_counter = 0
 		best_params = self.state_dict()

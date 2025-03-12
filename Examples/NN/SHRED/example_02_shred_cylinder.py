@@ -62,7 +62,7 @@ pod_scaler  = pyLOM.NN.MinMaxScaler()
 pod_scaler.fit(pod_coeff)
 pod_scaler.save(ouscaler)
 rescaled_pod = pod_scaler.transform(pod_coeff)
-data_out     = torch.from_numpy(rescaled_pod).to(device)
+data_out     = torch.from_numpy(rescaled_pod)
 output_size  = data_out.shape[0]
 
 ## Build SHRED architecture
@@ -78,7 +78,7 @@ for kk, mysensors in enumerate(shred.configs):
     myscaler.save(scalpath)
     vals_config = myscaler.transform(myvalues)[np.newaxis,:,:]
     rescaled = myscaler.transform(myvalues)
-    data_del = torch.from_numpy(pyLOM.math.time_delay_embedding(rescaled)).to(device)
+    data_del = torch.from_numpy(pyLOM.math.time_delay_embedding(rescaled))
     # Generate training validation and test datasets both for reconstruction of states
     train_dataset = TimeSeriesDatasetMine(data_del[:,tridx,:], data_out[:,tridx]) #TODO: use the pyLOM dataset or torch tensor dataset
     valid_dataset = TimeSeriesDatasetMine(data_del[:,vaidx,:], data_out[:,vaidx]) #TODO: use the pyLOM dataset
