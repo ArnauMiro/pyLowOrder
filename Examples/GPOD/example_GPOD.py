@@ -58,7 +58,7 @@ X_recons, eig_spec_iter, c_e = gappy_model_recons.reconstruct_full_set(
 
 ## Compute metrics
 mae_recons  = pyLOM.math.MAE(X, X_recons)
-rmse_recons = pyLOM.math.RMSE(X, X_recons)
+rmse_recons = pyLOM.math.RMSE(X, X_recons, relative=False)
 r2_recons   = pyLOM.math.r2(X, X_recons)
 print(f"MAE_database = {mae_recons}\nRMSE_database = {rmse_recons}\nR2_database = {r2_recons}")
 

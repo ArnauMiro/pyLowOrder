@@ -14,16 +14,15 @@ from ..utils.mpi import mpi_reduce
 
 
 @cr('math.RMSE')
-def RMSE(A,B):
+def RMSE(A,B,relative=True):
 	'''
 	Compute RMSE between A and B
 	'''
 	p = cp if type(A) is cp.ndarray else np
 	diff  = (A-B)
 	sum1g = mpi_reduce(p.sum(diff*diff),op='sum',all=True)
-	sum2g = p.prod(mpi_reduce(p.array(A.shape),op='sum',all=True))
-#	sum2g = mpi_reduce(p.sum(A*A),op='sum',all=True)
-	rmse  = p.sqrt(sum1g/sum2g)
+	sum2g = mpi_reduce(p.sum(A*A),op='sum',all=True) if relative else p.prod(mpi_reduce(p.array(A.shape),op='sum',all=True))
+	rmse  = np.sqrt(sum1g/sum2g)
 	return rmse
 
 @cr('math.MAE')

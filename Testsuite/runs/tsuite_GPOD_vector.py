@@ -41,7 +41,7 @@ velox_recons = gappy_model.predict(velox_gappy)  # Reconstruct gappy vector
 
 # Compute and display metrics
 mae_vector  = pyLOM.math.MAE(np.ascontiguousarray(X[:,snap]), velox_recons)
-rmse_vector = pyLOM.math.RMSE(np.ascontiguousarray(X[:,snap]), velox_recons)
+rmse_vector = pyLOM.math.RMSE(np.ascontiguousarray(X[:,snap]), velox_recons, relative=False)
 r2_vector   = pyLOM.math.r2(np.ascontiguousarray(X[:,snap]), velox_recons)
 
 
