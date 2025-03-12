@@ -12,7 +12,7 @@ import numpy as np
 import pyLOM
 
 ## Parameters
-DATAFILE = '../../../Testsuite/DATA/CYLINDER.h5'
+DATAFILE = '/gpfs/scratch/bsc21/bsc021828/DATA_PYLOM/CYLINDER.h5'
 VARLIST  = ['VELOX', 'VORTI']
 
 ## Data loading
