@@ -11,17 +11,6 @@ mpi4py.rc.recv_mprobe = False
 import numpy as np
 import pyLOM
 
-def split_reconstruct(Nt):
-    ## Splitting into train, test and validation for reconstruction mode of SHRED
-    np.random.seed(0)
-    tridx       = np.sort(np.random.choice(Nt, size=int(0.7*Nt), replace=False))
-    mask        = np.ones(Nt)
-    mask[tridx] = 0
-    vate_idx    = np.arange(0, Nt)[np.where(mask!=0)[0]]
-    vaidx       = vate_idx[::2]
-    teidx       = vate_idx[1::2]
-    return tridx, vaidx, teidx
-
 ## Parameters
 DATAFILE = '/gpfs/scratch/bsc21/bsc021828/DATA_PYLOM/CYLINDER.h5'
 VARLIST  = ['VELOX', 'VORTI']
@@ -33,7 +22,7 @@ t = d.get_variable('time')
 N = t.shape[0]
 
 ## Divide in training, validation and test
-tridx, vaidx, teidx = split_reconstruct(N)
+tridx, vaidx, teidx = pyLOM.math.data_splitting(N, mode='reconstruct')
 
 ## Extract sensors
 # Generate random sensors
