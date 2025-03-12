@@ -14,14 +14,13 @@ from ..utils.parall import mpi_reduce
 
 
 @cr('math.RMSE')
-def RMSE(A,B):
+def RMSE(A,B,relative=True):
 	'''
 	Compute RMSE between A and B
 	'''
 	diff  = (A-B)
 	sum1g = mpi_reduce(np.sum(diff*diff),op='sum',all=True)
-	sum2g = np.prod(mpi_reduce(np.array(A.shape),op='sum',all=True))
-#	sum2g = mpi_reduce(np.sum(A*A),op='sum',all=True)
+	sum2g = mpi_reduce(np.sum(A*A),op='sum',all=True) if relative else np.prod(mpi_reduce(np.array(A.shape),op='sum',all=True))
 	rmse  = np.sqrt(sum1g/sum2g)
 	return rmse
 
