@@ -7,10 +7,10 @@
 # Last rev: 27/10/2021
 from __future__ import print_function, division
 
-import numpy as np, cupy as cp
+import numpy as np
 
-from ..utils.cr  import cr_nvtx as cr
-from ..utils.mpi import mpi_reduce
+from ..utils.gpu import cp
+from ..utils     import cr_nvtx as cr, mpi_reduce
 
 
 @cr('math.cellCenters')

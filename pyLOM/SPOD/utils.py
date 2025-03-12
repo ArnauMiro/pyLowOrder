@@ -7,10 +7,11 @@
 # Last rev: 17/03/2023
 from __future__ import print_function, division
 
-import numpy as np, cupy as cp
+import numpy as np
 
-from ..         import inp_out as io
-from ..utils.cr import cr
+from ..utils.gpu import cp
+from ..          import inp_out as io
+from ..utils.cr  import cr_nvtx as cr
 
 
 @cr('SPOD.extract_modes')

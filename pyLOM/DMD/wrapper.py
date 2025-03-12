@@ -7,10 +7,12 @@
 # Last rev: 30/09/2021
 from __future__ import print_function
 
-import numpy as np, cupy as cp
-from ..vmmath import vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, matmulp, vandermondeTime
-from ..POD    import truncate
-from ..utils  import cr_nvtx as cr, cr_start, cr_stop
+import numpy as np
+
+from ..utils.gpu import cp
+from ..vmmath    import vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, matmulp, vandermondeTime
+from ..POD       import truncate
+from ..utils     import cr_nvtx as cr, cr_start, cr_stop
 
 
 def _order_modes(muReal, muImag, Phi, bJov):

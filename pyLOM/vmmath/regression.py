@@ -7,10 +7,11 @@
 # Last rev: 27/10/2021
 from __future__ import print_function, division
 
-import numpy as np, cupy as cp
+import numpy as np
 
-from .maths     import transpose, matmul, inv
-from ..utils.cr import cr_nvtx as cr
+from ..utils.gpu import cp
+from .maths      import transpose, matmul, inv
+from ..utils     import cr_nvtx as cr
 
 
 # This equation could be moved to the vmath module

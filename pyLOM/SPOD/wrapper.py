@@ -7,11 +7,12 @@
 # Last rev: 02/09/2022
 from __future__ import print_function
 
-import numpy as np, cupy as cp
+import numpy as np
 import scipy
 
-from ..vmmath import temporal_mean, subtract_mean, tsqr_svd, hammwin
-from ..utils  import cr_nvtx as cr, cr_start, cr_stop
+from ..utils.gpu import cp
+from ..vmmath    import temporal_mean, subtract_mean, tsqr_svd, hammwin
+from ..utils     import cr_nvtx as cr, cr_start, cr_stop
 
 
 def _fft(Xf, winWeight, nDFT, nf):

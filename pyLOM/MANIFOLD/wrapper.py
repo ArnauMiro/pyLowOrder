@@ -3,12 +3,13 @@
 # Manifold learning methodologies.
 #
 # Last revision: 11/02/2025
-import numpy as np, cupy as cp
+import numpy as np
 from scipy.sparse.csgraph import shortest_path
 from scipy.linalg import eigh
 
-from ..vmmath import euclidean_d
-from ..utils  import cr_nvtx as cr, raiseError, pprint
+from ..utils.gpu import cp
+from ..vmmath    import euclidean_d
+from ..utils     import cr_nvtx as cr, raiseError, pprint
 
 
 @cr('MANIFOLD.isomap')

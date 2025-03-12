@@ -7,11 +7,11 @@
 # Last rev: 27/10/2021
 from __future__ import print_function, division
 
-import time, numpy as np, cupy as cp
+import time, numpy as np
 
-from .maths         import matmul, matmulp
-from ..utils.cr     import cr_nvtx as cr
-from ..utils.parall import MPI_RANK, MPI_SIZE, mpi_send, mpi_recv
+from ..utils.gpu import cp
+from .maths      import matmul, matmulp
+from ..utils     import cr_nvtx as cr, MPI_RANK, MPI_SIZE, mpi_send, mpi_recv
 
 
 def next_power_of_2(n):

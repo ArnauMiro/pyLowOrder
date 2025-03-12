@@ -7,10 +7,11 @@
 # Last rev: 27/01/2023
 from __future__ import print_function, division
 
-import numpy as np, cupy as cp
+import numpy as np
 
-from ..         import inp_out as io
-from ..utils.cr import cr
+from ..utils.gpu import cp
+from ..          import inp_out as io
+from ..utils     import cr_nvtx as cr, gpu_to_cpu
 
 
 @cr('DMD.extract_modes')
@@ -30,19 +31,16 @@ def extract_modes(Phi,ivar,npoints,real=True,modes=[],reshape=True):
 	return out.reshape((len(modes)*npoints,),order='C') if reshape else out
 
 
-@cr('DMD.save')
+@cr('DMD.save',color='blue')
 def save(fname,muReal,muImag,Phi,bJov,ptable,nvars=1,pointData=True,mode='w'):
 	'''
 	Store DMD variables in serial or parallel
 	according to the partition used to compute the DMD.
 	'''
-	if type(muReal) is cp.ndarray:
-		io.h5_save_DMD(fname,muReal.get(),muImag.get(),Phi.get(),bJov.get(),ptable,nvars=nvars,pointData=pointData,mode=mode)
-	else:
-		io.h5_save_DMD(fname,muReal,muImag,Phi,bJov,ptable,nvars=nvars,pointData=pointData,mode=mode)
+	io.h5_save_DMD(fname,gpu_to_cpu(muReal),gpu_to_cpu(muImag),gpu_to_cpu(Phi),gpu_to_cpu(bJov),ptable,nvars=nvars,pointData=pointData,mode=mode)
 
 
-@cr('DMD.load')
+@cr('DMD.load',color='blue')
 def load(fname,vars=['Phi','mu','bJov','delta','omega'],nmod=-1,ptable=None):
 	'''
 	Load DMD variables in serial or parallel
