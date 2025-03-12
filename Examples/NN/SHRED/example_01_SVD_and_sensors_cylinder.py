@@ -11,6 +11,17 @@ mpi4py.rc.recv_mprobe = False
 import numpy as np
 import pyLOM
 
+def split_reconstruct(Nt):
+    ## Splitting into train, test and validation for reconstruction mode of SHRED
+    np.random.seed(0)
+    tridx       = np.sort(np.random.choice(Nt, size=int(0.7*Nt), replace=False))
+    mask        = np.ones(Nt)
+    mask[tridx] = 0
+    vate_idx    = np.arange(0, Nt)[np.where(mask!=0)[0]]
+    vaidx       = vate_idx[::2]
+    teidx       = vate_idx[1::2]
+    return tridx, vaidx, teidx
+
 ## Parameters
 DATAFILE = '/gpfs/scratch/bsc21/bsc021828/DATA_PYLOM/CYLINDER.h5'
 VARLIST  = ['VELOX', 'VORTI']
@@ -18,6 +29,11 @@ VARLIST  = ['VELOX', 'VORTI']
 ## Data loading
 m = pyLOM.Mesh.load(DATAFILE)
 d = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table)
+t = d.get_variable('time')
+N = t.shape[0]
+
+## Divide in training, validation and test
+tridx, vaidx, teidx = split_reconstruct(N)
 
 ## Extract sensors
 # Generate random sensors
@@ -26,14 +42,38 @@ x0, x1 = 0.5, 8 # Bounds at the X axis of the region where the sensor will be lo
 y0, y1 = -1, 1  # Bounds at the Y axis of the region where the sensor will be located
 bounds = np.array([x0,x1,y0,y1])
 dsens  = d.select_random_sensors(nsens, bounds, VARLIST)
-dsens.save('sensors.h5', nopartition=True)
+## Split the sensors in training, validation and test
+dstrai = dsens.mask_fields(tridx,'time')
+dsvali = dsens.mask_fields(vaidx,'time')
+dstest = dsens.mask_fields(teidx,'time')
+# Save the sensor dataset
+dstrai.save('sensors_trai.h5', nopartition=True)
+dsvali.save('sensors_vali.h5', nopartition=True)
+dstest.save('sensors_test.h5', nopartition=True)
 
-## Run POD (separately for each variable in order to reduce memory usage during the SVD)
+## Separate the full space datasets to compute POD
+dtrai = d.mask_fields(tridx,'time')
+dvali = d.mask_fields(vaidx,'time')
+dtest = d.mask_fields(teidx,'time')
+## Compute POD separately for each variable in order to reduce memory usage during the SVD. POD is computed only for the training dataset. Validation and test are projected to the POD modes
 for var in VARLIST:
-    X = d[var]
-    PSI,S,V = pyLOM.POD.run(X,remove_mean=True,randomized=True,r=8,q=3)
-    ## Save POD of each variable
-    pyLOM.POD.save('POD_modes_%s.h5'%var,PSI,S,V,d.partition_table,nvars=1,pointData=d.point)
+    ## Fetch training dataset and compute POD
+    Xtrai   = dtrai[var]
+    PSI,S,V = pyLOM.POD.run(Xtrai,remove_mean=True,randomized=True,r=8,q=3)
+    ## Save POD modes for training of each variable
+    pyLOM.POD.save('POD_trai_%s.h5'%var,dtrai.partition_table,U=PSI,S=S,V=V,nvars=1,pointData=dtrai.point)
+    ## Fetch validation dataset and project POD modes
+    Xvali   = dvali[var]
+    proj    = pyLOM.math.matmulp(PSI.T, Xvali)
+    Vvali   = pyLOM.math.matmul(np.diag(1/S), proj)
+    ## Save POD projection of validation data of each variable
+    pyLOM.POD.save('POD_vali_%s.h5'%var,dvali.partition_table,V=Vvali,nvars=1,pointData=dvali.point)
+    ## Fetch test dataset and project POD modes
+    Xtest   = dtest[var]
+    proj    = pyLOM.math.matmulp(PSI.T, Xtest)
+    Vtest   = pyLOM.math.matmul(np.diag(1/S), proj)
+    ## Save POD projection of validation data of each variable
+    pyLOM.POD.save('POD_test_%s.h5'%var,dtest.partition_table,V=Vtest,nvars=1,pointData=dtest.point)     
 
 ## print timings
 pyLOM.cr_info()
