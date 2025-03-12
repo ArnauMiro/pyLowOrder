@@ -8,6 +8,7 @@
 from __future__ import print_function, division
 
 import os, numpy as np
+from collections import defaultdict, deque
 
 from .             import inp_out as io
 from .vmmath       import cellCenters, normals
@@ -15,6 +16,7 @@ from .utils.cr     import cr
 from .utils.mem    import mem
 from .utils.errors import raiseError
 from .utils.parall import mpi_reduce
+
 
 
 ALYA2ELTYP = {
@@ -68,7 +70,7 @@ class Mesh(object):
 	'''
 	The Mesh class wraps the mesh details of the case.
 	'''
-	def __init__(self,mtype,xyz,connectivity,eltype,cellOrder,pointOrder,ptable):
+	def __init__(self,mtype,xyz,connectivity, eltype,cellOrder,pointOrder,ptable):
 		'''
 		Class constructor
 		'''
@@ -77,6 +79,7 @@ class Mesh(object):
 		self._xyzc   = None
 		self._normal = None
 		self._conec  = connectivity
+		self._cells_conec = None
 		self._eltype = eltype
 		self._cellO  = cellOrder
 		self._pointO = pointOrder
@@ -293,6 +296,11 @@ class Mesh(object):
 	def connectivity(self):
 		return self._conec
 	@property
+	def cells_connectivity(self):
+		if self._cells_conn is None:
+			self._cells_conec, _ = _cells_connectivity(self)
+		return self._cells_conn
+	@property
 	def cellOrder(self):
 		return self._cellO
 	@property
@@ -387,3 +395,40 @@ def _struct3d_compute_conec(nx,ny,nz,xyz):
 	conec[:,6] = idx2[1:,1:,1:].ravel()
 	conec[:,7] = idx2[1:,1:,:-1].ravel()
 	return conec
+
+
+def _cells_connectivity(self):
+	'''Computes the connectivity between cells that share an edge.
+
+	Returns
+	-------
+	padded_neighbors : list
+		Connectivity array of neighbors for each cell. Each list is padded with -1s to have a fixed length.
+	'''
+
+	# Dictionary to store the cells that share an edge
+	edge_to_cells = defaultdict(set)
+
+	# Step 1: Build a dictionary that maps each edge to the cells that share it
+	for cell_id in range(self.ncells):
+		cell_nodes = self._conec[cell_id]
+		for i in range(len(cell_nodes)):
+			# Attention here: we are assuming the nodes are properly ordered.
+			v1, v2 = sorted([cell_nodes[i], cell_nodes[(i+1) % len(cell_nodes)]]) # Sort IDs
+			edge_to_cells[(v1, v2)].add(cell_id)  # Associate the cell with the edge
+
+	# Step 2: Build a dictionary that maps each cell to its neighbors
+	neighbors_dict = {i: set() for i in range(self.ncells)}
+
+	for edge, cells in edge_to_cells.items():
+		cells = list(cells)
+		if len(cells) == 2:  # If there are two cells sharing the edge
+			c1, c2 = cells
+			neighbors_dict[c1].add(c2)
+			neighbors_dict[c2].add(c1)
+
+	# Step 3: Pad the neighbors list with -1s
+	max_len = max(len(neighbors_dict[cell]) for cell in range(self.ncells))
+	padded_neighbors = np.array([list(neighbors_dict[cell]) + [-1] * (max_len - len(neighbors_dict[cell])) for cell in range(self.ncells)], dtype=np.int32)
+
+	return padded_neighbors, neighbors_dict # Return the same info in two different formats (padded array and dictionary)
