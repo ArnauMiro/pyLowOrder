@@ -51,17 +51,6 @@ r2_vector   = pyLOM.math.r2(np.ascontiguousarray(X[:,snap]), velox_recons)
 print(f"MAE_snapshot = {mae_vector}\nRMSE_snapshot = {rmse_vector}\nR2_snapshot = {r2_vector}")
 
 
-## Plot Gappy Vector
-loc_gappy = np.where(velox_gappy != 0)[0]
-plt.figure(figsize=(8,6),dpi=100)
-plt.scatter(
-    m.xyzc[loc_gappy, 0], m.xyzc[loc_gappy, 1], c=velox_gappy[loc_gappy], cmap="jet", s=1
-)
-plt.title("Gappy Vector")
-plt.colorbar(label="Velox")
-plt.xlabel("X")
-plt.ylabel("Y")
-
 # Plot Reconstructed Vector
 plt.figure(figsize=(8,6),dpi=100)
 plt.scatter(m.xyzc[:, 0], m.xyzc[:, 1], c=velox_recons, cmap="jet", s=1)
