@@ -144,8 +144,15 @@ class Dataset(object):
 			'value' : var, 
 		}
 
-	def mask_fields(self, mask):
-		dmasked = self.__class__(xyz=self.xyz, ptable=self._ptable, order=self._order, point=self.point, vars=self.vars)
+	def mask_fields(self, mask, varmasked):
+		'''
+		Mask a field over a defined variable
+		'''
+		dmasked = self.__class__(xyz=self.xyz, ptable=self._ptable, order=self._order, point=self.point, vars={'time':{'idim':0,'value':np.zeros((151,))}}) # TODO: When intializing the vardict as self.vars, then the masked variable is also modified in the original dictionary!
+		for var in self.varnames:
+			if var == varmasked:
+				varvalue = self.vars[var]["value"]
+				dmasked.set_variable(var,varvalue[mask])
 		for field in self.fieldnames:
 			dmasked.add_field(field,self.fields[field]["ndim"],self[field][:,mask])
 		return dmasked
