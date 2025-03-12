@@ -1,10 +1,6 @@
 import numpy as np
 import torch
-import sys
 import pyLOM, pyLOM.NN
-
-sys.path.append('/gpfs/scratch/bsc21/bsc021893/parametrize/SHRED-ROM') ## Maybe change for pySHRED or add directly in pyLOM?
-from utils.processdata     import Padding, TimeSeriesDataset
 
 def split_reconstruct(Nt):
     ## Splitting into train, test and validation for reconstruction mode of SHRED
@@ -24,9 +20,9 @@ class TimeSeriesDatasetMine(torch.utils.data.Dataset):
     '''
 
     def __init__(self, X, Y):
-        self.X = X
+        self.X = X.permute(1,2,0)
         self.Y = Y.T
-        self.len = X.shape[0]
+        self.len = X.shape[1]
         
     def __getitem__(self, index):
         return self.X[index], self.Y[index]
@@ -81,14 +77,13 @@ for kk, mysensors in enumerate(shred.configs):
     myscaler.fit(myvalues)
     myscaler.save(scalpath)
     vals_config = myscaler.transform(myvalues)[np.newaxis,:,:]
-    #X = vals_config[0,:,:].T
-    #data_in = torch.from_numpy(pyLOM.math.time_delay_embedding(X)).to(device)
-    data_in = Padding(torch.from_numpy(vals_config)).to(device) #TODO: do our padding function for time-delay embedding
+    rescaled = myscaler.transform(myvalues).T
+    data_del = torch.from_numpy(pyLOM.math.time_delay_embedding(rescaled)).to(device)
     # Generate training validation and test datasets both for reconstruction of states
-    train_dataset = TimeSeriesDatasetMine(data_in[tridx], data_out[:,tridx]) #TODO: use the pyLOM dataset or torch tensor dataset
-    valid_dataset = TimeSeriesDatasetMine(data_in[vaidx], data_out[:,vaidx]) #TODO: use the pyLOM dataset
+    train_dataset = TimeSeriesDatasetMine(data_del[:,tridx,:], data_out[:,tridx]) #TODO: use the pyLOM dataset or torch tensor dataset
+    valid_dataset = TimeSeriesDatasetMine(data_del[:,vaidx,:], data_out[:,vaidx]) #TODO: use the pyLOM dataset
     # Fit SHRED
-    shred.fit(train_dataset, valid_dataset, epochs=1500, patience=100, verbose=True)
+    shred.fit(train_dataset, valid_dataset, epochs=1500, patience=100, verbose=False)
     shred.save('%s%i' % (shreds,kk), scalpath, mysensors)
 
 pyLOM.cr_info()
