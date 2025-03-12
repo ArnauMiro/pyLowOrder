@@ -36,7 +36,7 @@ class Decoder(nn.Module):
 		return output
 
 class SHRED(nn.Module):
-	def __init__(self, input_size, output_size, device, total_sensors, hidden_size=64, hidden_layers=2, decoder_sizes=[350, 400], dropout=0.1, nconfigs=1, compile=False, seed=-1):
+	def __init__(self, output_size, device, total_sensors, hidden_size=64, hidden_layers=2, decoder_sizes=[350, 400], input_size=3, dropout=0.1, nconfigs=1, compile=False, seed=-1):
 		'''
 		SHRED model definition
 		Inputs
