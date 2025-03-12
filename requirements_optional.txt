@@ -1,3 +1,4 @@
 ensight-reader
 pyvista
+scikit-learn
 nvtx

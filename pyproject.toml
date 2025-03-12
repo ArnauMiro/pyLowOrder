@@ -143,6 +143,7 @@ GPR = [
 optionals = [
   "ensight-reader",
   "pyvista",
+  "scikit-learn",
   "nvtx",
 ]
 
