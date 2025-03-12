@@ -266,7 +266,7 @@ try:
 except:
 	raiseWarning('Import - NVTX not present!',False)
 
-	def cr_nvtx(ch_name,suff=0):
+	def cr_nvtx(ch_name,suff=0,color="green"):
 		'''
 		CR NVTX decorator
 		'''

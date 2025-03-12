@@ -12,6 +12,7 @@ mpi4py.rc.recv_mprobe = False
 from mpi4py import MPI
 
 from .parall import split
+from .nvtxp  import nvtxp
 
 MPI_COMM = MPI.COMM_WORLD
 MPI_RANK = MPI_COMM.Get_rank()
@@ -39,6 +40,7 @@ def mpi_barrier():
 	MPI_COMM.Barrier()
 
 
+@nvtxp('mpi_send',color='red')
 def mpi_send(f,dest,tag=0):
 	'''
 	Implements the send operation
@@ -46,6 +48,7 @@ def mpi_send(f,dest,tag=0):
 	MPI_COMM.send(f,dest,tag=tag)
 
 
+@nvtxp('mpi_recv',color='red')
 def mpi_recv(**kwargs):
 	'''
 	Implements the recieve operation
@@ -53,6 +56,7 @@ def mpi_recv(**kwargs):
 	return MPI_COMM.recv(**kwargs)
 
 
+@nvtxp('mpi_sendrecv',color='red')
 def mpi_sendrecv(buff,**kwargs):
 	'''
 	Implements the sendrecv operation
@@ -60,6 +64,7 @@ def mpi_sendrecv(buff,**kwargs):
 	return MPI_COMM.sendrecv(buff,**kwargs)
 
 
+@nvtxp('mpi_scatter',color='red')
 def mpi_scatter(sendbuff,root=0,do_split=False):
 	'''
 	Send an array among the processors and split
@@ -70,6 +75,7 @@ def mpi_scatter(sendbuff,root=0,do_split=False):
 	return sendbuff
 
 
+@nvtxp('mpi_gather',color='red')
 def mpi_gather(sendbuff,root=0,all=False):
 	'''
 	Gather an array from all the processors.
@@ -85,6 +91,7 @@ def mpi_gather(sendbuff,root=0,all=False):
 	return sendbuff
 
 
+@nvtxp('mpi_reduce',color='red')
 def mpi_reduce(sendbuff,root=0,op='sum',all=False):
 	'''
 	Reduce an array from all the processors.
@@ -108,6 +115,7 @@ def mpi_reduce(sendbuff,root=0,op='sum',all=False):
 		return sendbuff
 
 
+@nvtxp('mpi_bcast',color='red')
 def mpi_bcast(sendbuff,root=0):
 	'''
 	Implements the broadcast operation
