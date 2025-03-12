@@ -7,10 +7,10 @@
 # Last rev: 27/10/2021
 from __future__ import print_function, division
 
-import time, numpy as np
+import time, numpy as np, cupy as cp
 
 from .maths         import matmul, matmulp
-from ..utils.cr     import cr
+from ..utils.cr     import cr_nvtx as cr
 from ..utils.parall import MPI_RANK, MPI_SIZE, mpi_send, mpi_recv
 
 
@@ -32,7 +32,8 @@ def qr(A):
 		Q(m,n) is the Q matrix
 		R(n,n) is the R matrix
 	'''
-	return np.linalg.qr(A)
+	p = cp if type(A) is cp.ndarray else np
+	return p.linalg.qr(A)
 
 @cr('math.svd')
 def svd(A,method='gesdd'):
@@ -42,7 +43,8 @@ def svd(A,method='gesdd'):
 		S(n)     are the singular values.
 		V(n,n)   are the right singular vectors.
 	'''
-	return np.linalg.svd(A,full_matrices=False)
+	p = cp if type(A) is cp.ndarray else np
+	return p.linalg.svd(A,full_matrices=False)
 
 @cr('math.tsqr')
 def tsqr(Ai):
@@ -51,15 +53,16 @@ def tsqr(Ai):
 		Q(m,n) is the Q matrix
 		R(n,n) is the R matrix
 	'''
-	m, n = Ai.shape
+	p = cp if type(Ai) is cp.ndarray else np
+	_, n = Ai.shape
 	# Algorithm 1 from Demmel et al (2012)
 	# 1: QR Factorization on Ai to obtain Q1i and Ri
 	Q1i, R    = qr(Ai)
 	nextPower = next_power_of_2(MPI_SIZE)
 	nlevels   = int(np.log2(nextPower))
-	QW        = np.eye(n, dtype = Ai.dtype)
-	C         = np.zeros((2*n, n), Ai.dtype)
-	Q2l       = np.zeros((2*n*nlevels, n), Ai.dtype)
+	QW        = p.eye(n, dtype = Ai.dtype)
+	C         = p.zeros((2*n, n), Ai.dtype)
+	Q2l       = p.zeros((2*n*nlevels, n), Ai.dtype)
 	blevel    = 1
 	for ilevel in range(nlevels):
 		# Store R in the upper part of the C matrix
@@ -123,10 +126,11 @@ def randomized_qr(Ai, r, q, seed=-1):
 	Qi(m,r)  
 	B (r,n) 
 	'''
+	p = cp if type(Ai) is cp.ndarray else np
 	_, n  = Ai.shape
 	seed = int(time.time()) if seed < 0 else seed
-	np.random.seed(seed=seed)
-	omega = np.random.rand(n, r).astype(Ai.dtype)
+	n.random.seed(seed=seed)
+	omega = p.random.rand(n, r).astype(Ai.dtype)
 	Yi = matmul(Ai,omega)
 	# QR factorization on A
 	for j in range(q):
@@ -148,10 +152,11 @@ def init_qr_streaming(Ai, r, q, seed=None):
 	Qi(m,r)  
 	B (r,n) 
 	'''
+	p = cp if type(Ai) is cp.ndarray else np
 	_, n  = Ai.shape
 	seed = int(time.time()) if seed == None else seed
-	np.random.seed(seed=seed)
-	omega = np.random.rand(n, r).astype(Ai.dtype)
+	p.random.seed(seed=seed)
+	omega = p.random.rand(n, r).astype(Ai.dtype)
 	Yi    = matmul(Ai,omega)
 	# QR factorization on A
 	for j in range(q):
@@ -173,6 +178,7 @@ def update_qr_streaming(Ai, Q1, B1, Yo, r, q):
 	Qi(m,r)  
 	B (r,n) 
 	'''
+	p = cp if type(Ai) is cp.ndarray else np
 	_, n  = Ai.shape
 	omega = np.random.rand(n, r).astype(Ai.dtype)
 	Yn    = matmul(Ai,omega)
@@ -185,7 +191,7 @@ def update_qr_streaming(Ai, Q1, B1, Yo, r, q):
 	Q2Q1  = matmulp(Q2.T, Q1)
 	B2o   = matmul(Q2Q1, B1)
 	B2n   = matmulp (Q2.T, Ai)
-	B2    = np.hstack((B2o, B2n))
+	B2    = p.hstack((B2o, B2n))
 
 	return Q2, B2, Yo
 

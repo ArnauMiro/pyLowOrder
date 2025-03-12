@@ -9,9 +9,9 @@ from __future__ import print_function, division
 
 import numpy as np
 
-from .maths         import vector_norm, vector_sum
-from ..utils.cr     import cr
-from ..utils.parall import mpi_reduce
+from .maths      import vector_norm, vector_sum
+from ..utils.cr  import cr
+from ..utils.mpi import mpi_reduce
 
 
 def compute_truncation_residual(S, r):

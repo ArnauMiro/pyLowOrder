@@ -7,10 +7,10 @@
 # Last rev: 27/10/2021
 from __future__ import print_function, division
 
-import numpy as np
+import numpy as np, cupy as cp
 
-from ..utils.cr     import cr
-from ..utils.parall import mpi_reduce
+from ..utils.cr  import cr_nvtx as cr
+from ..utils.mpi import mpi_reduce
 
 
 ## Python functions
@@ -19,42 +19,48 @@ def transpose(A):
 	'''
 	Transposed of matrix A
 	'''
-	return np.transpose(A)
+	p = cp if type(A) is cp.ndarray else np
+	return p.transpose(A)
 
 @cr('math.vector_norm')
 def vector_sum(v,start=0):
 	'''
 	Sum of a vector
 	'''
-	return np.sum(v[start:])
+	p = cp if type(v) is cp.ndarray else np
+	return p.sum(v[start:])
 
 @cr('math.vector_norm')
 def vector_norm(v,start=0):
 	'''
 	L2 norm of a vector
 	'''
-	return np.linalg.norm(v[start:],2)
+	p = cp if type(v) is cp.ndarray else np
+	return p.linalg.norm(v[start:],2)
 
 @cr('math.vector_mean')
 def vector_mean(v,start=0):
 	'''
 	Mean of a vector
 	'''
-	return np.mean(v[start:])
+	p = cp if type(v) is cp.ndarray else np
+	return p.mean(v[start:])
 
 @cr('math.matmul')
 def matmul(A,B):
 	'''
 	Matrix multiplication C = A x B
 	'''
-	return np.matmul(A,B)
+	p = cp if type(A) is cp.ndarray else np
+	return p.matmul(A,B)
 
 @cr('math.matmulp')
 def matmulp(A,B):
 	'''
 	Matrix multiplication C = A x B where A and B are distributed along the processors and C is the same for all of them
 	'''
-	aux = np.matmul(A,B)
+	p = cp if type(A) is cp.ndarray else np
+	aux = p.matmul(A,B)
 	return mpi_reduce(aux, root = 0, op = 'sum', all = True)
 
 @cr('math.vecmat')
@@ -62,7 +68,8 @@ def vecmat(v,A):
 	'''
 	Vector times a matrix C = v x A
 	'''
-	C = np.zeros_like(A)
+	p = cp if type(v) is cp.ndarray else np
+	C = p.zeros_like(A)
 	for ii in range(v.shape[0]):
 		C[ii,:] = v[ii]*A[ii,:]
 	return C
@@ -72,7 +79,8 @@ def argsort(v):
 	'''
 	Returns the indices that sort a vector
 	'''
-	return np.argsort(v)
+	p = cp if type(v) is cp.ndarray else np
+	return p.argsort(v)
 
 @cr('math.diag')
 def diag(A):
@@ -80,7 +88,8 @@ def diag(A):
 	If A is a matrix it returns its diagonal, if its a vector it returns
 	a diagonal matrix with A in its diagonal
 	'''
-	return np.diag(A)
+	p = cp if type(A) is cp.ndarray else np
+	return p.diag(A)
 
 @cr('math.eigen')
 def eigen(A):
@@ -90,6 +99,7 @@ def eigen(A):
 		imag(n)   are the imaginary eigenvalues.
 		vecs(n,n) are the right eigenvectors.
 	'''
+	A = cp.asnumpy(A) if type(A) is cp.ndarray else A
 	w,vecs = np.linalg.eig(A)
 	real   = np.real(w)
 	imag   = np.imag(w)
@@ -100,8 +110,9 @@ def polar(real, imag):
 	'''
 	Present a complex number in its polar form given its real and imaginary part
 	'''
-	mod = np.sqrt(real*real + imag*imag)
-	arg = np.arctan2(imag, real)
+	p = cp if type(real) is cp.ndarray else np
+	mod = p.sqrt(real*real + imag*imag)
+	arg = p.arctan2(imag, real)
 	return mod, arg
 
 @cr('math.vandermonde')
@@ -110,8 +121,9 @@ def vandermonde(real, imag, m, n):
 	Builds a Vandermonde matrix of (m x n) with the real and
 	imaginary parts of the eigenvalues
 	'''
-	dtype = np.complex128 if real.dtype is np.double else np.complex64
-	Vand  = np.zeros((m, n), dtype=dtype)
+	p = cp if type(real) is cp.ndarray else np
+	dtype = p.complex128 if real.dtype is p.double else p.complex64
+	Vand  = p.zeros((m, n), dtype=dtype)
 	for icol in range(n):
 		Vand[:, icol] = (real + imag*1j)**icol
 	return Vand
@@ -122,9 +134,10 @@ def vandermondeTime(real, imag, m, time):
 	Builds a Vandermonde matrix of (m x n) with the real and
 	imaginary parts of the eigenvalues
 	'''
-	dtype = np.complex128 if real.dtype is np.double else np.complex64
+	p = cp if type(real) is cp.ndarray else np
+	dtype = p.complex128 if real.dtype is p.double else p.complex64
 	n = time.shape[0]
-	Vand  = np.zeros((m, n), dtype=dtype)
+	Vand  = p.zeros((m, n), dtype=dtype)
 	for it, t in enumerate(time):
 		Vand[:, it] = (real + imag*1j)**t
 	return Vand
@@ -134,25 +147,29 @@ def cholesky(A):
 	'''
 	Returns the Cholesky decompositon of A
 	'''
-	return np.linalg.cholesky(A)
+	p = cp if type(A) is cp.ndarray else np
+	return p.linalg.cholesky(A)
 
 @cr('math.conj')
 def conj(A):
 	'''
 	Conjugates complex number A
 	'''
-	return np.conj(A)
+	p = cp if type(A) is cp.ndarray else np
+	return p.conj(A)
 
 @cr('math.inv')
 def inv(A):
 	'''
 	Computes the inverse matrix of A
 	'''
-	return np.linalg.inv(A)
+	p = cp if type(A) is cp.ndarray else np
+	return p.linalg.inv(A)
 
 @cr('math.flip')
 def flip(A):
 	'''
 	Changes order of the vector
 	'''
-	return np.flip(A)
+	p = cp if type(A) is cp.ndarray else np
+	return p.flip(A)
