@@ -144,6 +144,12 @@ class Dataset(object):
 			'value' : var, 
 		}
 
+	def mask_fields(self, mask):
+		dmasked = self.__class__(xyz=self.xyz, ptable=self._ptable, order=self._order, point=self.point, vars=self.vars)
+		for field in self.fieldnames:
+			dmasked.add_field(field,self.fields[field]["ndim"],self[field][:,mask])
+		return dmasked
+
 	def append_variable(self,varname,var,**fieldict):
 		'''
 		Appends new timesteps to the dataset
