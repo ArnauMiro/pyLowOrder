@@ -512,7 +512,7 @@ def time_delay_embedding(X, dimension=50):
 	for i in range(X.shape[0]):
 		for j in range(1,X.shape[1]+1):
 			if j < dimension:
-				X_delay[i,j-1,:j] = X[i,:j]
+				X_delay[i,j-1,-j:] = X[i,:j]
 			else:
 				X_delay[i,j-1,:] = X[i,j-dimension:j]
 
