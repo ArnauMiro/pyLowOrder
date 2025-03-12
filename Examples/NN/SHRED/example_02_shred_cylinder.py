@@ -32,10 +32,10 @@ shreds   = 'out/shred_'
 
 # SHRED sensor configurations for uncertainty quantification
 sensxconfig = 3 # number of snesors per configuration
-nconfigs    = 3 # number of configurations
+nconfigs    = 1 # number of configurations
 
 # SHRED parameters (ask!!)
-lags   = 50
+lags   = 50 #Size of delay embedding
 
 ## Import sensor measurements
 data_points = np.load(senspath, allow_pickle=True)
@@ -46,13 +46,12 @@ Nt          = sens_vals.shape[1]
 ## Split between train, test and validation: TODO: In the POD part
 tridx, vaidx, teidx = split_reconstruct(Nt)
 
-## Import POD coefficients. Stack and rescale them
-pod_coeff   = np.load(podpath).T
-Nmodes      = [pod_coeff.shape[0]]
-stacked_pod = pod_coeff[:sum(Nmodes)].T.reshape(1, Nt, sum(Nmodes))
+## Import POD coefficients. Stack and rescale them. TODO: Own padding functions
+pod_coeff   = np.load(podpath)
 pod_scaler  = pyLOM.NN.MinMaxScaler()
-pod_scaler.fit(stacked_pod.reshape(-1, sum(Nmodes)))
-rescaled_pod = pod_scaler.transform(stacked_pod.reshape(-1, sum(Nmodes))).reshape(stacked_pod.shape)
+pod_scaler.fit(pod_coeff)
+pod_scaler.save(ouscaler)
+rescaled_pod = pod_scaler.transform(pod_coeff)[np.newaxis,:,:]
 data_out     = Padding(torch.from_numpy(rescaled_pod), 1).squeeze(1).to(device)
 output_size  = data_out.shape[-1]
 
@@ -72,7 +71,6 @@ for kk, mysensors in enumerate(shred.configs):
     # Generate training validation and test datasets both for reconstruction of states
     train_dataset = TimeSeriesDataset(data_in[tridx], data_out[tridx])
     valid_dataset = TimeSeriesDataset(data_in[vaidx], data_out[vaidx])
-    test_dataset  = TimeSeriesDataset(data_in[teidx], data_out[teidx])
     # Fit SHRED
     shred.fit(train_dataset, valid_dataset, batch_size=64, epochs=500, lr=1e-3, verbose=False, patience=100)
     shred.save('%s%i' % (shreds,kk), scalpath, mysensors)
