@@ -71,13 +71,13 @@ shred   = pyLOM.NN.SHRED(output_size, device, nsens, nconfigs=nconfigs)
 ## Fit all SHRED configurations using the data from the sensors
 for kk, mysensors in enumerate(shred.configs):
     # Get the values and scale them
-    myvalues = sens_vals[mysensors,:].T
+    myvalues = sens_vals[mysensors,:]
     myscaler = pyLOM.NN.MinMaxScaler()
     scalpath = '%s%i.json' % (inscaler, kk)
     myscaler.fit(myvalues)
     myscaler.save(scalpath)
     vals_config = myscaler.transform(myvalues)[np.newaxis,:,:]
-    rescaled = myscaler.transform(myvalues).T
+    rescaled = myscaler.transform(myvalues)
     data_del = torch.from_numpy(pyLOM.math.time_delay_embedding(rescaled)).to(device)
     # Generate training validation and test datasets both for reconstruction of states
     train_dataset = TimeSeriesDatasetMine(data_del[:,tridx,:], data_out[:,tridx]) #TODO: use the pyLOM dataset or torch tensor dataset
