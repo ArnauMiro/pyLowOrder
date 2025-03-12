@@ -475,6 +475,39 @@ def normals(xyz,conec):
 			normals[ielem,:] += 0.5*np.cross(u,v)
 	return normals
 
+@cr('math.edge_normals')
+def edge_normals(nodes_xyz, cell_normal, num_nodes):
+	'''
+	Compute the edge normals (pointing outwards) of a cell given the nodes of the cell, the number of nodes and the cell normal.
+
+	In:
+		- nodes_xyz: List or array of the node coordinates of the cell
+		- num_nodes: Number of nodes of the cell
+		- cell_normal: Normal to the plane of the cell
+
+	Returns:
+		- edge_normals: List of the edge normals of the cell
+	'''
+	edge_normals = []
+	# Iterate over each edge of the cell
+	for i in range(len(nodes_xyz)):
+		v1, v2 = nodes_xyz[i], nodes_xyz[(i + 1) % num_nodes]  # Get the edge vertices
+		edge = v2 - v1  # Get the edge vector
+
+		edge_normal = np.cross(edge, cell_normal)  # Compute the edge normal
+		edge_normal /= np.linalg.norm(edge_normal)  # Normalize the edge normal
+
+		# Ensure the edge normal is pointing outwards (assumes convex polygon)
+		auxiliary_node = nodes_xyz[(i+2) % num_nodes]
+		midpoint = (v1 + v2) / 2
+
+		if np.dot(midpoint - auxiliary_node, edge_normal) < 0:
+			edge_normal *= -1
+
+		edge_normals.append(edge_normal)
+
+	return edge_normals
+
 @cr('math.euclidean_d')
 def euclidean_d(X):
 	'''

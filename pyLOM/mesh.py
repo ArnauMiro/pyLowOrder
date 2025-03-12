@@ -11,7 +11,7 @@ import os, numpy as np
 from collections import defaultdict, deque
 
 from .             import inp_out as io
-from .vmmath       import cellCenters, normals
+from .vmmath       import cellCenters, normals, edge_normals
 from .utils.cr     import cr
 from .utils.mem    import mem
 from .utils.errors import raiseError
@@ -78,6 +78,7 @@ class Mesh(object):
 		self._xyz    = xyz
 		self._xyzc   = None
 		self._normal = None
+		self._edge_normal = None
 		self._conec  = connectivity
 		self._cells_conec = None
 		self._eltype = eltype
@@ -291,6 +292,10 @@ class Mesh(object):
 	def normal(self):
 		if self._normal is None: self._normal = normals(self._xyz,self._conec)
 		return self._normal
+	@property
+	def edge_normal(self):
+		if self._edge_normal is None: self._edge_normal = self._edge_normals(self)
+		return self._edge_normal
 
 	@property
 	def connectivity(self):
@@ -432,3 +437,27 @@ def _cells_connectivity(self):
 	padded_neighbors = np.array([list(neighbors_dict[cell]) + [-1] * (max_len - len(neighbors_dict[cell])) for cell in range(self.ncells)], dtype=np.int32)
 
 	return padded_neighbors, neighbors_dict # Return the same info in two different formats (padded array and dictionary)
+
+
+def _edge_normals(self):
+    '''Computes the normalized edge normals of the cells in the mesh.
+    Edge normals are the vectors normal to the edges and tangent to the cell.
+        
+    Returns
+    -------
+    edge_normals : np.ndarray
+        Array with the edge normals of each cell concatenated along axis 1.
+    '''
+
+	# Array list to store the edge normals of each cell. Assumes every cell has the same number of edges.
+    edge_normals_list = [np.zeros((self.ncells, 3), dtype=np.float32) for _ in range(self.nnodcell)]
+
+    # Iterate over each cell
+    for cell_id in range(self.ncells):
+        cell_normal = self.normal[cell_id]
+        cell_nodes = self.connectivity[cell_id]
+        nodes_xyz = self.xyz[cell_nodes]  # Get the nodes of the cell
+
+        edge_normals_list = edge_normals(nodes_xyz, cell_normal, self.nnodcell)  # Compute the edge normals of the cell
+
+    return np.concatenate(edge_normals_list, axis=1)  # Concatenate the edge normals along axis 1
