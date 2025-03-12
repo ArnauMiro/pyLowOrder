@@ -108,7 +108,6 @@ classifiers = [  # Optional
 # https://packaging.python.org/discussions/install-requires-vs-requirements/
 dependencies = [
     "numpy",
-    "cupy",
     "cython>=3.0.0",
     "mpi4py>=4.0.0",
     "matplotlib",
@@ -125,6 +124,16 @@ dependencies = [
 # Similar to `dependencies` above, these must be valid existing
 # projects.
 [project.optional-dependencies] 
+# Dependencies on cupy
+cupy = [
+    "cupy",
+]
+cupy_cuda = [
+    "cupy-cuda12x",
+]
+cupy_rocm = [
+    "cupy-rocm-4-0",
+]
 # Dependencies to work with the NN module
 NN = [
   "torch>=2.3.0",
