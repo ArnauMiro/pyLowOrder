@@ -7,13 +7,13 @@
 # Last rev: 27/10/2021
 from __future__ import print_function, division
 
+import time
 import numpy as np, scipy, nfft
 from mpi4py import MPI
 
 from ..utils.cr     import cr
 from ..utils.parall import mpi_gather, mpi_reduce, pprint, mpi_send, mpi_recv, is_rank_or_serial
 from ..utils.errors import raiseError
-import h5py
 
 
 ## Python functions
@@ -23,6 +23,13 @@ def transpose(A):
 	Transposed of matrix A
 	'''
 	return np.transpose(A)
+
+@cr('math.vector_norm')
+def vector_sum(v,start=0):
+	'''
+	Sum of a vector
+	'''
+	return np.sum(v[start:])
 
 @cr('math.vector_norm')
 def vector_norm(v,start=0):
@@ -129,44 +136,6 @@ def svd(A,method='gesdd'):
 #	return np.linalg.svd(A,lapack_driver=method,check_finite=False,full_matrices=False)
 	return np.linalg.svd(A,full_matrices=False)
 
-@cr('math.tsqr2')
-def tsqr2(A):
-	'''
-	Parallel QR factorization using Lapack
-		Q(m,n) is the Q matrix
-		R(n,n) is the R matrix
-	'''
-	# Algorithm 1 from Sayadi and Schmid (2016) - Q and R matrices
-	# QR factorization on A
-	Q1i, R = qr(A)
-	# Gather all Rs into Rp
-	Rp = mpi_gather(R,all=True)
-	# QR factorization on Rp
-	Q2i, R = qr(Rp)
-	# Compute Q = Q1 x Q2
-	Q = matmul(Q1i,Q2i[A.shape[1]*MPI_RANK:A.shape[1]*(MPI_RANK+1),:])
-	return Q,R
-
-@cr('math.tsqr_svd2')
-def tsqr_svd2(A):
-	'''
-	Single value decomposition (SVD) using Lapack.
-		U(m,n)   are the POD modes.
-		S(n)     are the singular values.
-		V(n,n)   are the right singular vectors.
-	'''
-	# Algorithm 1 from Sayadi and Schmid (2016) - Q and R matrices
-	# QR factorization on A
-	Q,R = tsqr2(A)
-
-	# Algorithm 2 from Sayadi and Schmid (2016) - Ui, S and VT
-	# At this point we have R and Qi scattered on the processors
-	# Call SVD routine
-	Ur, S, V = svd(R)
-	# Compute U = Q x Ur
-	U = matmul(Q,Ur)
-	return U,S,V
-
 def next_power_of_2(n):
 	'''
 	Find the next power of 2 of n
@@ -252,7 +221,7 @@ def tsqr(Ai):
 	return Qi,R
 
 @cr('math.randomized_qr')
-def randomized_qr(Ai, r, q):
+def randomized_qr(Ai, r, q, seed=-1):
 	'''
 	Ai(m,n)  data matrix dispersed on each processor.
 	r        target number of modes
@@ -261,6 +230,8 @@ def randomized_qr(Ai, r, q):
 	B (r,n) 
 	'''
 	_, n  = Ai.shape
+	seed = int(time.time()) if seed < 0 else seed
+	np.random.seed(seed=seed)
 	omega = np.random.rand(n, r).astype(Ai.dtype)
 	Yi = matmul(Ai,omega)
 	# QR factorization on A
@@ -273,6 +244,56 @@ def randomized_qr(Ai, r, q):
 	B    = matmulp(Qi.T,Ai)
 
 	return Qi, B
+
+@cr('math.init_qr_streaming')
+def init_qr_streaming(Ai, r, q, seed=None):
+	'''
+	Ai(m,n)  data matrix dispersed on each processor.
+	r        target number of modes
+
+	Qi(m,r)  
+	B (r,n) 
+	'''
+	_, n  = Ai.shape
+	seed = int(time.time()) if seed == None else seed
+	np.random.seed(seed=seed)
+	omega = np.random.rand(n, r).astype(Ai.dtype)
+	Yi    = matmul(Ai,omega)
+	# QR factorization on A
+	for j in range(q):
+		Qi,_ = tsqr(Yi)
+		Q2i  = matmulp(Ai.T,Qi)
+		Yi   = matmul(Ai,Q2i)
+
+	Qi,_ = tsqr(Yi)
+	B    = matmulp(Qi.T,Ai)
+
+	return Qi, B, Yi
+
+@cr('math.qr_iteration')
+def update_qr_streaming(Ai, Q1, B1, Yo, r, q):
+	'''
+	Ai(m,n)  data matrix dispersed on each processor.
+	r        target number of modes
+
+	Qi(m,r)  
+	B (r,n) 
+	'''
+	_, n  = Ai.shape
+	omega = np.random.rand(n, r).astype(Ai.dtype)
+	Yn    = matmul(Ai,omega)
+	for jj in range(q):
+		Qpi,_ = tsqr(Yn)
+		O2    = matmulp(Ai.T, Qpi)
+		Yn    = matmul(Ai,O2)
+	Yo   += Yn
+	Q2,_  = tsqr(Yo)
+	Q2Q1  = matmulp(Q2.T, Q1)
+	B2o   = matmul(Q2Q1, B1)
+	B2n   = matmulp (Q2.T, Ai)
+	B2    = np.hstack((B2o, B2n))
+
+	return Q2, B2, Yo
 
 @cr('math.tsqr_svd')
 def tsqr_svd(Ai):
@@ -302,7 +323,7 @@ def tsqr_svd(Ai):
 	return Ui, S, V
 
 @cr('math.randomized_svd')
-def randomized_svd(Ai, r, q):
+def randomized_svd(Ai, r, q, seed=-1):
 	'''
 	Ai(m,n)  data matrix dispersed on each processor.
 	r        target number of modes
@@ -311,7 +332,10 @@ def randomized_svd(Ai, r, q):
 	S(n)     singular values.
 	VT(n,n)  right singular vectors (transposed).
 	'''
-	Qi, B    = randomized_qr(Ai,r,q)
+	seed = int(time.time()) if seed < 0 else seed
+	np.random.seed(seed=seed)
+
+	Qi, B    = randomized_qr(Ai,r,q,seed=seed)
 	Ur, S, V = svd(B)
 	
 	# Compute Ui = Qi x Ur
@@ -350,6 +374,26 @@ def RMSE(A,B):
 	sum2g = mpi_reduce(np.sum(A*A),op='sum',all=True)
 	rmse  = np.sqrt(sum1g/sum2g)
 	return rmse
+
+@cr('math.energy')
+def energy(original, rec):
+	'''
+	Compute reconstruction energy as in:
+	Eivazi, H., Le Clainche, S., Hoyas, S., & Vinuesa, R. (2022). 
+	Towards extraction of orthogonal and parsimonious non-linear modes from turbulent flows. 
+	Expert Systems with Applications, 202, 117038.
+	https://doi.org/10.1016
+	'''
+	# Compute local sums
+	local_num = np.sum((original - rec) ** 2)
+	local_den = np.sum(original ** 2)
+
+	# Use Allreduce to compute global sums and make them available on all ranks
+	global_num = mpi_reduce(local_num,op='sum',all=True)
+	global_den = mpi_reduce(local_den,op='sum',all=True)
+
+	# Compute Ek (this will be identical on all ranks)
+	return 1 - global_num / global_den
 
 @cr('math.vandermonde')
 def vandermonde(real, imag, m, n):
@@ -430,3 +474,29 @@ def normals(xyz,conec):
 			v = xyzel[inod-1] - cen
 			normals[ielem,:] += 0.5*np.cross(u,v)
 	return normals
+
+@cr('math.euclidean_d')
+def euclidean_d(X):
+	'''
+	Compute Euclidean distances between simulations.
+
+	In:
+		- X: NxM Data matrix with N points in the mesh for M simulations
+	Returns:
+		- D: MxM distance matrix 
+	'''
+	# Extract dimensions
+	_,M = X.shape
+	# Initialize distance matrix
+	D = np.zeros((M,M),X.dtype)
+	for i in range(M):
+		for j in range(i+1,M,1):
+			# Local sum on the partition
+			d2 = np.sum((X[:,i]-X[:,j])*(X[:,i]-X[:,j]))
+			# Global sum over the partitions
+			dG = np.sqrt(mpi_reduce(d2,all=True))
+			# Fill output
+			D[i,j] = dG
+			D[j,i] = dG
+	# Return the mdistance matrix
+	return D

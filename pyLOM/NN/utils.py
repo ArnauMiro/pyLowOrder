@@ -6,7 +6,7 @@
 #
 # Last rev: 02/10/2024
 
-import os, json, numpy as np, torch
+import os, random, json, numpy as np, torch
 import torch.nn.functional as F
 
 from torch.utils.data import Subset
@@ -799,6 +799,20 @@ class Dataset(torch.utils.data.Dataset):
         else:
             raiseError(f"Invalid column index {column_idx}, there are only {self.variables_in.shape[1]} columns in variables_in and {self.parameters.shape[1]} columns in parameters")
 
+def set_seed(seed: int = 42, deterministic: bool = True):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+ 
+    if deterministic:
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+ 
+
 def create_results_folder(RESUDIR: str, verbose: bool=True):
     r"""
     Create a folder to store the results of the neural network training.
@@ -806,7 +820,7 @@ def create_results_folder(RESUDIR: str, verbose: bool=True):
     Args:
         RESUDIR (str): Path to the folder to be created.
         verbose (bool): If True, print messages to the console. Default is ``True``.
-    """
+    """    
     if not os.path.exists(RESUDIR):
         os.makedirs(RESUDIR)
         if verbose: 

@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 
 from ... import cr, pprint  # pyLOM/__init__.py
 from .. import DEVICE  # pyLOM/NN/__init__.py
-from ...utils.errors import raiseError
+from ...utils.errors import raiseError, raiseWarning
 from ..optimizer import OptunaOptimizer
 
 
@@ -279,11 +279,12 @@ class KAN(nn.Module):
                 else:
                     memory_usage_str = ""
 
-                pprint(
-                    0,
-                    f"Epoch {epoch + 1}/{epochs}, Train Loss: {train_loss:.4e}, Test Loss: {test_loss:.4e}, "
-                    f"LR: {current_lr:.2e}{memory_usage_str}",
-                )
+                if verbose:
+                    pprint(
+                        0,
+                        f"Epoch {epoch + 1}/{epochs}, Train Loss: {train_loss:.4e}, Test Loss: {test_loss:.4e}, "
+                        f"LR: {current_lr:.2e}{memory_usage_str}",
+                    )
 
         if save_logs_path is not None:
             if not os.path.exists(save_logs_path):
@@ -292,9 +293,11 @@ class KAN(nn.Module):
             test_losses_np = test_losses.cpu().numpy()
             current_lr_np = np.array(current_lr_vec)
             if os.path.isdir(save_logs_path):
-                pprint(0, f"Printing losses on path {save_logs_path}")
+                if verbose:
+                    pprint(0, f"Printing losses on path {save_logs_path}")
             else:
-                pprint(0, "Path not found. Printing losses on local folder (.)")
+                if verbose:
+                    pprint(0, "Path not found. Printing losses on local folder (.)")
                 save_logs_path = "."
 
             np.save(
@@ -432,7 +435,8 @@ class KAN(nn.Module):
         """
 
         pprint(0, "Loading model...")
-        checkpoint = torch.load(path, map_location=device)
+        checkpoint = torch.load(path, map_location=device, weights_only=False)
+        raiseWarning("The model has been loaded with weights_only set to False. According with torch documentation, this is not recommended if you do not trust the source of your saved model, as it could lead to arbitrary code execution.")
 
         degree = checkpoint["degree"]
         layer_kwargs = {"degree": degree}

@@ -60,6 +60,7 @@ training_params = {
     },
     'batch_size': 8,
     "print_eval_rate": 1,
+    "verbose":False,
     "save_logs_path":RESUDIR,
 }
 
@@ -72,6 +73,7 @@ model = pyLOM.NN.KAN(
     layer_type=pyLOM.NN.ChebyshevLayer,
     model_name="kan_example",
     device=device,
+    verbose=False,
     degree=7
 )
 

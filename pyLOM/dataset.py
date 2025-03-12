@@ -42,7 +42,7 @@ class Dataset(object):
 		self._vardict  = vars
 		self._fieldict = kwargs
 		self._ptable   = ptable
-		self._order    = np.range(xyz.shape[0]) if order is None else order
+		self._order    = np.arange(xyz.shape[0]) if order is None else order
 		self._point    = point
 
 	def __len__(self):

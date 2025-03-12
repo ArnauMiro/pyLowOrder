@@ -16,7 +16,7 @@ from dragon       import dragon, dragonAllOK, dragonAlmostOK, dragonAngry
 RELTOL  = 1e-3
 ZEROTOL = 1e-4
 OUTROOT = '/tmp/TESTSUITE/' # WARNING: OUTROOT IS ERASED BEFORE EVERY RUN
-MODULES = ['POD','DMD','SPOD','NN']
+MODULES = ['POD','DMD','SPOD','NN','MANIFOLD','GPR']
 
 
 ## Testsuite aux functions
@@ -172,7 +172,7 @@ if __name__ == "__main__":
 	argpar.add_argument('-t','--tests',type=str,help='Tests to run separated by comma (defaults to all)', dest='tests')
 	argpar.add_argument('-R','--reset',action='store_true',help='Reset the reference', dest='reset')
 	argpar.add_argument('--reltol',type=float,help='Relative tolerance (default: 1e-3)', dest='reltol')
-	argpar.add_argument('--zerotol',type=float,help='Zero tolerance (default: 1e-6)', dest='zerotol')
+	argpar.add_argument('--zerotol',type=float,help='Zero tolerance (default: 1e-4)', dest='zerotol')
 	argpar.add_argument('--outroot',type=str,help='Output directory (default: /tmp/TEST/)', dest='outroot')
 	argpar.add_argument('--oversubscribe',action='store_true',help='Oversubscribe MPI', dest='oversubscribe')
 
@@ -180,11 +180,11 @@ if __name__ == "__main__":
 	args = argpar.parse_args()
 	if args.modules:     args.modules = [m for m in args.modules.split(',')]
 	# set default values
-	if not args.file:    args.file    = 'Testsuite/tests.json'
-	if not args.reltol:  args.reltol  = 1e-3
-	if not args.zerotol: args.zerotol = 1e-6
+	if not args.file:    args.file    = 'Testsuite/testsuite.json'
+	if not args.reltol:  args.reltol  = RELTOL
+	if not args.zerotol: args.zerotol = ZEROTOL
 	if not args.outroot: args.outroot = '/tmp/TESTSUITE/' # WARNING: OUTROOT IS ERASED BEFORE EVERY RUN
-	if not args.modules: args.modules = ['POD','DMD','SPOD','NN']
+	if not args.modules: args.modules = MODULES
 
 
 	## Load tests

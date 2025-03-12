@@ -1,18 +1,14 @@
-#!/usr/bin/env python
-#
-# pyLOM - Python Low Order Modeling.
-#
-# MLP architecture for NN Module
-#
-# Last rev: 09/10/2024
-
-import os, torch, numpy as np, torch.nn as nn
+import os
+import torch
+import numpy as np
+import torch.nn as nn
 
 from torch.utils.data import DataLoader
-from typing           import Dict, List, Tuple
-from ..optimizer      import OptunaOptimizer, TrialPruned
-from ..               import DEVICE # pyLOM/NN/__init__.py
-from ...              import pprint, cr # pyLOM/__init__.py
+from typing import Dict, List, Tuple
+from ..optimizer import OptunaOptimizer, TrialPruned
+from .. import DEVICE, set_seed  # pyLOM/NN/__init__.py
+from ... import pprint, cr  # pyLOM/__init__.py
+from ...utils.errors import raiseWarning
 
 
 class MLP(nn.Module):
@@ -29,6 +25,7 @@ class MLP(nn.Module):
         checkpoint_file (str, optional): Path to a checkpoint file to load the model from (default: ``None``).
         activation (torch.nn.Module, optional): Activation function to use (default: ``torch.nn.functional.relu``).
         device (torch.device, optional): Device to use (default: ``torch.device("cpu")``).
+        seed (int, optional): Seed for reproducibility (default: ``None``).
         kwargs: Additional keyword arguments.
     """
     def __init__(
@@ -40,7 +37,8 @@ class MLP(nn.Module):
         p_dropouts: float = 0.0,
         activation: torch.nn.Module = torch.nn.functional.relu,
         device: torch.device = DEVICE,
-        **kwargs,
+        seed: int = None,
+        **kwargs: Dict,
     ):
         self.input_size = input_size
         self.output_size = output_size
@@ -51,6 +49,8 @@ class MLP(nn.Module):
         self.device = device
 
         super().__init__()
+        if seed is not None:
+            set_seed(seed)
         self.layers = nn.ModuleList()
         for i in range(n_layers):
             in_size = input_size if i == 0 else hidden_size
@@ -272,15 +272,17 @@ class MLP(nn.Module):
             path (str): Path to save the model. It can be either a path to a directory or a file name. 
             If it is a directory, the model will be saved with a filename that includes the number of epochs trained.
         """
-        checkpoint = {"input_size": self.input_size, 
-                      "output_size": self.output_size, 
-                      "n_layers": self.n_layers, 
-                      "hidden_size": self.hidden_size, 
-                      "p_dropouts": self.p_dropouts, 
-                      "activation": self.activation, 
-                      "device": self.device, 
-                      "state_dict": self.state_dict(),
-                      "state": self.state}
+        checkpoint = {
+            "input_size": self.input_size,
+            "output_size": self.output_size,
+            "n_layers": self.n_layers,
+            "hidden_size": self.hidden_size,
+            "p_dropouts": self.p_dropouts,
+            "activation": self.activation,
+            "device": self.device,
+            "state_dict": self.state_dict(),
+            "state": self.state,
+        }
         
         if os.path.isdir(path):
             filename = "/trained_model_{:06d}".format(len(self.state[2])) + ".pth"
@@ -303,15 +305,18 @@ class MLP(nn.Module):
         Returns:
             Model (MLP): The loaded model.
         """
-        checkpoint = torch.load(path, map_location=device)
+        checkpoint = torch.load(path, map_location=device, weights_only=False)
+        raiseWarning("The model has been loaded with weights_only set to False. According with torch documentation, this is not recommended if you do not trust the source of your saved model, as it could lead to arbitrary code execution.")
         checkpoint['device'] = device
-        model = cls(checkpoint["input_size"], 
-                    checkpoint["output_size"], 
-                    checkpoint["n_layers"], 
-                    checkpoint["hidden_size"], 
-                    checkpoint["p_dropouts"], 
-                    checkpoint["activation"], 
-                    checkpoint["device"])
+        model = cls(
+            checkpoint["input_size"],
+            checkpoint["output_size"],
+            checkpoint["n_layers"],
+            checkpoint["hidden_size"],
+            checkpoint["p_dropouts"],
+            checkpoint["activation"],
+            checkpoint["device"],
+        )
         
         model.load_state_dict(checkpoint["state_dict"])
         model.checkpoint = checkpoint
@@ -385,7 +390,8 @@ class MLP(nn.Module):
                     y_pred, y_true = model.predict(eval_dataset, return_targets=True)
                     loss_val = ((y_pred - y_true)**2).mean()
                     trial.report(loss_val, epoch)
-                    if trial.should_prune(): raise TrialPruned()
+                    if trial.should_prune(): 
+                        raise TrialPruned()
             else:
                 model.fit(train_dataset, **training_params)
                 y_pred, y_true = model.predict(eval_dataset, return_targets=True)
