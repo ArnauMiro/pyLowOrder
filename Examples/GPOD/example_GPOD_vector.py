@@ -62,6 +62,14 @@ plt.colorbar(label="Velox")
 plt.xlabel("X")
 plt.ylabel("Y")
 
+# Plot Reconstructed Vector
+plt.figure(figsize=(8,6),dpi=100)
+plt.scatter(m.xyzc[:, 0], m.xyzc[:, 1], c=velox_recons, cmap="jet", s=1)
+plt.title("Reconstructed Vector")
+plt.colorbar(label="Velox")
+plt.xlabel("X")
+plt.ylabel("Y")
+
 
 ## Dump to ParaView
 d.add_field('VELXR',1,velox_recons)
