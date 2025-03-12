@@ -17,7 +17,7 @@ from .utils.parall import pprint
 from .utils.plots  import show_plots, close_plots
 
 # Import Low Order Models
-from . import POD, DMD, SPOD, MANIFOLD
+from . import POD, DMD, SPOD, MANIFOLD, GPOD
 
 # Import AI Models
 # Leaving this commented as the NN module overloads the memory when loaded

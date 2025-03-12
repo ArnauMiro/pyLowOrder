@@ -12,52 +12,19 @@ cimport numpy as np
 
 import numpy as np
 
-from libc.stdlib   cimport malloc, free
-from libc.string   cimport memcpy, memset
-from libc.time     cimport time
+from libc.stdlib     cimport malloc, free
+from libc.string     cimport memcpy
+from libc.time       cimport time
+from ..vmmath.cfuncs cimport real
+from ..vmmath.cfuncs cimport c_svector_norm, c_smatmul, c_svecmat, c_stemporal_mean, c_ssubtract_mean, c_stsqr_svd, c_srandomized_svd, c_scompute_truncation_residual, c_scompute_truncation
+from ..vmmath.cfuncs cimport c_dvector_norm, c_dmatmul, c_dvecmat, c_dtemporal_mean, c_dsubtract_mean, c_dtsqr_svd, c_drandomized_svd, c_dcompute_truncation_residual, c_dcompute_truncation
 
-from ..utils.cr     import cr, cr_start, cr_stop
-from ..utils.errors import raiseError
-
-cdef extern from "vector_matrix.h":
-	# Single precision
-	cdef float  c_svector_norm "svector_norm"(float *v, int start, int n)
-	cdef void   c_smatmul      "smatmul"(float *C, float *A, float *B, const int m, const int n, const int k)
-	cdef void   c_svecmat      "svecmat"(float *v, float *A, const int m, const int n)
-	# Double precision
-	cdef double c_dvector_norm "dvector_norm"(double *v, int start, int n)
-	cdef void   c_dmatmul      "dmatmul"(double *C, double *A, double *B, const int m, const int n, const int k)
-	cdef void   c_dvecmat      "dvecmat"(double *v, double *A, const int m, const int n)
-cdef extern from "averaging.h":
-	# Single precision
-	cdef void c_stemporal_mean "stemporal_mean"(float *out, float *X, const int m, const int n)
-	cdef void c_ssubtract_mean "ssubtract_mean"(float *out, float *X, float *X_mean, const int m, const int n)
-	# Double precision
-	cdef void c_dtemporal_mean "dtemporal_mean"(double *out, double *X, const int m, const int n)
-	cdef void c_dsubtract_mean "dsubtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
-cdef extern from "svd.h":
-	# Single precision
-	cdef int c_stsqr_svd       "stsqr_svd"      (float *Ui, float *S, float *VT, float *Ai, const int m, const int n)
-	cdef int c_srandomized_svd "srandomized_svd"(float *Ui, float *S, float *VT, float *Ai,   const int m, const int n, const int r, const int q, unsigned int seed)
-	# Double precision
-	cdef int c_dtsqr_svd       "dtsqr_svd"      (double *Ui, double *S, double *VT, double *Ai, const int m, const int n)
-	cdef int c_drandomized_svd "drandomized_svd"(double *Ui, double *S, double *VT, double *Ai,  const int m, const int n, const int r, const int q, unsigned int seed)
-cdef extern from "truncation.h":
-	# Single precision
-	cdef int  c_scompute_truncation_residual "scompute_truncation_residual"(float *S, float res, const int n)
-	cdef void c_scompute_truncation          "scompute_truncation"(float *Ur, float *Sr, float *VTr, float *U, float *S, float *VT, const int m, const int n, const int nmod, const int N)
-	# Double precision
-	cdef int  c_dcompute_truncation_residual "dcompute_truncation_residual"(double *S, double res, const int n)
-	cdef void c_dcompute_truncation          "dcompute_truncation"(double *Ur, double *Sr, double *VTr, double *U, double *S, double *VT, const int m, const int n, const int nmod, const int N)
-
-
-## Fused type between double and complex
-ctypedef fused real:
-	float
-	double
+from ..utils.cr       import cr, cr_start, cr_stop
+from ..utils.errors   import raiseError
 
 
 ## POD run method
+@cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -109,6 +76,7 @@ def _srun(float[:,:] X, int remove_mean, int randomized, int r, int q, int seed)
 	if not retval == 0: raiseError('Problems computing SVD!')
 	return U,S,V
 
+@cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -161,6 +129,7 @@ def _drun(double[:,:] X, int remove_mean, int randomized, int r, int q, int seed
 	return U,S,V
 
 @cr('POD.run')
+@cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -186,6 +155,7 @@ def run(real[:,:] X, int remove_mean=True, int randomized=False, const int r=1, 
 
 
 ## POD truncate method
+@cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -221,6 +191,7 @@ def _struncate(float[:,:] U, float[:] S, float[:,:] V, float r):
 	# Return
 	return Ur, Sr, Vr
 
+@cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -257,6 +228,7 @@ def _dtruncate(double[:,:] U, double[:] S, double[:,:] V, double r):
 	return Ur, Sr, Vr
 
 @cr('POD.truncate')
+@cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -287,6 +259,7 @@ def truncate(real[:,:] U, real[:] S, real[:,:] V, real r=1e-8):
 
 
 ## POD reconstruct method
+@cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -320,6 +293,7 @@ def _sreconstruct(float[:,:] U, float[:] S, float[:,:] V):
 	free(Vtmp)
 	return X
 
+@cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
@@ -354,6 +328,7 @@ def _dreconstruct(double[:,:] U, double[:] S, double[:,:] V):
 	return X
 
 @cr('POD.reconstruct')
+@cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)

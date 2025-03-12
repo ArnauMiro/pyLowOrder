@@ -10,13 +10,9 @@ from __future__ import print_function
 import numpy as np
 import scipy
 
-from ..vmmath       import temporal_mean, subtract_mean, tsqr_svd
-from ..utils.cr     import cr, cr_start, cr_stop
-from ..utils.errors import raiseError
+from ..vmmath   import temporal_mean, subtract_mean, tsqr_svd, hammwin
+from ..utils.cr import cr, cr_start, cr_stop
 
-
-def _hammwin(N):
-	return np.transpose(0.54-0.46*np.cos(2*np.pi*np.arange(N)/(N-1)))
 
 def _fft(Xf, winWeight, nDFT, nf):
 	return (winWeight/nDFT)*scipy.fft.fft(Xf)[:nf]
@@ -47,7 +43,7 @@ def run(X, t, nDFT=0, nolap=0, remove_mean=True):
 	
 	if nDFT == 0:
 		nDFT = int(np.power(2,np.floor(np.log2(N/10))))
-	window = _hammwin(nDFT)
+	window = hammwin(nDFT)
 	if nolap == 0:
 		nolap = int(np.floor(nDFT/2))
 	nBlks = int(np.floor((N-nolap)/(nDFT-nolap)))
