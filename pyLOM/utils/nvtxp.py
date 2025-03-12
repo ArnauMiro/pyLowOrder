@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 #
-# pyLOM - Python Low Order Modeling.
+# pyLOM, utils.
 #
-# Utils - NVTX profiler.
+# NVTX profiler
 #
 # Last rev: 12/03/2025
 from __future__ import print_function, division

@@ -12,7 +12,7 @@ mpi4py.rc.recv_mprobe = False
 from mpi4py import MPI
 
 from .parall import split
-from .nvtxp  import nvtxp
+from .gpu    import nvtxp
 
 MPI_COMM = MPI.COMM_WORLD
 MPI_RANK = MPI_COMM.Get_rank()
