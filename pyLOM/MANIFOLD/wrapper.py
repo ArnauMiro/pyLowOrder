@@ -8,7 +8,7 @@ from scipy.sparse.csgraph import shortest_path
 from scipy.linalg import eigh
 
 from ..vmmath import euclidean_d
-from ..utils  import cr, raiseError, pprint
+from ..utils  import cr_nvtx as cr, raiseError, pprint
 
 
 @cr('MANIFOLD.isomap')

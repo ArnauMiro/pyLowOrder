@@ -10,8 +10,8 @@ from __future__ import print_function
 import numpy as np, cupy as cp
 import scipy
 
-from ..vmmath       import temporal_mean, subtract_mean, tsqr_svd
-from ..utils.cr     import cr, cr_start, cr_stop
+from ..vmmath import temporal_mean, subtract_mean, tsqr_svd
+from ..utils  import cr_nvtx as cr, cr_start, cr_stop
 
 
 def _hammwin(N):
