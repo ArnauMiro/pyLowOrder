@@ -24,11 +24,11 @@ class TimeSeriesDatasetMine(torch.utils.data.Dataset):
 
     def __init__(self, X, Y):
         self.X = X
-        self.Y = Y
+        self.Y = Y.T
         self.len = X.shape[1]
         
     def __getitem__(self, index):
-        return self.X[:,index,:], self.Y[:,index]
+        return self.X[index], self.Y[index]
     
     def __len__(self):
         return self.len
@@ -82,14 +82,12 @@ for kk, mysensors in enumerate(shred.configs):
     vals_config = myscaler.transform(myvalues)[np.newaxis,:,:]
     #X = vals_config[0,:,:].T
     #data_in = torch.from_numpy(pyLOM.math.time_delay_embedding(X)).to(device)
-    print(vals_config.shape, flush=True)
     data_in = Padding(torch.from_numpy(vals_config)).to(device) #TODO: do our padding function for time-delay embedding
-    print(data_in.shape, data_out.shape, flush=True)
     # Generate training validation and test datasets both for reconstruction of states
     train_dataset = TimeSeriesDataset(data_in[tridx], data_out[tridx]) #TODO: use the pyLOM dataset or torch tensor dataset
     valid_dataset = TimeSeriesDataset(data_in[vaidx], data_out[vaidx]) #TODO: use the pyLOM dataset
     # Fit SHRED
-    shred.fit(train_dataset, train_dataset, epochs=500, patience=100, verbose=False)
+    shred.fit(train_dataset, valid_dataset, epochs=500, patience=100, verbose=True)
     shred.save('%s%i' % (shreds,kk), scalpath, mysensors)
 
 pyLOM.cr_info()
