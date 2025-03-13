@@ -129,7 +129,7 @@ def randomized_qr(Ai, r, q, seed=-1):
 	p = cp if type(Ai) is cp.ndarray else np
 	_, n  = Ai.shape
 	seed = int(time.time()) if seed < 0 else seed
-	n.random.seed(seed=seed)
+	p.random.seed(seed=seed)
 	omega = p.random.rand(n, r).astype(Ai.dtype)
 	Yi = matmul(Ai,omega)
 	# QR factorization on A
