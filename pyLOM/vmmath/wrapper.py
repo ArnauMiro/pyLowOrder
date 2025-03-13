@@ -522,9 +522,11 @@ def data_splitting(Nt, mode='reconstruct', seed=-1):
 	## Splitting into train, test and validation for reconstruction mode of SHRED
 	np.random.seed(0) if seed < 0 else np.random.seed(seed)
 	if mode =='reconstruct':
-		tridx       = np.sort(np.random.choice(Nt, size=int(0.7*Nt), replace=False))
+		tridx       = np.sort(np.random.choice(Nt, size=int(0.7*(Nt)), replace=False))
 		mask        = np.ones(Nt)
 		mask[tridx] = 0
+		mask[0]     = 0
+		mask[-1]    = 0
 		vate_idx    = np.arange(0, Nt)[np.where(mask!=0)[0]]
 		vaidx       = vate_idx[::2]
 		teidx       = vate_idx[1::2]
