@@ -7,9 +7,7 @@
 # Last rev: 30/07/2021
 from __future__ import print_function, division
 
-import os, mpi4py, numpy as np
-mpi4py.rc.recv_mprobe = False
-from mpi4py import MPI
+import os, numpy as np
 
 from .      import inp_out as io
 from .utils import cr_nvtx as cr, mem, raiseError, gpu_to_cpu, cpu_to_gpu
