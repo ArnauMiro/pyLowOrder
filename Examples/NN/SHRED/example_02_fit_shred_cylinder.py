@@ -4,6 +4,8 @@ import pyLOM, pyLOM.NN
 
 import matplotlib.pyplot as plt
 
+pyLOM.style_plots(legend_fsize=14)
+
 class TimeSeriesDatasetMine(torch.utils.data.Dataset):
     '''
     Input: sequence of input measurements with shape (ntrajectories, ntimes, ninput) and corresponding measurements of high-dimensional state with shape (ntrajectories, ntimes, noutput)
@@ -36,7 +38,6 @@ shreds   = 'out/shreds/config_'
 
 # SHRED sensor configurations for uncertainty quantification
 nconfigs = 1
-#mymodes  = np.array([0,1,3,4,5])
 
 ## Import sensor measurements
 # Training
@@ -75,11 +76,9 @@ output_size = trai_out.shape[0]
 Sscale      = S/np.sum(S)
 # Validation
 pod_vali = pyLOM.POD.load('POD_vali_%s.h5' % podvar, vars='V')[0].astype(np.float32)
-#pod_vali = pod_vali[mymodes]
 vali_out = pod_scaler.transform(pod_vali.T).T
 # Test
 pod_test = pyLOM.POD.load('POD_test_%s.h5' % podvar, vars='V')[0].astype(np.float32)
-#pod_test = pod_test[mymodes]
 test_out = pod_scaler.transform(pod_test.T).T
 # Full POD
 full_pod = np.zeros((output_size,ntimeG), dtype=pod_trai.dtype)
@@ -125,19 +124,28 @@ indices = np.arange(len(MRE))+1
 cmap    = plt.cm.jet
 colors  = cmap(np.linspace(0.1, 0.9, len(MRE)))
 fig, ax = plt.subplots(figsize=(20, 3))
-bars = ax.bar(indices, MRE, capsize=5, color=colors, edgecolor='black')
+bars = ax.bar(indices, Sscale*MRE, capsize=5, color=colors, edgecolor='black')
 ax.set_xlabel("Rank", fontsize=14)
 ax.set_ylabel("Average Relative Error", fontsize=14)
 ax.set_xticks(indices[24::25])
 ax.set_xticklabels([f"{i}" for i in indices[24::25]], fontsize=12)
 ax.tick_params(axis='both', labelsize=12)
 ax.grid(axis='y', linestyle='--', alpha=0.6)
-fig.savefig('errorbars_nonscale.pdf', dpi=300, bbox_inches='tight')
+fig.savefig('errorbars_scale.pdf', dpi=300, bbox_inches='tight')
 
-for mode in range(output_size):
-    plt.figure()
-    plt.plot(time,outres[mode,:], 'k')
-    plt.plot(time,full_pod[mode,:], 'g')
-    plt.savefig('output_%i.png'%mode)
+fig, axs = plt.subplots(output_size,1, figsize=(20, 24))
+axs = axs.flatten()
+for rr in range(len(axs)):
+    if rr == 0:
+        axs[rr].plot(time, outres[rr], 'r-.', label='SHRED')
+        axs[rr].plot(time, full_pod[rr], 'b--', label='Original')
+    else:
+        axs[rr].plot(time, outres[rr], 'r-.')
+        axs[rr].plot(time, full_pod[rr], 'b--')
+    axs[rr].set_ylabel('Mode %i' % rr)
+fig.legend()
+fig.tight_layout()
+fig.savefig('output_modes.pdf', dpi=600)
+
 
 pyLOM.cr_info()
