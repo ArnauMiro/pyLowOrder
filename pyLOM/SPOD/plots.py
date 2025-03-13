@@ -7,7 +7,7 @@
 # Last rev: 27/10/2021
 from __future__ import print_function, division
 
-import numpy as np, cupy as cp
+import numpy as np
 import matplotlib.pyplot as plt
 
 from .utils        import extract_modes
@@ -37,7 +37,6 @@ def plotMode(L, P, freqs, mesh, dset, ivar, pointData=True, modes=np.array([1],n
 
 def plotSpectra(f, L, fig=None, ax=None):
 	L, f = gpu_to_cpu(L), gpu_to_cpu(f)
-	L = cp.asnumpy(L) if type(L) is cp.ndarray else L
 	# Get or recover axis and figure
 	if fig is None:
 		fig = plt.figure(figsize=(8,6),dpi=100)

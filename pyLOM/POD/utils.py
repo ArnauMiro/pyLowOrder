@@ -11,7 +11,7 @@ import numpy as np
 
 from ..utils.gpu import cp
 from ..          import inp_out as io
-from ..utils     import cr_nvtx as cr
+from ..utils     import cr_nvtx as cr, gpu_to_cpu
 
 
 @cr('POD.extract_modes')
@@ -37,10 +37,7 @@ def save(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
 	Store POD variables in serial or parallel
 	according to the partition used to compute the POD.
 	'''
-	if type(U) is cp.ndarray:
-		io.h5_save_POD(fname,U.get(),S.get(),V.get(),ptable,nvars=nvars,pointData=pointData,mode=mode)
-	else:
-		io.h5_save_POD(fname,U,S,V,ptable,nvars=nvars,pointData=pointData,mode=mode)
+	io.h5_save_POD(fname,gpu_to_cpu(U),gpu_to_cpu(S),gpu_to_cpu(V),ptable,nvars=nvars,pointData=pointData,mode=mode)
 
 
 @cr('POD.load')
