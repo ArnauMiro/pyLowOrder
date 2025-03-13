@@ -189,3 +189,4 @@ submit*.sh
 *.json
 *.png
 *.pth
+*.pdf
