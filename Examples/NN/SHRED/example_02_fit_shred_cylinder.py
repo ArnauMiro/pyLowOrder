@@ -36,7 +36,7 @@ shreds   = 'out/shreds/config_'
 
 # SHRED sensor configurations for uncertainty quantification
 nconfigs = 1
-mymodes  = np.array([0,1,3,4,5])
+#mymodes  = np.array([0,1,3,4,5])
 
 ## Import sensor measurements
 # Training
@@ -56,29 +56,34 @@ sens_test = data_test[sensvar].astype(np.float32)
 mask_test = data_test.get_variable('mask')
 time_test = data_test.get_variable('time')
 # Compute total timesteps
-ntimeG    = np.max(np.hstack((mask_trai,mask_vali,mask_test)))+1
+ntimeG = np.max(np.hstack((mask_trai,mask_vali,mask_test)))+1
+time   = np.zeros((ntimeG,), dtype=time_trai.dtype)
+time[mask_trai] = time_trai
+time[mask_vali] = time_vali
+time[mask_test] = time_test
 
 ## Import POD coefficients and rescale them.
 # Training
 mymodes     = np.array([0,1,3,4,5])
-pod_train   = pyLOM.POD.load('POD_trai_%s.h5' % podvar, vars='V')[0].astype(np.float32)
-pod_train   = pod_train[mymodes]
+S, pod_trai = pyLOM.POD.load('POD_trai_%s.h5' % podvar, vars=['S','V'])
+pod_trai    = pod_trai.astype(np.float32)
 pod_scaler  = pyLOM.NN.MinMaxScaler()
-pod_scaler.fit(pod_train.T)
+pod_scaler.fit(pod_trai.T)
 pod_scaler.save(outscale)
-trai_out    = pod_scaler.transform(pod_train.T).T
+trai_out    = pod_scaler.transform(pod_trai.T).T
 output_size = trai_out.shape[0]
+Sscale      = S/np.sum(S)
 # Validation
 pod_vali = pyLOM.POD.load('POD_vali_%s.h5' % podvar, vars='V')[0].astype(np.float32)
-pod_vali = pod_vali[mymodes]
+#pod_vali = pod_vali[mymodes]
 vali_out = pod_scaler.transform(pod_vali.T).T
 # Test
 pod_test = pyLOM.POD.load('POD_test_%s.h5' % podvar, vars='V')[0].astype(np.float32)
-pod_test = pod_test[mymodes]
+#pod_test = pod_test[mymodes]
 test_out = pod_scaler.transform(pod_test.T).T
 # Full POD
-full_pod = np.zeros((output_size,ntimeG), dtype=pod_train.dtype)
-full_pod[:,mask_trai] = pod_train
+full_pod = np.zeros((output_size,ntimeG), dtype=pod_trai.dtype)
+full_pod[:,mask_trai] = pod_trai
 full_pod[:,mask_vali] = pod_vali
 full_pod[:,mask_test] = pod_test
 
@@ -108,23 +113,31 @@ for kk, mysensors in enumerate(shred.configs):
     train_dataset = TimeSeriesDatasetMine(delayed[:,mask_trai,:], trai_out) #TODO: use the pyLOM dataset or torch tensor dataset
     valid_dataset = TimeSeriesDatasetMine(delayed[:,mask_vali,:], vali_out) #TODO: use the pyLOM dataset
     # Fit SHRED
-    shred.fit(train_dataset, valid_dataset, epochs=1500, patience=100, verbose=False)
+    shred.fit(train_dataset, valid_dataset, epochs=1500, patience=100, verbose=False, mod_scale=torch.tensor(Sscale))
     shred.save('%s%i' % (shreds,kk), scalpath, mysensors)
 
 output = shred(torch.from_numpy(delayed).permute(1,2,0).to(device)).cpu().detach().numpy()
 outres = pod_scaler.inverse_transform(output).T
-MRE    = pyLOM.math.mre(full_pod, outres)
-time = np.zeros((ntimeG,), dtype=trai_sca.dtype)
-time[mask_trai] = time_trai
-time[mask_vali] = time_vali
-time[mask_test] = time_test
+MRE    = pyLOM.math.columnwise_mre(full_pod, outres)
+
+# Plot error bars
+indices = np.arange(len(MRE))+1
+cmap    = plt.cm.jet
+colors  = cmap(np.linspace(0.1, 0.9, len(MRE)))
+fig, ax = plt.subplots(figsize=(20, 3))
+bars = ax.bar(indices, MRE, capsize=5, color=colors, edgecolor='black')
+ax.set_xlabel("Rank", fontsize=14)
+ax.set_ylabel("Average Relative Error", fontsize=14)
+ax.set_xticks(indices[24::25])
+ax.set_xticklabels([f"{i}" for i in indices[24::25]], fontsize=12)
+ax.tick_params(axis='both', labelsize=12)
+ax.grid(axis='y', linestyle='--', alpha=0.6)
+fig.savefig('errorbars_nonscale.pdf', dpi=300, bbox_inches='tight')
 
 for mode in range(output_size):
     plt.figure()
     plt.plot(time,outres[mode,:], 'k')
     plt.plot(time,full_pod[mode,:], 'g')
-    plt.plot(time_trai,pod_train[mode,:], 'rx')
-    plt.plot(time_vali,pod_vali[mode,:], 'bo')
     plt.savefig('output_%i.png'%mode)
 
 pyLOM.cr_info()

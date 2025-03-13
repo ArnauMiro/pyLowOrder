@@ -83,17 +83,17 @@ class SHRED(nn.Module):
 		for param in self.parameters():
 			param.requires_grad = True
 	
-	def _loss_func(self, x, recon_x, reduction):
-		return F.mse_loss(x, recon_x, reduction=reduction)
+	def _loss_func(self, x, recon_x, mod_scale, reduction):
+		return F.mse_loss(x*mod_scale, recon_x*mod_scale, reduction=reduction)
 	
-	def _mre(self, x, recon_x):
+	def _mre(self, x, recon_x, mod_scale):
 		diff = (x-recon_x)*(x-recon_x)
-		num  = torch.sqrt(torch.sum(diff, axis=1))
-		den  = torch.sqrt(torch.sum(x*x, axis=1))
-		return torch.mean(num/den)
+		num  = torch.sqrt(torch.sum(diff, axis=0))
+		den  = torch.sqrt(torch.sum(x*x, axis=0))
+		return torch.sum(num/den*mod_scale/len(mod_scale))
 
 	@cr('SHRED.fit')
-	def fit(self, train_dataset, valid_dataset, batch_size=64, epochs=4000, optim=torch.optim.Adam, lr=1e-3, reduction='mean', verbose=False, patience=5):
+	def fit(self, train_dataset, valid_dataset, batch_size=64, epochs=4000, optim=torch.optim.Adam, lr=1e-3, reduction='mean', verbose=False, patience=5, mod_scale=None):
 		'''
 		Neural networks training
 
@@ -123,19 +123,21 @@ class SHRED(nn.Module):
 		patience_counter = 0
 		best_params = self.state_dict()
 
+		mod_scale = torch.ones((train_dataset.Y.shape[1],), dtype=torch.float32, device=self.device) if mod_scale == None else mod_scale.to(self.device)
+
 		for epoch in range(1, epochs + 1):
 			for k, data in enumerate(train_loader):
 				self.train()
 				outputs = self(data[0])
 				optimizer.zero_grad()
-				loss = self._loss_func(outputs, data[1], reduction)
+				loss = self._loss_func(outputs, data[1], mod_scale, reduction)
 				loss.backward()
 				optimizer.step()
 			scheduler.step()
 			self.eval()
 			with torch.no_grad():
-				train_error = self._mre(train_dataset.Y, self(train_dataset.X))
-				valid_error = self._mre(valid_dataset.Y, self(valid_dataset.X))
+				train_error = self._mre(train_dataset.Y, self(train_dataset.X), mod_scale)
+				valid_error = self._mre(valid_dataset.Y, self(valid_dataset.X), mod_scale)
 				valid_error_list.append(valid_error)
 			if verbose == True:
 				print("Epoch %i : Training loss = %.5e Validation loss = %.5e \r" % (epoch, train_error, valid_error), flush=True)
@@ -148,8 +150,8 @@ class SHRED(nn.Module):
 				break
 
 		self.load_state_dict(best_params)
-		train_error = self._mre(train_dataset.Y, self(train_dataset.X))
-		valid_error = self._mre(valid_dataset.Y, self(valid_dataset.X))
+		train_error = self._mre(train_dataset.Y, self(train_dataset.X), mod_scale)
+		valid_error = self._mre(valid_dataset.Y, self(valid_dataset.X), mod_scale)
 		print("Training done: Training loss = %.2f Validation loss = %.2f \r" % (train_error*100, valid_error*100), flush=True)
 
 	def save(self, path, scaler_path, sensors):
