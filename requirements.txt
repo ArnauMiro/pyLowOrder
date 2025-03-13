@@ -1,6 +1,5 @@
 setuptools>=43.0.0
 numpy
-cupy-cuda12x
 cython>=3.0.0
 mpi4py>=4.0.0
 matplotlib

@@ -125,13 +125,13 @@ dependencies = [
 # projects.
 [project.optional-dependencies] 
 # Dependencies on cupy
-cupy = [
+cuda = [
     "cupy",
 ]
-cupy_cuda = [
+cuda12x = [
     "cupy-cuda12x",
 ]
-cupy_rocm = [
+rocm-4-0 = [
     "cupy-rocm-4-0",
 ]
 # Dependencies to work with the NN module
