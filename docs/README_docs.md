@@ -7,6 +7,14 @@ Sphinx
 pydata-sphinx-theme
 sphinx-copybutton
 sphinx_design
+ipython
+nbsphinx
+pandoc
+```
+which can be installed running the following command on a python/conda environment:
+
+```bash
+pip install sphinx==7.4.7 pydata-sphinx-theme==0.16.1 ipython pygments==2.18.0 nbsphinx==0.9.5 pandoc==2.4 sphinx-copybutton==0.5.2 sphinx_design==0.6.1
 ```
 
 Moreover, the needed dependencies to import pyLOM must be installed too. On a conda environment, this commands sould be sufficient:
