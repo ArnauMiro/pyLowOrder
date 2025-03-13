@@ -39,7 +39,6 @@ def style_plots(fontsize=16, weight='normal', legend_fsize=12, usetex=False):
 	mpl.rcParams['axes.linewidth'] = 2.75
 	mpl.rcParams['savefig.bbox'] = 'tight'
 
-
 def plotFieldStruct2D(ax,nx,ny,ndim,xyz,field,dim,cmap,clear=False):
 	'''
 	Plot a 2D point or cell centered field on an structured mesh
@@ -55,7 +54,6 @@ def plotFieldStruct2D(ax,nx,ny,ndim,xyz,field,dim,cmap,clear=False):
 	Z = field.reshape((nx,ny,ndim),order='c').T if ndim > 1 else field.reshape((nx,ny),order='c').T
 	levels = np.linspace(-1e-2, 1e-2, 11)
 	return ax.contourf(X,Y,Z[ndim,:,:] if dim >= 0 else np.linalg.norm(Z,axis=0) if ndim > 1 else Z,cmap=cmap)
-
 
 def plotResidual(S,fig=None,ax=None):
 	'''
@@ -77,6 +75,23 @@ def plotResidual(S,fig=None,ax=None):
 	ax.set_xlabel(r'Truncation size')
 	ax.set_title(r'Tolerance')
 	# Return
+	return fig, ax
+
+def plotModalErrorBars(error:np.ndarray):
+	'''
+	Do a barplot of a 1D array of errors, where each element is the error associated in the prediction of a mode.
+	'''
+	indices = np.arange(len(error))+1
+	cmap    = plt.cm.jet
+	colors  = cmap(np.linspace(0.1, 0.9, len(error)))
+	fig, ax = plt.subplots(figsize=(20, 3))
+	bars = ax.bar(indices, error, capsize=5, color=colors, edgecolor='black')
+	ax.set_xlabel("Rank", fontsize=14)
+	ax.set_ylabel("Average Relative Error", fontsize=14)
+	ax.set_xticks(indices[24::25])
+	ax.set_xticklabels([f"{i}" for i in indices[24::25]], fontsize=12)
+	ax.tick_params(axis='both', labelsize=12)
+	fig.tight_layout()
 	return fig, ax
 
 

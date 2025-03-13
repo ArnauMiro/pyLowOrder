@@ -119,19 +119,13 @@ output = shred(torch.from_numpy(delayed).permute(1,2,0).to(device)).cpu().detach
 outres = pod_scaler.inverse_transform(output).T
 MRE    = pyLOM.math.columnwise_mre(full_pod, outres)
 
-# Plot error bars
-indices = np.arange(len(MRE))+1
-cmap    = plt.cm.jet
-colors  = cmap(np.linspace(0.1, 0.9, len(MRE)))
-fig, ax = plt.subplots(figsize=(20, 3))
-bars = ax.bar(indices, Sscale*MRE, capsize=5, color=colors, edgecolor='black')
-ax.set_xlabel("Rank", fontsize=14)
-ax.set_ylabel("Average Relative Error", fontsize=14)
-ax.set_xticks(indices[24::25])
-ax.set_xticklabels([f"{i}" for i in indices[24::25]], fontsize=12)
-ax.tick_params(axis='both', labelsize=12)
-ax.grid(axis='y', linestyle='--', alpha=0.6)
-fig.savefig('errorbars_scale.pdf', dpi=300, bbox_inches='tight')
+## Plot error bars
+#Non-scaled
+fig, _ = pyLOM.utils.plotModalErrorBars(MRE)
+fig.savefig('errorbars.pdf', dpi=300, bbox_inches='tight')
+#Scaled
+fig, _ = pyLOM.utils.plotModalErrorBars(Sscale*MRE)
+fig.savefig('errorbars_scaled.pdf', dpi=300, bbox_inches='tight')
 
 fig, axs = plt.subplots(output_size,1, figsize=(20, 24))
 axs = axs.flatten()
