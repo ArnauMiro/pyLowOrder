@@ -156,6 +156,29 @@ class Mesh(object):
 			xyzc = cellCenters(self._xyz,self._conec)
 		return xyzc
 
+	def _edge_normals(self):
+		'''Computes the normalized edge normals of the cells in the mesh.
+		Edge normals are the vectors normal to the edges and tangent to the cell.
+			
+		Returns
+		-------
+		edge_normals : np.ndarray
+			Array with the edge normals of each cell concatenated along axis 1.
+		'''
+
+		# Array list to store the edge normals of each cell. Assumes every cell has the same number of edges.
+		edge_normals_list = [np.zeros((self.ncells, 3), dtype=np.float32) for _ in range(self.nnodcell)]
+
+		# Iterate over each cell
+		for cell_id in range(self.ncells):
+			cell_normal = self.normal[cell_id]
+			cell_nodes = self.connectivity[cell_id]
+			nodes_xyz = self.xyz[cell_nodes]  # Get the nodes of the cell
+
+			edge_normals_list = edge_normals(nodes_xyz, cell_normal, self.nnodcell)  # Compute the edge normals of the cell
+
+		return np.concatenate(edge_normals_list, axis=1)  # Concatenate the edge normals along axis 1
+
 	@cr('Mesh.reshape')
 	def reshape_var(self,var,info):
 		'''
@@ -294,7 +317,7 @@ class Mesh(object):
 		return self._normal
 	@property
 	def edge_normal(self):
-		if self._edge_normal is None: self._edge_normal = self._edge_normals(self)
+		if self._edge_normal is None: self._edge_normal = self._edge_normals()
 		return self._edge_normal
 
 	@property
@@ -419,27 +442,3 @@ def _cells_connectivity(self):
 	padded_neighbors = np.array([list(neighbors_dict[cell]) + [-1] * (max_len - len(neighbors_dict[cell])) for cell in range(self.ncells)], dtype=np.int32)
 
 	return padded_neighbors
-
-
-def _edge_normals(self):
-    '''Computes the normalized edge normals of the cells in the mesh.
-    Edge normals are the vectors normal to the edges and tangent to the cell.
-        
-    Returns
-    -------
-    edge_normals : np.ndarray
-        Array with the edge normals of each cell concatenated along axis 1.
-    '''
-
-	# Array list to store the edge normals of each cell. Assumes every cell has the same number of edges.
-    edge_normals_list = [np.zeros((self.ncells, 3), dtype=np.float32) for _ in range(self.nnodcell)]
-
-    # Iterate over each cell
-    for cell_id in range(self.ncells):
-        cell_normal = self.normal[cell_id]
-        cell_nodes = self.connectivity[cell_id]
-        nodes_xyz = self.xyz[cell_nodes]  # Get the nodes of the cell
-
-        edge_normals_list = edge_normals(nodes_xyz, cell_normal, self.nnodcell)  # Compute the edge normals of the cell
-
-    return np.concatenate(edge_normals_list, axis=1)  # Concatenate the edge normals along axis 1
