@@ -99,8 +99,10 @@ meanout = np.mean(outres, axis=2)
 stdout  = np.std(outres, axis=2)
 meanMRE = np.mean(MRE, axis=1)
 stdMRE  = np.std(MRE, axis=1)
-
 print('The mean MRE of the %i configurations is %.2f' % (nconfigs, np.mean(meanMRE)))
+
+## Save the mean output between configurations as the POD coefficients for reconstruction
+pyLOM.POD.save('POD_predicted_%s.h5'% podvar,data_vali.partition_table,V=meanout,nvars=1)
 
 ## Plot error bars
 #Non-scaled
