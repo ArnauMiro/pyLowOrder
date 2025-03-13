@@ -30,9 +30,9 @@ sensvar  = 'VELOX'      # Variable from the sensor measurements we'll be working
 podvar   = 'VELOX'      # Variable from the POD we'll be working with
 
 # Output paths
-inscaler = 'out/scaler_'
+inscaler = 'out/scalers/config_'
 ouscaler = 'out/scaler_pod.json'
-shreds   = 'out/shred_'
+shreds   = 'out/shreds/config_'
 
 # SHRED sensor configurations for uncertainty quantification
 nconfigs = 2
@@ -60,8 +60,9 @@ ntimeG    = np.max(np.hstack((mask_trai,mask_vali,mask_test)))+1
 
 ## Import POD coefficients and rescale them.
 # Training
+mymodes     = np.array([0,1,3,4,5])
 pod_train   = pyLOM.POD.load('POD_trai_%s.h5' % podvar, vars='V')[0].astype(np.float32)
-#pod_train   = pod_train[mymodes]
+pod_train   = pod_train[mymodes]
 pod_scaler  = pyLOM.NN.MinMaxScaler()
 pod_scaler.fit(pod_train.T)
 #pod_scaler.save(ouscaler)
@@ -69,18 +70,8 @@ trai_out    = pod_scaler.transform(pod_train.T).T
 output_size = trai_out.shape[0]
 # Validation
 pod_vali   = pyLOM.POD.load('POD_vali_%s.h5' % podvar, vars='V')[0].astype(np.float32)
-#pod_vali   = pod_vali[mymodes]
+pod_vali   = pod_vali[mymodes]
 vali_out   = pod_scaler.transform(pod_vali.T).T
-
-plt.figure()
-plt.plot(time_trai, pod_train[6,:], 'rx-')
-plt.plot(time_vali, pod_vali[6,:], 'bo-')
-plt.savefig('debug.png')
-
-plt.figure()
-plt.plot(time_trai, pod_train[0,:], 'rx-')
-plt.plot(time_vali, pod_vali[0,:], 'bo-')
-plt.savefig('good_mode.png')
 
 ## Build SHRED architecture
 shred   = pyLOM.NN.SHRED(output_size, device, nsens, nconfigs=nconfigs)
