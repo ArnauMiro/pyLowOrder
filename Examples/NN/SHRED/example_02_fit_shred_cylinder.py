@@ -2,8 +2,6 @@ import numpy as np
 import torch
 import pyLOM, pyLOM.NN
 
-import matplotlib.pyplot as plt
-
 pyLOM.style_plots(legend_fsize=14)
 
 class TimeSeriesDatasetMine(torch.utils.data.Dataset):
@@ -37,7 +35,7 @@ outscale = 'out/scalers/pod.json'
 shreds   = 'out/shreds/config_'
 
 # SHRED sensor configurations for uncertainty quantification
-nconfigs = 1
+nconfigs = 20
 
 ## Import sensor measurements
 # Training
@@ -65,7 +63,6 @@ time[mask_test] = time_test
 
 ## Import POD coefficients and rescale them.
 # Training
-mymodes     = np.array([0,1,3,4,5])
 S, pod_trai = pyLOM.POD.load('POD_trai_%s.h5' % podvar, vars=['S','V'])
 pod_trai    = pod_trai.astype(np.float32)
 pod_scaler  = pyLOM.NN.MinMaxScaler()
@@ -91,7 +88,7 @@ shred   = pyLOM.NN.SHRED(output_size, device, nsens, nconfigs=nconfigs)
 
 ## Fit all SHRED configurations using the data from the sensors
 for kk, mysensors in enumerate(shred.configs):
-    # Get the sensor values for the training and validation
+    # Get the sensor values for the training, validation and test
     mytrai = sens_trai[mysensors,:]
     myvali = sens_vali[mysensors,:]
     mytest = sens_test[mysensors,:]
@@ -103,6 +100,7 @@ for kk, mysensors in enumerate(shred.configs):
     trai_sca = myscaler.transform(mytrai.T).T
     vali_sca = myscaler.transform(myvali.T).T
     test_sca = myscaler.transform(mytest.T).T
+    # Concatenate train, test and validation data to generate the embeddings correctly
     embedded = np.zeros((trai_sca.shape[0],ntimeG), dtype=trai_sca.dtype)
     embedded[:,mask_trai] = trai_sca
     embedded[:,mask_vali] = vali_sca
@@ -113,7 +111,7 @@ for kk, mysensors in enumerate(shred.configs):
     valid_dataset = TimeSeriesDatasetMine(delayed[:,mask_vali,:], vali_out) #TODO: use the pyLOM dataset
     # Fit SHRED
     shred.fit(train_dataset, valid_dataset, epochs=1500, patience=100, verbose=False, mod_scale=torch.tensor(Sscale))
-    shred.save('%s%i' % (shreds,kk), scalpath, mysensors)
+    shred.save('%s%i' % (shreds,kk), scalpath, outscale, mysensors)
 
 output = shred(torch.from_numpy(delayed).permute(1,2,0).to(device)).cpu().detach().numpy()
 outres = pod_scaler.inverse_transform(output).T

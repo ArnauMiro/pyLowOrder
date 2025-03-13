@@ -154,8 +154,9 @@ class SHRED(nn.Module):
 		valid_error = self._mre(valid_dataset.Y, self(valid_dataset.X), mod_scale)
 		print("Training done: Training loss = %.2f Validation loss = %.2f \r" % (train_error*100, valid_error*100), flush=True)
 
-	def save(self, path, scaler_path, sensors):
+	def save(self, path, scaler_path, podscale_path, sensors):
 		torch.save({
 		    'model_state_dict': self.state_dict(),
 		    'scaler_path'     : scaler_path,
+		    'podscale_path'   : podscale_path,
 			'sensors'         : sensors,}, "%s.pth" % path)
