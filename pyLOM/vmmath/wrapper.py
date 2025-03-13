@@ -395,6 +395,21 @@ def energy(original, rec):
 	# Compute Ek (this will be identical on all ranks)
 	return 1 - global_num / global_den
 
+def mre(original, rec):
+	'''
+	Mean Relative Error
+	'''
+	# Compute local sums
+	local_num = np.sum((original - rec) ** 2)
+	local_den = np.sum(original ** 2)
+
+	# Use Allreduce to compute global sums and make them available on all ranks
+	global_num = mpi_reduce(local_num,op='sum',all=True)
+	global_den = mpi_reduce(local_den,op='sum',all=True)
+
+	# Compute Mean Relative Error (this will be identical on all ranks)
+	return global_num / global_den
+
 @cr('math.vandermonde')
 def vandermonde(real, imag, m, n):
 	'''
