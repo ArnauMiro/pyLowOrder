@@ -183,3 +183,9 @@ Examples/Data/*
 flow/*
 events*
 model_state
+submit*.sh
+*.err
+*.out
+*.json
+*.png
+*.pth
