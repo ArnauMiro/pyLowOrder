@@ -2,6 +2,8 @@ import numpy as np
 import torch
 import pyLOM, pyLOM.NN
 
+import matplotlib.pyplot as plt
+
 class TimeSeriesDatasetMine(torch.utils.data.Dataset):
     '''
     Input: sequence of input measurements with shape (ntrajectories, ntimes, ninput) and corresponding measurements of high-dimensional state with shape (ntrajectories, ntimes, noutput)
@@ -56,13 +58,16 @@ data_test = pyLOM.Dataset.load('sensors_test.h5')
 sens_test = data_test[sensvar].astype(np.float32)
 mask_test = data_test.get_variable('mask')
 
-## Import POD coefficients. Stack and rescale them.
-pod_coeff   = pyLOM.POD.load('POD_modes_%s.h5' % podvar, vars='V')[0].astype(np.float32)
-pod_scaler  = pyLOM.NN.MinMaxScaler()
-pod_scaler.fit(pod_coeff)
-pod_scaler.save(ouscaler)
-data_out    = pod_scaler.transform(pod_coeff)
-output_size = data_out.shape[0]
+## Import POD coefficients and rescale them.
+# Training
+pod_train   = pyLOM.POD.load('POD_trai_%s.h5' % podvar, vars='V')[0].astype(np.float32)
+pod_scalertr  = pyLOM.NN.MinMaxScaler()
+pod_scalertr.fit(pod_train.T)
+trai_out    = pod_scalertr.transform(pod_train.T).T
+output_size = trai_out.shape[0]
+# Validation
+pod_vali   = pyLOM.POD.load('POD_vali_%s.h5' % podvar, vars='V')[0].astype(np.float32)
+vali_out   = pod_scalertr.transform(pod_vali.T).T
 
 ## Build SHRED architecture
 shred   = pyLOM.NN.SHRED(output_size, device, nsens, nconfigs=nconfigs)
@@ -79,8 +84,8 @@ for kk, mysensors in enumerate(shred.configs):
     rescaled = myscaler.transform(myvalues)
     data_in = pyLOM.math.time_delay_embedding(rescaled)
     # Generate training validation and test datasets both for reconstruction of states
-    train_dataset = TimeSeriesDatasetMine(data_in[:,mask_trai,:], data_out[:,mask_trai]) #TODO: use the pyLOM dataset or torch tensor dataset
-    valid_dataset = TimeSeriesDatasetMine(data_in[:,mask_vali,:], data_out[:,mask_vali]) #TODO: use the pyLOM dataset
+    train_dataset = TimeSeriesDatasetMine(data_in[:,mask_trai,:], trai_out) #TODO: use the pyLOM dataset or torch tensor dataset
+    valid_dataset = TimeSeriesDatasetMine(data_in[:,mask_vali,:], vali_out) #TODO: use the pyLOM dataset
     # Fit SHRED
     shred.fit(train_dataset, valid_dataset, epochs=1500, patience=100, verbose=False)
     shred.save('%s%i' % (shreds,kk), scalpath, mysensors)
