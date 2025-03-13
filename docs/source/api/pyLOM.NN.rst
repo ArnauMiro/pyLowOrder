@@ -1,5 +1,5 @@
-pyLOM.NN
-========
+pyLOM.NN package
+================
 
 Subpackages
 -----------
@@ -12,40 +12,40 @@ Subpackages
 Submodules
 ----------
 
-pyLOM.NN.callbacks
-------------------
+pyLOM.NN.callbacks module
+-------------------------
 
 .. automodule:: pyLOM.NN.callbacks
    :members:
    :undoc-members:
    :show-inheritance:
 
-pyLOM.NN.optimizer
-------------------
+pyLOM.NN.optimizer module
+-------------------------
 
 .. automodule:: pyLOM.NN.optimizer
    :members:
    :undoc-members:
    :show-inheritance:
 
-pyLOM.NN.pipeline
------------------
+pyLOM.NN.pipeline module
+------------------------
 
 .. automodule:: pyLOM.NN.pipeline
    :members:
    :undoc-members:
    :show-inheritance:
 
-pyLOM.NN.stats
---------------
+pyLOM.NN.stats module
+---------------------
 
 .. automodule:: pyLOM.NN.stats
    :members:
    :undoc-members:
    :show-inheritance:
 
-pyLOM.NN.utils
---------------
+pyLOM.NN.utils module
+---------------------
 
 .. automodule:: pyLOM.NN.utils
    :members:

@@ -1,13 +1,13 @@
-pyLOM.vmmath package
-====================
+pyLOM.GPR package
+=================
 
 Submodules
 ----------
 
-pyLOM.vmmath.wrapper module
----------------------------
+pyLOM.GPR.wrapper module
+------------------------
 
-.. automodule:: pyLOM.vmmath.wrapper
+.. automodule:: pyLOM.GPR.wrapper
    :members:
    :undoc-members:
    :show-inheritance:
@@ -15,7 +15,7 @@ pyLOM.vmmath.wrapper module
 Module contents
 ---------------
 
-.. automodule:: pyLOM.vmmath
+.. automodule:: pyLOM.GPR
    :members:
    :undoc-members:
    :show-inheritance:

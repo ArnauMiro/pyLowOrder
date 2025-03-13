@@ -1,27 +1,27 @@
-pyLOM.DMD
-=========
+pyLOM.DMD package
+=================
 
 Submodules
 ----------
 
-pyLOM.DMD.plots
----------------
+pyLOM.DMD.plots module
+----------------------
 
 .. automodule:: pyLOM.DMD.plots
    :members:
    :undoc-members:
    :show-inheritance:
 
-pyLOM.DMD.utils
----------------
+pyLOM.DMD.utils module
+----------------------
 
 .. automodule:: pyLOM.DMD.utils
    :members:
    :undoc-members:
    :show-inheritance:
 
-pyLOM.DMD.wrapper
------------------
+pyLOM.DMD.wrapper module
+------------------------
 
 .. automodule:: pyLOM.DMD.wrapper
    :members:

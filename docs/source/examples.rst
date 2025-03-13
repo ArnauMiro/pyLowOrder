@@ -5,4 +5,4 @@ Examples
    :maxdepth: 2
    :glob:
 
-   examples/burgers_PINN_training_pipeline
+   notebook_examples/burgers_PINN_training_pipeline

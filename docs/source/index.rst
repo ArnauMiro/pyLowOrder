@@ -6,9 +6,9 @@ Welcome to pyLOM's documentation
    :maxdepth: 1
    :hidden:
 
-   User Guide <user/index>
    API reference <api/modules>
    Building from source <https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment>
+   Examples <examples>
 
 
 **Version**: |version|
@@ -16,7 +16,7 @@ Welcome to pyLOM's documentation
 **Useful links**:
 `Source Repository <https://github.com/ArnauMiro/pyLowOrder>`_ |
 `Issue Tracker <https://github.com/ArnauMiro/pyLowOrder/issues>`_ |
-`Wiki <https://github.com/ArnauMiro/pyLowOrder/wiki>`_ |
+`Wiki <https://github.com/ArnauMiro/pyLowOrder/wiki>`_ 
 
 
 **pyLOM** is a Python library for low-order modeling techniques.
