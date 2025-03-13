@@ -31,11 +31,11 @@ podvar   = 'VELOX'      # Variable from the POD we'll be working with
 
 # Output paths
 inscaler = 'out/scalers/config_'
-ouscaler = 'out/scaler_pod.json'
+outscale = 'out/scalers/pod.json'
 shreds   = 'out/shreds/config_'
 
 # SHRED sensor configurations for uncertainty quantification
-nconfigs = 2
+nconfigs = 1
 mymodes  = np.array([0,1,3,4,5])
 
 ## Import sensor measurements
@@ -65,13 +65,22 @@ pod_train   = pyLOM.POD.load('POD_trai_%s.h5' % podvar, vars='V')[0].astype(np.f
 pod_train   = pod_train[mymodes]
 pod_scaler  = pyLOM.NN.MinMaxScaler()
 pod_scaler.fit(pod_train.T)
-#pod_scaler.save(ouscaler)
+pod_scaler.save(outscale)
 trai_out    = pod_scaler.transform(pod_train.T).T
 output_size = trai_out.shape[0]
 # Validation
-pod_vali   = pyLOM.POD.load('POD_vali_%s.h5' % podvar, vars='V')[0].astype(np.float32)
-pod_vali   = pod_vali[mymodes]
-vali_out   = pod_scaler.transform(pod_vali.T).T
+pod_vali = pyLOM.POD.load('POD_vali_%s.h5' % podvar, vars='V')[0].astype(np.float32)
+pod_vali = pod_vali[mymodes]
+vali_out = pod_scaler.transform(pod_vali.T).T
+# Test
+pod_test = pyLOM.POD.load('POD_test_%s.h5' % podvar, vars='V')[0].astype(np.float32)
+pod_test = pod_test[mymodes]
+test_out = pod_scaler.transform(pod_test.T).T
+# Full POD
+full_pod = np.zeros((output_size,ntimeG), dtype=pod_train.dtype)
+full_pod[:,mask_trai] = pod_train
+full_pod[:,mask_vali] = pod_vali
+full_pod[:,mask_test] = pod_test
 
 ## Build SHRED architecture
 shred   = pyLOM.NN.SHRED(output_size, device, nsens, nconfigs=nconfigs)
@@ -102,7 +111,9 @@ for kk, mysensors in enumerate(shred.configs):
     shred.fit(train_dataset, valid_dataset, epochs=1500, patience=100, verbose=False)
     shred.save('%s%i' % (shreds,kk), scalpath, mysensors)
 
-output = shred(torch.from_numpy(delayed).permute(1,2,0).to(device))
+output = shred(torch.from_numpy(delayed).permute(1,2,0).to(device)).cpu().detach().numpy()
+outres = pod_scaler.inverse_transform(output).T
+MRE    = pyLOM.math.mre(full_pod, outres)
 time = np.zeros((ntimeG,), dtype=trai_sca.dtype)
 time[mask_trai] = time_trai
 time[mask_vali] = time_vali
@@ -110,9 +121,10 @@ time[mask_test] = time_test
 
 for mode in range(output_size):
     plt.figure()
-    plt.plot(time,output[:,mode].cpu().detach().numpy(), 'k')
-    plt.plot(time_trai,trai_out[mode,:], 'rx')
-    plt.plot(time_vali,vali_out[mode,:], 'bo')
+    plt.plot(time,outres[mode,:], 'k')
+    plt.plot(time,full_pod[mode,:], 'g')
+    plt.plot(time_trai,pod_train[mode,:], 'rx')
+    plt.plot(time_vali,pod_vali[mode,:], 'bo')
     plt.savefig('output_%i.png'%mode)
 
 pyLOM.cr_info()
