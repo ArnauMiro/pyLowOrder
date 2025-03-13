@@ -21,7 +21,14 @@ extensions = [
     'sphinx_copybutton',
     'sphinx.ext.mathjax',
     'sphinx_design',
+    'nbsphinx'
 ]
+
+# Set the default syntax highlighter
+highlight_language = 'python'
+
+# For nbsphinx
+nbsphinx_codecell_lexer = 'ipython3'
 
 templates_path = ['_templates']
 exclude_patterns = []

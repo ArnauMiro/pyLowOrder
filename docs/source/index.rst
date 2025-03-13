@@ -37,7 +37,7 @@ This tool is a port of the POD/DMD of the tools from UPM in MATLAB to C/C++ usin
 
         +++
 
-        .. button-ref:: auto_examples/index
+        .. button-ref:: examples
             :expand:
             :color: secondary
             :click-parent:
