@@ -113,20 +113,4 @@ for kk, mysensors in enumerate(shred.configs):
     shred.fit(train_dataset, valid_dataset, epochs=1500, patience=100, verbose=False, mod_scale=torch.tensor(Sscale))
     shred.save('%s%i' % (shreds,kk), scalpath, outscale, mysensors)
 
-output = shred(torch.from_numpy(delayed).permute(1,2,0).to(device)).cpu().detach().numpy()
-outres = pod_scaler.inverse_transform(output).T
-MRE    = pyLOM.math.columnwise_mre(full_pod, outres)
-
-## Plot error bars
-#Non-scaled
-fig, _ = pyLOM.utils.plotModalErrorBars(MRE)
-fig.savefig('errorbars.pdf', dpi=300, bbox_inches='tight')
-#Scaled
-fig, _ = pyLOM.utils.plotModalErrorBars(Sscale*MRE)
-fig.savefig('errorbars_scaled.pdf', dpi=300, bbox_inches='tight')
-
-## Plot POD modes reconstruction
-fig, _ = pyLOM.utils.plotTimeSeries(time, full_pod, outres)
-fig.savefig('output_modes.pdf', dpi=600)
-
 pyLOM.cr_info()
