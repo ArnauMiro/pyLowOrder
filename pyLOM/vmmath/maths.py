@@ -10,7 +10,7 @@ from __future__ import print_function, division
 import numpy as np
 
 from ..utils.gpu import cp
-from ..utils     import cr_nvtx as cr, mpi_reduce
+from ..utils     import cr_nvtx as cr, mpi_reduce, gpu_to_cpu
 
 
 ## Python functions
@@ -99,7 +99,7 @@ def eigen(A):
 		imag(n)   are the imaginary eigenvalues.
 		vecs(n,n) are the right eigenvectors.
 	'''
-	A = cp.asnumpy(A) if type(A) is cp.ndarray else A
+	A = gpu_to_cpu(A)
 	w,vecs = np.linalg.eig(A)
 	real   = np.real(w)
 	imag   = np.imag(w)
