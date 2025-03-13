@@ -155,5 +155,5 @@ class SHRED(nn.Module):
 	def save(self, path, scaler_path, sensors):
 		torch.save({
 		    'model_state_dict': self.state_dict(),
-		    'scaler_path': scaler_path,
-			'sensors' : sensors,}, "%s.pth" % path)
+		    'scaler_path'     : scaler_path,
+			'sensors'         : sensors,}, "%s.pth" % path)
