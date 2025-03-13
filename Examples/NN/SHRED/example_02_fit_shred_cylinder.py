@@ -35,7 +35,8 @@ ouscaler = 'out/scaler_pod.json'
 shreds   = 'out/shred_'
 
 # SHRED sensor configurations for uncertainty quantification
-nconfigs    = 1 
+nconfigs = 2
+mymodes  = np.array([0,1,3,4,5])
 
 ## Import sensor measurements
 # Training
@@ -43,20 +44,24 @@ data_trai = pyLOM.Dataset.load('sensors_trai.h5')
 sens_trai = data_trai[sensvar].astype(np.float32)
 nsens     = sens_trai.shape[0]
 mask_trai = data_trai.get_variable('mask')
+time_trai = data_trai.get_variable('time')
 # Validation
 data_vali = pyLOM.Dataset.load('sensors_vali.h5')
 sens_vali = data_vali[sensvar].astype(np.float32)
 mask_vali = data_vali.get_variable('mask')
+time_vali = data_vali.get_variable('time')
 # Test
 data_test = pyLOM.Dataset.load('sensors_test.h5')
 sens_test = data_test[sensvar].astype(np.float32)
 mask_test = data_test.get_variable('mask')
+time_test = data_test.get_variable('time')
 # Compute total timesteps
 ntimeG    = np.max(np.hstack((mask_trai,mask_vali,mask_test)))+1
 
 ## Import POD coefficients and rescale them.
 # Training
 pod_train   = pyLOM.POD.load('POD_trai_%s.h5' % podvar, vars='V')[0].astype(np.float32)
+#pod_train   = pod_train[mymodes]
 pod_scaler  = pyLOM.NN.MinMaxScaler()
 pod_scaler.fit(pod_train.T)
 #pod_scaler.save(ouscaler)
@@ -64,7 +69,18 @@ trai_out    = pod_scaler.transform(pod_train.T).T
 output_size = trai_out.shape[0]
 # Validation
 pod_vali   = pyLOM.POD.load('POD_vali_%s.h5' % podvar, vars='V')[0].astype(np.float32)
+#pod_vali   = pod_vali[mymodes]
 vali_out   = pod_scaler.transform(pod_vali.T).T
+
+plt.figure()
+plt.plot(time_trai, pod_train[6,:], 'rx-')
+plt.plot(time_vali, pod_vali[6,:], 'bo-')
+plt.savefig('debug.png')
+
+plt.figure()
+plt.plot(time_trai, pod_train[0,:], 'rx-')
+plt.plot(time_vali, pod_vali[0,:], 'bo-')
+plt.savefig('good_mode.png')
 
 ## Build SHRED architecture
 shred   = pyLOM.NN.SHRED(output_size, device, nsens, nconfigs=nconfigs)
@@ -94,5 +110,18 @@ for kk, mysensors in enumerate(shred.configs):
     # Fit SHRED
     shred.fit(train_dataset, valid_dataset, epochs=1500, patience=100, verbose=False)
     shred.save('%s%i' % (shreds,kk), scalpath, mysensors)
+
+output = shred(torch.from_numpy(delayed).permute(1,2,0).to(device))
+time = np.zeros((ntimeG,), dtype=trai_sca.dtype)
+time[mask_trai] = time_trai
+time[mask_vali] = time_vali
+time[mask_test] = time_test
+
+for mode in range(output_size):
+    plt.figure()
+    plt.plot(time,output[:,mode].cpu().detach().numpy(), 'k')
+    plt.plot(time_trai,trai_out[mode,:], 'rx')
+    plt.plot(time_vali,vali_out[mode,:], 'bo')
+    plt.savefig('output_%i.png'%mode)
 
 pyLOM.cr_info()
