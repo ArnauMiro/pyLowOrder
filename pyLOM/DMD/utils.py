@@ -24,7 +24,7 @@ def extract_modes(Phi,ivar,npoints,real=True,modes=[],reshape=True):
 	# Define modes to extract
 	if len(modes) == 0: modes = p.arange(1,Phi.shape[1]+1,dtype=p.int32)
 	# Allocate output array
-	out =p.zeros((npoints,len(modes)),Phi.dtype)
+	out =p.zeros((npoints,len(modes)),p.double if Phi.dtype == p.complex128 else p.float32)
 	for i,m in enumerate(modes):
 		out[:,i] = Phi[ivar-1:nvars*npoints:nvars,m-1].real if real else Phi[ivar-1:nvars*npoints:nvars,m-1].imag
 	# Return reshaped output
