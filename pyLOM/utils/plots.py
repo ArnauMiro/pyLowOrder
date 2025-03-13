@@ -9,6 +9,7 @@ from __future__ import print_function, division
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 from ..vmmath       import vector_norm
 from ..utils.cr     import cr
@@ -26,6 +27,17 @@ def close_plots():
 	Wrapper to matplotlib.pyplot.close()
 	'''
 	plt.close()
+
+def style_plots(fontsize=16, weight='normal', legend_fsize=12, usetex=False):
+	'''
+	Define a common plot style in the scripts
+	'''
+	font = {'size':fontsize, 'weight':weight}
+	mpl.rc('font',**font)
+	mpl.rc('legend',**{'fontsize':legend_fsize})
+	mpl.rc('text',usetex=usetex)
+	mpl.rcParams['axes.linewidth'] = 2.75
+	mpl.rcParams['savefig.bbox'] = 'tight'
 
 
 def plotFieldStruct2D(ax,nx,ny,ndim,xyz,field,dim,cmap,clear=False):
