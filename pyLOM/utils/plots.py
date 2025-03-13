@@ -94,11 +94,12 @@ def plotModalErrorBars(error:np.ndarray):
 	fig.tight_layout()
 	return fig, ax
 
-def plotTimeSeries(time:np.ndarray, truth:np.ndarray, pred:np.ndarray):
+def plotTimeSeries(time:np.ndarray, truth:np.ndarray, pred:np.ndarray, std:np.ndarray = None):
 	'''
 	Function to plot the comparison between the truth and predicted N temporal series.
 	'''
-	N = truth.shape[0]
+	N, nt = truth.shape
+	std   = std if std is not None else np.zeros((N,nt))
 	fig, axs = plt.subplots(N,1, figsize=(20, 3*N))
 	axs = axs.flatten()
 	for rr in range(len(axs)):
@@ -108,6 +109,7 @@ def plotTimeSeries(time:np.ndarray, truth:np.ndarray, pred:np.ndarray):
 		else:
 			axs[rr].plot(time, pred[rr], 'r-.')
 			axs[rr].plot(time, truth[rr], 'b--')
+		axs[rr].fill_between(time, pred[rr] - 1.96*std[rr], pred[rr] + 1.96*std[rr], color='r', alpha=0.25) #95% confidence interval of a Gaussian distribution
 		axs[rr].set_ylabel('Mode %i' % rr)
 	fig.legend()
 	fig.tight_layout()
