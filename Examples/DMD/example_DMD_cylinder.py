@@ -11,6 +11,8 @@ mpi4py.rc.recv_mprobe = False
 import numpy as np
 import pyLOM
 
+pyLOM.gpu_device()
+
 
 ## Parameters
 DATAFILE = './DATA/CYLINDER.h5'
@@ -19,7 +21,7 @@ VARIABLE = 'VELOX'
 
 ## Data loading
 m  = pyLOM.Mesh.load(DATAFILE)
-d  = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table)
+d  = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table).to_gpu([VARIABLE])
 X  = d[VARIABLE]
 t  = d.get_variable('time')
 dt = t[1] - t[0]
@@ -49,13 +51,13 @@ if pyLOM.utils.is_rank_or_serial(0):
 # Spatial modes
 d.add_field('U_MODES_REAL',6,pyLOM.DMD.extract_modes(Phi,1,len(d),real=True,modes=[1,4,6,2,5,3]))
 d.add_field('U_MODES_IMAG',6,pyLOM.DMD.extract_modes(Phi,1,len(d),real=False,modes=[1,4,6,2,5,3]))
-pyLOM.io.pv_writer(m,d,'modes',basedir='out/modes',instants=[0],times=[0.],vars=['U_MODES_REAL','U_MODES_IMAG'],fmt='vtkh5')
+pyLOM.io.pv_writer(m,d.to_cpu(['U_MODES_REAL','U_MODES_IMAG']),'modes',basedir='out/modes',instants=[0],times=[0.],vars=['U_MODES_REAL','U_MODES_IMAG'],fmt='vtkh5')
 pyLOM.DMD.plotMode(Phi,omega,m,d,1,pointData=False,modes=[1,2,3,4,5,6,7],cpos='xy')
 
 # Temporal evolution
 d.add_field('VELXR',1,X_DMD)
-pyLOM.io.pv_writer(m,d,'flow',basedir='out/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t,vars=['VELOX','VELXR'],fmt='vtkh5')
-pyLOM.DMD.plotSnapshot(m,d,vars=['VELXR'],instant=0,cmap='jet',cpos='xy')
+pyLOM.io.pv_writer(m,d.to_cpu(['VELOX','VELXR']),'flow',basedir='out/flow',instants=np.arange(t.shape[0],dtype=np.int32),times=t,vars=['VELOX','VELXR'],fmt='vtkh5')
+pyLOM.DMD.plotSnapshot(m,d.to_cpu(['VELXR']),vars=['VELXR'],instant=0,cmap='jet',cpos='xy')
 
 
 ## Show and print timings
