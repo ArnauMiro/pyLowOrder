@@ -127,19 +127,8 @@ fig.savefig('errorbars.pdf', dpi=300, bbox_inches='tight')
 fig, _ = pyLOM.utils.plotModalErrorBars(Sscale*MRE)
 fig.savefig('errorbars_scaled.pdf', dpi=300, bbox_inches='tight')
 
-fig, axs = plt.subplots(output_size,1, figsize=(20, 24))
-axs = axs.flatten()
-for rr in range(len(axs)):
-    if rr == 0:
-        axs[rr].plot(time, outres[rr], 'r-.', label='SHRED')
-        axs[rr].plot(time, full_pod[rr], 'b--', label='Original')
-    else:
-        axs[rr].plot(time, outres[rr], 'r-.')
-        axs[rr].plot(time, full_pod[rr], 'b--')
-    axs[rr].set_ylabel('Mode %i' % rr)
-fig.legend()
-fig.tight_layout()
+## Plot POD modes reconstruction
+fig, _ = pyLOM.utils.plotTimeSeries(time, full_pod, outres)
 fig.savefig('output_modes.pdf', dpi=600)
-
 
 pyLOM.cr_info()
