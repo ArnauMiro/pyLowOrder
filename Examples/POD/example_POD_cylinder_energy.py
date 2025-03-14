@@ -11,7 +11,7 @@ mpi4py.rc.recv_mprobe = False
 import numpy as np
 import pyLOM
 
-pyLOM.gpu_device() # Detect GPU configuration
+pyLOM.gpu_device(gpu_per_node=4) # Detect GPU configuration
 
 
 ## Parameters

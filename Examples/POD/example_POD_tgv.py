@@ -8,7 +8,7 @@ from __future__ import print_function, division
 import numpy as np
 import pyLOM
 
-pyLOM.gpu_device() # Detect GPU configuration
+pyLOM.gpu_device(gpu_per_node=4) # Detect GPU configuration
 
 
 ## Parameters
