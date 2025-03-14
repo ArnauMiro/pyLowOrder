@@ -53,8 +53,7 @@ jobs:
       - name: Install sphinx dependencies
         run: |
           sudo apt install pandoc
-          pip install sphinx==7.4.7 pydata-sphinx-theme==0.16.1 ipython pygments==2.18.0 nbsphinx==0.9.5 pandoc==2.4 sphinx-copybutton==0.5.2 sphinx_design==0.6.1
-      - name: Build documentation
+          pip install -r requirements_docs.txt
         run: |
           sphinx-apidoc -f -o docs/source/api pyLOM -t docs/source/_templates
           cd docs/source
