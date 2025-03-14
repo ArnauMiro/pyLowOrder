@@ -1,0 +1,831 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>pyLOM.POD package &#8212; pyLOM  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=de90da8b" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/pyLOM.POD';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="pyLOM.SPOD package" href="pyLOM.SPOD.html" />
+    <link rel="prev" title="pyLOM.NN.architectures package" href="pyLOM.NN.architectures.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="2.0.1" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">pyLOM</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
+    Building from source
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples.html">
+    Examples
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
+    Building from source
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples.html">
+    Examples
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="pyLOM.html">pyLOM package</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.DMD.html">pyLOM.DMD package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.GPOD.html">pyLOM.GPOD package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.GPR.html">pyLOM.GPR package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.MANIFOLD.html">pyLOM.MANIFOLD package</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="pyLOM.NN.html">pyLOM.NN package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.architectures.html">pyLOM.NN.architectures package</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">pyLOM.POD package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.SPOD.html">pyLOM.SPOD package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.inp_out.html">pyLOM.inp_out package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.utils.html">pyLOM.utils package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.vmmath.html">pyLOM.vmmath package</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="modules.html" class="nav-link">pyLOM</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="pyLOM.html" class="nav-link">pyLOM package</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">pyLOM.POD package</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="pylom-pod-package">
+<h1>pyLOM.POD package<a class="headerlink" href="#pylom-pod-package" title="Link to this heading">#</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">#</a></h2>
+</section>
+<section id="module-pyLOM.POD.plots">
+<span id="pylom-pod-plots-module"></span><h2>pyLOM.POD.plots module<a class="headerlink" href="#module-pyLOM.POD.plots" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.POD.plots.plotMode">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.POD.plots.</span></span><span class="sig-name descname"><span class="pre">plotMode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">V</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">np.array([1],</span> <span class="pre">np.int32)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fftfun</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">fft</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_freq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fig</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/POD/plots.html#plotMode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.POD.plots.plotMode" title="Link to this definition">#</a></dt>
+<dd><p>Given U, VT and a mode, plot their
+representation in a figure.</p>
+</dd></dl>
+
+</section>
+<section id="module-pyLOM.POD.utils">
+<span id="pylom-pod-utils-module"></span><h2>pyLOM.POD.utils module<a class="headerlink" href="#module-pyLOM.POD.utils" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.POD.utils.extract_modes">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.POD.utils.</span></span><span class="sig-name descname"><span class="pre">extract_modes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">U</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ivar</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">npoints</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reshape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/POD/utils.html#extract_modes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.POD.utils.extract_modes" title="Link to this definition">#</a></dt>
+<dd><p>Extract modes for a certain variables</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.POD.utils.save">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.POD.utils.</span></span><span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">U</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nvars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pointData</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'w'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/POD/utils.html#save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.POD.utils.save" title="Link to this definition">#</a></dt>
+<dd><p>Store POD variables in serial or parallel
+according to the partition used to compute the POD.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.POD.utils.load">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.POD.utils.</span></span><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['U',</span> <span class="pre">'S',</span> <span class="pre">'V']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmod</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/POD/utils.html#load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.POD.utils.load" title="Link to this definition">#</a></dt>
+<dd><p>Load POD variables in serial or parallel
+according to the partition used to compute the POD.</p>
+</dd></dl>
+
+</section>
+<section id="module-pyLOM.POD.wrapper">
+<span id="pylom-pod-wrapper-module"></span><h2>pyLOM.POD.wrapper module<a class="headerlink" href="#module-pyLOM.POD.wrapper" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.POD.wrapper._dreconstruct">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.POD.wrapper.</span></span><span class="sig-name descname"><span class="pre">_dreconstruct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">U</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.POD.wrapper._dreconstruct" title="Link to this definition">#</a></dt>
+<dd><p>Reconstruct the flow given the POD decomposition matrices
+that can be possibly truncated.
+N is the truncated size
+n is the number of snapshots</p>
+<dl class="simple">
+<dt>Inputs:</dt><dd><ul class="simple">
+<li><p>U(m,N)  are the POD modes.</p></li>
+<li><p>S(N)    are the singular values.</p></li>
+<li><p>V(N,n)  are the right singular vectors.</p></li>
+</ul>
+</dd>
+<dt>Outputs</dt><dd><ul class="simple">
+<li><p>X(m,n)  is the reconstructed flow.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.POD.wrapper._drun">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.POD.wrapper.</span></span><span class="sig-name descname"><span class="pre">_drun</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_mean</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">randomized</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.POD.wrapper._drun" title="Link to this definition">#</a></dt>
+<dd><p>Run POD analysis of a matrix X.</p>
+<dl class="simple">
+<dt>Inputs:</dt><dd><ul class="simple">
+<li><p>X[ndims*nmesh,n_temp_snapshots]: data matrix</p></li>
+<li><p>remove_mean:                     whether or not to remove the mean flow</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>are the POD modes.
+- S:  are the singular values.
+- V:  are the right singular vectors.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>U</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.POD.wrapper._dtruncate">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.POD.wrapper.</span></span><span class="sig-name descname"><span class="pre">_dtruncate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">U</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.POD.wrapper._dtruncate" title="Link to this definition">#</a></dt>
+<dd><p>Truncate POD matrices (U,S,V) given a residual r.</p>
+<dl>
+<dt>Inputs:</dt><dd><ul>
+<li><p>U(m,n)  are the POD modes.</p></li>
+<li><p>S(n)    are the singular values.</p></li>
+<li><p>V(n,n)  are the right singular vectors.</p></li>
+<li><dl>
+<dt>r       target residual, number of modes, or cumulative energy threshold.</dt><dd><ul class="simple">
+<li><p>If r &gt;= 1, it is treated as the number of modes.</p></li>
+<li><p>If r &lt; 1 and r &gt; 0 it is treated as the residual target.</p></li>
+<li><p>If r &lt; 1 and r &lt; 0 it is treated as the fraction of cumulative energy to retain.</p></li>
+</ul>
+<p>Note:  must be in (0,-1] and r = -1 is valid</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>U(m,N)  are the POD modes (truncated at N).</p></li>
+<li><p>S(N)    are the singular values (truncated at N).</p></li>
+<li><p>V(N,n)  are the right singular vectors (truncated at N).</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.POD.wrapper._sreconstruct">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.POD.wrapper.</span></span><span class="sig-name descname"><span class="pre">_sreconstruct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">U</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.POD.wrapper._sreconstruct" title="Link to this definition">#</a></dt>
+<dd><p>Reconstruct the flow given the POD decomposition matrices
+that can be possibly truncated.
+N is the truncated size
+n is the number of snapshots</p>
+<dl class="simple">
+<dt>Inputs:</dt><dd><ul class="simple">
+<li><p>U(m,N)  are the POD modes.</p></li>
+<li><p>S(N)    are the singular values.</p></li>
+<li><p>V(N,n)  are the right singular vectors.</p></li>
+</ul>
+</dd>
+<dt>Outputs</dt><dd><ul class="simple">
+<li><p>X(m,n)  is the reconstructed flow.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.POD.wrapper._srun">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.POD.wrapper.</span></span><span class="sig-name descname"><span class="pre">_srun</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_mean</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">randomized</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.POD.wrapper._srun" title="Link to this definition">#</a></dt>
+<dd><p>Run POD analysis of a matrix X.</p>
+<dl class="simple">
+<dt>Inputs:</dt><dd><ul class="simple">
+<li><p>X[ndims*nmesh,n_temp_snapshots]: data matrix</p></li>
+<li><p>remove_mean:                     whether or not to remove the mean flow</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>are the POD modes.
+- S:  are the singular values.
+- V:  are the right singular vectors.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>U</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.POD.wrapper._struncate">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.POD.wrapper.</span></span><span class="sig-name descname"><span class="pre">_struncate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">U</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.POD.wrapper._struncate" title="Link to this definition">#</a></dt>
+<dd><p>Truncate POD matrices (U,S,V) given a residual r.</p>
+<dl>
+<dt>Inputs:</dt><dd><ul>
+<li><p>U(m,n)  are the POD modes.</p></li>
+<li><p>S(n)    are the singular values.</p></li>
+<li><p>V(n,n)  are the right singular vectors.</p></li>
+<li><dl>
+<dt>r       target residual, number of modes, or cumulative energy threshold.</dt><dd><ul class="simple">
+<li><p>If r &gt;= 1, it is treated as the number of modes.</p></li>
+<li><p>If r &lt; 1 and r &gt; 0 it is treated as the residual target.</p></li>
+<li><p>If r &lt; 1 and r &lt; 0 it is treated as the fraction of cumulative energy to retain.</p></li>
+</ul>
+<p>Note:  must be in (0,-1] and r = -1 is valid</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>U(m,N)  are the POD modes (truncated at N).</p></li>
+<li><p>S(N)    are the singular values (truncated at N).</p></li>
+<li><p>V(N,n)  are the right singular vectors (truncated at N).</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.POD.wrapper.reconstruct">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.POD.wrapper.</span></span><span class="sig-name descname"><span class="pre">reconstruct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">U</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.POD.wrapper.reconstruct" title="Link to this definition">#</a></dt>
+<dd><p>Reconstruct the flow given the POD decomposition matrices
+that can be possibly truncated.
+N is the truncated size
+n is the number of snapshots</p>
+<dl class="simple">
+<dt>Inputs:</dt><dd><ul class="simple">
+<li><p>U(m,N)  are the POD modes.</p></li>
+<li><p>S(N)    are the singular values.</p></li>
+<li><p>V(N,n)  are the right singular vectors.</p></li>
+</ul>
+</dd>
+<dt>Outputs</dt><dd><ul class="simple">
+<li><p>X(m,n)  is the reconstructed flow.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.POD.wrapper.run">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.POD.wrapper.</span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">randomized</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.POD.wrapper.run" title="Link to this definition">#</a></dt>
+<dd><p>Run POD analysis of a matrix X.</p>
+<dl class="simple">
+<dt>Inputs:</dt><dd><ul class="simple">
+<li><p>X[ndims*nmesh,n_temp_snapshots]: data matrix</p></li>
+<li><p>remove_mean:                     whether or not to remove the mean flow</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>are the POD modes.
+- S:  are the singular values.
+- V:  are the right singular vectors.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>U</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.POD.wrapper.truncate">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.POD.wrapper.</span></span><span class="sig-name descname"><span class="pre">truncate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">U</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-08</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.POD.wrapper.truncate" title="Link to this definition">#</a></dt>
+<dd><p>Truncate POD matrices (U,S,V) given a residual r.</p>
+<dl>
+<dt>Inputs:</dt><dd><ul>
+<li><p>U(m,n)  are the POD modes.</p></li>
+<li><p>S(n)    are the singular values.</p></li>
+<li><p>V(n,n)  are the right singular vectors.</p></li>
+<li><dl>
+<dt>r       target residual, number of modes, or cumulative energy threshold.</dt><dd><ul class="simple">
+<li><p>If r &gt;= 1, it is treated as the number of modes.</p></li>
+<li><p>If r &lt; 1 and r &gt; 0 it is treated as the residual target.</p></li>
+<li><p>If r &lt; 1 and r &lt; 0 it is treated as the fraction of cumulative energy to retain.</p></li>
+</ul>
+<p>Note:  must be in (0,-1] and r = -1 is valid</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>U(m,N)  are the POD modes (truncated at N).</p></li>
+<li><p>S(N)    are the singular values (truncated at N).</p></li>
+<li><p>V(N,n)  are the right singular vectors (truncated at N).</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-pyLOM.POD">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-pyLOM.POD" title="Link to this heading">#</a></h2>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="pyLOM.NN.architectures.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">pyLOM.NN.architectures package</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="pyLOM.SPOD.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">pyLOM.SPOD package</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.POD.plots">pyLOM.POD.plots module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.POD.plots.plotMode"><code class="docutils literal notranslate"><span class="pre">plotMode()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.POD.utils">pyLOM.POD.utils module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.POD.utils.extract_modes"><code class="docutils literal notranslate"><span class="pre">extract_modes()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.POD.utils.save"><code class="docutils literal notranslate"><span class="pre">save()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.POD.utils.load"><code class="docutils literal notranslate"><span class="pre">load()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.POD.wrapper">pyLOM.POD.wrapper module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.POD.wrapper._dreconstruct"><code class="docutils literal notranslate"><span class="pre">_dreconstruct()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.POD.wrapper._drun"><code class="docutils literal notranslate"><span class="pre">_drun()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.POD.wrapper._dtruncate"><code class="docutils literal notranslate"><span class="pre">_dtruncate()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.POD.wrapper._sreconstruct"><code class="docutils literal notranslate"><span class="pre">_sreconstruct()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.POD.wrapper._srun"><code class="docutils literal notranslate"><span class="pre">_srun()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.POD.wrapper._struncate"><code class="docutils literal notranslate"><span class="pre">_struncate()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.POD.wrapper.reconstruct"><code class="docutils literal notranslate"><span class="pre">reconstruct()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.POD.wrapper.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.POD.wrapper.truncate"><code class="docutils literal notranslate"><span class="pre">truncate()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.POD">Module contents</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  
+  <div class="tocsection editthispage">
+    <a href="https://github.com/ArnauMiro/pyLowOrder/edit/master/docs/source/api/pyLOM.POD.rst">
+      <i class="fa-solid fa-pencil"></i>
+      
+      
+        
+          Edit on GitHub
+        
+      
+    </a>
+  </div>
+</div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/pyLOM.POD.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2023-2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

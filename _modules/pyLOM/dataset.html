@@ -1,0 +1,772 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pyLOM.dataset &#8212; pyLOM  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=de90da8b" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pyLOM/dataset';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="2.0.1" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">pyLOM</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api/modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
+    Building from source
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples.html">
+    Examples
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api/modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
+    Building from source
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples.html">
+    Examples
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">pyLOM.dataset</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for pyLOM.dataset</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1">#</span>
+<span class="c1"># pyLOM, dataset.</span>
+<span class="c1">#</span>
+<span class="c1"># Dataset class, reader and reduction routines.</span>
+<span class="c1">#</span>
+<span class="c1"># Last rev: 30/07/2021</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">mpi4py</span><span class="o">,</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="n">mpi4py</span><span class="o">.</span><span class="n">rc</span><span class="o">.</span><span class="n">recv_mprobe</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="kn">from</span> <span class="nn">mpi4py</span> <span class="kn">import</span> <span class="n">MPI</span>
+
+<span class="kn">from</span> <span class="nn">.</span>             <span class="kn">import</span> <span class="n">inp_out</span> <span class="k">as</span> <span class="n">io</span>
+<span class="kn">from</span> <span class="nn">.utils.cr</span>     <span class="kn">import</span> <span class="n">cr</span>
+<span class="kn">from</span> <span class="nn">.utils.mem</span>    <span class="kn">import</span> <span class="n">mem</span>
+<span class="kn">from</span> <span class="nn">.utils.errors</span> <span class="kn">import</span> <span class="n">raiseError</span>
+<span class="kn">from</span> <span class="nn">.utils.parall</span> <span class="kn">import</span> <span class="n">mpi_reduce</span>
+
+
+<div class="viewcode-block" id="Dataset">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset">[docs]</a>
+<span class="k">class</span> <span class="nc">Dataset</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	The Dataset class wraps the position of the nodes and the time instants</span>
+<span class="sd">	with the number of variables and relates them so that the operations </span>
+<span class="sd">	in parallel are easier.</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+<div class="viewcode-block" id="Dataset.__init__">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.__init__">[docs]</a>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xyz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ptable</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">vars</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">point</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Class constructor</span>
+
+<span class="sd">		Inputs:</span>
+<span class="sd">			&gt; xyz:    coordinates of the points.</span>
+<span class="sd">			&gt; ptable: partition table used.</span>
+<span class="sd">			&gt; vars:   dictionary containing the variable name and values as</span>
+<span class="sd">					  as a python dictionary.</span>
+<span class="sd">			&gt; order:  ordering of the points (automatically created if none)</span>
+<span class="sd">			&gt; point:  True if point data, False if cell data.</span>
+<span class="sd">			&gt; kwags:  dictionary containing the field name and values as a</span>
+<span class="sd">					  python dictionary.</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_xyz</span>      <span class="o">=</span> <span class="n">xyz</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_vardict</span>  <span class="o">=</span> <span class="nb">vars</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_fieldict</span> <span class="o">=</span> <span class="n">kwargs</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_ptable</span>   <span class="o">=</span> <span class="n">ptable</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_order</span>    <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">xyz</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">if</span> <span class="n">order</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">order</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_point</span>    <span class="o">=</span> <span class="n">point</span></div>
+
+
+	<span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xyz</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Dataset.__str__">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.__str__">[docs]</a>
+	<span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		String representation</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="n">s</span>  <span class="o">=</span> <span class="s1">&#39;Dataset of </span><span class="si">%d</span><span class="s1"> variables:</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">varnames</span><span class="p">)</span>
+		<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">varnames</span><span class="p">:</span>
+			<span class="n">var</span>    <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span>
+			<span class="n">nanstr</span> <span class="o">=</span> <span class="s1">&#39; (has NaNs) &#39;</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">var</span><span class="p">))</span> <span class="k">else</span> <span class="s1">&#39; &#39;</span>
+			<span class="n">s</span>     <span class="o">+=</span> <span class="s1">&#39;  &gt; &#39;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="n">nanstr</span> <span class="o">+</span> <span class="s1">&#39; - max = &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">var</span><span class="p">))</span> <span class="o">+</span> <span class="s1">&#39;, min = &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">var</span><span class="p">))</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+		<span class="n">s</span> <span class="o">+=</span> <span class="s1">&#39;and </span><span class="si">%d</span><span class="s1"> fields with </span><span class="si">%d</span><span class="s1"> points:</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fieldnames</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+		<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fieldnames</span><span class="p">:</span>
+			<span class="n">field</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span>
+			<span class="n">nanstr</span> <span class="o">=</span> <span class="s1">&#39; (has NaNs) &#39;</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">field</span><span class="p">))</span> <span class="k">else</span> <span class="s1">&#39; &#39;</span>
+			<span class="n">s</span>     <span class="o">+=</span> <span class="s1">&#39;  &gt; &#39;</span> <span class="o">+</span>  <span class="n">key</span> <span class="o">+</span> <span class="n">nanstr</span> <span class="o">+</span> <span class="s1">&#39;- max = &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">field</span><span class="p">))</span> \
+										    <span class="o">+</span> <span class="s1">&#39;, min = &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">field</span><span class="p">))</span> \
+										    <span class="o">+</span> <span class="s1">&#39;, avg = &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">field</span><span class="p">))</span> \
+										    <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+		<span class="k">return</span> <span class="n">s</span></div>
+
+		
+	<span class="c1"># Set and get functions</span>
+<div class="viewcode-block" id="Dataset.__getitem__">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.__getitem__">[docs]</a>
+	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">key</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Dataset[key]</span>
+
+<span class="sd">		Recover the value of a field given its key</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fieldict</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="Dataset.__setitem__">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.__setitem__">[docs]</a>
+	<span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">key</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Dataset[key] = value</span>
+
+<span class="sd">		Set the field of a variable given its key</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_fieldict</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
+
+
+	<span class="c1"># Functions</span>
+<div class="viewcode-block" id="Dataset.rename">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.rename">[docs]</a>
+	<span class="k">def</span> <span class="nf">rename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">new</span><span class="p">,</span><span class="n">old</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Rename a variable inside a field.</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="n">new</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">old</span><span class="p">)</span>
+		<span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Dataset.delete">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.delete">[docs]</a>
+	<span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">varname</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Delete a variable inside a field.</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">varname</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Dataset.get_variable">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.get_variable">[docs]</a>
+	<span class="k">def</span> <span class="nf">get_variable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">key</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Recover the value of a variable given its key</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vardict</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="Dataset.set_variable">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.set_variable">[docs]</a>
+	<span class="k">def</span> <span class="nf">set_variable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">key</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Recover the value of a variable given its key</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_vardict</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
+
+
+<div class="viewcode-block" id="Dataset.get_dim">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.get_dim">[docs]</a>
+	<span class="k">def</span> <span class="nf">get_dim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">var</span><span class="p">,</span><span class="n">idim</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Recover the value of a variable for a given dimension</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="n">ndim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fieldict</span><span class="p">[</span><span class="n">var</span><span class="p">][</span><span class="s1">&#39;ndim&#39;</span><span class="p">]</span>
+		<span class="k">if</span> <span class="n">idim</span> <span class="o">&gt;=</span> <span class="n">ndim</span><span class="p">:</span> <span class="n">raiseError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Requested dimension </span><span class="si">{</span><span class="n">idim</span><span class="si">}</span><span class="s1"> for </span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s1"> greater than its number of dimensions </span><span class="si">{</span><span class="n">ndim</span><span class="si">}</span><span class="s1">!&#39;</span><span class="p">)</span>
+		<span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+		<span class="k">return</span>  <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fieldict</span><span class="p">[</span><span class="n">var</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">][</span><span class="n">idim</span><span class="p">:</span><span class="n">ndim</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span><span class="n">ndim</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="Dataset.info">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.info">[docs]</a>
+	<span class="k">def</span> <span class="nf">info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">var</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Returns the information for a certain variable</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="k">return</span> <span class="p">{</span><span class="s1">&#39;point&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">_point</span><span class="p">,</span><span class="s1">&#39;ndim&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">_fieldict</span><span class="p">[</span><span class="n">var</span><span class="p">][</span><span class="s1">&#39;ndim&#39;</span><span class="p">]}</span></div>
+
+
+<div class="viewcode-block" id="Dataset.add_field">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.add_field">[docs]</a>
+	<span class="k">def</span> <span class="nf">add_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">varname</span><span class="p">,</span><span class="n">ndim</span><span class="p">,</span><span class="n">var</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Add a field to the dataset</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_fieldict</span><span class="p">[</span><span class="n">varname</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+			<span class="s1">&#39;ndim&#39;</span>  <span class="p">:</span> <span class="n">ndim</span><span class="p">,</span>
+			<span class="s1">&#39;value&#39;</span> <span class="p">:</span> <span class="n">var</span><span class="p">,</span> 
+		<span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="Dataset.add_variable">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.add_variable">[docs]</a>
+	<span class="k">def</span> <span class="nf">add_variable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">varname</span><span class="p">,</span><span class="n">idim</span><span class="p">,</span><span class="n">var</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Add a variable to the dataset</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_vardict</span><span class="p">[</span><span class="n">varname</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+			<span class="s1">&#39;idim&#39;</span>  <span class="p">:</span> <span class="n">idim</span><span class="p">,</span>
+			<span class="s1">&#39;value&#39;</span> <span class="p">:</span> <span class="n">var</span><span class="p">,</span> 
+		<span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="Dataset.append_variable">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.append_variable">[docs]</a>
+	<span class="k">def</span> <span class="nf">append_variable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">varname</span><span class="p">,</span><span class="n">var</span><span class="p">,</span><span class="o">**</span><span class="n">fieldict</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Appends new timesteps to the dataset</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="c1"># Add to variable vector</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">varname</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">varname</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">],</span><span class="n">var</span><span class="p">))</span>
+		<span class="c1"># Sort ascendingly and retrieve sorting index</span>
+		<span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">varname</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">])</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">varname</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">varname</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+		<span class="n">idim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">varname</span><span class="p">][</span><span class="s1">&#39;idim&#39;</span><span class="p">]</span>
+		<span class="c1"># Now concatenate and sort per variable</span>
+		<span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">fieldict</span><span class="p">:</span>
+			<span class="n">aux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="bp">self</span><span class="p">[</span><span class="n">v</span><span class="p">][:,:,</span><span class="n">idim</span><span class="p">],</span><span class="n">fieldict</span><span class="p">[</span><span class="n">v</span><span class="p">]),</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span><span class="n">idx</span><span class="p">]</span>
+			<span class="bp">self</span><span class="p">[</span><span class="n">v</span><span class="p">][:,:,</span><span class="n">idim</span><span class="p">]</span> <span class="o">=</span> <span class="n">aux</span></div>
+
+
+<div class="viewcode-block" id="Dataset.reshape">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.reshape">[docs]</a>
+	<span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;Dataset.reshape&#39;</span><span class="p">)</span>
+	<span class="k">def</span> <span class="nf">reshape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">field</span><span class="p">,</span><span class="n">info</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Reshape a field for a single variable</span>
+<span class="sd">		according to the info</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="c1"># Obtain number of points from the mesh</span>
+		<span class="n">npoints</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+		<span class="c1"># Only reshape the variable if ndim &gt; 1</span>
+		<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">npoints</span><span class="p">,</span><span class="n">info</span><span class="p">[</span><span class="s1">&#39;ndim&#39;</span><span class="p">]),</span><span class="n">order</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;ndim&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">field</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Dataset.X">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.X">[docs]</a>
+	<span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;Dataset.X&#39;</span><span class="p">)</span>
+	<span class="k">def</span> <span class="nf">X</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Return the X matrix for the selected fields</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="c1"># Select all variables if none is provided</span>
+		<span class="n">fieldnames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fieldnames</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">args</span>
+		<span class="c1"># Compute the number of fields</span>
+		<span class="n">npoints</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+		<span class="n">nfields</span> <span class="o">=</span> <span class="mi">0</span>
+		<span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">fieldnames</span><span class="p">:</span>
+			<span class="n">nfields</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="n">f</span><span class="p">][</span><span class="s1">&#39;ndim&#39;</span><span class="p">]</span>
+		<span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">nfields</span><span class="o">*</span><span class="n">npoints</span><span class="p">]</span>
+		<span class="c1"># Variable order could be random, thus create a list of variable</span>
+		<span class="c1"># names and their idim to order</span>
+		<span class="n">varls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">varnames</span><span class="p">))</span>
+		<span class="n">ivars</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">v</span><span class="p">][</span><span class="s1">&#39;idim&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">varls</span><span class="p">])</span>
+		<span class="n">idx</span>   <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">ivars</span><span class="p">)</span>
+		<span class="c1"># Order the variables</span>
+		<span class="n">varls</span> <span class="o">=</span> <span class="n">varls</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+		<span class="n">ivars</span> <span class="o">=</span> <span class="n">ivars</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+		<span class="c1"># Loop the number of variables according to their idim</span>
+		<span class="c1"># As minimum we will have 1 variable, thus idim=0. If </span>
+		<span class="c1"># we have idim &gt; 0, this surely indicates a multi-dimensional</span>
+		<span class="c1"># field</span>
+		<span class="n">varc</span> <span class="o">=</span> <span class="mi">0</span>
+		<span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">varls</span><span class="p">:</span>
+			<span class="n">ivar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">v</span><span class="p">][</span><span class="s1">&#39;idim&#39;</span><span class="p">]</span>
+			<span class="n">lvar</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">v</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">])</span>
+			<span class="k">if</span> <span class="n">ivar</span> <span class="o">==</span> <span class="n">varc</span><span class="p">:</span>
+				<span class="n">dims</span> <span class="o">+=</span> <span class="p">[</span><span class="n">lvar</span><span class="p">]</span>
+				<span class="n">varc</span> <span class="o">+=</span> <span class="mi">1</span>
+		<span class="c1"># Create output array</span>
+		<span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">)</span>
+		<span class="c1"># Populate output matrix</span>
+		<span class="n">ifield</span> <span class="o">=</span> <span class="mi">0</span>
+		<span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fieldnames</span><span class="p">:</span>
+			<span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="n">field</span><span class="p">]</span>
+			<span class="k">for</span> <span class="n">idim</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s1">&#39;ndim&#39;</span><span class="p">]):</span>
+				<span class="n">X</span><span class="p">[</span><span class="n">ifield</span><span class="p">:</span><span class="n">nfields</span><span class="o">*</span><span class="n">npoints</span><span class="p">:</span><span class="n">nfields</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">][</span><span class="n">idim</span><span class="p">:</span><span class="n">v</span><span class="p">[</span><span class="s1">&#39;ndim&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">npoints</span><span class="p">:</span><span class="n">v</span><span class="p">[</span><span class="s1">&#39;ndim&#39;</span><span class="p">]]</span>
+				<span class="n">ifield</span> <span class="o">+=</span> <span class="mi">1</span>
+		<span class="k">return</span> <span class="n">X</span></div>
+
+
+<div class="viewcode-block" id="Dataset.save">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.save">[docs]</a>
+	<span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;Dataset.save&#39;</span><span class="p">)</span>
+	<span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Store the field in various formats.</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="c1"># Guess format from extension</span>
+		<span class="n">fmt</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">fname</span><span class="p">)[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">:]</span> <span class="c1"># skip the .</span>
+		<span class="c1"># Pickle format</span>
+		<span class="k">if</span> <span class="n">fmt</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;pkl&#39;</span><span class="p">:</span> 
+			<span class="n">io</span><span class="o">.</span><span class="n">pkl_save</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="bp">self</span><span class="p">)</span>
+		<span class="c1"># H5 format</span>
+		<span class="k">if</span> <span class="n">fmt</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;h5&#39;</span><span class="p">:</span>
+			<span class="c1"># Set default parameters</span>
+			<span class="k">if</span> <span class="ow">not</span> <span class="s1">&#39;mode&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;mode&#39;</span><span class="p">]</span>        <span class="o">=</span> <span class="s1">&#39;w&#39;</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;a&#39;</span>
+			<span class="k">if</span> <span class="ow">not</span> <span class="s1">&#39;mpio&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;mpio&#39;</span><span class="p">]</span>        <span class="o">=</span> <span class="kc">True</span>
+			<span class="k">if</span> <span class="ow">not</span> <span class="s1">&#39;nopartition&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;nopartition&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+			<span class="c1"># Append or save</span>
+			<span class="k">if</span> <span class="ow">not</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;append&#39;</span><span class="p">,</span><span class="kc">False</span><span class="p">):</span>
+				<span class="n">io</span><span class="o">.</span><span class="n">h5_save_dset</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">xyz</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">ordering</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">point</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">partition_table</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="n">io</span><span class="o">.</span><span class="n">h5_append_dset</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">xyz</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">ordering</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">point</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">partition_table</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Dataset.load">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.load">[docs]</a>
+	<span class="nd">@classmethod</span>
+	<span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;Dataset.load&#39;</span><span class="p">)</span>
+	<span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span><span class="n">fname</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Load a field from various formats</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="c1"># Guess format from extension</span>
+		<span class="n">fmt</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">fname</span><span class="p">)[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">:]</span> <span class="c1"># skip the .</span>
+		<span class="c1"># Pickle format</span>
+		<span class="k">if</span> <span class="n">fmt</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;pkl&#39;</span><span class="p">:</span> 
+			<span class="k">return</span> <span class="n">io</span><span class="o">.</span><span class="n">pkl_load</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+		<span class="c1"># H5 format</span>
+		<span class="k">if</span> <span class="n">fmt</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;h5&#39;</span><span class="p">:</span>
+			<span class="k">if</span> <span class="ow">not</span> <span class="s1">&#39;mpio&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;mpio&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+			<span class="n">xyz</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">point</span><span class="p">,</span> <span class="n">ptable</span><span class="p">,</span> <span class="n">varDict</span><span class="p">,</span> <span class="n">fieldDict</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">h5_load_dset</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+			<span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">xyz</span><span class="p">,</span><span class="n">ptable</span><span class="p">,</span><span class="n">varDict</span><span class="p">,</span><span class="n">order</span><span class="p">,</span> <span class="n">point</span><span class="p">,</span> <span class="o">**</span><span class="n">fieldDict</span><span class="p">)</span>
+		<span class="n">raiseError</span><span class="p">(</span><span class="s1">&#39;Cannot load file &lt;</span><span class="si">%s</span><span class="s1">&gt;!&#39;</span><span class="o">%</span><span class="n">fname</span><span class="p">)</span></div>
+
+
+	<span class="c1"># Properties</span>
+	<span class="nd">@property</span>
+	<span class="k">def</span> <span class="nf">xyz</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xyz</span>
+<div class="viewcode-block" id="Dataset.x">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.x">[docs]</a>
+	<span class="k">def</span> <span class="nf">x</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xyz</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span></div>
+
+	<span class="nd">@property</span>
+	<span class="k">def</span> <span class="nf">y</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xyz</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span>
+	<span class="nd">@property</span>
+	<span class="k">def</span> <span class="nf">z</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xyz</span><span class="p">[:,</span><span class="mi">2</span><span class="p">]</span>
+
+	<span class="nd">@property</span>
+	<span class="k">def</span> <span class="nf">ordering</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_order</span>
+	<span class="nd">@property</span>
+	<span class="k">def</span> <span class="nf">point</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_point</span>
+	<span class="nd">@property</span>
+	<span class="k">def</span> <span class="nf">partition_table</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ptable</span>
+
+	<span class="nd">@property</span>
+	<span class="k">def</span> <span class="nf">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vardict</span>
+	<span class="nd">@property</span>
+	<span class="k">def</span> <span class="nf">varnames</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vardict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+	<span class="nd">@property</span>
+	<span class="k">def</span> <span class="nf">fields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fieldict</span>
+	<span class="nd">@property</span>
+	<span class="k">def</span> <span class="nf">fieldnames</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fieldict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span></div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2023-2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

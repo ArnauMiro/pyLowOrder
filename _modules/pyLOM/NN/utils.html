@@ -1,0 +1,1378 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pyLOM.NN.utils &#8212; pyLOM  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=de90da8b" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pyLOM/NN/utils';</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="2.0.1" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">pyLOM</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api/modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
+    Building from source
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Examples
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api/modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
+    Building from source
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Examples
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../NN.html" class="nav-link">pyLOM.NN</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">pyLOM.NN.utils</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for pyLOM.NN.utils</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1">#</span>
+<span class="c1"># pyLOM - Python Low Order Modeling.</span>
+<span class="c1">#</span>
+<span class="c1"># NN utility routines.</span>
+<span class="c1">#</span>
+<span class="c1"># Last rev: 02/10/2024</span>
+
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">random</span><span class="o">,</span> <span class="nn">json</span><span class="o">,</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span><span class="o">,</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+
+<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Subset</span>
+<span class="kn">from</span> <span class="nn">torch</span>            <span class="kn">import</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">randperm</span><span class="p">,</span> <span class="n">default_generator</span>
+<span class="kn">from</span> <span class="nn">itertools</span>        <span class="kn">import</span> <span class="n">product</span><span class="p">,</span> <span class="n">accumulate</span>
+<span class="kn">from</span> <span class="nn">typing</span>           <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Callable</span>
+<span class="kn">from</span> <span class="nn">tqdm</span>             <span class="kn">import</span> <span class="n">tqdm</span>
+
+<span class="kn">from</span> <span class="nn">.</span>                <span class="kn">import</span> <span class="n">DEVICE</span>
+<span class="kn">from</span> <span class="nn">..utils.cr</span>       <span class="kn">import</span> <span class="n">cr</span>
+<span class="kn">from</span> <span class="nn">..utils.errors</span>   <span class="kn">import</span> <span class="n">raiseWarning</span><span class="p">,</span> <span class="n">raiseError</span>
+<span class="kn">from</span> <span class="nn">..dataset</span>        <span class="kn">import</span> <span class="n">Dataset</span> <span class="k">as</span> <span class="n">pyLOMDataset</span>
+
+
+<div class="viewcode-block" id="MinMaxScaler">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.MinMaxScaler">[docs]</a>
+<span class="k">class</span> <span class="nc">MinMaxScaler</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Min-max scaling to scale variables to a desired range. The formula is given by:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        X_{scaled} = \frac{X - X_{min}}{X_{max} - X_{min}} * (feature\_range_{max} - feature\_range_{min}) + feature\_range_{min}</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        feature_range (Tuple): Desired range of transformed data. Default is ``(0, 1)``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature_range</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">feature_range</span> <span class="o">=</span> <span class="n">feature_range</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_is_fitted</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_fitted</span>
+    
+<div class="viewcode-block" id="MinMaxScaler.fit">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.MinMaxScaler.fit">[docs]</a>
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variables</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">]],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the min and max values of each variable.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            variables (List): List of variables to be fitted. The variables should be numpy arrays or torch tensors.</span>
+<span class="sd">            A numpy array or torch tensor can be passed directly and each column will be considered as a variable to be scaled.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">variables</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cast_variables</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span>
+        <span class="n">min_max_values</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">:</span>
+            <span class="n">min_val</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">variable</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+            <span class="n">max_val</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">variable</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+            <span class="n">min_max_values</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="n">min_val</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="n">max_val</span><span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">variable_scaling_params</span> <span class="o">=</span> <span class="n">min_max_values</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_is_fitted</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="MinMaxScaler.transform">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.MinMaxScaler.transform">[docs]</a>
+    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">variables</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">]],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Scale variables to the range defined on `feature_range` using min-max scaling.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            variables (List): List of variables to be scaled. The variables should be numpy arrays or torch tensors.</span>
+<span class="sd">            A numpy array or torch tensor can be passed directly and each column will be considered as a variable to be scaled.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            scaled_variables: List of scaled variables.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">is_array</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">))</span>
+        <span class="n">is_tensor</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">))</span>
+        <span class="n">variables</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cast_variables</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span>
+        <span class="n">scaled_variables</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">variable</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">variables</span><span class="p">):</span>
+            <span class="n">min_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">variable_scaling_params</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;min&quot;</span><span class="p">]</span>
+            <span class="n">max_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">variable_scaling_params</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;max&quot;</span><span class="p">]</span>
+            <span class="n">data_range</span> <span class="o">=</span> <span class="n">max_val</span> <span class="o">-</span> <span class="n">min_val</span>
+            <span class="n">data_range</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">data_range</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">data_range</span>
+            <span class="n">scaled_variable</span> <span class="o">=</span> <span class="p">(</span><span class="n">variable</span> <span class="o">-</span> <span class="n">min_val</span><span class="p">)</span> <span class="o">/</span> <span class="n">data_range</span>
+            <span class="c1"># scale the variable to the desired feature_range</span>
+            <span class="n">scaled_variable</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">scaled_variable</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_range</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">scaled_variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">scaled_variable</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">is_array</span><span class="p">:</span>
+            <span class="n">scaled_variables</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">scaled_variables</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">is_tensor</span><span class="p">:</span>
+            <span class="n">scaled_variables</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">scaled_variables</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">scaled_variables</span></div>
+
+    
+<div class="viewcode-block" id="MinMaxScaler.fit_transform">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.MinMaxScaler.fit_transform">[docs]</a>
+    <span class="k">def</span> <span class="nf">fit_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variables</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fit and transform the variables using min-max scaling.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            variables (List): List of variables to be fitted and scaled. The variables should be numpy arrays or torch tensors.</span>
+<span class="sd">            A numpy array or torch tensor can be passed directly and each column will be considered as a variable to be scaled.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            scaled_variables: List of scaled variables.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MinMaxScaler.inverse_transform">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.MinMaxScaler.inverse_transform">[docs]</a>
+    <span class="k">def</span> <span class="nf">inverse_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variables</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Inverse scale variables that have been scaled using min-max scaling.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            variables (List): List of variables to be inverse scaled. The variables should be numpy arrays or torch tensors.</span>
+<span class="sd">            A numpy array or torch tensor can be passed directly and each column will be considered as a variable to be scaled.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            inverse_scaled_variables: List of inverse scaled variables.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">is_array</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">))</span>
+        <span class="n">is_tensor</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">))</span>
+        <span class="n">variables</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cast_variables</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variable_scaling_params</span><span class="p">):</span>
+            <span class="n">raiseError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Number of variables to inverse transform (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">variables</span><span class="p">)</span><span class="si">}</span><span class="s2">) does not match the number of variables fitted (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variable_scaling_params</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="p">)</span>
+        <span class="n">inverse_scaled_variables</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">variable</span><span class="p">,</span> <span class="n">scaling_params</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">variable_scaling_params</span><span class="p">):</span>
+            <span class="n">min_val</span> <span class="o">=</span> <span class="n">scaling_params</span><span class="p">[</span><span class="s2">&quot;min&quot;</span><span class="p">]</span>
+            <span class="n">max_val</span> <span class="o">=</span> <span class="n">scaling_params</span><span class="p">[</span><span class="s2">&quot;max&quot;</span><span class="p">]</span>
+            <span class="n">inverse_scaled_variable</span> <span class="o">=</span> <span class="p">(</span><span class="n">variable</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_range</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">feature_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">data_range</span> <span class="o">=</span> <span class="n">max_val</span> <span class="o">-</span> <span class="n">min_val</span>
+            <span class="n">data_range</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">data_range</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">data_range</span>
+            <span class="n">inverse_scaled_variable</span> <span class="o">=</span> <span class="n">inverse_scaled_variable</span> <span class="o">*</span> <span class="n">data_range</span> <span class="o">+</span> <span class="n">min_val</span>
+            <span class="n">inverse_scaled_variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">inverse_scaled_variable</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">is_array</span><span class="p">:</span>
+            <span class="n">inverse_scaled_variables</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">inverse_scaled_variables</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">is_tensor</span><span class="p">:</span>
+            <span class="n">inverse_scaled_variables</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">inverse_scaled_variables</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">inverse_scaled_variables</span></div>
+
+
+<div class="viewcode-block" id="MinMaxScaler.save">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.MinMaxScaler.save">[docs]</a>
+    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save the fitted scaler parameters to a JSON file.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            filepath (str): Path where the scaler parameters will be saved</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_fitted</span><span class="p">:</span>
+            <span class="n">raiseError</span><span class="p">(</span><span class="s2">&quot;Scaler must be fitted before it can be saved&quot;</span><span class="p">)</span>
+        
+        <span class="n">save_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;feature_range&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_range</span><span class="p">,</span>
+            <span class="s2">&quot;variable_scaling_params&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">variable_scaling_params</span><span class="p">,</span>
+        <span class="p">}</span>
+        
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">save_dict</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MinMaxScaler.load">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.MinMaxScaler.load">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;MinMaxScaler&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load a saved MinMaxScaler from a JSON file.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            filepath (str): Path to the saved scaler parameters</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            MinMaxScaler: A new MinMaxScaler instance with the loaded parameters</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filepath</span><span class="p">):</span>
+            <span class="n">raiseError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No file found at </span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">loaded_dict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        
+        <span class="n">scaler</span> <span class="o">=</span> <span class="n">MinMaxScaler</span><span class="p">(</span><span class="n">feature_range</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">loaded_dict</span><span class="p">[</span><span class="s2">&quot;feature_range&quot;</span><span class="p">]))</span>
+        
+        <span class="c1"># Restore the scaling parameters</span>
+        <span class="n">scaler</span><span class="o">.</span><span class="n">variable_scaling_params</span> <span class="o">=</span> <span class="n">loaded_dict</span><span class="p">[</span><span class="s2">&quot;variable_scaling_params&quot;</span><span class="p">]</span>
+        <span class="n">scaler</span><span class="o">.</span><span class="n">_is_fitted</span> <span class="o">=</span> <span class="kc">True</span>
+        
+        <span class="k">return</span> <span class="n">scaler</span>   </div>
+
+
+    <span class="k">def</span> <span class="nf">_cast_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variables</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)):</span>
+            <span class="n">variables</span> <span class="o">=</span> <span class="p">[</span><span class="n">variables</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">variables</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)):</span>
+            <span class="n">variables</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">variables</span><span class="p">[:,</span> <span class="n">i</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">variables</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+        <span class="k">return</span> <span class="n">variables</span></div>
+
+
+
+<div class="viewcode-block" id="Dataset">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset">[docs]</a>
+<span class="k">class</span> <span class="nc">Dataset</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Dataset class to be used with PyTorch. It can be used with both mesh and point data.</span>
+<span class="sd">    It is useful convert the `pyLOM.Dataset` to a PyTorch dataset and train neural networks with results from CFD simulations.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; original_dataset = pyLOM.Dataset.load(path)</span>
+<span class="sd">        &gt;&gt;&gt; input_scaler = pyLOM.NN.MinMaxScaler()</span>
+<span class="sd">        &gt;&gt;&gt; output_scaler = pyLOM.NN.MinMaxScaler()</span>
+<span class="sd">        &gt;&gt;&gt; dataset = pyLOM.NN.Dataset(</span>
+<span class="sd">        ...     variables_out=(original_dataset[&quot;CP&quot;],),</span>
+<span class="sd">        ...     variables_in=original_dataset.xyz,</span>
+<span class="sd">        ...     parameters=[[*zip(original_dataset.get_variable(&#39;AoA&#39;), original_dataset.get_variable(&#39;Mach&#39;))]], # to have each Mach and AoA pair just once. To have all possibnle combinations, use [original_dataset.get_variable(&#39;AoA&#39;), original_dataset.get_variable(&quot;Mach&quot;)]</span>
+<span class="sd">        ...     inputs_scaler=input_scaler,</span>
+<span class="sd">        ...     outputs_scaler=output_scaler,</span>
+<span class="sd">        ... )</span>
+
+
+<span class="sd">    Args:</span>
+<span class="sd">        variables_out (Tuple): Tuple of variables to be used as output. Each variable should be a 2d numpy array or torch tensor. If only one variable wants to be provided, it should be passed as a tuple with one element. E.g. ``(variable,)``.</span>
+<span class="sd">        mesh_shape (Tuple): Shape of the mesh. If not mesh is used and the data is considered as points, leave this as default. Default is ``(1,)``.</span>
+<span class="sd">        variables_in (np.ndarray): Input variables. Default is ``None``.</span>
+<span class="sd">        parameters (List[List[float]]): List of parameters to be used as input. All possible combinations of these parameters, i.e. its cartesian product, will appear along with variables_in. If there is only one inner list and its elements are tuples, they will be treated as a single element for the cartesiand produt, which is useful when the combination of the parameters was predefined. Default is ``None``.</span>
+<span class="sd">        inputs_scaler (MinMaxScaler): Scaler to scale the input variables. If the scaler is not fitted, it will be fitted. Default is ``None``.</span>
+<span class="sd">        outputs_scaler (MinMaxScaler): Scaler to scale the output variables. If the scaler is not fitted, it will be fitted. Default is ``None``.</span>
+<span class="sd">        snapshots_by_column (bool): If the snapshots from `variables_out` are stored by column. The snapshots on `pyLOM.Dataset`s have this format. Default is ``True``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nd">@cr</span><span class="p">(</span><span class="s2">&quot;NN.Dataset.__init__&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">variables_out</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">,</span>
+        <span class="n">mesh_shape</span><span class="p">:</span> <span class="n">Tuple</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,),</span>
+        <span class="n">variables_in</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">combine_parameters_with_cartesian_prod</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">inputs_scaler</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">outputs_scaler</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">snapshots_by_column</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> 
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_channels</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">variables_out</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mesh_shape</span> <span class="o">=</span> <span class="n">mesh_shape</span>
+        <span class="k">if</span> <span class="n">snapshots_by_column</span><span class="p">:</span>
+            <span class="n">variables_out</span> <span class="o">=</span> <span class="p">[</span><span class="n">variable</span><span class="o">.</span><span class="n">T</span> <span class="k">for</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">variables_out</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">outputs_scaler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">outputs_scaler</span><span class="o">.</span><span class="n">is_fitted</span><span class="p">:</span>
+                <span class="n">outputs_scaler</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">variables_out</span><span class="p">)</span>
+            <span class="n">variables_out</span> <span class="o">=</span> <span class="n">outputs_scaler</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">variables_out</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_variables_out</span><span class="p">(</span><span class="n">variables_out</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">variables_in</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_parameters</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">combine_parameters_with_cartesian_prod</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">variables_in</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">inputs_scaler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">variables_in_columns</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+                <span class="n">parameters_columns</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[]</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">inputs_scaler</span><span class="o">.</span><span class="n">is_fitted</span><span class="p">:</span>
+                    <span class="n">inputs_scaler</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">variables_in_columns</span> <span class="o">+</span> <span class="n">parameters_columns</span><span class="p">)</span>
+                <span class="n">input_data_transformed</span> <span class="o">=</span> <span class="n">inputs_scaler</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">variables_in_columns</span> <span class="o">+</span> <span class="n">parameters_columns</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">input_data_transformed</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">input_data_transformed</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">raiseWarning</span><span class="p">(</span><span class="s2">&quot;Parameters were passed but no input variables were passed. Parameters will be ignored.&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">_process_variables_out</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variables_out</span><span class="p">):</span>
+        <span class="n">variables_out_stacked</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">variables_out</span><span class="p">:</span>
+            <span class="n">variable</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">variable</span><span class="p">)</span>
+            <span class="n">variable</span> <span class="o">=</span> <span class="n">variable</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">mesh_shape</span><span class="p">)</span>
+            <span class="n">variables_out_stacked</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">variable</span><span class="p">)</span>
+        <span class="n">variables_out_stacked</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">variables_out_stacked</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">variables_out_stacked</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># (N, C, 1) -&gt; (N, C)</span>
+            <span class="n">variables_out_stacked</span> <span class="o">=</span> <span class="n">variables_out_stacked</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">variables_out_stacked</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_process_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">combine_parameters_with_cartesian_prod</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">combine_parameters_with_cartesian_prod</span><span class="p">:</span>
+            <span class="c1"># assert that all elements in the inner lists have the same length</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">inner_list</span><span class="p">)</span> <span class="k">for</span> <span class="n">inner_list</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">):</span>
+                <span class="n">raiseError</span><span class="p">(</span><span class="s2">&quot;All parameter lists must have the same length&quot;</span><span class="p">)</span>
+            <span class="n">parameters</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">parameters</span><span class="p">)))</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">parameters</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">parameters</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">product</span><span class="p">(</span><span class="o">*</span><span class="n">parameters</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">parameters</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span><span class="o">.</span><span class="n">shape</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">num_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Dataset.__getitem__">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.__getitem__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">slice</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the input data and the output data for a given index as a tuple. If there is no input data, only the output data will be returned.</span>
+<span class="sd">        If parameters are used, the parameters will be concatenated with the input data at the end.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            idx (int, slice): Index of the data to be returned.</span>
+<span class="sd">        &quot;&quot;&quot;</span>            
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+        
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+                <span class="n">idx</span><span class="o">.</span><span class="n">start</span> <span class="k">if</span> <span class="n">idx</span><span class="o">.</span><span class="n">start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span> 
+                <span class="n">idx</span><span class="o">.</span><span class="n">stop</span> <span class="k">if</span> <span class="n">idx</span><span class="o">.</span><span class="n">stop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+                <span class="n">idx</span><span class="o">.</span><span class="n">step</span> <span class="k">if</span> <span class="n">idx</span><span class="o">.</span><span class="n">step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">1</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">else</span> <span class="n">idx</span>
+        
+        <span class="n">variables_in_idx</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="p">)</span>
+        <span class="n">parameters_idx</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">//</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="p">)</span>
+        <span class="n">input_data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="p">[</span><span class="n">variables_in_idx</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">parameters_idx</span><span class="p">]])</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="p">[</span><span class="n">variables_in_idx</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">input_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="Dataset.__setitem__">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.__setitem__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">slice</span><span class="p">],</span> <span class="n">value</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the input data and the output data for a given index. If there is no input data, only the output data will be set.</span>
+<span class="sd">        If parameters are used, the parameters will be concatenated with the input data at the end.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            idx (int, slice): Index of the data to be set.</span>
+<span class="sd">            value (Tuple): Tuple with the input data and the output data. If there is no input data, the tuple should have only one element.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">raiseError</span><span class="p">(</span><span class="s2">&quot;Invalid value to set. Must be a tuple with two elements when variables_in takes some value&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+                    <span class="n">idx</span><span class="o">.</span><span class="n">start</span> <span class="k">if</span> <span class="n">idx</span><span class="o">.</span><span class="n">start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span> 
+                    <span class="n">idx</span><span class="o">.</span><span class="n">stop</span> <span class="k">if</span> <span class="n">idx</span><span class="o">.</span><span class="n">stop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+                    <span class="n">idx</span><span class="o">.</span><span class="n">step</span> <span class="k">if</span> <span class="n">idx</span><span class="o">.</span><span class="n">step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">1</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">else</span> <span class="n">idx</span>
+            <span class="n">input_data</span><span class="p">,</span> <span class="n">variables_out</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="n">variables_in_idx</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="p">)</span>
+            <span class="n">parameters_idx</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">//</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="p">[</span><span class="n">variables_in_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_data</span><span class="p">[:,</span> <span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">parameters_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_data</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">variables_out</span></div>
+
+
+        
+<div class="viewcode-block" id="Dataset.__add__">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.__add__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Concatenate two datasets. The datasets must have the same number of input coordinates and parameters.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            other (Dataset): Dataset to be concatenated with.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Dataset</span><span class="p">):</span>
+            <span class="n">raiseError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot add Dataset with </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">other</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">variables_in</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">other</span><span class="o">.</span><span class="n">variables_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">raiseError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot add datasets with different number of columns on input coordinates, got </span><span class="si">{</span><span class="n">other</span><span class="o">.</span><span class="n">variables_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">parameters</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">other</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                    <span class="n">raiseError</span><span class="p">(</span><span class="s2">&quot;Cannot add datasets with different number of parameters&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">variables_in</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">other</span><span class="o">.</span><span class="n">variables_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                    <span class="n">raiseError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot add datasets with different number of input coordinates, got </span><span class="si">{</span><span class="n">other</span><span class="o">.</span><span class="n">variables_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">parameters</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">variables_in</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">variables_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">variables_out</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span> <span class="o">=</span> <span class="n">variables_out</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    
+<div class="viewcode-block" id="Dataset.concatenate">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.concatenate">[docs]</a>
+    <span class="k">def</span> <span class="nf">concatenate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Alias for the `__add__` method.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            other (Dataset): Dataset to be concatenated with.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__add__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_crop2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nh</span><span class="p">,</span> <span class="n">nw</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">nh</span><span class="p">,</span> <span class="p">:</span><span class="n">nw</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mesh_shape</span>    <span class="o">=</span> <span class="p">(</span><span class="n">nh</span><span class="p">,</span> <span class="n">nw</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_crop3D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nh</span><span class="p">,</span> <span class="n">nw</span><span class="p">,</span> <span class="n">nd</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">nh</span><span class="p">,</span> <span class="p">:</span><span class="n">nw</span><span class="p">,</span> <span class="p">:</span><span class="n">nd</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mesh_shape</span>    <span class="o">=</span> <span class="p">(</span><span class="n">nh</span><span class="p">,</span> <span class="n">nw</span><span class="p">,</span> <span class="n">nd</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Dataset.crop">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.crop">[docs]</a>
+    <span class="k">def</span> <span class="nf">crop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Crop the dataset to a desired shape. The cropping currently works for 2D and 3D meshes.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            args (Tuple): Desired shape of the mesh. If the mesh is 2D, the shape should be a tuple with two elements. If the mesh is 3D, the shape should be a tuple with three elements.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">_crop2D</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_crop3D</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">raiseError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Invalid number of dimensions </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span><span class="si">}</span><span class="s1"> for mesh </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mesh_shape</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_pad2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n0h</span><span class="p">,</span> <span class="n">n0w</span><span class="p">):</span>
+        <span class="n">nh</span><span class="p">,</span> <span class="n">nw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mesh_shape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n0w</span><span class="o">-</span><span class="n">nw</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">n0h</span><span class="o">-</span><span class="n">nh</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;constant&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mesh_shape</span>    <span class="o">=</span> <span class="p">(</span><span class="n">n0h</span><span class="p">,</span><span class="n">n0w</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_pad3D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n0h</span><span class="p">,</span> <span class="n">n0w</span><span class="p">,</span> <span class="n">n0d</span><span class="p">):</span>
+        <span class="n">nh</span><span class="p">,</span> <span class="n">nw</span><span class="p">,</span> <span class="n">nd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mesh_shape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n0d</span><span class="o">-</span><span class="n">nd</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">n0w</span><span class="o">-</span><span class="n">nw</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">n0h</span><span class="o">-</span><span class="n">nh</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;constant&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mesh_shape</span>    <span class="o">=</span> <span class="p">(</span><span class="n">n0h</span><span class="p">,</span> <span class="n">n0w</span><span class="p">,</span> <span class="n">n0d</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Dataset.pad">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.pad">[docs]</a>
+    <span class="k">def</span> <span class="nf">pad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Pad the dataset to a desired shape. The padding currently works for 2D and 3D meshes.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            args (Tuple): Desired shape of the mesh. If the mesh is 2D, the shape should be a tuple with two elements. If the mesh is 3D, the shape should be a tuple with three elements.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pad2D</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pad3D</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">raiseError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Invalid number of dimensions </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span><span class="si">}</span><span class="s1"> for mesh </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mesh_shape</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Dataset.get_splits">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.get_splits">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_splits</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">sizes</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+        <span class="n">shuffle</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">return_views</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">generator</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Generator</span><span class="p">]</span> <span class="o">=</span> <span class="n">default_generator</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Randomly split the dataset into non-overlapping new datasets of given lengths.</span>
+
+<span class="sd">        If a list of fractions that sum up to 1 is given,</span>
+<span class="sd">        the lengths will be computed automatically as</span>
+<span class="sd">        floor(frac * len(self)) for each fraction provided.</span>
+
+<span class="sd">        After computing the lengths, if there are any remainders, 1 count will be</span>
+<span class="sd">        distributed in round-robin fashion to the lengths</span>
+<span class="sd">        until there are no remainders left.</span>
+
+<span class="sd">        Optionally fix the generator for reproducible results.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            sizes (sequence): lengths or fractions of splits to be produced.</span>
+<span class="sd">            shuffle (bool): whether to shuffle the data before splitting. Default: ``True``.</span>
+<span class="sd">            return_views (bool): If True, the splits will be returned as views of the original dataset in form of torch.utils.data.Subset.</span>
+<span class="sd">            If False, the splits will be returned as new Dataset instances. Default: ``True``.</span>
+<span class="sd">            Warning: If return_views is True, the original dataset must be kept alive, otherwise the views will point to invalid memory.</span>
+<span class="sd">            Be careful when using `return_views=False` with `variables_in` and `parameters`, the memory usage will be higher.</span>
+<span class="sd">            generator (Generator): Generator used for the random permutation. Default: ``default_generator``.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            List[Dataset | Subset]: List with the splits of the dataset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">sizes</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">sum</span><span class="p">(</span><span class="n">sizes</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">subset_lengths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">frac</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sizes</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">frac</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">frac</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fraction at index </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> is not between 0 and 1&quot;</span><span class="p">)</span>
+                <span class="n">n_items_in_split</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">*</span> <span class="n">frac</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+                <span class="p">)</span>
+                <span class="n">subset_lengths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n_items_in_split</span><span class="p">)</span>
+            <span class="n">remainder</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-</span> <span class="nb">sum</span><span class="p">(</span><span class="n">subset_lengths</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="c1"># add 1 to all the lengths in round-robin fashion until the remainder is 0</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">remainder</span><span class="p">):</span>
+                <span class="n">idx_to_add_at</span> <span class="o">=</span> <span class="n">i</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">subset_lengths</span><span class="p">)</span>
+                <span class="n">subset_lengths</span><span class="p">[</span><span class="n">idx_to_add_at</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">sizes</span> <span class="o">=</span> <span class="n">subset_lengths</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">length</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sizes</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">length</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">raiseWarning</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Length of split at index </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> is 0. &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;This might result in an empty dataset.&quot;</span>
+                    <span class="p">)</span>
+
+        <span class="c1"># Cannot verify that dataset is Sized</span>
+        <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="n">sizes</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="n">raiseError</span><span class="p">(</span>
+                <span class="s2">&quot;Sum of input lengths does not equal the length of the dataset!&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">shuffle</span><span class="p">:</span>
+            <span class="n">indices</span> <span class="o">=</span> <span class="n">randperm</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">sizes</span><span class="p">),</span> <span class="n">generator</span><span class="o">=</span><span class="n">generator</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>  <span class="c1"># type: ignore[arg-type, call-overload]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">indices</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">sizes</span><span class="p">)))</span>
+        <span class="n">sizes</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">sizes</span><span class="p">)</span>
+
+        <span class="n">split_datasets</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">offset</span><span class="p">,</span> <span class="n">length</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">accumulate</span><span class="p">(</span><span class="n">sizes</span><span class="p">),</span> <span class="n">sizes</span><span class="p">):</span>
+            <span class="n">new_indices</span> <span class="o">=</span> <span class="n">indices</span><span class="p">[</span><span class="n">offset</span> <span class="o">-</span> <span class="n">length</span> <span class="p">:</span> <span class="n">offset</span><span class="p">]</span>
+            <span class="n">split_datasets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_create_subset_from_indices</span><span class="p">(</span><span class="n">new_indices</span><span class="p">,</span> <span class="n">return_views</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">split_datasets</span></div>
+
+
+<div class="viewcode-block" id="Dataset.get_splits_by_parameters">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.get_splits_by_parameters">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_splits_by_parameters</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> 
+        <span class="n">sizes</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> 
+        <span class="n">shuffle</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> 
+        <span class="n">return_views</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">generator</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Generator</span><span class="p">]</span> <span class="o">=</span> <span class="n">default_generator</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Split the dataset into non-overlapping new datasets with diferent sets of parameters of given length.</span>
+
+<span class="sd">        If a list of fractions that sum up to 1 is given,</span>
+<span class="sd">        the lengths will be computed automatically as</span>
+<span class="sd">        floor(frac * len(self.parameters)) for each fraction provided.</span>
+
+<span class="sd">        After computing the lengths, if there are any remainders, 1 count will be</span>
+<span class="sd">        distributed in round-robin fashion to the lengths</span>
+<span class="sd">        until there are no remainders left.</span>
+
+<span class="sd">        Optionally fix the generator for reproducible results.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            sizes (sequence): lengths or fractions of splits to be produced</span>
+<span class="sd">            shuffle (bool): whether to shuffle the data before splitting. Default: ``True``</span>
+<span class="sd">            return_views (bool): If True, the splits will be returned as views of the original dataset in form of torch.utils.data.Subset.</span>
+<span class="sd">            If False, the splits will be returned as new Dataset instances. Default: ``True``.</span>
+<span class="sd">            Warning: If return_views is True, the original dataset must be kept alive, otherwise the views will point to invalid memory.</span>
+<span class="sd">            generator (Generator): Generator used for the random permutation. Default: ``default_generator``.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List[Dataset | Subset]: List with the splits of the dataset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">raiseError</span><span class="p">(</span><span class="s2">&quot;This Dataset does not have parameters to split by&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">sizes</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">sum</span><span class="p">(</span><span class="n">sizes</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">subset_lengths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">frac</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sizes</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">frac</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">frac</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fraction at index </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> is not between 0 and 1&quot;</span><span class="p">)</span>
+                <span class="n">n_items_in_split</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span> <span class="o">*</span> <span class="n">frac</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+                <span class="p">)</span>
+                <span class="n">subset_lengths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n_items_in_split</span><span class="p">)</span>
+            <span class="n">remainder</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span> <span class="o">-</span> <span class="nb">sum</span><span class="p">(</span><span class="n">subset_lengths</span><span class="p">)</span>
+            <span class="c1"># add 1 to all the lengths in round-robin fashion until the remainder is 0</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">remainder</span><span class="p">):</span>
+                <span class="n">idx_to_add_at</span> <span class="o">=</span> <span class="n">i</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">subset_lengths</span><span class="p">)</span>
+                <span class="n">subset_lengths</span><span class="p">[</span><span class="n">idx_to_add_at</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">sizes</span> <span class="o">=</span> <span class="n">subset_lengths</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">length</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sizes</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">length</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">raiseWarning</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Length of split at index </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> is 0. &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;This might result in an empty dataset.&quot;</span>
+                    <span class="p">)</span>
+
+        <span class="c1"># Cannot verify that dataset is Sized</span>
+        <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="n">sizes</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">):</span>
+            <span class="n">raiseError</span><span class="p">(</span>
+                <span class="s2">&quot;Sum of input lengths does not equal the length of the number of parameters!&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">shuffle</span><span class="p">:</span>
+            <span class="n">indices</span> <span class="o">=</span> <span class="n">randperm</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">sizes</span><span class="p">),</span> <span class="n">generator</span><span class="o">=</span><span class="n">generator</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>  <span class="c1"># type: ignore[arg-type, call-overload]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">indices</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">sizes</span><span class="p">)))</span>
+        <span class="n">sizes</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">sizes</span><span class="p">)</span>
+        <span class="n">split_datasets</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">offset</span><span class="p">,</span> <span class="n">length</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">accumulate</span><span class="p">(</span><span class="n">sizes</span><span class="p">),</span> <span class="n">sizes</span><span class="p">):</span>
+            <span class="n">new_indices</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">[</span><span class="n">offset</span> <span class="o">-</span> <span class="n">length</span> <span class="p">:</span> <span class="n">offset</span><span class="p">]:</span>
+                <span class="n">vars_in_extended_indices</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">index</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="p">),</span> <span class="p">(</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="p">)))</span>
+                <span class="n">new_indices</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">vars_in_extended_indices</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">return_views</span><span class="p">:</span>
+                <span class="c1"># Get the split data</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">split_variables_in</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span>
+                    <span class="n">split_parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">indices</span><span class="p">[</span><span class="n">offset</span> <span class="o">-</span> <span class="n">length</span> <span class="p">:</span> <span class="n">offset</span><span class="p">]]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">split_variables_in</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">split_parameters</span> <span class="o">=</span> <span class="kc">None</span>
+                    
+                <span class="c1"># Get the split output variables</span>
+                <span class="n">split_variables_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span><span class="p">[</span><span class="n">new_indices</span><span class="p">]</span>
+
+                <span class="c1"># Create a new dataset instance with the split data</span>
+                <span class="n">split_dataset</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span>
+                    <span class="n">variables_out</span><span class="o">=</span><span class="nb">tuple</span><span class="p">([</span><span class="n">split_variables_out</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">mesh_shape</span><span class="p">)</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+                                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_channels</span><span class="p">)]),</span>
+                    <span class="n">mesh_shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mesh_shape</span><span class="p">,</span>
+                    <span class="n">variables_in</span><span class="o">=</span><span class="n">split_variables_in</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span> <span class="k">if</span> <span class="n">split_variables_in</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="c1"># Parameters must be transposed to pass only as many list as the number of variables</span>
+                    <span class="n">parameters</span><span class="o">=</span><span class="n">split_parameters</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">if</span> <span class="n">split_parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="n">combine_parameters_with_cartesian_prod</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">snapshots_by_column</span><span class="o">=</span><span class="kc">False</span>  <span class="c1"># Since the data is already reshaped</span>
+                <span class="p">)</span>
+                <span class="n">split_datasets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">split_dataset</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">split_datasets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Subset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_indices</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">split_datasets</span></div>
+
+    
+<div class="viewcode-block" id="Dataset.load">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.load">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">file_path</span><span class="p">,</span>
+        <span class="n">field_names</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">variables_names</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;all&#39;</span><span class="p">],</span>
+        <span class="n">add_mesh_coordinates</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a Dataset from a saved `pyLOM.Dataset` in one of its formats.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file_path (str): Path to the HDF5 file.</span>
+<span class="sd">            variables_out_names (List[str]): Names of the fields to be used as output. E.g. ``[&quot;CP&quot;]``.</span>
+<span class="sd">            add_variables (bool): Whether to add the variables as input variables. Default is ``True``.</span>
+<span class="sd">            variables_names (List[str]): Names of the variables from pyLOM.Dataset.varnames to be used as input. If ``[&quot;all&quot;]`` is passed, all variables will be used. Default is ``[&quot;all&quot;]``.</span>
+<span class="sd">            kwargs: Additional arguments to be passed to the pyLOM.NN.Dataset constructor.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dataset: Dataset created from the saved `pyLOM.Dataset`.</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; dataset = pyLOM.NN.Dataset.load(</span>
+<span class="sd">            ...     file_path,</span>
+<span class="sd">            ...     field_names=[&quot;CP&quot;],</span>
+<span class="sd">            ...     add_variables=True,</span>
+<span class="sd">            ...     add_mesh_coordinates=True,</span>
+<span class="sd">            ...     inputs_scaler=inputs_scaler,</span>
+<span class="sd">            ...     outputs_scaler=outputs_scaler,</span>
+<span class="sd">            ... )</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">original_dataset</span> <span class="o">=</span> <span class="n">pyLOMDataset</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">variables_names</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="s2">&quot;combine_parameters_with_cartesian_prod&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">):</span>
+            <span class="n">raiseWarning</span><span class="p">(</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;Be careful when using combine_parameters_with_cartesian_prod and passing variables_names.</span>
+<span class="sd">                You need to make sure that the length of cartesian product multiplied by the length </span>
+<span class="sd">                of the mesh coordinates is equal to the length of the fields on field_names.&quot;&quot;&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">variables_names</span> <span class="o">==</span> <span class="p">[</span><span class="s2">&quot;all&quot;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">add_mesh_coordinates</span><span class="p">:</span>
+                <span class="n">raiseError</span><span class="p">(</span><span class="s2">&quot;Cannot use all variables without adding mesh coordinates&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">original_dataset</span><span class="o">.</span><span class="n">varnames</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">raiseError</span><span class="p">(</span><span class="s2">&quot;No variabele found in the dataset&quot;</span><span class="p">)</span>
+            <span class="n">variables_names</span> <span class="o">=</span> <span class="n">original_dataset</span><span class="o">.</span><span class="n">varnames</span>
+
+        <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="n">original_dataset</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="n">var_name</span><span class="p">)</span> <span class="k">for</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="n">variables_names</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">variables_out</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">original_dataset</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span> <span class="k">for</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="n">field_names</span><span class="p">]</span>
+            <span class="p">),</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">variables_in</span><span class="o">=</span><span class="n">original_dataset</span><span class="o">.</span><span class="n">xyz</span> <span class="k">if</span> <span class="n">add_mesh_coordinates</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="Dataset.map">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.map">[docs]</a>
+    <span class="nd">@cr</span><span class="p">(</span><span class="s2">&quot;NN.Dataset.map&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">map</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">function</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
+        <span class="n">fn_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{},</span>
+        <span class="n">batched</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply a function to the dataset.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            function (Callable): Function to be applied to the dataset with one of the following signatures:</span>
+<span class="sd">                </span>
+<span class="sd">                - function (inputs: torch.Tensor, outputs: torch.Tensor, \*\*kwargs) -&gt; Tuple[torch.Tensor, torch.Tensor] if variables_in exists. Here `inputs` is the input data and `outputs` is the output data that __getitem__ returns, so `inputs` will include the parameters if they exist. </span>
+<span class="sd">                - function (outputs: torch.Tensor, \*\*kwargs) -&gt; torch.Tensor if variables_in does not exist.</span>
+<span class="sd">                </span>
+<span class="sd">                If batched is False, the tensors will have only one element in the first dimension.</span>
+<span class="sd">            fn_kwargs (Dict): Additional keyword arguments to be passed to the function.</span>
+<span class="sd">            batched (bool): If True, the function will be applied to the dataset in batches. Default is ``False``.</span>
+<span class="sd">            batch_size (int): Size of the batch. Default is ``1000``.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dataset: A reference to the dataset with th e function applied.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">batched</span><span class="p">:</span>
+            <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">pbar</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">batch_size</span><span class="p">),</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Mapping dataset&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;iters&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">pbar</span><span class="p">:</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span> <span class="o">=</span> <span class="n">batch</span>
+                <span class="n">fn_outputs</span> <span class="o">=</span> <span class="n">function</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="o">**</span><span class="n">fn_kwargs</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fn_outputs</span> <span class="o">=</span> <span class="n">function</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="o">**</span><span class="n">fn_kwargs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">]</span> <span class="o">=</span> <span class="n">fn_outputs</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="Dataset.filter">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.filter">[docs]</a>
+    <span class="nd">@cr</span><span class="p">(</span><span class="s2">&quot;NN.Dataset.filter&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">filter</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">function</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
+        <span class="n">fn_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{},</span>
+        <span class="n">batched</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
+        <span class="n">return_views</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Filter the dataset using a function.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            function (Callable): Function to be applied to the dataset with one of the following signatures:</span>
+
+<span class="sd">                - function (inputs: torch.Tensor, outputs: torch.Tensor, \*\*kwargs) -&gt; bool if variables_in exists. Here `inputs` is the input data and `outputs` is the output data that __getitem__ returns, so `inputs` will include the parameters if they exist. </span>
+<span class="sd">                - function (outputs: torch.Tensor, \*\*kwargs) -&gt; bool if variables_in does not exist.</span>
+
+<span class="sd">                If batched is True, the function should return a list of booleans.</span>
+<span class="sd">            fn_kwargs (Dict): Additional keyword arguments to be passed to the function.</span>
+<span class="sd">            batched (bool): If True, the function will be applied to the dataset in batches. Default is ``False``.</span>
+<span class="sd">            batch_size (int): Size of the batch. Default is ``1000``.</span>
+<span class="sd">            return_views (bool): If True, the filtered dataset will be returned as a view of the original dataset in form of torch.utils.data.Subset. Default is ``True``.</span>
+<span class="sd">            Warning: If return_views is True, the original dataset must be kept alive, otherwise the views will point to invalid memory.</span>
+<span class="sd">            Be careful when using `return_views=False` with `variables_in` and `parameters`, the memory usage will be higher.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Subset | Dataset: Subset of the dataset that passed the filter.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">batched</span><span class="p">:</span>
+            <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">pbar</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">batch_size</span><span class="p">),</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Filtering dataset&quot;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;iters&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">pbar</span><span class="p">:</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span> <span class="o">=</span> <span class="n">batch</span>
+                <span class="n">function_outputs</span> <span class="o">=</span> <span class="n">function</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="o">**</span><span class="n">fn_kwargs</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">outputs</span> <span class="o">=</span> <span class="n">batch</span>
+                <span class="n">function_outputs</span> <span class="o">=</span> <span class="n">function</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="o">**</span><span class="n">fn_kwargs</span><span class="p">)</span>
+            <span class="n">indices</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">function_outputs</span><span class="p">[</span><span class="n">x</span><span class="p">],</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">)))</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_subset_from_indices</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">return_views</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_create_subset_from_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">return_views</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">return_views</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">dataset</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span>
+                    <span class="n">variables_out</span><span class="o">=</span><span class="nb">tuple</span><span class="p">([</span><span class="n">data</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">mesh_shape</span><span class="p">)</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+                                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_channels</span><span class="p">)]),</span>
+                    <span class="n">mesh_shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mesh_shape</span><span class="p">,</span>
+                    <span class="n">variables_in</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">combine_parameters_with_cartesian_prod</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">snapshots_by_column</span><span class="o">=</span><span class="kc">False</span>  <span class="c1"># Since the data is already reshaped</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">dataset</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span>
+                    <span class="n">variables_out</span><span class="o">=</span><span class="nb">tuple</span><span class="p">([</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">][:,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">mesh_shape</span><span class="p">)</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+                                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_channels</span><span class="p">)]),</span>
+                    <span class="n">mesh_shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mesh_shape</span><span class="p">,</span>
+                    <span class="n">variables_in</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
+                    <span class="n">combine_parameters_with_cartesian_prod</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">snapshots_by_column</span><span class="o">=</span><span class="kc">False</span>  <span class="c1"># Since the data is already reshaped</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">dataset</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Subset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indices</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="Dataset.remove_column">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.remove_column">[docs]</a>
+    <span class="k">def</span> <span class="nf">remove_column</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">column_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">from_variables_out</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Remove a column from the dataset.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            column_idx (int): Index of the column to be removed.</span>
+<span class="sd">            from_variables_out (bool): If True, the column will be removed from the output variables. If False, the column will be removed from the input variables, if `column_idx` is greater than the number of columns on variables_in, the column will be removed from parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">from_variables_out</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">column_idx</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">raiseError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid column index </span><span class="si">{</span><span class="n">column_idx</span><span class="si">}</span><span class="s2">, there are only </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> columns in variables_out&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span><span class="p">[:,</span> <span class="p">:</span><span class="n">column_idx</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span><span class="p">[:,</span> <span class="n">column_idx</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:]],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">column_idx</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="p">[:,</span> <span class="p">:</span><span class="n">column_idx</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="p">[:,</span> <span class="n">column_idx</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:]],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">column_idx</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[:,</span> <span class="p">:</span><span class="n">column_idx</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[:,</span> <span class="n">column_idx</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:]],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">raiseError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid column index </span><span class="si">{</span><span class="n">column_idx</span><span class="si">}</span><span class="s2">, there are only </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_in</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> columns in variables_in and </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> columns in parameters&quot;</span><span class="p">)</span></div>
+</div>
+
+
+<div class="viewcode-block" id="set_seed">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.set_seed">[docs]</a>
+<span class="k">def</span> <span class="nf">set_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span> <span class="n">deterministic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+    <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">manual_seed_all</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+ 
+    <span class="k">if</span> <span class="n">deterministic</span><span class="p">:</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">cudnn</span><span class="o">.</span><span class="n">deterministic</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">cudnn</span><span class="o">.</span><span class="n">benchmark</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+ 
+
+<div class="viewcode-block" id="create_results_folder">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.create_results_folder">[docs]</a>
+<span class="k">def</span> <span class="nf">create_results_folder</span><span class="p">(</span><span class="n">RESUDIR</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a folder to store the results of the neural network training.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        RESUDIR (str): Path to the folder to be created.</span>
+<span class="sd">        verbose (bool): If True, print messages to the console. Default is ``True``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>    
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">RESUDIR</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">RESUDIR</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> 
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Folder created: </span><span class="si">{</span><span class="n">RESUDIR</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Folder already exists: </span><span class="si">{</span><span class="n">RESUDIR</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="select_device">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.select_device">[docs]</a>
+<span class="k">def</span> <span class="nf">select_device</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEVICE</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Select the device to be used for the training.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        device (str): Device to be used. Default is cuda if available, otherwise cpu.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">device</span></div>
+
+
+
+<div class="viewcode-block" id="betaLinearScheduler">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.betaLinearScheduler">[docs]</a>
+<span class="k">class</span> <span class="nc">betaLinearScheduler</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Linear scheduler for beta parameter in the loss function of the Autoencoders.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        start_value (float): initial value of beta</span>
+<span class="sd">        end_value (float): final value of beta</span>
+<span class="sd">        warmup (int): number of epochs to reach final value</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_value</span><span class="p">,</span> <span class="n">end_value</span><span class="p">,</span> <span class="n">start_epoch</span><span class="p">,</span> <span class="n">warmup</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_value</span> <span class="o">=</span> <span class="n">start_value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end_value</span> <span class="o">=</span> <span class="n">end_value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_epoch</span> <span class="o">=</span> <span class="n">start_epoch</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">warmup</span> <span class="o">=</span> <span class="n">warmup</span>
+
+<div class="viewcode-block" id="betaLinearScheduler.getBeta">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.betaLinearScheduler.getBeta">[docs]</a>
+    <span class="k">def</span> <span class="nf">getBeta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the value of beta for a given epoch.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            epoch (int): current epoch</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">epoch</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_epoch</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">epoch</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">warmup</span><span class="p">:</span>
+                <span class="n">beta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_value</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">end_value</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_value</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span>
+                    <span class="n">epoch</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_epoch</span>
+                <span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">warmup</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_epoch</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">beta</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">end_value</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2023-2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

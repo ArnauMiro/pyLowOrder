@@ -1,0 +1,1100 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>pyLOM.utils package &#8212; pyLOM  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=de90da8b" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/pyLOM.utils';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="pyLOM.vmmath package" href="pyLOM.vmmath.html" />
+    <link rel="prev" title="pyLOM.inp_out package" href="pyLOM.inp_out.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="2.0.1" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">pyLOM</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
+    Building from source
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples.html">
+    Examples
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
+    Building from source
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples.html">
+    Examples
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="pyLOM.html">pyLOM package</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.DMD.html">pyLOM.DMD package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.GPOD.html">pyLOM.GPOD package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.GPR.html">pyLOM.GPR package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.MANIFOLD.html">pyLOM.MANIFOLD package</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="pyLOM.NN.html">pyLOM.NN package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.architectures.html">pyLOM.NN.architectures package</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.POD.html">pyLOM.POD package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.SPOD.html">pyLOM.SPOD package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.inp_out.html">pyLOM.inp_out package</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">pyLOM.utils package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.vmmath.html">pyLOM.vmmath package</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="modules.html" class="nav-link">pyLOM</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="pyLOM.html" class="nav-link">pyLOM package</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">pyLOM.utils package</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="pylom-utils-package">
+<h1>pyLOM.utils package<a class="headerlink" href="#pylom-utils-package" title="Link to this heading">#</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">#</a></h2>
+</section>
+<section id="module-pyLOM.utils.cr">
+<span id="pylom-utils-cr-module"></span><h2>pyLOM.utils.cr module<a class="headerlink" href="#module-pyLOM.utils.cr" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.channel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyLOM.utils.cr.</span></span><span class="sig-name descname"><span class="pre">channel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tmax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tmin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tsum</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tini</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#channel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr.channel" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>This is a channel for the cr counter</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.channel.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#channel.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr.channel.reset" title="Link to this definition">#</a></dt>
+<dd><p>Reset the channel</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.channel.restart">
+<span class="sig-name descname"><span class="pre">restart</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#channel.restart"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr.channel.restart" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.channel.start">
+<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tini</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#channel.start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr.channel.start" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.channel.increase_nop">
+<span class="sig-name descname"><span class="pre">increase_nop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#channel.increase_nop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr.channel.increase_nop" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.channel.increase_time">
+<span class="sig-name descname"><span class="pre">increase_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#channel.increase_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr.channel.increase_time" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.channel.set_max">
+<span class="sig-name descname"><span class="pre">set_max</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#channel.set_max"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr.channel.set_max" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.channel.set_min">
+<span class="sig-name descname"><span class="pre">set_min</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#channel.set_min"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr.channel.set_min" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.channel.elapsed">
+<span class="sig-name descname"><span class="pre">elapsed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#channel.elapsed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr.channel.elapsed" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.channel.is_running">
+<span class="sig-name descname"><span class="pre">is_running</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#channel.is_running"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr.channel.is_running" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.channel.new">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">new</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#channel.new"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr.channel.new" title="Link to this definition">#</a></dt>
+<dd><p>Create a new channel</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.channel.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#pyLOM.utils.cr.channel.name" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.channel.nop">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nop</span></span><a class="headerlink" href="#pyLOM.utils.cr.channel.nop" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.channel.tmin">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">tmin</span></span><a class="headerlink" href="#pyLOM.utils.cr.channel.tmin" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.channel.tmax">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">tmax</span></span><a class="headerlink" href="#pyLOM.utils.cr.channel.tmax" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.channel.tavg">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">tavg</span></span><a class="headerlink" href="#pyLOM.utils.cr.channel.tavg" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.channel.tsum">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">tsum</span></span><a class="headerlink" href="#pyLOM.utils.cr.channel.tsum" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.cr._newch">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.cr.</span></span><span class="sig-name descname"><span class="pre">_newch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#_newch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr._newch" title="Link to this definition">#</a></dt>
+<dd><p>Add a new channel to the list</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.cr._findch">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.cr.</span></span><span class="sig-name descname"><span class="pre">_findch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#_findch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr._findch" title="Link to this definition">#</a></dt>
+<dd><p>Look for the channel</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.cr._findch_crash">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.cr.</span></span><span class="sig-name descname"><span class="pre">_findch_crash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#_findch_crash"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr._findch_crash" title="Link to this definition">#</a></dt>
+<dd><p>Look for the channel and crash if it does not exist</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.cr._findch_create">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.cr.</span></span><span class="sig-name descname"><span class="pre">_findch_create</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#_findch_create"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr._findch_create" title="Link to this definition">#</a></dt>
+<dd><p>Find the channel and if not found create it</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.cr._gettime">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.cr.</span></span><span class="sig-name descname"><span class="pre">_gettime</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#_gettime"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr._gettime" title="Link to this definition">#</a></dt>
+<dd><p>Returns the number of second since an arbitrary instant but fixed.
+Returned value will always be &gt; 0.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.cr_reset">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.cr.</span></span><span class="sig-name descname"><span class="pre">cr_reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#cr_reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr.cr_reset" title="Link to this definition">#</a></dt>
+<dd><p>Delete all channels and start again</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.cr_info">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.cr.</span></span><span class="sig-name descname"><span class="pre">cr_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#cr_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr.cr_info" title="Link to this definition">#</a></dt>
+<dd><p>Print information - order by major sum</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.cr_start">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.cr.</span></span><span class="sig-name descname"><span class="pre">cr_start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suff</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#cr_start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr.cr_start" title="Link to this definition">#</a></dt>
+<dd><p>Start the chrono of a channel</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.cr_stop">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.cr.</span></span><span class="sig-name descname"><span class="pre">cr_stop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suff</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#cr_stop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr.cr_stop" title="Link to this definition">#</a></dt>
+<dd><p>Stop the chrono of a channel</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.cr_time">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.cr.</span></span><span class="sig-name descname"><span class="pre">cr_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suff</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#cr_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr.cr_time" title="Link to this definition">#</a></dt>
+<dd><p>Get the time of a channel that is running; channel keeps running</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.cr">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.cr.</span></span><span class="sig-name descname"><span class="pre">cr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#cr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr.cr" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-pyLOM.utils.errors">
+<span id="pylom-utils-errors-module"></span><h2>pyLOM.utils.errors module<a class="headerlink" href="#module-pyLOM.utils.errors" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.errors.round">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.errors.</span></span><span class="sig-name descname"><span class="pre">round</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">precision</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/errors.html#round"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.errors.round" title="Link to this definition">#</a></dt>
+<dd><p>Truncate array by a certain precision</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.errors.raiseError">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.errors.</span></span><span class="sig-name descname"><span class="pre">raiseError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">errmsg</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/errors.html#raiseError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.errors.raiseError" title="Link to this definition">#</a></dt>
+<dd><p>Raise a controlled error and abort execution on
+all processes.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.errors.raiseWarning">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.errors.</span></span><span class="sig-name descname"><span class="pre">raiseWarning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">warnmsg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allranks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/errors.html#raiseWarning"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.errors.raiseWarning" title="Link to this definition">#</a></dt>
+<dd><p>Raise a controlled warning but don’t abort execution on
+all processes.</p>
+</dd></dl>
+
+</section>
+<section id="module-pyLOM.utils.mem">
+<span id="pylom-utils-mem-module"></span><h2>pyLOM.utils.mem module<a class="headerlink" href="#module-pyLOM.utils.mem" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.channel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyLOM.utils.mem.</span></span><span class="sig-name descname"><span class="pre">channel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mmax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mmin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">msum</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mini</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mem.html#channel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mem.channel" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>This is a channel for the cr counter</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.channel.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mem.html#channel.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mem.channel.reset" title="Link to this definition">#</a></dt>
+<dd><p>Reset the channel</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.channel.restart">
+<span class="sig-name descname"><span class="pre">restart</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mem.html#channel.restart"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mem.channel.restart" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.channel.start">
+<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mini</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mem.html#channel.start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mem.channel.start" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.channel.increase_nop">
+<span class="sig-name descname"><span class="pre">increase_nop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mem.html#channel.increase_nop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mem.channel.increase_nop" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.channel.increase_value">
+<span class="sig-name descname"><span class="pre">increase_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mem.html#channel.increase_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mem.channel.increase_value" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.channel.set_max">
+<span class="sig-name descname"><span class="pre">set_max</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mem.html#channel.set_max"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mem.channel.set_max" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.channel.set_min">
+<span class="sig-name descname"><span class="pre">set_min</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mem.html#channel.set_min"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mem.channel.set_min" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.channel.elapsed">
+<span class="sig-name descname"><span class="pre">elapsed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mem.html#channel.elapsed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mem.channel.elapsed" title="Link to this definition">#</a></dt>
+<dd><p>Negative values are discarded</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.channel.is_running">
+<span class="sig-name descname"><span class="pre">is_running</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mem.html#channel.is_running"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mem.channel.is_running" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.channel.new">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">new</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mem.html#channel.new"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mem.channel.new" title="Link to this definition">#</a></dt>
+<dd><p>Create a new channel</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.channel.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#pyLOM.utils.mem.channel.name" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.channel.nop">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nop</span></span><a class="headerlink" href="#pyLOM.utils.mem.channel.nop" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.channel.mmin">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mmin</span></span><a class="headerlink" href="#pyLOM.utils.mem.channel.mmin" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.channel.mmax">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mmax</span></span><a class="headerlink" href="#pyLOM.utils.mem.channel.mmax" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.channel.mavg">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mavg</span></span><a class="headerlink" href="#pyLOM.utils.mem.channel.mavg" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.channel.msum">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">msum</span></span><a class="headerlink" href="#pyLOM.utils.mem.channel.msum" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.mem._newch">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.mem.</span></span><span class="sig-name descname"><span class="pre">_newch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mem.html#_newch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mem._newch" title="Link to this definition">#</a></dt>
+<dd><p>Add a new channel to the list</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.mem._findch">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.mem.</span></span><span class="sig-name descname"><span class="pre">_findch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mem.html#_findch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mem._findch" title="Link to this definition">#</a></dt>
+<dd><p>Look for the channel</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.mem._findch_crash">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.mem.</span></span><span class="sig-name descname"><span class="pre">_findch_crash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mem.html#_findch_crash"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mem._findch_crash" title="Link to this definition">#</a></dt>
+<dd><p>Look for the channel and crash if it does not exist</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.mem._findch_create">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.mem.</span></span><span class="sig-name descname"><span class="pre">_findch_create</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mem.html#_findch_create"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mem._findch_create" title="Link to this definition">#</a></dt>
+<dd><p>Find the channel and if not found create it</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.mem._getvalue">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.mem.</span></span><span class="sig-name descname"><span class="pre">_getvalue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mem.html#_getvalue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mem._getvalue" title="Link to this definition">#</a></dt>
+<dd><p>Returns the used memory on an arbitrary instant but fixed.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.mem_reset">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.mem.</span></span><span class="sig-name descname"><span class="pre">mem_reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mem.html#mem_reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mem.mem_reset" title="Link to this definition">#</a></dt>
+<dd><p>Delete all channels and start again</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.mem_info">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.mem.</span></span><span class="sig-name descname"><span class="pre">mem_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'kB'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mem.html#mem_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mem.mem_info" title="Link to this definition">#</a></dt>
+<dd><p>Print information - order by major sum</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.mem_start">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.mem.</span></span><span class="sig-name descname"><span class="pre">mem_start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suff</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mem.html#mem_start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mem.mem_start" title="Link to this definition">#</a></dt>
+<dd><p>Start the chrono of a channel</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.mem_stop">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.mem.</span></span><span class="sig-name descname"><span class="pre">mem_stop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suff</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mem.html#mem_stop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mem.mem_stop" title="Link to this definition">#</a></dt>
+<dd><p>Stop the chrono of a channel</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.mem_value">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.mem.</span></span><span class="sig-name descname"><span class="pre">mem_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suff</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mem.html#mem_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mem.mem_value" title="Link to this definition">#</a></dt>
+<dd><p>Get the value of a channel that is running; channel keeps running</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.mem.mem">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.mem.</span></span><span class="sig-name descname"><span class="pre">mem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mem.html#mem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mem.mem" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-pyLOM.utils.parall">
+<span id="pylom-utils-parall-module"></span><h2>pyLOM.utils.parall module<a class="headerlink" href="#module-pyLOM.utils.parall" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.parall.worksplit">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.parall.</span></span><span class="sig-name descname"><span class="pre">worksplit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">istart</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iend</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">whoAmI</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nWorkers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">MPI_SIZE</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/parall.html#worksplit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.parall.worksplit" title="Link to this definition">#</a></dt>
+<dd><p>Divide the work between the processors</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.parall.writesplit">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.parall.</span></span><span class="sig-name descname"><span class="pre">writesplit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">npoints</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">write_master</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/parall.html#writesplit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.parall.writesplit" title="Link to this definition">#</a></dt>
+<dd><p>Divide the write array between the processors</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.parall.split">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.parall.</span></span><span class="sig-name descname"><span class="pre">split</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/parall.html#split"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.parall.split" title="Link to this definition">#</a></dt>
+<dd><p>Split an array among the processors</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.parall.is_rank_or_serial">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.parall.</span></span><span class="sig-name descname"><span class="pre">is_rank_or_serial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/parall.html#is_rank_or_serial"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.parall.is_rank_or_serial" title="Link to this definition">#</a></dt>
+<dd><p>Return whether the rank is active or True
+in case of a serial run</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.parall.mpi_barrier">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.parall.</span></span><span class="sig-name descname"><span class="pre">mpi_barrier</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/parall.html#mpi_barrier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.parall.mpi_barrier" title="Link to this definition">#</a></dt>
+<dd><p>Implements the barrier</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.parall.mpi_send">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.parall.</span></span><span class="sig-name descname"><span class="pre">mpi_send</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/parall.html#mpi_send"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.parall.mpi_send" title="Link to this definition">#</a></dt>
+<dd><p>Implements the send operation</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.parall.mpi_recv">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.parall.</span></span><span class="sig-name descname"><span class="pre">mpi_recv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/parall.html#mpi_recv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.parall.mpi_recv" title="Link to this definition">#</a></dt>
+<dd><p>Implements the recieve operation</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.parall.mpi_sendrecv">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.parall.</span></span><span class="sig-name descname"><span class="pre">mpi_sendrecv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buff</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/parall.html#mpi_sendrecv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.parall.mpi_sendrecv" title="Link to this definition">#</a></dt>
+<dd><p>Implements the sendrecv operation</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.parall.mpi_scatter">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.parall.</span></span><span class="sig-name descname"><span class="pre">mpi_scatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sendbuff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/parall.html#mpi_scatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.parall.mpi_scatter" title="Link to this definition">#</a></dt>
+<dd><p>Send an array among the processors and split
+if necessary.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.parall.mpi_gather">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.parall.</span></span><span class="sig-name descname"><span class="pre">mpi_gather</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sendbuff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/parall.html#mpi_gather"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.parall.mpi_gather" title="Link to this definition">#</a></dt>
+<dd><p>Gather an array from all the processors.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.parall.mpi_reduce">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.parall.</span></span><span class="sig-name descname"><span class="pre">mpi_reduce</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sendbuff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">op</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sum'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/parall.html#mpi_reduce"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.parall.mpi_reduce" title="Link to this definition">#</a></dt>
+<dd><p>Reduce an array from all the processors.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.parall.mpi_bcast">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.parall.</span></span><span class="sig-name descname"><span class="pre">mpi_bcast</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sendbuff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/parall.html#mpi_bcast"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.parall.mpi_bcast" title="Link to this definition">#</a></dt>
+<dd><p>Implements the broadcast operation</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.parall.pprint">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.parall.</span></span><span class="sig-name descname"><span class="pre">pprint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rank</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/parall.html#pprint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.parall.pprint" title="Link to this definition">#</a></dt>
+<dd><p>Print alternative for parallel codes. It works as
+python’s print with the rank variable, which can
+be negative for everyone to print or equal to the
+rank that should print.</p>
+</dd></dl>
+
+</section>
+<section id="module-pyLOM.utils.plots">
+<span id="pylom-utils-plots-module"></span><h2>pyLOM.utils.plots module<a class="headerlink" href="#module-pyLOM.utils.plots" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.plots.show_plots">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.plots.</span></span><span class="sig-name descname"><span class="pre">show_plots</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/plots.html#show_plots"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.plots.show_plots" title="Link to this definition">#</a></dt>
+<dd><p>Wrapper to matplotlib.pyplot.show()</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.plots.close_plots">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.plots.</span></span><span class="sig-name descname"><span class="pre">close_plots</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/plots.html#close_plots"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.plots.close_plots" title="Link to this definition">#</a></dt>
+<dd><p>Wrapper to matplotlib.pyplot.close()</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.plots.plotFieldStruct2D">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.plots.</span></span><span class="sig-name descname"><span class="pre">plotFieldStruct2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ny</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ndim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clear</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/plots.html#plotFieldStruct2D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.plots.plotFieldStruct2D" title="Link to this definition">#</a></dt>
+<dd><p>Plot a 2D point or cell centered field on an structured mesh</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.plots.plotResidual">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.plots.</span></span><span class="sig-name descname"><span class="pre">plotResidual</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fig</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/plots.html#plotResidual"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.plots.plotResidual" title="Link to this definition">#</a></dt>
+<dd><p>Given the S matrix as a vector, plot
+the accumulated residual.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.plots._cells_and_offsets">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.plots.</span></span><span class="sig-name descname"><span class="pre">_cells_and_offsets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conec</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/plots.html#_cells_and_offsets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.plots._cells_and_offsets" title="Link to this definition">#</a></dt>
+<dd><p>Build the offsets and cells array to create am
+UnstructuredGrid</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.plots.plotSnapshot">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.plots.</span></span><span class="sig-name descname"><span class="pre">plotSnapshot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mesh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/plots.html#plotSnapshot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.plots.plotSnapshot" title="Link to this definition">#</a></dt>
+<dd><p>Plot using pyVista</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.plots.plotLayout">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.plots.</span></span><span class="sig-name descname"><span class="pre">plotLayout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mesh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nrows</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ncols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'jet'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">off_screen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/plots.html#plotLayout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.plots.plotLayout" title="Link to this definition">#</a></dt>
+<dd><p>Plot using pyVista</p>
+</dd></dl>
+
+</section>
+<section id="module-pyLOM.utils">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-pyLOM.utils" title="Link to this heading">#</a></h2>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="pyLOM.inp_out.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">pyLOM.inp_out package</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="pyLOM.vmmath.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">pyLOM.vmmath package</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.utils.cr">pyLOM.utils.cr module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.channel"><code class="docutils literal notranslate"><span class="pre">channel</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.channel.reset"><code class="docutils literal notranslate"><span class="pre">channel.reset()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.channel.restart"><code class="docutils literal notranslate"><span class="pre">channel.restart()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.channel.start"><code class="docutils literal notranslate"><span class="pre">channel.start()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.channel.increase_nop"><code class="docutils literal notranslate"><span class="pre">channel.increase_nop()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.channel.increase_time"><code class="docutils literal notranslate"><span class="pre">channel.increase_time()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.channel.set_max"><code class="docutils literal notranslate"><span class="pre">channel.set_max()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.channel.set_min"><code class="docutils literal notranslate"><span class="pre">channel.set_min()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.channel.elapsed"><code class="docutils literal notranslate"><span class="pre">channel.elapsed()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.channel.is_running"><code class="docutils literal notranslate"><span class="pre">channel.is_running()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.channel.new"><code class="docutils literal notranslate"><span class="pre">channel.new()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.channel.name"><code class="docutils literal notranslate"><span class="pre">channel.name</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.channel.nop"><code class="docutils literal notranslate"><span class="pre">channel.nop</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.channel.tmin"><code class="docutils literal notranslate"><span class="pre">channel.tmin</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.channel.tmax"><code class="docutils literal notranslate"><span class="pre">channel.tmax</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.channel.tavg"><code class="docutils literal notranslate"><span class="pre">channel.tavg</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.channel.tsum"><code class="docutils literal notranslate"><span class="pre">channel.tsum</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr._newch"><code class="docutils literal notranslate"><span class="pre">_newch()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr._findch"><code class="docutils literal notranslate"><span class="pre">_findch()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr._findch_crash"><code class="docutils literal notranslate"><span class="pre">_findch_crash()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr._findch_create"><code class="docutils literal notranslate"><span class="pre">_findch_create()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr._gettime"><code class="docutils literal notranslate"><span class="pre">_gettime()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.cr_reset"><code class="docutils literal notranslate"><span class="pre">cr_reset()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.cr_info"><code class="docutils literal notranslate"><span class="pre">cr_info()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.cr_start"><code class="docutils literal notranslate"><span class="pre">cr_start()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.cr_stop"><code class="docutils literal notranslate"><span class="pre">cr_stop()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.cr_time"><code class="docutils literal notranslate"><span class="pre">cr_time()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.cr"><code class="docutils literal notranslate"><span class="pre">cr()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.utils.errors">pyLOM.utils.errors module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.errors.round"><code class="docutils literal notranslate"><span class="pre">round()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.errors.raiseError"><code class="docutils literal notranslate"><span class="pre">raiseError()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.errors.raiseWarning"><code class="docutils literal notranslate"><span class="pre">raiseWarning()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.utils.mem">pyLOM.utils.mem module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.channel"><code class="docutils literal notranslate"><span class="pre">channel</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.channel.reset"><code class="docutils literal notranslate"><span class="pre">channel.reset()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.channel.restart"><code class="docutils literal notranslate"><span class="pre">channel.restart()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.channel.start"><code class="docutils literal notranslate"><span class="pre">channel.start()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.channel.increase_nop"><code class="docutils literal notranslate"><span class="pre">channel.increase_nop()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.channel.increase_value"><code class="docutils literal notranslate"><span class="pre">channel.increase_value()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.channel.set_max"><code class="docutils literal notranslate"><span class="pre">channel.set_max()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.channel.set_min"><code class="docutils literal notranslate"><span class="pre">channel.set_min()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.channel.elapsed"><code class="docutils literal notranslate"><span class="pre">channel.elapsed()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.channel.is_running"><code class="docutils literal notranslate"><span class="pre">channel.is_running()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.channel.new"><code class="docutils literal notranslate"><span class="pre">channel.new()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.channel.name"><code class="docutils literal notranslate"><span class="pre">channel.name</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.channel.nop"><code class="docutils literal notranslate"><span class="pre">channel.nop</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.channel.mmin"><code class="docutils literal notranslate"><span class="pre">channel.mmin</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.channel.mmax"><code class="docutils literal notranslate"><span class="pre">channel.mmax</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.channel.mavg"><code class="docutils literal notranslate"><span class="pre">channel.mavg</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.channel.msum"><code class="docutils literal notranslate"><span class="pre">channel.msum</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem._newch"><code class="docutils literal notranslate"><span class="pre">_newch()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem._findch"><code class="docutils literal notranslate"><span class="pre">_findch()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem._findch_crash"><code class="docutils literal notranslate"><span class="pre">_findch_crash()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem._findch_create"><code class="docutils literal notranslate"><span class="pre">_findch_create()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem._getvalue"><code class="docutils literal notranslate"><span class="pre">_getvalue()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.mem_reset"><code class="docutils literal notranslate"><span class="pre">mem_reset()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.mem_info"><code class="docutils literal notranslate"><span class="pre">mem_info()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.mem_start"><code class="docutils literal notranslate"><span class="pre">mem_start()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.mem_stop"><code class="docutils literal notranslate"><span class="pre">mem_stop()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.mem_value"><code class="docutils literal notranslate"><span class="pre">mem_value()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.mem"><code class="docutils literal notranslate"><span class="pre">mem()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.utils.parall">pyLOM.utils.parall module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.worksplit"><code class="docutils literal notranslate"><span class="pre">worksplit()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.writesplit"><code class="docutils literal notranslate"><span class="pre">writesplit()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.split"><code class="docutils literal notranslate"><span class="pre">split()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.is_rank_or_serial"><code class="docutils literal notranslate"><span class="pre">is_rank_or_serial()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.mpi_barrier"><code class="docutils literal notranslate"><span class="pre">mpi_barrier()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.mpi_send"><code class="docutils literal notranslate"><span class="pre">mpi_send()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.mpi_recv"><code class="docutils literal notranslate"><span class="pre">mpi_recv()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.mpi_sendrecv"><code class="docutils literal notranslate"><span class="pre">mpi_sendrecv()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.mpi_scatter"><code class="docutils literal notranslate"><span class="pre">mpi_scatter()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.mpi_gather"><code class="docutils literal notranslate"><span class="pre">mpi_gather()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.mpi_reduce"><code class="docutils literal notranslate"><span class="pre">mpi_reduce()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.mpi_bcast"><code class="docutils literal notranslate"><span class="pre">mpi_bcast()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.pprint"><code class="docutils literal notranslate"><span class="pre">pprint()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.utils.plots">pyLOM.utils.plots module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.plots.show_plots"><code class="docutils literal notranslate"><span class="pre">show_plots()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.plots.close_plots"><code class="docutils literal notranslate"><span class="pre">close_plots()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.plots.plotFieldStruct2D"><code class="docutils literal notranslate"><span class="pre">plotFieldStruct2D()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.plots.plotResidual"><code class="docutils literal notranslate"><span class="pre">plotResidual()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.plots._cells_and_offsets"><code class="docutils literal notranslate"><span class="pre">_cells_and_offsets()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.plots.plotSnapshot"><code class="docutils literal notranslate"><span class="pre">plotSnapshot()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.plots.plotLayout"><code class="docutils literal notranslate"><span class="pre">plotLayout()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.utils">Module contents</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  
+  <div class="tocsection editthispage">
+    <a href="https://github.com/ArnauMiro/pyLowOrder/edit/master/docs/source/api/pyLOM.utils.rst">
+      <i class="fa-solid fa-pencil"></i>
+      
+      
+        
+          Edit on GitHub
+        
+      
+    </a>
+  </div>
+</div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/pyLOM.utils.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2023-2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

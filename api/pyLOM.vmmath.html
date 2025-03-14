@@ -1,0 +1,1255 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>pyLOM.vmmath package &#8212; pyLOM  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=de90da8b" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/pyLOM.vmmath';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Examples" href="../examples.html" />
+    <link rel="prev" title="pyLOM.utils package" href="pyLOM.utils.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="2.0.1" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">pyLOM</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
+    Building from source
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples.html">
+    Examples
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
+    Building from source
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples.html">
+    Examples
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="pyLOM.html">pyLOM package</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.DMD.html">pyLOM.DMD package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.GPOD.html">pyLOM.GPOD package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.GPR.html">pyLOM.GPR package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.MANIFOLD.html">pyLOM.MANIFOLD package</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="pyLOM.NN.html">pyLOM.NN package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.architectures.html">pyLOM.NN.architectures package</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.POD.html">pyLOM.POD package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.SPOD.html">pyLOM.SPOD package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.inp_out.html">pyLOM.inp_out package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.utils.html">pyLOM.utils package</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">pyLOM.vmmath package</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="modules.html" class="nav-link">pyLOM</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="pyLOM.html" class="nav-link">pyLOM package</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">pyLOM.vmmath package</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="pylom-vmmath-package">
+<h1>pyLOM.vmmath package<a class="headerlink" href="#pylom-vmmath-package" title="Link to this heading">#</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">#</a></h2>
+</section>
+<section id="module-pyLOM.vmmath.averaging">
+<span id="pylom-vmmath-averaging-module"></span><h2>pyLOM.vmmath.averaging module<a class="headerlink" href="#module-pyLOM.vmmath.averaging" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.averaging.subtract_mean">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.averaging.</span></span><span class="sig-name descname"><span class="pre">subtract_mean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_mean</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.averaging.subtract_mean" title="Link to this definition">#</a></dt>
+<dd><p>Computes out(m,n) = X(m,n) - X_mean(m) where m is the spatial coordinates
+and n is the number of snapshots.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.averaging.temporal_mean">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.averaging.</span></span><span class="sig-name descname"><span class="pre">temporal_mean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.averaging.temporal_mean" title="Link to this definition">#</a></dt>
+<dd><p>Temporal mean of matrix X(m,n) where m is the spatial coordinates
+and n is the number of snapshots.</p>
+</dd></dl>
+
+</section>
+<section id="module-pyLOM.vmmath.cfuncs">
+<span id="pylom-vmmath-cfuncs-module"></span><h2>pyLOM.vmmath.cfuncs module<a class="headerlink" href="#module-pyLOM.vmmath.cfuncs" title="Link to this heading">#</a></h2>
+</section>
+<section id="module-pyLOM.vmmath.fft">
+<span id="pylom-vmmath-fft-module"></span><h2>pyLOM.vmmath.fft module<a class="headerlink" href="#module-pyLOM.vmmath.fft" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.fft._dfft">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.fft.</span></span><span class="sig-name descname"><span class="pre">_dfft</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">equispaced</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.fft._dfft" title="Link to this definition">#</a></dt>
+<dd><p>Compute the fft of a signal y that is sampled at a
+constant timestep. Return the frequency and PSD</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.fft._sfft">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.fft.</span></span><span class="sig-name descname"><span class="pre">_sfft</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">equispaced</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.fft._sfft" title="Link to this definition">#</a></dt>
+<dd><p>Compute the fft of a signal y that is sampled at a
+constant timestep. Return the frequency and PSD</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.fft.fft">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.fft.</span></span><span class="sig-name descname"><span class="pre">fft</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">equispaced</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.fft.fft" title="Link to this definition">#</a></dt>
+<dd><p>Compute the fft of a signal y that is sampled at a
+constant timestep. Return the frequency and PSD</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.fft.hammwin">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.fft.</span></span><span class="sig-name descname"><span class="pre">hammwin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">N</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.fft.hammwin" title="Link to this definition">#</a></dt>
+<dd><p>Hamming window</p>
+</dd></dl>
+
+</section>
+<section id="module-pyLOM.vmmath.geometric">
+<span id="pylom-vmmath-geometric-module"></span><h2>pyLOM.vmmath.geometric module<a class="headerlink" href="#module-pyLOM.vmmath.geometric" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.geometric.cellCenters">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.geometric.</span></span><span class="sig-name descname"><span class="pre">cellCenters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conec</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.geometric.cellCenters" title="Link to this definition">#</a></dt>
+<dd><p>Compute the cell centers given a list
+of elements (internal function).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.geometric.euclidean_d">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.geometric.</span></span><span class="sig-name descname"><span class="pre">euclidean_d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.geometric.euclidean_d" title="Link to this definition">#</a></dt>
+<dd><p>Compute Euclidean distances between simulations.</p>
+<dl class="simple">
+<dt>In:</dt><dd><ul class="simple">
+<li><p>X: NxM Data matrix with N points in the mesh for M simulations</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>MxM distance matrix</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>D</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.geometric.normals">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.geometric.</span></span><span class="sig-name descname"><span class="pre">normals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conec</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.geometric.normals" title="Link to this definition">#</a></dt>
+<dd><p>Compute the cell centers given a list
+of elements (internal function).</p>
+</dd></dl>
+
+</section>
+<section id="module-pyLOM.vmmath.maths">
+<span id="pylom-vmmath-maths-module"></span><h2>pyLOM.vmmath.maths module<a class="headerlink" href="#module-pyLOM.vmmath.maths" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.maths._ceigen">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.maths.</span></span><span class="sig-name descname"><span class="pre">_ceigen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.maths._ceigen" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Eigenvalues and eigenvectors using Lapack.</dt><dd><p>real(n)   are the real eigenvalues.
+imag(n)   are the imaginary eigenvalues.
+vecs(n,n) are the right eigenvectors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.maths._dpolar">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.maths.</span></span><span class="sig-name descname"><span class="pre">_dpolar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rreal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iimag</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.maths._dpolar" title="Link to this definition">#</a></dt>
+<dd><p>Present a complex number in its polar form given its real and imaginary part</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.maths._spolar">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.maths.</span></span><span class="sig-name descname"><span class="pre">_spolar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rreal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iimag</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.maths._spolar" title="Link to this definition">#</a></dt>
+<dd><p>Present a complex number in its polar form given its real and imaginary part</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.maths._zeigen">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.maths.</span></span><span class="sig-name descname"><span class="pre">_zeigen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.maths._zeigen" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Eigenvalues and eigenvectors using Lapack.</dt><dd><p>real(n)   are the real eigenvalues.
+imag(n)   are the imaginary eigenvalues.
+vecs(n,n) are the right eigenvectors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.maths.argsort">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.maths.</span></span><span class="sig-name descname"><span class="pre">argsort</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.maths.argsort" title="Link to this definition">#</a></dt>
+<dd><p>Returns the indices that sort a vector</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.maths.cholesky">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.maths.</span></span><span class="sig-name descname"><span class="pre">cholesky</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.maths.cholesky" title="Link to this definition">#</a></dt>
+<dd><p>Compute the Lower Cholesky decomposition of matrix A. The C routine modifies directly the matrix!</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.maths.conj">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.maths.</span></span><span class="sig-name descname"><span class="pre">conj</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.maths.conj" title="Link to this definition">#</a></dt>
+<dd><p>Returns the pointwise conjugate of A</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.maths.diag">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.maths.</span></span><span class="sig-name descname"><span class="pre">diag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.maths.diag" title="Link to this definition">#</a></dt>
+<dd><p>Returns the diagonal of A (A is a square matrix)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.maths.eigen">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.maths.</span></span><span class="sig-name descname"><span class="pre">eigen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.maths.eigen" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Eigenvalues and eigenvectors using Lapack.</dt><dd><p>real(n)   are the real eigenvalues.
+imag(n)   are the imaginary eigenvalues.
+vecs(n,n) are the right eigenvectors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.maths.flip">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.maths.</span></span><span class="sig-name descname"><span class="pre">flip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.maths.flip" title="Link to this definition">#</a></dt>
+<dd><p>Returns the pointwise conjugate of A</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.maths.inv">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.maths.</span></span><span class="sig-name descname"><span class="pre">inv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.maths.inv" title="Link to this definition">#</a></dt>
+<dd><p>Returns the inverse of A</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.maths.matmul">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.maths.</span></span><span class="sig-name descname"><span class="pre">matmul</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.maths.matmul" title="Link to this definition">#</a></dt>
+<dd><p>Matrix multiplication C = A x B</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.maths.matmulp">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.maths.</span></span><span class="sig-name descname"><span class="pre">matmulp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.maths.matmulp" title="Link to this definition">#</a></dt>
+<dd><p>Matrix multiplication C = A x B</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.maths.polar">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.maths.</span></span><span class="sig-name descname"><span class="pre">polar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rreal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iimag</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.maths.polar" title="Link to this definition">#</a></dt>
+<dd><p>Present a complex number in its polar form given its real and imaginary part</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.maths.transpose">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.maths.</span></span><span class="sig-name descname"><span class="pre">transpose</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.maths.transpose" title="Link to this definition">#</a></dt>
+<dd><p>Transposed of matrix A</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.maths.vandermonde">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.maths.</span></span><span class="sig-name descname"><span class="pre">vandermonde</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rreal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iimag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.maths.vandermonde" title="Link to this definition">#</a></dt>
+<dd><p>Builds a Vandermonde matrix of (m x n) with the real and
+imaginary parts of the eigenvalues</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.maths.vandermondeTime">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.maths.</span></span><span class="sig-name descname"><span class="pre">vandermondeTime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rreal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iimag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.maths.vandermondeTime" title="Link to this definition">#</a></dt>
+<dd><p>Builds a Vandermonde matrix of (m x n) with the real and
+imaginary parts of the eigenvalues for a certain timesteps</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.maths.vecmat">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.maths.</span></span><span class="sig-name descname"><span class="pre">vecmat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.maths.vecmat" title="Link to this definition">#</a></dt>
+<dd><p>Vector times a matrix C = v x A</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.maths.vector_mean">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.maths.</span></span><span class="sig-name descname"><span class="pre">vector_mean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.maths.vector_mean" title="Link to this definition">#</a></dt>
+<dd><p>Mean of a vector</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.maths.vector_norm">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.maths.</span></span><span class="sig-name descname"><span class="pre">vector_norm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.maths.vector_norm" title="Link to this definition">#</a></dt>
+<dd><p>L2 norm of a vector</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.maths.vector_sum">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.maths.</span></span><span class="sig-name descname"><span class="pre">vector_sum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.maths.vector_sum" title="Link to this definition">#</a></dt>
+<dd><p>Sum of a vector</p>
+</dd></dl>
+
+</section>
+<section id="module-pyLOM.vmmath.regression">
+<span id="pylom-vmmath-regression-module"></span><h2>pyLOM.vmmath.regression module<a class="headerlink" href="#module-pyLOM.vmmath.regression" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.regression.least_squares">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.regression.</span></span><span class="sig-name descname"><span class="pre">least_squares</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.regression.least_squares" title="Link to this definition">#</a></dt>
+<dd><p>Least squares regression
+(A^T * A)^-1 * A^T * b</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.regression.ridge_regresion">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.regression.</span></span><span class="sig-name descname"><span class="pre">ridge_regresion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lam</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.regression.ridge_regresion" title="Link to this definition">#</a></dt>
+<dd><p>Ridge regression</p>
+</dd></dl>
+
+</section>
+<section id="module-pyLOM.vmmath.stats">
+<span id="pylom-vmmath-stats-module"></span><h2>pyLOM.vmmath.stats module<a class="headerlink" href="#module-pyLOM.vmmath.stats" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.stats.MAE">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.stats.</span></span><span class="sig-name descname"><span class="pre">MAE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.stats.MAE" title="Link to this definition">#</a></dt>
+<dd><p>Compute MAE between A and B</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.stats.RMSE">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.stats.</span></span><span class="sig-name descname"><span class="pre">RMSE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relative</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.stats.RMSE" title="Link to this definition">#</a></dt>
+<dd><p>Compute RMSE between A and B</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.stats.r2">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.stats.</span></span><span class="sig-name descname"><span class="pre">r2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.stats.r2" title="Link to this definition">#</a></dt>
+<dd><p>Compute MAE between A and B</p>
+</dd></dl>
+
+</section>
+<section id="module-pyLOM.vmmath.svd">
+<span id="pylom-vmmath-svd-module"></span><h2>pyLOM.vmmath.svd module<a class="headerlink" href="#module-pyLOM.vmmath.svd" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._cqr">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_cqr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._cqr" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>QR factorization using Lapack</dt><dd><p>Q(m,n) is the Q matrix
+R(n,n) is the R matrix</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._csvd">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_csvd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_copy</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._csvd" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Single value decomposition (SVD) using Lapack.</dt><dd><p>U(m,n)   are the POD modes.
+S(n)     are the singular values.
+V(n,n)   are the right singular vectors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._ctsqr">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_ctsqr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._ctsqr" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Parallel QR factorization using Lapack</dt><dd><p>Q(m,n) is the Q matrix
+R(n,n) is the R matrix</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._ctsqr_svd">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_ctsqr_svd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._ctsqr_svd" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Parallel Single value decomposition (SVD) using Lapack.</dt><dd><p>U(m,n)   are the POD modes.
+S(n)     are the singular values.
+V(n,n)   are the right singular vectors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._dinit_qr_streaming">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_dinit_qr_streaming</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._dinit_qr_streaming" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Parallel Randomized QR factorization using Lapack.</dt><dd><p>Q(m,r)
+B(n,n)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._dqr">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_dqr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._dqr" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>QR factorization using Lapack</dt><dd><p>Q(m,n) is the Q matrix
+R(n,n) is the R matrix</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._drandomized_qr">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_drandomized_qr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._drandomized_qr" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Parallel Randomized QR factorization using Lapack.</dt><dd><p>Q(m,r)
+B(n,n)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._drandomized_svd">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_drandomized_svd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._drandomized_svd" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Parallel Randomized Single value decomposition (SVD) using Lapack.</dt><dd><p>U(m,n)   are the POD modes.
+S(n)     are the singular values.
+V(n,n)   are the right singular vectors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._dsvd">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_dsvd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_copy</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._dsvd" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Single value decomposition (SVD) using Lapack.</dt><dd><p>U(m,n)   are the POD modes.
+S(n)     are the singular values.
+V(n,n)   are the right singular vectors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._dtsqr">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_dtsqr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._dtsqr" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Parallel QR factorization using Lapack</dt><dd><p>Q(m,n) is the Q matrix
+R(n,n) is the R matrix</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._dtsqr_svd">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_dtsqr_svd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._dtsqr_svd" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Parallel Single value decomposition (SVD) using Lapack.</dt><dd><p>U(m,n)   are the POD modes.
+S(n)     are the singular values.
+V(n,n)   are the right singular vectors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._dupdate_qr_streaming">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_dupdate_qr_streaming</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Q1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Yo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._dupdate_qr_streaming" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Parallel Randomized QR factorization using Lapack.</dt><dd><p>Q(m,r)
+B(r,n)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._sinit_qr_streaming">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_sinit_qr_streaming</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._sinit_qr_streaming" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Parallel Randomized QR factorization using Lapack.</dt><dd><p>Q(m,r)
+B(r,n)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._sqr">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_sqr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._sqr" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>QR factorization using Lapack</dt><dd><p>Q(m,n) is the Q matrix
+R(n,n) is the R matrix</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._srandomized_qr">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_srandomized_qr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._srandomized_qr" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Parallel Randomized QR factorization using Lapack.</dt><dd><p>Q(m,r)
+B(r,n)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._srandomized_svd">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_srandomized_svd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._srandomized_svd" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Parallel Randomized Single value decomposition (SVD) using Lapack.</dt><dd><p>U(m,n)   are the POD modes.
+S(n)     are the singular values.
+V(n,n)   are the right singular vectors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._ssvd">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_ssvd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_copy</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._ssvd" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Single value decomposition (SVD) using Lapack.</dt><dd><p>U(m,n)   are the POD modes.
+S(n)     are the singular values.
+V(n,n)   are the right singular vectors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._stsqr">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_stsqr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._stsqr" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Parallel QR factorization using Lapack</dt><dd><p>Q(m,n) is the Q matrix
+R(n,n) is the R matrix</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._stsqr_svd">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_stsqr_svd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._stsqr_svd" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Parallel Single value decomposition (SVD) using Lapack.</dt><dd><p>U(m,n)   are the POD modes.
+S(n)     are the singular values.
+V(n,n)   are the right singular vectors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._supdate_qr_streaming">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_supdate_qr_streaming</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Q1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Yo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._supdate_qr_streaming" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Parallel Randomized QR factorization using Lapack.</dt><dd><p>Q(m,r)
+B(r,n)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._zqr">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_zqr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._zqr" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>QR factorization using Lapack</dt><dd><p>Q(m,n) is the Q matrix
+R(n,n) is the R matrix</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._zsvd">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_zsvd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_copy</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._zsvd" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Single value decomposition (SVD) using Lapack.</dt><dd><p>U(m,n)   are the POD modes.
+S(n)     are the singular values.
+V(n,n)   are the right singular vectors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._ztsqr">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_ztsqr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._ztsqr" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Parallel QR factorization using Lapack</dt><dd><p>Q(m,n) is the Q matrix
+R(n,n) is the R matrix</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd._ztsqr_svd">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">_ztsqr_svd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd._ztsqr_svd" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Parallel Single value decomposition (SVD) using Lapack.</dt><dd><p>U(m,n)   are the POD modes.
+S(n)     are the singular values.
+V(n,n)   are the right singular vectors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd.init_qr_streaming">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">init_qr_streaming</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd.init_qr_streaming" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Parallel Single value decomposition (SVD) using Lapack.</dt><dd><p>Q(m,r)
+B(n,r)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd.qr">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">qr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd.qr" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>QR factorization using Lapack</dt><dd><p>Q(m,n) is the Q matrix
+R(n,n) is the R matrix</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd.randomized_qr">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">randomized_qr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd.randomized_qr" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Parallel Single value decomposition (SVD) using Lapack.</dt><dd><p>Q(m,r)
+B(n,r)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd.randomized_svd">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">randomized_svd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd.randomized_svd" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Parallel Single value decomposition (SVD) using Lapack.</dt><dd><p>U(m,n)   are the POD modes.
+S(n)     are the singular values.
+V(n,n)   are the right singular vectors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd.svd">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">svd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_copy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd.svd" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Single value decomposition (SVD) using Lapack.</dt><dd><p>U(m,n)   are the POD modes.
+S(n)     are the singular values.
+V(n,n)   are the right singular vectors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd.tsqr">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">tsqr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd.tsqr" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Parallel QR factorization using Lapack</dt><dd><p>Q(m,n) is the Q matrix
+R(n,n) is the R matrix</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd.tsqr_svd">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">tsqr_svd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd.tsqr_svd" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Parallel Single value decomposition (SVD) using Lapack.</dt><dd><p>U(m,n)   are the POD modes.
+S(n)     are the singular values.
+V(n,n)   are the right singular vectors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.svd.update_qr_streaming">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.svd.</span></span><span class="sig-name descname"><span class="pre">update_qr_streaming</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Yo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.svd.update_qr_streaming" title="Link to this definition">#</a></dt>
+<dd><dl class="simple">
+<dt>Parallel Single value decomposition (SVD) using Lapack.</dt><dd><p>Q(m,r)
+B(n,r)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-pyLOM.vmmath.truncation">
+<span id="pylom-vmmath-truncation-module"></span><h2>pyLOM.vmmath.truncation module<a class="headerlink" href="#module-pyLOM.vmmath.truncation" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.truncation.compute_truncation_residual">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.truncation.</span></span><span class="sig-name descname"><span class="pre">compute_truncation_residual</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.truncation.compute_truncation_residual" title="Link to this definition">#</a></dt>
+<dd><p>Compute the truncation residual.
+r must be a float precision (r&lt;1) where:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>r &gt; 0: target residual</p></li>
+<li><p>r &lt; 0: fraction of cumulative energy to retain</p></li>
+</ul>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.vmmath.truncation.energy">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.vmmath.truncation.</span></span><span class="sig-name descname"><span class="pre">energy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.vmmath.truncation.energy" title="Link to this definition">#</a></dt>
+<dd><p>Compute RMSE between X_POD and X</p>
+</dd></dl>
+
+</section>
+<section id="module-pyLOM.vmmath">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-pyLOM.vmmath" title="Link to this heading">#</a></h2>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="pyLOM.utils.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">pyLOM.utils package</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../examples.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Examples</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.vmmath.averaging">pyLOM.vmmath.averaging module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.averaging.subtract_mean"><code class="docutils literal notranslate"><span class="pre">subtract_mean()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.averaging.temporal_mean"><code class="docutils literal notranslate"><span class="pre">temporal_mean()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.vmmath.cfuncs">pyLOM.vmmath.cfuncs module</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.vmmath.fft">pyLOM.vmmath.fft module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.fft._dfft"><code class="docutils literal notranslate"><span class="pre">_dfft()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.fft._sfft"><code class="docutils literal notranslate"><span class="pre">_sfft()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.fft.fft"><code class="docutils literal notranslate"><span class="pre">fft()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.fft.hammwin"><code class="docutils literal notranslate"><span class="pre">hammwin()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.vmmath.geometric">pyLOM.vmmath.geometric module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.geometric.cellCenters"><code class="docutils literal notranslate"><span class="pre">cellCenters()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.geometric.euclidean_d"><code class="docutils literal notranslate"><span class="pre">euclidean_d()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.geometric.normals"><code class="docutils literal notranslate"><span class="pre">normals()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.vmmath.maths">pyLOM.vmmath.maths module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.maths._ceigen"><code class="docutils literal notranslate"><span class="pre">_ceigen()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.maths._dpolar"><code class="docutils literal notranslate"><span class="pre">_dpolar()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.maths._spolar"><code class="docutils literal notranslate"><span class="pre">_spolar()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.maths._zeigen"><code class="docutils literal notranslate"><span class="pre">_zeigen()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.maths.argsort"><code class="docutils literal notranslate"><span class="pre">argsort()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.maths.cholesky"><code class="docutils literal notranslate"><span class="pre">cholesky()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.maths.conj"><code class="docutils literal notranslate"><span class="pre">conj()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.maths.diag"><code class="docutils literal notranslate"><span class="pre">diag()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.maths.eigen"><code class="docutils literal notranslate"><span class="pre">eigen()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.maths.flip"><code class="docutils literal notranslate"><span class="pre">flip()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.maths.inv"><code class="docutils literal notranslate"><span class="pre">inv()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.maths.matmul"><code class="docutils literal notranslate"><span class="pre">matmul()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.maths.matmulp"><code class="docutils literal notranslate"><span class="pre">matmulp()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.maths.polar"><code class="docutils literal notranslate"><span class="pre">polar()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.maths.transpose"><code class="docutils literal notranslate"><span class="pre">transpose()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.maths.vandermonde"><code class="docutils literal notranslate"><span class="pre">vandermonde()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.maths.vandermondeTime"><code class="docutils literal notranslate"><span class="pre">vandermondeTime()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.maths.vecmat"><code class="docutils literal notranslate"><span class="pre">vecmat()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.maths.vector_mean"><code class="docutils literal notranslate"><span class="pre">vector_mean()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.maths.vector_norm"><code class="docutils literal notranslate"><span class="pre">vector_norm()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.maths.vector_sum"><code class="docutils literal notranslate"><span class="pre">vector_sum()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.vmmath.regression">pyLOM.vmmath.regression module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.regression.least_squares"><code class="docutils literal notranslate"><span class="pre">least_squares()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.regression.ridge_regresion"><code class="docutils literal notranslate"><span class="pre">ridge_regresion()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.vmmath.stats">pyLOM.vmmath.stats module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.stats.MAE"><code class="docutils literal notranslate"><span class="pre">MAE()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.stats.RMSE"><code class="docutils literal notranslate"><span class="pre">RMSE()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.stats.r2"><code class="docutils literal notranslate"><span class="pre">r2()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.vmmath.svd">pyLOM.vmmath.svd module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._cqr"><code class="docutils literal notranslate"><span class="pre">_cqr()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._csvd"><code class="docutils literal notranslate"><span class="pre">_csvd()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._ctsqr"><code class="docutils literal notranslate"><span class="pre">_ctsqr()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._ctsqr_svd"><code class="docutils literal notranslate"><span class="pre">_ctsqr_svd()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._dinit_qr_streaming"><code class="docutils literal notranslate"><span class="pre">_dinit_qr_streaming()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._dqr"><code class="docutils literal notranslate"><span class="pre">_dqr()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._drandomized_qr"><code class="docutils literal notranslate"><span class="pre">_drandomized_qr()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._drandomized_svd"><code class="docutils literal notranslate"><span class="pre">_drandomized_svd()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._dsvd"><code class="docutils literal notranslate"><span class="pre">_dsvd()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._dtsqr"><code class="docutils literal notranslate"><span class="pre">_dtsqr()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._dtsqr_svd"><code class="docutils literal notranslate"><span class="pre">_dtsqr_svd()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._dupdate_qr_streaming"><code class="docutils literal notranslate"><span class="pre">_dupdate_qr_streaming()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._sinit_qr_streaming"><code class="docutils literal notranslate"><span class="pre">_sinit_qr_streaming()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._sqr"><code class="docutils literal notranslate"><span class="pre">_sqr()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._srandomized_qr"><code class="docutils literal notranslate"><span class="pre">_srandomized_qr()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._srandomized_svd"><code class="docutils literal notranslate"><span class="pre">_srandomized_svd()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._ssvd"><code class="docutils literal notranslate"><span class="pre">_ssvd()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._stsqr"><code class="docutils literal notranslate"><span class="pre">_stsqr()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._stsqr_svd"><code class="docutils literal notranslate"><span class="pre">_stsqr_svd()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._supdate_qr_streaming"><code class="docutils literal notranslate"><span class="pre">_supdate_qr_streaming()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._zqr"><code class="docutils literal notranslate"><span class="pre">_zqr()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._zsvd"><code class="docutils literal notranslate"><span class="pre">_zsvd()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._ztsqr"><code class="docutils literal notranslate"><span class="pre">_ztsqr()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd._ztsqr_svd"><code class="docutils literal notranslate"><span class="pre">_ztsqr_svd()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd.init_qr_streaming"><code class="docutils literal notranslate"><span class="pre">init_qr_streaming()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd.qr"><code class="docutils literal notranslate"><span class="pre">qr()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd.randomized_qr"><code class="docutils literal notranslate"><span class="pre">randomized_qr()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd.randomized_svd"><code class="docutils literal notranslate"><span class="pre">randomized_svd()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd.svd"><code class="docutils literal notranslate"><span class="pre">svd()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd.tsqr"><code class="docutils literal notranslate"><span class="pre">tsqr()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd.tsqr_svd"><code class="docutils literal notranslate"><span class="pre">tsqr_svd()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.svd.update_qr_streaming"><code class="docutils literal notranslate"><span class="pre">update_qr_streaming()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.vmmath.truncation">pyLOM.vmmath.truncation module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.truncation.compute_truncation_residual"><code class="docutils literal notranslate"><span class="pre">compute_truncation_residual()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.vmmath.truncation.energy"><code class="docutils literal notranslate"><span class="pre">energy()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.vmmath">Module contents</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  
+  <div class="tocsection editthispage">
+    <a href="https://github.com/ArnauMiro/pyLowOrder/edit/master/docs/source/api/pyLOM.vmmath.rst">
+      <i class="fa-solid fa-pencil"></i>
+      
+      
+        
+          Edit on GitHub
+        
+      
+    </a>
+  </div>
+</div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/pyLOM.vmmath.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2023-2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

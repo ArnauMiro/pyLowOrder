@@ -1,0 +1,1222 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>pyLOM.inp_out package &#8212; pyLOM  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=de90da8b" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/pyLOM.inp_out';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="pyLOM.utils package" href="pyLOM.utils.html" />
+    <link rel="prev" title="pyLOM.SPOD package" href="pyLOM.SPOD.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="2.0.1" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">pyLOM</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
+    Building from source
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples.html">
+    Examples
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
+    Building from source
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples.html">
+    Examples
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="pyLOM.html">pyLOM package</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.DMD.html">pyLOM.DMD package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.GPOD.html">pyLOM.GPOD package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.GPR.html">pyLOM.GPR package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.MANIFOLD.html">pyLOM.MANIFOLD package</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="pyLOM.NN.html">pyLOM.NN package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.architectures.html">pyLOM.NN.architectures package</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.POD.html">pyLOM.POD package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.SPOD.html">pyLOM.SPOD package</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">pyLOM.inp_out package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.utils.html">pyLOM.utils package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.vmmath.html">pyLOM.vmmath package</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="modules.html" class="nav-link">pyLOM</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="pyLOM.html" class="nav-link">pyLOM package</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">pyLOM.inp_out package</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="pylom-inp-out-package">
+<h1>pyLOM.inp_out package<a class="headerlink" href="#pylom-inp-out-package" title="Link to this heading">#</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">#</a></h2>
+</section>
+<section id="module-pyLOM.inp_out.io_ensight">
+<span id="pylom-inp-out-io-ensight-module"></span><h2>pyLOM.inp_out.io_ensight module<a class="headerlink" href="#module-pyLOM.inp_out.io_ensight" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_ensight.Ensight_readCase">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_ensight.</span></span><span class="sig-name descname"><span class="pre">Ensight_readCase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.inp_out.io_ensight.Ensight_readCase" title="Link to this definition">#</a></dt>
+<dd><p>Read an Ensight Gold case file.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_ensight.Ensight_readCase2">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_ensight.</span></span><span class="sig-name descname"><span class="pre">Ensight_readCase2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.inp_out.io_ensight.Ensight_readCase2" title="Link to this definition">#</a></dt>
+<dd><p>Read an Ensight Gold case file.</p>
+<p>Use ensight-reader library.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_ensight.Ensight_readField">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_ensight.</span></span><span class="sig-name descname"><span class="pre">Ensight_readField</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nnod</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.inp_out.io_ensight.Ensight_readField" title="Link to this definition">#</a></dt>
+<dd><p>Read an Ensight Gold field file in either
+ASCII or binary format.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_ensight.Ensight_readField2">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_ensight.</span></span><span class="sig-name descname"><span class="pre">Ensight_readField2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">part_id</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.inp_out.io_ensight.Ensight_readField2" title="Link to this definition">#</a></dt>
+<dd><p>Read an Ensight Gold field file using
+the ensightreader library.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_ensight.Ensight_readFieldASCII">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_ensight.</span></span><span class="sig-name descname"><span class="pre">Ensight_readFieldASCII</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nnod</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.inp_out.io_ensight.Ensight_readFieldASCII" title="Link to this definition">#</a></dt>
+<dd><p>ENSIGHT GOLD SCALAR
+from: <a class="reference external" href="http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf">http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf</a></p>
+<p>BEGIN TIME STEP
+description line 1          80 chars
+part                        80 chars
+#                            1 int
+block                       80 chars
+s_n1 s_n2 … s_nn          nn floats</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_ensight.Ensight_readFieldBIN">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_ensight.</span></span><span class="sig-name descname"><span class="pre">Ensight_readFieldBIN</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nnod</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.inp_out.io_ensight.Ensight_readFieldBIN" title="Link to this definition">#</a></dt>
+<dd><p>ENSIGHT GOLD SCALAR
+from: <a class="reference external" href="http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf">http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf</a></p>
+<p>BEGIN TIME STEP
+description line 1          80 chars
+part                        80 chars
+#                            1 int
+block                       80 chars
+s_n1 s_n2 … s_nn          nn floats</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_ensight.Ensight_readFieldMPIO">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_ensight.</span></span><span class="sig-name descname"><span class="pre">Ensight_readFieldMPIO</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nnod</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.inp_out.io_ensight.Ensight_readFieldMPIO" title="Link to this definition">#</a></dt>
+<dd><p>ENSIGHT GOLD SCALAR
+from: <a class="reference external" href="http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf">http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf</a></p>
+<p>BEGIN TIME STEP
+description line 1          80 chars
+part                        80 chars
+#                            1 int
+block                       80 chars
+s_n1 s_n2 … s_nn          nn floats</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_ensight.Ensight_readGeo">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_ensight.</span></span><span class="sig-name descname"><span class="pre">Ensight_readGeo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.inp_out.io_ensight.Ensight_readGeo" title="Link to this definition">#</a></dt>
+<dd><p>Read an Ensight Gold Geometry file in either
+ASCII or binary format.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_ensight.Ensight_readGeo2">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_ensight.</span></span><span class="sig-name descname"><span class="pre">Ensight_readGeo2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">geofile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">part_id</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.inp_out.io_ensight.Ensight_readGeo2" title="Link to this definition">#</a></dt>
+<dd><p>Read an Ensight Gold Geometry using the
+ensight-reader library</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_ensight.Ensight_readGeoASCII">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_ensight.</span></span><span class="sig-name descname"><span class="pre">Ensight_readGeoASCII</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.inp_out.io_ensight.Ensight_readGeoASCII" title="Link to this definition">#</a></dt>
+<dd><p>SOURCE OF GEO FILE FORMAT
+from: <a class="reference external" href="http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf">http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf</a>
+All Data is plainly assumed to be exported as C binary Little Endian!</p>
+<p>description line 1                                  80 chars
+description line 2                                  80 chars
+node id &lt;off/given/assign/ignore&gt;                   80 chars
+element id &lt;off/given/assign/ignore&gt;                80 chars
+part                                                80 chars
+#                                                    1 int
+description line                                    80 chars  (Name of current part)
+coordinates                                         80 chars
+nn                                                   1 int    (Count of xyz coordinates)
+x_n1 x_n2 … x_nn                                  nn floats
+y_n1 y_n2 … y_nn                                  nn floats
+z_n1 z_n2 … z_nn                                  nn floats
+element type                                        80 chars  (nr of cornerpoints)
+ne                                                   1 int
+n1_e1 n2_e1 …                                     np_e1
+n1_e2 n2_e2 …                                     np_e2</p>
+<blockquote>
+<div></div></blockquote>
+<p>n1_ne n2_ne … np_ne                            ne*np ints</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_ensight.Ensight_readGeoBIN">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_ensight.</span></span><span class="sig-name descname"><span class="pre">Ensight_readGeoBIN</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.inp_out.io_ensight.Ensight_readGeoBIN" title="Link to this definition">#</a></dt>
+<dd><p>SOURCE OF GEO FILE FORMAT
+from: <a class="reference external" href="http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf">http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf</a>
+All Data is plainly assumed to be exported as C binary Little Endian!</p>
+<p>C Binary                                            80 chars
+description line 1                                  80 chars
+description line 2                                  80 chars
+node id &lt;off/given/assign/ignore&gt;                   80 chars
+element id &lt;off/given/assign/ignore&gt;                80 chars
+part                                                80 chars
+#                                                    1 int
+description line                                    80 chars  (Name of current part)
+coordinates                                         80 chars
+nn                                                   1 int    (Count of xyz coordinates)
+x_n1 x_n2 … x_nn                                  nn floats
+y_n1 y_n2 … y_nn                                  nn floats
+z_n1 z_n2 … z_nn                                  nn floats
+element type                                        80 chars  (nr of cornerpoints)
+ne                                                   1 int
+n1_e1 n2_e1 …                                     np_e1
+n1_e2 n2_e2 …                                     np_e2</p>
+<blockquote>
+<div></div></blockquote>
+<p>n1_ne n2_ne … np_ne                            ne*np ints</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_ensight.Ensight_writeCase">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_ensight.</span></span><span class="sig-name descname"><span class="pre">Ensight_writeCase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geofile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">varList</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timesteps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rank</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.inp_out.io_ensight.Ensight_writeCase" title="Link to this definition">#</a></dt>
+<dd><p>Write an Ensight Gold case file.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_ensight.Ensight_writeField">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_ensight.</span></span><span class="sig-name descname"><span class="pre">Ensight_writeField</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.inp_out.io_ensight.Ensight_writeField" title="Link to this definition">#</a></dt>
+<dd><p>Write an Ensight Gold field file in binary format.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_ensight.Ensight_writeFieldBIN">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_ensight.</span></span><span class="sig-name descname"><span class="pre">Ensight_writeFieldBIN</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.inp_out.io_ensight.Ensight_writeFieldBIN" title="Link to this definition">#</a></dt>
+<dd><p>ENSIGHT GOLD SCALAR
+from: <a class="reference external" href="http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf">http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf</a></p>
+<p>BEGIN TIME STEP
+description line 1          80 chars
+part                        80 chars
+#                            1 int
+block                       80 chars
+s_n1 s_n2 … s_nn          nn floats</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_ensight.Ensight_writeFieldMPIO">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_ensight.</span></span><span class="sig-name descname"><span class="pre">Ensight_writeFieldMPIO</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.inp_out.io_ensight.Ensight_writeFieldMPIO" title="Link to this definition">#</a></dt>
+<dd><p>ENSIGHT GOLD SCALAR
+from: <a class="reference external" href="http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf">http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf</a></p>
+<p>BEGIN TIME STEP
+description line 1          80 chars
+part                        80 chars
+#                            1 int
+block                       80 chars
+s_n1 s_n2 … s_nn          nn floats</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_ensight.Ensight_writeGeo">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_ensight.</span></span><span class="sig-name descname"><span class="pre">Ensight_writeGeo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.inp_out.io_ensight.Ensight_writeGeo" title="Link to this definition">#</a></dt>
+<dd><p>SOURCE OF GEO FILE FORMAT
+from: <a class="reference external" href="http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf">http://www-vis.lbl.gov/NERSC/Software/ensight/docs/OnlineHelp/UM-C11.pdf</a>
+All Data is plainly assumed to be exported as C binary Little Endian!</p>
+<p>C Binary                                            80 chars
+description line 1                                  80 chars
+description line 2                                  80 chars
+node id &lt;off/given/assign/ignore&gt;                   80 chars
+element id &lt;off/given/assign/ignore&gt;                80 chars
+part                                                80 chars
+#                                                    1 int
+description line                                    80 chars  (Name of current part)
+coordinates                                         80 chars
+nn                                                   1 int    (Count of xyz coordinates)
+x_n1 x_n2 … x_nn                                  nn floats
+y_n1 y_n2 … y_nn                                  nn floats
+z_n1 z_n2 … z_nn                                  nn floats
+element type                                        80 chars  (nr of cornerpoints)
+ne                                                   1 int
+n1_e1 n2_e1 …                                     np_e1
+n1_e2 n2_e2 …                                     np_e2</p>
+<blockquote>
+<div></div></blockquote>
+<p>n1_ne n2_ne … np_ne                            ne*np ints</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_ensight.bin_to_int">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_ensight.</span></span><span class="sig-name descname"><span class="pre">bin_to_int</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">integer</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.inp_out.io_ensight.bin_to_int" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_ensight.bin_to_str">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_ensight.</span></span><span class="sig-name descname"><span class="pre">bin_to_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">binary</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.inp_out.io_ensight.bin_to_str" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_ensight.int_to_bin">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_ensight.</span></span><span class="sig-name descname"><span class="pre">int_to_bin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">integer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.inp_out.io_ensight.int_to_bin" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_ensight.str_to_bin">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_ensight.</span></span><span class="sig-name descname"><span class="pre">str_to_bin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">string</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.inp_out.io_ensight.str_to_bin" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-pyLOM.inp_out.io_h5">
+<span id="pylom-inp-out-io-h5-module"></span><h2>pyLOM.inp_out.io_h5 module<a class="headerlink" href="#module-pyLOM.inp_out.io_h5" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_save_partition">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_save_partition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_save_partition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_save_partition" title="Link to this definition">#</a></dt>
+<dd><p>Save a partition table inside an HDF5 file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_load_partition">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_load_partition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_load_partition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_load_partition" title="Link to this definition">#</a></dt>
+<dd><p>Load a partition table inside an HDF5 file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_save_meshes">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_save_meshes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eltype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cellO</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pointO</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_save_meshes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_save_meshes" title="Link to this definition">#</a></dt>
+<dd><p>Save the mesh inside the HDF5 file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_save_meshes_nopartition">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_save_meshes_nopartition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eltype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cellO</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pointO</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_save_meshes_nopartition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_save_meshes_nopartition" title="Link to this definition">#</a></dt>
+<dd><p>Save the mesh inside the HDF5 file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_load_meshes_size">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_load_meshes_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_load_meshes_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_load_meshes_size" title="Link to this definition">#</a></dt>
+<dd><p>Load only the number of cells and points for the partition</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_load_meshes">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_load_meshes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repart</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_load_meshes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_load_meshes" title="Link to this definition">#</a></dt>
+<dd><p>Load the mesh inside the HDF5 file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_save_points">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_save_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_save_points"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_save_points" title="Link to this definition">#</a></dt>
+<dd><p>Save the points inside the HDF5 file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_save_points_nopartition">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_save_points_nopartition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_save_points_nopartition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_save_points_nopartition" title="Link to this definition">#</a></dt>
+<dd><p>Save the points inside the HDF5 file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_load_dset_size">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_load_dset_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_load_dset_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_load_dset_size" title="Link to this definition">#</a></dt>
+<dd><p>Load only the number of points for the dataset</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_load_points">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_load_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_load_points"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_load_points" title="Link to this definition">#</a></dt>
+<dd><p>Load the mesh inside the HDF5 file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_create_variable_datasets">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_create_variable_datasets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">varDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ipart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_create_variable_datasets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_create_variable_datasets" title="Link to this definition">#</a></dt>
+<dd><p>Create the variable datasets inside an HDF5 file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_fill_variable_datasets">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_fill_variable_datasets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dsetDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">varDict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_fill_variable_datasets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_fill_variable_datasets" title="Link to this definition">#</a></dt>
+<dd><p>Fill in the variable datasets inside an HDF5 file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_load_variables_single">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_load_variables_single</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_load_variables_single"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_load_variables_single" title="Link to this definition">#</a></dt>
+<dd><p>Load the variables inside the HDF5 file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_load_variables_multi">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_load_variables_multi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">npart</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_load_variables_multi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_load_variables_multi" title="Link to this definition">#</a></dt>
+<dd><p>Load the variables inside the HDF5 file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_create_field_datasets">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_create_field_datasets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fieldDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ipart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_create_field_datasets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_create_field_datasets" title="Link to this definition">#</a></dt>
+<dd><p>Create the variable datasets inside an HDF5 file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_fill_field_datasets">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_fill_field_datasets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dsetDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fieldDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inods</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_fill_field_datasets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_fill_field_datasets" title="Link to this definition">#</a></dt>
+<dd><p>Fill in the variable datasets inside an HDF5 file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_load_fields_single">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_load_fields_single</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">npoints</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">varDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_load_fields_single"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_load_fields_single" title="Link to this definition">#</a></dt>
+<dd><p>Load the fields inside the HDF5 file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_load_fields_multi">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_load_fields_multi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">npoints</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">varDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">npart</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_load_fields_multi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_load_fields_multi" title="Link to this definition">#</a></dt>
+<dd><p>Load the fields inside the HDF5 file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_save_dset">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_save_dset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">varDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fieldDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ordering</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'w'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mpio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nopartition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_save_dset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_save_dset" title="Link to this definition">#</a></dt>
+<dd><p>Save a Dataset in HDF5</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_save_dset_serial">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_save_dset_serial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">varDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fieldDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ordering</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_save_dset_serial"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_save_dset_serial" title="Link to this definition">#</a></dt>
+<dd><p>Save a Dataset in HDF5 in serial mode</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_save_dset_mpio">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_save_dset_mpio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">varDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fieldDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ordering</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nopartition</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_save_dset_mpio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_save_dset_mpio" title="Link to this definition">#</a></dt>
+<dd><p>Save a Dataset in HDF5 in parallel mode</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_append_dset">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_append_dset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">varDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fieldDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ordering</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'a'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mpio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nopartition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_append_dset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_append_dset" title="Link to this definition">#</a></dt>
+<dd><p>Save a Dataset in HDF5</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_append_dset_serial">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_append_dset_serial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">varDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fieldDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ordering</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_append_dset_serial"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_append_dset_serial" title="Link to this definition">#</a></dt>
+<dd><p>Save a dataset in HDF5 in serial mode</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_append_dset_mpio">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_append_dset_mpio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">varDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fieldDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ordering</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nopartition</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_append_dset_mpio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_append_dset_mpio" title="Link to this definition">#</a></dt>
+<dd><p>Save a dataset in HDF5 in parallel mode</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_load_dset">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_load_dset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mpio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_load_dset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_load_dset" title="Link to this definition">#</a></dt>
+<dd><p>Load a dataset in HDF5</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_load_dset_serial">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_load_dset_serial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_load_dset_serial"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_load_dset_serial" title="Link to this definition">#</a></dt>
+<dd><p>Load a dataset in HDF5 in serial</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_load_dset_mpio">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_load_dset_mpio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_load_dset_mpio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_load_dset_mpio" title="Link to this definition">#</a></dt>
+<dd><p>Load a field in HDF5 in parallel</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_save_mesh">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_save_mesh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eltype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cellO</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pointO</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'w'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mpio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nopartition</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_save_mesh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_save_mesh" title="Link to this definition">#</a></dt>
+<dd><p>Save a Mesh in HDF5</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_save_mesh_serial">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_save_mesh_serial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eltype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cellO</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pointO</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_save_mesh_serial"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_save_mesh_serial" title="Link to this definition">#</a></dt>
+<dd><p>Save a Mesh in HDF5 in serial mode</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_save_mesh_mpio">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_save_mesh_mpio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eltype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cellO</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pointO</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nopartition</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_save_mesh_mpio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_save_mesh_mpio" title="Link to this definition">#</a></dt>
+<dd><p>Save a dataset in HDF5 in parallel mode</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_load_mesh">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_load_mesh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mpio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_load_mesh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_load_mesh" title="Link to this definition">#</a></dt>
+<dd><p>Load a mesh in HDF5</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_load_mesh_serial">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_load_mesh_serial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_load_mesh_serial"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_load_mesh_serial" title="Link to this definition">#</a></dt>
+<dd><p>Load a mesh in HDF5 in serial</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_load_mesh_mpio">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_load_mesh_mpio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_load_mesh_mpio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_load_mesh_mpio" title="Link to this definition">#</a></dt>
+<dd><p>Load a mesh in HDF5 in parallel</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_save_POD">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_save_POD</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">U</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nvars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pointData</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'w'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_save_POD"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_save_POD" title="Link to this definition">#</a></dt>
+<dd><p>Store POD variables into an HDF5 file.
+Can be appended to another HDF by setting the
+mode to ‘a’. Then no partition table will be saved.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_load_POD">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_load_POD</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vars</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmod</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_load_POD"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_load_POD" title="Link to this definition">#</a></dt>
+<dd><p>Load POD variables from an HDF5 file.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_save_DMD">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_save_DMD</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">muReal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">muImag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bJov</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nvars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pointData</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'w'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_save_DMD"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_save_DMD" title="Link to this definition">#</a></dt>
+<dd><p>Store DMD variables into an HDF5 file.
+Can be appended to another HDF by setting the
+mode to ‘a’. Then no partition table will be saved.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_load_DMD">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_load_DMD</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vars</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmod</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_load_DMD"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_load_DMD" title="Link to this definition">#</a></dt>
+<dd><p>Load DMD variables from an HDF5 file.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_save_VAE">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_save_VAE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kld</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mse</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_loss</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_loss_avg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">corrcoef</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'w'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_save_VAE"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_save_VAE" title="Link to this definition">#</a></dt>
+<dd><p>Store VAE results.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_save_SPOD">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_save_SPOD</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nvars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pointData</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'w'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_save_SPOD"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_save_SPOD" title="Link to this definition">#</a></dt>
+<dd><p>Store SPOD variables into an HDF5 file.
+Can be appended to another HDF by setting the
+mode to ‘a’. Then no partition table will be saved.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_h5.h5_load_SPOD">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_h5.</span></span><span class="sig-name descname"><span class="pre">h5_load_SPOD</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vars</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmod</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_h5.html#h5_load_SPOD"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_h5.h5_load_SPOD" title="Link to this definition">#</a></dt>
+<dd><p>Load SPOD variables from an HDF5 file.</p>
+</dd></dl>
+
+</section>
+<section id="module-pyLOM.inp_out.io_paraview">
+<span id="pylom-inp-out-io-paraview-module"></span><h2>pyLOM.inp_out.io_paraview module<a class="headerlink" href="#module-pyLOM.inp_out.io_paraview" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_paraview.pv_writer">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_paraview.</span></span><span class="sig-name descname"><span class="pre">pv_writer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Mesh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">casestr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basedir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instants</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0.]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fmt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'vtkh5'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'w'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_paraview.html#pv_writer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_paraview.pv_writer" title="Link to this definition">#</a></dt>
+<dd><p>Store the data using various formats for ParaView.</p>
+<p>This method differs from save in the fact that save is used
+to recover the field, write only outputs the data.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_paraview.VTKHDF5Writer">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_paraview.</span></span><span class="sig-name descname"><span class="pre">VTKHDF5Writer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mesh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">casestr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basedir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instants</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">varnames</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_paraview.html#VTKHDF5Writer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_paraview.VTKHDF5Writer" title="Link to this definition">#</a></dt>
+<dd><p>Ensight dataset writer</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_paraview.EnsightWriter">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_paraview.</span></span><span class="sig-name descname"><span class="pre">EnsightWriter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mesh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">casestr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basedir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instants</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">varnames</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_paraview.html#EnsightWriter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_paraview.EnsightWriter" title="Link to this definition">#</a></dt>
+<dd><p>Ensight dataset writer</p>
+</dd></dl>
+
+</section>
+<section id="module-pyLOM.inp_out.io_pkl">
+<span id="pylom-inp-out-io-pkl-module"></span><h2>pyLOM.inp_out.io_pkl module<a class="headerlink" href="#module-pyLOM.inp_out.io_pkl" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_pkl.pkl_save">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_pkl.</span></span><span class="sig-name descname"><span class="pre">pkl_save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_pkl.html#pkl_save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_pkl.pkl_save" title="Link to this definition">#</a></dt>
+<dd><p>Save an object in pkl format</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_pkl.pkl_load">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_pkl.</span></span><span class="sig-name descname"><span class="pre">pkl_load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_pkl.html#pkl_load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_pkl.pkl_load" title="Link to this definition">#</a></dt>
+<dd><p>Load an object in pkl format</p>
+</dd></dl>
+
+</section>
+<section id="module-pyLOM.inp_out.io_vtkh5">
+<span id="pylom-inp-out-io-vtkh5-module"></span><h2>pyLOM.inp_out.io_vtkh5 module<a class="headerlink" href="#module-pyLOM.inp_out.io_vtkh5" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_vtkh5._vtkh5_create_structure">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_vtkh5.</span></span><span class="sig-name descname"><span class="pre">_vtkh5_create_structure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_vtkh5.html#_vtkh5_create_structure"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_vtkh5._vtkh5_create_structure" title="Link to this definition">#</a></dt>
+<dd><p>Create the basic structure of a VTKH5 file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_vtkh5._vtkh5_connectivity_and_offsets">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_vtkh5.</span></span><span class="sig-name descname"><span class="pre">_vtkh5_connectivity_and_offsets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lnods</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_vtkh5.html#_vtkh5_connectivity_and_offsets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_vtkh5._vtkh5_connectivity_and_offsets" title="Link to this definition">#</a></dt>
+<dd><p>Build the offsets array (starting point per each element)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_vtkh5._vtkh5_write_mesh_serial">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_vtkh5.</span></span><span class="sig-name descname"><span class="pre">_vtkh5_write_mesh_serial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lnods</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ltype</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_vtkh5.html#_vtkh5_write_mesh_serial"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_vtkh5._vtkh5_write_mesh_serial" title="Link to this definition">#</a></dt>
+<dd><p>Write the mesh and the connectivity to the VTKH5 file.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_vtkh5._vtkh5_write_mesh_mpio">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_vtkh5.</span></span><span class="sig-name descname"><span class="pre">_vtkh5_write_mesh_mpio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lnods</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ltype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_vtkh5.html#_vtkh5_write_mesh_mpio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_vtkh5._vtkh5_write_mesh_mpio" title="Link to this definition">#</a></dt>
+<dd><p>Write the mesh and the connectivity to the VTKH5 file.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_vtkh5._vtkh5_link_mesh">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_vtkh5.</span></span><span class="sig-name descname"><span class="pre">_vtkh5_link_mesh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lname</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_vtkh5.html#_vtkh5_link_mesh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_vtkh5._vtkh5_link_mesh" title="Link to this definition">#</a></dt>
+<dd><p>Create external link mesh to the VTKH5 file.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_vtkh5.vtkh5_save_mesh">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_vtkh5.</span></span><span class="sig-name descname"><span class="pre">vtkh5_save_mesh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mesh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mpio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'w'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_vtkh5.html#vtkh5_save_mesh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_vtkh5.vtkh5_save_mesh" title="Link to this definition">#</a></dt>
+<dd><p>Save the mesh component into a VTKH5 file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_vtkh5.vtkh5_save_mesh_serial">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_vtkh5.</span></span><span class="sig-name descname"><span class="pre">vtkh5_save_mesh_serial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lnods</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ltype</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_vtkh5.html#vtkh5_save_mesh_serial"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_vtkh5.vtkh5_save_mesh_serial" title="Link to this definition">#</a></dt>
+<dd><p>Save the mesh component into a VTKH5 file (serial)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_vtkh5.vtkh5_save_mesh_mpio">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_vtkh5.</span></span><span class="sig-name descname"><span class="pre">vtkh5_save_mesh_mpio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lnods</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ltype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_vtkh5.html#vtkh5_save_mesh_mpio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_vtkh5.vtkh5_save_mesh_mpio" title="Link to this definition">#</a></dt>
+<dd><p>Save the mesh component into a VTKH5 file (serial)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_vtkh5.vtkh5_link_mesh">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_vtkh5.</span></span><span class="sig-name descname"><span class="pre">vtkh5_link_mesh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mpio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'w'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_vtkh5.html#vtkh5_link_mesh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_vtkh5.vtkh5_link_mesh" title="Link to this definition">#</a></dt>
+<dd><p>Link the mesh component into a VTKH5 file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_vtkh5.vtkh5_link_mesh_serial">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_vtkh5.</span></span><span class="sig-name descname"><span class="pre">vtkh5_link_mesh_serial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lname</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_vtkh5.html#vtkh5_link_mesh_serial"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_vtkh5.vtkh5_link_mesh_serial" title="Link to this definition">#</a></dt>
+<dd><p>Save the mesh component into a VTKH5 file (serial)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_vtkh5.vtkh5_link_mesh_mpio">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_vtkh5.</span></span><span class="sig-name descname"><span class="pre">vtkh5_link_mesh_mpio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lname</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_vtkh5.html#vtkh5_link_mesh_mpio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_vtkh5.vtkh5_link_mesh_mpio" title="Link to this definition">#</a></dt>
+<dd><p>Save the mesh component into a VTKH5 file (serial)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_vtkh5.vtkh5_save_field">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_vtkh5.</span></span><span class="sig-name descname"><span class="pre">vtkh5_save_field</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">varDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mpio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'w'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_vtkh5.html#vtkh5_save_field"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_vtkh5.vtkh5_save_field" title="Link to this definition">#</a></dt>
+<dd><p>Save the mesh component into a VTKH5 file</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_vtkh5.vtkh5_save_field_serial">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_vtkh5.</span></span><span class="sig-name descname"><span class="pre">vtkh5_save_field_serial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">varDict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_vtkh5.html#vtkh5_save_field_serial"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_vtkh5.vtkh5_save_field_serial" title="Link to this definition">#</a></dt>
+<dd><p>Save the field component into a VTKH5 file (serial)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.inp_out.io_vtkh5.vtkh5_save_field_mpio">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.inp_out.io_vtkh5.</span></span><span class="sig-name descname"><span class="pre">vtkh5_save_field_mpio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">varDict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/inp_out/io_vtkh5.html#vtkh5_save_field_mpio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.inp_out.io_vtkh5.vtkh5_save_field_mpio" title="Link to this definition">#</a></dt>
+<dd><p>Save the mesh component into a VTKH5 file (serial)</p>
+</dd></dl>
+
+</section>
+<section id="module-pyLOM.inp_out">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-pyLOM.inp_out" title="Link to this heading">#</a></h2>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="pyLOM.SPOD.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">pyLOM.SPOD package</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="pyLOM.utils.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">pyLOM.utils package</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.inp_out.io_ensight">pyLOM.inp_out.io_ensight module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_ensight.Ensight_readCase"><code class="docutils literal notranslate"><span class="pre">Ensight_readCase()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_ensight.Ensight_readCase2"><code class="docutils literal notranslate"><span class="pre">Ensight_readCase2()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_ensight.Ensight_readField"><code class="docutils literal notranslate"><span class="pre">Ensight_readField()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_ensight.Ensight_readField2"><code class="docutils literal notranslate"><span class="pre">Ensight_readField2()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_ensight.Ensight_readFieldASCII"><code class="docutils literal notranslate"><span class="pre">Ensight_readFieldASCII()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_ensight.Ensight_readFieldBIN"><code class="docutils literal notranslate"><span class="pre">Ensight_readFieldBIN()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_ensight.Ensight_readFieldMPIO"><code class="docutils literal notranslate"><span class="pre">Ensight_readFieldMPIO()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_ensight.Ensight_readGeo"><code class="docutils literal notranslate"><span class="pre">Ensight_readGeo()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_ensight.Ensight_readGeo2"><code class="docutils literal notranslate"><span class="pre">Ensight_readGeo2()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_ensight.Ensight_readGeoASCII"><code class="docutils literal notranslate"><span class="pre">Ensight_readGeoASCII()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_ensight.Ensight_readGeoBIN"><code class="docutils literal notranslate"><span class="pre">Ensight_readGeoBIN()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_ensight.Ensight_writeCase"><code class="docutils literal notranslate"><span class="pre">Ensight_writeCase()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_ensight.Ensight_writeField"><code class="docutils literal notranslate"><span class="pre">Ensight_writeField()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_ensight.Ensight_writeFieldBIN"><code class="docutils literal notranslate"><span class="pre">Ensight_writeFieldBIN()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_ensight.Ensight_writeFieldMPIO"><code class="docutils literal notranslate"><span class="pre">Ensight_writeFieldMPIO()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_ensight.Ensight_writeGeo"><code class="docutils literal notranslate"><span class="pre">Ensight_writeGeo()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_ensight.bin_to_int"><code class="docutils literal notranslate"><span class="pre">bin_to_int()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_ensight.bin_to_str"><code class="docutils literal notranslate"><span class="pre">bin_to_str()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_ensight.int_to_bin"><code class="docutils literal notranslate"><span class="pre">int_to_bin()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_ensight.str_to_bin"><code class="docutils literal notranslate"><span class="pre">str_to_bin()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.inp_out.io_h5">pyLOM.inp_out.io_h5 module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_save_partition"><code class="docutils literal notranslate"><span class="pre">h5_save_partition()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_load_partition"><code class="docutils literal notranslate"><span class="pre">h5_load_partition()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_save_meshes"><code class="docutils literal notranslate"><span class="pre">h5_save_meshes()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_save_meshes_nopartition"><code class="docutils literal notranslate"><span class="pre">h5_save_meshes_nopartition()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_load_meshes_size"><code class="docutils literal notranslate"><span class="pre">h5_load_meshes_size()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_load_meshes"><code class="docutils literal notranslate"><span class="pre">h5_load_meshes()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_save_points"><code class="docutils literal notranslate"><span class="pre">h5_save_points()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_save_points_nopartition"><code class="docutils literal notranslate"><span class="pre">h5_save_points_nopartition()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_load_dset_size"><code class="docutils literal notranslate"><span class="pre">h5_load_dset_size()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_load_points"><code class="docutils literal notranslate"><span class="pre">h5_load_points()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_create_variable_datasets"><code class="docutils literal notranslate"><span class="pre">h5_create_variable_datasets()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_fill_variable_datasets"><code class="docutils literal notranslate"><span class="pre">h5_fill_variable_datasets()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_load_variables_single"><code class="docutils literal notranslate"><span class="pre">h5_load_variables_single()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_load_variables_multi"><code class="docutils literal notranslate"><span class="pre">h5_load_variables_multi()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_create_field_datasets"><code class="docutils literal notranslate"><span class="pre">h5_create_field_datasets()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_fill_field_datasets"><code class="docutils literal notranslate"><span class="pre">h5_fill_field_datasets()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_load_fields_single"><code class="docutils literal notranslate"><span class="pre">h5_load_fields_single()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_load_fields_multi"><code class="docutils literal notranslate"><span class="pre">h5_load_fields_multi()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_save_dset"><code class="docutils literal notranslate"><span class="pre">h5_save_dset()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_save_dset_serial"><code class="docutils literal notranslate"><span class="pre">h5_save_dset_serial()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_save_dset_mpio"><code class="docutils literal notranslate"><span class="pre">h5_save_dset_mpio()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_append_dset"><code class="docutils literal notranslate"><span class="pre">h5_append_dset()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_append_dset_serial"><code class="docutils literal notranslate"><span class="pre">h5_append_dset_serial()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_append_dset_mpio"><code class="docutils literal notranslate"><span class="pre">h5_append_dset_mpio()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_load_dset"><code class="docutils literal notranslate"><span class="pre">h5_load_dset()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_load_dset_serial"><code class="docutils literal notranslate"><span class="pre">h5_load_dset_serial()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_load_dset_mpio"><code class="docutils literal notranslate"><span class="pre">h5_load_dset_mpio()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_save_mesh"><code class="docutils literal notranslate"><span class="pre">h5_save_mesh()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_save_mesh_serial"><code class="docutils literal notranslate"><span class="pre">h5_save_mesh_serial()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_save_mesh_mpio"><code class="docutils literal notranslate"><span class="pre">h5_save_mesh_mpio()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_load_mesh"><code class="docutils literal notranslate"><span class="pre">h5_load_mesh()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_load_mesh_serial"><code class="docutils literal notranslate"><span class="pre">h5_load_mesh_serial()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_load_mesh_mpio"><code class="docutils literal notranslate"><span class="pre">h5_load_mesh_mpio()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_save_POD"><code class="docutils literal notranslate"><span class="pre">h5_save_POD()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_load_POD"><code class="docutils literal notranslate"><span class="pre">h5_load_POD()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_save_DMD"><code class="docutils literal notranslate"><span class="pre">h5_save_DMD()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_load_DMD"><code class="docutils literal notranslate"><span class="pre">h5_load_DMD()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_save_VAE"><code class="docutils literal notranslate"><span class="pre">h5_save_VAE()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_save_SPOD"><code class="docutils literal notranslate"><span class="pre">h5_save_SPOD()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_h5.h5_load_SPOD"><code class="docutils literal notranslate"><span class="pre">h5_load_SPOD()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.inp_out.io_paraview">pyLOM.inp_out.io_paraview module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_paraview.pv_writer"><code class="docutils literal notranslate"><span class="pre">pv_writer()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_paraview.VTKHDF5Writer"><code class="docutils literal notranslate"><span class="pre">VTKHDF5Writer()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_paraview.EnsightWriter"><code class="docutils literal notranslate"><span class="pre">EnsightWriter()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.inp_out.io_pkl">pyLOM.inp_out.io_pkl module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_pkl.pkl_save"><code class="docutils literal notranslate"><span class="pre">pkl_save()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_pkl.pkl_load"><code class="docutils literal notranslate"><span class="pre">pkl_load()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.inp_out.io_vtkh5">pyLOM.inp_out.io_vtkh5 module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_vtkh5._vtkh5_create_structure"><code class="docutils literal notranslate"><span class="pre">_vtkh5_create_structure()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_vtkh5._vtkh5_connectivity_and_offsets"><code class="docutils literal notranslate"><span class="pre">_vtkh5_connectivity_and_offsets()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_vtkh5._vtkh5_write_mesh_serial"><code class="docutils literal notranslate"><span class="pre">_vtkh5_write_mesh_serial()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_vtkh5._vtkh5_write_mesh_mpio"><code class="docutils literal notranslate"><span class="pre">_vtkh5_write_mesh_mpio()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_vtkh5._vtkh5_link_mesh"><code class="docutils literal notranslate"><span class="pre">_vtkh5_link_mesh()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_vtkh5.vtkh5_save_mesh"><code class="docutils literal notranslate"><span class="pre">vtkh5_save_mesh()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_vtkh5.vtkh5_save_mesh_serial"><code class="docutils literal notranslate"><span class="pre">vtkh5_save_mesh_serial()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_vtkh5.vtkh5_save_mesh_mpio"><code class="docutils literal notranslate"><span class="pre">vtkh5_save_mesh_mpio()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_vtkh5.vtkh5_link_mesh"><code class="docutils literal notranslate"><span class="pre">vtkh5_link_mesh()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_vtkh5.vtkh5_link_mesh_serial"><code class="docutils literal notranslate"><span class="pre">vtkh5_link_mesh_serial()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_vtkh5.vtkh5_link_mesh_mpio"><code class="docutils literal notranslate"><span class="pre">vtkh5_link_mesh_mpio()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_vtkh5.vtkh5_save_field"><code class="docutils literal notranslate"><span class="pre">vtkh5_save_field()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_vtkh5.vtkh5_save_field_serial"><code class="docutils literal notranslate"><span class="pre">vtkh5_save_field_serial()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.inp_out.io_vtkh5.vtkh5_save_field_mpio"><code class="docutils literal notranslate"><span class="pre">vtkh5_save_field_mpio()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.inp_out">Module contents</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  
+  <div class="tocsection editthispage">
+    <a href="https://github.com/ArnauMiro/pyLowOrder/edit/master/docs/source/api/pyLOM.inp_out.rst">
+      <i class="fa-solid fa-pencil"></i>
+      
+      
+        
+          Edit on GitHub
+        
+      
+    </a>
+  </div>
+</div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/pyLOM.inp_out.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2023-2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

@@ -1,0 +1,1273 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pyLOM.NN.architectures.kan &#8212; pyLOM  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=de90da8b" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pyLOM/NN/architectures/kan';</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="2.0.1" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">pyLOM</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../api/modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
+    Building from source
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../examples.html">
+    Examples
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../api/modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
+    Building from source
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../examples.html">
+    Examples
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../NN.html" class="nav-link">pyLOM.NN</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">pyLOM.NN.architectures.kan</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for pyLOM.NN.architectures.kan</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">import</span> <span class="nn">torch.optim</span> <span class="k">as</span> <span class="nn">optim</span>
+<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span>
+
+<span class="kn">from</span> <span class="nn">...</span> <span class="kn">import</span> <span class="n">cr</span><span class="p">,</span> <span class="n">pprint</span>  <span class="c1"># pyLOM/__init__.py</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="kn">import</span> <span class="n">DEVICE</span>  <span class="c1"># pyLOM/NN/__init__.py</span>
+<span class="kn">from</span> <span class="nn">...utils.errors</span> <span class="kn">import</span> <span class="n">raiseError</span><span class="p">,</span> <span class="n">raiseWarning</span>
+<span class="kn">from</span> <span class="nn">..optimizer</span> <span class="kn">import</span> <span class="n">OptunaOptimizer</span>
+
+
+<div class="viewcode-block" id="KAN">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.kan.KAN">[docs]</a>
+<span class="k">class</span> <span class="nc">KAN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    KAN (Kolmogorov-Arnold Network) model for regression tasks. This model is based on https://arxiv.org/abs/2404.19756, inspired by the Kolmogorov-Arnold representation theorem.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        input_size (int): The number of input features.</span>
+<span class="sd">        output_size (int): The number of output features.</span>
+<span class="sd">        n_layers (int): The number of hidden layers.</span>
+<span class="sd">        hidden_size (int): The number of neurons in the hidden layers.</span>
+<span class="sd">        layer_type (nn.Module): The type of layer to use in the model. It can be one of the following: ``JacobiLayer``, ``ChebyshevLayer``.</span>
+<span class="sd">        model_name (str): The name of the model.</span>
+<span class="sd">        p_dropouts (float, Optional): The dropout probability (default: ``0.0``).</span>
+<span class="sd">        device (torch.device, Optional): The device where the model is loaded (default: gpu if available).</span>
+<span class="sd">        verbose (bool, Optional): Whether to print the model information (default: ``True``).</span>
+<span class="sd">        **layer_kwargs: Additional keyword arguments to pass to the layer type. For example, the order of the Taylor series or the degree of the Chebyshev polynomial.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">input_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">output_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">n_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">hidden_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">layer_type</span><span class="p">,</span>
+        <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;KAN&quot;</span><span class="p">,</span>
+        <span class="n">p_dropouts</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">DEVICE</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">layer_kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_size</span> <span class="o">=</span> <span class="n">input_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span> <span class="o">=</span> <span class="n">output_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span> <span class="o">=</span> <span class="n">n_layers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span> <span class="o">=</span> <span class="n">hidden_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer_type</span> <span class="o">=</span> <span class="n">layer_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="o">=</span> <span class="n">model_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">p_dropouts</span> <span class="o">=</span> <span class="n">p_dropouts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+
+        <span class="c1"># Hidden layers with dropout</span>
+        <span class="n">hidden_layers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_layers</span><span class="p">):</span>
+            <span class="n">hidden_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer_type</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="o">**</span><span class="n">layer_kwargs</span><span class="p">))</span>
+            <span class="n">hidden_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">p_dropouts</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">kan_layers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span><span class="n">hidden_layers</span><span class="p">)</span>
+
+        <span class="c1"># Input and output layers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">layer_type</span><span class="p">(</span><span class="n">input_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="o">**</span><span class="n">layer_kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">layer_type</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">,</span> <span class="o">**</span><span class="n">layer_kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Creating model KAN: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">keys_print</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="s2">&quot;input_size&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;output_size&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;n_layers&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;hidden_size&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;layer_type&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;p_dropouts&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;device&quot;</span><span class="p">,</span>
+            <span class="p">]</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys_print</span><span class="p">:</span>
+                <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">total_size (trained params):</span><span class="se">\t</span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">()</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">p</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="KAN.forward">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.kan.KAN.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kan_layers</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x</span></div>
+
+
+<div class="viewcode-block" id="KAN.fit">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.kan.KAN.fit">[docs]</a>
+    <span class="nd">@cr</span><span class="p">(</span><span class="s2">&quot;KAN.fit&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">train_dataset</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
+        <span class="n">eval_dataset</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
+        <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+        <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span>
+        <span class="n">optimizer_class</span><span class="o">=</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">,</span>
+        <span class="n">scheduler_type</span><span class="o">=</span><span class="s2">&quot;StepLR&quot;</span><span class="p">,</span>
+        <span class="n">opti_kwargs</span><span class="o">=</span><span class="p">{},</span>
+        <span class="n">lr_kwargs</span><span class="o">=</span><span class="p">{},</span>
+        <span class="n">print_eval_rate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">loss_fn</span><span class="o">=</span><span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">(),</span>
+        <span class="n">save_logs_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">max_norm_grad</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">),</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Train the model using the provided training dataset. The model is trained using the Adam optimizer with the provided learning rate and learning rate decay factor.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            train_dataset (torch.utils.data.Dataset): The training dataset.</span>
+<span class="sd">            eval_dataset (torch.utils.data.Dataset): The evaluation dataset.</span>
+<span class="sd">            batch_size (int): The batch size. (default: ``32``).</span>
+<span class="sd">            epochs (int): The number of epochs to train the model. (default: ``100``).</span>
+<span class="sd">            lr (float): The learning rate for the Adam optimizer. (default: ``0.001``).</span>
+<span class="sd">            optimizer_class (torch.optim, Optional): The optimizer to use. Available all optimizers from PyTorch except AdaDelta. (default: ``optim.Adam``).</span>
+<span class="sd">            scheduler_type (str, opcional): Scheduler type to adjust the learning rate dynamically. (default: ``&quot;StepLR&quot;``).</span>
+<span class="sd">                Available options:</span>
+
+<span class="sd">                - &quot;StepLR&quot;: Reduce the learning rate by a factor every ``step_size`` batches.</span>
+<span class="sd">                - &quot;ReduceLROnPlateau&quot;: Reduces the learning rate when a metric has stopped improving.</span>
+<span class="sd">                - &quot;OneCycleLR&quot;: Adjust the learning rate in a single cycle of the training.</span>
+<span class="sd">            lr_kwargs (dict, opcional): Dictionary containing the specific parameters for the learning rate scheduler. (default: ``{}``).</span>
+<span class="sd">                Some examples are:</span>
+<span class="sd">                </span>
+<span class="sd">                - StepLR: {&quot;step_size&quot;: int, &quot;gamma&quot;: float}.</span>
+<span class="sd">                - ReduceLROnPlateau: {&quot;mode&quot;: str, &quot;factor&quot;: float, &quot;patience&quot;: int}.</span>
+<span class="sd">                - OneCycleLR: {&quot;anneal_strategy&quot;: str, &quot;div_factor&quot;: float}.</span>
+<span class="sd">            opti_kwargs (dict, Optional): Additional keyword arguments to pass to the optimizer (default: `{}`).</span>
+<span class="sd">            print_eval_rate (int, Optional): The model will be evaluated every ``print_eval_rate`` epochs and the losses will be printed. If set to 0, nothing will be printed (default: ``2``).</span>
+<span class="sd">            loss_fn (torch.nn.Module, Optional): The loss function (default: ``nn.MSELoss()``).</span>
+<span class="sd">            save_logs_path (str, Optional): Path to save the training and evaluation losses (default: ``None``).</span>
+<span class="sd">            verbose (bool, Optional): Whether to print the training information (default: ``True``).</span>
+<span class="sd">            max_norm_grad (float, Optional): The maximum norm of the gradients (default: ``float(&#39;inf&#39;)``).</span>
+<span class="sd">            kwargs (dict, Optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):</span>
+<span class="sd">               </span>
+<span class="sd">                - batch_size (int, Optional): Batch size (default: ``32``).</span>
+<span class="sd">                - shuffle (bool, Optional): Shuffle the data (default: ``True``).</span>
+<span class="sd">                - num_workers (int, Optional): Number of workers to use (default: ``0``).</span>
+<span class="sd">                - pin_memory (bool, Optional): Pin memory (default: ``True``).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;TRAINNING MODEL </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Conditions:&quot;</span><span class="p">)</span>
+            <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">epochs:     </span><span class="si">{</span><span class="n">epochs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">batch size: 2**</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">batch_size</span><span class="p">))</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">optimizer class:  </span><span class="si">{</span><span class="n">optimizer_class</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">scheduler:  </span><span class="si">{</span><span class="n">scheduler_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">loss_fn:  </span><span class="si">{</span><span class="n">loss_fn</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">save_path:  </span><span class="si">{</span><span class="n">save_logs_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Scheduler conditions:&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">lr_kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">:&quot;</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">subkey</span><span class="p">,</span> <span class="n">subvalue</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                        <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="si">{</span><span class="n">subkey</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">subvalue</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;   &quot;</span><span class="p">)</span>
+        <span class="n">dataloader_params</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;batch_size&quot;</span><span class="p">:</span> <span class="n">batch_size</span><span class="p">,</span>
+            <span class="s2">&quot;shuffle&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">&quot;num_workers&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s2">&quot;pin_memory&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">dataloader_params</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">dataloader_params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="n">train_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="o">**</span><span class="n">dataloader_params</span><span class="p">)</span>
+        <span class="n">test_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">eval_dataset</span><span class="p">,</span> <span class="o">**</span><span class="n">dataloader_params</span><span class="p">)</span>
+
+        <span class="n">train_losses</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([],</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">test_losses</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([],</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="n">loss_iterations_train</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">loss_iterations_test</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer_class</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span> <span class="o">**</span><span class="n">opti_kwargs</span><span class="p">)</span>
+        <span class="n">current_lr_vec</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">scheduler_type</span> <span class="o">==</span> <span class="s2">&quot;StepLR&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">StepLR</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="o">**</span><span class="n">lr_kwargs</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">scheduler_type</span> <span class="o">==</span> <span class="s2">&quot;ReduceLROnPlateau&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">ReduceLROnPlateau</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="o">**</span><span class="n">lr_kwargs</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">scheduler_type</span> <span class="o">==</span> <span class="s2">&quot;OneCycleLR&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">OneCycleLR</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span>
+                <span class="n">max_lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span>
+                <span class="n">steps_per_epoch</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">train_loader</span><span class="p">),</span>
+                <span class="n">epochs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">lr_kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">raiseError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid scheduler_type: </span><span class="si">{</span><span class="n">scheduler_type</span><span class="si">}</span><span class="s2">. Available options are: &#39;StepLR&#39;, &#39;ReduceLROnPlateau&#39;, &#39;OneCycleLR&#39;&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;optimizer_state_dict&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer_state_dict</span><span class="p">)</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer_state_dict</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;scheduler_state_dict&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scheduler_state_dict</span><span class="p">)</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">scheduler_state_dict</span>
+
+        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+            <span class="n">train_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+            <span class="k">def</span> <span class="nf">closure</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+                <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+                <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+                <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">max_norm</span><span class="o">=</span><span class="n">max_norm_grad</span>
+                <span class="p">)</span>
+                <span class="n">loss_iterations_train</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+                <span class="k">return</span> <span class="n">loss</span>
+
+            <span class="k">for</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span> <span class="ow">in</span> <span class="n">train_loader</span><span class="p">:</span>
+                <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">inputs</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+                    <span class="n">targets</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+                <span class="p">)</span>
+                <span class="n">train_loss</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">closure</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">scheduler_type</span> <span class="o">!=</span> <span class="s2">&quot;ReduceLROnPlateau&quot;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+                    <span class="n">current_lr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;lr&quot;</span><span class="p">]</span>
+                    <span class="n">current_lr_vec</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current_lr</span><span class="p">)</span>
+
+            <span class="n">train_loss</span> <span class="o">/=</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_loader</span><span class="p">)</span>
+            <span class="n">train_losses</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="n">train_losses</span><span class="p">,</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">train_loss</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">scheduler_type</span> <span class="o">==</span> <span class="s2">&quot;ReduceLROnPlateau&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">train_loss</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">print_eval_rate</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+                <span class="n">test_loss</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+                    <span class="k">for</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span> <span class="ow">in</span> <span class="n">test_loader</span><span class="p">:</span>
+                        <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="n">inputs</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+                            <span class="n">targets</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+                        <span class="p">)</span>
+                        <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+                        <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+                        <span class="n">loss_iterations_test</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+                        <span class="n">test_loss</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+                <span class="n">test_loss</span> <span class="o">/=</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_loader</span><span class="p">)</span>
+                <span class="n">test_losses</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+                    <span class="p">(</span>
+                        <span class="n">test_losses</span><span class="p">,</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                            <span class="p">[</span><span class="n">test_loss</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
+                        <span class="p">),</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">current_lr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;lr&quot;</span><span class="p">]</span>
+                <span class="n">current_lr_vec</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current_lr</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+                    <span class="n">mem_used</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">memory_allocated</span><span class="p">()</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># Memory usage in MB</span>
+                    <span class="n">memory_usage_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;, MEM: </span><span class="si">{</span><span class="n">mem_used</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> MB&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">memory_usage_str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+                <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                    <span class="n">pprint</span><span class="p">(</span>
+                        <span class="mi">0</span><span class="p">,</span>
+                        <span class="sa">f</span><span class="s2">&quot;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">epochs</span><span class="si">}</span><span class="s2">, Train Loss: </span><span class="si">{</span><span class="n">train_loss</span><span class="si">:</span><span class="s2">.4e</span><span class="si">}</span><span class="s2">, Test Loss: </span><span class="si">{</span><span class="n">test_loss</span><span class="si">:</span><span class="s2">.4e</span><span class="si">}</span><span class="s2">, &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;LR: </span><span class="si">{</span><span class="n">current_lr</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}{</span><span class="n">memory_usage_str</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">save_logs_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">save_logs_path</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">save_logs_path</span><span class="p">)</span>
+            <span class="n">train_losses_np</span> <span class="o">=</span> <span class="n">train_losses</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">test_losses_np</span> <span class="o">=</span> <span class="n">test_losses</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">current_lr_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">current_lr_vec</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">save_logs_path</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                    <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Printing losses on path </span><span class="si">{</span><span class="n">save_logs_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                    <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Path not found. Printing losses on local folder (.)&quot;</span><span class="p">)</span>
+                <span class="n">save_logs_path</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span>
+
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span>
+                <span class="n">save_logs_path</span> <span class="o">+</span> <span class="s2">&quot;/train_losses_&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span>
+                <span class="n">train_losses_np</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span>
+                <span class="n">save_logs_path</span> <span class="o">+</span> <span class="s2">&quot;/test_losses_&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span>
+                <span class="n">test_losses_np</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span>
+                <span class="n">save_logs_path</span> <span class="o">+</span> <span class="s2">&quot;/current_lr_&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span>
+                <span class="n">current_lr_np</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span>
+                <span class="n">save_logs_path</span> <span class="o">+</span> <span class="s2">&quot;/losses_iterations_train_&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">loss_iterations_train</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span>
+                <span class="n">save_logs_path</span> <span class="o">+</span> <span class="s2">&quot;/losses_iterations_test_&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">loss_iterations_test</span><span class="p">),</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;train_loss&quot;</span><span class="p">:</span> <span class="n">train_losses</span><span class="p">,</span>
+            <span class="s2">&quot;test_loss&quot;</span><span class="p">:</span> <span class="n">test_losses</span><span class="p">,</span>
+            <span class="s2">&quot;lr&quot;</span><span class="p">:</span> <span class="n">current_lr_vec</span><span class="p">,</span>
+            <span class="s2">&quot;loss_iterations_train&quot;</span><span class="p">:</span> <span class="n">loss_iterations_train</span><span class="p">,</span>
+            <span class="s2">&quot;loss_iterations_test&quot;</span><span class="p">:</span> <span class="n">loss_iterations_test</span><span class="p">,</span>
+        <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="KAN.predict">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.kan.KAN.predict">[docs]</a>
+    <span class="nd">@cr</span><span class="p">(</span><span class="s2">&quot;KAN.predict&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">X</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
+        <span class="n">return_targets</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Predict the target values for the input data. The dataset is loaded into a DataLoader with the provided keyword arguments.</span>
+<span class="sd">        The model is set to evaluation mode and the predictions are made using the input data. The output can be rescaled using</span>
+<span class="sd">        the dataset scaler.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            X (torch.utils.data.Dataset): The dataset whose target values are to be predicted using the input data.</span>
+<span class="sd">            rescale_output (bool): Whether to rescale the output with the scaler of the dataset (default: ``True``).</span>
+<span class="sd">            kwargs (dict, Optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):</span>
+<span class="sd">                </span>
+<span class="sd">                - **batch_size** (int, Optional): Batch size (default: ``32``).  </span>
+<span class="sd">                - **shuffle** (bool, Optional): Shuffle the data (default: ``True``).  </span>
+<span class="sd">                - **num_workers** (int, Optional): Number of workers to use (default: ``0``).  </span>
+<span class="sd">                - **pin_memory** (bool, Optional): Pin memory (default: ``True``).  </span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple[np.ndarray, np.ndarray]: The predictions and the true target values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">dataloader_params</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;batch_size&quot;</span><span class="p">:</span> <span class="mi">32</span><span class="p">,</span>
+            <span class="s2">&quot;shuffle&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">&quot;num_workers&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s2">&quot;pin_memory&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">dataloader_params</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">dataloader_params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+        <span class="n">predict_dataloader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="o">**</span><span class="n">dataloader_params</span><span class="p">)</span>
+
+        <span class="n">total_rows</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">predict_dataloader</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span>
+        <span class="n">num_columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span>
+        <span class="n">all_predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">total_rows</span><span class="p">,</span> <span class="n">num_columns</span><span class="p">))</span>
+        <span class="n">all_targets</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">total_rows</span><span class="p">,</span> <span class="n">num_columns</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="n">start_idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">predict_dataloader</span><span class="p">:</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">))</span>
+                <span class="n">batch_size</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">end_idx</span> <span class="o">=</span> <span class="n">start_idx</span> <span class="o">+</span> <span class="n">batch_size</span>
+                <span class="n">all_predictions</span><span class="p">[</span><span class="n">start_idx</span><span class="p">:</span><span class="n">end_idx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+                <span class="n">all_targets</span><span class="p">[</span><span class="n">start_idx</span><span class="p">:</span><span class="n">end_idx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+                <span class="n">start_idx</span> <span class="o">=</span> <span class="n">end_idx</span>
+
+        <span class="k">if</span> <span class="n">return_targets</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">all_predictions</span><span class="p">,</span> <span class="n">all_targets</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">all_predictions</span></div>
+
+
+<div class="viewcode-block" id="KAN.save">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.kan.KAN.save">[docs]</a>
+    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">save_only_model</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save the model to a checkpoint file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path (str): Path to save the model. It can be either a path to a directory or a file name.</span>
+<span class="sd">            If it is a directory, the model will be saved with a filename that includes the number of epochs trained.</span>
+<span class="sd">            save_only_model (bool, Optional): Whether to only save the model, or also the optimizer and scheduler. Note that when this is true, you won&#39;t be able to resume training from checkpoint.(default: ``False``).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">checkpoint</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;input_size&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_size</span><span class="p">,</span>
+            <span class="s2">&quot;output_size&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">,</span>
+            <span class="s2">&quot;n_layers&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span><span class="p">,</span>
+            <span class="s2">&quot;hidden_size&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span>
+            <span class="s2">&quot;layer_type&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_type</span><span class="p">,</span>
+            <span class="s2">&quot;model_name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="p">,</span>
+            <span class="s2">&quot;p_dropouts&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">p_dropouts</span><span class="p">,</span>
+            <span class="s2">&quot;state_dict&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="s2">&quot;degree&quot;</span><span class="p">):</span>
+            <span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;degree&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">degree</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">save_only_model</span><span class="p">:</span>
+            <span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;optimizer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+            <span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;scheduler&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="si">}</span><span class="s2">.pth&quot;</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">path</span> <span class="o">+</span> <span class="n">filename</span>
+
+        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="KAN.load">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.kan.KAN.load">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">)):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Loads a model from a checkpoint file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path (str): Path to the checkpoint file.</span>
+<span class="sd">            device (torch.device): Device where the model is loaded (default: cpu).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            model (KAN): The loaded KAN model with the trained weights.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Loading model...&quot;</span><span class="p">)</span>
+        <span class="n">checkpoint</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">weights_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">raiseWarning</span><span class="p">(</span><span class="s2">&quot;The model has been loaded with weights_only set to False. According with torch documentation, this is not recommended if you do not trust the source of your saved model, as it could lead to arbitrary code execution.&quot;</span><span class="p">)</span>
+
+        <span class="n">degree</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;degree&quot;</span><span class="p">]</span>
+        <span class="n">layer_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;degree&quot;</span><span class="p">:</span> <span class="n">degree</span><span class="p">}</span>
+
+        <span class="n">model</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">input_size</span><span class="o">=</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;input_size&quot;</span><span class="p">],</span>
+            <span class="n">output_size</span><span class="o">=</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;output_size&quot;</span><span class="p">],</span>
+            <span class="n">n_layers</span><span class="o">=</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;n_layers&quot;</span><span class="p">],</span>
+            <span class="n">hidden_size</span><span class="o">=</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
+            <span class="n">layer_type</span><span class="o">=</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;layer_type&quot;</span><span class="p">],</span>
+            <span class="n">model_name</span><span class="o">=</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;model_name&quot;</span><span class="p">],</span>
+            <span class="n">p_dropouts</span><span class="o">=</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;p_dropouts&quot;</span><span class="p">],</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">layer_kwargs</span><span class="p">,</span>  <span class="c1"># Pass the specific layer arguments</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;optimizer&quot;</span> <span class="ow">in</span> <span class="n">checkpoint</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">optimizer_state_dict</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;optimizer&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s2">&quot;scheduler&quot;</span> <span class="ow">in</span> <span class="n">checkpoint</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">scheduler_state_dict</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;scheduler&quot;</span><span class="p">]</span>
+
+        <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;state_dict&quot;</span><span class="p">])</span>
+        <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Loaded KAN model: </span><span class="si">{</span><span class="n">checkpoint</span><span class="p">[</span><span class="s1">&#39;model_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">keys_print</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;input_size&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;output_size&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;n_layers&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;hidden_size&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;layer_type&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;p_dropouts&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys_print</span><span class="p">:</span>
+            <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">checkpoint</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">model</span></div>
+
+
+<div class="viewcode-block" id="KAN.create_optimized_model">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.kan.KAN.create_optimized_model">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="nd">@cr</span><span class="p">(</span><span class="s2">&quot;KAN.create_optimized_model&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">create_optimized_model</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">train_dataset</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
+        <span class="n">eval_dataset</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
+        <span class="n">optuna_optimizer</span><span class="p">:</span> <span class="n">OptunaOptimizer</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">Dict</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create an optimized KAN model using Optuna. The model is trained on the training dataset and the metric to optimize is computed with the evaluation dataset.</span>
+<span class="sd">        If the parameters from the optimizer are a tuple, the function will optimize the parameter. If the parameter is a single value, it will be fixed during optimization.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            train_dataset (torch.utils.data.Dataset): The training dataset.</span>
+<span class="sd">            eval_dataset (torch.utils.data.Dataset): The evaluation dataset.</span>
+<span class="sd">            optuna_optimizer (OptunaOptimizer): The optimizer to use for optimization.</span>
+<span class="sd">            kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple [KAN, Dict]: The optimized model and the optimization parameters.</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; from pyLOM.NN import KAN, OptunaOptimizer</span>
+<span class="sd">            &gt;&gt;&gt; # Split the dataset</span>
+<span class="sd">            &gt;&gt;&gt; train_dataset, eval_dataset = dataset.get_splits([0.8, 0.2])</span>
+<span class="sd">            &gt;&gt;&gt;</span>
+<span class="sd">            &gt;&gt;&gt; # Define the optimization parameters</span>
+<span class="sd">            &gt;&gt;&gt; optimization_params = {</span>
+<span class="sd">            &gt;&gt;&gt;     &quot;lr&quot;: (0.00001, 0.1),</span>
+<span class="sd">            &gt;&gt;&gt;     &quot;batch_size&quot;: (10, 64),</span>
+<span class="sd">            &gt;&gt;&gt;     &quot;hidden_size&quot;: (10, 40), # optimizable parameter</span>
+<span class="sd">            &gt;&gt;&gt;     &quot;n_layers&quot;: (1, 4),</span>
+<span class="sd">            &gt;&gt;&gt;     &quot;print_eval_rate&quot;: 2,</span>
+<span class="sd">            &gt;&gt;&gt;     &quot;epochs&quot;: 10, # non-optimizable parameter</span>
+<span class="sd">            &gt;&gt;&gt;    &quot;lr_kwargs&quot;:{</span>
+<span class="sd">            &gt;&gt;&gt;        &quot;gamma&quot;: (0.95, 0.99),</span>
+<span class="sd">            &gt;&gt;&gt;        &quot;step_size&quot;: 7000</span>
+<span class="sd">            &gt;&gt;&gt;    },</span>
+<span class="sd">            &gt;&gt;&gt;     &quot;model_name&quot;: &quot;kan_test_optuna&quot;,</span>
+<span class="sd">            &gt;&gt;&gt;     &#39;device&#39;: device,</span>
+<span class="sd">            &gt;&gt;&gt;     &quot;layer_type&quot;: (pyLOM.NN.ChebyshevLayer, pyLOM.NN.JacobiLayer),</span>
+<span class="sd">            &gt;&gt;&gt;     &quot;layer_kwargs&quot;: {</span>
+<span class="sd">            &gt;&gt;&gt;         &quot;degree&quot;: (3, 10),</span>
+<span class="sd">            &gt;&gt;&gt;     },</span>
+<span class="sd">            &gt;&gt;&gt; }</span>
+<span class="sd">            &gt;&gt;&gt;</span>
+<span class="sd">            &gt;&gt;&gt; # Define the optimizer</span>
+<span class="sd">            &gt;&gt;&gt; optimizer = OptunaOptimizer(</span>
+<span class="sd">            &gt;&gt;&gt;     optimization_params=optimization_params,</span>
+<span class="sd">            &gt;&gt;&gt;     n_trials=5,</span>
+<span class="sd">            &gt;&gt;&gt;     direction=&quot;minimize&quot;,</span>
+<span class="sd">            &gt;&gt;&gt;     pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=5, interval_steps=1),</span>
+<span class="sd">            &gt;&gt;&gt;     save_dir=None,</span>
+<span class="sd">            &gt;&gt;&gt; )</span>
+<span class="sd">            &gt;&gt;&gt;</span>
+<span class="sd">            &gt;&gt;&gt; # Create the optimized model</span>
+<span class="sd">            &gt;&gt;&gt; model, optimization_params = KAN.create_optimized_model(train_dataset, eval_dataset, optimizer)</span>
+<span class="sd">            &gt;&gt;&gt;</span>
+<span class="sd">            &gt;&gt;&gt; # Fit the model</span>
+<span class="sd">            &gt;&gt;&gt; model.fit(train_dataset, eval_dataset, **optimization_params)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">optimizing_parameters</span> <span class="o">=</span> <span class="n">optuna_optimizer</span><span class="o">.</span><span class="n">optimization_params</span>
+        <span class="n">input_size</span><span class="p">,</span> <span class="n">output_size</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">train_dataset</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">train_dataset</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">optimization_function</span><span class="p">(</span><span class="n">trial</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+            <span class="n">model_parameters</span><span class="p">,</span> <span class="n">training_parameters</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_sample_kan_parameters</span><span class="p">(</span>
+                <span class="n">trial</span><span class="p">,</span> <span class="n">optimizing_parameters</span>
+            <span class="p">)</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+                <span class="n">input_size</span><span class="o">=</span><span class="n">input_size</span><span class="p">,</span>
+                <span class="n">output_size</span><span class="o">=</span><span class="n">output_size</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">model_parameters</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">model_logs</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">eval_dataset</span><span class="p">,</span> <span class="o">**</span><span class="n">training_parameters</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">model_logs</span><span class="p">[</span><span class="s2">&quot;test_loss&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+        <span class="n">best_params</span> <span class="o">=</span> <span class="n">optuna_optimizer</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">optimization_function</span><span class="p">)</span>
+        <span class="c1"># Update the optimizing parameters with the best parameters found</span>
+        <span class="n">optimizing_parameters</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">best_params</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;layer_kwargs&quot;</span> <span class="ow">in</span> <span class="n">optimizing_parameters</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">optimizing_parameters</span><span class="p">[</span><span class="s2">&quot;layer_kwargs&quot;</span><span class="p">]</span>
+        <span class="c1"># Update the learning rate kwargs with the best parameters found</span>
+        <span class="k">if</span> <span class="s2">&quot;lr_kwargs&quot;</span> <span class="ow">in</span> <span class="n">optimizing_parameters</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">optimizing_parameters</span><span class="p">[</span><span class="s2">&quot;lr_kwargs&quot;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">best_params</span><span class="p">:</span>
+                    <span class="n">optimizing_parameters</span><span class="p">[</span><span class="s2">&quot;lr_kwargs&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">best_params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+        <span class="c1"># Separate the model and training parameters from the best parameters found.</span>
+        <span class="c1"># Note: now optimizing_parameters contains the best parameters found and does not contain any tuple,</span>
+        <span class="c1"># so this is an easy wan to separate the training and model parameters</span>
+        <span class="n">model_parameters</span><span class="p">,</span> <span class="n">training_parameters</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_sample_kan_parameters</span><span class="p">(</span>
+            <span class="kc">None</span><span class="p">,</span> <span class="n">optimizing_parameters</span>
+        <span class="p">)</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">input_size</span><span class="o">=</span><span class="n">input_size</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="n">output_size</span><span class="p">,</span> <span class="o">**</span><span class="n">model_parameters</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">model</span><span class="p">,</span> <span class="n">training_parameters</span></div>
+
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_sample_kan_parameters</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">trial</span><span class="p">,</span> <span class="n">optimizing_parameters</span><span class="p">):</span>
+        <span class="n">training_parameters</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">model_parameters</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">mandatory_params</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;n_layers&quot;</span><span class="p">,</span> <span class="s2">&quot;hidden_size&quot;</span><span class="p">,</span> <span class="s2">&quot;layer_type&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">mandatory_params</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">optimizing_parameters</span><span class="p">:</span>
+                <span class="n">model_parameters</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_suggest_value</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">optimizing_parameters</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">raiseError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;A value or range to optimize for the </span><span class="si">{</span><span class="n">param</span><span class="si">}</span><span class="s2"> must be provided&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;p_dropouts&quot;</span> <span class="ow">in</span> <span class="n">optimizing_parameters</span><span class="p">:</span>
+            <span class="n">model_parameters</span><span class="p">[</span><span class="s2">&quot;p_dropouts&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_suggest_float_value</span><span class="p">(</span>
+            <span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;p_dropouts&quot;</span><span class="p">,</span> <span class="n">optimizing_parameters</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">model_parameters</span><span class="p">[</span><span class="s2">&quot;p_dropouts&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        
+        <span class="k">if</span> <span class="s2">&quot;layer_kwargs&quot;</span> <span class="ow">in</span> <span class="n">optimizing_parameters</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">optimizing_parameters</span><span class="p">[</span><span class="s2">&quot;layer_kwargs&quot;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;degree&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">]:</span>
+                    <span class="n">raiseError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> in layer_kwargs&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">model_parameters</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_suggest_value</span><span class="p">(</span>
+                        <span class="n">trial</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">optimizing_parameters</span><span class="p">[</span><span class="s2">&quot;layer_kwargs&quot;</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="s2">&quot;degree&quot;</span> <span class="ow">in</span> <span class="n">optimizing_parameters</span><span class="p">:</span>
+            <span class="n">model_parameters</span><span class="p">[</span><span class="s2">&quot;degree&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_suggest_int_value</span><span class="p">(</span>
+                <span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;degree&quot;</span><span class="p">,</span> <span class="n">optimizing_parameters</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">raiseError</span><span class="p">(</span><span class="s2">&quot;Layer kwargs with at least a key for degree must be provided&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s2">&quot;epochs&quot;</span> <span class="ow">in</span> <span class="n">optimizing_parameters</span><span class="p">:</span>
+            <span class="n">training_parameters</span><span class="p">[</span><span class="s2">&quot;epochs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_suggest_int_value</span><span class="p">(</span>
+                <span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;epochs&quot;</span><span class="p">,</span> <span class="n">optimizing_parameters</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">training_parameters</span><span class="p">[</span><span class="s2">&quot;epochs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span>
+        <span class="k">if</span> <span class="s2">&quot;batch_size&quot;</span> <span class="ow">in</span> <span class="n">optimizing_parameters</span><span class="p">:</span>
+            <span class="n">training_parameters</span><span class="p">[</span><span class="s2">&quot;batch_size&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_suggest_int_value</span><span class="p">(</span>
+                <span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;batch_size&quot;</span><span class="p">,</span> <span class="n">optimizing_parameters</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">training_parameters</span><span class="p">[</span><span class="s2">&quot;batch_size&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">32</span>
+        <span class="k">if</span> <span class="s2">&quot;lr&quot;</span> <span class="ow">in</span> <span class="n">optimizing_parameters</span><span class="p">:</span>
+            <span class="n">training_parameters</span><span class="p">[</span><span class="s2">&quot;lr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_suggest_float_value</span><span class="p">(</span>
+                <span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;lr&quot;</span><span class="p">,</span> <span class="n">optimizing_parameters</span><span class="p">,</span> <span class="n">log_scale</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">training_parameters</span><span class="p">[</span><span class="s2">&quot;lr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.001</span>
+
+        <span class="k">if</span> <span class="s2">&quot;max_norm_grad&quot;</span> <span class="ow">in</span> <span class="n">optimizing_parameters</span><span class="p">:</span>
+            <span class="n">training_parameters</span><span class="p">[</span><span class="s2">&quot;max_norm_grad&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_suggest_float_value</span><span class="p">(</span>
+                <span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;max_norm_grad&quot;</span><span class="p">,</span> <span class="n">optimizing_parameters</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">training_parameters</span><span class="p">[</span><span class="s2">&quot;max_norm_grad&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span>
+            
+        <span class="k">if</span> <span class="s2">&quot;optimizer_class&quot;</span> <span class="ow">in</span> <span class="n">optimizing_parameters</span><span class="p">:</span>
+            <span class="n">training_parameters</span><span class="p">[</span><span class="s2">&quot;optimizer_class&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_suggest_categorical_value</span><span class="p">(</span>
+                <span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;optimizer_class&quot;</span><span class="p">,</span> <span class="n">optimizing_parameters</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">training_parameters</span><span class="p">[</span><span class="s2">&quot;optimizer_class&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">optim</span><span class="o">.</span><span class="n">Adam</span>
+
+        <span class="k">if</span> <span class="s2">&quot;lr_kwargs&quot;</span> <span class="ow">in</span> <span class="n">optimizing_parameters</span><span class="p">:</span>
+            <span class="n">training_parameters</span><span class="p">[</span><span class="s2">&quot;lr_kwargs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">optimizing_parameters</span><span class="p">[</span><span class="s2">&quot;lr_kwargs&quot;</span><span class="p">]:</span>
+                <span class="n">training_parameters</span><span class="p">[</span><span class="s2">&quot;lr_kwargs&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_suggest_value</span><span class="p">(</span>
+                    <span class="n">trial</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">optimizing_parameters</span><span class="p">[</span><span class="s2">&quot;lr_kwargs&quot;</span><span class="p">]</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">training_parameters</span><span class="p">[</span><span class="s2">&quot;lr_kwargs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+
+        <span class="c1"># non optimizing parameters</span>
+        <span class="k">for</span> <span class="n">no_optimizing_param</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;save_logs_path&quot;</span><span class="p">,</span> <span class="s2">&quot;print_eval_rate&quot;</span><span class="p">,</span> <span class="s2">&quot;loss_fn&quot;</span><span class="p">,</span> <span class="s2">&quot;opti_kwargs&quot;</span><span class="p">,</span> <span class="s2">&quot;scheduler_type&quot;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">no_optimizing_param</span> <span class="ow">in</span> <span class="n">optimizing_parameters</span><span class="p">:</span>
+                <span class="n">training_parameters</span><span class="p">[</span><span class="n">no_optimizing_param</span><span class="p">]</span> <span class="o">=</span> <span class="n">optimizing_parameters</span><span class="p">[</span>
+                    <span class="n">no_optimizing_param</span>
+                <span class="p">]</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">training_parameters</span><span class="p">[</span><span class="n">no_optimizing_param</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">):</span>
+                    <span class="n">raiseError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid value for </span><span class="si">{</span><span class="n">no_optimizing_param</span><span class="si">}</span><span class="s2">. It is not an optimizable parameter.&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">no_optimizing_param</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;device&quot;</span><span class="p">,</span> <span class="s2">&quot;model_name&quot;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">no_optimizing_param</span> <span class="ow">in</span> <span class="n">optimizing_parameters</span><span class="p">:</span>
+                <span class="n">model_parameters</span><span class="p">[</span><span class="n">no_optimizing_param</span><span class="p">]</span> <span class="o">=</span> <span class="n">optimizing_parameters</span><span class="p">[</span>
+                    <span class="n">no_optimizing_param</span>
+                <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">model_parameters</span><span class="p">,</span> <span class="n">training_parameters</span>
+    
+    <span class="k">def</span> <span class="nf">_suggest_value</span><span class="p">(</span>
+        <span class="n">trial</span><span class="p">,</span> <span class="n">parameter_name</span><span class="p">,</span> <span class="n">optimizing_parameters</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">optimizing_parameters</span><span class="p">[</span><span class="n">parameter_name</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">optimizing_parameters</span><span class="p">[</span><span class="n">parameter_name</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_int</span><span class="p">(</span>
+                    <span class="n">parameter_name</span><span class="p">,</span> <span class="o">*</span><span class="n">optimizing_parameters</span><span class="p">[</span><span class="n">parameter_name</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">optimizing_parameters</span><span class="p">[</span><span class="n">parameter_name</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="nb">float</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_float</span><span class="p">(</span>
+                    <span class="n">parameter_name</span><span class="p">,</span> <span class="o">*</span><span class="n">optimizing_parameters</span><span class="p">[</span><span class="n">parameter_name</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span>
+                    <span class="n">parameter_name</span><span class="p">,</span> <span class="n">optimizing_parameters</span><span class="p">[</span><span class="n">parameter_name</span><span class="p">]</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">optimizing_parameters</span><span class="p">[</span><span class="n">parameter_name</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_suggest_int_value</span><span class="p">(</span>
+        <span class="n">trial</span><span class="p">,</span> <span class="n">parameter_name</span><span class="p">,</span> <span class="n">optimizing_parameters</span><span class="p">,</span> <span class="n">log_scale</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">optimizing_parameters</span><span class="p">[</span><span class="n">parameter_name</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_int</span><span class="p">(</span>
+                <span class="n">parameter_name</span><span class="p">,</span> <span class="o">*</span><span class="n">optimizing_parameters</span><span class="p">[</span><span class="n">parameter_name</span><span class="p">],</span> <span class="n">log</span><span class="o">=</span><span class="n">log_scale</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">optimizing_parameters</span><span class="p">[</span><span class="n">parameter_name</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_suggest_float_value</span><span class="p">(</span>
+        <span class="n">trial</span><span class="p">,</span> <span class="n">parameter_name</span><span class="p">,</span> <span class="n">optimizing_parameters</span><span class="p">,</span> <span class="n">log_scale</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">optimizing_parameters</span><span class="p">[</span><span class="n">parameter_name</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_float</span><span class="p">(</span>
+                <span class="n">parameter_name</span><span class="p">,</span> <span class="o">*</span><span class="n">optimizing_parameters</span><span class="p">[</span><span class="n">parameter_name</span><span class="p">],</span> <span class="n">log</span><span class="o">=</span><span class="n">log_scale</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">optimizing_parameters</span><span class="p">[</span><span class="n">parameter_name</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_suggest_categorical_value</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="n">parameter_name</span><span class="p">,</span> <span class="n">optimizing_parameters</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">optimizing_parameters</span><span class="p">[</span><span class="n">parameter_name</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span>
+                <span class="n">parameter_name</span><span class="p">,</span> <span class="n">optimizing_parameters</span><span class="p">[</span><span class="n">parameter_name</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">optimizing_parameters</span><span class="p">[</span><span class="n">parameter_name</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="ChebyshevLayer">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.kan.ChebyshevLayer">[docs]</a>
+<span class="k">class</span> <span class="nc">ChebyshevLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Chebyshev layer for KAN model.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        input_dim (int): The number of input features.</span>
+<span class="sd">        output_dim (int): The number of output features.</span>
+<span class="sd">        degree (int): The degree of the Chebyshev polynomial.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">,</span> <span class="n">degree</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inputdim</span> <span class="o">=</span> <span class="n">input_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outdim</span> <span class="o">=</span> <span class="n">output_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">degree</span> <span class="o">=</span> <span class="n">degree</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cheby_coeffs</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">,</span> <span class="n">degree</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cheby_coeffs</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">input_dim</span> <span class="o">*</span> <span class="p">(</span><span class="n">degree</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)))</span>
+
+<div class="viewcode-block" id="ChebyshevLayer.forward">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.kan.ChebyshevLayer.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputdim</span><span class="p">))</span>  <span class="c1"># shape = (batch_size, inputdim)</span>
+        <span class="c1"># Initialize Chebyshev polynomial tensors</span>
+        <span class="n">cheby</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputdim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">degree</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">degree</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">cheby</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">degree</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">cheby</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="n">cheby</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span> <span class="o">-</span> <span class="n">cheby</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="c1"># Compute the Chebyshev interpolation</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+            <span class="s2">&quot;bid,iod-&gt;bo&quot;</span><span class="p">,</span> <span class="n">cheby</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cheby_coeffs</span>
+        <span class="p">)</span>  <span class="c1"># shape = (batch_size, outdim)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">outdim</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">y</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="JacobiLayer">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.kan.JacobiLayer">[docs]</a>
+<span class="k">class</span> <span class="nc">JacobiLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Jacobi layer for KAN model.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        input_dim (int): The number of input features.</span>
+<span class="sd">        output_dim (int): The number of output features.</span>
+<span class="sd">        degree (int): The degree of the Jacobi polynomial.</span>
+<span class="sd">        a (float, Optional): The first parameter of the Jacobi polynomial (default: ``1.0``).</span>
+<span class="sd">        b (float, Optional): The second parameter of the Jacobi polynomial (default: ``1.0``).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">,</span> <span class="n">degree</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inputdim</span> <span class="o">=</span> <span class="n">input_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outdim</span> <span class="o">=</span> <span class="n">output_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">a</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">b</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">degree</span> <span class="o">=</span> <span class="n">degree</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">jacobi_coeffs</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">,</span> <span class="n">degree</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">jacobi_coeffs</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">input_dim</span> <span class="o">*</span> <span class="p">(</span><span class="n">degree</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="JacobiLayer.forward">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.kan.JacobiLayer.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputdim</span><span class="p">))</span>  <span class="c1"># shape = (batch_size, inputdim)</span>
+        <span class="c1"># Initialize Jacobian polynomial tensors</span>
+        <span class="n">jacobi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputdim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">degree</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">degree</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>  <span class="c1">## degree = 0: jacobi[:, :, 0] = 1 (already initialized) ; degree = 1: jacobi[:, :, 1] = x ; d</span>
+            <span class="n">jacobi</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">degree</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">theta_k</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">)</span>
+                <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">i</span> <span class="o">*</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">))</span>
+            <span class="p">)</span>
+            <span class="n">theta_k1</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">)</span>
+                <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">i</span> <span class="o">*</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">-</span> <span class="mi">2</span><span class="p">))</span>
+            <span class="p">)</span>
+            <span class="n">theta_k2</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="o">*</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">)</span>
+                <span class="o">/</span> <span class="p">(</span><span class="n">i</span> <span class="o">*</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">i</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">-</span> <span class="mi">2</span><span class="p">))</span>
+            <span class="p">)</span>
+            <span class="n">jacobi</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">theta_k</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">theta_k1</span><span class="p">)</span> <span class="o">*</span> <span class="n">jacobi</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+                <span class="o">-</span> <span class="n">theta_k2</span> <span class="o">*</span> <span class="n">jacobi</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+            <span class="p">)</span>  <span class="c1"># 2 * x * jacobi[:, :, i - 1].clone() - jacobi[:, :, i - 2].clone()</span>
+        <span class="c1"># Compute the Jacobian interpolation</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+            <span class="s2">&quot;bid,iod-&gt;bo&quot;</span><span class="p">,</span> <span class="n">jacobi</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">jacobi_coeffs</span>
+        <span class="p">)</span>  <span class="c1"># shape = (batch_size, outdim)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">outdim</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">y</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2023-2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

@@ -1,0 +1,1033 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pyLOM.NN.architectures.pinn &#8212; pyLOM  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=de90da8b" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pyLOM/NN/architectures/pinn';</script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="2.0.1" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">pyLOM</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../api/modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
+    Building from source
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../examples.html">
+    Examples
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../api/modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
+    Building from source
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../../examples.html">
+    Examples
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../index.html" class="nav-link">Module code</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../../NN.html" class="nav-link">pyLOM.NN</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">pyLOM.NN.architectures.pinn</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for pyLOM.NN.architectures.pinn</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.utils</span>
+<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span>
+
+<span class="kn">from</span> <span class="nn">...</span> <span class="kn">import</span> <span class="n">pprint</span><span class="p">,</span> <span class="n">cr</span> <span class="c1"># pyLOM/__init__.py</span>
+<span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">Dataset</span>
+
+
+<div class="viewcode-block" id="PINN">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN">[docs]</a>
+<span class="k">class</span> <span class="nc">PINN</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents a Physics-Informed Neural Network (PINN) model. It is an abstract class that needs to be subclassed to implement the pde_loss method.</span>
+<span class="sd">    That method should compute the residual from the partial differential equation (PDE) and then compute the loss from it (usually by squaring the residual).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        neural_net (torch.nn.Module): A neural network model that implements torch.nn.Module.</span>
+<span class="sd">        device (str): The device to run the model on (e.g., &#39;cpu&#39;, &#39;cuda&#39;).</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        device (str): The device the model is running on.</span>
+<span class="sd">        model (torch.nn.Module): The neural network model.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">neural_net</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">neural_net</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PINN.__call__">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.__call__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Forward pass of the PINN model.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (torch.Tensor): The input tensor with the PDE input parameters.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor: The output tensor, i.e. the solution for the PDE on x.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PINN._prepare_input_variables">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN._prepare_input_variables">[docs]</a>
+    <span class="k">def</span> <span class="nf">_prepare_input_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_batch</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Prepares the input variables for training.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x_batch (torch.Tensor): The input batch tensor.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List[torch.Tensor]: The list of prepared input variables.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">input_variables</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">input_variable</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x_batch</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+            <span class="n">flow_variable</span> <span class="o">=</span> <span class="n">x_batch</span><span class="p">[:,</span> <span class="n">input_variable</span> <span class="p">:</span> <span class="n">input_variable</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">flow_variable</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">input_variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">flow_variable</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">input_variables</span></div>
+
+
+<div class="viewcode-block" id="PINN._get_dataloader">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN._get_dataloader">[docs]</a>
+    <span class="k">def</span> <span class="nf">_get_dataloader</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates data loaders for training.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (torch.Tensor): The input tensor.</span>
+<span class="sd">            y (torch.Tensor, optional): The target tensor. Defaults to None.</span>
+<span class="sd">            batch_size (int, optional): The batch size. Defaults to None.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Union[torch.utils.data.DataLoader, List[torch.Tensor]]: The data loaders.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">batch_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">persistent_workers</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data_loader</span> <span class="o">=</span> <span class="p">[</span><span class="n">dataset</span><span class="p">[:]]</span>
+        <span class="k">return</span> <span class="n">data_loader</span></div>
+
+
+<div class="viewcode-block" id="PINN.bc_data_loss">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.bc_data_loss">[docs]</a>
+    <span class="k">def</span> <span class="nf">bc_data_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">boundary_conditions</span><span class="p">,</span> <span class="n">use_bfloat16</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the loss from boundary conditions and data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            pred (torch.Tensor): The predicted output tensor.</span>
+<span class="sd">            y (torch.Tensor): The target tensor.</span>
+<span class="sd">            boundary_conditions (List[BoundaryCondition]): The list of boundary conditions.</span>
+<span class="sd">            use_bfloat16 (bool, optional): Whether to use bfloat16 precision. Defaults to False.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List[torch.Tensor]: The list of loss tensors.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">use_bfloat16</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">autocast</span><span class="p">(</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">):</span>
+                <span class="n">bc_losses</span> <span class="o">=</span> <span class="p">[</span><span class="n">bc</span><span class="o">.</span><span class="n">loss</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">bc</span><span class="o">.</span><span class="n">points</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)))</span> <span class="k">for</span> <span class="n">bc</span> <span class="ow">in</span> <span class="n">boundary_conditions</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">bc_losses</span> <span class="o">=</span> <span class="p">[</span><span class="n">bc</span><span class="o">.</span><span class="n">loss</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">bc</span><span class="o">.</span><span class="n">points</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)))</span> <span class="k">for</span> <span class="n">bc</span> <span class="ow">in</span> <span class="n">boundary_conditions</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">))</span>
+            <span class="n">bc_losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data_loss</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">bc_losses</span></div>
+
+
+<div class="viewcode-block" id="PINN.compute_loss">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.compute_loss">[docs]</a>
+    <span class="k">def</span> <span class="nf">compute_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">boundary_conditions</span><span class="p">,</span> <span class="n">use_bfloat16</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the total loss for training.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (torch.Tensor): The input tensor.</span>
+<span class="sd">            y (torch.Tensor): The target tensor.</span>
+<span class="sd">            boundary_conditions (List[BoundaryCondition]): The list of boundary conditions.</span>
+<span class="sd">            use_bfloat16 (bool, optional): Whether to use bfloat16 precision. Defaults to False.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List[torch.Tensor]: The list of loss tensors.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">input_variables</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_input_variables</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">input_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">input_variables</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">use_bfloat16</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">autocast</span><span class="p">(</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">):</span>
+                <span class="n">pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">input_tensor</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">input_tensor</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">pde_loss</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="o">*</span><span class="n">input_variables</span><span class="p">)]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">bc_data_loss</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">boundary_conditions</span><span class="p">,</span> <span class="n">use_bfloat16</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PINN.fit">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.fit">[docs]</a>
+    <span class="nd">@cr</span><span class="p">(</span><span class="s2">&quot;PINN.fit&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">train_dataset</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span>
+        <span class="n">optimizer_class</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">,</span>
+        <span class="n">optimizer_params</span><span class="o">=</span><span class="p">{},</span>
+        <span class="n">lr_scheduler_class</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">lr_scheduler_params</span><span class="o">=</span><span class="p">{},</span>
+        <span class="n">epochs</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+        <span class="n">boundary_conditions</span><span class="o">=</span><span class="p">[],</span>
+        <span class="n">update_logs_steps</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">loaded_logs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">eval_dataset</span><span class="p">:</span> <span class="n">Dataset</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">use_bfloat16</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Trains the PINN model.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            train_dataset (Dataset): The training dataset. If the dataset returns a tuple, the first element is the input and the second element is the target. If not, the PINN is trained without simulation data.</span>
+<span class="sd">            optimizer_class (torch.optim.Optimizer, optional): The optimizer class. Defaults to ``torch.optim.Adam``.</span>
+<span class="sd">            optimizer_params (dict, optional): The optimizer parameters. Defaults to ``{}``.</span>
+<span class="sd">            lr_scheduler_class (torch.optim.lr_scheduler._LRScheduler, optional): The learning rate scheduler class. Defaults to ``None``.</span>
+<span class="sd">            lr_scheduler_params (dict, optional): The learning rate scheduler parameters. Defaults to ``{}``.</span>
+<span class="sd">            epochs (int, optional): The number of epochs to train for. Defaults to ``1000``.</span>
+<span class="sd">            boundary_conditions (List[BoundaryCondition], optional): The list of boundary conditions. Defaults to ``[]``.</span>
+<span class="sd">            update_logs_steps (int, optional): The interval for updating the progress. Defaults to ``100``.</span>
+<span class="sd">            loaded_logs (dict, optional): Loaded training logs to be used as initial logs. Defaults to ``None``.</span>
+<span class="sd">            batch_size (int, optional): The batch size. If none, the batch size will be equal to the number of collocation points given on `train_dataset`. Defaults to ``None``.</span>
+<span class="sd">            eval_dataset (BaseDataset, optional): The evaluation dataset. Defaults to ``None``.</span>
+<span class="sd">            use_bfloat16 (bool, optional): Whether to use bfloat16 precision. Defaults to ``False``.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: The training logs.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logs</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">loaded_logs</span>
+            <span class="k">if</span> <span class="n">loaded_logs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="p">{</span>
+                <span class="s2">&quot;loss_from_pde&quot;</span><span class="p">:</span> <span class="p">[],</span>
+                <span class="s2">&quot;loss_from_data_and_bc&quot;</span><span class="p">:</span> <span class="p">[],</span>
+                <span class="s2">&quot;total_loss&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+
+        <span class="n">train_data_loader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_dataloader</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+        <span class="n">test_data_loader</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">eval_dataset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">test_data_loader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_dataloader</span><span class="p">(</span><span class="n">eval_dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;test_loss&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">logs</span><span class="p">:</span>
+                <span class="n">logs</span><span class="p">[</span><span class="s2">&quot;test_loss&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer_class</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="o">**</span><span class="n">optimizer_params</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">lr_scheduler_class</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">lr_scheduler</span> <span class="o">=</span> <span class="n">lr_scheduler_class</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="o">**</span><span class="n">lr_scheduler_params</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">closure</span><span class="p">():</span>
+            <span class="n">x_batch</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">y_batch</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="k">else</span> <span class="kc">None</span>
+
+            <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+            <span class="n">losses</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_loss</span><span class="p">(</span><span class="n">x_batch</span><span class="p">,</span> <span class="n">y_batch</span><span class="p">,</span> <span class="n">boundary_conditions</span><span class="p">,</span> <span class="n">use_bfloat16</span><span class="p">)</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">losses</span><span class="p">)</span>
+            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+            
+            <span class="n">loss_from_pde</span> <span class="o">=</span> <span class="n">losses</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="n">logs</span><span class="p">[</span><span class="s2">&quot;loss_from_pde&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss_from_pde</span><span class="p">)</span>
+            <span class="n">logs</span><span class="p">[</span><span class="s2">&quot;loss_from_data_and_bc&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">-</span> <span class="n">loss_from_pde</span><span class="p">)</span>
+            <span class="n">logs</span><span class="p">[</span><span class="s2">&quot;total_loss&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+
+            <span class="k">if</span> <span class="n">update_logs_steps</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">%</span> <span class="n">update_logs_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="n">extended_desc</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">losses</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">extended_desc</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;, data/bc losses: [</span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">x</span><span class="si">:</span><span class="s1">.4e</span><span class="si">}</span><span class="s1">&#39;</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">losses</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span><span class="si">}</span><span class="s2">]&quot;</span>
+                <span class="k">if</span> <span class="s1">&#39;test_loss&#39;</span> <span class="ow">in</span> <span class="n">logs</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">logs</span><span class="p">[</span><span class="s1">&#39;test_loss&#39;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">extended_desc</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;, test loss: </span><span class="si">{</span><span class="n">logs</span><span class="p">[</span><span class="s1">&#39;test_loss&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.4e</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">desc</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">epochs</span><span class="si">}</span><span class="s2"> Iteration </span><span class="si">{</span><span class="n">closure</span><span class="o">.</span><span class="n">iteration</span><span class="si">}</span><span class="s2">. Pde loss: </span><span class="si">{</span><span class="n">loss_from_pde</span><span class="si">:</span><span class="s2">.4e</span><span class="si">}</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">extended_desc</span>
+                <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">desc</span><span class="p">)</span>
+
+            <span class="n">closure</span><span class="o">.</span><span class="n">iteration</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">return</span> <span class="n">loss</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">):</span>
+            <span class="n">closure</span><span class="o">.</span><span class="n">iteration</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">train_data_loader</span><span class="p">:</span> 
+                <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">closure</span><span class="o">=</span><span class="n">closure</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">lr_scheduler_class</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">lr_scheduler</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">test_data_loader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+                <span class="n">test_loss</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">test_data_loader</span><span class="p">:</span>
+                    <span class="n">x_batch</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+                    <span class="n">y_batch</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="k">else</span> <span class="kc">None</span>
+                    <span class="n">losses</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_loss</span><span class="p">(</span><span class="n">x_batch</span><span class="p">,</span> <span class="n">y_batch</span><span class="p">,</span> <span class="n">boundary_conditions</span><span class="p">)</span>
+                    <span class="n">test_loss</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">losses</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                <span class="n">logs</span><span class="p">[</span><span class="s2">&quot;test_loss&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">test_loss</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_data_loader</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">logs</span></div>
+
+    
+<div class="viewcode-block" id="PINN.predict">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.predict">[docs]</a>
+    <span class="nd">@cr</span><span class="p">(</span><span class="s2">&quot;PINN.predict&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Predicts for the input dataset.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            X (Dataset): The input dataset.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray: The predictions of the model.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">X</span><span class="p">[:]</span>
+        <span class="n">input_data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="c1"># keep only the input data</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">input_data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">))</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="PINN.__repr__">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.__repr__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a string representation of the PINN model.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            str: The string representation.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Number of parameters: </span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="fm">__repr__</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="PINN.plot_training_logs">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.plot_training_logs">[docs]</a>
+    <span class="k">def</span> <span class="nf">plot_training_logs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plots the training logs.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            logs (dict): The training logs.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">logs</span><span class="p">[</span><span class="s2">&quot;loss_from_pde&quot;</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;PDE Loss&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">logs</span><span class="p">[</span><span class="s2">&quot;loss_from_data_and_bc&quot;</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Data Conditions and BC Loss&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">logs</span><span class="p">[</span><span class="s2">&quot;total_loss&quot;</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Total Loss&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;test_loss&quot;</span> <span class="ow">in</span> <span class="n">logs</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">logs</span><span class="p">[</span><span class="s2">&quot;test_loss&quot;</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">total_epochs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">logs</span><span class="p">[</span><span class="s2">&quot;test_loss&quot;</span><span class="p">])</span> 
+            <span class="n">total_iters</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">logs</span><span class="p">[</span><span class="s2">&quot;total_loss&quot;</span><span class="p">])</span> 
+            <span class="n">iters_per_epoch</span> <span class="o">=</span> <span class="n">total_iters</span> <span class="o">//</span> <span class="n">total_epochs</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">iters_per_epoch</span> <span class="o">+</span> <span class="n">total_iters</span> <span class="o">%</span> <span class="n">total_epochs</span><span class="p">,</span> <span class="n">total_iters</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">iters_per_epoch</span><span class="p">),</span> <span class="n">logs</span><span class="p">[</span><span class="s2">&quot;test_loss&quot;</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Test Loss&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Iteration&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Loss&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">yscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Training Losses&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="PINN.pde_loss">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.pde_loss">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">pde_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="o">*</span><span class="n">input_variables</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the loss from the partial differential equation (PDE).</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            pred (torch.Tensor): The predicted output tensor.</span>
+<span class="sd">            *input_variables (torch.Tensor): The input variables for the PDE. e.g. x, y, t.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor: The loss tensor.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="PINN.save">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.save">[docs]</a>
+    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Saves the model to a file using torchscript.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path (str): The path to save the model.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">scripted_model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">script</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+        <span class="n">scripted_model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
+
+        
+
+<div class="viewcode-block" id="PINN.load">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.load">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Loads the model from a file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            path (str): The path to load the model.</span>
+<span class="sd">            neural_net (torch.nn.Module): The neural network model.</span>
+<span class="sd">            device (str, optional): The device to run the model on. Defaults to &#39;cpu&#39;.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            PINN: The loaded PINN model.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">neural_net</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span></div>
+</div>
+
+
+<div class="viewcode-block" id="BoundaryCondition">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.BoundaryCondition">[docs]</a>
+<span class="k">class</span> <span class="nc">BoundaryCondition</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Abstract base class for defining boundary conditions. You need to implement the `loss` method to use a custom boundary condition.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        points (Tensor): The points where the boundary condition is defined.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        points (Tensor): The points where the boundary condition is defined.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_points</span> <span class="o">=</span> <span class="n">points</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_points</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="BoundaryCondition.loss">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.BoundaryCondition.loss">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pred</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the loss for the given prediction.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            pred (Tensor): The predicted values on the points where the boundary condition is defined.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: The loss value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">points</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_points</span></div>
+
+
+
+<div class="viewcode-block" id="DirichletCondition">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.DirichletCondition">[docs]</a>
+<span class="k">class</span> <span class="nc">DirichletCondition</span><span class="p">(</span><span class="n">BoundaryCondition</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents a Dirichlet boundary condition.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        points (Tensor): The predicted values on the points where the boundary condition is defined.</span>
+<span class="sd">        values (Tensor): The values of the boundary condition.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_values</span> <span class="o">=</span> <span class="n">values</span>
+
+<div class="viewcode-block" id="DirichletCondition.loss">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.DirichletCondition.loss">[docs]</a>
+    <span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pred</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">pred</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span></div>
+</div>
+
+
+<div class="viewcode-block" id="BurgersPINN">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.BurgersPINN">[docs]</a>
+<span class="k">class</span> <span class="nc">BurgersPINN</span><span class="p">(</span><span class="n">PINN</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents a Physics-Informed Neural Network (PINN) model for the Burgers&#39; equation.</span>
+<span class="sd">    The model predictions have 1 column, the velocity field :math:`u`.</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \frac{\partial u}{\partial t} + u\frac{\partial u}{\partial x} = \nu\frac{\partial^2u}{\partial x^2}</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        neural_net (torch.nn.Module): The neural network model.</span>
+<span class="sd">        device (str): The device to run the model on (e.g., &#39;cpu&#39;, &#39;cuda&#39;).</span>
+<span class="sd">        viscosity (float): The viscosity coefficient.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">neural_net</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">viscosity</span><span class="o">=</span><span class="mf">0.01</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">neural_net</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">viscosity</span> <span class="o">=</span> <span class="n">viscosity</span>
+
+<div class="viewcode-block" id="BurgersPINN.pde_loss">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.BurgersPINN.pde_loss">[docs]</a>
+    <span class="k">def</span> <span class="nf">pde_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="o">*</span><span class="n">input_variables</span><span class="p">):</span>
+        <span class="n">t</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="n">input_variables</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">pred</span>
+        <span class="n">u_t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">u</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">u_x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">u</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">u_xx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">u_x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">u_x</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">f</span> <span class="o">=</span> <span class="n">u_t</span> <span class="o">+</span> <span class="n">u</span> <span class="o">*</span> <span class="n">u_x</span> <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">viscosity</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">*</span> <span class="n">u_xx</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">f</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span></div>
+</div>
+
+
+<div class="viewcode-block" id="NavierStokesIncompressible2DPINN">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.NavierStokesIncompressible2DPINN">[docs]</a>
+<span class="k">class</span> <span class="nc">NavierStokesIncompressible2DPINN</span><span class="p">(</span><span class="n">PINN</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents a Physics-Informed Neural Network (PINN) model for the incompressible steady 2D Navier-Stokes equations.</span>
+<span class="sd">    The model predictions have 3 columns, the velocity field :math:`(u, v)` and the pressure :math:`p` fields.</span>
+<span class="sd">    </span>
+<span class="sd">    .. math::</span>
+<span class="sd">        \begin{align*}</span>
+<span class="sd">        u \frac{\partial u}{\partial x} + v \frac{\partial u}{\partial y} + \frac{\partial p}{\partial x} - \frac{1}{Re} \left( \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2} \right) &amp;= 0, \\</span>
+<span class="sd">        u \frac{\partial v}{\partial x} + v \frac{\partial v}{\partial y} + \frac{\partial p}{\partial y} - \frac{1}{Re} \left( \frac{\partial^2 v}{\partial x^2} + \frac{\partial^2 v}{\partial y^2} \right) &amp;= 0, \\</span>
+<span class="sd">        \frac{\partial u}{\partial x} + \frac{\partial v}{\partial y} &amp;= 0.</span>
+<span class="sd">        \end{align*}</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        neural_net (torch.nn.Module): The neural network model.</span>
+<span class="sd">        device (str): The device to run the model on (e.g., &#39;cpu&#39;, &#39;cuda&#39;).</span>
+<span class="sd">        Re (float): The Reynolds number.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">neural_net</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">Re</span><span class="o">=</span><span class="mi">50</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">neural_net</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Re</span> <span class="o">=</span> <span class="n">Re</span>
+    
+<div class="viewcode-block" id="NavierStokesIncompressible2DPINN.pde_loss">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.NavierStokesIncompressible2DPINN.pde_loss">[docs]</a>
+    <span class="k">def</span> <span class="nf">pde_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pred</span> <span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+
+        <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span> <span class="n">pred</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">],</span> <span class="n">pred</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="n">pred</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>        
+
+        <span class="c1"># Spatial gradients</span>
+        <span class="n">u_x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">u</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">u_y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">u</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        
+        <span class="n">v_x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">v_y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        
+        <span class="n">p_x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">p_y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">p</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        
+        <span class="c1"># Second order spatial gradients</span>
+        <span class="n">u_xx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">u_x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">u_x</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">u_yy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">u_y</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">u_y</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        
+        <span class="n">v_xx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">v_x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">v_x</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">v_yy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">v_y</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">v_y</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        
+        <span class="c1"># Continuity equation</span>
+        <span class="n">continuity</span> <span class="o">=</span> <span class="n">u_x</span> <span class="o">+</span> <span class="n">v_y</span>
+        
+        <span class="c1"># Momentum equations</span>
+        <span class="n">momentum_u</span> <span class="o">=</span> <span class="n">u</span> <span class="o">*</span> <span class="n">u_x</span> <span class="o">+</span> <span class="n">v</span> <span class="o">*</span> <span class="n">u_y</span> <span class="o">+</span> <span class="n">p_x</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">Re</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">u_xx</span> <span class="o">+</span> <span class="n">u_yy</span><span class="p">)</span>
+        <span class="n">momentum_v</span> <span class="o">=</span> <span class="n">u</span> <span class="o">*</span> <span class="n">v_x</span> <span class="o">+</span> <span class="n">v</span> <span class="o">*</span> <span class="n">v_y</span> <span class="o">+</span> <span class="n">p_y</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">Re</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">v_xx</span> <span class="o">+</span> <span class="n">v_yy</span><span class="p">)</span>
+
+        <span class="c1"># Total loss</span>
+        <span class="n">loss_continuity</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">continuity</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">loss_momentum_u</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">momentum_u</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">loss_momentum_v</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">momentum_v</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_continuity</span> <span class="o">+</span> <span class="n">loss_momentum_u</span> <span class="o">+</span> <span class="n">loss_momentum_v</span>
+        <span class="k">return</span> <span class="n">loss</span></div>
+</div>
+
+
+<div class="viewcode-block" id="Euler2DPINN">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.Euler2DPINN">[docs]</a>
+<span class="k">class</span> <span class="nc">Euler2DPINN</span><span class="p">(</span><span class="n">PINN</span><span class="p">):</span>
+    <span class="c1"># TODO: review the equations once sphinx documentation is working</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class represents a Physics-Informed Neural Network (PINN) model for the 2D Euler equations.</span>
+<span class="sd">    The model predictions have 4 columns, the density :math:`\rho`, the velocity field :math:`(u, v)` and the total energy :math:`E` fields.</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">        \begin{align*}</span>
+<span class="sd">        \frac{\partial \rho}{\partial t} + \frac{\partial (\rho u)}{\partial x} + \frac{\partial (\rho v)}{\partial y} &amp;= 0, \\</span>
+<span class="sd">        \frac{\partial (\rho u)}{\partial t} + \frac{\partial (\rho u^2 + p)}{\partial x} + \frac{\partial (\rho uv)}{\partial y} &amp;= 0, \\</span>
+<span class="sd">        \frac{\partial (\rho v)}{\partial t} + \frac{\partial (\rho uv)}{\partial x} + \frac{\partial (\rho v^2 + p)}{\partial y} &amp;= 0, \\</span>
+<span class="sd">        \frac{\partial (\rho E)}{\partial t} + \frac{\partial (u(\rho E + p))}{\partial x} + \frac{\partial (v(\rho E + p))}{\partial y} &amp;= 0.</span>
+<span class="sd">        \end{align*}</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        neural_net (torch.nn.Module): The neural network model.</span>
+<span class="sd">        device (str): The device to run the model on (e.g., &#39;cpu&#39;, &#39;cuda&#39;).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">GAMMA</span> <span class="o">=</span> <span class="mf">1.4</span>
+
+<div class="viewcode-block" id="Euler2DPINN.pde_loss">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.Euler2DPINN.pde_loss">[docs]</a>
+    <span class="k">def</span> <span class="nf">pde_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="o">*</span><span class="n">input_variables</span><span class="p">):</span>
+
+        <span class="n">x_coord</span> <span class="o">=</span> <span class="n">input_variables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">y_coord</span> <span class="o">=</span> <span class="n">input_variables</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">rho</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">E</span> <span class="o">=</span> <span class="n">pred</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">],</span> <span class="n">pred</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="n">pred</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="p">],</span> <span class="n">pred</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>
+
+        <span class="n">p</span> <span class="o">=</span> <span class="p">(</span><span class="n">Euler2DPINN</span><span class="o">.</span><span class="n">GAMMA</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">E</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">rho</span> <span class="o">*</span> <span class="p">(</span><span class="n">u</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">v</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+
+        <span class="c1"># F</span>
+        <span class="n">F1</span> <span class="o">=</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">u</span>
+        <span class="n">F2</span> <span class="o">=</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">u</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">p</span>
+        <span class="n">F3</span> <span class="o">=</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">u</span> <span class="o">*</span> <span class="n">v</span>
+        <span class="n">F4</span> <span class="o">=</span> <span class="n">u</span> <span class="o">*</span> <span class="p">(</span><span class="n">E</span> <span class="o">+</span> <span class="n">p</span><span class="p">)</span>
+
+        <span class="c1"># G</span>
+        <span class="n">G1</span> <span class="o">=</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">v</span>
+        <span class="n">G2</span> <span class="o">=</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">u</span> <span class="o">*</span> <span class="n">v</span>
+        <span class="n">G3</span> <span class="o">=</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">v</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">p</span>
+        <span class="n">G4</span> <span class="o">=</span> <span class="n">v</span> <span class="o">*</span> <span class="p">(</span><span class="n">E</span> <span class="o">+</span> <span class="n">p</span><span class="p">)</span>
+
+        <span class="n">dF1_dx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">F1</span><span class="p">,</span> <span class="n">x_coord</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">F1</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">dF2_dx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">F2</span><span class="p">,</span> <span class="n">x_coord</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">F2</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">dF3_dx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">F3</span><span class="p">,</span> <span class="n">x_coord</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">F3</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">dF4_dx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">F4</span><span class="p">,</span> <span class="n">x_coord</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">F4</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">dG1_dy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">G1</span><span class="p">,</span> <span class="n">y_coord</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">G1</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">dG2_dy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">G2</span><span class="p">,</span> <span class="n">y_coord</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">G2</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">dG3_dy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">G3</span><span class="p">,</span> <span class="n">y_coord</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">G3</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">dG4_dy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">G4</span><span class="p">,</span> <span class="n">y_coord</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">G4</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">residual_mass_conserv</span> <span class="o">=</span> <span class="n">dF1_dx</span> <span class="o">+</span> <span class="n">dG1_dy</span>
+        <span class="n">residual_momentum_x</span> <span class="o">=</span> <span class="n">dF2_dx</span> <span class="o">+</span> <span class="n">dG2_dy</span>
+        <span class="n">residual_momentum_y</span> <span class="o">=</span> <span class="n">dF3_dx</span> <span class="o">+</span> <span class="n">dG3_dy</span>
+        <span class="n">residual_energy</span> <span class="o">=</span> <span class="n">dF4_dx</span> <span class="o">+</span> <span class="n">dG4_dy</span>
+
+        <span class="n">loss_mass_conserv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">residual_mass_conserv</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> 
+        <span class="n">loss_momentum_x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">residual_momentum_x</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>  
+        <span class="n">loss_momentum_y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">residual_momentum_y</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>  
+        <span class="n">loss_energy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">residual_energy</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> 
+
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_mass_conserv</span> <span class="o">+</span> <span class="n">loss_momentum_x</span> <span class="o">+</span> <span class="n">loss_momentum_y</span> <span class="o">+</span> <span class="n">loss_energy</span>
+        <span class="k">return</span> <span class="n">loss</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2023-2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

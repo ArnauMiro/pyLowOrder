@@ -1,0 +1,2180 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Index &#8212; pyLOM  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=de90da8b" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'genindex';</script>
+    <link rel="index" title="Index" href="#" />
+    <link rel="search" title="Search" href="search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="2.0.1" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">pyLOM</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api/modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
+    Building from source
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="examples.html">
+    Examples
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="api/modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
+    Building from source
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="examples.html">
+    Examples
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none"></div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+
+<h1 id="index">Index</h1>
+
+<div class="genindex-jumpbox">
+ <a href="#_"><strong>_</strong></a>
+ | <a href="#A"><strong>A</strong></a>
+ | <a href="#B"><strong>B</strong></a>
+ | <a href="#C"><strong>C</strong></a>
+ | <a href="#D"><strong>D</strong></a>
+ | <a href="#E"><strong>E</strong></a>
+ | <a href="#F"><strong>F</strong></a>
+ | <a href="#G"><strong>G</strong></a>
+ | <a href="#H"><strong>H</strong></a>
+ | <a href="#I"><strong>I</strong></a>
+ | <a href="#J"><strong>J</strong></a>
+ | <a href="#K"><strong>K</strong></a>
+ | <a href="#L"><strong>L</strong></a>
+ | <a href="#M"><strong>M</strong></a>
+ | <a href="#N"><strong>N</strong></a>
+ | <a href="#O"><strong>O</strong></a>
+ | <a href="#P"><strong>P</strong></a>
+ | <a href="#Q"><strong>Q</strong></a>
+ | <a href="#R"><strong>R</strong></a>
+ | <a href="#S"><strong>S</strong></a>
+ | <a href="#T"><strong>T</strong></a>
+ | <a href="#U"><strong>U</strong></a>
+ | <a href="#V"><strong>V</strong></a>
+ | <a href="#W"><strong>W</strong></a>
+ | <a href="#X"><strong>X</strong></a>
+ | <a href="#Y"><strong>Y</strong></a>
+ | <a href="#Z"><strong>Z</strong></a>
+ 
+</div>
+<h2 id="_">_</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.__add__">__add__() (pyLOM.NN.utils.Dataset method)</a>
+</li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.__call__">__call__() (pyLOM.NN.architectures.pinn.PINN method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.NN.html#pyLOM.NN.stats.RegressionEvaluator.__call__">(pyLOM.NN.stats.RegressionEvaluator method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.__getitem__">__getitem__() (pyLOM.dataset.Dataset method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.__getitem__">(pyLOM.NN.utils.Dataset method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.__init__">__init__() (pyLOM.dataset.Dataset method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.GPOD.html#pyLOM.GPOD.wrapper.GappyPOD.__init__">(pyLOM.GPOD.wrapper.GappyPOD method)</a>
+</li>
+        <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.__init__">(pyLOM.mesh.Mesh method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.encoders_decoders.Decoder2D.__init__">(pyLOM.NN.architectures.encoders_decoders.Decoder2D method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.encoders_decoders.Decoder3D.__init__">(pyLOM.NN.architectures.encoders_decoders.Decoder3D method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.encoders_decoders.Encoder2D.__init__">(pyLOM.NN.architectures.encoders_decoders.Encoder2D method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.encoders_decoders.Encoder3D.__init__">(pyLOM.NN.architectures.encoders_decoders.Encoder3D method)</a>
+</li>
+        <li><a href="api/pyLOM.html#pyLOM.partition_table.PartitionTable.__init__">(pyLOM.partition_table.PartitionTable method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.__repr__">__repr__() (pyLOM.NN.architectures.pinn.PINN method)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.__setitem__">__setitem__() (pyLOM.dataset.Dataset method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.__setitem__">(pyLOM.NN.utils.Dataset method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.__str__">__str__() (pyLOM.dataset.Dataset method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.__str__">(pyLOM.mesh.Mesh method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.maths._ceigen">_ceigen() (in module pyLOM.vmmath.maths)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.plots._cells_and_offsets">_cells_and_offsets() (in module pyLOM.utils.plots)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._cqr">_cqr() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._csvd">_csvd() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._ctsqr">_ctsqr() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._ctsqr_svd">_ctsqr_svd() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.fft._dfft">_dfft() (in module pyLOM.vmmath.fft)</a>
+</li>
+      <li><a href="api/pyLOM.DMD.html#pyLOM.DMD.wrapper._dfrequency_damping">_dfrequency_damping() (in module pyLOM.DMD.wrapper)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._dinit_qr_streaming">_dinit_qr_streaming() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.maths._dpolar">_dpolar() (in module pyLOM.vmmath.maths)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._dqr">_dqr() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._drandomized_qr">_drandomized_qr() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._drandomized_svd">_drandomized_svd() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.POD.html#pyLOM.POD.wrapper._dreconstruct">_dreconstruct() (in module pyLOM.POD.wrapper)</a>
+</li>
+      <li><a href="api/pyLOM.DMD.html#pyLOM.DMD.wrapper._dreconstruction_jovanovic">_dreconstruction_jovanovic() (in module pyLOM.DMD.wrapper)</a>
+</li>
+      <li><a href="api/pyLOM.DMD.html#pyLOM.DMD.wrapper._drun">_drun() (in module pyLOM.DMD.wrapper)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.POD.html#pyLOM.POD.wrapper._drun">(in module pyLOM.POD.wrapper)</a>
+</li>
+        <li><a href="api/pyLOM.SPOD.html#pyLOM.SPOD.wrapper._drun">(in module pyLOM.SPOD.wrapper)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._dsvd">_dsvd() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.POD.html#pyLOM.POD.wrapper._dtruncate">_dtruncate() (in module pyLOM.POD.wrapper)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._dtsqr">_dtsqr() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._dtsqr_svd">_dtsqr_svd() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._dupdate_qr_streaming">_dupdate_qr_streaming() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr._findch">_findch() (in module pyLOM.utils.cr)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem._findch">(in module pyLOM.utils.mem)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr._findch_crash">_findch_crash() (in module pyLOM.utils.cr)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem._findch_crash">(in module pyLOM.utils.mem)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr._findch_create">_findch_create() (in module pyLOM.utils.cr)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem._findch_create">(in module pyLOM.utils.mem)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN._get_dataloader">_get_dataloader() (pyLOM.NN.architectures.pinn.PINN method)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr._gettime">_gettime() (in module pyLOM.utils.cr)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem._getvalue">_getvalue() (in module pyLOM.utils.mem)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr._newch">_newch() (in module pyLOM.utils.cr)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem._newch">(in module pyLOM.utils.mem)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN._prepare_input_variables">_prepare_input_variables() (pyLOM.NN.architectures.pinn.PINN method)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.fft._sfft">_sfft() (in module pyLOM.vmmath.fft)</a>
+</li>
+      <li><a href="api/pyLOM.DMD.html#pyLOM.DMD.wrapper._sfrequency_damping">_sfrequency_damping() (in module pyLOM.DMD.wrapper)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._sinit_qr_streaming">_sinit_qr_streaming() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.maths._spolar">_spolar() (in module pyLOM.vmmath.maths)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._sqr">_sqr() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._srandomized_qr">_srandomized_qr() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._srandomized_svd">_srandomized_svd() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.POD.html#pyLOM.POD.wrapper._sreconstruct">_sreconstruct() (in module pyLOM.POD.wrapper)</a>
+</li>
+      <li><a href="api/pyLOM.DMD.html#pyLOM.DMD.wrapper._sreconstruction_jovanovic">_sreconstruction_jovanovic() (in module pyLOM.DMD.wrapper)</a>
+</li>
+      <li><a href="api/pyLOM.DMD.html#pyLOM.DMD.wrapper._srun">_srun() (in module pyLOM.DMD.wrapper)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.POD.html#pyLOM.POD.wrapper._srun">(in module pyLOM.POD.wrapper)</a>
+</li>
+        <li><a href="api/pyLOM.SPOD.html#pyLOM.SPOD.wrapper._srun">(in module pyLOM.SPOD.wrapper)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._ssvd">_ssvd() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh._struct2d_compute_conec">_struct2d_compute_conec() (in module pyLOM.mesh)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh._struct2d_compute_xyz">_struct2d_compute_xyz() (in module pyLOM.mesh)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh._struct3d_compute_conec">_struct3d_compute_conec() (in module pyLOM.mesh)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh._struct3d_compute_xyz">_struct3d_compute_xyz() (in module pyLOM.mesh)</a>
+</li>
+      <li><a href="api/pyLOM.POD.html#pyLOM.POD.wrapper._struncate">_struncate() (in module pyLOM.POD.wrapper)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._stsqr">_stsqr() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._stsqr_svd">_stsqr_svd() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._supdate_qr_streaming">_supdate_qr_streaming() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5._vtkh5_connectivity_and_offsets">_vtkh5_connectivity_and_offsets() (in module pyLOM.inp_out.io_vtkh5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5._vtkh5_create_structure">_vtkh5_create_structure() (in module pyLOM.inp_out.io_vtkh5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5._vtkh5_link_mesh">_vtkh5_link_mesh() (in module pyLOM.inp_out.io_vtkh5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5._vtkh5_write_mesh_mpio">_vtkh5_write_mesh_mpio() (in module pyLOM.inp_out.io_vtkh5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5._vtkh5_write_mesh_serial">_vtkh5_write_mesh_serial() (in module pyLOM.inp_out.io_vtkh5)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.maths._zeigen">_zeigen() (in module pyLOM.vmmath.maths)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._zqr">_zqr() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._zsvd">_zsvd() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._ztsqr">_ztsqr() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd._ztsqr_svd">_ztsqr_svd() (in module pyLOM.vmmath.svd)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="A">A</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.add_field">add_field() (pyLOM.dataset.Dataset method)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.add_variable">add_variable() (pyLOM.dataset.Dataset method)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.stats.RegressionEvaluator.ae_q">ae_q() (pyLOM.NN.stats.RegressionEvaluator method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.DMD.html#pyLOM.DMD.plots.amplitudeFrequency">amplitudeFrequency() (in module pyLOM.DMD.plots)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.append_variable">append_variable() (pyLOM.dataset.Dataset method)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.maths.argsort">argsort() (in module pyLOM.vmmath.maths)</a>
+</li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.Autoencoder">Autoencoder (class in pyLOM.NN.architectures.autoencoders)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="B">B</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.bc_data_loss">bc_data_loss() (pyLOM.NN.architectures.pinn.PINN method)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.betaLinearScheduler">betaLinearScheduler (class in pyLOM.NN.utils)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_ensight.bin_to_int">bin_to_int() (in module pyLOM.inp_out.io_ensight)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_ensight.bin_to_str">bin_to_str() (in module pyLOM.inp_out.io_ensight)</a>
+</li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.BoundaryCondition">BoundaryCondition (class in pyLOM.NN.architectures.pinn)</a>
+</li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.BurgersPINN">BurgersPINN (class in pyLOM.NN.architectures.pinn)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="C">C</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.geometric.cellCenters">cellCenters() (in module pyLOM.vmmath.geometric)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.cellcenters">cellcenters() (pyLOM.mesh.Mesh method)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.cellOrder">cellOrder (pyLOM.mesh.Mesh property)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.channel">channel (class in pyLOM.utils.cr)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.channel">(class in pyLOM.utils.mem)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.kan.ChebyshevLayer">ChebyshevLayer (class in pyLOM.NN.architectures.kan)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.partition_table.PartitionTable.check_split">check_split() (pyLOM.partition_table.PartitionTable method)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.maths.cholesky">cholesky() (in module pyLOM.vmmath.maths)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.plots.close_plots">close_plots() (in module pyLOM.utils.plots)</a>
+</li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.compute_loss">compute_loss() (pyLOM.NN.architectures.pinn.PINN method)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.truncation.compute_truncation_residual">compute_truncation_residual() (in module pyLOM.vmmath.truncation)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.concatenate">concatenate() (pyLOM.NN.utils.Dataset method)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.maths.conj">conj() (in module pyLOM.vmmath.maths)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.connectivity">connectivity (pyLOM.mesh.Mesh property)</a>
+</li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.VariationalAutoencoder.correlation">correlation() (pyLOM.NN.architectures.autoencoders.VariationalAutoencoder method)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.cr">cr() (in module pyLOM.utils.cr)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.cr_info">cr_info() (in module pyLOM.utils.cr)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.cr_reset">cr_reset() (in module pyLOM.utils.cr)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.cr_start">cr_start() (in module pyLOM.utils.cr)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.cr_stop">cr_stop() (in module pyLOM.utils.cr)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.cr_time">cr_time() (in module pyLOM.utils.cr)</a>
+</li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.kan.KAN.create_optimized_model">create_optimized_model() (pyLOM.NN.architectures.kan.KAN class method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.mlp.MLP.create_optimized_model">(pyLOM.NN.architectures.mlp.MLP class method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.html#pyLOM.partition_table.PartitionTable.create_partition_points">create_partition_points() (pyLOM.partition_table.PartitionTable method)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.create_results_folder">create_results_folder() (in module pyLOM.NN.utils)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.crop">crop() (pyLOM.NN.utils.Dataset method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="D">D</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.DMD.html#pyLOM.DMD.plots.dampingFrequency">dampingFrequency() (in module pyLOM.DMD.plots)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset">Dataset (class in pyLOM.dataset)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.Dataset">(class in pyLOM.NN.utils)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.Autoencoder.decode">decode() (pyLOM.NN.architectures.autoencoders.Autoencoder method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.VariationalAutoencoder.decode">(pyLOM.NN.architectures.autoencoders.VariationalAutoencoder method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.encoders_decoders.Decoder2D">Decoder2D (class in pyLOM.NN.architectures.encoders_decoders)</a>
+</li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.encoders_decoders.Decoder3D">Decoder3D (class in pyLOM.NN.architectures.encoders_decoders)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.delete">delete() (pyLOM.dataset.Dataset method)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.maths.diag">diag() (in module pyLOM.vmmath.maths)</a>
+</li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.DirichletCondition">DirichletCondition (class in pyLOM.NN.architectures.pinn)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="E">E</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.callbacks.EarlyStopper.early_stop">early_stop() (pyLOM.NN.callbacks.EarlyStopper method)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.callbacks.EarlyStopper">EarlyStopper (class in pyLOM.NN.callbacks)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.maths.eigen">eigen() (in module pyLOM.vmmath.maths)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.channel.elapsed">elapsed() (pyLOM.utils.cr.channel method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.channel.elapsed">(pyLOM.utils.mem.channel method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.html#pyLOM.partition_table.PartitionTable.Elements">Elements (pyLOM.partition_table.PartitionTable property)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.eltype">eltype (pyLOM.mesh.Mesh property)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.eltype2ENSI">eltype2ENSI (pyLOM.mesh.Mesh property)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.eltype2VTK">eltype2VTK (pyLOM.mesh.Mesh property)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.elu">elu() (in module pyLOM.NN)</a>
+</li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.encoders_decoders.Encoder2D">Encoder2D (class in pyLOM.NN.architectures.encoders_decoders)</a>
+</li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.encoders_decoders.Encoder3D">Encoder3D (class in pyLOM.NN.architectures.encoders_decoders)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.truncation.energy">energy() (in module pyLOM.vmmath.truncation)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_ensight.Ensight_readCase">Ensight_readCase() (in module pyLOM.inp_out.io_ensight)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_ensight.Ensight_readCase2">Ensight_readCase2() (in module pyLOM.inp_out.io_ensight)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_ensight.Ensight_readField">Ensight_readField() (in module pyLOM.inp_out.io_ensight)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_ensight.Ensight_readField2">Ensight_readField2() (in module pyLOM.inp_out.io_ensight)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_ensight.Ensight_readFieldASCII">Ensight_readFieldASCII() (in module pyLOM.inp_out.io_ensight)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_ensight.Ensight_readFieldBIN">Ensight_readFieldBIN() (in module pyLOM.inp_out.io_ensight)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_ensight.Ensight_readFieldMPIO">Ensight_readFieldMPIO() (in module pyLOM.inp_out.io_ensight)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_ensight.Ensight_readGeo">Ensight_readGeo() (in module pyLOM.inp_out.io_ensight)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_ensight.Ensight_readGeo2">Ensight_readGeo2() (in module pyLOM.inp_out.io_ensight)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_ensight.Ensight_readGeoASCII">Ensight_readGeoASCII() (in module pyLOM.inp_out.io_ensight)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_ensight.Ensight_readGeoBIN">Ensight_readGeoBIN() (in module pyLOM.inp_out.io_ensight)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_ensight.Ensight_writeCase">Ensight_writeCase() (in module pyLOM.inp_out.io_ensight)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_ensight.Ensight_writeField">Ensight_writeField() (in module pyLOM.inp_out.io_ensight)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_ensight.Ensight_writeFieldBIN">Ensight_writeFieldBIN() (in module pyLOM.inp_out.io_ensight)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_ensight.Ensight_writeFieldMPIO">Ensight_writeFieldMPIO() (in module pyLOM.inp_out.io_ensight)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_ensight.Ensight_writeGeo">Ensight_writeGeo() (in module pyLOM.inp_out.io_ensight)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_paraview.EnsightWriter">EnsightWriter() (in module pyLOM.inp_out.io_paraview)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.geometric.euclidean_d">euclidean_d() (in module pyLOM.vmmath.geometric)</a>
+</li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.Euler2DPINN">Euler2DPINN (class in pyLOM.NN.architectures.pinn)</a>
+</li>
+      <li><a href="api/pyLOM.DMD.html#pyLOM.DMD.utils.extract_modes">extract_modes() (in module pyLOM.DMD.utils)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.POD.html#pyLOM.POD.utils.extract_modes">(in module pyLOM.POD.utils)</a>
+</li>
+        <li><a href="api/pyLOM.SPOD.html#pyLOM.SPOD.utils.extract_modes">(in module pyLOM.SPOD.utils)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="F">F</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.fft.fft">fft() (in module pyLOM.vmmath.fft)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.fieldnames">fieldnames (pyLOM.dataset.Dataset property)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.fields">fields (pyLOM.dataset.Dataset property)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.filter">filter() (pyLOM.NN.utils.Dataset method)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.find_cell">find_cell() (pyLOM.mesh.Mesh method)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.find_point">find_point() (pyLOM.mesh.Mesh method)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.find_point_in_cell">find_point_in_cell() (pyLOM.mesh.Mesh method)</a>
+</li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.VariationalAutoencoder.fine_tune">fine_tune() (pyLOM.NN.architectures.autoencoders.VariationalAutoencoder method)</a>
+</li>
+      <li><a href="api/pyLOM.GPOD.html#pyLOM.GPOD.wrapper.GappyPOD.fit">fit() (pyLOM.GPOD.wrapper.GappyPOD method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.Autoencoder.fit">(pyLOM.NN.architectures.autoencoders.Autoencoder method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.VariationalAutoencoder.fit">(pyLOM.NN.architectures.autoencoders.VariationalAutoencoder method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.kan.KAN.fit">(pyLOM.NN.architectures.kan.KAN method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.mlp.MLP.fit">(pyLOM.NN.architectures.mlp.MLP method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.fit">(pyLOM.NN.architectures.pinn.PINN method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.MinMaxScaler.fit">(pyLOM.NN.utils.MinMaxScaler method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.MinMaxScaler.fit_transform">fit_transform() (pyLOM.NN.utils.MinMaxScaler method)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.maths.flip">flip() (in module pyLOM.vmmath.maths)</a>
+</li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.Autoencoder.forward">forward() (pyLOM.NN.architectures.autoencoders.Autoencoder method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.VariationalAutoencoder.forward">(pyLOM.NN.architectures.autoencoders.VariationalAutoencoder method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.encoders_decoders.Decoder2D.forward">(pyLOM.NN.architectures.encoders_decoders.Decoder2D method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.encoders_decoders.Decoder3D.forward">(pyLOM.NN.architectures.encoders_decoders.Decoder3D method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.encoders_decoders.Encoder2D.forward">(pyLOM.NN.architectures.encoders_decoders.Encoder2D method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.encoders_decoders.Encoder3D.forward">(pyLOM.NN.architectures.encoders_decoders.Encoder3D method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.kan.ChebyshevLayer.forward">(pyLOM.NN.architectures.kan.ChebyshevLayer method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.kan.JacobiLayer.forward">(pyLOM.NN.architectures.kan.JacobiLayer method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.kan.KAN.forward">(pyLOM.NN.architectures.kan.KAN method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.mlp.MLP.forward">(pyLOM.NN.architectures.mlp.MLP method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.DMD.html#pyLOM.DMD.wrapper.frequency_damping">frequency_damping() (in module pyLOM.DMD.wrapper)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.from_pyQvarsi">from_pyQvarsi() (pyLOM.mesh.Mesh class method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.html#pyLOM.partition_table.PartitionTable.from_pyQvarsi">(pyLOM.partition_table.PartitionTable class method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="G">G</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.Euler2DPINN.GAMMA">GAMMA (pyLOM.NN.architectures.pinn.Euler2DPINN attribute)</a>
+</li>
+      <li><a href="api/pyLOM.GPOD.html#pyLOM.GPOD.wrapper.GappyPOD">GappyPOD (class in pyLOM.GPOD.wrapper)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.get_dim">get_dim() (pyLOM.dataset.Dataset method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.get_splits">get_splits() (pyLOM.NN.utils.Dataset method)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.get_splits_by_parameters">get_splits_by_parameters() (pyLOM.NN.utils.Dataset method)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.get_variable">get_variable() (pyLOM.dataset.Dataset method)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.betaLinearScheduler.getBeta">getBeta() (pyLOM.NN.utils.betaLinearScheduler method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="H">H</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_append_dset">h5_append_dset() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_append_dset_mpio">h5_append_dset_mpio() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_append_dset_serial">h5_append_dset_serial() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_create_field_datasets">h5_create_field_datasets() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_create_variable_datasets">h5_create_variable_datasets() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_fill_field_datasets">h5_fill_field_datasets() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_fill_variable_datasets">h5_fill_variable_datasets() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_load_DMD">h5_load_DMD() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_load_dset">h5_load_dset() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_load_dset_mpio">h5_load_dset_mpio() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_load_dset_serial">h5_load_dset_serial() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_load_dset_size">h5_load_dset_size() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_load_fields_multi">h5_load_fields_multi() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_load_fields_single">h5_load_fields_single() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_load_mesh">h5_load_mesh() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_load_mesh_mpio">h5_load_mesh_mpio() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_load_mesh_serial">h5_load_mesh_serial() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_load_meshes">h5_load_meshes() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_load_meshes_size">h5_load_meshes_size() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_load_partition">h5_load_partition() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_load_POD">h5_load_POD() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_load_points">h5_load_points() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_load_SPOD">h5_load_SPOD() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_load_variables_multi">h5_load_variables_multi() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_load_variables_single">h5_load_variables_single() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_save_DMD">h5_save_DMD() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_save_dset">h5_save_dset() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_save_dset_mpio">h5_save_dset_mpio() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_save_dset_serial">h5_save_dset_serial() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_save_mesh">h5_save_mesh() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_save_mesh_mpio">h5_save_mesh_mpio() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_save_mesh_serial">h5_save_mesh_serial() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_save_meshes">h5_save_meshes() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_save_meshes_nopartition">h5_save_meshes_nopartition() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_save_partition">h5_save_partition() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_save_POD">h5_save_POD() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_save_points">h5_save_points() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_save_points_nopartition">h5_save_points_nopartition() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_save_SPOD">h5_save_SPOD() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_h5.h5_save_VAE">h5_save_VAE() (in module pyLOM.inp_out.io_h5)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.fft.hammwin">hammwin() (in module pyLOM.vmmath.fft)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.partition_table.PartitionTable.has_master">has_master (pyLOM.partition_table.PartitionTable property)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="I">I</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.html#pyLOM.partition_table.PartitionTable.Ids">Ids (pyLOM.partition_table.PartitionTable property)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.channel.increase_nop">increase_nop() (pyLOM.utils.cr.channel method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.channel.increase_nop">(pyLOM.utils.mem.channel method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.channel.increase_time">increase_time() (pyLOM.utils.cr.channel method)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.channel.increase_value">increase_value() (pyLOM.utils.mem.channel method)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.info">info() (pyLOM.dataset.Dataset method)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd.init_qr_streaming">init_qr_streaming() (in module pyLOM.vmmath.svd)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_ensight.int_to_bin">int_to_bin() (in module pyLOM.inp_out.io_ensight)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.maths.inv">inv() (in module pyLOM.vmmath.maths)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.MinMaxScaler.inverse_transform">inverse_transform() (pyLOM.NN.utils.MinMaxScaler method)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.MinMaxScaler.is_fitted">is_fitted (pyLOM.NN.utils.MinMaxScaler property)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.parall.is_rank_or_serial">is_rank_or_serial() (in module pyLOM.utils.parall)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.channel.is_running">is_running() (pyLOM.utils.cr.channel method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.channel.is_running">(pyLOM.utils.mem.channel method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.MANIFOLD.html#pyLOM.MANIFOLD.wrapper.isomap">isomap() (in module pyLOM.MANIFOLD.wrapper)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="J">J</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.kan.JacobiLayer">JacobiLayer (class in pyLOM.NN.architectures.kan)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="K">K</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.kan.KAN">KAN (class in pyLOM.NN.architectures.kan)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="L">L</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.stats.RegressionEvaluator.l2_error">l2_error() (pyLOM.NN.stats.RegressionEvaluator method)</a>
+</li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.Autoencoder.latent_space">latent_space() (pyLOM.NN.architectures.autoencoders.Autoencoder method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.VariationalAutoencoder.latent_space">(pyLOM.NN.architectures.autoencoders.VariationalAutoencoder method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.leakyRelu">leakyRelu() (in module pyLOM.NN)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.regression.least_squares">least_squares() (in module pyLOM.vmmath.regression)</a>
+</li>
+      <li><a href="api/pyLOM.DMD.html#pyLOM.DMD.utils.load">load() (in module pyLOM.DMD.utils)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.POD.html#pyLOM.POD.utils.load">(in module pyLOM.POD.utils)</a>
+</li>
+        <li><a href="api/pyLOM.SPOD.html#pyLOM.SPOD.utils.load">(in module pyLOM.SPOD.utils)</a>
+</li>
+        <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.load">(pyLOM.dataset.Dataset class method)</a>
+</li>
+        <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.load">(pyLOM.mesh.Mesh class method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.kan.KAN.load">(pyLOM.NN.architectures.kan.KAN class method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.mlp.MLP.load">(pyLOM.NN.architectures.mlp.MLP class method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.load">(pyLOM.NN.architectures.pinn.PINN class method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.load">(pyLOM.NN.utils.Dataset class method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.MinMaxScaler.load">(pyLOM.NN.utils.MinMaxScaler static method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.BoundaryCondition.loss">loss() (pyLOM.NN.architectures.pinn.BoundaryCondition method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.DirichletCondition.loss">(pyLOM.NN.architectures.pinn.DirichletCondition method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="M">M</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.stats.MAE">MAE() (in module pyLOM.vmmath.stats)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.map">map() (pyLOM.NN.utils.Dataset method)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.maths.matmul">matmul() (in module pyLOM.vmmath.maths)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.maths.matmulp">matmulp() (in module pyLOM.vmmath.maths)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.channel.mavg">mavg (pyLOM.utils.mem.channel property)</a>
+</li>
+      <li><a href="api/pyLOM.MANIFOLD.html#pyLOM.MANIFOLD.wrapper.mds">mds() (in module pyLOM.MANIFOLD.wrapper)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.stats.RegressionEvaluator.mean_absolute_error">mean_absolute_error() (pyLOM.NN.stats.RegressionEvaluator method)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.stats.RegressionEvaluator.mean_relative_error">mean_relative_error() (pyLOM.NN.stats.RegressionEvaluator method)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.stats.RegressionEvaluator.mean_squared_error">mean_squared_error() (pyLOM.NN.stats.RegressionEvaluator method)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.mem">mem() (in module pyLOM.utils.mem)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.mem_info">mem_info() (in module pyLOM.utils.mem)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.mem_reset">mem_reset() (in module pyLOM.utils.mem)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.mem_start">mem_start() (in module pyLOM.utils.mem)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.mem_stop">mem_stop() (in module pyLOM.utils.mem)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.mem_value">mem_value() (in module pyLOM.utils.mem)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh">Mesh (class in pyLOM.mesh)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.MinMaxScaler">MinMaxScaler (class in pyLOM.NN.utils)</a>
+</li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.mlp.MLP">MLP (class in pyLOM.NN.architectures.mlp)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.channel.mmax">mmax (pyLOM.utils.mem.channel property)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.channel.mmin">mmin (pyLOM.utils.mem.channel property)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.pipeline.Pipeline.model">model (pyLOM.NN.pipeline.Pipeline property)</a>
+</li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.VariationalAutoencoder.modes">modes() (pyLOM.NN.architectures.autoencoders.VariationalAutoencoder method)</a>
+</li>
+      <li>
+    module
+
+      <ul>
+        <li><a href="api/pyLOM.html#module-pyLOM">pyLOM</a>
+</li>
+        <li><a href="api/pyLOM.html#module-pyLOM.dataset">pyLOM.dataset</a>
+</li>
+        <li><a href="api/pyLOM.DMD.html#module-pyLOM.DMD">pyLOM.DMD</a>
+</li>
+        <li><a href="api/pyLOM.DMD.html#module-pyLOM.DMD.plots">pyLOM.DMD.plots</a>
+</li>
+        <li><a href="api/pyLOM.DMD.html#module-pyLOM.DMD.utils">pyLOM.DMD.utils</a>
+</li>
+        <li><a href="api/pyLOM.DMD.html#module-pyLOM.DMD.wrapper">pyLOM.DMD.wrapper</a>
+</li>
+        <li><a href="api/pyLOM.GPOD.html#module-pyLOM.GPOD">pyLOM.GPOD</a>
+</li>
+        <li><a href="api/pyLOM.GPOD.html#module-pyLOM.GPOD.utils">pyLOM.GPOD.utils</a>
+</li>
+        <li><a href="api/pyLOM.GPOD.html#module-pyLOM.GPOD.wrapper">pyLOM.GPOD.wrapper</a>
+</li>
+        <li><a href="api/pyLOM.inp_out.html#module-pyLOM.inp_out">pyLOM.inp_out</a>
+</li>
+        <li><a href="api/pyLOM.inp_out.html#module-pyLOM.inp_out.io_ensight">pyLOM.inp_out.io_ensight</a>
+</li>
+        <li><a href="api/pyLOM.inp_out.html#module-pyLOM.inp_out.io_h5">pyLOM.inp_out.io_h5</a>
+</li>
+        <li><a href="api/pyLOM.inp_out.html#module-pyLOM.inp_out.io_paraview">pyLOM.inp_out.io_paraview</a>
+</li>
+        <li><a href="api/pyLOM.inp_out.html#module-pyLOM.inp_out.io_pkl">pyLOM.inp_out.io_pkl</a>
+</li>
+        <li><a href="api/pyLOM.inp_out.html#module-pyLOM.inp_out.io_vtkh5">pyLOM.inp_out.io_vtkh5</a>
+</li>
+        <li><a href="api/pyLOM.MANIFOLD.html#module-pyLOM.MANIFOLD">pyLOM.MANIFOLD</a>
+</li>
+        <li><a href="api/pyLOM.MANIFOLD.html#module-pyLOM.MANIFOLD.wrapper">pyLOM.MANIFOLD.wrapper</a>
+</li>
+        <li><a href="api/pyLOM.html#module-pyLOM.mesh">pyLOM.mesh</a>
+</li>
+        <li><a href="api/pyLOM.NN.html#module-pyLOM.NN">pyLOM.NN</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#module-pyLOM.NN.architectures">pyLOM.NN.architectures</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#module-pyLOM.NN.architectures.autoencoders">pyLOM.NN.architectures.autoencoders</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#module-pyLOM.NN.architectures.encoders_decoders">pyLOM.NN.architectures.encoders_decoders</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#module-pyLOM.NN.architectures.kan">pyLOM.NN.architectures.kan</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#module-pyLOM.NN.architectures.mlp">pyLOM.NN.architectures.mlp</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#module-pyLOM.NN.architectures.pinn">pyLOM.NN.architectures.pinn</a>
+</li>
+        <li><a href="api/pyLOM.NN.html#module-pyLOM.NN.callbacks">pyLOM.NN.callbacks</a>
+</li>
+        <li><a href="api/pyLOM.NN.html#module-pyLOM.NN.optimizer">pyLOM.NN.optimizer</a>
+</li>
+        <li><a href="api/pyLOM.NN.html#module-pyLOM.NN.pipeline">pyLOM.NN.pipeline</a>
+</li>
+        <li><a href="api/pyLOM.NN.html#module-pyLOM.NN.stats">pyLOM.NN.stats</a>
+</li>
+        <li><a href="api/pyLOM.NN.html#module-pyLOM.NN.utils">pyLOM.NN.utils</a>
+</li>
+        <li><a href="api/pyLOM.html#module-pyLOM.partition_table">pyLOM.partition_table</a>
+</li>
+        <li><a href="api/pyLOM.POD.html#module-pyLOM.POD">pyLOM.POD</a>
+</li>
+        <li><a href="api/pyLOM.POD.html#module-pyLOM.POD.plots">pyLOM.POD.plots</a>
+</li>
+        <li><a href="api/pyLOM.POD.html#module-pyLOM.POD.utils">pyLOM.POD.utils</a>
+</li>
+        <li><a href="api/pyLOM.POD.html#module-pyLOM.POD.wrapper">pyLOM.POD.wrapper</a>
+</li>
+        <li><a href="api/pyLOM.SPOD.html#module-pyLOM.SPOD">pyLOM.SPOD</a>
+</li>
+        <li><a href="api/pyLOM.SPOD.html#module-pyLOM.SPOD.plots">pyLOM.SPOD.plots</a>
+</li>
+        <li><a href="api/pyLOM.SPOD.html#module-pyLOM.SPOD.utils">pyLOM.SPOD.utils</a>
+</li>
+        <li><a href="api/pyLOM.SPOD.html#module-pyLOM.SPOD.wrapper">pyLOM.SPOD.wrapper</a>
+</li>
+        <li><a href="api/pyLOM.utils.html#module-pyLOM.utils">pyLOM.utils</a>
+</li>
+        <li><a href="api/pyLOM.utils.html#module-pyLOM.utils.cr">pyLOM.utils.cr</a>
+</li>
+        <li><a href="api/pyLOM.utils.html#module-pyLOM.utils.errors">pyLOM.utils.errors</a>
+</li>
+        <li><a href="api/pyLOM.utils.html#module-pyLOM.utils.mem">pyLOM.utils.mem</a>
+</li>
+        <li><a href="api/pyLOM.utils.html#module-pyLOM.utils.parall">pyLOM.utils.parall</a>
+</li>
+        <li><a href="api/pyLOM.utils.html#module-pyLOM.utils.plots">pyLOM.utils.plots</a>
+</li>
+        <li><a href="api/pyLOM.vmmath.html#module-pyLOM.vmmath">pyLOM.vmmath</a>
+</li>
+        <li><a href="api/pyLOM.vmmath.html#module-pyLOM.vmmath.averaging">pyLOM.vmmath.averaging</a>
+</li>
+        <li><a href="api/pyLOM.vmmath.html#module-pyLOM.vmmath.cfuncs">pyLOM.vmmath.cfuncs</a>
+</li>
+        <li><a href="api/pyLOM.vmmath.html#module-pyLOM.vmmath.fft">pyLOM.vmmath.fft</a>
+</li>
+        <li><a href="api/pyLOM.vmmath.html#module-pyLOM.vmmath.geometric">pyLOM.vmmath.geometric</a>
+</li>
+        <li><a href="api/pyLOM.vmmath.html#module-pyLOM.vmmath.maths">pyLOM.vmmath.maths</a>
+</li>
+        <li><a href="api/pyLOM.vmmath.html#module-pyLOM.vmmath.regression">pyLOM.vmmath.regression</a>
+</li>
+        <li><a href="api/pyLOM.vmmath.html#module-pyLOM.vmmath.stats">pyLOM.vmmath.stats</a>
+</li>
+        <li><a href="api/pyLOM.vmmath.html#module-pyLOM.vmmath.svd">pyLOM.vmmath.svd</a>
+</li>
+        <li><a href="api/pyLOM.vmmath.html#module-pyLOM.vmmath.truncation">pyLOM.vmmath.truncation</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.parall.mpi_barrier">mpi_barrier() (in module pyLOM.utils.parall)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.parall.mpi_bcast">mpi_bcast() (in module pyLOM.utils.parall)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.parall.mpi_gather">mpi_gather() (in module pyLOM.utils.parall)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.parall.mpi_recv">mpi_recv() (in module pyLOM.utils.parall)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.parall.mpi_reduce">mpi_reduce() (in module pyLOM.utils.parall)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.parall.mpi_scatter">mpi_scatter() (in module pyLOM.utils.parall)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.parall.mpi_send">mpi_send() (in module pyLOM.utils.parall)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.parall.mpi_sendrecv">mpi_sendrecv() (in module pyLOM.utils.parall)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.channel.msum">msum (pyLOM.utils.mem.channel property)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="N">N</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.html#pyLOM.partition_table.PartitionTable.n_partitions">n_partitions (pyLOM.partition_table.PartitionTable property)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.channel.name">name (pyLOM.utils.cr.channel property)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.channel.name">(pyLOM.utils.mem.channel property)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.NavierStokesIncompressible2DPINN">NavierStokesIncompressible2DPINN (class in pyLOM.NN.architectures.pinn)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.ncells">ncells (pyLOM.mesh.Mesh property)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.ncellsG">ncellsG (pyLOM.mesh.Mesh property)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.ncellsG2">ncellsG2 (pyLOM.mesh.Mesh property)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.ndim">ndim (pyLOM.mesh.Mesh property)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.partition_table.PartitionTable.new">new() (pyLOM.partition_table.PartitionTable class method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.channel.new">(pyLOM.utils.cr.channel class method)</a>
+</li>
+        <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.channel.new">(pyLOM.utils.mem.channel class method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.new_struct2D">new_struct2D() (pyLOM.mesh.Mesh class method)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.new_struct3D">new_struct3D() (pyLOM.mesh.Mesh class method)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.nnodcell">nnodcell (pyLOM.mesh.Mesh property)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.partition_table.PartitionTable.nodes">nodes (pyLOM.partition_table.PartitionTable property)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.channel.nop">nop (pyLOM.utils.cr.channel property)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.channel.nop">(pyLOM.utils.mem.channel property)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.normal">normal (pyLOM.mesh.Mesh property)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.geometric.normals">normals() (in module pyLOM.vmmath.geometric)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.npoints">npoints (pyLOM.mesh.Mesh property)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.npointsG">npointsG (pyLOM.mesh.Mesh property)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.npointsG2">npointsG2 (pyLOM.mesh.Mesh property)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.num_parameters">num_parameters (pyLOM.NN.utils.Dataset property)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="O">O</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.optimizer.OptunaOptimizer.optimization_params">optimization_params (pyLOM.NN.optimizer.OptunaOptimizer property)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.optimizer.OptunaOptimizer.optimize">optimize() (pyLOM.NN.optimizer.OptunaOptimizer method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.optimizer.OptunaOptimizer">OptunaOptimizer (class in pyLOM.NN.optimizer)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.ordering">ordering (pyLOM.dataset.Dataset property)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="P">P</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.pad">pad() (pyLOM.NN.utils.Dataset method)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.partition_table.PartitionTable.partition_bounds">partition_bounds() (pyLOM.partition_table.PartitionTable method)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.partition_table.PartitionTable.partition_points">partition_points() (pyLOM.partition_table.PartitionTable method)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.partition_table">partition_table (pyLOM.dataset.Dataset property)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.partition_table">(pyLOM.mesh.Mesh property)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.html#pyLOM.partition_table.PartitionTable">PartitionTable (class in pyLOM.partition_table)</a>
+</li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.BurgersPINN.pde_loss">pde_loss() (pyLOM.NN.architectures.pinn.BurgersPINN method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.Euler2DPINN.pde_loss">(pyLOM.NN.architectures.pinn.Euler2DPINN method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.NavierStokesIncompressible2DPINN.pde_loss">(pyLOM.NN.architectures.pinn.NavierStokesIncompressible2DPINN method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.pde_loss">(pyLOM.NN.architectures.pinn.PINN method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN">PINN (class in pyLOM.NN.architectures.pinn)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.pipeline.Pipeline">Pipeline (class in pyLOM.NN.pipeline)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_pkl.pkl_load">pkl_load() (in module pyLOM.inp_out.io_pkl)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_pkl.pkl_save">pkl_save() (in module pyLOM.inp_out.io_pkl)</a>
+</li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.plot_training_logs">plot_training_logs() (pyLOM.NN.architectures.pinn.PINN method)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.plots.plotFieldStruct2D">plotFieldStruct2D() (in module pyLOM.utils.plots)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.plots.plotLayout">plotLayout() (in module pyLOM.utils.plots)</a>
+</li>
+      <li><a href="api/pyLOM.DMD.html#pyLOM.DMD.plots.plotMode">plotMode() (in module pyLOM.DMD.plots)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.POD.html#pyLOM.POD.plots.plotMode">(in module pyLOM.POD.plots)</a>
+</li>
+        <li><a href="api/pyLOM.SPOD.html#pyLOM.SPOD.plots.plotMode">(in module pyLOM.SPOD.plots)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.plots.plotResidual">plotResidual() (in module pyLOM.utils.plots)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.plots.plotSnapshot">plotSnapshot() (in module pyLOM.utils.plots)</a>
+</li>
+      <li><a href="api/pyLOM.SPOD.html#pyLOM.SPOD.plots.plotSpectra">plotSpectra() (in module pyLOM.SPOD.plots)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.point">point (pyLOM.dataset.Dataset property)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.pointOrder">pointOrder (pyLOM.mesh.Mesh property)</a>
+</li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.BoundaryCondition.points">points (pyLOM.NN.architectures.pinn.BoundaryCondition property)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.partition_table.PartitionTable.Points">Points (pyLOM.partition_table.PartitionTable property)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.maths.polar">polar() (in module pyLOM.vmmath.maths)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.parall.pprint">pprint() (in module pyLOM.utils.parall)</a>
+</li>
+      <li><a href="api/pyLOM.GPOD.html#pyLOM.GPOD.wrapper.GappyPOD.predict">predict() (pyLOM.GPOD.wrapper.GappyPOD method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.kan.KAN.predict">(pyLOM.NN.architectures.kan.KAN method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.mlp.MLP.predict">(pyLOM.NN.architectures.mlp.MLP method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.predict">(pyLOM.NN.architectures.pinn.PINN method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.stats.RegressionEvaluator.print_metrics">print_metrics() (pyLOM.NN.stats.RegressionEvaluator method)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_paraview.pv_writer">pv_writer() (in module pyLOM.inp_out.io_paraview)</a>
+</li>
+      <li>
+    pyLOM
+
+      <ul>
+        <li><a href="api/pyLOM.html#module-pyLOM">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.dataset
+
+      <ul>
+        <li><a href="api/pyLOM.html#module-pyLOM.dataset">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.DMD
+
+      <ul>
+        <li><a href="api/pyLOM.DMD.html#module-pyLOM.DMD">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.DMD.plots
+
+      <ul>
+        <li><a href="api/pyLOM.DMD.html#module-pyLOM.DMD.plots">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.DMD.utils
+
+      <ul>
+        <li><a href="api/pyLOM.DMD.html#module-pyLOM.DMD.utils">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.DMD.wrapper
+
+      <ul>
+        <li><a href="api/pyLOM.DMD.html#module-pyLOM.DMD.wrapper">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.GPOD
+
+      <ul>
+        <li><a href="api/pyLOM.GPOD.html#module-pyLOM.GPOD">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.GPOD.utils
+
+      <ul>
+        <li><a href="api/pyLOM.GPOD.html#module-pyLOM.GPOD.utils">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.GPOD.wrapper
+
+      <ul>
+        <li><a href="api/pyLOM.GPOD.html#module-pyLOM.GPOD.wrapper">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.inp_out
+
+      <ul>
+        <li><a href="api/pyLOM.inp_out.html#module-pyLOM.inp_out">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.inp_out.io_ensight
+
+      <ul>
+        <li><a href="api/pyLOM.inp_out.html#module-pyLOM.inp_out.io_ensight">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.inp_out.io_h5
+
+      <ul>
+        <li><a href="api/pyLOM.inp_out.html#module-pyLOM.inp_out.io_h5">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.inp_out.io_paraview
+
+      <ul>
+        <li><a href="api/pyLOM.inp_out.html#module-pyLOM.inp_out.io_paraview">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.inp_out.io_pkl
+
+      <ul>
+        <li><a href="api/pyLOM.inp_out.html#module-pyLOM.inp_out.io_pkl">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.inp_out.io_vtkh5
+
+      <ul>
+        <li><a href="api/pyLOM.inp_out.html#module-pyLOM.inp_out.io_vtkh5">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.MANIFOLD
+
+      <ul>
+        <li><a href="api/pyLOM.MANIFOLD.html#module-pyLOM.MANIFOLD">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.MANIFOLD.wrapper
+
+      <ul>
+        <li><a href="api/pyLOM.MANIFOLD.html#module-pyLOM.MANIFOLD.wrapper">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.mesh
+
+      <ul>
+        <li><a href="api/pyLOM.html#module-pyLOM.mesh">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.NN
+
+      <ul>
+        <li><a href="api/pyLOM.NN.html#module-pyLOM.NN">module</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li>
+    pyLOM.NN.architectures
+
+      <ul>
+        <li><a href="api/pyLOM.NN.architectures.html#module-pyLOM.NN.architectures">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.NN.architectures.autoencoders
+
+      <ul>
+        <li><a href="api/pyLOM.NN.architectures.html#module-pyLOM.NN.architectures.autoencoders">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.NN.architectures.encoders_decoders
+
+      <ul>
+        <li><a href="api/pyLOM.NN.architectures.html#module-pyLOM.NN.architectures.encoders_decoders">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.NN.architectures.kan
+
+      <ul>
+        <li><a href="api/pyLOM.NN.architectures.html#module-pyLOM.NN.architectures.kan">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.NN.architectures.mlp
+
+      <ul>
+        <li><a href="api/pyLOM.NN.architectures.html#module-pyLOM.NN.architectures.mlp">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.NN.architectures.pinn
+
+      <ul>
+        <li><a href="api/pyLOM.NN.architectures.html#module-pyLOM.NN.architectures.pinn">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.NN.callbacks
+
+      <ul>
+        <li><a href="api/pyLOM.NN.html#module-pyLOM.NN.callbacks">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.NN.optimizer
+
+      <ul>
+        <li><a href="api/pyLOM.NN.html#module-pyLOM.NN.optimizer">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.NN.pipeline
+
+      <ul>
+        <li><a href="api/pyLOM.NN.html#module-pyLOM.NN.pipeline">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.NN.stats
+
+      <ul>
+        <li><a href="api/pyLOM.NN.html#module-pyLOM.NN.stats">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.NN.utils
+
+      <ul>
+        <li><a href="api/pyLOM.NN.html#module-pyLOM.NN.utils">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.partition_table
+
+      <ul>
+        <li><a href="api/pyLOM.html#module-pyLOM.partition_table">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.POD
+
+      <ul>
+        <li><a href="api/pyLOM.POD.html#module-pyLOM.POD">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.POD.plots
+
+      <ul>
+        <li><a href="api/pyLOM.POD.html#module-pyLOM.POD.plots">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.POD.utils
+
+      <ul>
+        <li><a href="api/pyLOM.POD.html#module-pyLOM.POD.utils">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.POD.wrapper
+
+      <ul>
+        <li><a href="api/pyLOM.POD.html#module-pyLOM.POD.wrapper">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.SPOD
+
+      <ul>
+        <li><a href="api/pyLOM.SPOD.html#module-pyLOM.SPOD">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.SPOD.plots
+
+      <ul>
+        <li><a href="api/pyLOM.SPOD.html#module-pyLOM.SPOD.plots">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.SPOD.utils
+
+      <ul>
+        <li><a href="api/pyLOM.SPOD.html#module-pyLOM.SPOD.utils">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.SPOD.wrapper
+
+      <ul>
+        <li><a href="api/pyLOM.SPOD.html#module-pyLOM.SPOD.wrapper">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.utils
+
+      <ul>
+        <li><a href="api/pyLOM.utils.html#module-pyLOM.utils">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.utils.cr
+
+      <ul>
+        <li><a href="api/pyLOM.utils.html#module-pyLOM.utils.cr">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.utils.errors
+
+      <ul>
+        <li><a href="api/pyLOM.utils.html#module-pyLOM.utils.errors">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.utils.mem
+
+      <ul>
+        <li><a href="api/pyLOM.utils.html#module-pyLOM.utils.mem">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.utils.parall
+
+      <ul>
+        <li><a href="api/pyLOM.utils.html#module-pyLOM.utils.parall">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.utils.plots
+
+      <ul>
+        <li><a href="api/pyLOM.utils.html#module-pyLOM.utils.plots">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.vmmath
+
+      <ul>
+        <li><a href="api/pyLOM.vmmath.html#module-pyLOM.vmmath">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.vmmath.averaging
+
+      <ul>
+        <li><a href="api/pyLOM.vmmath.html#module-pyLOM.vmmath.averaging">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.vmmath.cfuncs
+
+      <ul>
+        <li><a href="api/pyLOM.vmmath.html#module-pyLOM.vmmath.cfuncs">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.vmmath.fft
+
+      <ul>
+        <li><a href="api/pyLOM.vmmath.html#module-pyLOM.vmmath.fft">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.vmmath.geometric
+
+      <ul>
+        <li><a href="api/pyLOM.vmmath.html#module-pyLOM.vmmath.geometric">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.vmmath.maths
+
+      <ul>
+        <li><a href="api/pyLOM.vmmath.html#module-pyLOM.vmmath.maths">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.vmmath.regression
+
+      <ul>
+        <li><a href="api/pyLOM.vmmath.html#module-pyLOM.vmmath.regression">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.vmmath.stats
+
+      <ul>
+        <li><a href="api/pyLOM.vmmath.html#module-pyLOM.vmmath.stats">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.vmmath.svd
+
+      <ul>
+        <li><a href="api/pyLOM.vmmath.html#module-pyLOM.vmmath.svd">module</a>
+</li>
+      </ul></li>
+      <li>
+    pyLOM.vmmath.truncation
+
+      <ul>
+        <li><a href="api/pyLOM.vmmath.html#module-pyLOM.vmmath.truncation">module</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="Q">Q</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd.qr">qr() (in module pyLOM.vmmath.svd)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="R">R</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.stats.r2">r2() (in module pyLOM.vmmath.stats)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.stats.RegressionEvaluator.R2">R2() (pyLOM.NN.stats.RegressionEvaluator method)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.errors.raiseError">raiseError() (in module pyLOM.utils.errors)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.errors.raiseWarning">raiseWarning() (in module pyLOM.utils.errors)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd.randomized_qr">randomized_qr() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd.randomized_svd">randomized_svd() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.POD.html#pyLOM.POD.wrapper.reconstruct">reconstruct() (in module pyLOM.POD.wrapper)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.Autoencoder.reconstruct">(pyLOM.NN.architectures.autoencoders.Autoencoder method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.VariationalAutoencoder.reconstruct">(pyLOM.NN.architectures.autoencoders.VariationalAutoencoder method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.GPOD.html#pyLOM.GPOD.wrapper.GappyPOD.reconstruct_full_set">reconstruct_full_set() (pyLOM.GPOD.wrapper.GappyPOD method)</a>
+</li>
+      <li><a href="api/pyLOM.DMD.html#pyLOM.DMD.wrapper.reconstruction_jovanovic">reconstruction_jovanovic() (in module pyLOM.DMD.wrapper)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.stats.RegressionEvaluator">RegressionEvaluator (class in pyLOM.NN.stats)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.relu">relu() (in module pyLOM.NN)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.remove_column">remove_column() (pyLOM.NN.utils.Dataset method)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.rename">rename() (pyLOM.dataset.Dataset method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.html#pyLOM.partition_table.PartitionTable.reorder_points">reorder_points() (pyLOM.partition_table.PartitionTable method)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.channel.reset">reset() (pyLOM.utils.cr.channel method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.channel.reset">(pyLOM.utils.mem.channel method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.reshape">reshape() (pyLOM.dataset.Dataset method)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.reshape_var">reshape_var() (pyLOM.mesh.Mesh method)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.channel.restart">restart() (pyLOM.utils.cr.channel method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.channel.restart">(pyLOM.utils.mem.channel method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.regression.ridge_regresion">ridge_regresion() (in module pyLOM.vmmath.regression)</a>
+</li>
+      <li><a href="api/pyLOM.DMD.html#pyLOM.DMD.plots.ritzSpectrum">ritzSpectrum() (in module pyLOM.DMD.plots)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.stats.RMSE">RMSE() (in module pyLOM.vmmath.stats)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.errors.round">round() (in module pyLOM.utils.errors)</a>
+</li>
+      <li><a href="api/pyLOM.DMD.html#pyLOM.DMD.wrapper.run">run() (in module pyLOM.DMD.wrapper)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.POD.html#pyLOM.POD.wrapper.run">(in module pyLOM.POD.wrapper)</a>
+</li>
+        <li><a href="api/pyLOM.SPOD.html#pyLOM.SPOD.wrapper.run">(in module pyLOM.SPOD.wrapper)</a>
+</li>
+        <li><a href="api/pyLOM.NN.html#pyLOM.NN.pipeline.Pipeline.run">(pyLOM.NN.pipeline.Pipeline method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="S">S</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.DMD.html#pyLOM.DMD.utils.save">save() (in module pyLOM.DMD.utils)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.POD.html#pyLOM.POD.utils.save">(in module pyLOM.POD.utils)</a>
+</li>
+        <li><a href="api/pyLOM.SPOD.html#pyLOM.SPOD.utils.save">(in module pyLOM.SPOD.utils)</a>
+</li>
+        <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.save">(pyLOM.dataset.Dataset method)</a>
+</li>
+        <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.save">(pyLOM.mesh.Mesh method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.kan.KAN.save">(pyLOM.NN.architectures.kan.KAN method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.mlp.MLP.save">(pyLOM.NN.architectures.mlp.MLP method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.save">(pyLOM.NN.architectures.pinn.PINN method)</a>
+</li>
+        <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.MinMaxScaler.save">(pyLOM.NN.utils.MinMaxScaler method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.select_device">select_device() (in module pyLOM.NN.utils)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.channel.set_max">set_max() (pyLOM.utils.cr.channel method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.channel.set_max">(pyLOM.utils.mem.channel method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.channel.set_min">set_min() (pyLOM.utils.cr.channel method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.channel.set_min">(pyLOM.utils.mem.channel method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.GPOD.html#pyLOM.GPOD.utils.set_random_elements_to_zero">set_random_elements_to_zero() (in module pyLOM.GPOD.utils)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.set_seed">set_seed() (in module pyLOM.NN.utils)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.set_variable">set_variable() (pyLOM.dataset.Dataset method)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.shape">shape (pyLOM.NN.utils.Dataset property)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.plots.show_plots">show_plots() (in module pyLOM.utils.plots)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.sigmoid">sigmoid() (in module pyLOM.NN)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.silu">silu() (in module pyLOM.NN)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.size">size() (pyLOM.mesh.Mesh method)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.parall.split">split() (in module pyLOM.utils.parall)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.channel.start">start() (pyLOM.utils.cr.channel method)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.utils.html#pyLOM.utils.mem.channel.start">(pyLOM.utils.mem.channel method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_ensight.str_to_bin">str_to_bin() (in module pyLOM.inp_out.io_ensight)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.averaging.subtract_mean">subtract_mean() (in module pyLOM.vmmath.averaging)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd.svd">svd() (in module pyLOM.vmmath.svd)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="T">T</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.tanh">tanh() (in module pyLOM.NN)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.channel.tavg">tavg (pyLOM.utils.cr.channel property)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.averaging.temporal_mean">temporal_mean() (in module pyLOM.vmmath.averaging)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.channel.tmax">tmax (pyLOM.utils.cr.channel property)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.channel.tmin">tmin (pyLOM.utils.cr.channel property)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.stats.RegressionEvaluator.tolerance">tolerance (pyLOM.NN.stats.RegressionEvaluator property)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.utils.MinMaxScaler.transform">transform() (pyLOM.NN.utils.MinMaxScaler method)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.maths.transpose">transpose() (in module pyLOM.vmmath.maths)</a>
+</li>
+      <li><a href="api/pyLOM.POD.html#pyLOM.POD.wrapper.truncate">truncate() (in module pyLOM.POD.wrapper)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd.tsqr">tsqr() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd.tsqr_svd">tsqr_svd() (in module pyLOM.vmmath.svd)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr.channel.tsum">tsum (pyLOM.utils.cr.channel property)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.type">type (pyLOM.mesh.Mesh property)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="U">U</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.html#pyLOM.partition_table.PartitionTable.update_points">update_points() (pyLOM.partition_table.PartitionTable method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.svd.update_qr_streaming">update_qr_streaming() (in module pyLOM.vmmath.svd)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="V">V</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.maths.vandermonde">vandermonde() (in module pyLOM.vmmath.maths)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.maths.vandermondeTime">vandermondeTime() (in module pyLOM.vmmath.maths)</a>
+</li>
+      <li><a href="api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.VariationalAutoencoder">VariationalAutoencoder (class in pyLOM.NN.architectures.autoencoders)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.varnames">varnames (pyLOM.dataset.Dataset property)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.vars">vars (pyLOM.dataset.Dataset property)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.maths.vecmat">vecmat() (in module pyLOM.vmmath.maths)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.maths.vector_mean">vector_mean() (in module pyLOM.vmmath.maths)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.maths.vector_norm">vector_norm() (in module pyLOM.vmmath.maths)</a>
+</li>
+      <li><a href="api/pyLOM.vmmath.html#pyLOM.vmmath.maths.vector_sum">vector_sum() (in module pyLOM.vmmath.maths)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5.vtkh5_link_mesh">vtkh5_link_mesh() (in module pyLOM.inp_out.io_vtkh5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5.vtkh5_link_mesh_mpio">vtkh5_link_mesh_mpio() (in module pyLOM.inp_out.io_vtkh5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5.vtkh5_link_mesh_serial">vtkh5_link_mesh_serial() (in module pyLOM.inp_out.io_vtkh5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5.vtkh5_save_field">vtkh5_save_field() (in module pyLOM.inp_out.io_vtkh5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5.vtkh5_save_field_mpio">vtkh5_save_field_mpio() (in module pyLOM.inp_out.io_vtkh5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5.vtkh5_save_field_serial">vtkh5_save_field_serial() (in module pyLOM.inp_out.io_vtkh5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5.vtkh5_save_mesh">vtkh5_save_mesh() (in module pyLOM.inp_out.io_vtkh5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5.vtkh5_save_mesh_mpio">vtkh5_save_mesh_mpio() (in module pyLOM.inp_out.io_vtkh5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5.vtkh5_save_mesh_serial">vtkh5_save_mesh_serial() (in module pyLOM.inp_out.io_vtkh5)</a>
+</li>
+      <li><a href="api/pyLOM.inp_out.html#pyLOM.inp_out.io_paraview.VTKHDF5Writer">VTKHDF5Writer() (in module pyLOM.inp_out.io_paraview)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="W">W</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.parall.worksplit">worksplit() (in module pyLOM.utils.parall)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.parall.writesplit">writesplit() (in module pyLOM.utils.parall)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="X">X</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.x">x (pyLOM.mesh.Mesh property)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.X">X() (pyLOM.dataset.Dataset method)</a>
+</li>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.x">x() (pyLOM.dataset.Dataset method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.xyz">xyz (pyLOM.dataset.Dataset property)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.xyz">(pyLOM.mesh.Mesh property)</a>
+</li>
+      </ul></li>
+      <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.xyzc">xyzc (pyLOM.mesh.Mesh property)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="Y">Y</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.y">y (pyLOM.dataset.Dataset property)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.y">(pyLOM.mesh.Mesh property)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+<h2 id="Z">Z</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.html#pyLOM.dataset.Dataset.z">z (pyLOM.dataset.Dataset property)</a>
+
+      <ul>
+        <li><a href="api/pyLOM.html#pyLOM.mesh.Mesh.z">(pyLOM.mesh.Mesh property)</a>
+</li>
+      </ul></li>
+  </ul></td>
+</tr></table>
+
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2023-2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
