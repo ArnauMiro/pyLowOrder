@@ -20,7 +20,7 @@ pip install sphinx==7.4.7 pydata-sphinx-theme==0.16.1 ipython pygments==2.18.0 n
 Moreover, the needed dependencies to import pyLOM must be installed too. On a conda environment, this commands sould be sufficient:
 
 ```bash
-conda install -c conda-forge mpi4py==3.1.6
+conda install -c conda-forge mpi4py==4.0.0
 conda install openmpi-mpicc
 pip install -r requirements.txt
 pip install -r requirements_NN.txt
