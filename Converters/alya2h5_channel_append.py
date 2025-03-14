@@ -35,7 +35,7 @@ d = pyLOM.Dataset(xyz=m.xyz, ptable=p, order=m.pointOrder, point=True,
 	# Add the time as the only variable
 	vars  = {'time':{'idim':0,'value':None}}
 )
-m.save('%s_a.h5'%CASESTR,nopartition=True) 
+m.save('%s_a.h5'%CASESTR,mode='w',nopartition=True) # This will overwrite any existing file
 
 
 ## Build dataset from the instants
@@ -66,7 +66,7 @@ for ii,instant in enumerate(listOfInstants):
 		d.add_field('VELOX',1,X_VELOX)
 		d.add_field('VELOY',1,X_VELOY)
 		d.add_field('VELOZ',1,X_VELOZ)
-		d.save('%s_a.h5'%CASESTR,append=True,nopartition=True)
+		d.save('%s_a.h5'%CASESTR,append=True,nopartition=True) # Further saves are already on append mode
 		# Reset counters
 		ibuff  = 0
 

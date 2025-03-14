@@ -69,8 +69,8 @@ d = pyLOM.Dataset(xyz=m.xyz, ptable=p, order=m.pointOrder, point=True,
 # Nopartition will eliminate the partition of alya and allow the dataset to be run
 # with any number of processors but will increase the save time to the disk
 # Use with great care!!
-m.save('%s.h5'%CASESTR,nopartition=True) 
-d.save('%s.h5'%CASESTR,nopartition=True) 
+m.save('%s.h5'%CASESTR,nopartition=True,mode='w') # This will overwrite any existing file
+d.save('%s.h5'%CASESTR,nopartition=True) # This is already on append mode
 
 
 pyAlya.cr_info()
