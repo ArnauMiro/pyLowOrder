@@ -8,10 +8,12 @@
 from __future__ import print_function, division
 
 import os, numpy as np
+from collections import defaultdict
 
 from .       import inp_out as io
-from .vmmath import cellCenters, normals
+from .vmmath import cellCenters, normals, neighbors_dict, edge_normals
 from .utils  import cr_nvtx as cr, mem, raiseError, mpi_reduce
+
 
 
 ALYA2ELTYP = {
@@ -65,7 +67,7 @@ class Mesh(object):
 	'''
 	The Mesh class wraps the mesh details of the case.
 	'''
-	def __init__(self,mtype,xyz,connectivity,eltype,cellOrder,pointOrder,ptable):
+	def __init__(self,mtype,xyz,connectivity, eltype,cellOrder,pointOrder,ptable):
 		'''
 		Class constructor
 		'''
@@ -73,7 +75,9 @@ class Mesh(object):
 		self._xyz    = xyz
 		self._xyzc   = None
 		self._normal = None
+		self._edge_normal = None
 		self._conec  = connectivity
+		self._cells_conec = None
 		self._eltype = eltype
 		self._cellO  = cellOrder
 		self._pointO = pointOrder
@@ -148,6 +152,29 @@ class Mesh(object):
 		if self.type == 'UNSTRUCT':
 			xyzc = cellCenters(self._xyz,self._conec)
 		return xyzc
+
+	def _edge_normals(self):
+		'''Computes the normalized edge normals of the cells in the mesh.
+		Edge normals are the vectors normal to the edges and tangent to the cell.
+			
+		Returns
+		-------
+		edge_normals : np.ndarray
+			Array with the edge normals of each cell concatenated along axis 1.
+		'''
+
+		# Array list to store the edge normals of each cell. Assumes every cell has the same number of edges.
+		edge_normals_list = [np.zeros((self.ncells, 3), dtype=np.float32) for _ in range(self.nnodcell)]
+
+		# Iterate over each cell
+		for cell_id in range(self.ncells):
+			cell_normal = self.normal[cell_id]
+			cell_nodes = self.connectivity[cell_id]
+			nodes_xyz = self.xyz[cell_nodes]  # Get the nodes of the cell
+
+			edge_normals_list = edge_normals(nodes_xyz, cell_normal, self.nnodcell)  # Compute the edge normals of the cell
+
+		return np.concatenate(edge_normals_list, axis=1)  # Concatenate the edge normals along axis 1
 
 	@cr('Mesh.reshape')
 	def reshape_var(self,var,info):
@@ -285,10 +312,19 @@ class Mesh(object):
 	def normal(self):
 		if self._normal is None: self._normal = normals(self._xyz,self._conec)
 		return self._normal
+	@property
+	def edge_normal(self):
+		if self._edge_normal is None: self._edge_normal = self._edge_normals()
+		return self._edge_normal
 
 	@property
 	def connectivity(self):
 		return self._conec
+	@property
+	def cells_connectivity(self):
+		if self._cells_conn is None:
+			self._cells_conec, _ = _cells_connectivity(self)
+		return self._cells_conn
 	@property
 	def cellOrder(self):
 		return self._cellO
@@ -384,3 +420,22 @@ def _struct3d_compute_conec(nx,ny,nz,xyz):
 	conec[:,6] = idx2[1:,1:,1:].ravel()
 	conec[:,7] = idx2[1:,1:,:-1].ravel()
 	return conec
+
+
+def _cells_connectivity(self):
+	'''Computes the connectivity between cells that share an edge.
+
+	Returns
+	-------
+	padded_neighbors : list
+		Connectivity array of neighbors for each cell. Each list is padded with -1s to have a fixed length.
+	'''
+
+	# Neighbors dictionary asigning the neighbors to each cell
+	adjacency = neighbors_dict(self.connectivity)
+
+	# Step 3: Pad the neighbors list with -1s
+	max_len = max(len(adjacency[cell]) for cell in range(self.ncells))
+	padded_neighbors = np.array([list(neighbors_dict[cell]) + [-1] * (max_len - len(neighbors_dict[cell])) for cell in range(self.ncells)], dtype=np.int32)
+
+	return padded_neighbors
