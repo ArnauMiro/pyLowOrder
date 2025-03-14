@@ -14,7 +14,7 @@ from ..utils.errors import raiseError
 
 
 @cr('Writer.write')
-def pv_writer(Mesh,Dataset,casestr,basedir='./',idim=0,instants=[0],times=[0.],vars=[],fmt='vtkh5'):
+def pv_writer(Mesh,Dataset,casestr,basedir='./',idim=0,instants=[0],times=[0.],vars=[],fmt='vtkh5',mode='w'):
 	'''
 	Store the data using various formats for ParaView.
 
@@ -28,18 +28,20 @@ def pv_writer(Mesh,Dataset,casestr,basedir='./',idim=0,instants=[0],times=[0.],v
 		raiseError('Format <%s> not implemented!'%fmt)
 
 
-def VTKHDF5Writer(mesh,dset,casestr,basedir,instants,times,varnames,idim):
+def VTKHDF5Writer(mesh,dset,casestr,basedir,instants,times,varnames,idim,mode):
 	'''
 	VTKHDF dataset writer
 	'''
 	# Create a mesh file
 	meshname = os.path.join(basedir,'%s-mesh-vtk.hdf'%(casestr))
-	vtkh5_save_mesh(meshname,mesh,mesh.partition_table)
+	# We set the mode at vtkh5_save_mesh as it will create the file
+	vtkh5_save_mesh(meshname,mesh,mesh.partition_table,mode=mode)
 	# Loop the instants
 	for instant, time in zip(instants,times):
 		fieldname = os.path.join(basedir,'%s-%08d-vtk.hdf'%(casestr,instant))
 		# Link the mesh on the file
-		vtkh5_link_mesh(fieldname,'./%s-mesh-vtk.hdf'%(casestr))
+		# We set the mode at vtkh5_link_mesh as it will create the file
+		vtkh5_link_mesh(fieldname,'./%s-mesh-vtk.hdf'%(casestr),mode=mode)
 		# Write the data on the file
 		varDict = {}
 		for v in varnames:

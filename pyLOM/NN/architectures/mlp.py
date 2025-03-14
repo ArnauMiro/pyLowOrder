@@ -79,8 +79,8 @@ class MLP(nn.Module):
     @cr('MLP.fit')
     def fit(
         self,
-        train_dataset,
-        eval_dataset=None,
+        train_dataset: torch.utils.data.Dataset,
+        eval_dataset: torch.utils.data.Dataset = None,
         epochs: int = 100,
         lr: float = 0.001,
         lr_gamma: float = 1,
@@ -96,8 +96,8 @@ class MLP(nn.Module):
         Fit the model to the training data. If eval_set is provided, the model will be evaluated on this set after each epoch. 
         
         Args:
-            train_dataset: Training dataset to fit the model.
-            eval_dataset (optional): Evaluation dataset to evaluate the model after each epoch (default: ``None``).
+            train_dataset (torch.utils.data.Dataset): Training dataset to fit the model.
+            eval_dataset (torch.utils.data.Dataset): Evaluation dataset to evaluate the model after each epoch (default: ``None``).
             epochs (int, optional): Number of epochs to train the model (default: ``100``).
             lr (float, optional): Learning rate for the optimizer (default: ``0.001``).
             lr_gamma (float, optional): Multiplicative factor of learning rate decay (default: ``1``).
@@ -108,6 +108,7 @@ class MLP(nn.Module):
             print_rate_batch (int, optional): Print loss every ``print_rate_batch`` batches (default: ``1``). If set to ``0``, no print will be done.
             print_rate_epoch (int, optional): Print loss every ``print_rate_epoch`` epochs (default: ``1``). If set to ``0``, no print will be done.
             kwargs (dict, optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):
+                
                 - batch_size (int, optional): Batch size (default: ``32``).
                 - shuffle (bool, optional): Shuffle the data (default: ``True``).
                 - num_workers (int, optional): Number of workers to use (default: ``0``).
@@ -203,7 +204,7 @@ class MLP(nn.Module):
     @cr('MLP.predict')
     def predict(
         self, 
-        X, 
+        X: torch.utils.data.Dataset, 
         return_targets: bool = False,
         **kwargs,
     ):
@@ -213,9 +214,10 @@ class MLP(nn.Module):
         To make a prediction from a torch tensor, use the `__call__` method directly.
 
         Args:
-            X: The dataset whose target values are to be predicted using the input data.
+            X (torch.utils.data.Dataset): The dataset whose target values are to be predicted using the input data.
             rescale_output (bool): Whether to rescale the output with the scaler of the dataset (default: ``True``).
             kwargs (dict, optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):
+                
                 - batch_size (int, optional): Batch size (default: ``256``).
                 - shuffle (bool, optional): Shuffle the data (default: ``False``).
                 - num_workers (int, optional): Number of workers to use (default: ``0``).
@@ -324,8 +326,8 @@ class MLP(nn.Module):
     @cr('MLP.create_optimized_model')
     def create_optimized_model(
         cls, 
-        train_dataset, 
-        eval_dataset, 
+        train_dataset: torch.utils.data.Dataset, 
+        eval_dataset: torch.utils.data.Dataset, 
         optuna_optimizer: OptunaOptimizer,
         **kwargs,
     ) -> Tuple[nn.Module, Dict]:
@@ -333,8 +335,8 @@ class MLP(nn.Module):
         Create an optimized model using Optuna. The model is trained on the training dataset and evaluated on the validation dataset.
         
         Args:
-            train_dataset: The training dataset.
-            eval_dataset: The evaluation dataset.
+            train_dataset (torch.utils.data.Dataset): The training dataset.
+            eval_dataset (torch.utils.data.Dataset): The evaluation dataset.
             optuna_optimizer (OptunaOptimizer): The optimizer to use for optimization.
             kwargs: Additional keyword arguments.
 
