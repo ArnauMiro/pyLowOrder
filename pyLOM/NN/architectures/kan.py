@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional
 
 import numpy as np
 import torch
@@ -24,9 +24,9 @@ class KAN(nn.Module):
         hidden_size (int): The number of neurons in the hidden layers.
         layer_type (nn.Module): The type of layer to use in the model. It can be one of the following: ``JacobiLayer``, ``ChebyshevLayer``.
         model_name (str): The name of the model.
-        p_dropouts (float, optional): The dropout probability (default: ``0.0``).
-        device (torch.device, optional): The device where the model is loaded (default: gpu if available).
-        verbose (bool, optional): Whether to print the model information (default: ``True``).
+        p_dropouts (float, Optional): The dropout probability (default: ``0.0``).
+        device (torch.device, Optional): The device where the model is loaded (default: gpu if available).
+        verbose (bool, Optional): Whether to print the model information (default: ``True``).
         **layer_kwargs: Additional keyword arguments to pass to the layer type. For example, the order of the Taylor series or the degree of the Chebyshev polynomial.
     """
 
@@ -95,8 +95,8 @@ class KAN(nn.Module):
     @cr("KAN.fit")
     def fit(
         self,
-        train_dataset,
-        eval_dataset,
+        train_dataset: torch.utils.data.Dataset,
+        eval_dataset: torch.utils.data.Dataset,
         batch_size: int = 32,
         epochs: int = 100,
         lr: float = 0.001,
@@ -115,36 +115,36 @@ class KAN(nn.Module):
         Train the model using the provided training dataset. The model is trained using the Adam optimizer with the provided learning rate and learning rate decay factor.
 
         Args:
-            train_dataset: The training dataset.
-            eval_dataset: The evaluation dataset.
-            batch_size (int): The batch size.
-            epochs (int): The number of epochs to train the model.
-            lr (float): The learning rate for the Adam optimizer.
-            optimizer_class (torch.optim, optional): The optimizer to use. Disponibles todos las opciones de PyTorch excepto AdaDelta. (default: ``optim.Adam``).
-            scheduler_type (str, opcional): Scheduler type to adjust the learning rate dynamically.
-                The available options are:
+            train_dataset (torch.utils.data.Dataset): The training dataset.
+            eval_dataset (torch.utils.data.Dataset): The evaluation dataset.
+            batch_size (int): The batch size. (default: ``32``).
+            epochs (int): The number of epochs to train the model. (default: ``100``).
+            lr (float): The learning rate for the Adam optimizer. (default: ``0.001``).
+            optimizer_class (torch.optim, Optional): The optimizer to use. Available all optimizers from PyTorch except AdaDelta. (default: ``optim.Adam``).
+            scheduler_type (str, opcional): Scheduler type to adjust the learning rate dynamically. (default: ``"StepLR"``).
+                Available options:
+
                 - "StepLR": Reduce the learning rate by a factor every ``step_size`` batches.
                 - "ReduceLROnPlateau": Reduces the learning rate when a metric has stopped improving.
                 - "OneCycleLR": Adjust the learning rate in a single cycle of the training.
-                StepRL and OneCycleLR update the learning rate every batch, while ReduceLROnPlateau updates the learning rate when the metric stops improving after each epoch.
-                (default: "StepLR").
-            lr_kwargs (dict, opcional): Dictionary containing the specific parameters for the learning rate scheduler. 
-                Examples:
+            lr_kwargs (dict, opcional): Dictionary containing the specific parameters for the learning rate scheduler. (default: ``{}``).
+                Some examples are:
+                
                 - StepLR: {"step_size": int, "gamma": float}.
                 - ReduceLROnPlateau: {"mode": str, "factor": float, "patience": int}.
                 - OneCycleLR: {"anneal_strategy": str, "div_factor": float}.
-                (default: `{}`).
-            opti_kwargs (dict, optional): Additional keyword arguments to pass to the optimizer (default: `{}`).
-            print_eval_rate (int, optional): The model will be evaluated every ``print_eval_rate`` epochs and the losses will be printed. If set to 0, nothing will be printed (default: ``2``).
-            loss_fn (torch.nn.Module, optional): The loss function (default: ``nn.MSELoss()``).
-            save_logs_path (str, optional): Path to save the training and evaluation losses (default: ``None``).
-            verbose (bool, optional): Whether to print the training information (default: ``True``).
-            max_norm_grad (float, optional): The maximum norm of the gradients (default: ``float('inf')``).
-            kwargs (dict, optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):
-                - batch_size (int, optional): Batch size (default: ``32``).
-                - shuffle (bool, optional): Shuffle the data (default: ``True``).
-                - num_workers (int, optional): Number of workers to use (default: ``0``).
-                - pin_memory (bool, optional): Pin memory (default: ``True``).
+            opti_kwargs (dict, Optional): Additional keyword arguments to pass to the optimizer (default: `{}`).
+            print_eval_rate (int, Optional): The model will be evaluated every ``print_eval_rate`` epochs and the losses will be printed. If set to 0, nothing will be printed (default: ``2``).
+            loss_fn (torch.nn.Module, Optional): The loss function (default: ``nn.MSELoss()``).
+            save_logs_path (str, Optional): Path to save the training and evaluation losses (default: ``None``).
+            verbose (bool, Optional): Whether to print the training information (default: ``True``).
+            max_norm_grad (float, Optional): The maximum norm of the gradients (default: ``float('inf')``).
+            kwargs (dict, Optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):
+               
+                - batch_size (int, Optional): Batch size (default: ``32``).
+                - shuffle (bool, Optional): Shuffle the data (default: ``True``).
+                - num_workers (int, Optional): Number of workers to use (default: ``0``).
+                - pin_memory (bool, Optional): Pin memory (default: ``True``).
         """
         if verbose:
             pprint(0, "")
@@ -332,27 +332,29 @@ class KAN(nn.Module):
     @cr("KAN.predict")
     def predict(
         self,
-        X,
+        X: torch.utils.data.Dataset,
         return_targets: bool = False,
         **kwargs,
     ):
         r"""
-        Predict the target values for the input data. The dataset is loaded to a DataLoader with the provided keyword arguments.
+        Predict the target values for the input data. The dataset is loaded into a DataLoader with the provided keyword arguments.
         The model is set to evaluation mode and the predictions are made using the input data. The output can be rescaled using
         the dataset scaler.
 
         Args:
-            X: The dataset whose target values are to be predicted using the input data.
+            X (torch.utils.data.Dataset): The dataset whose target values are to be predicted using the input data.
             rescale_output (bool): Whether to rescale the output with the scaler of the dataset (default: ``True``).
-            kwargs (dict, optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):
-                - batch_size (int, optional): Batch size (default: ``32``).
-                - shuffle (bool, optional): Shuffle the data (default: ``True``).
-                - num_workers (int, optional): Number of workers to use (default: ``0``).
-                - pin_memory (bool, optional): Pin memory (default: ``True``).
+            kwargs (dict, Optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):
+                
+                - **batch_size** (int, Optional): Batch size (default: ``32``).  
+                - **shuffle** (bool, Optional): Shuffle the data (default: ``True``).  
+                - **num_workers** (int, Optional): Number of workers to use (default: ``0``).  
+                - **pin_memory** (bool, Optional): Pin memory (default: ``True``).  
 
         Returns:
-            Tuple [np.ndarray, np.ndarray]: The predictions and the true target values.
+            Tuple[np.ndarray, np.ndarray]: The predictions and the true target values.
         """
+
         dataloader_params = {
             "batch_size": 32,
             "shuffle": False,
@@ -394,7 +396,7 @@ class KAN(nn.Module):
         Args:
             path (str): Path to save the model. It can be either a path to a directory or a file name.
             If it is a directory, the model will be saved with a filename that includes the number of epochs trained.
-            save_only_model (bool, optional): Whether to only save the model, or also the optimizer and scheduler. Note that when this is true, you won't be able to resume training from checkpoint.(default: ``False``).
+            save_only_model (bool, Optional): Whether to only save the model, or also the optimizer and scheduler. Note that when this is true, you won't be able to resume training from checkpoint.(default: ``False``).
         """
         checkpoint = {
             "input_size": self.input_size,
@@ -475,8 +477,8 @@ class KAN(nn.Module):
     @cr("KAN.create_optimized_model")
     def create_optimized_model(
         cls,
-        train_dataset,
-        eval_dataset,
+        train_dataset: torch.utils.data.Dataset,
+        eval_dataset: torch.utils.data.Dataset,
         optuna_optimizer: OptunaOptimizer,
         **kwargs,
     ) -> Tuple[nn.Module, Dict]:
@@ -485,8 +487,8 @@ class KAN(nn.Module):
         If the parameters from the optimizer are a tuple, the function will optimize the parameter. If the parameter is a single value, it will be fixed during optimization.
 
         Args:
-            train_dataset: The training dataset.
-            eval_dataset: The evaluation dataset.
+            train_dataset (torch.utils.data.Dataset): The training dataset.
+            eval_dataset (torch.utils.data.Dataset): The evaluation dataset.
             optuna_optimizer (OptunaOptimizer): The optimizer to use for optimization.
             kwargs: Additional keyword arguments.
 
@@ -755,8 +757,8 @@ class JacobiLayer(nn.Module):
         input_dim (int): The number of input features.
         output_dim (int): The number of output features.
         degree (int): The degree of the Jacobi polynomial.
-        a (float, optional): The first parameter of the Jacobi polynomial (default: ``1.0``).
-        b (float, optional): The second parameter of the Jacobi polynomial (default: ``1.0``).
+        a (float, Optional): The first parameter of the Jacobi polynomial (default: ``1.0``).
+        b (float, Optional): The second parameter of the Jacobi polynomial (default: ``1.0``).
     """
 
     def __init__(self, input_dim, output_dim, degree, a=1.0, b=1.0):
