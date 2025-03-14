@@ -54,6 +54,7 @@ jobs:
         run: |
           sudo apt install pandoc
           pip install -r requirements_docs.txt
+      - name: Build the documentation 
         run: |
           sphinx-apidoc -f -o docs/source/api pyLOM -t docs/source/_templates
           cd docs/source
