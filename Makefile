@@ -155,16 +155,19 @@ python: setup.py
 requirements: requirements.txt
 	@${PIP} install -r $<
 
-requirements_optional: requirements_optional.txt
+requirements_cupy: requirements_cupy.txt
 	@${PIP} install -r $<
 
 requirements_NN: requirements_NN.txt
 	@${PIP} install -r $<
 
+requirements_optional: requirements_optional.txt
+	@${PIP} install -r $<
+
 requirements_GPR: requirements_GPR.txt
 	@${PIP} install -r $<
 
-requirements_full: requirements requirements_optional requirements_NN
+requirements_full: requirements requirements_cupy requirements_NN requirements_optional
 
 
 install: requirements python
@@ -213,12 +216,13 @@ nfft: Deps/nfft
 clean:
 	-@cd pyLOM; rm -rf *.o $(wildcard **/*.o)
 	-@cd pyLOM; rm -rf *.pyc $(wildcard **/*.pyc)
-	-@cd pyLOM; rm -rf __pycache__ utils/__pycache__ vmmath/__pycache__ inp_out/__pycache__
+	-@cd pyLOM; rm -rf __pycache__ utils/__pycache__  MANIFOLD/__pycache__ GPR/__pycache__ GPOD/__pycache__ 
 	-@cd pyLOM; rm -rf POD/__pycache__ POD/*.c POD/*.cpp POD/*.html
 	-@cd pyLOM; rm -rf DMD/__pycache__ DMD/*.c DMD/*.cpp DMD/*.html
 	-@cd pyLOM; rm -rf SPOD/__pycache__ SPOD/*.c SPOD/*.cpp SPOD/*.html
-	-@cd pyLOM; rm -rf vmmath/*.c vmmath/*.cpp vmmath/*.html
-	-@cd pyLOM; rm -rf inp_out/*.c inp_out/*.cpp inp_out/*.html
+	-@cd pyLOM; rm -rf vmmath/__pycache__ vmmath/*.c vmmath/*.cpp vmmath/*.html
+	-@cd pyLOM; rm -rf inp_out/__pycache__ inp_out/*.c inp_out/*.cpp inp_out/*.html
+	-@cd pyLOM; rm -rf NN/__pycache__ NN/architectures/__pycache__ 
 
 cleanall: clean
 	-@rm -rf build

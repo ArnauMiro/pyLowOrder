@@ -7,8 +7,9 @@ import numpy as np
 from scipy.sparse.csgraph import shortest_path
 from scipy.linalg import eigh
 
-from ..vmmath import euclidean_d
-from ..utils  import cr, raiseError, pprint
+from ..utils.gpu import cp
+from ..vmmath    import euclidean_d
+from ..utils     import cr_nvtx as cr, raiseError, pprint
 
 
 @cr('MANIFOLD.isomap')
@@ -37,7 +38,8 @@ def isomap(X:np.ndarray, dims:int, n_size:int, comp:int = 1 ,verbose:bool = True
         Edge matrix for neighborhood graph.
     """    
     # Compute pairwise distances in a condensed form and convert to a square form
-    D = euclidean_d(X)
+    D = cp.asnumpy(euclidean_d(X)) if type(X) is cp.ndarray else euclidean_d(X)
+
     # Step 0: Initialization and Parameters
     N = D.shape[0]
     if D.shape[1] != N:
@@ -135,7 +137,7 @@ def mds(X:np.ndarray, dims:int, verbose:bool = True):
         Contains coordinates for d-dimensional embeddings in Y.
     """
     # Step 1: Compute the pairwise Euclidean distance matrix and square it
-    D = euclidean_d(X)
+    D = cp.asnumpy(euclidean_d(X)) if type(X) is cp.ndarray else euclidean_d(X)
     D = D * D
 
     # Step 2: Apply the custom centering formula to get matrix B

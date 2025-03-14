@@ -12,9 +12,6 @@ cimport numpy as np
 
 import numpy as np
 
-from libc.stdlib   cimport malloc, free
-from libc.string   cimport memcpy, memset
-from libc.math     cimport pow, floor, ceil, log2, cos, M_PI, sqrt
 #from libc.complex  cimport creal, cimag
 cdef extern from "<complex.h>" nogil:
 	float  complex I
@@ -23,84 +20,16 @@ cdef extern from "<complex.h>" nogil:
 	float crealf(float complex z)
 	double cimag(double complex z)
 	double creal(double complex z)
+cdef double complex J = 1j
+from libc.stdlib     cimport malloc, free
+from libc.string     cimport memcpy, memset
+from libc.math       cimport pow, floor, ceil, log2, sqrt
+from ..vmmath.cfuncs cimport real, real_complex
+from ..vmmath.cfuncs cimport c_ssort, c_svector_mean, c_stemporal_mean, c_ssubtract_mean, c_shammwin, c_sfft1D, c_ctsqr_svd
+from ..vmmath.cfuncs cimport c_dsort, c_dvector_mean, c_dtemporal_mean, c_dsubtract_mean, c_dhammwin, c_dfft1D, c_ztsqr_svd
 
-from ..utils.cr     import cr, cr_start, cr_stop
-from ..utils.errors import raiseError
+from ..utils.cr       import cr, cr_start, cr_stop
 
-cdef extern from "vector_matrix.h" nogil:
-	# Single precision
-	cdef void   c_ssort "ssort"(float *v, int *index, int n)
-	# Double precision
-	cdef void   c_dsort "dsort"(double *v, int *index, int n)
-cdef extern from "averaging.h":
-	# Single precision
-	cdef void c_stemporal_mean "stemporal_mean"(float *out, float *X, const int m, const int n)
-	cdef void c_ssubtract_mean "ssubtract_mean"(float *out, float *X, float *X_mean, const int m, const int n)
-	# Double precision
-	cdef void c_dtemporal_mean "dtemporal_mean"(double *out, double *X, const int m, const int n)
-	cdef void c_dsubtract_mean "dsubtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
-cdef extern from "svd.h":
-	# Single complex precision
-	cdef int c_ctsqr_svd "ctsqr_svd"(np.complex64_t *Ui, float *S, np.complex64_t *VT, np.complex64_t *Ai, const int m, const int n)
-	# Double complex precision
-	cdef int c_ztsqr_svd "ztsqr_svd"(np.complex128_t *Ui, double *S, np.complex128_t *VT, np.complex128_t *Ai, const int m, const int n)
-cdef extern from "fft.h":
-	# Single complex precision
-	cdef void c_sfft1D "sfft1D"(np.complex64_t *out, float *y, const int n)
-	# Double complex precision
-	cdef void c_dfft1D "dfft1D"(np.complex128_t *out, double *y, const int n)
-
-
-## Fused type between double and complex
-ctypedef fused real:
-	float
-	double
-ctypedef fused real_complex:
-	np.complex64_t
-	np.complex128_t
-
-
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
-@cython.nonecheck(False)
-@cython.cdivision(True)    # turn off zero division check
-cdef void _shammwin(float *out, int N):
-	cdef int i
-	for i in range(N):
-		out[i] = 0.54 - 0.46*cos(2*M_PI*i/(N-1))
-
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
-@cython.nonecheck(False)
-@cython.cdivision(True)    # turn off zero division check
-cdef void _dhammwin(double *out, int N):
-	cdef int i
-	for i in range(N):
-		out[i] = 0.54 - 0.46*cos(2*M_PI*i/(N-1))
-
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
-@cython.nonecheck(False)
-@cython.cdivision(True)    # turn off zero division check
-cdef float _smean(float *X, int n) noexcept:
-	cdef int i
-	cdef float out = 0.
-	for i in range(n):
-		out += X[i]
-	out /= <float>(n)
-	return out
-
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
-@cython.nonecheck(False)
-@cython.cdivision(True)    # turn off zero division check
-cdef double _dmean(double *X, int n) noexcept:
-	cdef int i
-	cdef double out = 0.
-	for i in range(n):
-		out += X[i]
-	out /= <double>(n)
-	return out
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
@@ -256,10 +185,10 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean):
 	# Allocate vector
 	window = <float*>malloc(nDFT*sizeof(float))
 	# Compute Hamming window
-	_shammwin(window,nDFT)
+	c_shammwin(window,nDFT)
 
 	# Correction for FFT window gain
-	winWeight = 1.0/_smean(window,nDFT)
+	winWeight = 1.0/c_svector_mean(window,0,nDFT)
 
 	if nolap == 0:
 		nolap = <int>(floor(nDFT/2))
@@ -398,10 +327,10 @@ def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean):
 	# Allocate vector
 	window = <double*>malloc(nDFT*sizeof(double))
 	# Compute Hamming window
-	_dhammwin(window,nDFT)
+	c_dhammwin(window,nDFT)
 
 	# Correction for FFT window gain
-	winWeight = 1.0/_dmean(window,nDFT)
+	winWeight = 1.0/c_dvector_mean(window,0,nDFT)
 
 	if nolap == 0:
 		nolap = <int>(floor(nDFT/2))

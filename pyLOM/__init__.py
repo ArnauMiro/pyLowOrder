@@ -12,12 +12,14 @@ from .partition_table import PartitionTable
 from .mesh            import Mesh
 
 # Import utilities
-from .utils.cr     import cr, cr_start, cr_stop, cr_reset, cr_info
+from .utils.cr     import cr, cr_nvtx, cr_start, cr_stop, cr_reset, cr_info
+from .utils.nvtxp  import nvtxp
 from .utils.parall import pprint
 from .utils.plots  import show_plots, close_plots, style_plots
+from .utils.gpu    import gpu_device
 
 # Import Low Order Models
-from . import POD, DMD, SPOD, MANIFOLD
+from . import POD, DMD, SPOD, MANIFOLD, GPOD
 
 # Import AI Models
 # Leaving this commented as the NN module overloads the memory when loaded

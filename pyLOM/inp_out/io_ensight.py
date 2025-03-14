@@ -9,9 +9,8 @@ from __future__ import print_function, division
 
 import numpy as np
 
-from ..utils.cr     import cr
-from ..utils.parall import MPI_RANK, MPI_SIZE, MPI_COMM, MPI_RDONLY, MPI_WRONLY, MPI_CREATE
-from ..utils.parall import mpi_file_open, worksplit, mpi_reduce, mpi_bcast
+from ..utils     import cr, worksplit, mpi_reduce, mpi_bcast
+from ..utils.mpi import MPI_RANK, MPI_SIZE, MPI_COMM, MPI_RDONLY, MPI_WRONLY, MPI_CREATE, mpi_file_open
 
 ENSI2ELTYPE = {
 	'tria3'  : 2, # Triangular cell

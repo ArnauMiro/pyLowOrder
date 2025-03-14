@@ -17,7 +17,7 @@ name = "pyLowOrder"
 #
 # For a discussion on single-sourcing the version, see
 # https://packaging.python.org/guides/single-sourcing-package-version/
-version = "2.1.0"
+version = "3.0.0"
 
 # This is a one-line description or tagline of what your project does. This
 # corresponds to the "Summary" metadata field:
@@ -124,6 +124,16 @@ dependencies = [
 # Similar to `dependencies` above, these must be valid existing
 # projects.
 [project.optional-dependencies] 
+# Dependencies on cupy
+cuda = [
+    "cupy",
+]
+cuda12x = [
+    "cupy-cuda12x",
+]
+rocm-4-0 = [
+    "cupy-rocm-4-0",
+]
 # Dependencies to work with the NN module
 NN = [
   "torch>=2.3.0",
@@ -142,6 +152,8 @@ GPR = [
 optionals = [
   "ensight-reader",
   "pyvista",
+  "scikit-learn",
+  "nvtx",
 ]
 
 # List URLs that are relevant to your project

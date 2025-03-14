@@ -348,5 +348,29 @@
 		"nprocs" : 1,
 		"reset"  : false,
 		"active" : false
+	},
+
+	"comment": "GPOD tests",
+	"GPOD_Cylinder": {
+		"name"   : "GPOD vector 2D",
+		"module" : "GPOD",
+		"file"   : "runs/tsuite_GPOD_vector.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {"gpod":{"centered":false,"apply_truncation":true,"truncation_param":-0.99,"reconstruction_method":"ridge","ridge_lambda":0.01},"snap":15},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"GPOD_Cylinder1": {
+		"name"   : "GPOD full 2D",
+		"module" : "GPOD",
+		"file"   : "runs/tsuite_GPOD.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {"gpod":{"centered":false,"apply_truncation":true,"truncation_param":-0.98,"reconstruction_method":"ridge","ridge_lambda":0.1},"missing_percentage":0.15,"num_iter":20},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
 	}
 }

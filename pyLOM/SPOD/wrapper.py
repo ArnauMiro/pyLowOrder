@@ -10,13 +10,10 @@ from __future__ import print_function
 import numpy as np
 import scipy
 
-from ..vmmath       import temporal_mean, subtract_mean, tsqr_svd
-from ..utils.cr     import cr, cr_start, cr_stop
-from ..utils.errors import raiseError
+from ..utils.gpu import cp
+from ..vmmath    import temporal_mean, subtract_mean, tsqr_svd, hammwin
+from ..utils     import cr_nvtx as cr, cr_start, cr_stop
 
-
-def _hammwin(N):
-	return np.transpose(0.54-0.46*np.cos(2*np.pi*np.arange(N)/(N-1)))
 
 def _fft(Xf, winWeight, nDFT, nf):
 	return (winWeight/nDFT)*scipy.fft.fft(Xf)[:nf]
@@ -40,21 +37,21 @@ def run(X, t, nDFT=0, nolap=0, remove_mean=True):
 		- P:  SPOD modes, whose spatial dimensions are identical to those of X.
 		- f:  frequency vector.
 	''' 
-	M = X.shape[0]
-	N = X.shape[1]
-	dt = t[1] - t[0]
+	cnp = cp if type(X) is cp.ndarray else np
+	M,N = X.shape
+	dt  = t[1] - t[0]
 	cdtype = np.complex128 if X.dtype is np.double else np.complex64
 	
 	if nDFT == 0:
 		nDFT = int(np.power(2,np.floor(np.log2(N/10))))
-	window = _hammwin(nDFT)
+	window = hammwin(nDFT)
 	if nolap == 0:
 		nolap = int(np.floor(nDFT/2))
 	nBlks = int(np.floor((N-nolap)/(nDFT-nolap)))
-	#Correction for FFT window gain
+	# Correction for FFT window gain
 	winWeight = 1/np.mean(window)
 
-	#Remove temporal mean
+	# Remove temporal mean
 	if remove_mean:
 		cr_start('SPOD.temporal_mean',0)
 		X_mean = temporal_mean(X)
@@ -63,13 +60,13 @@ def run(X, t, nDFT=0, nolap=0, remove_mean=True):
 	else:
 		Y = X.copy()
 
-	#Set frequency axis
+	# Set frequency axis
 	f  = np.arange(np.ceil(nDFT / 2) + 1) / dt / nDFT
 	nf = f.shape[0]
 	qk = np.zeros((M,nf),cdtype)
 	Q  = np.zeros((M*nf,nBlks),cdtype)
-	L  = np.zeros((nf,nBlks),X.dtype)
-	P  = np.zeros((M*nBlks,nf),X.dtype)
+	# Sent to CPU for FFT
+	Y  = cp.asnumpy(Y) if type(X) is cp.ndarray else Y
 	cr_start('SPOD.fft',0)
 	for iblk in range(nBlks):
 		# Get time index for present block
@@ -82,16 +79,20 @@ def run(X, t, nDFT=0, nolap=0, remove_mean=True):
 		Q[:, iblk] = qk.reshape((M*nf), order='F')
 	cr_stop('SPOD.fft',0)
 
+	Q  = cp.asarray(Q) if type(X) is cp.ndarray else Q
+	L  = cnp.zeros((nf,nBlks),X.dtype)
+	P  = cnp.zeros((M*nBlks,nf),X.dtype)
 	cr_start('SPOD.SVD',0)
 	for ifreq, freq in enumerate(f):
-		qf         = Q[ifreq*M:(ifreq+1)*M, :].copy()/np.sqrt(nBlks)
+		qf         = Q[ifreq*M:(ifreq+1)*M, :].copy()/cnp.sqrt(nBlks)
 		U, S, V    = tsqr_svd(qf)
-		P[:,ifreq] = np.real(U.reshape((M*nBlks), order='F'))
-		L[ifreq,:] = np.abs(S*S)
+		P[:,ifreq] = cnp.real(U.reshape((M*nBlks), order='F'))
+		L[ifreq,:] = cnp.abs(S*S)
 	cr_stop('SPOD.SVD',0)
 
 	cr_start('SPOD.sort',0)
-	order = np.argsort(L[:,0])[::-1]
+	f     = cp.asarray(f) if type(X) is cp.ndarray else f
+	order = cnp.argsort(L[:,0])[::-1]
 	P = P[:, order]
 	f = f[order]
 	L = L[order,:]
