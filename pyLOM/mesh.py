@@ -9,12 +9,9 @@ from __future__ import print_function, division
 
 import os, numpy as np
 
-from .             import inp_out as io
-from .vmmath       import cellCenters, normals
-from .utils.cr     import cr
-from .utils.mem    import mem
-from .utils.errors import raiseError
-from .utils.parall import mpi_reduce
+from .       import inp_out as io
+from .vmmath import cellCenters, normals
+from .utils  import cr_nvtx as cr, mem, raiseError, mpi_reduce
 
 
 ALYA2ELTYP = {

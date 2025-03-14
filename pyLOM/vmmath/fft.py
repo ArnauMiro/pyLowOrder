@@ -9,7 +9,8 @@ from __future__ import print_function, division
 
 import numpy as np, scipy, nfft
 
-from ..utils.cr     import cr
+from .maths  import conj
+from ..utils import cr_nvtx as cr
 
 
 @cr('math.hammwin')

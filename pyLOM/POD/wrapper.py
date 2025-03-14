@@ -7,10 +7,8 @@
 # Last rev: 09/07/2021
 from __future__ import print_function
 
-import numpy as np
-
 from ..vmmath       import vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, randomized_svd, compute_truncation_residual
-from ..utils.cr     import cr, cr_start, cr_stop
+from ..utils.cr     import cr_nvtx as cr, cr_start, cr_stop
 
 
 ## POD run method
