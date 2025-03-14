@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 
 from .utils        import extract_modes
 from ..vmmath      import fft
+from ..utils       import gpu_to_cpu
 from ..utils.plots import plotResidual, plotFieldStruct2D, plotSnapshot, plotLayout
 
 
@@ -19,6 +20,7 @@ def plotMode(L, P, freqs, mesh, dset, ivar, pointData=True, modes=np.array([1],n
 	'''
 	Plot the real and imaginary parts of a mode
 	'''
+	L, P = gpu_to_cpu(L), gpu_to_cpu(P)
 	# Extract the modes to be plotted
 	npoints = mesh.size(pointData)
 	P_modes = extract_modes(L,P,ivar,npoints,modes=modes)
@@ -34,6 +36,7 @@ def plotMode(L, P, freqs, mesh, dset, ivar, pointData=True, modes=np.array([1],n
 	dset.delete('P_MODES')
 
 def plotSpectra(f, L, fig=None, ax=None):
+	L, f = gpu_to_cpu(L), gpu_to_cpu(f)
 	# Get or recover axis and figure
 	if fig is None:
 		fig = plt.figure(figsize=(8,6),dpi=100)

@@ -7,15 +7,11 @@
 # Last rev: 09/07/2021
 from __future__ import print_function, division
 
-import numpy as np, mpi4py, copy, functools
-mpi4py.rc.recv_mprobe = False
-from mpi4py import MPI
+import numpy as np, copy, functools
 
-from .errors import raiseError
+from .mpi    import MPI, MPI_RANK, MPI_SIZE, mpi_reduce
+from .errors import raiseError, raiseWarning
 
-comm     = MPI.COMM_WORLD
-mpi_rank = comm.Get_rank()
-mpi_size = comm.Get_size()
 
 CHANNEL_DICT = {}
 
@@ -171,15 +167,15 @@ def _info_serial():
 	print('',flush=True)
 
 def _info_parallel():
-	CHANNEL_DICT_G = comm.reduce(CHANNEL_DICT,op=cr_reduce,root=0)
+	CHANNEL_DICT_G = mpi_reduce(CHANNEL_DICT,root=0,op=cr_reduce,all=False)
 
-	if mpi_rank == 0:
+	if MPI_RANK == 0:
 		tsum_array = np.array([CHANNEL_DICT_G[key].tsum for key in CHANNEL_DICT_G.keys()])
 		name_array = np.array([CHANNEL_DICT_G[key].name for key in CHANNEL_DICT_G.keys()])	
 	
 		ind = np.argsort(tsum_array) # sorted indices
 
-		print('\ncr_info (mpi size: %d):' % (mpi_size),flush=True)
+		print('\ncr_info (mpi size: %d):' % (MPI_SIZE),flush=True)
 		for ii in ind[::-1]:
 			print(CHANNEL_DICT_G[name_array[ii]],flush=True)
 		print('',flush=True)
@@ -195,7 +191,7 @@ def cr_info(rank=-1):
 	'''
 	Print information - order by major sum
 	'''
-	if rank >= 0 and rank == mpi_rank:
+	if rank >= 0 and rank == MPI_RANK:
 		_info_serial()
 	else:
 		_info_parallel()
@@ -236,6 +232,9 @@ def cr_time(ch_name,suff):
 	return channel.elapsed(end)
 
 def cr(ch_name,suff=0):
+	'''
+	CR decorator
+	'''
 	def decorator(func):
 		@functools.wraps(func)
 		def wrapper(*args,**kwargs):
@@ -245,3 +244,38 @@ def cr(ch_name,suff=0):
 			return out
 		return wrapper
 	return decorator
+
+try:
+	import nvtx
+
+	def cr_nvtx(ch_name,suff=0,color="green"):
+		'''
+		CR NVTX decorator
+		'''
+		def decorator(func):
+			@functools.wraps(func)
+			def wrapper(*args,**kwargs):
+				cr_start(ch_name,suff)
+				with nvtx.annotate(message=ch_name,color=color):
+					out = func(*args,**kwargs)
+				cr_stop(ch_name,suff)
+				return out
+			return wrapper
+		return decorator
+
+except:
+	raiseWarning('Import - NVTX not present!',False)
+
+	def cr_nvtx(ch_name,suff=0,color="green"):
+		'''
+		CR NVTX decorator
+		'''
+		def decorator(func):
+			@functools.wraps(func)
+			def wrapper(*args,**kwargs):
+				cr_start(ch_name,suff)
+				out = func(*args,**kwargs)
+				cr_stop(ch_name,suff)
+				return out
+			return wrapper
+		return decorator

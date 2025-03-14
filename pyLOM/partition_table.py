@@ -9,9 +9,7 @@ from __future__ import print_function, division
 
 import numpy as np
 
-from .utils.parall import MPI_SIZE, worksplit, mpi_gather
-from .utils.cr     import cr
-from .utils.mem    import mem
+from .utils import cr, mem, MPI_SIZE, worksplit, mpi_gather
 
 
 class PartitionTable(object):

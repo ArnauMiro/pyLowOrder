@@ -9,8 +9,9 @@ from __future__ import print_function, division
 
 import numpy as np
 
-from .maths     import transpose, matmul, inv
-from ..utils.cr import cr
+from ..utils.gpu import cp
+from .maths      import transpose, matmul, inv
+from ..utils     import cr_nvtx as cr
 
 
 # This equation could be moved to the vmath module
@@ -31,7 +32,8 @@ def ridge_regresion(A,b,lam):
 	'''
 	Ridge regression
 	'''
-	I = np.sqrt(lam)*np.eye(A.shape[1])
-	augmented_A = np.vstack([A, I])
-	augmented_b = np.hstack([b,np.zeros((I.shape[0],))])
+	p = cp if type(A) is cp.ndarray else np
+	I = p.sqrt(lam)*p.eye(A.shape[1])
+	augmented_A = p.vstack([A, I])
+	augmented_b = p.hstack([b,p.zeros((I.shape[0],))])
 	return least_squares(augmented_A,augmented_b)

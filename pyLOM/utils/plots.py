@@ -10,9 +10,8 @@ from __future__ import print_function, division
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ..vmmath       import vector_norm
-from ..utils.cr     import cr
-from ..utils.errors import raiseWarning
+from ..vmmath import vector_norm
+from ..utils  import cr_nvtx as cr, gpu_to_cpu, raiseWarning
 
 
 def show_plots():
@@ -50,6 +49,7 @@ def plotResidual(S,fig=None,ax=None):
 	Given the S matrix as a vector, plot
 	the accumulated residual.
 	'''
+	S = gpu_to_cpu(S)
 	# Build figure and axes
 	if fig is None:
 		fig = plt.figure(figsize=(8,6),dpi=100)

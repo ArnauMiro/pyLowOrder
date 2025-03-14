@@ -11,9 +11,7 @@ import os, numpy as np, h5py
 
 from ..partition_table import PartitionTable
 from ..mesh            import MTYPE2ID, ID2MTYPE
-from ..utils.cr        import cr
-from ..utils.parall    import MPI_COMM, MPI_RANK, MPI_SIZE, worksplit, writesplit, is_rank_or_serial, mpi_reduce, mpi_gather
-from ..utils.errors    import raiseError
+from ..utils           import cr, MPI_COMM, MPI_RANK, MPI_SIZE, worksplit, writesplit, is_rank_or_serial, mpi_reduce, mpi_gather, raiseError
 
 
 PYLOM_H5_VERSION = (3,0)

@@ -7,15 +7,11 @@
 # Last rev: 11/04/2023
 from __future__ import print_function, division
 
-import sys, numpy as np, mpi4py, copy, functools, subprocess
-mpi4py.rc.recv_mprobe = False
-from mpi4py import MPI
+import sys, numpy as np, copy, functools, subprocess
 
+from .mpi    import MPI, MPI_RANK, MPI_SIZE, mpi_reduce
 from .errors import raiseError
 
-comm     = MPI.COMM_WORLD
-mpi_rank = comm.Get_rank()
-mpi_size = comm.Get_size()
 
 PLATFORM = sys.platform
 
