@@ -23,7 +23,7 @@ def pv_writer(Mesh,Dataset,casestr,basedir='./',idim=0,instants=[0],times=[0.],v
 	'''
 	os.makedirs(basedir,exist_ok=True)
 	if fmt.lower() in ['vtkh5','vtkhdf']:
-		VTKHDF5Writer(Mesh,Dataset,casestr,basedir,instants,times,vars,idim)
+		VTKHDF5Writer(Mesh,Dataset,casestr,basedir,instants,times,vars,idim,mode)
 	else:
 		raiseError('Format <%s> not implemented!'%fmt)
 
