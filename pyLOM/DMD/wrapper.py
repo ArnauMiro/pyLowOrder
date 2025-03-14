@@ -8,11 +8,10 @@
 from __future__ import print_function
 
 import numpy as np
-from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, matmulp, vandermondeTime
+
+from ..vmmath       import vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, matmulp, vandermondeTime
 from ..POD          import truncate
 from ..utils.cr     import cr, cr_start, cr_stop
-from ..utils.errors import raiseError
-from ..utils.parall import mpi_gather, mpi_reduce, pprint
 
 
 def _order_modes(muReal, muImag, Phi, bJov):

@@ -12,9 +12,6 @@ cimport numpy as np
 
 import numpy as np
 
-from libc.stdlib   cimport malloc, free
-from libc.string   cimport memcpy, memset
-from libc.math     cimport sqrt, log, atan2
 #from libc.complex  cimport creal, cimag
 cdef extern from "<complex.h>" nogil:
 	float  complex I
@@ -24,71 +21,17 @@ cdef extern from "<complex.h>" nogil:
 	double cimag(double complex z)
 	double creal(double complex z)
 cdef double complex J = 1j
+from libc.stdlib     cimport malloc, free
+from libc.string     cimport memcpy, memset
+from libc.math       cimport sqrt, log, atan2
+from ..vmmath.cfuncs cimport real, real_complex
+from ..vmmath.cfuncs cimport c_stranspose, c_smatmul, c_smatmulp, c_svecmat, c_stemporal_mean, c_ssubtract_mean, c_stsqr_svd, c_ssvd, c_scompute_truncation_residual, c_scompute_truncation
+from ..vmmath.cfuncs cimport c_dtranspose, c_dmatmul, c_dmatmulp, c_dvecmat, c_dtemporal_mean, c_dsubtract_mean, c_dtsqr_svd, c_dsvd, c_dcompute_truncation_residual, c_dcompute_truncation
+from ..vmmath.cfuncs cimport c_cmatmult, c_cvecmat, c_cinverse, c_ccholesky, c_ceigen, c_cvandermonde, c_cvandermonde_time, c_csort
+from ..vmmath.cfuncs cimport c_zmatmult, c_zvecmat, c_zinverse, c_zcholesky, c_zeigen, c_zvandermonde, c_zvandermonde_time, c_zsort
 
-from ..utils.cr     import cr, cr_start, cr_stop
-from ..utils.errors import raiseError
-
-cdef extern from "vector_matrix.h":
-	# Single precision
-	cdef void   c_stranspose          "stranspose"(float *A, float *B, const int m, const int n)
-	cdef float  c_svector_norm        "svector_norm"(float *v, int start, int n)
-	cdef void   c_smatmul             "smatmul"(float *C, float *A, float *B, const int m, const int n, const int k)
-	cdef void   c_smatmulp            "smatmulp"(float *C, float *A, float *B, const int m, const int n, const int k)
-	cdef void   c_svecmat             "svecmat"(float *v, float *A, const int m, const int n)	
-	# Double precision
-	cdef void   c_dtranspose          "dtranspose"(double *A, double *B, const int m, const int n)
-	cdef double c_dvector_norm        "dvector_norm"(double *v, int start, int n)
-	cdef void   c_dmatmul             "dmatmul"(double *C, double *A, double *B, const int m, const int n, const int k)
-	cdef void   c_dmatmulp            "dmatmulp"(double *C, double *A, double *B, const int m, const int n, const int k)
-	cdef void   c_dvecmat             "dvecmat"(double *v, double *A, const int m, const int n)
-	# Single complex precision
-	cdef void   c_cmatmult            "cmatmult"(np.complex64_t *C, np.complex64_t *A, np.complex64_t *B, const int m, const int n, const int k, const char *TA, const char *TB)
-	cdef void   c_cvecmat             "cvecmat"(np.complex64_t *v, np.complex64_t *A, const int m, const int n)
-	cdef int    c_cinverse            "cinverse"(np.complex64_t *A, int N, char *UoL)
-	cdef int    c_ccholesky           "ccholesky"(np.complex64_t *A, int N)
-	cdef int    c_ceigen              "ceigen"(float *real, float *imag, np.complex64_t *vecs, float *A, const int m, const int n)
-	cdef void   c_cvandermonde        "cvandermonde"(np.complex64_t *Vand, float *real, float *imag, int m, int n)
-	cdef void   c_cvandermonde_time   "cvandermondeTime"(np.complex64_t *Vand, float *real, float *imag, int m, int n, float* t)
-	cdef void   c_csort               "csort"(np.complex64_t *v, int *index, int n)
-	# Double complex precision
-	cdef void   c_zmatmult            "zmatmult"(np.complex128_t *C, np.complex128_t *A, np.complex128_t *B, const int m, const int n, const int k, const char *TA, const char *TB)
-	cdef void   c_zvecmat             "zvecmat"(np.complex128_t *v, np.complex128_t *A, const int m, const int n)
-	cdef int    c_zinverse            "zinverse"(np.complex128_t *A, int N, char *UoL)
-	cdef int    c_zcholesky           "zcholesky"(np.complex128_t *A, int N)
-	cdef int    c_zeigen              "zeigen"(double *real, double *imag, np.complex128_t *vecs, double *A, const int m, const int n)
-	cdef void   c_zvandermonde        "zvandermonde"(np.complex128_t *Vand, double *real, double *imag, int m, int n)
-	cdef void   c_zvandermonde_time   "zvandermondeTime"(np.complex128_t *Vand, double *real, double *imag, int m, int n, double* t)
-	cdef void   c_zsort               "zsort"(np.complex128_t *v, int *index, int n)
-cdef extern from "averaging.h":
-	# Single precision
-	cdef void c_stemporal_mean "stemporal_mean"(float *out, float *X, const int m, const int n)
-	cdef void c_ssubtract_mean "ssubtract_mean"(float *out, float *X, float *X_mean, const int m, const int n)
-	# Double precision
-	cdef void c_dtemporal_mean "dtemporal_mean"(double *out, double *X, const int m, const int n)
-	cdef void c_dsubtract_mean "dsubtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
-cdef extern from "svd.h":
-	# Single precision
-	cdef int c_stsqr_svd "stsqr_svd"(float *Ui, float *S, float *VT, float *Ai, const int m, const int n)
-	cdef int c_ssvd      "ssvd"(float *U, float *S, float *VT, float *Y, const int m, const int n)
-	# Double precision
-	cdef int c_dtsqr_svd "dtsqr_svd"(double *Ui, double *S, double *VT, double *Ai, const int m, const int n)
-	cdef int c_dsvd      "dsvd"(double *U, double *S, double *VT, double *Y, const int m, const int n)
-cdef extern from "truncation.h":
-	# Single precision
-	cdef int  c_scompute_truncation_residual "scompute_truncation_residual"(float *S, float res, const int n)
-	cdef void c_scompute_truncation          "scompute_truncation"(float *Ur, float *Sr, float *VTr, float *U, float *S, float *VT, const int m, const int n, const int nmod, const int N)
-	# Double precision
-	cdef int  c_dcompute_truncation_residual "dcompute_truncation_residual"(double *S, double res, const int n)
-	cdef void c_dcompute_truncation          "dcompute_truncation"(double *Ur, double *Sr, double *VTr, double *U, double *S, double *VT, const int m, const int n, const int nmod, const int N)
-
-
-## Fused type between double and complex
-ctypedef fused real:
-	float
-	double
-ctypedef fused real_complex:
-	np.complex64_t
-	np.complex128_t
+from ..utils.cr       import cr, cr_start, cr_stop
+from ..utils.errors   import raiseError
 
 
 ## DMD run method
