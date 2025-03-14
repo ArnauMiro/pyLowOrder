@@ -11,6 +11,14 @@ import numpy as np
 from ..utils.gpu import cp
 
 
+def delete_snapshot(X, snap, axis=1):
+	"""
+	Remove snapshot from training data.
+	"""
+	p = cp if type(X) is cp.ndarray else np
+	return p.delete(X, snap, axis=axis)
+
+
 def set_random_elements_to_zero(vector, percentage):
 	"""
 	Randomly sets a specified percentage of elements in a vector to zero.

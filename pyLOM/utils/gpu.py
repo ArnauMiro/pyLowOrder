@@ -7,6 +7,8 @@
 # Last rev: 14/02/2025
 from __future__ import print_function, division
 
+import numpy as np
+
 from .mpi    import MPI_RANK
 from .errors import raiseWarning
 
@@ -31,6 +33,10 @@ try:
 		Move an array from GPU to CPU
 		'''
 		return cp.asarray(X) if type(X) is not cp.ndarray else X
+	
+	def ascontiguousarray(X):
+		p = cp if type(X) is cp.ndarray else np
+		return p.ascontiguousarray(X)
 
 except:
 	import numpy as cp
@@ -52,3 +58,6 @@ except:
 		Move an array from GPU to CPU
 		'''
 		return X
+
+	def ascontiguousarray(X):
+		return np.ascontiguousarray(X)
