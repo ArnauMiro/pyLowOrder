@@ -7,15 +7,10 @@
 # Last rev: 30/07/2021
 from __future__ import print_function, division
 
-import os, mpi4py, numpy as np
-mpi4py.rc.recv_mprobe = False
-from mpi4py import MPI
+import os, numpy as np
 
-from .             import inp_out as io
-from .utils.cr     import cr
-from .utils.mem    import mem
-from .utils.errors import raiseError
-from .utils.parall import mpi_reduce
+from .      import inp_out as io
+from .utils import cr_nvtx as cr, mem, raiseError, gpu_to_cpu, cpu_to_gpu
 
 
 class Dataset(object):
@@ -124,6 +119,24 @@ class Dataset(object):
 		Returns the information for a certain variable
 		'''
 		return {'point':self._point,'ndim':self._fieldict[var]['ndim']}
+	
+	def to_gpu(self,fields=None):
+		'''
+		Send field data to the GPU
+		'''
+		fields = fields if not fields is None else self.fieldnames
+		for key in fields:
+			self._fieldict[key]['value'] = cpu_to_gpu(self._fieldict[key]['value'])
+		return self
+
+	def to_cpu(self,fields=None):
+		'''
+		Send field data to the CPU
+		'''
+		fields = fields if not fields is None else self.fieldnames
+		for key in fields:
+			self._fieldict[key]['value'] = gpu_to_cpu(self._fieldict[key]['value'])
+		return self
 
 	def add_field(self,varname,ndim,var):
 		'''

@@ -8,7 +8,7 @@
 from __future__ import print_function, division
 
 import sys, numpy as np
-from .parall import MPI_RANK, MPI_COMM
+from .mpi import MPI_RANK, MPI_COMM
 
 
 def round(value,precision):

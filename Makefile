@@ -155,16 +155,19 @@ python: setup.py
 requirements: requirements.txt
 	@${PIP} install -r $<
 
-requirements_optional: requirements_optional.txt
+requirements_cupy: requirements_cupy.txt
 	@${PIP} install -r $<
 
 requirements_NN: requirements_NN.txt
 	@${PIP} install -r $<
 
+requirements_optional: requirements_optional.txt
+	@${PIP} install -r $<
+
 requirements_GPR: requirements_GPR.txt
 	@${PIP} install -r $<
 
-requirements_full: requirements requirements_optional requirements_NN
+requirements_full: requirements requirements_cupy requirements_NN requirements_optional
 
 
 install: requirements python

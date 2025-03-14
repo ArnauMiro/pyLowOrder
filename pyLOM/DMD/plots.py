@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from .utils        import extract_modes
-from ..vmmath      import fft
+from ..utils       import gpu_to_cpu
 from ..utils.plots import plotResidual, plotFieldStruct2D, plotSnapshot, plotLayout
 
 
@@ -19,6 +19,7 @@ def plotMode(Phi, omega, mesh, dset, ivar, pointData=True, modes=np.array([1],np
 	'''
 	Plot the real and imaginary parts of a mode
 	'''
+	Phi, omega = gpu_to_cpu(Phi), gpu_to_cpu(omega)
 	# Extract the modes to be plotted
 	npoints = mesh.size(pointData)
 	Phi_real = extract_modes(Phi,ivar,npoints,real=True,modes=modes)
@@ -41,6 +42,7 @@ def ritzSpectrum(real, imag, fig = None, ax = None, cmap = None):
 	'''
 	Given the real and imaginary part of the eigenvalues, plot the Ritz Spectrum together with the unit circle
 	'''
+	real, imag = gpu_to_cpu(real), gpu_to_cpu(imag)
 	if fig is None:
 		fig = plt.figure(figsize=(8,6),dpi=100)
 	if ax is None:
@@ -58,6 +60,7 @@ def amplitudeFrequency(omega, amplitude, fig = None, ax = None, cmap = None, mar
 	'''
 	Given the frequency and the amplitude of the DMD modes, plot the amplitude against the Strouhal number
 	'''
+	omega, amplitude = gpu_to_cpu(omega), gpu_to_cpu(amplitude)
 	if fig is None:
 		fig = plt.figure(figsize=(8,6),dpi=100)
 	if ax is None:
@@ -79,6 +82,7 @@ def dampingFrequency(omega, delta, fig = None, ax = None, cmap = None, mark = No
 	'''
 	Given the frequency and the damping ratio of the DMD modes, plot the amplitude against the Strouhal number
 	'''
+	omega, delta = gpu_to_cpu(omega), gpu_to_cpu(delta)
 	if fig is None:
 		fig = plt.figure(figsize=(8,6),dpi=100)
 	if ax is None:

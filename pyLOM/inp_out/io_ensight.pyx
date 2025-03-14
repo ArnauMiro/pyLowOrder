@@ -16,10 +16,8 @@ from libc.stdio  cimport FILE, fopen, fclose, fread, fwrite, fgets, feof
 from libc.stdlib cimport malloc, realloc, free, atoi, atof
 from libc.string cimport memchr, strtok, memcpy
 
-from ..utils.cr     import cr
-from ..utils.errors import raiseError
-from ..utils.parall import MPI_RANK, MPI_SIZE, MPI_COMM, MPI_RDONLY, MPI_WRONLY, MPI_CREATE
-from ..utils.parall import mpi_file_open, worksplit, mpi_reduce, mpi_bcast
+from ..utils     import cr, raiseError, worksplit, mpi_reduce, mpi_bcast
+from ..utils.mpi import MPI_RANK, MPI_SIZE, MPI_COMM, MPI_RDONLY, MPI_WRONLY, MPI_CREATE, mpi_file_open
 
 ENSI2ELTYPE = {
 	'tria3'  : 2, # Triangular cell
