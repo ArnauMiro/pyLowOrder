@@ -216,13 +216,6 @@ Module_regression = Extension('pyLOM.vmmath.regression',
 						extra_objects = extra_objects,
 						libraries     = libraries,
 					   )
-# input output module
-Module_IO_ensight  = Extension('pyLOM.inp_out.io_ensight',
-						sources      = ['pyLOM/inp_out/io_ensight.pyx'],
-						language     = 'c',
-						include_dirs = [np.get_include()],
-						libraries    = libraries,
-					   )
 # low-order modules
 Module_POD = Extension('pyLOM.POD.wrapper',
 						sources       = ['pyLOM/POD/wrapper.pyx',
@@ -266,8 +259,6 @@ Module_SPOD = Extension('pyLOM.SPOD.wrapper',
 modules_list = [
 	# Math module
 	Module_cfuncs, Module_maths, Module_averaging, Module_svd, Module_fft, Module_geometric, Module_truncation, Module_stats, Module_regression,
-	# IO module
-	Module_IO_ensight,
 	# Low order algorithms
 	Module_POD,Module_DMD,Module_SPOD
 ] if options['USE_COMPILED'] else []
