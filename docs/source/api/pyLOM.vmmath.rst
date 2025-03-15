@@ -4,10 +4,66 @@ pyLOM.vmmath package
 Submodules
 ----------
 
-pyLOM.vmmath.wrapper module
----------------------------
+pyLOM.vmmath.averaging module
+-----------------------------
 
-.. automodule:: pyLOM.vmmath.wrapper
+.. automodule:: pyLOM.vmmath.averaging
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pyLOM.vmmath.fft module
+-----------------------
+
+.. automodule:: pyLOM.vmmath.fft
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pyLOM.vmmath.geometric module
+-----------------------------
+
+.. automodule:: pyLOM.vmmath.geometric
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pyLOM.vmmath.maths module
+-------------------------
+
+.. automodule:: pyLOM.vmmath.maths
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pyLOM.vmmath.regression module
+------------------------------
+
+.. automodule:: pyLOM.vmmath.regression
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pyLOM.vmmath.stats module
+-------------------------
+
+.. automodule:: pyLOM.vmmath.stats
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pyLOM.vmmath.svd module
+-----------------------
+
+.. automodule:: pyLOM.vmmath.svd
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pyLOM.vmmath.truncation module
+------------------------------
+
+.. automodule:: pyLOM.vmmath.truncation
    :members:
    :undoc-members:
    :show-inheritance:
