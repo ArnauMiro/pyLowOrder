@@ -81,7 +81,7 @@ class SHRED(nn.Module):
 			x (torch.Tensor): input data to the neural network.
 
 		Returns:
-			out (torch.Tensor): prediction of the neural network.
+			(torch.Tensor): Prediction of the neural network.
 		'''
 		_, (output, _) = self.lstm(x)
 		output = output[-1].view(-1, self.hidden_size)
@@ -114,7 +114,7 @@ class SHRED(nn.Module):
 			mod_scale (torch.Tensor): scaling of each POD coefficient according to its energy.
 			reduction (str): type of reduction applied when doing the MSE.
 		Returns:
-			loss (double).
+			(double): Loss function
 		'''
 		return F.mse_loss(x*mod_scale, recon_x*mod_scale, reduction=reduction)
 	
@@ -127,7 +127,7 @@ class SHRED(nn.Module):
 			recon_x (torch.Tensor): neural network output.
 			mod_scale (torch.Tensor): scaling of each POD coefficient according to its energy.
 		Returns:
-			MRE (double).
+			(double): Mean relative error
 		'''
 		diff = (x-recon_x)*(x-recon_x)
 		num  = torch.sqrt(torch.sum(diff, axis=0))

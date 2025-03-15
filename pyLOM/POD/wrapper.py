@@ -27,9 +27,7 @@ def run(X,remove_mean:bool=True, randomized:bool=False, r:int=1, q:int=3, seed:i
 		seed (int, optional): seed for reproducibility of randomized operations. This option has no effect when randomized=False (default: ``-1``).
 
 	Returns:
-		U (np.array): are the POD modes.
-		S (np.array): are the singular values.
-		V (np.array): are the right singular vectors.
+		[(np.array), (np.array), (np.array)]: POD spatial modes (left singular vectors), singular values and temporal coefficients (right singular vectors).
 	'''
 	if remove_mean:
 		cr_start('POD.temporal_mean',0)
@@ -65,9 +63,8 @@ def truncate(U:np.array,S:np.array,V:np.array,r:float=1e-8):
 			Note:  must be in (0,-1] and r = -1 is valid
 
 	Returns:
-		U (np.array): of size (m,N), are the POD modes (truncated at N).
-		S (np.array): of size (N), are the singular values (truncated at N).
-		V (np.array): of size (N,n), are the right singular vectors (truncated at N).
+		[(np.array), (np.array), (np.array)]: Truncated POD spatial modes (left singular vectors), singular values and temporal coefficients (right singular vectors).
+
 	'''
 	# Compute N using S
 	N = int(r) if r >= 1 else compute_truncation_residual(S, r)
@@ -95,7 +92,7 @@ def reconstruct(U:np.array,S:np.array,V:np.array):
 		V (np.array): of size (n,n), are the right singular vectors.
 
 	Returns:
-		X (np.array): of size(m,n), is the reconstructed flow.
+		(np.array): Reconstructed flow.
 	'''
 	# Compute X = U x S x VT
 	return matmul(U,vecmat(S,V))

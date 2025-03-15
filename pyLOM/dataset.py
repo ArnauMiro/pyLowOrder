@@ -96,9 +96,15 @@ class Dataset(object):
 		'''
 		return self.fields.pop(varname)
 
-	def get_variable(self,key):
-		'''
+	def get_variable(self,key:str):
+		r'''
 		Recover the value of a variable given its key
+
+		Args:
+			key (str): name of the variable
+
+		Returns:
+			(np.ndarray): value of the variable
 		'''
 		return self._vardict[key]['value']
 

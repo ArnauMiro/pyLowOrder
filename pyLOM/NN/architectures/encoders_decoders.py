@@ -98,7 +98,7 @@ class Encoder2D(nn.Module):
 			x (torch.Tensor): input data to the neural network.
 
 		Returns:
-			out (torch.Tensor): prediction of the neural network.
+		    (torch.Tensor): Prediction of the neural network.
 		''' 
         out = x
         for ilayer, conv_layer in enumerate(self.conv_layers):
@@ -198,7 +198,7 @@ class Decoder2D(nn.Module):
 			x (torch.Tensor): input data to the neural network.
 
 		Returns:
-			out (torch.Tensor): prediction of the neural network.
+			(torch.Tensor): Prediction of the neural network.
 		'''
         out = self.funcs[self.nlayers+1](self.fc1(x))
         out = self.funcs[self.nlayers](self.fc2(out))
@@ -302,7 +302,7 @@ class Encoder3D(nn.Module):
 			x (torch.Tensor): input data to the neural network.
 
 		Returns:
-			out (torch.Tensor): prediction of the neural network.
+			(torch.Tensor): Prediction of the neural network.
 		'''
         out = x
         for ilayer, conv_layer in enumerate(self.conv_layers):
@@ -405,7 +405,7 @@ class Decoder3D(nn.Module):
 			x (torch.Tensor): input data to the neural network.
 
 		Returns:
-			out (torch.Tensor): prediction of the neural network.
+			(torch.Tensor): Prediction of the neural network.
 		'''
         out = self.funcs[self.nlayers+1](self.fc1(x))
         out = self.funcs[self.nlayers](self.fc2(out))
@@ -446,7 +446,7 @@ class ShallowDecoder(nn.Module):
 			x (torch.Tensor): input data to the neural network.
 
 		Returns:
-			out (torch.Tensor): prediction of the neural network.
+			(torch.Tensor): Prediction of the neural network.
 		'''
 		for layer in self.layers:
 			output = layer(output)
