@@ -16,6 +16,7 @@ import torch.nn.functional as F
 
 from   torch.utils.data    import DataLoader
 from   ...utils.cr             import cr
+from   .encoders_decoders  import ShallowDecoder
 
 class SHRED(nn.Module):
 	r'''
@@ -141,7 +142,7 @@ class SHRED(nn.Module):
 		Args:
 			train_dataset (torch.utils.data.Dataset): training dataset.
 			valid_dataset (torch.utils.data.Dataset): validation dataset.
-			batch size (int, optional): length of each training batch (default: ``64``).
+			batch_size (int, optional): length of each training batch (default: ``64``).
 			epochs (int, optional): number of epochs to extend the training (default: ``4000``).
 			optim (torch.optim, optional): optimizer used (default: ``torch.optim.Adam``).
 			lr (float, optional): learning rate (default: ``0.001``).
@@ -206,39 +207,3 @@ class SHRED(nn.Module):
 		    'scaler_path'     : scaler_path,
 		    'podscale_path'   : podscale_path,
 			'sensors'         : sensors,}, "%s.pth" % path)
-		
-class ShallowDecoder(nn.Module):
-	r"""
-    Decoder used for the SHRED architecture. 
-
-    Args:
-        output_size (int): Number of POD modes to predict.
-        hidden_size (int): Dimension of the LSTM hidden layers.
-		decoder_sizes (list): Integer list of the decoder layer sizes.
-        dropout (float): Dropout probability for the decoder.
-    """
-	def __init__(self, output_size:int, hidden_size:int, decoder_sizes:list, dropout:float):
-		super(ShallowDecoder, self).__init__()
-		decoder_sizes.insert(0, hidden_size)
-		decoder_sizes.append(output_size)
-		self.layers = nn.ModuleList()
-
-		for i in range(len(decoder_sizes)-1):
-			self.layers.append(nn.Linear(decoder_sizes[i], decoder_sizes[i+1]))
-			if i != len(decoder_sizes)-2:
-				self.layers.append(nn.Dropout(dropout))
-				self.layers.append(nn.ReLU())
-
-	def forward(self, output:torch.Tensor):
-		r'''
-		Do a forward evaluation of the data.
-
-		Args:
-			x (torch.Tensor): input data to the neural network.
-
-		Returns:
-			out (torch.Tensor): prediction of the neural network.
-		'''
-		for layer in self.layers:
-			output = layer(output)
-		return output

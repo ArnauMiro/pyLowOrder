@@ -7,6 +7,7 @@
 # Last rev: 09/10/2024
 
 import torch.nn as nn
+import torch
 
 
 class Encoder2D(nn.Module):
@@ -89,7 +90,16 @@ class Encoder2D(nn.Module):
             elif isinstance(layer, nn.Linear):
                 nn.init.xavier_uniform_(layer.weight)
 
-    def forward(self, x):  
+    def forward(self, x:torch.Tensor): 
+        r'''
+		Do a forward evaluation of the data.
+
+		Args:
+			x (torch.Tensor): input data to the neural network.
+
+		Returns:
+			out (torch.Tensor): prediction of the neural network.
+		''' 
         out = x
         for ilayer, conv_layer in enumerate(self.conv_layers):
             out = conv_layer(out)
@@ -180,7 +190,16 @@ class Decoder2D(nn.Module):
             elif isinstance(layer, nn.Linear):
                 nn.init.xavier_uniform_(layer.weight)
 
-    def forward(self, x):
+    def forward(self, x:torch.Tensor):
+        r'''
+		Do a forward evaluation of the data.
+
+		Args:
+			x (torch.Tensor): input data to the neural network.
+
+		Returns:
+			out (torch.Tensor): prediction of the neural network.
+		'''
         out = self.funcs[self.nlayers+1](self.fc1(x))
         out = self.funcs[self.nlayers](self.fc2(out))
         out = out.view(out.size(0), self.filt_chan * (1 << (self.nlayers-1)), int(self.nh // (1 << self.nlayers)), int(self.nw // (1 << self.nlayers)))
@@ -275,7 +294,16 @@ class Encoder3D(nn.Module):
             elif isinstance(layer, nn.Linear):
                 nn.init.xavier_uniform_(layer.weight)
     
-    def forward(self, x):
+    def forward(self, x:torch.Tensor):
+        r'''
+		Do a forward evaluation of the data.
+
+		Args:
+			x (torch.Tensor): input data to the neural network.
+
+		Returns:
+			out (torch.Tensor): prediction of the neural network.
+		'''
         out = x
         for ilayer, conv_layer in enumerate(self.conv_layers):
             out = conv_layer(out)
@@ -369,7 +397,16 @@ class Decoder3D(nn.Module):
             elif isinstance(layer, nn.Linear):
                 nn.init.xavier_uniform_(layer.weight)
 
-    def forward(self, x):
+    def forward(self, x:torch.Tensor):
+        r'''
+		Do a forward evaluation of the data.
+
+		Args:
+			x (torch.Tensor): input data to the neural network.
+
+		Returns:
+			out (torch.Tensor): prediction of the neural network.
+		'''
         out = self.funcs[self.nlayers+1](self.fc1(x))
         out = self.funcs[self.nlayers](self.fc2(out))
         out = out.view(out.size(0), self.filt_chan * (1 << (self.nlayers-1)), int(self.nx // (1 << self.nlayers)), int(self.ny // (1 << self.nlayers)), int(self.nz // (1 << self.nlayers)))
@@ -378,3 +415,39 @@ class Decoder3D(nn.Module):
                 out = self.norm_layers[ilayer](out)
             out = self.funcs[self.nlayers-ilayer-1](deconv_layer(out))
         return self.deconv_layers[-1](out)
+
+class ShallowDecoder(nn.Module):
+	r"""
+    Decoder used for the SHRED architecture. 
+
+    Args:
+        output_size (int): Number of POD modes to predict.
+        hidden_size (int): Dimension of the LSTM hidden layers.
+		decoder_sizes (list): Integer list of the decoder layer sizes.
+        dropout (float): Dropout probability for the decoder.
+    """
+	def __init__(self, output_size:int, hidden_size:int, decoder_sizes:list, dropout:float):
+		super(ShallowDecoder, self).__init__()
+		decoder_sizes.insert(0, hidden_size)
+		decoder_sizes.append(output_size)
+		self.layers = nn.ModuleList()
+
+		for i in range(len(decoder_sizes)-1):
+			self.layers.append(nn.Linear(decoder_sizes[i], decoder_sizes[i+1]))
+			if i != len(decoder_sizes)-2:
+				self.layers.append(nn.Dropout(dropout))
+				self.layers.append(nn.ReLU())
+
+	def forward(self, output:torch.Tensor):
+		r'''
+		Do a forward evaluation of the data.
+
+		Args:
+			x (torch.Tensor): input data to the neural network.
+
+		Returns:
+			out (torch.Tensor): prediction of the neural network.
+		'''
+		for layer in self.layers:
+			output = layer(output)
+		return output
