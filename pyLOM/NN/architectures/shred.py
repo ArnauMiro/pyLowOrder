@@ -19,9 +19,12 @@ from   ...utils.cr             import cr
 
 class SHRED(nn.Module):
 	r'''
-    SHallow REcurrent Decoder (SHRED) architecture. The model is based on the PyTorch library `torch.nn` 
-	(detailed documentation can be found at https://pytorch.org/docs/stable/nn.html). 
-	For the original SHRED paper check the following reference: Williams, J. P., Zahn, O., & Kutz, J. N. (2023). Sensing with shallow recurrent decoder networks. arXiv preprint arXiv:2301.12011.
+    Shallow recurrent decoder (SHRED) architecture. For more information on the theoretical background of the architecture check the following reference
+	
+		Williams, J. P., Zahn, O., & Kutz, J. N. (2023). Sensing with shallow recurrent decoder networks. arXiv preprint arXiv:2301.12011.
+	
+	The model is based on the PyTorch library `torch.nn` (detailed documentation can be found at https://pytorch.org/docs/stable/nn.html). 
+
 	In this implementation we assume that the output are always the POD coefficients of the full dataset.
 
     Args:
@@ -70,15 +73,15 @@ class SHRED(nn.Module):
 		self.device = device
 		self.to(device)
 
-	def forward(self, x:torch.tensor):
+	def forward(self, x:torch.Tensor):
 		r'''
 		Do a forward evaluation of the data.
 
 		Args:
-			x (torch.tensor): input data to the neural network.
+			x (torch.Tensor): input data to the neural network.
 
 		Returns:
-			out (torch.tensor): prediction of the neural network.
+			out (torch.Tensor): prediction of the neural network.
 		'''
 		_, (output, _) = self.lstm(x)
 		output = output[-1].view(-1, self.hidden_size)
@@ -101,28 +104,28 @@ class SHRED(nn.Module):
 		for param in self.parameters():
 			param.requires_grad = True
 	
-	def _loss_func(self, x:torch.tensor, recon_x:torch.tensor, mod_scale:torch.tensor, reduction:str):
+	def _loss_func(self, x:torch.Tensor, recon_x:torch.Tensor, mod_scale:torch.Tensor, reduction:str):
 		r'''
 		Model loss function.
 
 		Args:
-			x (torch.tensor): correct output.
-			recon_x (torch.tensor): neural network output.
-			mod_scale (torch.tensor): scaling of each POD coefficient according to its energy.
+			x (torch.Tensor): correct output.
+			recon_x (torch.Tensor): neural network output.
+			mod_scale (torch.Tensor): scaling of each POD coefficient according to its energy.
 			reduction (str): type of reduction applied when doing the MSE.
 		Returns:
 			loss (double).
 		'''
 		return F.mse_loss(x*mod_scale, recon_x*mod_scale, reduction=reduction)
 	
-	def _mre(self, x:torch.tensor, recon_x:torch.tensor, mod_scale:torch.tensor):
+	def _mre(self, x:torch.Tensor, recon_x:torch.Tensor, mod_scale:torch.Tensor):
 		r'''
 		Mean relative error between the original and the SHRED reconstruction.
 
 		Args:
-			x (torch.tensor): correct output.
-			recon_x (torch.tensor): neural network output.
-			mod_scale (torch.tensor): scaling of each POD coefficient according to its energy.
+			x (torch.Tensor): correct output.
+			recon_x (torch.Tensor): neural network output.
+			mod_scale (torch.Tensor): scaling of each POD coefficient according to its energy.
 		Returns:
 			MRE (double).
 		'''
@@ -132,21 +135,11 @@ class SHRED(nn.Module):
 		return torch.sum(num/den*mod_scale/len(mod_scale))
 
 	@cr('SHRED.fit')
-	def fit(self, 
-		 train_dataset: torch.utils.data.Dataset, 
-		 valid_dataset: torch.utils.data.Dataset, 
-		 batch_size:int=64, 
-		 epochs:int=4000, 
-		 optim:torch.optim.Optimizer=torch.optim.Adam, 
-		 lr:float=1e-3, 
-		 reduction:str='mean', 
-		 verbose:bool=False, 
-		 patience:int=5, 
-		 mod_scale:torch.tensor=None):
+	def fit(self, train_dataset: torch.utils.data.Dataset, valid_dataset: torch.utils.data.Dataset, batch_size:int=64, epochs:int=4000, optim:torch.optim.Optimizer=torch.optim.Adam, lr:float=1e-3, reduction:str='mean', verbose:bool=False, patience:int=5, mod_scale:torch.Tensor=None):
 		r'''
 		Fit of the SHRED model.
 
-		Args
+		Args:
 			train_dataset (torch.utils.data.Dataset): training dataset.
 			valid_dataset (torch.utils.data.Dataset): validation dataset.
 			batch size (int, optional): length of each training batch (default: ``64``).
@@ -218,6 +211,7 @@ class SHRED(nn.Module):
 class ShallowDecoder(nn.Module):
 	r"""
     Decoder used for the SHRED architecture. 
+
     Args:
         output_size (int): Number of POD modes to predict.
         hidden_size (int): Dimension of the LSTM hidden layers.
@@ -236,15 +230,15 @@ class ShallowDecoder(nn.Module):
 				self.layers.append(nn.Dropout(dropout))
 				self.layers.append(nn.ReLU())
 
-	def forward(self, output:torch.tensor):
+	def forward(self, output:torch.Tensor):
 		r'''
 		Do a forward evaluation of the data.
 
 		Args:
-			x (torch.tensor): input data to the neural network.
+			x (torch.Tensor): input data to the neural network.
 
 		Returns:
-			out (torch.tensor): prediction of the neural network.
+			out (torch.Tensor): prediction of the neural network.
 		'''
 		for layer in self.layers:
 			output = layer(output)
