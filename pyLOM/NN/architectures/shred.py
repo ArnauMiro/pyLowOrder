@@ -20,7 +20,6 @@ from   ...utils.cr             import cr
 class SHRED(nn.Module):
 	r'''
     Shallow recurrent decoder (SHRED) architecture. For more information on the theoretical background of the architecture check the following reference
-	
 		Williams, J. P., Zahn, O., & Kutz, J. N. (2023). Sensing with shallow recurrent decoder networks. arXiv preprint arXiv:2301.12011.
 	
 	The model is based on the PyTorch library `torch.nn` (detailed documentation can be found at https://pytorch.org/docs/stable/nn.html). 
