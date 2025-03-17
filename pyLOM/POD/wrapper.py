@@ -27,7 +27,7 @@ def run(X:np.ndarray,remove_mean:bool=True, randomized:bool=False, r:int=1, q:in
 		seed (int, optional): seed for reproducibility of randomized operations. This option has no effect when randomized=False (default: ``-1``).
 
 	Returns:
-		[(np.array), (np.array), (np.array)]: POD spatial modes (left singular vectors), singular values and temporal coefficients (right singular vectors).
+		[(np.ndarray), (np.ndarray), (np.ndarray)]: POD spatial modes (left singular vectors), singular values and temporal coefficients (right singular vectors).
 	'''
 	if remove_mean:
 		cr_start('POD.temporal_mean',0)
