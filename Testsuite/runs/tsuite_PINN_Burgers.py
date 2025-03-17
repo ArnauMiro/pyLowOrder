@@ -18,7 +18,7 @@ OUTDIR    = sys.argv[3]
 
 device  = 'cpu'
 RESUDIR = os.path.join(OUTDIR,f'PINN_{DATAFILE}')
-pyLOM.NN.create_results_folder(RESUDIR,echo=False)
+pyLOM.NN.create_results_folder(RESUDIR,verbose=False)
 
 # Define the domain and the amount of points to sample
 POINTS_ON_X = 256
