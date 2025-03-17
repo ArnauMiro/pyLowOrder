@@ -17,6 +17,7 @@ import torch.nn.functional as F
 from   torch.utils.data    import DataLoader
 from   ...utils.cr             import cr
 from   .encoders_decoders  import ShallowDecoder
+from   ..utils             import Dataset
 
 class SHRED(nn.Module):
 	r'''
@@ -135,7 +136,7 @@ class SHRED(nn.Module):
 		return torch.sum(num/den*mod_scale/len(mod_scale))
 
 	@cr('SHRED.fit')
-	def fit(self, train_dataset: torch.utils.data.Dataset, valid_dataset: torch.utils.data.Dataset, batch_size:int=64, epochs:int=4000, optim:torch.optim.Optimizer=torch.optim.Adam, lr:float=1e-3, reduction:str='mean', verbose:bool=False, patience:int=5, mod_scale:torch.Tensor=None):
+	def fit(self, train_dataset: Dataset, valid_dataset: Dataset, batch_size:int=64, epochs:int=4000, optim:torch.optim.Optimizer=torch.optim.Adam, lr:float=1e-3, reduction:str='mean', verbose:bool=False, patience:int=5, mod_scale:torch.Tensor=None):
 		r'''
 		Fit of the SHRED model.
 
@@ -149,11 +150,10 @@ class SHRED(nn.Module):
 			verbose (bool, optional): define level of explicity on the output (default: ``False``). 
 			patience (int, optional): epochs without improvements on the validation loss before stopping the training (default to 5).
 		'''
-
-		train_dataset.X = train_dataset.X.to(self.device)
-		valid_dataset.X = valid_dataset.X.to(self.device)
-		train_dataset.Y = train_dataset.Y.to(self.device)
-		valid_dataset.Y = valid_dataset.Y.to(self.device)
+		train_dataset.variables_in  = train_dataset.variables_in.permute(1,2,0).to(self.device)
+		valid_dataset.variables_in  = valid_dataset.variables_in.permute(1,2,0).to(self.device)
+		train_dataset.variables_out = train_dataset.variables_out.to(self.device)
+		valid_dataset.variables_out = valid_dataset.variables_out.to(self.device)
 		train_loader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size)
 		optimizer    = optim(self.parameters(), lr = lr)
 		scheduler    = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, epochs, eta_min=lr*1e-4)
@@ -161,7 +161,7 @@ class SHRED(nn.Module):
 		patience_counter = 0
 		best_params = self.state_dict()
 
-		mod_scale = torch.ones((train_dataset.Y.shape[1],), dtype=torch.float32, device=self.device) if mod_scale == None else mod_scale.to(self.device)
+		mod_scale = torch.ones((train_dataset.variables_out.shape[1],), dtype=torch.float32, device=self.device) if mod_scale == None else mod_scale.to(self.device)
 
 		for epoch in range(1, epochs + 1):
 			for k, data in enumerate(train_loader):
@@ -174,8 +174,8 @@ class SHRED(nn.Module):
 			scheduler.step()
 			self.eval()
 			with torch.no_grad():
-				train_error = self._mre(train_dataset.Y, self(train_dataset.X), mod_scale)
-				valid_error = self._mre(valid_dataset.Y, self(valid_dataset.X), mod_scale)
+				train_error = self._mre(train_dataset.variables_out, self(train_dataset.variables_in), mod_scale)
+				valid_error = self._mre(valid_dataset.variables_out, self(valid_dataset.variables_in), mod_scale)
 				valid_error_list.append(valid_error)
 			if verbose == True:
 				print("Epoch %i : Training loss = %.5e Validation loss = %.5e \r" % (epoch, train_error, valid_error), flush=True)
@@ -188,8 +188,8 @@ class SHRED(nn.Module):
 				break
 
 		self.load_state_dict(best_params)
-		train_error = self._mre(train_dataset.Y, self(train_dataset.X), mod_scale)
-		valid_error = self._mre(valid_dataset.Y, self(valid_dataset.X), mod_scale)
+		train_error = self._mre(train_dataset.variables_out, self(train_dataset.variables_in), mod_scale)
+		valid_error = self._mre(valid_dataset.variables_out, self(valid_dataset.variables_in), mod_scale)
 		print("Training done: Training loss = %.2f Validation loss = %.2f \r" % (train_error*100, valid_error*100), flush=True)
 
 	def save(self, path:str, scaler_path:str, podscale_path:str, sensors:np.array):

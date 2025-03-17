@@ -4,23 +4,6 @@ import pyLOM, pyLOM.NN
 
 pyLOM.style_plots(legend_fsize=14)
 
-class TimeSeriesDatasetMine(torch.utils.data.Dataset):
-    '''
-    Input: sequence of input measurements with shape (ntrajectories, ntimes, ninput) and corresponding measurements of high-dimensional state with shape (ntrajectories, ntimes, noutput)
-    Output: Torch dataset
-    '''
-
-    def __init__(self, X, Y):
-        self.X = torch.tensor(X).permute(1,2,0)
-        self.Y = torch.tensor(Y).T
-        self.len = X.shape[1]
-        
-    def __getitem__(self, index):
-        return self.X[index], self.Y[index]
-    
-    def __len__(self):
-        return self.len
-
 ## Set device
 device = pyLOM.NN.select_device() # Force CPU for this example, if left in blank it will automatically select the device
 
@@ -35,7 +18,7 @@ outscale = 'out/scalers/pod.json'
 shreds   = 'out/shreds/config_'
 
 # SHRED sensor configurations for uncertainty quantification
-nconfigs = 2
+nconfigs = 20
 
 ## Import sensor measurements
 # Training
@@ -107,8 +90,8 @@ for kk, mysensors in enumerate(shred.configs):
     embedded[:,mask_test] = test_sca
     delayed = pyLOM.math.time_delay_embedding(embedded, dimension=50)
     # Generate training validation and test datasets both for reconstruction of states
-    train_dataset = TimeSeriesDatasetMine(delayed[:,mask_trai,:], trai_out) #TODO: use the pyLOM dataset or torch tensor dataset
-    valid_dataset = TimeSeriesDatasetMine(delayed[:,mask_vali,:], vali_out) #TODO: use the pyLOM dataset
+    train_dataset = pyLOM.NN.Dataset(trai_out, variables_in=delayed[:,mask_trai,:]) 
+    valid_dataset = pyLOM.NN.Dataset(vali_out, variables_in=delayed[:,mask_vali,:])
     # Fit SHRED
     shred.fit(train_dataset, valid_dataset, epochs=1500, patience=100, verbose=False, mod_scale=torch.tensor(Sscale))
     shred.save('%s%i' % (shreds,kk), scalpath, outscale, mysensors)
