@@ -218,7 +218,7 @@ def vtkh5_save_field_serial(fname,instant,time,point,varDict):
 	# Close file
 	file.close()
 
-def vtkh5_save_field_mpio(fname,instant,time,point,varDict,ptable):
+def vtkh5_save_field_mpio(fname,mode,instant,time,point,varDict,ptable):
 	'''
 	Save the mesh component into a VTKH5 file (serial)
 	'''
