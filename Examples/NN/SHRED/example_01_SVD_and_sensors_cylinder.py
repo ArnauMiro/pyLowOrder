@@ -54,13 +54,13 @@ for var in VARLIST:
     ## Fetch validation dataset and project POD modes
     Xvali   = dvali[var]
     proj    = pyLOM.math.matmulp(PSI.T, Xvali)
-    Vvali   = pyLOM.math.matmul(np.diag(1/S), proj)
+    Vvali   = pyLOM.math.matmul(pyLOM.math.diag(1/S), proj)
     ## Save POD projection of validation data of each variable
     pyLOM.POD.save('POD_vali_%s.h5'%var,dvali.partition_table,V=Vvali,nvars=1,pointData=dvali.point)
     ## Fetch test dataset and project POD modes
     Xtest   = dtest[var]
     proj    = pyLOM.math.matmulp(PSI.T, Xtest)
-    Vtest   = pyLOM.math.matmul(np.diag(1/S), proj)
+    Vtest   = pyLOM.math.matmul(pyLOM.math.diag(1/S), proj)
     ## Save POD projection of validation data of each variable
     pyLOM.POD.save('POD_test_%s.h5'%var,dtest.partition_table,V=Vtest,nvars=1,pointData=dtest.point)     
 

@@ -15,9 +15,17 @@ from ..utils     import raiseError
 
 
 @cr('math.RMSE')
-def RMSE(A,B,relative=True):
-	'''
-	Compute RMSE between A and B
+def RMSE(A:np.ndarray,B:np.ndarray,relative:bool=True):
+	r'''
+	Compute the root mean square error between A and B
+
+	Args:
+		A (np.ndarray).
+		B (np.ndarray).
+		relative (bool, optional): default(``True``).
+
+	Returns:
+		(float): Root mean square error.
 	'''
 	p = cp if type(A) is cp.ndarray else np
 	diff  = (A-B)
@@ -27,9 +35,16 @@ def RMSE(A,B,relative=True):
 	return rmse
 
 @cr('math.MAE')
-def MAE(A,B):
-	'''
-	Compute MAE between A and B
+def MAE(A:np.ndarray,B:np.ndarray):
+	r'''
+	Compute mean absolute error between A and B
+
+	Args:
+		A (np.ndarray).
+		B (np.ndarray).
+
+	Returns:
+		(float): Mean absolute error.
 	'''
 	p = cp if type(A) is cp.ndarray else np
 	diff  = p.abs(A-B)
@@ -39,9 +54,16 @@ def MAE(A,B):
 	return mae
 
 @cr('math.r2')
-def r2(A,B):
+def r2(A:np.ndarray,B:np.ndarray):
 	'''
 	Compute r2 score between A and B
+
+	Args:
+		A (np.ndarray).
+		B (np.ndarray).
+
+	Returns:
+		(float): r2 score .
 	'''
 	p = cp if type(A) is cp.ndarray else np
 	num  = (A-B)
@@ -53,19 +75,37 @@ def r2(A,B):
 	r2   = 1. - numg/deng
 	return r2
 
-def columnwise_r2(original, rec):
-	'''
-	Mean Relative Error
+def axiswise_r2(original:np.ndarray, rec:np.ndarray, axis:int=1):
+	r'''
+	Mean relative error computed along a certain axis of the array.
+
+	Args:
+		original (np.ndarray): original field.
+		rec (np.ndarray): field which we want to compute the MRE of.
+		axis (int, optional): along which axis the MRE will be computed (default ``1``).
+
+	Returns:
+		(np.ndarray): Mean relative error.
 	'''
 	# Compute local sums
-	local_num = np.sum((original - rec) ** 2, axis=1)
-	local_den = np.sum(original ** 2, axis=1)
+	local_num = np.sum((original - rec) ** 2, axis=axis)
+	local_den = np.sum(original ** 2, axis=axis)
 
 	# Compute Mean Relative Error (this will be identical on all ranks)
 	return local_num / local_den
 
-def data_splitting(Nt, mode='reconstruct', seed=-1):
-	## Splitting into train, test and validation for reconstruction mode of SHRED
+def data_splitting(Nt:int, mode:str='reconstruct', seed:int=-1):
+	r'''
+	Generate random training, validation and test masks for a dataset of Nt samples.
+
+	Args:
+		Nt (int): number of data samples.
+		mode (str, optional): type of splitting to perform (default: ``reconstruct``). In reconstruct mode all three datasets have samples along all the data range.
+		seed (int, optional): (default: ``-1``).
+
+	Returns:
+		[(np.array), (np.array), (np.array)]: List of arrays containing the identifiers of the training, validation and test samples.
+	'''
 	np.random.seed(0) if seed < 0 else np.random.seed(seed)
 	if mode =='reconstruct':
 		tridx       = np.sort(np.random.choice(Nt, size=int(0.7*(Nt)), replace=False))

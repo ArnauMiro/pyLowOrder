@@ -13,7 +13,7 @@ from .averaging  import temporal_mean, subtract_mean
 # Truncation routines
 from .truncation import compute_truncation_residual, energy
 # Statistics routines
-from .stats      import RMSE, MAE, r2, columnwise_r2, data_splitting
+from .stats      import RMSE, MAE, r2, axiswise_r2, data_splitting
 # SVD routines
 from .svd        import qr, svd, tsqr, randomized_qr, init_qr_streaming, update_qr_streaming, tsqr_svd, randomized_svd
 # FFT routines
