@@ -190,7 +190,7 @@ def vtkh5_link_mesh_mpio(fname,mode,lname):
 
 
 @cr('vtkh5IO.save_field')
-def vtkh5_save_field(fname,instant,time,point,varDict,ptable,mpio=True,mode='w'):
+def vtkh5_save_field(fname,instant,time,point,varDict,ptable,mpio=True,mode='a'):
 	'''
 	Save the mesh component into a VTKH5 file
 	'''
