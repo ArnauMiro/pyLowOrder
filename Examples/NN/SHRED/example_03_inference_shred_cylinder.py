@@ -74,11 +74,11 @@ for kk in range(nconfigs):
     myvali = sens_vali[mysensors,:]
     mytest = sens_test[mysensors,:]
     # Load the appropiate scaler
-    myscaler = pyLOM.NN.MinMaxScaler()
+    myscaler = pyLOM.NN.MinMaxScaler(column=True)
     myscaler = myscaler.load(load_dict['scaler_path'])
-    trai_sca = myscaler.transform(mytrai.T).T
-    vali_sca = myscaler.transform(myvali.T).T
-    test_sca = myscaler.transform(mytest.T).T
+    trai_sca = myscaler.transform(mytrai)
+    vali_sca = myscaler.transform(myvali)
+    test_sca = myscaler.transform(mytest)
     # Concatenate train, test and validation data to generate the embeddings correctly
     embedded = np.zeros((trai_sca.shape[0],ntimeG), dtype=trai_sca.dtype)
     embedded[:,mask_trai] = trai_sca
@@ -86,13 +86,13 @@ for kk in range(nconfigs):
     embedded[:,mask_test] = test_sca
     delayed = pyLOM.math.time_delay_embedding(embedded, dimension=50)
     # Generate training validation and test datasets both for reconstruction of states
-    output = shred(torch.from_numpy(delayed).permute(1,2,0).to(device)).cpu().detach().numpy()
+    output = shred(torch.from_numpy(delayed).permute(1,2,0).to(device)).cpu().detach().numpy().T
     # Load the POD scaler of that SHRED to transform POD data
-    podscale = pyLOM.NN.MinMaxScaler()
+    podscale = pyLOM.NN.MinMaxScaler(column=True)
     podscale = podscale.load(load_dict['podscale_path'])
-    outres[:,:,kk] = podscale.inverse_transform(output).T
+    outres[:,:,kk] = podscale.inverse_transform(output)
     # Compute mean relative error
-    MRE[:,kk] = pyLOM.math.columnwise_r2(full_pod, outres[:,:,kk])
+    MRE[:,kk] = pyLOM.math.axiswise_r2(full_pod, outres[:,:,kk])
 
 ## Compute reconstruction statistics
 meanout = np.mean(outres, axis=2)

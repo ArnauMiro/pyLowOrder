@@ -35,7 +35,7 @@ outscale = 'out/scalers/pod.json'
 shreds   = 'out/shreds/config_'
 
 # SHRED sensor configurations for uncertainty quantification
-nconfigs = 20
+nconfigs = 2
 
 ## Import sensor measurements
 # Training
@@ -65,18 +65,18 @@ time[mask_test] = time_test
 # Training
 S, pod_trai = pyLOM.POD.load('POD_trai_%s.h5' % podvar, vars=['S','V'])
 pod_trai    = pod_trai.astype(np.float32)
-pod_scaler  = pyLOM.NN.MinMaxScaler()
-pod_scaler.fit(pod_trai.T)
+pod_scaler  = pyLOM.NN.MinMaxScaler(column=True)
+pod_scaler.fit(pod_trai)
 pod_scaler.save(outscale)
-trai_out    = pod_scaler.transform(pod_trai.T).T
+trai_out    = pod_scaler.transform(pod_trai)
 output_size = trai_out.shape[0]
 Sscale      = S/np.sum(S)
 # Validation
 pod_vali = pyLOM.POD.load('POD_vali_%s.h5' % podvar, vars='V')[0].astype(np.float32)
-vali_out = pod_scaler.transform(pod_vali.T).T
+vali_out = pod_scaler.transform(pod_vali)
 # Test
 pod_test = pyLOM.POD.load('POD_test_%s.h5' % podvar, vars='V')[0].astype(np.float32)
-test_out = pod_scaler.transform(pod_test.T).T
+test_out = pod_scaler.transform(pod_test)
 # Full POD
 full_pod = np.zeros((output_size,ntimeG), dtype=pod_trai.dtype)
 full_pod[:,mask_trai] = pod_trai
@@ -95,11 +95,11 @@ for kk, mysensors in enumerate(shred.configs):
     # Scale the data
     myscaler = pyLOM.NN.MinMaxScaler()
     scalpath = '%s%i.json' % (inscaler, kk)
-    myscaler.fit(mytrai.T)
+    myscaler.fit(mytrai)
     myscaler.save(scalpath)
-    trai_sca = myscaler.transform(mytrai.T).T
-    vali_sca = myscaler.transform(myvali.T).T
-    test_sca = myscaler.transform(mytest.T).T
+    trai_sca = myscaler.transform(mytrai)
+    vali_sca = myscaler.transform(myvali)
+    test_sca = myscaler.transform(mytest)
     # Concatenate train, test and validation data to generate the embeddings correctly
     embedded = np.zeros((trai_sca.shape[0],ntimeG), dtype=trai_sca.dtype)
     embedded[:,mask_trai] = trai_sca
