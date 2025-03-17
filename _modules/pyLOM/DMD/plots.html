@@ -362,7 +362,7 @@
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 
 <span class="kn">from</span> <span class="nn">.utils</span>        <span class="kn">import</span> <span class="n">extract_modes</span>
-<span class="kn">from</span> <span class="nn">..vmmath</span>      <span class="kn">import</span> <span class="n">fft</span>
+<span class="kn">from</span> <span class="nn">..utils</span>       <span class="kn">import</span> <span class="n">gpu_to_cpu</span>
 <span class="kn">from</span> <span class="nn">..utils.plots</span> <span class="kn">import</span> <span class="n">plotResidual</span><span class="p">,</span> <span class="n">plotFieldStruct2D</span><span class="p">,</span> <span class="n">plotSnapshot</span><span class="p">,</span> <span class="n">plotLayout</span>
 
 
@@ -372,6 +372,7 @@
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Plot the real and imaginary parts of a mode</span>
 <span class="sd">	&#39;&#39;&#39;</span>
+	<span class="n">Phi</span><span class="p">,</span> <span class="n">omega</span> <span class="o">=</span> <span class="n">gpu_to_cpu</span><span class="p">(</span><span class="n">Phi</span><span class="p">),</span> <span class="n">gpu_to_cpu</span><span class="p">(</span><span class="n">omega</span><span class="p">)</span>
 	<span class="c1"># Extract the modes to be plotted</span>
 	<span class="n">npoints</span> <span class="o">=</span> <span class="n">mesh</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">pointData</span><span class="p">)</span>
 	<span class="n">Phi_real</span> <span class="o">=</span> <span class="n">extract_modes</span><span class="p">(</span><span class="n">Phi</span><span class="p">,</span><span class="n">ivar</span><span class="p">,</span><span class="n">npoints</span><span class="p">,</span><span class="n">real</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">modes</span><span class="o">=</span><span class="n">modes</span><span class="p">)</span>
@@ -397,6 +398,7 @@
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Given the real and imaginary part of the eigenvalues, plot the Ritz Spectrum together with the unit circle</span>
 <span class="sd">	&#39;&#39;&#39;</span>
+	<span class="n">real</span><span class="p">,</span> <span class="n">imag</span> <span class="o">=</span> <span class="n">gpu_to_cpu</span><span class="p">(</span><span class="n">real</span><span class="p">),</span> <span class="n">gpu_to_cpu</span><span class="p">(</span><span class="n">imag</span><span class="p">)</span>
 	<span class="k">if</span> <span class="n">fig</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">6</span><span class="p">),</span><span class="n">dpi</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
 	<span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -417,6 +419,7 @@
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Given the frequency and the amplitude of the DMD modes, plot the amplitude against the Strouhal number</span>
 <span class="sd">	&#39;&#39;&#39;</span>
+	<span class="n">omega</span><span class="p">,</span> <span class="n">amplitude</span> <span class="o">=</span> <span class="n">gpu_to_cpu</span><span class="p">(</span><span class="n">omega</span><span class="p">),</span> <span class="n">gpu_to_cpu</span><span class="p">(</span><span class="n">amplitude</span><span class="p">)</span>
 	<span class="k">if</span> <span class="n">fig</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">6</span><span class="p">),</span><span class="n">dpi</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
 	<span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -441,6 +444,7 @@
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Given the frequency and the damping ratio of the DMD modes, plot the amplitude against the Strouhal number</span>
 <span class="sd">	&#39;&#39;&#39;</span>
+	<span class="n">omega</span><span class="p">,</span> <span class="n">delta</span> <span class="o">=</span> <span class="n">gpu_to_cpu</span><span class="p">(</span><span class="n">omega</span><span class="p">),</span> <span class="n">gpu_to_cpu</span><span class="p">(</span><span class="n">delta</span><span class="p">)</span>
 	<span class="k">if</span> <span class="n">fig</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">6</span><span class="p">),</span><span class="n">dpi</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
 	<span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>

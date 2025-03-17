@@ -359,25 +359,39 @@
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
+<span class="kn">from</span> <span class="nn">..utils.gpu</span> <span class="kn">import</span> <span class="n">cp</span>
+
+
+<div class="viewcode-block" id="delete_snapshot">
+<a class="viewcode-back" href="../../../api/pyLOM.GPOD.html#pyLOM.GPOD.utils.delete_snapshot">[docs]</a>
+<span class="k">def</span> <span class="nf">delete_snapshot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">snap</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Remove snapshot from training data.</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="n">p</span> <span class="o">=</span> <span class="n">cp</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="ow">is</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span> <span class="k">else</span> <span class="n">np</span>
+	<span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">snap</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
+
+
 
 <div class="viewcode-block" id="set_random_elements_to_zero">
 <a class="viewcode-back" href="../../../api/pyLOM.GPOD.html#pyLOM.GPOD.utils.set_random_elements_to_zero">[docs]</a>
 <span class="k">def</span> <span class="nf">set_random_elements_to_zero</span><span class="p">(</span><span class="n">vector</span><span class="p">,</span> <span class="n">percentage</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Randomly sets a specified percentage of elements in a vector to zero.</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Randomly sets a specified percentage of elements in a vector to zero.</span>
 
-<span class="sd">    Args:</span>
-<span class="sd">        vector (np.ndarray): Input vector.</span>
-<span class="sd">        percentage (float): Percentage of elements to set to zero.</span>
+<span class="sd">	Args:</span>
+<span class="sd">		vector (np.ndarray): Input vector.</span>
+<span class="sd">		percentage (float): Percentage of elements to set to zero.</span>
 
-<span class="sd">    Returns:</span>
-<span class="sd">        np.ndarray: Modified vector with zeros.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">modified_vector</span> <span class="o">=</span> <span class="n">vector</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-    <span class="n">num_zeros</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">vector</span><span class="p">)</span> <span class="o">*</span> <span class="n">percentage</span> <span class="o">/</span> <span class="mi">100</span><span class="p">)</span>
-    <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">vector</span><span class="p">),</span> <span class="n">num_zeros</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">modified_vector</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">return</span> <span class="n">modified_vector</span></div>
+<span class="sd">	Returns:</span>
+<span class="sd">		np.ndarray: Modified vector with zeros.</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="n">p</span> <span class="o">=</span> <span class="n">cp</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">vector</span><span class="p">)</span> <span class="ow">is</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span> <span class="k">else</span> <span class="n">np</span>
+	<span class="n">modified_vector</span> <span class="o">=</span> <span class="n">vector</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+	<span class="n">num_zeros</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">vector</span><span class="p">)</span> <span class="o">*</span> <span class="n">percentage</span> <span class="o">/</span> <span class="mi">100</span><span class="p">)</span>
+	<span class="n">indices</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">vector</span><span class="p">),</span> <span class="n">num_zeros</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+	<span class="n">modified_vector</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+	<span class="k">return</span> <span class="n">modified_vector</span></div>
 
 </pre></div>
 

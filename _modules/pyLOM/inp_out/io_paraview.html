@@ -360,7 +360,6 @@
 <span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="kn">from</span> <span class="nn">.io_vtkh5</span>      <span class="kn">import</span> <span class="n">vtkh5_save_mesh</span><span class="p">,</span> <span class="n">vtkh5_link_mesh</span><span class="p">,</span> <span class="n">vtkh5_save_field</span>
-<span class="kn">from</span> <span class="nn">.io_ensight</span>    <span class="kn">import</span> <span class="n">Ensight_writeGeo</span><span class="p">,</span> <span class="n">Ensight_writeField</span>
 <span class="kn">from</span> <span class="nn">..utils.cr</span>     <span class="kn">import</span> <span class="n">cr</span>
 <span class="kn">from</span> <span class="nn">..utils.errors</span> <span class="kn">import</span> <span class="n">raiseError</span>
 
@@ -376,11 +375,7 @@
 <span class="sd">	to recover the field, write only outputs the data.</span>
 <span class="sd">	&#39;&#39;&#39;</span>
 	<span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">basedir</span><span class="p">,</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-	<span class="k">if</span> <span class="n">fmt</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;vtk&#39;</span><span class="p">]:</span>
-		<span class="n">raiseError</span><span class="p">(</span><span class="s1">&#39;VTK format not implemented! Use vtkhdf instead&#39;</span><span class="p">)</span>
-	<span class="k">elif</span> <span class="n">fmt</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;ensi&#39;</span><span class="p">,</span><span class="s1">&#39;ensight&#39;</span><span class="p">]:</span>
-		<span class="n">EnsightWriter</span><span class="p">(</span><span class="n">Mesh</span><span class="p">,</span><span class="n">Dataset</span><span class="p">,</span><span class="n">casestr</span><span class="p">,</span><span class="n">basedir</span><span class="p">,</span><span class="n">instants</span><span class="p">,</span><span class="nb">vars</span><span class="p">,</span><span class="n">idim</span><span class="p">)</span>
-	<span class="k">elif</span> <span class="n">fmt</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;vtkh5&#39;</span><span class="p">,</span><span class="s1">&#39;vtkhdf&#39;</span><span class="p">]:</span>
+	<span class="k">if</span> <span class="n">fmt</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;vtkh5&#39;</span><span class="p">,</span><span class="s1">&#39;vtkhdf&#39;</span><span class="p">]:</span>
 		<span class="n">VTKHDF5Writer</span><span class="p">(</span><span class="n">Mesh</span><span class="p">,</span><span class="n">Dataset</span><span class="p">,</span><span class="n">casestr</span><span class="p">,</span><span class="n">basedir</span><span class="p">,</span><span class="n">instants</span><span class="p">,</span><span class="n">times</span><span class="p">,</span><span class="nb">vars</span><span class="p">,</span><span class="n">idim</span><span class="p">,</span><span class="n">mode</span><span class="p">)</span>
 	<span class="k">else</span><span class="p">:</span>
 		<span class="n">raiseError</span><span class="p">(</span><span class="s1">&#39;Format &lt;</span><span class="si">%s</span><span class="s1">&gt; not implemented!&#39;</span><span class="o">%</span><span class="n">fmt</span><span class="p">)</span></div>
@@ -391,7 +386,7 @@
 <a class="viewcode-back" href="../../../api/pyLOM.inp_out.html#pyLOM.inp_out.io_paraview.VTKHDF5Writer">[docs]</a>
 <span class="k">def</span> <span class="nf">VTKHDF5Writer</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span><span class="n">dset</span><span class="p">,</span><span class="n">casestr</span><span class="p">,</span><span class="n">basedir</span><span class="p">,</span><span class="n">instants</span><span class="p">,</span><span class="n">times</span><span class="p">,</span><span class="n">varnames</span><span class="p">,</span><span class="n">idim</span><span class="p">,</span><span class="n">mode</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">	Ensight dataset writer</span>
+<span class="sd">	VTKHDF dataset writer</span>
 <span class="sd">	&#39;&#39;&#39;</span>
 	<span class="c1"># Create a mesh file</span>
 	<span class="n">meshname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">basedir</span><span class="p">,</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">-mesh-vtk.hdf&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">casestr</span><span class="p">))</span>
@@ -408,51 +403,8 @@
 		<span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">varnames</span><span class="p">:</span>
 			<span class="n">sliced</span>     <span class="o">=</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">s_</span><span class="p">[:]]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span> <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">idim</span> <span class="k">else</span> <span class="n">instant</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dset</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)])</span>
 			<span class="n">varDict</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">mesh</span><span class="o">.</span><span class="n">reshape_var</span><span class="p">(</span><span class="n">dset</span><span class="p">[</span><span class="n">v</span><span class="p">][</span><span class="n">sliced</span><span class="p">],</span><span class="n">dset</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
-		<span class="c1"># Ensure that vtkh5_save_field is always on append as the file has already been created</span>
+		<span class="c1"># Save field must append to the existing file</span>
 		<span class="n">vtkh5_save_field</span><span class="p">(</span><span class="n">fieldname</span><span class="p">,</span><span class="n">instant</span><span class="p">,</span><span class="n">time</span><span class="p">,</span><span class="n">dset</span><span class="o">.</span><span class="n">point</span><span class="p">,</span><span class="n">varDict</span><span class="p">,</span><span class="n">mesh</span><span class="o">.</span><span class="n">partition_table</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;a&#39;</span><span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="EnsightWriter">
-<a class="viewcode-back" href="../../../api/pyLOM.inp_out.html#pyLOM.inp_out.io_paraview.EnsightWriter">[docs]</a>
-<span class="k">def</span> <span class="nf">EnsightWriter</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span><span class="n">dset</span><span class="p">,</span><span class="n">casestr</span><span class="p">,</span><span class="n">basedir</span><span class="p">,</span><span class="n">instants</span><span class="p">,</span><span class="n">varnames</span><span class="p">,</span><span class="n">idim</span><span class="p">):</span>
-<span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">	Ensight dataset writer</span>
-<span class="sd">	&#39;&#39;&#39;</span>
-	<span class="c1"># Create the filename for the geometry</span>
-	<span class="n">geofile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">basedir</span><span class="p">,</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.ensi.geo&#39;</span><span class="o">%</span><span class="n">casestr</span><span class="p">)</span>
-	<span class="n">header</span> <span class="o">=</span> <span class="p">{</span>
-		<span class="s1">&#39;descr&#39;</span>  <span class="p">:</span> <span class="s1">&#39;File created with pyAlya tool</span><span class="se">\n</span><span class="s1">mesh file&#39;</span><span class="p">,</span>
-		<span class="s1">&#39;nodeID&#39;</span> <span class="p">:</span> <span class="s1">&#39;assign&#39;</span><span class="p">,</span>
-		<span class="s1">&#39;elemID&#39;</span> <span class="p">:</span> <span class="s1">&#39;assign&#39;</span><span class="p">,</span>
-		<span class="s1">&#39;partID&#39;</span> <span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-		<span class="s1">&#39;partNM&#39;</span> <span class="p">:</span> <span class="s1">&#39;Volume Mesh&#39;</span><span class="p">,</span>
-		<span class="s1">&#39;eltype&#39;</span> <span class="p">:</span> <span class="n">mesh</span><span class="o">.</span><span class="n">eltype2ENSI</span>
-	<span class="p">}</span>
-	<span class="c1"># Write geometry file</span>
-	<span class="n">Ensight_writeGeo</span><span class="p">(</span><span class="n">geofile</span><span class="p">,</span><span class="n">mesh</span><span class="o">.</span><span class="n">xyz</span><span class="p">,</span><span class="n">mesh</span><span class="o">.</span><span class="n">connectivity</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">header</span><span class="p">)</span> <span class="c1"># Python index start at 0</span>
-	<span class="c1"># Write instantaneous fields</span>
-	<span class="n">binfile_fmt</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.ensi.</span><span class="si">%s</span><span class="s1">-</span><span class="si">%06d</span><span class="s1">&#39;</span>
-	<span class="c1"># Define Ensight header</span>
-	<span class="n">header</span> <span class="o">=</span> <span class="p">{</span>
-		<span class="s1">&#39;descr&#39;</span>  <span class="p">:</span> <span class="s1">&#39;File created with pyLOM&#39;</span><span class="p">,</span>
-		<span class="s1">&#39;partID&#39;</span> <span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-		<span class="s1">&#39;partNM&#39;</span> <span class="p">:</span> <span class="s1">&#39;part&#39;</span><span class="p">,</span>
-		<span class="s1">&#39;eltype&#39;</span> <span class="p">:</span> <span class="n">mesh</span><span class="o">.</span><span class="n">eltype2ENSI</span>
-	<span class="p">}</span>
-	<span class="c1"># Loop the selected instants</span>
-	<span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">varnames</span><span class="p">:</span>
-		<span class="c1"># Recover variable information</span>
-		<span class="n">info</span>  <span class="o">=</span> <span class="n">dset</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
-		<span class="n">field</span> <span class="o">=</span> <span class="n">dset</span><span class="p">[</span><span class="n">var</span><span class="p">]</span>
-		<span class="c1"># Variable has temporal evolution</span>
-		<span class="n">header</span><span class="p">[</span><span class="s1">&#39;eltype&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mesh</span><span class="o">.</span><span class="n">eltype2ENSI</span>
-		<span class="c1"># Loop requested instants</span>
-		<span class="k">for</span> <span class="n">instant</span> <span class="ow">in</span> <span class="n">instants</span><span class="p">:</span>
-			<span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">basedir</span><span class="p">,</span><span class="n">binfile_fmt</span> <span class="o">%</span> <span class="p">(</span><span class="n">casestr</span><span class="p">,</span><span class="n">var</span><span class="p">,</span><span class="n">instant</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
-			<span class="c1"># Reshape variable for Ensight file</span>
-			<span class="n">sliced</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">s_</span><span class="p">[:]]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span> <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">idim</span> <span class="k">else</span> <span class="n">instant</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dset</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)])</span>
-			<span class="n">f</span> <span class="o">=</span> <span class="n">mesh</span><span class="o">.</span><span class="n">reshape_var</span><span class="p">(</span><span class="n">dset</span><span class="p">[</span><span class="n">v</span><span class="p">][</span><span class="n">sliced</span><span class="p">],</span><span class="n">dset</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
-			<span class="n">Ensight_writeField</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="n">f</span><span class="p">,</span><span class="n">header</span><span class="p">)</span></div>
 
 </pre></div>
 

@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pyLOM.POD.plots &#8212; pyLOM  documentation</title>
+    <title>pyLOM.utils.gpu &#8212; pyLOM  documentation</title>
   
   
   
@@ -47,7 +47,7 @@
     <script src="../../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pyLOM/POD/plots';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pyLOM/utils/gpu';</script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -331,7 +331,7 @@
     
     <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
     
-    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">pyLOM.POD.plots</span></li>
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">pyLOM.utils.gpu</span></li>
   </ul>
 </nav>
 </div>
@@ -348,53 +348,81 @@
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <h1>Source code for pyLOM.POD.plots</h1><div class="highlight"><pre>
+  <h1>Source code for pyLOM.utils.gpu</h1><div class="highlight"><pre>
 <span></span><span class="ch">#!/usr/bin/env python</span>
 <span class="c1">#</span>
-<span class="c1"># pyLOM - Python Low Order Modeling.</span>
+<span class="c1"># pyLOM, utils.</span>
 <span class="c1">#</span>
-<span class="c1"># POD plotting utilities.</span>
+<span class="c1"># GPU setup routines</span>
 <span class="c1">#</span>
-<span class="c1"># Last rev: 27/10/2021</span>
+<span class="c1"># Last rev: 14/02/2025</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 
-<span class="kn">from</span> <span class="nn">..vmmath</span>      <span class="kn">import</span> <span class="n">fft</span>
-<span class="kn">from</span> <span class="nn">..utils</span>       <span class="kn">import</span> <span class="n">gpu_to_cpu</span>
-<span class="kn">from</span> <span class="nn">..utils.plots</span> <span class="kn">import</span> <span class="n">plotResidual</span><span class="p">,</span> <span class="n">plotSnapshot</span>
+<span class="kn">from</span> <span class="nn">.mpi</span>    <span class="kn">import</span> <span class="n">MPI_RANK</span>
+<span class="kn">from</span> <span class="nn">.errors</span> <span class="kn">import</span> <span class="n">raiseWarning</span>
+
+<span class="k">try</span><span class="p">:</span>
+	<span class="kn">import</span> <span class="nn">cupy</span> <span class="k">as</span> <span class="nn">cp</span>
+
+	<span class="k">def</span> <span class="nf">gpu_device</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">MPI_RANK</span><span class="p">,</span><span class="n">gpu_per_node</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Setup the GPU to be used</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="n">local_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">id</span><span class="o">%</span><span class="n">gpu_per_node</span><span class="p">)</span>
+		<span class="n">cp</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">Device</span><span class="p">(</span><span class="n">local_id</span><span class="p">)</span><span class="o">.</span><span class="n">use</span><span class="p">()</span>
+
+	<span class="k">def</span> <span class="nf">gpu_to_cpu</span><span class="p">(</span><span class="n">X</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Move an array from GPU to CPU</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="ow">is</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span> <span class="k">else</span> <span class="n">X</span>
+
+	<span class="k">def</span> <span class="nf">cpu_to_gpu</span><span class="p">(</span><span class="n">X</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Move an array from GPU to CPU</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="k">return</span> <span class="n">cp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span> <span class="k">else</span> <span class="n">X</span>
+	
+	<span class="k">def</span> <span class="nf">ascontiguousarray</span><span class="p">(</span><span class="n">X</span><span class="p">):</span>
+		<span class="n">p</span> <span class="o">=</span> <span class="n">cp</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="ow">is</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span> <span class="k">else</span> <span class="n">np</span>
+		<span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+<span class="k">except</span><span class="p">:</span>
+	<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">cp</span>
+
+<div class="viewcode-block" id="gpu_device">
+<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.gpu.gpu_device">[docs]</a>
+	<span class="k">def</span> <span class="nf">gpu_device</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">MPI_RANK</span><span class="p">,</span><span class="n">gpu_per_node</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Setup the GPU to be used</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="n">raiseWarning</span><span class="p">(</span><span class="s1">&#39;cupy not available! GPU version deactivated!&#39;</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="plotMode">
-<a class="viewcode-back" href="../../../api/pyLOM.POD.html#pyLOM.POD.plots.plotMode">[docs]</a>
-<span class="k">def</span> <span class="nf">plotMode</span><span class="p">(</span><span class="n">V</span><span class="p">,</span><span class="n">t</span><span class="p">,</span><span class="n">modes</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span><span class="n">fftfun</span><span class="o">=</span><span class="n">fft</span><span class="p">,</span><span class="n">scale_freq</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span><span class="n">fig</span><span class="o">=</span><span class="p">[],</span><span class="n">ax</span><span class="o">=</span><span class="p">[],</span><span class="n">cmap</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">	Given U, VT and a mode, plot their</span>
-<span class="sd">	representation in a figure.</span>
-<span class="sd">	&#39;&#39;&#39;</span>
-	<span class="n">V</span> <span class="o">=</span> <span class="n">gpu_to_cpu</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
-	<span class="k">for</span> <span class="n">imode</span><span class="p">,</span> <span class="n">mode</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">modes</span><span class="p">):</span>
-		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">imode</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
-			<span class="n">fig</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">6</span><span class="p">),</span><span class="n">dpi</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span> <span class="p">)</span>
-		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">imode</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
-			<span class="n">ax</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">fig</span><span class="p">[</span><span class="n">imode</span><span class="p">]</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">gridspec_kw</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;hspace&#39;</span><span class="p">:</span><span class="mf">0.5</span><span class="p">})</span> <span class="p">)</span>
-		<span class="n">fig</span><span class="p">[</span><span class="n">imode</span><span class="p">]</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s1">&#39;Mode </span><span class="si">%d</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">mode</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
-	   	<span class="c1"># Plot the temporal evolution of the mode</span>
-		<span class="n">ax</span><span class="p">[</span><span class="n">imode</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">V</span><span class="p">[</span><span class="n">mode</span><span class="o">-</span><span class="mi">1</span><span class="p">,:],</span><span class="s1">&#39;b&#39;</span><span class="p">)</span>
-		<span class="n">ax</span><span class="p">[</span><span class="n">imode</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Temporal mode&#39;</span><span class="p">)</span>
-		<span class="c1"># Plot frequency representation of the mode</span>
-		<span class="k">if</span> <span class="n">V</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-			<span class="n">freq</span><span class="p">,</span><span class="n">psd</span> <span class="o">=</span> <span class="n">fftfun</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">V</span><span class="p">[</span><span class="n">mode</span><span class="o">-</span><span class="mi">1</span><span class="p">,:],</span><span class="n">equispaced</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-		<span class="k">else</span><span class="p">:</span>
-			<span class="n">freq</span><span class="p">,</span><span class="n">psd</span> <span class="o">=</span> <span class="n">fftfun</span><span class="p">(</span><span class="n">t</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="n">V</span><span class="p">[</span><span class="n">mode</span><span class="o">-</span><span class="mi">1</span><span class="p">,:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="n">equispaced</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-		<span class="n">freq</span> <span class="o">*=</span> <span class="n">scale_freq</span>
-		<span class="c1">#L = int(np.floor(freq.shape[0]/2))</span>
-		<span class="n">ax</span><span class="p">[</span><span class="n">imode</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">freq</span><span class="p">,</span><span class="n">psd</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">)</span>
-		<span class="n">ax</span><span class="p">[</span><span class="n">imode</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s1">&#39;Power Spectrum&#39;</span><span class="p">)</span>
-		<span class="n">ax</span><span class="p">[</span><span class="n">imode</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;St&#39;</span><span class="p">)</span>
-		<span class="n">ax</span><span class="p">[</span><span class="n">imode</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span>
-	<span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span></div>
+<div class="viewcode-block" id="gpu_to_cpu">
+<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.gpu.gpu_to_cpu">[docs]</a>
+	<span class="k">def</span> <span class="nf">gpu_to_cpu</span><span class="p">(</span><span class="n">X</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Move an array from GPU to CPU</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="k">return</span> <span class="n">X</span></div>
+
+
+<div class="viewcode-block" id="cpu_to_gpu">
+<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.gpu.cpu_to_gpu">[docs]</a>
+	<span class="k">def</span> <span class="nf">cpu_to_gpu</span><span class="p">(</span><span class="n">X</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Move an array from GPU to CPU</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="k">return</span> <span class="n">X</span></div>
+
+
+<div class="viewcode-block" id="ascontiguousarray">
+<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.gpu.ascontiguousarray">[docs]</a>
+	<span class="k">def</span> <span class="nf">ascontiguousarray</span><span class="p">(</span><span class="n">X</span><span class="p">):</span>
+		<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">X</span><span class="p">)</span></div>
 
 </pre></div>
 

@@ -362,9 +362,7 @@
 
 <span class="kn">from</span> <span class="nn">..partition_table</span> <span class="kn">import</span> <span class="n">PartitionTable</span>
 <span class="kn">from</span> <span class="nn">..mesh</span>            <span class="kn">import</span> <span class="n">MTYPE2ID</span><span class="p">,</span> <span class="n">ID2MTYPE</span>
-<span class="kn">from</span> <span class="nn">..utils.cr</span>        <span class="kn">import</span> <span class="n">cr</span>
-<span class="kn">from</span> <span class="nn">..utils.parall</span>    <span class="kn">import</span> <span class="n">MPI_COMM</span><span class="p">,</span> <span class="n">MPI_RANK</span><span class="p">,</span> <span class="n">MPI_SIZE</span><span class="p">,</span> <span class="n">worksplit</span><span class="p">,</span> <span class="n">writesplit</span><span class="p">,</span> <span class="n">is_rank_or_serial</span><span class="p">,</span> <span class="n">mpi_reduce</span><span class="p">,</span> <span class="n">mpi_gather</span>
-<span class="kn">from</span> <span class="nn">..utils.errors</span>    <span class="kn">import</span> <span class="n">raiseError</span>
+<span class="kn">from</span> <span class="nn">..utils</span>           <span class="kn">import</span> <span class="n">cr</span><span class="p">,</span> <span class="n">MPI_COMM</span><span class="p">,</span> <span class="n">MPI_RANK</span><span class="p">,</span> <span class="n">MPI_SIZE</span><span class="p">,</span> <span class="n">worksplit</span><span class="p">,</span> <span class="n">writesplit</span><span class="p">,</span> <span class="n">is_rank_or_serial</span><span class="p">,</span> <span class="n">mpi_reduce</span><span class="p">,</span> <span class="n">mpi_gather</span><span class="p">,</span> <span class="n">raiseError</span>
 
 
 <span class="n">PYLOM_H5_VERSION</span> <span class="o">=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>

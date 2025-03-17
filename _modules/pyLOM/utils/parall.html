@@ -355,30 +355,21 @@
 <span class="c1">#</span>
 <span class="c1"># Parallel routines</span>
 <span class="c1">#</span>
-<span class="c1"># Last rev: 25/10/2021</span>
+<span class="c1"># Last rev: 14/02/2025</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
 
 <span class="kn">import</span> <span class="nn">mpi4py</span><span class="o">,</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="n">mpi4py</span><span class="o">.</span><span class="n">rc</span><span class="o">.</span><span class="n">recv_mprobe</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="kn">from</span> <span class="nn">mpi4py</span> <span class="kn">import</span> <span class="n">MPI</span>
 
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
 <span class="n">MPI_COMM</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span>
 <span class="n">MPI_RANK</span> <span class="o">=</span> <span class="n">MPI_COMM</span><span class="o">.</span><span class="n">Get_rank</span><span class="p">()</span>
 <span class="n">MPI_SIZE</span> <span class="o">=</span> <span class="n">MPI_COMM</span><span class="o">.</span><span class="n">Get_size</span><span class="p">()</span>
 
-<span class="n">MPI_RDONLY</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">MODE_RDONLY</span>
-<span class="n">MPI_WRONLY</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">MODE_WRONLY</span>
-<span class="n">MPI_CREATE</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">MODE_CREATE</span>
-
-
-<span class="c1"># Expose functions from MPI library</span>
-<span class="n">mpi_create_op</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">Op</span><span class="o">.</span><span class="n">Create</span>
-<span class="n">mpi_wtime</span>     <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">Wtime</span>
-<span class="n">mpi_file_open</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">Open</span>
-
-<span class="n">mpi_nanmin</span> <span class="o">=</span> <span class="n">mpi_create_op</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v1</span><span class="p">,</span><span class="n">v2</span><span class="p">,</span><span class="n">dtype</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">([</span><span class="n">v1</span><span class="p">,</span><span class="n">v2</span><span class="p">]),</span><span class="n">commute</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">mpi_nanmax</span> <span class="o">=</span> <span class="n">mpi_create_op</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v1</span><span class="p">,</span><span class="n">v2</span><span class="p">,</span><span class="n">dtype</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">([</span><span class="n">v1</span><span class="p">,</span><span class="n">v2</span><span class="p">]),</span><span class="n">commute</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">mpi_nansum</span> <span class="o">=</span> <span class="n">mpi_create_op</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v1</span><span class="p">,</span><span class="n">v2</span><span class="p">,</span><span class="n">dtype</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">([</span><span class="n">v1</span><span class="p">,</span><span class="n">v2</span><span class="p">]),</span><span class="n">commute</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">mpi_send</span> <span class="o">=</span> <span class="n">MPI_COMM</span><span class="o">.</span><span class="n">send</span>
+<span class="n">mpi_recv</span> <span class="o">=</span> <span class="n">MPI_COMM</span><span class="o">.</span><span class="n">recv</span>
 
 
 <div class="viewcode-block" id="worksplit">
@@ -437,7 +428,6 @@
 	<span class="k">return</span> <span class="n">istart</span><span class="p">,</span> <span class="n">iend</span></div>
 
 
-
 <div class="viewcode-block" id="split">
 <a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.parall.split">[docs]</a>
 <span class="k">def</span> <span class="nf">split</span><span class="p">(</span><span class="n">array</span><span class="p">,</span><span class="n">root</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
@@ -445,7 +435,6 @@
 <span class="sd">	Split an array among the processors</span>
 <span class="sd">	&#39;&#39;&#39;</span>
 	<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">vsplit</span><span class="p">(</span><span class="n">array</span><span class="p">,[</span><span class="n">worksplit</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">i</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">MPI_SIZE</span><span class="o">-</span><span class="mi">1</span><span class="p">)])</span> <span class="k">if</span> <span class="n">MPI_RANK</span><span class="o">==</span><span class="n">root</span> <span class="k">else</span> <span class="kc">None</span></div>
-
 
 
 <div class="viewcode-block" id="is_rank_or_serial">
@@ -456,114 +445,6 @@
 <span class="sd">	in case of a serial run</span>
 <span class="sd">	&#39;&#39;&#39;</span>
 	<span class="k">return</span> <span class="n">MPI_RANK</span> <span class="o">==</span> <span class="n">root</span> <span class="ow">or</span> <span class="n">MPI_SIZE</span> <span class="o">==</span> <span class="mi">1</span></div>
-
-
-
-<div class="viewcode-block" id="mpi_barrier">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.parall.mpi_barrier">[docs]</a>
-<span class="k">def</span> <span class="nf">mpi_barrier</span><span class="p">():</span>
-<span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">	Implements the barrier</span>
-<span class="sd">	&#39;&#39;&#39;</span>
-	<span class="n">MPI_COMM</span><span class="o">.</span><span class="n">Barrier</span><span class="p">()</span></div>
-
-
-
-<div class="viewcode-block" id="mpi_send">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.parall.mpi_send">[docs]</a>
-<span class="k">def</span> <span class="nf">mpi_send</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">dest</span><span class="p">,</span><span class="n">tag</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-<span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">	Implements the send operation</span>
-<span class="sd">	&#39;&#39;&#39;</span>
-	<span class="n">MPI_COMM</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">dest</span><span class="p">,</span><span class="n">tag</span><span class="o">=</span><span class="n">tag</span><span class="p">)</span></div>
-
-
-
-<div class="viewcode-block" id="mpi_recv">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.parall.mpi_recv">[docs]</a>
-<span class="k">def</span> <span class="nf">mpi_recv</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">	Implements the recieve operation</span>
-<span class="sd">	&#39;&#39;&#39;</span>
-	<span class="k">return</span> <span class="n">MPI_COMM</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
-
-
-
-<div class="viewcode-block" id="mpi_sendrecv">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.parall.mpi_sendrecv">[docs]</a>
-<span class="k">def</span> <span class="nf">mpi_sendrecv</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">	Implements the sendrecv operation</span>
-<span class="sd">	&#39;&#39;&#39;</span>
-	<span class="k">return</span> <span class="n">MPI_COMM</span><span class="o">.</span><span class="n">sendrecv</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
-
-
-
-<div class="viewcode-block" id="mpi_scatter">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.parall.mpi_scatter">[docs]</a>
-<span class="k">def</span> <span class="nf">mpi_scatter</span><span class="p">(</span><span class="n">sendbuff</span><span class="p">,</span><span class="n">root</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">do_split</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-<span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">	Send an array among the processors and split</span>
-<span class="sd">	if necessary.</span>
-<span class="sd">	&#39;&#39;&#39;</span>
-	<span class="k">if</span> <span class="n">MPI_SIZE</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-		<span class="k">return</span> <span class="n">MPI_COMM</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">split</span><span class="p">(</span><span class="n">sendbuff</span><span class="p">,</span><span class="n">root</span><span class="o">=</span><span class="n">root</span><span class="p">),</span><span class="n">root</span><span class="o">=</span><span class="n">root</span><span class="p">)</span> <span class="k">if</span> <span class="n">do_split</span> <span class="k">else</span> <span class="n">MPI_COMM</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">sendbuff</span><span class="p">,</span><span class="n">root</span><span class="o">=</span><span class="n">root</span><span class="p">)</span>
-	<span class="k">return</span> <span class="n">sendbuff</span></div>
-
-
-
-<div class="viewcode-block" id="mpi_gather">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.parall.mpi_gather">[docs]</a>
-<span class="k">def</span> <span class="nf">mpi_gather</span><span class="p">(</span><span class="n">sendbuff</span><span class="p">,</span><span class="n">root</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="nb">all</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-<span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">	Gather an array from all the processors.</span>
-<span class="sd">	&#39;&#39;&#39;</span>
-	<span class="k">if</span> <span class="n">MPI_SIZE</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-		<span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sendbuff</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sendbuff</span><span class="p">,</span><span class="nb">list</span><span class="p">):</span> <span class="n">sendbuff</span> <span class="o">=</span> <span class="p">[</span><span class="n">sendbuff</span><span class="p">]</span>
-		<span class="k">if</span> <span class="nb">all</span><span class="p">:</span>
-			<span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">MPI_COMM</span><span class="o">.</span><span class="n">allgather</span><span class="p">(</span><span class="n">sendbuff</span><span class="p">))</span>
-			<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">out</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-		<span class="k">else</span><span class="p">:</span>
-			<span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">MPI_COMM</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">sendbuff</span><span class="p">,</span><span class="n">root</span><span class="o">=</span><span class="n">root</span><span class="p">))</span>
-			<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">out</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="k">if</span> <span class="n">MPI_RANK</span> <span class="o">==</span> <span class="n">root</span> <span class="k">else</span> <span class="kc">None</span>
-	<span class="k">return</span> <span class="n">sendbuff</span></div>
-
-
-
-<div class="viewcode-block" id="mpi_reduce">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.parall.mpi_reduce">[docs]</a>
-<span class="k">def</span> <span class="nf">mpi_reduce</span><span class="p">(</span><span class="n">sendbuff</span><span class="p">,</span><span class="n">root</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">op</span><span class="o">=</span><span class="s1">&#39;sum&#39;</span><span class="p">,</span><span class="nb">all</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-<span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">	Reduce an array from all the processors.</span>
-<span class="sd">	&#39;&#39;&#39;</span>
-	<span class="k">if</span> <span class="n">MPI_SIZE</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">op</span><span class="p">,</span><span class="nb">str</span><span class="p">):</span>
-			<span class="k">if</span> <span class="s1">&#39;sum&#39;</span>    <span class="ow">in</span> <span class="n">op</span><span class="p">:</span> <span class="n">opf</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">SUM</span>
-			<span class="k">if</span> <span class="s1">&#39;max&#39;</span>    <span class="ow">in</span> <span class="n">op</span><span class="p">:</span> <span class="n">opf</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">MAX</span>
-			<span class="k">if</span> <span class="s1">&#39;min&#39;</span>    <span class="ow">in</span> <span class="n">op</span><span class="p">:</span> <span class="n">opf</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">MIN</span>
-			<span class="k">if</span> <span class="s1">&#39;nanmin&#39;</span> <span class="ow">in</span> <span class="n">op</span><span class="p">:</span> <span class="n">opf</span> <span class="o">=</span> <span class="n">mpi_nanmin</span>
-			<span class="k">if</span> <span class="s1">&#39;nanmax&#39;</span> <span class="ow">in</span> <span class="n">op</span><span class="p">:</span> <span class="n">opf</span> <span class="o">=</span> <span class="n">mpi_nanmax</span>
-			<span class="k">if</span> <span class="s1">&#39;nansum&#39;</span> <span class="ow">in</span> <span class="n">op</span><span class="p">:</span> <span class="n">opf</span> <span class="o">=</span> <span class="n">mpi_nansum</span>
-		<span class="k">else</span><span class="p">:</span>
-			<span class="n">opf</span> <span class="o">=</span> <span class="n">op</span>
-		<span class="k">if</span> <span class="nb">all</span><span class="p">:</span>
-			<span class="k">return</span> <span class="n">MPI_COMM</span><span class="o">.</span><span class="n">allreduce</span><span class="p">(</span><span class="n">sendbuff</span><span class="p">,</span><span class="n">op</span><span class="o">=</span><span class="n">opf</span><span class="p">)</span>
-		<span class="k">else</span><span class="p">:</span>
-			<span class="n">out</span> <span class="o">=</span> <span class="n">MPI_COMM</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">sendbuff</span><span class="p">,</span><span class="n">op</span><span class="o">=</span><span class="n">opf</span><span class="p">,</span><span class="n">root</span><span class="o">=</span><span class="n">root</span><span class="p">)</span>
-			<span class="k">return</span> <span class="n">out</span> <span class="k">if</span> <span class="n">root</span> <span class="o">==</span> <span class="n">MPI_RANK</span> <span class="k">else</span> <span class="n">sendbuff</span>
-	<span class="k">else</span><span class="p">:</span>
-		<span class="k">return</span> <span class="n">sendbuff</span></div>
-
-
-
-<div class="viewcode-block" id="mpi_bcast">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.parall.mpi_bcast">[docs]</a>
-<span class="k">def</span> <span class="nf">mpi_bcast</span><span class="p">(</span><span class="n">sendbuff</span><span class="p">,</span><span class="n">root</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-<span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">	Implements the broadcast operation</span>
-<span class="sd">	&#39;&#39;&#39;</span>
-	<span class="k">return</span> <span class="n">MPI_COMM</span><span class="o">.</span><span class="n">bcast</span><span class="p">(</span><span class="n">sendbuff</span><span class="p">,</span><span class="n">root</span><span class="o">=</span><span class="n">root</span><span class="p">)</span></div>
-
 
 
 <div class="viewcode-block" id="pprint">

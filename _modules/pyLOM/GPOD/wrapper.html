@@ -353,9 +353,10 @@
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
-<span class="kn">from</span> <span class="nn">..utils</span>  <span class="kn">import</span> <span class="n">cr</span><span class="p">,</span> <span class="n">raiseError</span>
-<span class="kn">from</span> <span class="nn">..vmmath</span> <span class="kn">import</span> <span class="n">temporal_mean</span><span class="p">,</span> <span class="n">subtract_mean</span><span class="p">,</span> <span class="n">matmul</span><span class="p">,</span> <span class="n">vector_sum</span><span class="p">,</span> <span class="n">least_squares</span><span class="p">,</span> <span class="n">ridge_regresion</span>
-<span class="kn">from</span> <span class="nn">..POD</span>    <span class="kn">import</span> <span class="n">run</span><span class="p">,</span> <span class="n">truncate</span>
+<span class="kn">from</span> <span class="nn">..utils.gpu</span> <span class="kn">import</span> <span class="n">cp</span>
+<span class="kn">from</span> <span class="nn">..utils</span>     <span class="kn">import</span> <span class="n">cr_nvtx</span> <span class="k">as</span> <span class="n">cr</span><span class="p">,</span> <span class="n">raiseError</span>
+<span class="kn">from</span> <span class="nn">..vmmath</span>    <span class="kn">import</span> <span class="n">temporal_mean</span><span class="p">,</span> <span class="n">subtract_mean</span><span class="p">,</span> <span class="n">matmul</span><span class="p">,</span> <span class="n">vector_sum</span><span class="p">,</span> <span class="n">least_squares</span><span class="p">,</span> <span class="n">ridge_regresion</span>
+<span class="kn">from</span> <span class="nn">..POD</span>       <span class="kn">import</span> <span class="n">run</span><span class="p">,</span> <span class="n">truncate</span>
 
 
 <div class="viewcode-block" id="GappyPOD">
@@ -363,152 +364,154 @@
 <span class="k">class</span> <span class="nc">GappyPOD</span><span class="p">:</span>
 <div class="viewcode-block" id="GappyPOD.__init__">
 <a class="viewcode-back" href="../../../api/pyLOM.GPOD.html#pyLOM.GPOD.wrapper.GappyPOD.__init__">[docs]</a>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">centered</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">apply_truncation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">truncation_param</span><span class="o">=-</span><span class="mf">0.99</span><span class="p">,</span>
-        <span class="n">reconstruction_method</span><span class="o">=</span><span class="s2">&quot;standard&quot;</span><span class="p">,</span>
-        <span class="n">ridge_lambda</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
-    <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Gappy POD model for reconstructing incomplete data using POD modes.</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+		<span class="n">centered</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+		<span class="n">apply_truncation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+		<span class="n">truncation_param</span><span class="o">=-</span><span class="mf">0.99</span><span class="p">,</span>
+		<span class="n">reconstruction_method</span><span class="o">=</span><span class="s2">&quot;standard&quot;</span><span class="p">,</span>
+		<span class="n">ridge_lambda</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+	<span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Gappy POD model for reconstructing incomplete data using POD modes.</span>
 
-<span class="sd">        Args:</span>
-<span class="sd">            centered (bool): Whether to center the data by subtracting the mean.</span>
-<span class="sd">            apply_truncation (bool): Whether to apply truncation.</span>
-<span class="sd">            truncation_method (float or int): Threshold for truncation.</span>
-<span class="sd">            reconstruction_method (str): Reconstruction method (&#39;standard&#39; or &#39;ridge&#39;).</span>
-<span class="sd">            ridge_lambda (float): Regularization parameter for ridge reconstruction.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Validate reconstruction method</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">reconstruction_method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;standard&quot;</span><span class="p">,</span> <span class="s2">&quot;ridge&quot;</span><span class="p">]:</span>
-            <span class="n">raiseError</span><span class="p">(</span><span class="s2">&quot;Reconstruction method must be either &#39;standard&#39; or &#39;ridge&#39;.&quot;</span><span class="p">)</span>
+<span class="sd">		Args:</span>
+<span class="sd">			centered (bool): Whether to center the data by subtracting the mean.</span>
+<span class="sd">			apply_truncation (bool): Whether to apply truncation.</span>
+<span class="sd">			truncation_method (float or int): Threshold for truncation.</span>
+<span class="sd">			reconstruction_method (str): Reconstruction method (&#39;standard&#39; or &#39;ridge&#39;).</span>
+<span class="sd">			ridge_lambda (float): Regularization parameter for ridge reconstruction.</span>
+<span class="sd">		&quot;&quot;&quot;</span>
+		<span class="c1"># Validate reconstruction method</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="n">reconstruction_method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;standard&quot;</span><span class="p">,</span> <span class="s2">&quot;ridge&quot;</span><span class="p">]:</span>
+			<span class="n">raiseError</span><span class="p">(</span><span class="s2">&quot;Reconstruction method must be either &#39;standard&#39; or &#39;ridge&#39;.&quot;</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">centered</span>            <span class="o">=</span> <span class="n">centered</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">truncate</span>            <span class="o">=</span> <span class="n">apply_truncation</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">truncation_param</span>    <span class="o">=</span> <span class="n">truncation_param</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">reconstruction_type</span> <span class="o">=</span> <span class="n">least_squares</span> <span class="k">if</span> <span class="n">reconstruction_method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;standard&quot;</span> <span class="k">else</span> <span class="k">lambda</span> <span class="n">a</span><span class="p">,</span><span class="n">b</span> <span class="p">:</span> <span class="n">ridge_regresion</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">ridge_lambda</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">centered</span>            <span class="o">=</span> <span class="n">centered</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">truncate</span>            <span class="o">=</span> <span class="n">apply_truncation</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">truncation_param</span>    <span class="o">=</span> <span class="n">truncation_param</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">reconstruction_type</span> <span class="o">=</span> <span class="n">least_squares</span> <span class="k">if</span> <span class="n">reconstruction_method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;standard&quot;</span> <span class="k">else</span> <span class="k">lambda</span> <span class="n">a</span><span class="p">,</span><span class="n">b</span> <span class="p">:</span> <span class="n">ridge_regresion</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">ridge_lambda</span><span class="p">)</span>
 
-        <span class="c1"># Attributes to store fitted data</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">mean</span>               <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">U_truncated_scaled</span> <span class="o">=</span> <span class="kc">None</span></div>
+		<span class="c1"># Attributes to store fitted data</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">mean</span>               <span class="o">=</span> <span class="kc">None</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">U_truncated_scaled</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 
 <div class="viewcode-block" id="GappyPOD.fit">
 <a class="viewcode-back" href="../../../api/pyLOM.GPOD.html#pyLOM.GPOD.wrapper.GappyPOD.fit">[docs]</a>
-    <span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;GPOD.fit&#39;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">snapshot_matrix</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Fit the Gappy POD model using the snapshot matrix.</span>
+	<span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;GPOD.fit&#39;</span><span class="p">)</span>
+	<span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">snapshot_matrix</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Fit the Gappy POD model using the snapshot matrix.</span>
 
-<span class="sd">        Args:</span>
-<span class="sd">            snapshot_matrix  (np.ndarray): Training matrix [n_features, n_samples].</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Center data if required</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">mean</span> <span class="o">=</span> <span class="n">temporal_mean</span><span class="p">(</span><span class="n">snapshot_matrix</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">centered</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">snapshot_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-        <span class="n">X</span> <span class="o">=</span> <span class="n">subtract_mean</span><span class="p">(</span><span class="n">snapshot_matrix</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">mean</span><span class="p">)</span>
+<span class="sd">		Args:</span>
+<span class="sd">			snapshot_matrix  (np.ndarray): Training matrix [n_features, n_samples].</span>
+<span class="sd">		&quot;&quot;&quot;</span>
+		<span class="n">cnp</span> <span class="o">=</span> <span class="n">cp</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">snapshot_matrix</span><span class="p">)</span> <span class="ow">is</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span> <span class="k">else</span> <span class="n">np</span>
+		<span class="c1"># Center data if required</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">mean</span> <span class="o">=</span> <span class="n">temporal_mean</span><span class="p">(</span><span class="n">snapshot_matrix</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">centered</span> <span class="k">else</span> <span class="n">cnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">snapshot_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+		<span class="n">X</span> <span class="o">=</span> <span class="n">subtract_mean</span><span class="p">(</span><span class="n">snapshot_matrix</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">mean</span><span class="p">)</span>
 
-        <span class="c1"># Compute SVD through POD this way we can reuse some nice features</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">U_truncated</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">S_truncated</span><span class="p">,</span> <span class="n">VT</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">remove_mean</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+		<span class="c1"># Compute SVD through POD this way we can reuse some nice features</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">U_truncated</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">S_truncated</span><span class="p">,</span> <span class="n">VT</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">remove_mean</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-        <span class="c1"># Apply truncation if specified</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">truncate</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">U_truncated</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">S_truncated</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">U_truncated</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">S_truncated</span><span class="p">,</span><span class="n">VT</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">truncation_param</span><span class="p">)</span>
+		<span class="c1"># Apply truncation if specified</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">truncate</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">U_truncated</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">S_truncated</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">U_truncated</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">S_truncated</span><span class="p">,</span><span class="n">VT</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">truncation_param</span><span class="p">)</span>
 
-        <span class="c1"># Masked and scaled POD modes</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">U_truncated_scaled</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">U_truncated</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">S_truncated</span></div>
+		<span class="c1"># Masked and scaled POD modes</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">U_truncated_scaled</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">U_truncated</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">S_truncated</span></div>
 
 
 <div class="viewcode-block" id="GappyPOD.predict">
 <a class="viewcode-back" href="../../../api/pyLOM.GPOD.html#pyLOM.GPOD.wrapper.GappyPOD.predict">[docs]</a>
-    <span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;GPOD.predict&#39;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gappy_vector</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Reconstruct missing data using the fitted Gappy POD model.</span>
+	<span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;GPOD.predict&#39;</span><span class="p">)</span>
+	<span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gappy_vector</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Reconstruct missing data using the fitted Gappy POD model.</span>
 
-<span class="sd">        Args:</span>
-<span class="sd">            gappy_vector (np.ndarray): Sparse vector with missing values.</span>
+<span class="sd">		Args:</span>
+<span class="sd">			gappy_vector (np.ndarray): Sparse vector with missing values.</span>
 
-<span class="sd">        Returns:</span>
-<span class="sd">            np.ndarray: Reconstructed data vector.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">U_truncated_scaled</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">raiseError</span><span class="p">(</span><span class="s2">&quot;The model must be fitted before calling predict.&quot;</span><span class="p">)</span>
+<span class="sd">		Returns:</span>
+<span class="sd">			np.ndarray: Reconstructed data vector.</span>
+<span class="sd">		&quot;&quot;&quot;</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">U_truncated_scaled</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="n">raiseError</span><span class="p">(</span><span class="s2">&quot;The model must be fitted before calling predict.&quot;</span><span class="p">)</span>
 
-        <span class="c1"># Prepare the masked input</span>
-        <span class="n">mask</span>        <span class="o">=</span> <span class="p">(</span><span class="n">gappy_vector</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="c1"># Binary mask for observed data</span>
-        <span class="n">gappy_input</span> <span class="o">=</span> <span class="n">gappy_vector</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">mean</span><span class="o">*</span><span class="n">mask</span>
-        <span class="n">PT_U</span>        <span class="o">=</span> <span class="n">mask</span><span class="p">[:,</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">U_truncated_scaled</span>
+		<span class="c1"># Prepare the masked input</span>
+		<span class="n">mask</span>        <span class="o">=</span> <span class="p">(</span><span class="n">gappy_vector</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="c1"># Binary mask for observed data</span>
+		<span class="n">gappy_input</span> <span class="o">=</span> <span class="n">gappy_vector</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">mean</span><span class="o">*</span><span class="n">mask</span>
+		<span class="n">PT_U</span>        <span class="o">=</span> <span class="n">mask</span><span class="p">[:,</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">U_truncated_scaled</span>
 
-        <span class="c1"># Solve for coefficients</span>
-        <span class="n">coef</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reconstruction_type</span><span class="p">(</span><span class="n">PT_U</span><span class="p">,</span><span class="n">gappy_input</span><span class="p">)</span>
+		<span class="c1"># Solve for coefficients</span>
+		<span class="n">coef</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reconstruction_type</span><span class="p">(</span><span class="n">PT_U</span><span class="p">,</span><span class="n">gappy_input</span><span class="p">)</span>
 
-        <span class="c1"># Reconstruct missing data</span>
-        <span class="n">vector_reconstructed</span> <span class="o">=</span> <span class="n">matmul</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">U_truncated_scaled</span><span class="p">,</span><span class="n">coef</span><span class="p">[:,</span><span class="kc">None</span><span class="p">])</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">mean</span>
-        <span class="k">return</span> <span class="n">vector_reconstructed</span></div>
+		<span class="c1"># Reconstruct missing data</span>
+		<span class="n">vector_reconstructed</span> <span class="o">=</span> <span class="n">matmul</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">U_truncated_scaled</span><span class="p">,</span><span class="n">coef</span><span class="p">[:,</span><span class="kc">None</span><span class="p">])</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">mean</span>
+		<span class="k">return</span> <span class="n">vector_reconstructed</span></div>
 
 
 <div class="viewcode-block" id="GappyPOD.reconstruct_full_set">
 <a class="viewcode-back" href="../../../api/pyLOM.GPOD.html#pyLOM.GPOD.wrapper.GappyPOD.reconstruct_full_set">[docs]</a>
-    <span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;GPOD.reconstruct&#39;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">reconstruct_full_set</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">incomplete_snapshot</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">iter_num</span><span class="p">:</span> <span class="nb">int</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Iteratively reconstruct an incomplete snapshot matrix using Gappy POD.</span>
+	<span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;GPOD.reconstruct&#39;</span><span class="p">)</span>
+	<span class="k">def</span> <span class="nf">reconstruct_full_set</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span> <span class="n">incomplete_snapshot</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">iter_num</span><span class="p">:</span> <span class="nb">int</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">		Iteratively reconstruct an incomplete snapshot matrix using Gappy POD.</span>
 
-<span class="sd">        Args:</span>
-<span class="sd">            incomplete_snapshot (np.ndarray): Snapshot matrix with missing values (n_features, n_samples).</span>
-<span class="sd">            iter_num (int): Number of iterations for the iterative reconstruction process.</span>
+<span class="sd">		Args:</span>
+<span class="sd">			incomplete_snapshot (np.ndarray): Snapshot matrix with missing values (n_features, n_samples).</span>
+<span class="sd">			iter_num (int): Number of iterations for the iterative reconstruction process.</span>
 
-<span class="sd">        Returns:</span>
-<span class="sd">            tuple: Reconstructed snapshot matrix, eigenvalue spectrum across iterations,</span>
-<span class="sd">                   and cumulative energy.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Step 1: Create mask for missing values</span>
-        <span class="n">mask_incomplete</span> <span class="o">=</span> <span class="p">(</span><span class="n">incomplete_snapshot</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+<span class="sd">		Returns:</span>
+<span class="sd">			tuple: Reconstructed snapshot matrix, eigenvalue spectrum across iterations,</span>
+<span class="sd">				   and cumulative energy.</span>
+<span class="sd">		&quot;&quot;&quot;</span>
+		<span class="n">cnp</span> <span class="o">=</span> <span class="n">cp</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">incomplete_snapshot</span><span class="p">)</span> <span class="ow">is</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span> <span class="k">else</span> <span class="n">np</span>
+		<span class="c1"># Step 1: Create mask for missing values</span>
+		<span class="n">mask_incomplete</span> <span class="o">=</span> <span class="p">(</span><span class="n">incomplete_snapshot</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
 
-        <span class="c1"># Step 2: Compute row-wise mean for non-missing values</span>
-        <span class="n">g_i_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">vector_sum</span><span class="p">(</span><span class="n">incomplete_snapshot</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:])</span> <span class="o">/</span> <span class="n">vector_sum</span><span class="p">(</span><span class="n">mask_incomplete</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">incomplete_snapshot</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">incomplete_snapshot</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])])</span>
+		<span class="c1"># Step 2: Compute row-wise mean for non-missing values</span>
+		<span class="n">g_i_mean</span> <span class="o">=</span> <span class="n">cnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">vector_sum</span><span class="p">(</span><span class="n">incomplete_snapshot</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:])</span> <span class="o">/</span> <span class="n">vector_sum</span><span class="p">(</span><span class="n">mask_incomplete</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">incomplete_snapshot</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">incomplete_snapshot</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])])</span>
 
-        <span class="c1"># Initialize the reconstructed snapshot matrix</span>
-        <span class="n">h_recons</span> <span class="o">=</span> <span class="n">incomplete_snapshot</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">h_recons</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
-            <span class="n">h_recons</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">mask_incomplete</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">g_i_mean</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+		<span class="c1"># Initialize the reconstructed snapshot matrix</span>
+		<span class="n">h_recons</span> <span class="o">=</span> <span class="n">incomplete_snapshot</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">h_recons</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+			<span class="n">h_recons</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">mask_incomplete</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">g_i_mean</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
 
-        <span class="c1"># Step 3: Initialize arrays to store results</span>
-        <span class="n">eig_spec_iter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">h_recons</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">iter_num</span><span class="p">))</span>
-        <span class="n">c_e</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">h_recons</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">iter_num</span><span class="p">))</span>
+		<span class="c1"># Step 3: Initialize arrays to store results</span>
+		<span class="n">eig_spec_iter</span> <span class="o">=</span> <span class="n">cnp</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">h_recons</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">iter_num</span><span class="p">))</span>
+		<span class="n">c_e</span> <span class="o">=</span> <span class="n">cnp</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">h_recons</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">iter_num</span><span class="p">))</span>
 
-        <span class="c1"># Iterative reconstruction</span>
-        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iter_num</span><span class="p">):</span>
-            <span class="c1"># Fit the model with the current reconstructed snapshot matrix</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">h_recons</span><span class="p">)</span>
+		<span class="c1"># Iterative reconstruction</span>
+		<span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iter_num</span><span class="p">):</span>
+			<span class="c1"># Fit the model with the current reconstructed snapshot matrix</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">h_recons</span><span class="p">)</span>
 
-            <span class="c1"># Reconstruct all snapshots</span>
-            <span class="n">snapshots_recons</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">h_recons</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">h_recons</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
-                <span class="n">gappy_vector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">incomplete_snapshot</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])</span>
-                <span class="n">snapshots_recons</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">gappy_vector</span><span class="p">)</span>
+			<span class="c1"># Reconstruct all snapshots</span>
+			<span class="n">snapshots_recons</span> <span class="o">=</span> <span class="n">cnp</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">h_recons</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+			<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">h_recons</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+				<span class="n">gappy_vector</span> <span class="o">=</span> <span class="n">cnp</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">incomplete_snapshot</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])</span>
+				<span class="n">snapshots_recons</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">gappy_vector</span><span class="p">)</span>
 
-            <span class="c1"># Update the reconstruction matrix</span>
-            <span class="n">h_recons</span> <span class="o">=</span> <span class="n">incomplete_snapshot</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">h_recons</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
-                <span class="n">mask</span> <span class="o">=</span> <span class="n">mask_incomplete</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
-                <span class="n">h_recons</span><span class="p">[</span><span class="n">mask</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">snapshots_recons</span><span class="p">[</span><span class="n">mask</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+			<span class="c1"># Update the reconstruction matrix</span>
+			<span class="n">h_recons</span> <span class="o">=</span> <span class="n">incomplete_snapshot</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+			<span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">h_recons</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+				<span class="n">mask</span> <span class="o">=</span> <span class="n">mask_incomplete</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+				<span class="n">h_recons</span><span class="p">[</span><span class="n">mask</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">snapshots_recons</span><span class="p">[</span><span class="n">mask</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
 
-            <span class="c1"># Compute the eigenvalue spectrum and cumulative energy</span>
-            <span class="n">_</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="n">h_recons</span><span class="p">,</span> <span class="n">remove_mean</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="n">eig_spec_iter</span><span class="p">[:,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">S</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span> <span class="n">vector_sum</span><span class="p">(</span><span class="n">S</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
-            <span class="n">normS</span> <span class="o">=</span> <span class="n">vector_sum</span><span class="p">(</span><span class="n">S</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
-            <span class="n">cumulative</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
-                <span class="n">cumulative</span> <span class="o">+=</span> <span class="n">S</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
-                <span class="n">c_e</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">cumulative</span> <span class="o">/</span> <span class="n">normS</span>
-                
-        <span class="k">return</span> <span class="n">h_recons</span><span class="p">,</span> <span class="n">eig_spec_iter</span><span class="p">,</span> <span class="n">c_e</span></div>
+			<span class="c1"># Compute the eigenvalue spectrum and cumulative energy</span>
+			<span class="n">_</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="n">h_recons</span><span class="p">,</span> <span class="n">remove_mean</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+			<span class="n">eig_spec_iter</span><span class="p">[:,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">S</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span> <span class="n">vector_sum</span><span class="p">(</span><span class="n">S</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+			<span class="n">normS</span> <span class="o">=</span> <span class="n">vector_sum</span><span class="p">(</span><span class="n">S</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+			<span class="n">cumulative</span> <span class="o">=</span> <span class="mi">0</span>
+			<span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+				<span class="n">cumulative</span> <span class="o">+=</span> <span class="n">S</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+				<span class="n">c_e</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">cumulative</span> <span class="o">/</span> <span class="n">normS</span>
+				
+		<span class="k">return</span> <span class="n">h_recons</span><span class="p">,</span> <span class="n">eig_spec_iter</span><span class="p">,</span> <span class="n">c_e</span></div>
 </div>
 
 </pre></div>

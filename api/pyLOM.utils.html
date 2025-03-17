@@ -543,7 +543,14 @@ Returned value will always be &gt; 0.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="pyLOM.utils.cr.cr">
 <span class="sig-prename descclassname"><span class="pre">pyLOM.utils.cr.</span></span><span class="sig-name descname"><span class="pre">cr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#cr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr.cr" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>CR decorator</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.cr.cr_nvtx">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.cr.</span></span><span class="sig-name descname"><span class="pre">cr_nvtx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'green'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/cr.html#cr_nvtx"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.cr.cr_nvtx" title="Link to this definition">#</a></dt>
+<dd><p>CR NVTX decorator</p>
+</dd></dl>
 
 </section>
 <section id="module-pyLOM.utils.errors">
@@ -567,6 +574,32 @@ all processes.</p>
 <dd><p>Raise a controlled warning but don’t abort execution on
 all processes.</p>
 </dd></dl>
+
+</section>
+<section id="module-pyLOM.utils.gpu">
+<span id="pylom-utils-gpu-module"></span><h2>pyLOM.utils.gpu module<a class="headerlink" href="#module-pyLOM.utils.gpu" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.gpu.gpu_device">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.gpu.</span></span><span class="sig-name descname"><span class="pre">gpu_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">MPI_RANK</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu_per_node</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/gpu.html#gpu_device"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.gpu.gpu_device" title="Link to this definition">#</a></dt>
+<dd><p>Setup the GPU to be used</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.gpu.gpu_to_cpu">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.gpu.</span></span><span class="sig-name descname"><span class="pre">gpu_to_cpu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/gpu.html#gpu_to_cpu"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.gpu.gpu_to_cpu" title="Link to this definition">#</a></dt>
+<dd><p>Move an array from GPU to CPU</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.gpu.cpu_to_gpu">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.gpu.</span></span><span class="sig-name descname"><span class="pre">cpu_to_gpu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/gpu.html#cpu_to_gpu"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.gpu.cpu_to_gpu" title="Link to this definition">#</a></dt>
+<dd><p>Move an array from GPU to CPU</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.gpu.ascontiguousarray">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.gpu.</span></span><span class="sig-name descname"><span class="pre">ascontiguousarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/gpu.html#ascontiguousarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.gpu.ascontiguousarray" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
 
 </section>
 <section id="module-pyLOM.utils.mem">
@@ -727,6 +760,67 @@ all processes.</p>
 <dd></dd></dl>
 
 </section>
+<section id="module-pyLOM.utils.mpi">
+<span id="pylom-utils-mpi-module"></span><h2>pyLOM.utils.mpi module<a class="headerlink" href="#module-pyLOM.utils.mpi" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.mpi.mpi_barrier">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.mpi.</span></span><span class="sig-name descname"><span class="pre">mpi_barrier</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mpi.html#mpi_barrier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mpi.mpi_barrier" title="Link to this definition">#</a></dt>
+<dd><p>Implements the barrier</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.mpi.mpi_send">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.mpi.</span></span><span class="sig-name descname"><span class="pre">mpi_send</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mpi.html#mpi_send"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mpi.mpi_send" title="Link to this definition">#</a></dt>
+<dd><p>Implements the send operation</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.mpi.mpi_recv">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.mpi.</span></span><span class="sig-name descname"><span class="pre">mpi_recv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mpi.html#mpi_recv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mpi.mpi_recv" title="Link to this definition">#</a></dt>
+<dd><p>Implements the recieve operation</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.mpi.mpi_sendrecv">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.mpi.</span></span><span class="sig-name descname"><span class="pre">mpi_sendrecv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buff</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mpi.html#mpi_sendrecv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mpi.mpi_sendrecv" title="Link to this definition">#</a></dt>
+<dd><p>Implements the sendrecv operation</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.mpi.mpi_scatter">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.mpi.</span></span><span class="sig-name descname"><span class="pre">mpi_scatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sendbuff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mpi.html#mpi_scatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mpi.mpi_scatter" title="Link to this definition">#</a></dt>
+<dd><p>Send an array among the processors and split
+if necessary.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.mpi.mpi_gather">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.mpi.</span></span><span class="sig-name descname"><span class="pre">mpi_gather</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sendbuff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mpi.html#mpi_gather"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mpi.mpi_gather" title="Link to this definition">#</a></dt>
+<dd><p>Gather an array from all the processors.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.mpi.mpi_reduce">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.mpi.</span></span><span class="sig-name descname"><span class="pre">mpi_reduce</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sendbuff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">op</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sum'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mpi.html#mpi_reduce"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mpi.mpi_reduce" title="Link to this definition">#</a></dt>
+<dd><p>Reduce an array from all the processors.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.mpi.mpi_bcast">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.mpi.</span></span><span class="sig-name descname"><span class="pre">mpi_bcast</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sendbuff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/mpi.html#mpi_bcast"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.mpi.mpi_bcast" title="Link to this definition">#</a></dt>
+<dd><p>Implements the broadcast operation</p>
+</dd></dl>
+
+</section>
+<section id="module-pyLOM.utils.nvtxp">
+<span id="pylom-utils-nvtxp-module"></span><h2>pyLOM.utils.nvtxp module<a class="headerlink" href="#module-pyLOM.utils.nvtxp" title="Link to this heading">#</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.nvtxp.nvtxp">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.nvtxp.</span></span><span class="sig-name descname"><span class="pre">nvtxp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ch_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'blue'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/nvtxp.html#nvtxp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.nvtxp.nvtxp" title="Link to this definition">#</a></dt>
+<dd><p>CR NVTX decorator</p>
+</dd></dl>
+
+</section>
 <section id="module-pyLOM.utils.parall">
 <span id="pylom-utils-parall-module"></span><h2>pyLOM.utils.parall module<a class="headerlink" href="#module-pyLOM.utils.parall" title="Link to this heading">#</a></h2>
 <dl class="py function">
@@ -752,55 +846,6 @@ all processes.</p>
 <span class="sig-prename descclassname"><span class="pre">pyLOM.utils.parall.</span></span><span class="sig-name descname"><span class="pre">is_rank_or_serial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/parall.html#is_rank_or_serial"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.parall.is_rank_or_serial" title="Link to this definition">#</a></dt>
 <dd><p>Return whether the rank is active or True
 in case of a serial run</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pyLOM.utils.parall.mpi_barrier">
-<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.parall.</span></span><span class="sig-name descname"><span class="pre">mpi_barrier</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/parall.html#mpi_barrier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.parall.mpi_barrier" title="Link to this definition">#</a></dt>
-<dd><p>Implements the barrier</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pyLOM.utils.parall.mpi_send">
-<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.parall.</span></span><span class="sig-name descname"><span class="pre">mpi_send</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/parall.html#mpi_send"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.parall.mpi_send" title="Link to this definition">#</a></dt>
-<dd><p>Implements the send operation</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pyLOM.utils.parall.mpi_recv">
-<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.parall.</span></span><span class="sig-name descname"><span class="pre">mpi_recv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/parall.html#mpi_recv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.parall.mpi_recv" title="Link to this definition">#</a></dt>
-<dd><p>Implements the recieve operation</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pyLOM.utils.parall.mpi_sendrecv">
-<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.parall.</span></span><span class="sig-name descname"><span class="pre">mpi_sendrecv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buff</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/parall.html#mpi_sendrecv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.parall.mpi_sendrecv" title="Link to this definition">#</a></dt>
-<dd><p>Implements the sendrecv operation</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pyLOM.utils.parall.mpi_scatter">
-<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.parall.</span></span><span class="sig-name descname"><span class="pre">mpi_scatter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sendbuff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">do_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/parall.html#mpi_scatter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.parall.mpi_scatter" title="Link to this definition">#</a></dt>
-<dd><p>Send an array among the processors and split
-if necessary.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pyLOM.utils.parall.mpi_gather">
-<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.parall.</span></span><span class="sig-name descname"><span class="pre">mpi_gather</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sendbuff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/parall.html#mpi_gather"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.parall.mpi_gather" title="Link to this definition">#</a></dt>
-<dd><p>Gather an array from all the processors.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pyLOM.utils.parall.mpi_reduce">
-<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.parall.</span></span><span class="sig-name descname"><span class="pre">mpi_reduce</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sendbuff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">op</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sum'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/parall.html#mpi_reduce"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.parall.mpi_reduce" title="Link to this definition">#</a></dt>
-<dd><p>Reduce an array from all the processors.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="pyLOM.utils.parall.mpi_bcast">
-<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.parall.</span></span><span class="sig-name descname"><span class="pre">mpi_bcast</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sendbuff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/parall.html#mpi_bcast"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.parall.mpi_bcast" title="Link to this definition">#</a></dt>
-<dd><p>Implements the broadcast operation</p>
 </dd></dl>
 
 <dl class="py function">
@@ -944,12 +989,20 @@ UnstructuredGrid</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.cr_stop"><code class="docutils literal notranslate"><span class="pre">cr_stop()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.cr_time"><code class="docutils literal notranslate"><span class="pre">cr_time()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.cr"><code class="docutils literal notranslate"><span class="pre">cr()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cr.cr_nvtx"><code class="docutils literal notranslate"><span class="pre">cr_nvtx()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.utils.errors">pyLOM.utils.errors module</a><ul class="visible nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.errors.round"><code class="docutils literal notranslate"><span class="pre">round()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.errors.raiseError"><code class="docutils literal notranslate"><span class="pre">raiseError()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.errors.raiseWarning"><code class="docutils literal notranslate"><span class="pre">raiseWarning()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.utils.gpu">pyLOM.utils.gpu module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.gpu.gpu_device"><code class="docutils literal notranslate"><span class="pre">gpu_device()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.gpu.gpu_to_cpu"><code class="docutils literal notranslate"><span class="pre">gpu_to_cpu()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.gpu.cpu_to_gpu"><code class="docutils literal notranslate"><span class="pre">cpu_to_gpu()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.gpu.ascontiguousarray"><code class="docutils literal notranslate"><span class="pre">ascontiguousarray()</span></code></a></li>
 </ul>
 </li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.utils.mem">pyLOM.utils.mem module</a><ul class="visible nav section-nav flex-column">
@@ -985,19 +1038,26 @@ UnstructuredGrid</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mem.mem"><code class="docutils literal notranslate"><span class="pre">mem()</span></code></a></li>
 </ul>
 </li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.utils.mpi">pyLOM.utils.mpi module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mpi.mpi_barrier"><code class="docutils literal notranslate"><span class="pre">mpi_barrier()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mpi.mpi_send"><code class="docutils literal notranslate"><span class="pre">mpi_send()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mpi.mpi_recv"><code class="docutils literal notranslate"><span class="pre">mpi_recv()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mpi.mpi_sendrecv"><code class="docutils literal notranslate"><span class="pre">mpi_sendrecv()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mpi.mpi_scatter"><code class="docutils literal notranslate"><span class="pre">mpi_scatter()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mpi.mpi_gather"><code class="docutils literal notranslate"><span class="pre">mpi_gather()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mpi.mpi_reduce"><code class="docutils literal notranslate"><span class="pre">mpi_reduce()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mpi.mpi_bcast"><code class="docutils literal notranslate"><span class="pre">mpi_bcast()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.utils.nvtxp">pyLOM.utils.nvtxp module</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.nvtxp.nvtxp"><code class="docutils literal notranslate"><span class="pre">nvtxp()</span></code></a></li>
+</ul>
+</li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.utils.parall">pyLOM.utils.parall module</a><ul class="visible nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.worksplit"><code class="docutils literal notranslate"><span class="pre">worksplit()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.writesplit"><code class="docutils literal notranslate"><span class="pre">writesplit()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.split"><code class="docutils literal notranslate"><span class="pre">split()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.is_rank_or_serial"><code class="docutils literal notranslate"><span class="pre">is_rank_or_serial()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.mpi_barrier"><code class="docutils literal notranslate"><span class="pre">mpi_barrier()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.mpi_send"><code class="docutils literal notranslate"><span class="pre">mpi_send()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.mpi_recv"><code class="docutils literal notranslate"><span class="pre">mpi_recv()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.mpi_sendrecv"><code class="docutils literal notranslate"><span class="pre">mpi_sendrecv()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.mpi_scatter"><code class="docutils literal notranslate"><span class="pre">mpi_scatter()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.mpi_gather"><code class="docutils literal notranslate"><span class="pre">mpi_gather()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.mpi_reduce"><code class="docutils literal notranslate"><span class="pre">mpi_reduce()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.mpi_bcast"><code class="docutils literal notranslate"><span class="pre">mpi_bcast()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.parall.pprint"><code class="docutils literal notranslate"><span class="pre">pprint()</span></code></a></li>
 </ul>
 </li>

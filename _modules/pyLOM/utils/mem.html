@@ -358,15 +358,11 @@
 <span class="c1"># Last rev: 11/04/2023</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
 
-<span class="kn">import</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span><span class="o">,</span> <span class="nn">mpi4py</span><span class="o">,</span> <span class="nn">copy</span><span class="o">,</span> <span class="nn">functools</span><span class="o">,</span> <span class="nn">subprocess</span>
-<span class="n">mpi4py</span><span class="o">.</span><span class="n">rc</span><span class="o">.</span><span class="n">recv_mprobe</span> <span class="o">=</span> <span class="kc">False</span>
-<span class="kn">from</span> <span class="nn">mpi4py</span> <span class="kn">import</span> <span class="n">MPI</span>
+<span class="kn">import</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span><span class="o">,</span> <span class="nn">copy</span><span class="o">,</span> <span class="nn">functools</span><span class="o">,</span> <span class="nn">subprocess</span>
 
+<span class="kn">from</span> <span class="nn">.mpi</span>    <span class="kn">import</span> <span class="n">MPI</span><span class="p">,</span> <span class="n">MPI_RANK</span><span class="p">,</span> <span class="n">MPI_SIZE</span><span class="p">,</span> <span class="n">mpi_reduce</span>
 <span class="kn">from</span> <span class="nn">.errors</span> <span class="kn">import</span> <span class="n">raiseError</span>
 
-<span class="n">comm</span>     <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span>
-<span class="n">mpi_rank</span> <span class="o">=</span> <span class="n">comm</span><span class="o">.</span><span class="n">Get_rank</span><span class="p">()</span>
-<span class="n">mpi_size</span> <span class="o">=</span> <span class="n">comm</span><span class="o">.</span><span class="n">Get_size</span><span class="p">()</span>
 
 <span class="n">PLATFORM</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span>
 

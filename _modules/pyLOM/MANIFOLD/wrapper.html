@@ -358,8 +358,9 @@
 <span class="kn">from</span> <span class="nn">scipy.sparse.csgraph</span> <span class="kn">import</span> <span class="n">shortest_path</span>
 <span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="kn">import</span> <span class="n">eigh</span>
 
-<span class="kn">from</span> <span class="nn">..vmmath</span> <span class="kn">import</span> <span class="n">euclidean_d</span>
-<span class="kn">from</span> <span class="nn">..utils</span>  <span class="kn">import</span> <span class="n">cr</span><span class="p">,</span> <span class="n">raiseError</span><span class="p">,</span> <span class="n">pprint</span>
+<span class="kn">from</span> <span class="nn">..utils.gpu</span> <span class="kn">import</span> <span class="n">cp</span>
+<span class="kn">from</span> <span class="nn">..vmmath</span>    <span class="kn">import</span> <span class="n">euclidean_d</span>
+<span class="kn">from</span> <span class="nn">..utils</span>     <span class="kn">import</span> <span class="n">cr_nvtx</span> <span class="k">as</span> <span class="n">cr</span><span class="p">,</span> <span class="n">raiseError</span><span class="p">,</span> <span class="n">pprint</span>
 
 
 <div class="viewcode-block" id="isomap">
@@ -390,7 +391,8 @@
 <span class="sd">        Edge matrix for neighborhood graph.</span>
 <span class="sd">    &quot;&quot;&quot;</span>    
     <span class="c1"># Compute pairwise distances in a condensed form and convert to a square form</span>
-    <span class="n">D</span> <span class="o">=</span> <span class="n">euclidean_d</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+    <span class="n">D</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">euclidean_d</span><span class="p">(</span><span class="n">X</span><span class="p">))</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="ow">is</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span> <span class="k">else</span> <span class="n">euclidean_d</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
     <span class="c1"># Step 0: Initialization and Parameters</span>
     <span class="n">N</span> <span class="o">=</span> <span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">N</span><span class="p">:</span>
@@ -491,7 +493,7 @@
 <span class="sd">        Contains coordinates for d-dimensional embeddings in Y.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Step 1: Compute the pairwise Euclidean distance matrix and square it</span>
-    <span class="n">D</span> <span class="o">=</span> <span class="n">euclidean_d</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+    <span class="n">D</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">asnumpy</span><span class="p">(</span><span class="n">euclidean_d</span><span class="p">(</span><span class="n">X</span><span class="p">))</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="ow">is</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span> <span class="k">else</span> <span class="n">euclidean_d</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
     <span class="n">D</span> <span class="o">=</span> <span class="n">D</span> <span class="o">*</span> <span class="n">D</span>
 
     <span class="c1"># Step 2: Apply the custom centering formula to get matrix B</span>
