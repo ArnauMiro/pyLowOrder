@@ -14,7 +14,7 @@ from emukit.multi_fidelity.kernels                import LinearMultiFidelityKern
 from emukit.multi_fidelity.models                 import GPyLinearMultiFidelityModel
 from emukit.model_wrappers.gpy_model_wrappers     import GPyMultiOutputWrapper
 
-from ..utils  import cr, raiseError, pprint
+from ..utils  import cr_nvtx as cr, raiseError, pprint
 
 
 # KernelSelector: instantiates kernels with bounds and provides information

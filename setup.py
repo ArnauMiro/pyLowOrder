@@ -27,9 +27,10 @@ with open('options.cfg') as f:
 
 
 ## Set up compiler options and flags
-CC  = 'mpicc'   if options['FORCE_GCC'] or not os.system('which icc > /dev/null') == 0 else 'mpiicc'
-CXX = 'mpicxx'  if options['FORCE_GCC'] or not os.system('which icc > /dev/null') == 0 else 'mpiicpc'
-FC  = 'mpifort' if options['FORCE_GCC'] or not os.system('which icc > /dev/null') == 0 else 'mpiifort'
+ICC = 'icx' if 'ACC' in options['PLATFORM'] else 'icc'
+CC  = 'mpicc'   if options['FORCE_GCC'] or not os.system('which %s > /dev/null'%ICC) == 0 else 'mpiicc'
+CXX = 'mpicxx'  if options['FORCE_GCC'] or not os.system('which %s > /dev/null'%ICC) == 0 else 'mpiicpc'
+FC  = 'mpifort' if options['FORCE_GCC'] or not os.system('which %s > /dev/null'%ICC) == 0 else 'mpiifort'
 
 CFLAGS   = ''
 CXXFLAGS = ' -std=c++11'
@@ -215,13 +216,6 @@ Module_regression = Extension('pyLOM.vmmath.regression',
 						extra_objects = extra_objects,
 						libraries     = libraries,
 					   )
-# input output module
-Module_IO_ensight  = Extension('pyLOM.inp_out.io_ensight',
-						sources      = ['pyLOM/inp_out/io_ensight.pyx'],
-						language     = 'c',
-						include_dirs = [np.get_include()],
-						libraries    = libraries,
-					   )
 # low-order modules
 Module_POD = Extension('pyLOM.POD.wrapper',
 						sources       = ['pyLOM/POD/wrapper.pyx',
@@ -265,8 +259,6 @@ Module_SPOD = Extension('pyLOM.SPOD.wrapper',
 modules_list = [
 	# Math module
 	Module_cfuncs, Module_maths, Module_averaging, Module_svd, Module_fft, Module_geometric, Module_truncation, Module_stats, Module_regression,
-	# IO module
-	Module_IO_ensight,
 	# Low order algorithms
 	Module_POD,Module_DMD,Module_SPOD
 ] if options['USE_COMPILED'] else []
@@ -275,7 +267,7 @@ modules_list = [
 ## Main setup
 setup(
 	name             = 'pyLowOrder',
-	version          = '2.1.0',
+	version          = '3.0.0',
 	author           = 'Benet Eiximeno, Beka Begiashvili, Arnau Miro, Eusebio Valero, Oriol Lehmkuhl',
 	author_email     = 'benet.eiximeno@bsc.es, beka.begiashvili@alumnos.upm.es, arnau.mirojane@bsc.es, eusebio.valero@upm.es, oriol.lehmkuhl@bsc.es',
 	maintainer       = 'Benet Eiximeno, Arnau Miro',

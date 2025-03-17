@@ -7,8 +7,7 @@ from __future__ import print_function, division
 
 import numpy as np, h5py
 
-from ..utils.cr     import cr
-from ..utils.parall import MPI_RANK, MPI_SIZE, MPI_COMM, mpi_reduce, mpi_bcast
+from ..utils import cr, MPI_RANK, MPI_SIZE, MPI_COMM, mpi_reduce, mpi_bcast
 
 VTKTYPE = np.bytes_('UnstructuredGrid')
 VTKVERS = np.array([1,0],np.int32)
@@ -190,7 +189,7 @@ def vtkh5_link_mesh_mpio(fname,mode,lname):
 
 
 @cr('vtkh5IO.save_field')
-def vtkh5_save_field(fname,instant,time,point,varDict,ptable,mpio=True,mode='w'):
+def vtkh5_save_field(fname,instant,time,point,varDict,ptable,mpio=True,mode='a'):
 	'''
 	Save the mesh component into a VTKH5 file
 	'''

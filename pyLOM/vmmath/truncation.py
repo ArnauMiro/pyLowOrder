@@ -9,9 +9,9 @@ from __future__ import print_function, division
 
 import numpy as np
 
-from .maths         import vector_norm, vector_sum
-from ..utils.cr     import cr
-from ..utils.parall import mpi_reduce
+from ..utils.gpu import cp
+from .maths      import vector_norm, vector_sum
+from ..utils     import cr_nvtx as cr, mpi_reduce
 
 
 def compute_truncation_residual(S, r):
@@ -47,9 +47,10 @@ def energy(original, rec):
 	Expert Systems with Applications, 202, 117038.
 	https://doi.org/10.1016
 	'''
+	p = cp if type(original) is cp.ndarray else np
 	# Compute local sums
-	local_num = np.sum((original - rec) ** 2)
-	local_den = np.sum(original ** 2)
+	local_num = p.sum((original - rec) ** 2)
+	local_den = p.sum(original ** 2)
 
 	# Use Allreduce to compute global sums and make them available on all ranks
 	global_num = mpi_reduce(local_num,op='sum',all=True)

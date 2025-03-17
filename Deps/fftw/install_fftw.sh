@@ -44,6 +44,17 @@ else
 			ln -s "/gpfs/apps/MN5/GPP/FFTW/${VERS}/INTEL/IMPI/include" "${INSTALL_PREFIX}/"
 			ln -s "/gpfs/apps/MN5/GPP/FFTW/${VERS}/INTEL/IMPI/lib" "${INSTALL_PREFIX}/"
 		fi
+	elif [[ "$PLATFORM" = "MN5_ACC" ]]; then # MareNostrum5 GPP
+		# Symlink to MN4 installation directory
+		if [ "$CCOMPILER" = "mpicc" ]; then
+			# GCC compiler
+			ln -s "/gpfs/apps/MN5/ACC/FFTW/${VERS}/GCC/OPENMPI/include" "${INSTALL_PREFIX}/"
+			ln -s "/gpfs/apps/MN5/ACC/FFTW/${VERS}/GCC/OPENMPI/lib" "${INSTALL_PREFIX}/"
+		else
+			# Intel compiler
+			ln -s "/gpfs/apps/MN5/ACC/FFTW/${VERS}/INTEL/IMPI/include" "${INSTALL_PREFIX}/"
+			ln -s "/gpfs/apps/MN5/ACC/FFTW/${VERS}/INTEL/IMPI/lib" "${INSTALL_PREFIX}/"
+		fi
 	elif [[ "$PLATFORM" == "MN3" || "$PLATFORM" == "MN4" || "$PLATFORM" == "MN4_MKL" ]]; then # MareNostrum4
 		# Symlink to MN4 installation directory
 		if [ "$CCOMPILER" = "mpicc" ]; then
