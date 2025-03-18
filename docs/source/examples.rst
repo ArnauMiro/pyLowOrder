@@ -6,3 +6,5 @@ Examples
    :glob:
 
    notebook_examples/burgers_PINN_training_pipeline
+
+   notebook_examples/NN/MLP_training
