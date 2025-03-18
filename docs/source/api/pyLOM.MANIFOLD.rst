@@ -1,11 +1,11 @@
-pyLOM.MANIFOLD package
-======================
+pyLOM.MANIFOLD
+==============
 
 Submodules
 ----------
 
-pyLOM.MANIFOLD.wrapper module
------------------------------
+pyLOM.MANIFOLD.wrapper
+----------------------
 
 .. automodule:: pyLOM.MANIFOLD.wrapper
    :members:

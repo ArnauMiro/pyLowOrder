@@ -1,5 +1,5 @@
-pyLOM package
-=============
+pyLOM
+=====
 
 Subpackages
 -----------
@@ -8,6 +8,7 @@ Subpackages
    :maxdepth: 4
 
    pyLOM.DMD
+   pyLOM.GPOD
    pyLOM.GPR
    pyLOM.MANIFOLD
    pyLOM.NN
@@ -20,24 +21,24 @@ Subpackages
 Submodules
 ----------
 
-pyLOM.dataset module
---------------------
+pyLOM.dataset
+-------------
 
 .. automodule:: pyLOM.dataset
    :members:
    :undoc-members:
    :show-inheritance:
 
-pyLOM.mesh module
------------------
+pyLOM.mesh
+----------
 
 .. automodule:: pyLOM.mesh
    :members:
    :undoc-members:
    :show-inheritance:
 
-pyLOM.partition\_table module
------------------------------
+pyLOM.partition\_table
+----------------------
 
 .. automodule:: pyLOM.partition_table
    :members:

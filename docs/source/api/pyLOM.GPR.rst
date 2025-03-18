@@ -1,11 +1,11 @@
-pyLOM.GPR package
-=================
+pyLOM.GPR
+=========
 
 Submodules
 ----------
 
-pyLOM.GPR.wrapper module
-------------------------
+pyLOM.GPR.wrapper
+-----------------
 
 .. automodule:: pyLOM.GPR.wrapper
    :members:

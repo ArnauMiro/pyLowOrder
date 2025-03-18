@@ -1,27 +1,27 @@
-pyLOM.POD package
-=================
+pyLOM.POD
+=========
 
 Submodules
 ----------
 
-pyLOM.POD.plots module
-----------------------
+pyLOM.POD.plots
+---------------
 
 .. automodule:: pyLOM.POD.plots
    :members:
    :undoc-members:
    :show-inheritance:
 
-pyLOM.POD.utils module
-----------------------
+pyLOM.POD.utils
+---------------
 
 .. automodule:: pyLOM.POD.utils
    :members:
    :undoc-members:
    :show-inheritance:
 
-pyLOM.POD.wrapper module
-------------------------
+pyLOM.POD.wrapper
+-----------------
 
 .. automodule:: pyLOM.POD.wrapper
    :members:
