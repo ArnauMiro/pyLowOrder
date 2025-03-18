@@ -83,10 +83,10 @@ def mpi_gather(sendbuff,root=0,all=False):
 	if MPI_SIZE > 1:
 		if not isinstance(sendbuff,np.ndarray) and not isinstance(sendbuff,list): sendbuff = [sendbuff]
 		if all:
-			out = np.array(MPI_COMM.allgather(sendbuff))
+			out = MPI_COMM.allgather(sendbuff)
 			return np.concatenate(out,axis=0)
 		else:
-			out = np.array(MPI_COMM.gather(sendbuff,root=root))
+			out = MPI_COMM.gather(sendbuff,root=root)
 			return np.concatenate(out,axis=0) if MPI_RANK == root else None
 	return sendbuff
 
