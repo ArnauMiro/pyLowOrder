@@ -27,7 +27,7 @@ print(d)
 
 ## Load pyLOM dataset and set up results output
 RESUDIR = os.path.join(OUTDIR,f'MLP_{DATAFILE}')
-pyLOM.NN.create_results_folder(RESUDIR,echo=False)
+pyLOM.NN.create_results_folder(RESUDIR,verbose=False)
 
 
 ## Generate torch dataset

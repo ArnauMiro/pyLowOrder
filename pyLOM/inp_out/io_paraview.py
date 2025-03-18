@@ -47,4 +47,5 @@ def VTKHDF5Writer(mesh,dset,casestr,basedir,instants,times,varnames,idim,mode):
 		for v in varnames:
 			sliced     = tuple([np.s_[:]] + [0 if i != idim else instant for i in range(len(dset[v].shape)-1)])
 			varDict[v] = mesh.reshape_var(dset[v][sliced],dset.info(v))
-		vtkh5_save_field(fieldname,instant,time,dset.point,varDict,mesh.partition_table)
+		# Save field must append to the existing file
+		vtkh5_save_field(fieldname,instant,time,dset.point,varDict,mesh.partition_table,mode='a')
