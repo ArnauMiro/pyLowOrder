@@ -7,8 +7,8 @@ Welcome to pyLOM's documentation
    :hidden:
 
    API reference <api/modules>
-   Building from source <https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment>
    Examples <examples>
+   Installation <install>
 
 
 **Version**: |version|
@@ -53,7 +53,7 @@ Welcome to pyLOM's documentation
 
         +++
 
-        .. button-link:: https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment 
+        .. button-ref:: install
             :expand:
             :color: secondary
             :click-parent:
