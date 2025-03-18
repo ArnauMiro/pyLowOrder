@@ -10,6 +10,25 @@ import torch.nn as nn
 
 
 class Encoder2D(nn.Module):
+    r"""
+    Encoder2D class for the 2D Convolutional Autoencoder.
+
+    Args:
+        nlayers (int): Number of layers in the encoder.
+        latent_dim (int): Latent dimension of the encoder.
+        nh (int): Height of the input mesh/image.
+        nw (int): Width of the input mesh/image.
+        input_channels (int): Number of input channels.
+        filter_channels (int): Number of filter channels.
+        kernel_size (int): Kernel size for the convolutional layers.
+        padding (int): Padding for the convolutional layers.
+        activation_funcs (list): List of activation functions.
+        nlinear (int): Number of neurons in the linear layer.
+        batch_norm (bool): Whether to use batch normalization. Default is ``False``.
+        stride (int): Stride for the convolutional layers. Default is ``2``.
+        dropout (float): Dropout probability. Default is ``0``.
+        vae (bool): Wheather the encoder is going to be used on a VAE or not. Default is ``False``.
+    """
     def __init__(
         self,
         nlayers: int,
@@ -27,24 +46,6 @@ class Encoder2D(nn.Module):
         dropout: float = 0,
         vae: bool = False,
     ):
-        r"""
-        Encoder2D class for the 2D Convolutional Encoder.
-        Args:
-            nlayers (int): Number of layers in the encoder.
-            latent_dim (int): Latent dimension of the encoder.
-            nh (int): Height of the input mesh/image.
-            nw (int): Width of the input mesh/image.
-            input_channels (int): Number of input channels.
-            filter_channels (int): Number of filter channels.
-            kernel_size (int): Kernel size for the convolutional layers.
-            padding (int): Padding for the convolutional layers.
-            activation_funcs (list): List of activation functions.
-            nlinear (int): Number of neurons in the linear layer.
-            batch_norm (bool): Whether to use batch normalization. Default is ``False``.
-            stride (int): Stride for the convolutional layers. Default is ``2``.
-            dropout (float): Dropout probability. Default is ``0``.
-            vae (bool): Wheather the encoder is going to be used on a VAE or not. Default is ``False``.
-        """
         super(Encoder2D, self).__init__()
 
         self.nlayers    = nlayers
@@ -105,6 +106,24 @@ class Encoder2D(nn.Module):
 
 
 class Decoder2D(nn.Module):
+    r"""
+    Decoder2D class for the 2D Convolutional Autoencoder.
+
+    Args:
+        nlayers (int): Number of layers in the encoder.
+        latent_dim (int): Latent dimension of the encoder.
+        nh (int): Height of the input mesh/image.
+        nw (int): Width of the input mesh/image.
+        input_channels (int): Number of input channels.
+        filter_channels (int): Number of filter channels.
+        kernel_size (int): Kernel size for the convolutional layers.
+        padding (int): Padding for the convolutional layers.
+        activation_funcs (list): List of activation functions.
+        nlinear (int): Number of neurons in the linear layer.
+        batch_norm (bool): Whether to use batch normalization. Default is ``False``.
+        stride (int): Stride for the convolutional layers. Default is ``2``.
+        dropout (float): Dropout probability. Default is ``0``.
+    """
     def __init__(
         self,
         nlayers: int,
@@ -121,23 +140,6 @@ class Decoder2D(nn.Module):
         stride: int = 2,
         dropout: float = 0,
     ):
-        r"""
-        Encoder2D class for the 2D Convolutional Encoder.
-        Args:
-            nlayers (int): Number of layers in the encoder.
-            latent_dim (int): Latent dimension of the encoder.
-            nh (int): Height of the input mesh/image.
-            nw (int): Width of the input mesh/image.
-            input_channels (int): Number of input channels.
-            filter_channels (int): Number of filter channels.
-            kernel_size (int): Kernel size for the convolutional layers.
-            padding (int): Padding for the convolutional layers.
-            activation_funcs (list): List of activation functions.
-            nlinear (int): Number of neurons in the linear layer.
-            batch_norm (bool): Whether to use batch normalization. Default is ``False``.
-            stride (int): Stride for the convolutional layers. Default is ``2``.
-            dropout (float): Dropout probability. Default is ``0``.
-        """
         super(Decoder2D, self).__init__()       
         
         self.nlayers    = nlayers
@@ -192,6 +194,26 @@ class Decoder2D(nn.Module):
 
 
 class Encoder3D(nn.Module):
+    r"""
+    Encoder3D class for the 3D Convolutional Encoder.
+    
+    Args:
+        nlayers (int): Number of layers in the encoder.
+        latent_dim (int): Latent dimension of the encoder.
+        nx (int): Height of the input mesh/image.
+        ny (int): Width of the input mesh/image.
+        nz (int): Depth of the input mesh/image.
+        input_channels (int): Number of input channels.
+        filter_channels (int): Number of filter channels.
+        kernel_size (int): Kernel size for the convolutional layers.
+        padding (int): Padding for the convolutional layers.
+        activation_funcs (list): List of activation functions.
+        nlinear (int): Number of neurons in the linear layer.
+        batch_norm (bool): Whether to use batch normalization. Default is ``False``.
+        stride (int): Stride for the convolutional layers. Default is ``2``.
+        dropout (float): Dropout probability. Default is ``0``.
+        vae (bool): Wheather the encoder is going to be used on a VAE or not. Default is ``False``.
+    """
     def __init__(
         self,
         nlayers: int,
@@ -210,25 +232,6 @@ class Encoder3D(nn.Module):
         dropout: float = 0,
         vae: bool = False,
     ):
-        r"""
-
-        Args:
-            nlayers (int): Number of layers in the encoder.
-            latent_dim (int): Latent dimension of the encoder.
-            nx (int): Height of the input mesh/image.
-            ny (int): Width of the input mesh/image.
-            nz (int): Depth of the input mesh/image.
-            input_channels (int): Number of input channels.
-            filter_channels (int): Number of filter channels.
-            kernel_size (int): Kernel size for the convolutional layers.
-            padding (int): Padding for the convolutional layers.
-            activation_funcs (list): List of activation functions.
-            nlinear (int): Number of neurons in the linear layer.
-            batch_norm (bool): Whether to use batch normalization. Default is ``False``.
-            stride (int): Stride for the convolutional layers. Default is ``2``.
-            dropout (float): Dropout probability. Default is ``0``.
-            vae (bool): Wheather the encoder is going to be used on a VAE or not. Default is ``False``.
-        """
         super(Encoder3D,self).__init__()
 
         self.nlayers = nlayers
@@ -291,6 +294,25 @@ class Encoder3D(nn.Module):
 
 
 class Decoder3D(nn.Module):
+    r"""
+    Dencoder3D class for the 3D Convolutional Autoencoder.
+
+    Args:
+        nlayers (int): Number of layers in the encoder.
+        latent_dim (int): Latent dimension of the encoder.
+        nx (int): Height of the input mesh/image.
+        ny (int): Width of the input mesh/image.
+        nz (int): Depth of the input mesh/image.
+        input_channels (int): Number of input channels.
+        filter_channels (int): Number of filter channels.
+        kernel_size (int): Kernel size for the convolutional layers.
+        padding (int): Padding for the convolutional layers.
+        activation_funcs (list): List of activation functions.
+        nlinear (int): Number of neurons in the linear layer.
+        batch_norm (bool): Whether to use batch normalization. Default is ``False``.
+        stride (int): Stride for the convolutional layers. Default is ``2``.
+        dropout (float): Dropout probability. Default is ``0``.
+    """
     def __init__(
         self,
         nlayers: int,
@@ -308,24 +330,7 @@ class Decoder3D(nn.Module):
         stride: int = 2,
         dropout: float = 0,
     ):
-        r"""
-
-        Args:
-            nlayers (int): Number of layers in the encoder.
-            latent_dim (int): Latent dimension of the encoder.
-            nx (int): Height of the input mesh/image.
-            ny (int): Width of the input mesh/image.
-            nz (int): Depth of the input mesh/image.
-            input_channels (int): Number of input channels.
-            filter_channels (int): Number of filter channels.
-            kernel_size (int): Kernel size for the convolutional layers.
-            padding (int): Padding for the convolutional layers.
-            activation_funcs (list): List of activation functions.
-            nlinear (int): Number of neurons in the linear layer.
-            batch_norm (bool): Whether to use batch normalization. Default is ``False``.
-            stride (int): Stride for the convolutional layers. Default is ``2``.
-            dropout (float): Dropout probability. Default is ``0``.
-        """
+        
         super(Decoder3D, self).__init__()       
         
         self.nlayers = nlayers
