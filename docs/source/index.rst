@@ -18,9 +18,7 @@ Welcome to pyLOM's documentation
 `Issue Tracker <https://github.com/ArnauMiro/pyLowOrder/issues>`_ |
 `Wiki <https://github.com/ArnauMiro/pyLowOrder/wiki>`_ 
 
-
-**pyLOM** is a Python library for low-order modeling techniques.
-This tool is a port of the POD/DMD of the tools from UPM in MATLAB to C/C++ using a python interface. So far POD, DMD and sPOD are fully implemented and work is being done to bring hoDMD and VAEs inside the tool. Please check the wiki for instructions on how to deploy the tool.
+**pyLOM** is a high-performance-computing enabled tool for massively parallel reduced order modelling. This tool includes parallel algorithms for the proper orthogonal decomposition (POD), dynamic mode decomposition (DMD) and spectral proper orthogonal decomposition (SPOD) as well as a set of deep learning architectures for model order reduction and surrogate modelling such as variational autoencoders. All pyLOM modules are GPU-enabled.
 
 
 .. grid:: 1 1 2 2
