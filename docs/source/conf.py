@@ -80,7 +80,9 @@ html_theme_options = {
     "navigation_depth": 4,
     "collapse_navigation": False,
     "logo": {
-        "text": "pyLOM",
+        "alt_text": "pyLOM",
+        "image_light": "_static/logo_tmp.webp",
+        "image_dark": "_static/logo_tmp.webp",
     },
 }
 
@@ -89,7 +91,7 @@ html_static_path = ['_static']
 html_css_files = [
     'custom.css',
 ]
-# html_favicon = '_static/placeholder_favicon.ico'
+html_favicon = '_static/favicon_tmp.ico'
 # -- Options for HTML theme -----------------------------------------------
 html_context = {
     "github_user": "ArnauMiro",
