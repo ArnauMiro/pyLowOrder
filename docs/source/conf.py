@@ -7,7 +7,8 @@ sys.path.insert(0, os.path.abspath('../..'))
 project = 'pyLOM'
 copyright = '2023-2025'
 author = 'pyLOM developers'
-version = '2.0.1' # pyLOM.__version__ is not defined
+# TODO: ask to add pyLOM.__version__  to avoid this hardcoded variable
+version = '2.1.0' # pyLOM.__version__ is not defined
 
 # -- General configuration ---------------------------------------------------
 extensions = [
