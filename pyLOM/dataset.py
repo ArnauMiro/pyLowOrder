@@ -12,6 +12,7 @@ import os, numpy as np
 from .partition_table import PartitionTable
 from .                import inp_out as io
 from .utils           import cr_nvtx as cr, raiseError, gpu_to_cpu, cpu_to_gpu, pprint, mpi_reduce, mpi_gather, MPI_RANK, MPI_SIZE
+from .vmmath          import data_splitting
 
 
 class Dataset(object):
@@ -162,6 +163,27 @@ class Dataset(object):
 			'idim'  : idim,
 			'value' : var, 
 		}
+
+	def split_data(self,var,mode='reconstruct'):
+		r'''
+		Generate random training, validation and test masks for a dataset of Nt samples.
+
+		Args:
+			variable (str): variable which will be splitted in different samples
+			mode (str, optional): type of splitting to perform (default, ``'reconstruct'``). In reconstruct mode all three datasets have samples along all the data range.
+	
+		Returns:
+			[(np.ndarray), (np.ndarray), (np.ndarray)]: List of arrays containing the identifiers of the training, validation and test samples.
+		'''
+		
+		N    = len(self.vars[var]["value"])
+		idim = self.vars[var]["idim"]
+		trid, vaid, teid = data_splitting(N, mode)
+		self.add_variable('training_%s'%var,idim,trid)
+		self.add_variable('validation_%s'%var,idim,vaid)
+		self.add_variable('test_%s'%var,idim,vaid)
+
+		return trid, vaid, teid
 
 	def mask_fields(self, mask, varmasked):
 		'''
