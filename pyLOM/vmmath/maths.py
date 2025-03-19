@@ -173,20 +173,3 @@ def flip(A):
 	'''
 	p = cp if type(A) is cp.ndarray else np
 	return p.flip(A)
-
-def time_delay_embedding(X, dimension=50):
-	'''
-	Extract time-series of lenght equal to lag from longer time series in data, whose dimension is (number of time series, sequence length, data shape)
-	Inputs: [Points, Time]
-	Output: [Points, Time, Delays]
-	'''
-	
-	X_delay = np.zeros((X.shape[0], X.shape[1], dimension), dtype=X.dtype)
-	for i in range(X.shape[0]):
-		for j in range(1,X.shape[1]+1):
-			if j < dimension:
-				X_delay[i,j-1,-j:] = X[i,:j]
-			else:
-				X_delay[i,j-1,:] = X[i,j-dimension:j]
-
-	return X_delay

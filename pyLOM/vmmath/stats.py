@@ -10,7 +10,6 @@ from __future__ import print_function, division
 import numpy as np
 
 from ..utils     import cr_nvtx as cr, mpi_reduce, cp
-from ..utils     import raiseError
 
 
 @cr('math.RMSE')
@@ -92,29 +91,3 @@ def axiswise_r2(original:np.ndarray, rec:np.ndarray, axis:int=1):
 
 	# Compute Mean Relative Error (this will be identical on all ranks)
 	return local_num / local_den
-
-def data_splitting(Nt:int, mode:str='reconstruct', seed:int=-1):
-	r'''
-	Generate random training, validation and test masks for a dataset of Nt samples.
-
-	Args:
-		Nt (int): number of data samples.
-		mode (str, optional): type of splitting to perform (default: ``reconstruct``). In reconstruct mode all three datasets have samples along all the data range.
-		seed (int, optional): (default: ``-1``).
-
-	Returns:
-		[(np.array), (np.array), (np.array)]: List of arrays containing the identifiers of the training, validation and test samples.
-	'''
-	np.random.seed(0) if seed < 0 else np.random.seed(seed)
-	if mode =='reconstruct':
-		tridx       = np.sort(np.random.choice(Nt, size=int(0.7*(Nt)), replace=False))
-		mask        = np.ones(Nt)
-		mask[tridx] = 0
-		mask[0]     = 0
-		mask[-1]    = 0
-		vate_idx    = np.arange(0, Nt)[np.where(mask!=0)[0]]
-		vaidx       = vate_idx[::2]
-		teidx       = vate_idx[1::2]
-	else:
-		raiseError('Data split mode not implemented yet')
-	return tridx, vaidx, teidx
