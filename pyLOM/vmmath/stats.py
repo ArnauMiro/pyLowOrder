@@ -9,7 +9,8 @@ from __future__ import print_function, division
 
 import numpy as np
 
-from ..utils     import cr_nvtx as cr, mpi_reduce, cp
+from ..utils.gpu import cp
+from ..utils     import cr_nvtx as cr, mpi_reduce
 
 
 @cr('math.RMSE')
