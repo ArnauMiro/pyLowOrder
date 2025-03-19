@@ -185,24 +185,12 @@ class Dataset(object):
 
 		return trid, vaid, teid
 
-	def mask_fields(self, mask, varmasked):
+	def mask_field(self, key, mask):
 		'''
 		Mask a field over a defined variable
 		'''
-		dmasked = self.__class__(xyz=self.xyz, ptable=self._ptable, order=self._order, point=self.point, vars={'mask':{'idim':0,'value':mask}})
-		idim = 1
-		for var in self.varnames:
-			if var == varmasked:
-				varvalue = self.vars[var]["value"]
-				dmasked.add_variable(var,idim,varvalue[mask])
-			else:
-				varvalue = self.vars[var]["value"]
-				dmasked.add_variable(var,idim,varvalue[mask])
-			idim=idim+1
-
-		for field in self.fieldnames:
-			dmasked.add_field(field,self.fields[field]["ndim"],self[field][:,mask])
-		return dmasked
+		mask = mask if mask is not str else self.get_variable(mask)
+		return self[key][:,mask]
 
 	def append_variable(self,varname,var,**fieldict):
 		'''
@@ -254,7 +242,7 @@ class Dataset(object):
 		ptable    = PartitionTable(nparts, ids, elements, points, has_master=False)
 		sp, ep    = ptable.partition_bounds(MPI_RANK)
 		order     = np.linspace(start=sp, stop=ep-1, num=ep-sp, dtype=int)
-		sd        = self.__class__(xyz=self.xyz[mysensors], ptable=ptable, order=order, point=True, vars ={'time':{'idim':0,'value':time}})
+		sd        = self.__class__(xyz=self.xyz[mysensors], ptable=ptable, order=order, point=True, vars=self._vardict)#{'time':{'idim':0,'value':time}})
 		for field in self.fieldnames:
 			if field not in VARLIST:
 				continue
