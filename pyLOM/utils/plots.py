@@ -15,6 +15,14 @@ from ..vmmath import vector_norm
 from ..utils  import cr_nvtx as cr, gpu_to_cpu, raiseWarning
 
 
+DEFAULTSTYLE = {
+    'font' : { 'fontsize' : 16,  'weight' : 'normal' },
+    'legend' : { 'fontsize' : 12 },
+    'text'  : { 'usetex' : False},
+    'axes'  : { 'linewidth' : 2.75 },
+    'savefig' : {  'bbox' : 'tight' }
+}
+
 def show_plots():
 	'''
 	Wrapper to matplotlib.pyplot.show()
@@ -27,16 +35,12 @@ def close_plots():
 	'''
 	plt.close()
 
-def style_plots(fontsize=16, weight='normal', legend_fsize=12, usetex=False):
+def style_plots(styleDict=DEFAULTSTYLE):
 	'''
 	Define a common plot style in the scripts
 	'''
-	font = {'size':fontsize, 'weight':weight}
-	mpl.rc('font',**font)
-	mpl.rc('legend',**{'fontsize':legend_fsize})
-	mpl.rc('text',usetex=usetex)
-	mpl.rcParams['axes.linewidth'] = 2.75
-	mpl.rcParams['savefig.bbox'] = 'tight'
+	for key in styleDict.keys():
+		mpl.rc(key,**styleDict[key])
 
 def plotFieldStruct2D(ax,nx,ny,ndim,xyz,field,dim,cmap,clear=False):
 	'''
