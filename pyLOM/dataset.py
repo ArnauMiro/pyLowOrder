@@ -9,11 +9,9 @@ from __future__ import print_function, division
 
 import os, numpy as np
 
-from .utils.parall    import pprint
-from .utils.mpi       import mpi_reduce, mpi_gather, MPI_RANK, MPI_SIZE
 from .partition_table import PartitionTable
 from .                import inp_out as io
-from .utils           import cr_nvtx as cr, mem, raiseError, gpu_to_cpu, cpu_to_gpu
+from .utils           import cr_nvtx as cr, raiseError, gpu_to_cpu, cpu_to_gpu, pprint, mpi_reduce, mpi_gather, MPI_RANK, MPI_SIZE
 
 
 class Dataset(object):
