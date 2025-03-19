@@ -3,17 +3,17 @@ import numpy as np
 from ..utils     import raiseError
 
 
-def data_splitting(Nt:int, mode:str='reconstruct', seed:int=-1):
+def data_splitting(Nt:int, mode:str, seed:int=-1):
 	r'''
 	Generate random training, validation and test masks for a dataset of Nt samples.
 
 	Args:
 		Nt (int): number of data samples.
-		mode (str, optional): type of splitting to perform (default: ``reconstruct``). In reconstruct mode all three datasets have samples along all the data range.
+		mode (str): type of splitting to perform. In reconstruct mode all three datasets have samples along all the data range.
 		seed (int, optional): (default: ``-1``).
 
 	Returns:
-		[(np.array), (np.array), (np.array)]: List of arrays containing the identifiers of the training, validation and test samples.
+		[(np.ndarray), (np.ndarray), (np.ndarray)]: List of arrays containing the identifiers of the training, validation and test samples.
 	'''
 	np.random.seed(0) if seed < 0 else np.random.seed(seed)
 	if mode =='reconstruct':
@@ -30,7 +30,7 @@ def data_splitting(Nt:int, mode:str='reconstruct', seed:int=-1):
 	return tridx, vaidx, teidx
 
 def time_delay_embedding(X, dimension=50):
-	'''
+	r'''
 	Extract time-series of lenght equal to lag from longer time series in data, whose dimension is (number of time series, sequence length, data shape)
 	Inputs: [Points, Time]
 	Output: [Points, Time, Delays]
