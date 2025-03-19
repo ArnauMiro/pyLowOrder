@@ -711,18 +711,18 @@ def h5_save_POD(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
 	# Create the datasets for U, S and V
 	group.create_dataset('pointData',(1,),dtype='u1',data=pointData)
 	group.create_dataset('n_variables',(1,),dtype='u1',data=nvars)
-	Usize = (mpi_reduce(U.shape[0],op='sum',all=True),U.shape[1]) if U is not None else (0,0)
-	dsetU = group.create_dataset('U',Usize,dtype=U.dtype)   if U is not None else group.create_dataset('U',Usize,dtype=np.float32)
-	dsetS = group.create_dataset('S',S.shape,dtype=S.dtype) if S is not None else group.create_dataset('S',(0,0),dtype=np.float32)
-	dsetV = group.create_dataset('V',V.shape,dtype=V.dtype) if V is not None else group.create_dataset('V',(0,0),dtype=np.float32)
+	Usize = (mpi_reduce(U.shape[0],op='sum',all=True),U.shape[1]) if U is not None else None
+	dsetU = group.create_dataset('U',Usize,dtype=U.dtype)   if U is not None else None
+	dsetS = group.create_dataset('S',S.shape,dtype=S.dtype) if S is not None else None
+	dsetV = group.create_dataset('V',V.shape,dtype=V.dtype) if V is not None else None
 	# Store S and U that are repeated across the ranks
 	# So it is enough that one rank stores them
 	if is_rank_or_serial(0):
-		dsetS[:] = S if S is not None else 0
-		dsetV[:] = V if V is not None else 0 
+		if dsetS is not None: dsetS[:] = S
+		if dsetV is not None: dsetV[:] = V 
 	# Store U in parallel
 	istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=pointData)
-	dsetU[istart:iend,:] = U if U is not None else 0
+	if dsetU is not None: dsetU[istart:iend,:] = U
 	file.close()
 
 @cr('h5IO.load_POD')
