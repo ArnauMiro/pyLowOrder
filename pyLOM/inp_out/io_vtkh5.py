@@ -199,12 +199,12 @@ def vtkh5_save_field(fname,instant,time,point,varDict,ptable,mpio=True,mode='a')
 	else:
 		vtkh5_save_field_serial(fname,mode,instant,time,point,varDict)
 
-def vtkh5_save_field_serial(fname,instant,time,point,varDict):
+def vtkh5_save_field_serial(fname,mode,instant,time,point,varDict):
 	'''
 	Save the field component into a VTKH5 file (serial)
 	'''
 	# Open file for writing (append to a mesh)
-	file = h5py.File(fname,'w' if not os.path.exists(fname) else 'a')
+	file = h5py.File(fname,mode)
 	main = file['VTKHDF']
 	# Write dt and instant as field data
 	main['FieldData'].create_dataset('InstantValue',(1,),dtype=int,data=instant)
@@ -224,7 +224,7 @@ def vtkh5_save_field_mpio(fname,mode,instant,time,point,varDict,ptable):
 	'''
 	myrank = MPI_RANK
 	# Open file for writing
-	file = h5py.File(fname,'w' if not os.path.exists(fname) else 'a',driver='mpio',comm=MPI_COMM)
+	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM)
 	main = file['VTKHDF']
 	# Write dt and instant as field data
 	main['FieldData'].create_dataset('InstantValue',(1,),dtype=int,data=instant)
