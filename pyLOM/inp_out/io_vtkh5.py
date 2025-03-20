@@ -6,7 +6,6 @@
 from __future__ import print_function, division
 
 import numpy as np, h5py
-import os
 
 from ..utils import cr, MPI_RANK, MPI_SIZE, MPI_COMM, mpi_reduce, mpi_bcast
 
