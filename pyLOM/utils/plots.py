@@ -8,19 +8,29 @@
 from __future__ import print_function, division
 
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib as mpl
+import matplotlib, matplotlib.pyplot as plt
 
 from ..vmmath import vector_norm
 from ..utils  import cr_nvtx as cr, gpu_to_cpu, raiseWarning
 
 
 DEFAULTSTYLE = {
-    'font' : { 'fontsize' : 16,  'weight' : 'normal' },
-    'legend' : { 'fontsize' : 12 },
-    'text'  : { 'usetex' : False},
-    'axes'  : { 'linewidth' : 2.75 },
-    'savefig' : {  'bbox' : 'tight' }
+    'font'    : {
+		'fontsize'  : 16,
+		'weight'    : 'normal'
+	},
+    'legend'  : {
+		'fontsize'  : 12 
+	},
+    'text'    : {
+		'usetex'    : False
+	},
+    'axes'    : {
+		'linewidth' : 2.75 
+	},
+    'savefig' : {
+		'bbox'      : 'tight'
+	}
 }
 
 def show_plots():
@@ -40,7 +50,7 @@ def style_plots(styleDict=DEFAULTSTYLE):
 	Define a common plot style in the scripts
 	'''
 	for key in styleDict.keys():
-		mpl.rc(key,**styleDict[key])
+		matplotlib.rc(key,**styleDict[key])
 
 def plotFieldStruct2D(ax,nx,ny,ndim,xyz,field,dim,cmap,clear=False):
 	'''
