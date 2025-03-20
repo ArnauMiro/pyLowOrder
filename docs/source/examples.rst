@@ -1,6 +1,8 @@
 Examples
 ========
 
+This is the exmaples section, here you can find some notebooks that will guide you through the basic usage of pyLOM.
+
 .. toctree::
    :maxdepth: 2
    :glob:
