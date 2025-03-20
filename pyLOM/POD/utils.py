@@ -32,7 +32,7 @@ def extract_modes(U,ivar,npoints,modes=[],reshape=True):
 
 
 @cr('POD.save')
-def save(fname,ptable,U=None,S=None,V=None,nvars=1,pointData=True,mode='w'):
+def save(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
 	'''
 	Store POD variables in serial or parallel
 	according to the partition used to compute the POD.
