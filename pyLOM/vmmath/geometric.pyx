@@ -60,9 +60,16 @@ cdef np.ndarray[np.double_t,ndim=2] _dcellCenters(double[:,:] xyz, int[:,:] cone
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def cellCenters(real[:,:] xyz, int[:,:] conec):
-	'''
+	r'''
 	Compute the cell centers given a list 
-	of elements (internal function).
+	of elements.
+
+	Args:
+		xyz (np.ndarray):   node positions
+		conec (np.ndarray): connectivity array
+
+	Returns:
+		np.ndarray: center positions
 	'''
 	if real is double:
 		return _dcellCenters(xyz,conec)
@@ -110,9 +117,16 @@ cdef np.ndarray[np.double_t,ndim=2] _dnormals(double[:,:] xyz, int[:,:] conec):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def normals(real[:,:] xyz, int[:,:] conec):
-	'''
-	Compute the cell centers given a list 
-	of elements (internal function).
+	r'''
+	Compute the cell normals given a list 
+	of elements.
+
+	Args:
+		xyz (np.ndarray):   node positions
+		conec (np.ndarray): connectivity array
+
+	Returns:
+		np.ndarray: cell normals
 	'''
 	if real is double:
 		return _dnormals(xyz,conec)
@@ -170,13 +184,14 @@ cdef np.ndarray[np.double_t,ndim=2] _deuclidean_d(double[:,:] X):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def euclidean_d(real[:,:] X):
-	'''
-	Compute Euclidean distances between simulations.
+	r'''
+	Compute the Euclidean distances between simulations.
 
-	In:
-		- X: NxM Data matrix with N points in the mesh for M simulations
+	Args:
+		X (np.ndarray): NxM Data matrix with N points in the mesh for M simulations
+
 	Returns:
-		- D: MxM distance matrix 
+		np.ndarray: MxM distance matrix 
 	'''
 	if real is double:
 		return _deuclidean_d(X)
