@@ -69,8 +69,14 @@ cdef np.ndarray[np.double_t,ndim=2] _dtranspose(double[:,:] A):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def transpose(real[:,:] A):
-	'''
+	r'''
 	Transposed of matrix A
+
+	Args:
+		A (np.ndarray): Matrix to be transposed
+	
+	Results
+		np.ndarray: Transposed matrix
 	'''
 	if real is double:
 		return _dtranspose(A)
@@ -112,8 +118,15 @@ cdef double _dvector_sum(double[:] v, int start=0):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def vector_sum(real[:] v, int start=0):
-	'''
+	r'''
 	Sum of a vector
+
+	Args:
+		v (np.ndarray): a vector
+		start (int): position of the vector where to start the sum
+	
+	Result:
+		float: sum of the vector
 	'''
 	if real is double:
 		return _dvector_sum(v,start)
@@ -155,8 +168,15 @@ cdef double _dvector_norm(double[:] v, int start=0):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def vector_norm(real[:] v, int start=0):
-	'''
+	r'''
 	L2 norm of a vector
+	
+	Args:
+		v (np.ndarray): a vector
+		start (int): position of the vector where to start the norm
+	
+	Result:
+		float: norm of the vector
 	'''
 	if real is double:
 		return _dvector_norm(v,start)
@@ -198,8 +218,15 @@ cdef double _dvector_mean(double[:] v, int start=0):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def vector_mean(real[:] v, int start=0):
-	'''
+	r'''
 	Mean of a vector
+
+	Args:
+		v (np.ndarray): a vector
+		start (int): position of the vector where to start the mean
+	
+	Result:
+		float: mean of the vector
 	'''
 	if real is double:
 		return _dvector_mean(v,start)
@@ -269,8 +296,16 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zmatmul(np.complex128_t[:,:] A, np.comp
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def matmul(real_full[:,:] A, real_full[:,:] B):
-	'''
-	Matrix multiplication C = A x B
+	r'''
+	Matrix multiplication 
+	C = A x B
+
+	Args:
+		A (np.ndarray): Matrix A (M,Q)
+		B (np.ndarray): Matrix B (Q,N)
+	
+	Result:
+		np.ndarray: Resulting matrix C (M,N)
 	'''
 	# Select type
 	if real_full is np.complex128_t:
@@ -345,8 +380,19 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zmatmulp(np.complex128_t[:,:] A, np.com
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def matmulp(real_full[:,:] A, real_full[:,:] B):
-	'''
-	Matrix multiplication C = A x B
+	r'''
+	Matrix multiplication in parallel
+	C = A x B 
+
+	.. warning::
+	A and B are distributed along the processors and C is the same for all of them
+
+	Args:
+		A (np.ndarray): Matrix A (M,Q)
+		B (np.ndarray): Matrix B (Q,N)
+	
+	Result:
+		np.ndarray: Resulting matrix C (M,N)
 	'''
 	if real_full is np.complex128_t:
 		return _zmatmulp(A,B)
@@ -424,8 +470,16 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zvecmat(np.complex128_t[:] v, np.comple
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def vecmat(real_full[:] v, real_full[:,:] A):
-	'''
-	Vector times a matrix C = v x A
+	r'''
+	Vector times a matrix 
+	C = v x A
+
+	Args:
+		v (np.ndarray): Vector v (M,)
+		A (np.ndarray): Matrix A (M,N)
+	
+	Result:
+		np.ndarray: Resulting matrix C (M,N)
 	'''
 	if real_full is np.complex128_t:
 		return _zvecmat(v,A)
@@ -491,8 +545,14 @@ cdef void _zsort(np.complex128_t[:] v, int[:] index):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def argsort(real_full[:] v):
-	'''
+	r'''
 	Returns the indices that sort a vector
+
+	Args:
+		v (np.ndarray): Vector v (M,)
+	
+	Result:
+		np.ndarray: Indices that sort v (M,)
 	'''
 	cdef int n = v.shape[0]
 	cdef np.ndarray[np.int32_t,ndim=1] index = np.zeros((n,),dtype=np.int32)
@@ -554,11 +614,21 @@ def _zeigen(double[:,:] A):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def eigen(real[:,:] A):
-	'''
-	Eigenvalues and eigenvectors using Lapack.
-		real(n)   are the real eigenvalues.
-		imag(n)   are the imaginary eigenvalues.
-		vecs(n,n) are the right eigenvectors.
+	r'''
+	Eigenvalues and eigenvectors.
+
+	.. warning::
+	GPU implementation of this algoritm is still slow and
+	thus will be executed purely on CPU level until
+	cupy implements linalg.eig
+
+	Args:
+		A (np.ndarray): Matrix A (M,N)
+	
+	Result:
+		np.ndarray: the real eigenvalues, real(M)
+		np.ndarray: the imaginary eigenvalues, imag(M)
+		np.ndarray: the right eigenvectors, vecs(M,M)
 	'''
 	if real is double:
 		return _zeigen(A)
@@ -606,8 +676,16 @@ def _dpolar(double[:] rreal, double[:] iimag):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def polar(real[:] rreal, real[:] iimag):
-	'''
+	r'''
 	Present a complex number in its polar form given its real and imaginary part
+
+	Args:
+		real (np.ndarray): the real component
+		imag (np.ndarray): the imaginary component
+
+	Result:
+		np.ndarray: the modulus
+		np.ndarray: the argument
 	'''
 	if real is double:
 		return _dpolar(rreal,iimag)
@@ -649,8 +727,14 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zcholesky(np.complex128_t[:,:] A):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def cholesky(real_complex[:,:] A):
-	'''
-	Compute the Lower Cholesky decomposition of matrix A. The C routine modifies directly the matrix!
+	r'''
+	Conjugates complex number A
+
+	Args:
+		A (np.ndarray): Vector, matrix or number A
+	
+	Result:
+		np.ndarray: Conjugate of A
 	'''
 	if real_complex is np.complex128_t:
 		return _zcholesky(A)
@@ -692,9 +776,18 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zvandermonde(double[:] rreal, double[:]
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def vandermonde(real[:] rreal, real[:] iimag, int m, int n):
-	'''
+	r'''
 	Builds a Vandermonde matrix of (m x n) with the real and
 	imaginary parts of the eigenvalues
+
+	Args:
+		real (np.ndarray): the real component
+		imag (np.ndarray): the imaginary component
+		m (int): number of rows for the Vandermode matrix
+		n (int): number of columns for the Vandermode matrix
+
+	Result:
+		np.ndarray: the Vandermonde matrix
 	'''
 	if real is double:
 		return _zvandermonde(rreal,iimag,m,n)
@@ -738,9 +831,19 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zvandermondeTime(double[:] rreal, doubl
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def vandermondeTime(real[:] rreal, real[:] iimag, int m, real[:] t):
-	'''
+	r'''
 	Builds a Vandermonde matrix of (m x n) with the real and
-	imaginary parts of the eigenvalues for a certain timesteps
+	imaginary parts of the eigenvalues
+
+
+	Args:
+		real (np.ndarray): the real component
+		imag (np.ndarray): the imaginary component
+		m (int): number of rows for the Vandermode matrix
+		time (np.ndarray): the time vector
+
+	Result:
+		np.ndarray: the Vandermonde matrix
 	'''
 	if real is double:
 		return _zvandermondeTime(rreal,iimag,m,t)
@@ -790,8 +893,15 @@ cdef np.ndarray[np.double_t,ndim=1] _ddiag(double[:,:] A):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def diag(real[:,:] A):
-	'''
-	Returns the diagonal of A (A is a square matrix)
+	r'''
+	If A is a matrix it returns its diagonal, if its a vector it returns
+	a diagonal matrix with A in its diagonal
+
+	Args:
+		A (np.ndarray): Matrix A (M,N)
+	
+	Result:
+		np.ndarray: Diagonal of A (M,)
 	'''
 	if real is double:
 		return _ddiag(A)
@@ -843,8 +953,14 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zconj(np.complex128_t[:,:] A):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def conj(real_complex[:,:] A):
-	'''
-	Returns the pointwise conjugate of A
+	r'''
+	Conjugates complex number A
+
+	Args:
+		A (np.ndarray): Vector, matrix or number A
+	
+	Result:
+		np.ndarray: Conjugate of A
 	'''
 	if real_complex is np.complex128_t:
 		return _zconj(A)
@@ -906,8 +1022,14 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zinv(np.complex128_t[:,:] A):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def inv(real_full[:,:] A):
-	'''
-	Returns the inverse of A
+	r'''
+	Computes the inverse matrix of A
+
+	Args:
+		A (np.ndarray): Matrix A (M,N)
+	
+	Result:
+		np.ndarray: Inverse of A (M,N)
 	'''
 	if real_full is np.complex128_t:
 		return _zinv(A)
@@ -925,7 +1047,17 @@ def inv(real_full[:,:] A):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def flip(real[:,:] A):
-	'''
+	r'''
 	Returns the pointwise conjugate of A
+
+	.. warning::
+	This function is not implemented in the
+	compiled layer and will raise an error if used
+
+	Args:
+		A (np.ndarray): Matrix A (M,N)
+	
+	Result:
+		np.ndarray: Flipped version of A (M,N)
 	'''
 	raiseError('Function not implemented in Cython!')

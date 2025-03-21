@@ -48,7 +48,7 @@ td_train, td_test = dataset.get_splits([0.8, 0.2])
 
 ## Generate model
 training_params = {
-    "epochs": 250,
+    "epochs": 50,
     "lr": 0.00015,
     "lr_gamma": 0.98,
     "lr_scheduler_step": 15,

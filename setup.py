@@ -24,6 +24,7 @@ with open('options.cfg') as f:
 		options[linep[0].strip()] = linep[1].strip()
 		if options[linep[0].strip()] == 'ON':  options[linep[0].strip()] = True
 		if options[linep[0].strip()] == 'OFF': options[linep[0].strip()] = False
+options['MODULES_COMPILED'] = options['MODULES_COMPILED'].lower().split(',')
 
 
 ## Set up compiler options and flags
@@ -255,13 +256,26 @@ Module_SPOD = Extension('pyLOM.SPOD.wrapper',
 					   )
 
 
+## Build modules
+# Math module
+Module_Math  = [Module_cfuncs]
+Module_Math += [Module_maths]      if 'math.maths'      in options['MODULES_COMPILED'] else []
+Module_Math += [Module_averaging]  if 'math.averaging'  in options['MODULES_COMPILED'] else []
+Module_Math += [Module_svd]        if 'math.svd'        in options['MODULES_COMPILED'] else []
+Module_Math += [Module_fft]        if 'math.fft'        in options['MODULES_COMPILED'] else []
+Module_Math += [Module_geometric]  if 'math.geometric'  in options['MODULES_COMPILED'] else []
+Module_Math += [Module_truncation] if 'math.truncation' in options['MODULES_COMPILED'] else []
+Module_Math += [Module_stats]      if 'math.stats'      in options['MODULES_COMPILED'] else []
+Module_Math += [Module_regression] if 'math.regression' in options['MODULES_COMPILED'] else []
+# ROM module
+Module_ROM   = [Module_POD]  if 'rom.pod'  in options['MODULES_COMPILED'] else []
+Module_ROM  += [Module_DMD]  if 'rom.dmd'  in options['MODULES_COMPILED'] else []
+Module_ROM  += [Module_SPOD] if 'rom.spod' in options['MODULES_CO'
+'MPILED'] else []
+
+
 ## Decide which modules to compile
-modules_list = [
-	# Math module
-	Module_cfuncs, Module_maths, Module_averaging, Module_svd, Module_fft, Module_geometric, Module_truncation, Module_stats, Module_regression,
-	# Low order algorithms
-	Module_POD,Module_DMD,Module_SPOD
-] if options['USE_COMPILED'] else []
+modules_list = Module_Math + Module_ROM if options['USE_COMPILED'] else []
 
 
 ## Main setup

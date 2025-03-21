@@ -22,8 +22,14 @@ from ..utils.cr   import cr
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def hammwin(int N):
-	'''
-	Hamming window
+	r'''
+	Hamming windowing
+
+	Args:
+		N (int): Number of steps.
+
+	Returns:
+		numpy.ndarray: Hamming windowing.
 	'''
 	cdef np.ndarray[np.double_t,ndim=1] out = np.zeros((N,), dtype=np.double)
 	c_dhammwin(&out[0],N)
@@ -102,9 +108,18 @@ def _dfft(double[:] t, double[:] y, int equispaced):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def fft(real[:] t, real[:] y, int equispaced=True):
-	'''
-	Compute the fft of a signal y that is sampled at a
-	constant timestep. Return the frequency and PSD
+	r'''
+	Compute the PSD of a signal y. For non equispaced time samples
+	the nfft package is required.
+
+	Args:
+		t (numpy.ndarray): time vector.
+		y (numpy.ndarray): signal vector.
+		equispaced (bool): whether the samples in the time vector are equispaced or not.
+
+	Returns:
+		numpy.ndarray: frequency.
+		numpy.ndarray: power density spectra.
 	'''
 	if real is double:
 		return _dfft(t,y,equispaced)
