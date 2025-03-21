@@ -12,7 +12,7 @@ import numpy as np
 import pyLOM
 
 ## Parameters
-DATAFILE = 'CYLINDER.h5'
+DATAFILE  = 'CYLINDER.h5'
 VARLIST  = ['VELOX', 'VORTI']
 
 ## Data loading
@@ -35,7 +35,7 @@ y0, y1 = -1, 1  # Bounds at the Y axis of the region where the sensor will be lo
 bounds = np.array([x0,x1,y0,y1])
 dsens  = d.select_random_sensors(nsens, bounds, VARLIST)
 # Save the sensor dataset
-dsens.save('sensors.h5', nopartition=True)
+dsens.save('sensors.h5', nopartition=True, mode='w')
 
 ## Compute POD separately for each variable in order to reduce memory usage during the SVD. POD is computed only for the training dataset. Validation and test are projected to the POD modes
 for var in VARLIST:
