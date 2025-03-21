@@ -101,11 +101,13 @@ cdef extern from "stats.h" nogil:
 	cdef float  c_sRMSE_relative     "sRMSE_relative"(float *A, float *B, const int m, const int n)
 	cdef float  c_sMAE               "sMAE"(float *A, float *B, const int m, const int n)
 	cdef float  c_sr2                "sr2"(float *A, float *B, const int m, const int n)
+	cdef void   c_sMRE_array         "sMRE_array"(float *MRE, float *A, float *B, const int m, const int n, const int axis)
 	# Double precision
-	cdef double  c_dRMSE             "dRMSE"(double *A, double *B, const int m, const int n)
-	cdef double  c_dRMSE_relative    "dRMSE_relative"(double *A, double *B, const int m, const int n)
-	cdef double  c_dMAE              "dMAE"(double *A, double *B, const int m, const int n)
-	cdef double  c_dr2               "dr2"(double *A, double *B, const int m, const int n)
+	cdef double c_dRMSE              "dRMSE"(double *A, double *B, const int m, const int n)
+	cdef double c_dRMSE_relative     "dRMSE_relative"(double *A, double *B, const int m, const int n)
+	cdef double c_dMAE               "dMAE"(double *A, double *B, const int m, const int n)
+	cdef double c_dr2                "dr2"(double *A, double *B, const int m, const int n)
+	cdef void   c_dMRE_array         "dMRE_array"(double *MRE, double *A, double *B, const int m, const int n, const int axis)
 cdef extern from "fft.h" nogil:
 	cdef int USE_FFTW3               "_USE_FFTW3"
 	# Single precision

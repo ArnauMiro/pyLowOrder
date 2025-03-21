@@ -92,7 +92,7 @@ for kk in range(nconfigs):
     podscale = podscale.load(load_dict['podscale_path'])
     outres[:,:,kk] = podscale.inverse_transform(output)
     # Compute mean relative error
-    MRE[:,kk] = pyLOM.math.axiswise_r2(full_pod, outres[:,:,kk])
+    MRE[:,kk] = pyLOM.math.MRE_array(full_pod, outres[:,:,kk])
 
 ## Compute reconstruction statistics
 meanout = np.mean(outres, axis=2)

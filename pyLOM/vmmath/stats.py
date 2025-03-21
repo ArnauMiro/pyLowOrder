@@ -14,7 +14,7 @@ from ..utils     import cr_nvtx as cr, mpi_reduce
 
 
 @cr('math.RMSE')
-def RMSE(A:np.ndarray,B:np.ndarray,relative:bool=True):
+def RMSE(A:np.ndarray,B:np.ndarray,relative:bool=True) -> float:
 	r'''
 	Compute the root mean square error between A and B
 
@@ -34,7 +34,7 @@ def RMSE(A:np.ndarray,B:np.ndarray,relative:bool=True):
 	return rmse
 
 @cr('math.MAE')
-def MAE(A:np.ndarray,B:np.ndarray):
+def MAE(A:np.ndarray,B:np.ndarray) -> float:
 	r'''
 	Compute mean absolute error between A and B
 
@@ -53,8 +53,8 @@ def MAE(A:np.ndarray,B:np.ndarray):
 	return mae
 
 @cr('math.r2')
-def r2(A:np.ndarray,B:np.ndarray):
-	'''
+def r2(A:np.ndarray,B:np.ndarray) -> float:
+	r'''
 	Compute r2 score between A and B
 
 	Args:
@@ -74,21 +74,23 @@ def r2(A:np.ndarray,B:np.ndarray):
 	r2   = 1. - numg/deng
 	return r2
 
-def axiswise_r2(original:np.ndarray, rec:np.ndarray, axis:int=1):
+@cr('math.MRE_array')
+def MRE_array(A:np.ndarray, B:np.ndarray, axis:int=1) -> np.ndarray:
 	r'''
 	Mean relative error computed along a certain axis of the array.
 
 	Args:
-		original (np.ndarray): original field.
-		rec (np.ndarray): field which we want to compute the MRE of.
+		A (np.ndarray): original field.
+		B (np.ndarray): field which we want to compute the MRE of.
 		axis (int, optional): along which axis the MRE will be computed (default ``1``).
 
 	Returns:
 		(np.ndarray): Mean relative error.
 	'''
+	p = cp if type(A) is cp.ndarray else np
 	# Compute local sums
-	local_num = np.sum((original - rec) ** 2, axis=axis)
-	local_den = np.sum(original ** 2, axis=axis)
-
+	num  = (A-B)
+	numg = p.sum(num*num,axis=axis)
+	deng = p.sum(B*B,axis=axis)
 	# Compute Mean Relative Error (this will be identical on all ranks)
-	return local_num / local_den
+	return numg/deng

@@ -1,6 +1,7 @@
 /*
 	Statistics operations
 */
+#include <stdlib.h>
 #include <math.h>
 #include "mpi.h"
 
@@ -248,4 +249,116 @@ double dr2(double *A, double *B, const int m, const int n) {
 	MPI_Allreduce(&den,&deng,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
 	// Return
 	return 1. - numg/deng;
+}
+
+void sMRE_array(float *MRE, float *A, float *B, const int m, const int n, const int axis) {
+	/*
+		Compute the MRE of an array along a certain axis.
+
+		A(m,n), B(m,n) -> MRE(m or n depending on axis)
+	*/
+	int ii, jj, ldim = (axis==0) ? m : n;
+	// Auxiliar array
+	float *aux;
+	aux = (float*)malloc(ldim*sizeof(float));
+	// Compute the numerator and denominator
+	switch (axis)
+	{
+	case 0:
+		#ifdef USE_OMP
+		#pragma omp parallel for private(ii,jj) shared(A,B) firstprivate(m,n)
+		#endif
+		for(ii = 0; ii < m; ++ii) {
+			// Set to zero
+			MRE[ii] = 0.;
+			aux[ii] = 0.;
+			for(jj = 0; jj < n; ++jj) {
+				// Store numerator in MRE
+				MRE[ii] += POW2(AC_MAT(A,n,ii,jj) - AC_MAT(B,n,ii,jj));
+				aux[ii] += POW2(AC_MAT(B,n,ii,jj));
+			}
+		}
+		break;
+	case 1:
+		#ifdef USE_OMP
+		#pragma omp parallel for private(ii,jj) shared(A,B) firstprivate(m,n)
+		#endif
+		for(jj = 0; jj < n; ++jj) {
+			// Set to zero
+			MRE[jj] = 0.;
+			aux[jj] = 0.;
+			for(ii = 0; ii < m; ++ii) {
+				// Store numerator in MRE
+				MRE[jj] += POW2(AC_MAT(A,n,ii,jj) - AC_MAT(B,n,ii,jj));
+				aux[jj] += POW2(AC_MAT(B,n,ii,jj));
+			}
+		}
+		break;
+	default:
+		break;
+	}
+	// Compute the metric
+	#ifdef USE_OMP
+	#pragma omp parallel for private(ii,jj) shared(A,B) firstprivate(m,n)
+	#endif
+	for(ii = 0; ii < ldim; ++ii)
+		MRE[ii] /= aux[ii];
+	// Free aux
+	free(aux);
+}
+
+void dMRE_array(double *MRE, double *A, double *B, const int m, const int n, const int axis) {
+	/*
+		Compute the MRE of an array along a certain axis.
+
+		A(m,n), B(m,n) -> MRE(m or n depending on axis)
+	*/
+	int ii, jj, ldim = (axis==0) ? m : n;
+	// Auxiliar array
+	double *aux;
+	aux = (double*)malloc(ldim*sizeof(double));
+	// Compute the numerator and denominator
+	switch (axis)
+	{
+	case 0:
+		#ifdef USE_OMP
+		#pragma omp parallel for private(ii,jj) shared(A,B) firstprivate(m,n)
+		#endif
+		for(ii = 0; ii < m; ++ii) {
+			// Set to zero
+			MRE[ii] = 0.;
+			aux[ii] = 0.;
+			for(jj = 0; jj < n; ++jj) {
+				// Store numerator in MRE
+				MRE[ii] += POW2(AC_MAT(A,n,ii,jj) - AC_MAT(B,n,ii,jj));
+				aux[ii] += POW2(AC_MAT(B,n,ii,jj));
+			}
+		}
+		break;
+	case 1:
+		#ifdef USE_OMP
+		#pragma omp parallel for private(ii,jj) shared(A,B) firstprivate(m,n)
+		#endif
+		for(jj = 0; jj < n; ++jj) {
+			// Set to zero
+			MRE[jj] = 0.;
+			aux[jj] = 0.;
+			for(ii = 0; ii < m; ++ii) {
+				// Store numerator in MRE
+				MRE[jj] += POW2(AC_MAT(A,n,ii,jj) - AC_MAT(B,n,ii,jj));
+				aux[jj] += POW2(AC_MAT(B,n,ii,jj));
+			}
+		}
+		break;
+	default:
+		break;
+	}
+	// Compute the metric
+	#ifdef USE_OMP
+	#pragma omp parallel for private(ii,jj) shared(A,B) firstprivate(m,n)
+	#endif
+	for(ii = 0; ii < ldim; ++ii)
+		MRE[ii] /= aux[ii];
+	// Free aux
+	free(aux);
 }
