@@ -12,13 +12,23 @@ import matplotlib.pyplot as plt
 
 from ..vmmath      import fft
 from ..utils       import gpu_to_cpu
-from ..utils.plots import plotResidual, plotSnapshot
 
 
-def plotMode(V,t,modes=np.array([1],np.int32),fftfun=fft,scale_freq=1.,fig=[],ax=[],cmap=None):
-	'''
-	Given U, VT and a mode, plot their
-	representation in a figure.
+def plotMode(V:np.ndarray,t:np.ndarray,modes:np.ndarray=np.array([1],np.int32),fftfun:object=fft,scale_freq:np.double=1.,fig:plt.figure=[],ax:plt.axes=[]):
+	r'''
+	Plot the temporal coefficient and its frequency spectrom of a set of modes
+
+	Args:
+		V (np.ndarray): array containing the temporal coefficients from the POD modes
+		t (np.ndarray): array containing the time values
+		modes (np.ndarray): array with the modes to plot
+		fftfun (object, optional): function to use to compute the frequency spectra (default: ``fft``)
+		scale_freq (double, optional): value used to non-dimensionalize the frequencies (default: ``1``)
+		fig (plt.figure, optional): figure object in which the plot will be done (default: ``[]``)
+		axs (plt.axes, optional): axes object in which the plot will be done (default: ``[]``)
+
+	Returns:
+		[plt.figure, plt.axes]: figure and axes objects of the plot
 	'''
 	V = gpu_to_cpu(V)
 	for imode, mode in enumerate(modes):
