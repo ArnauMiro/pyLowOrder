@@ -14,16 +14,32 @@ from ..utils import cr_nvtx as cr
 
 
 @cr('math.hammwin')
-def hammwin(N):
-	'''
+def hammwin(N:int) -> np.ndarray:
+	r'''
 	Hamming windowing
+
+	Args:
+		N (int): Number of steps.
+
+	Returns:
+		numpy.ndarray: Hamming windowing.
 	'''
 	return np.transpose(0.54-0.46*np.cos(2*np.pi*np.arange(N)/(N-1)))
 
 @cr('math.fft')
-def fft(t,y,equispaced=True):
-	'''
-	Compute the PSD of a signal y.
+def fft(t:np.ndarray,y:np.ndarray,equispaced:bool=True) -> np.ndarray:
+	r'''
+	Compute the PSD of a signal y. For non equispaced time samples
+	the nfft package is required.
+
+	Args:
+		t (numpy.ndarray): time vector.
+		y (numpy.ndarray): signal vector.
+		equispaced (bool): whether the samples in the time vector are equispaced or not.
+
+	Returns:
+		numpy.ndarray: frequency.
+		numpy.ndarray: power density spectra.
 	'''
 	if equispaced:
 		ts = t[1] - t[0] # Sampling time

@@ -24,7 +24,9 @@ N = t.shape[0]
 
 ## Divide in training, validation and test and append mask to current dataset
 tridx, vaidx, teidx = d.split_data('time', mode='reconstruct')
-d.save(DATAFILE2, nopartition=True, mode='a')
+# Regenerate output datafile with the variable masks
+m.save(DATAFILE, nopartition=True, mode='w')
+d.save(DATAFILE, nopartition=True)
 
 ## Extract sensors
 # Generate random sensors

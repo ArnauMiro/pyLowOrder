@@ -14,10 +14,17 @@ from ..utils     import cr_nvtx as cr, mpi_reduce
 
 
 @cr('math.cellCenters')
-def cellCenters(xyz,conec):
-	'''
+def cellCenters(xyz:np.ndarray,conec:np.ndarray) -> np.ndarray:
+	r'''
 	Compute the cell centers given a list 
 	of elements.
+
+	Args:
+		xyz (np.ndarray):   node positions
+		conec (np.ndarray): connectivity array
+
+	Returns:
+		np.ndarray: center positions
 	'''
 	p = cp if type(xyz) is cp.ndarray else np
 	xyz_cen = p.zeros((conec.shape[0],xyz.shape[1]),xyz.dtype)
@@ -28,7 +35,18 @@ def cellCenters(xyz,conec):
 	return xyz_cen
 
 @cr('math.normals')
-def normals(xyz,conec):
+def normals(xyz:np.ndarray,conec:np.ndarray) -> np.ndarray:
+	r'''
+	Compute the cell normals given a list 
+	of elements.
+
+	Args:
+		xyz (np.ndarray):   node positions
+		conec (np.ndarray): connectivity array
+
+	Returns:
+		np.ndarray: cell normals
+	'''
 	p = cp if type(xyz) is cp.ndarray else np
 	normals = p.zeros(((conec.shape[0],3)),xyz.dtype)
 	for ielem in range(conec.shape[0]):
@@ -45,14 +63,15 @@ def normals(xyz,conec):
 	return normals
 
 @cr('math.euclidean_d')
-def euclidean_d(X):
-	'''
-	Compute Euclidean distances between simulations.
+def euclidean_d(X:np.ndarray) -> np.ndarray:
+	r'''
+	Compute the Euclidean distances between simulations.
 
-	In:
-		- X: NxM Data matrix with N points in the mesh for M simulations
+	Args:
+		X (np.ndarray): NxM Data matrix with N points in the mesh for M simulations
+
 	Returns:
-		- D: MxM distance matrix 
+		np.ndarray: MxM distance matrix 
 	'''
 	p = cp if type(X) is cp.ndarray else np
 	# Extract dimensions
