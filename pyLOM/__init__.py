@@ -15,8 +15,8 @@ from .mesh            import Mesh
 from .utils.cr     import cr, cr_nvtx, cr_start, cr_stop, cr_reset, cr_info
 from .utils.nvtxp  import nvtxp
 from .utils.parall import pprint
+from .utils.plots  import show_plots, close_plots, style_plots
 from .utils.gpu    import gpu_device
-from .utils.plots  import show_plots, close_plots
 
 # Import Low Order Models
 from . import POD, DMD, SPOD, MANIFOLD, GPOD

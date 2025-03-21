@@ -44,6 +44,14 @@ pyLOM.NN.architectures.pinn module
    :undoc-members:
    :show-inheritance:
 
+pyLOM.NN.architectures.shred module
+-----------------------------------
+
+.. automodule:: pyLOM.NN.architectures.shred
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 

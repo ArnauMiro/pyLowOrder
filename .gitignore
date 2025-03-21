@@ -184,6 +184,10 @@ Examples/Data/*
 flow/*
 events*
 model_state
-*.out
-*.err
 submit*.sh
+*.err
+*.out
+*.json
+*.png
+*.pth
+*.pdf

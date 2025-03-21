@@ -20,10 +20,34 @@ pyLOM.utils.errors module
    :undoc-members:
    :show-inheritance:
 
+pyLOM.utils.gpu module
+----------------------
+
+.. automodule:: pyLOM.utils.gpu
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pyLOM.utils.mem module
 ----------------------
 
 .. automodule:: pyLOM.utils.mem
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pyLOM.utils.mpi module
+----------------------
+
+.. automodule:: pyLOM.utils.mpi
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pyLOM.utils.nvtxp module
+------------------------
+
+.. automodule:: pyLOM.utils.nvtxp
    :members:
    :undoc-members:
    :show-inheritance:

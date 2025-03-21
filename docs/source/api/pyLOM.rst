@@ -8,6 +8,7 @@ Subpackages
    :maxdepth: 4
 
    pyLOM.DMD
+   pyLOM.GPOD
    pyLOM.GPR
    pyLOM.MANIFOLD
    pyLOM.NN
