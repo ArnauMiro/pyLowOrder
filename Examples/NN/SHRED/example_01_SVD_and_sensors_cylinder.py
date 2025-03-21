@@ -23,7 +23,9 @@ N = t.shape[0]
 
 ## Divide in training, validation and test and append mask to current dataset
 tridx, vaidx, teidx = d.split_data('time', mode='reconstruct')
-d.save(DATAFILE, nopartition=True, mode='a')
+# Regenerate output datafile with the variable masks
+m.save(DATAFILE, nopartition=True, mode='w')
+d.save(DATAFILE, nopartition=True)
 
 ## Extract sensors
 # Generate random sensors
@@ -33,7 +35,7 @@ y0, y1 = -1, 1  # Bounds at the Y axis of the region where the sensor will be lo
 bounds = np.array([x0,x1,y0,y1])
 dsens  = d.select_random_sensors(nsens, bounds, VARLIST)
 # Save the sensor dataset
-dsens.save('sensors.h5', nopartition=True, mode='a')
+dsens.save('sensors.h5', nopartition=True)
 
 ## Compute POD separately for each variable in order to reduce memory usage during the SVD. POD is computed only for the training dataset. Validation and test are projected to the POD modes
 for var in VARLIST:
