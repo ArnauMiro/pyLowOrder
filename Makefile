@@ -226,7 +226,7 @@ clean:
 
 cleanall: clean
 	-@rm -rf build
-	-@cd pyLOM; rm vmmath/*.so inp_out/*.so POD/*.so DMD/*.so SPOD/*.so
+	-@cd pyLOM; rm vmmath/*.so POD/*.so DMD/*.so SPOD/*.so
 
 ifeq ($(USE_MKL),ON)
 uninstall_vector_matrix: uninstall_mkl 
