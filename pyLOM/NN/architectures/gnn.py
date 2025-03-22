@@ -6,11 +6,15 @@
 #
 # Last rev: 21/03/2025
 
+import numpy as np
 
 import torch
 import torch.nn as nn
 from torch.nn import ELU
 from torch_geometric.nn import MessagePassing
+from torch_geometric.data import Data
+
+from pyLOM.Mesh import Mesh
 
 from typing import Optional, Dict, Tuple, Union
 
@@ -98,6 +102,7 @@ class GNS(nn.Module):
         activation (Union[str, nn.Module]): The activation function to use.
         drop_p (float): The dropout probability.
         edge_dim (int): The number of edge features.
+        graph (Optional[Data]): torch-geometric Data object with the graph structure.
     """
 
     def __init__(self,
@@ -112,11 +117,12 @@ class GNS(nn.Module):
                  update_hidden_layers: int,
                  activation: Union[str, nn.Module] = nn.ELU(),
                  drop_p: float = 0.,
-                 edge_dim: int = 6):
+                 edge_dim: int = 6,
+                 graph: Optional[Data] = None):
         super().__init__()
         torch.manual_seed(11235)
 
-        # Guardar en atributos de la clase
+        # Save the model parameters
         self.input_dim = input_dim
         self.latent_dim = latent_dim
         self.output_dim = output_dim
@@ -126,8 +132,9 @@ class GNS(nn.Module):
         self.decoder_hidden_layers = decoder_hidden_layers
         self.drop_p = drop_p
         self.edge_dim = edge_dim
+        self.graph = graph
 
-        # Manejo de la activación
+        # Activation function
         if isinstance(activation, str):
             if hasattr(nn, activation):  
                 self.activation = getattr(nn, activation)()
@@ -136,7 +143,7 @@ class GNS(nn.Module):
         else:
             self.activation = activation
 
-        # Guardar configuración del modelo
+        # Save a dictionary with the model parameters
         self.model_dict = {
             "input_dim": input_dim,
             "latent_dim": latent_dim,
@@ -150,10 +157,11 @@ class GNS(nn.Module):
             "activation": self.activation.__class__.__name__,
             "drop_p": drop_p,
             "edge_dim": edge_dim,
+            "graph": graph,
             "model_parameters": {}
         }
 
-        # Encoder: from node features to latent space
+        # Encoder: from graph node features to latent space
         self.encoder = MLP(
             input_size=self.input_dim,
             output_size=self.latent_dim,
@@ -185,7 +193,8 @@ class GNS(nn.Module):
         # Normalization layer
         self.groupnorm = nn.GroupNorm(2, self.latent_dim)
 
-
+    
+    
     def forward(self, subgraph):
         """
         Forward pass of the model.
@@ -197,6 +206,7 @@ class GNS(nn.Module):
             torch.Tensor: The predicted target values.
         """
 
+        # Get node and edge features
         x = subgraph.x
         edge_index = subgraph.edge_index
         edge_attr = subgraph.edge_attr
@@ -205,12 +215,11 @@ class GNS(nn.Module):
         h = self.encoder(x)
         h = self.activation(h)
 
-        # 2. Apply PointNet layer
-        h = self.conv1(h, edge_index, edge_attr)
-        h = self.activation(h)
-        # h = self.conv2(h, edge_index, edge_attr)
-        # h = self.activation(h)
-        # h = self.groupnorm(h)
+        # 2. Message-passing layers
+        for conv in self.conv_layers_list:
+            h = conv(h, edge_index, edge_attr)
+            h = self.activation(h)
+            h = self.groupnorm(h)
 
         # 3. Decode node features
         y_hat = self.decoder(h)
@@ -241,6 +250,18 @@ class GNS(nn.Module):
 
         Returns:
             np.array: The predicted target values.
+        """
+        pass
+
+    def load_graph_from_mesh(self, mesh: Mesh):
+        """
+        Build the graph needed to train the model from a pyLOM Mesh object.
+
+        Args:
+            mesh (pyLOM.Mesh): The input mesh.
+
+        Returns:
+            Data: The graph structure.
         """
         pass
 
@@ -292,10 +313,27 @@ class GNS(nn.Module):
 
 #%%
 
-def f(nombre, edad=6):
-    model_dict = {"nombre": nombre, "edad": edad}
-    print("Hola", nombre, "tienes", edad, "años")
+class Graph(Data):
+    def from_mesh(self, mesh: Mesh):
+        """
+        Create a torch_geometric Data object from a pyLOM Mesh object.
 
-d = {"nombre": "Juan"}
+        Args:
+            mesh (pyLOM.Mesh): The input mesh.
 
-f(**d)
+        Returns:
+            Data: The graph structure.
+        """
+        xyz = mesh.xyz
+        connectivity = mesh.cell_connectivity
+        surface_normals = mesh.normal
+        edge_normals = mesh.edge_normals
+
+    def edge_index_from_connectivity(self, connectivity):
+        edge_index_full = np.zeros((2, connectivity.shape[1] * connectivity.shape[0]), dtype=np.int64)*np.nan
+        for i in range(connectivity.shape[0]):
+            edge_index_full[:, i*connectivity.shape[1]:(i+1)*connectivity.shape[1]] = np.vstack([connectivity[i], np.roll(connectivity[i], -1)])
+
+        # drop nans
+        edge_index_full = edge_index_full[:, ~np.isnan(edge_index_full)[1]]
+        edge_index_full = torch.tensor(edge_index_full, dtype=torch.long)
