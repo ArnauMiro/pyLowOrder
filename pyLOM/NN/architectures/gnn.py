@@ -8,20 +8,47 @@
 
 
 import torch
+import torch.nn as nn
 from torch.nn import ELU
 from torch_geometric.nn import MessagePassing
 
+from typing import Optional, Dict, Tuple, Union
+
+class MLP(torch.nn.Module):
+    '''Simple MLP with dropout and activation function'''
+    def __init__(self, input_size, output_size, hidden_sizes, drop_p=0.5, activation=ELU()):
+        super().__init__()
+        self.layers = torch.nn.ModuleList()
+        self.layers.append(torch.nn.Linear(input_size, hidden_sizes[0]))
+        for i in range(len(hidden_sizes)-1):
+            self.layers.append(torch.nn.Linear(hidden_sizes[i], hidden_sizes[i+1]))
+        self.layers.append(torch.nn.Linear(hidden_sizes[-1], output_size))
+        self.activation = activation
+        self.dropout = torch.nn.Dropout(p=drop_p)
+
+    def forward(self, x):
+        for layer in self.layers[:-1]:
+            x = self.activation(layer(x))
+            x = self.dropout(x)
+        x = self.layers[-1](x)
+        return x
+    
+    @property
+    def trainable_params(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+
+
 class MessagePassingLayer(MessagePassing):
-    def __init__(self, in_channels, out_channels, drop_p=0.5, hiddim=HIDDEN_SIZE):
+    def __init__(self, in_channels, out_channels, hiddim, drop_p=0.):
         # Message passing with "mean" aggregation.
         super().__init__(aggr='mean')
         self.dropout = torch.nn.Dropout(p=drop_p)
 
         # MLP for the message function
-        self.phi = utils.MLP(in_channels, out_channels, 1*[hiddim], drop_p=0, activation=ELU())
+        self.phi = MLP(in_channels, out_channels, 1*[hiddim], drop_p=0, activation=ELU())
         
         # MLP for the update function
-        self.gamma = utils.MLP(2*out_channels, out_channels, 1*[hiddim], drop_p=0, activation=ELU())
+        self.gamma = MLP(2*out_channels, out_channels, 1*[hiddim], drop_p=0, activation=ELU())
 
 
     def forward(self, x, edge_index, edge_attr):
@@ -51,31 +78,145 @@ class MessagePassingLayer(MessagePassing):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
 
-class Model():
-    def __init__(self, **kwargs):
+
+
+class GNS(nn.Module):
+    """
+    Graph Neural Network model for predicting aerodynamic variables on RANS meshes.
+    The model uses a message-passing architecture with MLPs for the message and update functions.
+
+    Args:
+        input_dim (int): The number of input features.
+        latent_dim (int): The number of latent features.
+        output_dim (int): The number of output features.
+        hidden_size (int): The number of hidden units in the MLPs.
+        GNN_layers (int): The number of GNN layers.
+        encoder_hidden_layers (int): The number of hidden layers in the encoder.
+        decoder_hidden_layers (int): The number of hidden layers in the decoder.
+        message_hidden_layers (int): The number of hidden layers in the message MLP.
+        update_hidden_layers (int): The number of hidden layers in the update MLP.
+        activation (Union[str, nn.Module]): The activation function to use.
+        drop_p (float): The dropout probability.
+        edge_dim (int): The number of edge features.
+    """
+
+    def __init__(self,
+                 input_dim: int,
+                 latent_dim: int,
+                 output_dim: int,
+                 hidden_size: int,
+                 GNN_layers: int,
+                 encoder_hidden_layers: int,
+                 decoder_hidden_layers: int,
+                 message_hidden_layers: int,
+                 update_hidden_layers: int,
+                 activation: Union[str, nn.Module] = nn.ELU(),
+                 drop_p: float = 0.,
+                 edge_dim: int = 6):
+        super().__init__()
+        torch.manual_seed(11235)
+
+        # Guardar en atributos de la clase
+        self.input_dim = input_dim
+        self.latent_dim = latent_dim
+        self.output_dim = output_dim
+        self.hidden_size = hidden_size
+        self.GNN_layers = GNN_layers
+        self.encoder_hidden_layers = encoder_hidden_layers
+        self.decoder_hidden_layers = decoder_hidden_layers
+        self.drop_p = drop_p
+        self.edge_dim = edge_dim
+
+        # Manejo de la activación
+        if isinstance(activation, str):
+            if hasattr(nn, activation):  
+                self.activation = getattr(nn, activation)()
+            else:
+                raise ValueError(f"Activation function {activation} not found in torch.nn")
+        else:
+            self.activation = activation
+
+        # Guardar configuración del modelo
+        self.model_dict = {
+            "input_dim": input_dim,
+            "latent_dim": latent_dim,
+            "output_dim": output_dim,
+            "hidden_size": hidden_size,
+            "GNN_layers": GNN_layers,
+            "encoder_hidden_layers": encoder_hidden_layers,
+            "decoder_hidden_layers": decoder_hidden_layers,
+            "message_hidden_layers": message_hidden_layers,
+            "update_hidden_layers": update_hidden_layers,
+            "activation": self.activation.__class__.__name__,
+            "drop_p": drop_p,
+            "edge_dim": edge_dim,
+            "model_parameters": {}
+        }
+
+        # Encoder: from node features to latent space
+        self.encoder = MLP(
+            input_size=self.input_dim,
+            output_size=self.latent_dim,
+            hidden_sizes=[self.hidden_size] * self.encoder_hidden_layers,
+            activation=self.activation,
+            drop_p=self.drop_p
+        )
+
+        # Decoder: from latent space to output features
+        self.decoder = MLP(
+            input_size=self.latent_dim,
+            output_size=self.output_dim,
+            hidden_sizes=[self.hidden_size] * self.decoder_hidden_layers,
+            activation=self.activation,
+            drop_p=self.drop_p
+        )
+
+        # Message-passing layers
+        self.conv_layers_list = nn.ModuleList([
+            MessagePassingLayer(
+                in_channels=2 * self.latent_dim + self.edge_dim,
+                out_channels=self.latent_dim,
+                drop_p=self.drop_p,
+                hiddim=self.hidden_size
+            )
+            for _ in range(self.GNN_layers)
+        ])
+
+        # Normalization layer
+        self.groupnorm = nn.GroupNorm(2, self.latent_dim)
+
+
+    def forward(self, subgraph):
         """
-        Initialize the model.
+        Forward pass of the model.
 
         Args:
-            **kwargs: Additional parameters for the model.
-        """
-        try:
-            self.model_dict = kwargs["model_dict"]
-            self.from_dict(self.model_dict)
-        except KeyError:
-            self.model_dict = None
-            print("No model dictionary provided. Model is empty!"
-            "You can load a model from a file or create a new one.")
+            subgraph (Data): The input subgraph.
 
-
-    def from_dict(self, model_dict: dict):
+        Returns:
+            torch.Tensor: The predicted target values.
         """
-        Load the model from a dictionary.
 
-        Args:
-            model_dict (Dict): The dictionary containing the model parameters.
-        """
-        self.model_dict = model_dict
+        x = subgraph.x
+        edge_index = subgraph.edge_index
+        edge_attr = subgraph.edge_attr
+
+        # 1. Encode node features
+        h = self.encoder(x)
+        h = self.activation(h)
+
+        # 2. Apply PointNet layer
+        h = self.conv1(h, edge_index, edge_attr)
+        h = self.activation(h)
+        # h = self.conv2(h, edge_index, edge_attr)
+        # h = self.activation(h)
+        # h = self.groupnorm(h)
+
+        # 3. Decode node features
+        y_hat = self.decoder(h)
+
+        return y_hat
+
 
     def fit(self, train_dataset: Dataset, eval_set=Optional **kwargs):
         """
@@ -143,4 +284,18 @@ class Model():
         Returns:
             Model: The loaded model.
         """
-        pass 
+        pass
+
+    @property
+    def trainable_params(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad) 
+
+#%%
+
+def f(nombre, edad=6):
+    model_dict = {"nombre": nombre, "edad": edad}
+    print("Hola", nombre, "tienes", edad, "años")
+
+d = {"nombre": "Juan"}
+
+f(**d)
