@@ -7,6 +7,7 @@
 # Last rev: 21/03/2025
 
 import numpy as np
+from sklearn.preprocessing import MinMaxScaler
 
 import torch
 import torch.nn as nn
@@ -16,7 +17,7 @@ from torch_geometric.data import Data
 
 from pyLOM.Mesh import Mesh
 
-from typing import Optional, Dict, Tuple, Union
+from typing import Protocol, Optional, Dict, Tuple, Union
 
 class MLP(torch.nn.Module):
     '''Simple MLP with dropout and activation function'''
@@ -311,29 +312,96 @@ class GNS(nn.Module):
     def trainable_params(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad) 
 
-#%%
+
+class ScalerProtocol(Protocol):
+    '''
+    Protocol for scalers.
+    '''
+    def fit(self, X: np.ndarray, y=None) -> "ScalerProtocol":
+        """ Ajusta el escalador a los datos. """
+        ...
+
+    def transform(self, X: np.ndarray) -> np.ndarray:
+        """ Transforma los datos utilizando el escalador ajustado. """
+        ...
+
+    def fit_transform(self, X: np.ndarray, y=None) -> np.ndarray:
+        """ Ajusta el escalador a los datos y los transforma. """
+        ...
+
 
 class Graph(Data):
-    def from_mesh(self, mesh: Mesh):
+    @classmethod
+    def from_pyLOM_mesh(cls, mesh, scaler: Optional[ScalerProtocol] = None):
         """
         Create a torch_geometric Data object from a pyLOM Mesh object.
 
         Args:
             mesh (pyLOM.Mesh): The input mesh.
+            scaler (Optional[ScalerProtocol]): Optional scaler to normalize node and edge features.
 
         Returns:
             Data: The graph structure.
         """
-        xyz = mesh.xyz
-        connectivity = mesh.cell_connectivity
+        xyzc = mesh.xyzc  # Cell centers coordinates
         surface_normals = mesh.normal
         edge_normals = mesh.edge_normals
+        neighbors_dict = mesh.neighbors_dict
 
-    def edge_index_from_connectivity(self, connectivity):
-        edge_index_full = np.zeros((2, connectivity.shape[1] * connectivity.shape[0]), dtype=np.int64)*np.nan
-        for i in range(connectivity.shape[0]):
-            edge_index_full[:, i*connectivity.shape[1]:(i+1)*connectivity.shape[1]] = np.vstack([connectivity[i], np.roll(connectivity[i], -1)])
+        # Convert the neighbors_dict to edge_index
+        edge_index = cls.neighbors_dict_to_edge_index(neighbors_dict)
 
-        # drop nans
-        edge_index_full = edge_index_full[:, ~np.isnan(edge_index_full)[1]]
-        edge_index_full = torch.tensor(edge_index_full, dtype=torch.long)
+        # Create the node features (node coordinates + surface normals)
+        x = np.concatenate((xyzc, surface_normals), axis=1)
+
+        # Create the edge features
+        c_i = xyzc[edge_index[0, :]]
+        c_j = xyzc[edge_index[1, :]]
+        d_ij = c_j - c_i
+        # Transform to spherical coordinates
+        r = np.linalg.norm(d_ij, axis=1)
+        theta = np.arccos(d_ij[:, 2] / r)
+        phi = np.arctan2(d_ij[:, 1], d_ij[:, 0])
+        edge_attr = np.concatenate((r[:, None], theta[:, None], phi[:, None]), axis=1)  # Ensure correct shape
+
+        # Scale node and edge features if scaler is provided
+        if scaler is not None:
+            x = scaler.fit_transform(x)
+            edge_attr = scaler.fit_transform(edge_attr)
+
+        # Return the Data object with the necessary attributes
+        return Data(x=torch.tensor(x, dtype=torch.float32),
+                    edge_index=torch.tensor(edge_index, dtype=torch.long),
+                    edge_attr=torch.tensor(edge_attr, dtype=torch.float32))
+
+
+    def neighbors_dict_to_edge_index(self, neighbors_dict):
+        """
+        Convert a dictionary with neighbors to edge index.
+
+        Args:
+            neighbors_dict (Dict): The dictionary with neighbors.
+
+        Returns:
+            Tuple: The edge index.
+        """
+        edge_index = []
+        for i, neighbors in neighbors_dict.items():
+            for j in neighbors:
+                edge_index.append([i, j])
+
+        edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()
+        return edge_index
+
+    def filter_graph(self,
+        node_mask: torch.Tensor,
+        y: Optional[torch.Tensor]):
+        '''
+        Filter graph by eliminating nodes not in node_mask. Modify the edge_index and the node features x and y accordingly.
+
+        Args:
+            node_mask (torch.Tensor): The mask for the nodes to keep.
+            edge_index (torch.Tensor): The edge index of the full graph
+            x (Optional[torch.Tensor]): The node features.
+            y (Optional[torch.Tensor]): The target values.
+        '''
