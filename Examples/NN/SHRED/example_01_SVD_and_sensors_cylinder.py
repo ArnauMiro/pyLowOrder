@@ -12,7 +12,7 @@ import numpy as np
 import pyLOM
 
 ## Parameters
-DATAFILE  = 'CYLINDER.h5'
+DATAFILE  = '/home/benet/Dropbox/UNIVERSITAT/PhD/DATA_PYLOM/CYLINDER.h5'
 VARLIST  = ['VELOX', 'VORTI']
 
 ## Data loading

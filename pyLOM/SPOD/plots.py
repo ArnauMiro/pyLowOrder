@@ -11,14 +11,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from .utils        import extract_modes
-from ..vmmath      import fft
 from ..utils       import gpu_to_cpu
-from ..utils.plots import plotResidual, plotFieldStruct2D, plotSnapshot, plotLayout
+from ..utils.plots import plotLayout
+from ..mesh        import Mesh
+from ..dataset     import Dataset
 
 
-def plotMode(L, P, freqs, mesh, dset, ivar, pointData=True, modes=np.array([1],np.int32),**kwargs):
-	'''
-	Plot the real and imaginary parts of a mode
+def plotMode(L:np.ndarray, P:np.ndarray, freqs:np.ndarray, mesh:Mesh, dset:Dataset, ivar:int, pointData:bool=True, modes:np.ndarray=np.array([1],np.int32),**kwargs):
+	r'''
+	Plot a SPOD mode, including both the real and imaginary parts
+
+	Args:
+		L (np.ndarray): modal energy spectra
+		P (np.ndarray): spatial SPOD modes
+		freqs (np.ndarray): frequencies at which the modes are computed
+		mesh (Mesh): mesh at which the data is represented
+		dset (Dataset): pyLOM Dataset containing the case information
+		ivar (int): index of the variable inside the dataset
+		pointData(bool, optional): whether the data is represented on points or cell (default, ``True``)
+		modes (np.ndarray, optinal): IDs of the modes to plot
 	'''
 	L, P = gpu_to_cpu(L), gpu_to_cpu(P)
 	# Extract the modes to be plotted
@@ -35,7 +46,20 @@ def plotMode(L, P, freqs, mesh, dset, ivar, pointData=True, modes=np.array([1],n
 	# Remove from dataset
 	dset.delete('P_MODES')
 
-def plotSpectra(f, L, fig=None, ax=None):
+def plotSpectra(f:np.ndarray, L:np.ndarray, fig:plt.figure=None, ax:plt.axes=None):
+	r'''
+	Plot the frequency-enegy spectrum
+
+	Args:
+		f (np.ndarray): frequencies at which the modes are computed
+		L (np.ndarray): energy of each frequency
+		fig (plt.figure, optional): figure object in which the plot will be done (default: ``[]``)
+		axs (plt.axes, optional): axes object in which the plot will be done (default: ``[]``)
+
+	Returns:
+		[plt.figure, plt.axes]: figure and axes objects of the plot
+
+	'''
 	L, f = gpu_to_cpu(L), gpu_to_cpu(f)
 	# Get or recover axis and figure
 	if fig is None:
