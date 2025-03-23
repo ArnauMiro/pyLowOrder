@@ -163,21 +163,21 @@ def fix_normals_coherence(normals, connectivity):
 	return normals
 
 @cr('math.edge_normals')
-def edge_normals(nodes_xyz, cell_normal, num_nodes):
+def edge_normals(nodes_xyz, cell_normal):
 	'''
 	Compute the edge normals (pointing outwards) of a cell given the nodes of the cell, the number of nodes and the cell normal.
 
 	In:
 		- nodes_xyz: List or array of the node coordinates of the cell
-		- num_nodes: Number of nodes of the cell
 		- cell_normal: Normal to the plane of the cell
 
 	Returns:
 		- edge_normals: List of the edge normals of the cell
 	'''
+	num_nodes = len(nodes_xyz)
 	edge_normals = []
 	# Iterate over each edge of the cell
-	for i in range(len(nodes_xyz)):
+	for i in range(num_nodes):
 		v1, v2 = nodes_xyz[i], nodes_xyz[(i + 1) % num_nodes]  # Get the edge vertices
 		edge = v2 - v1  # Get the edge vector
 

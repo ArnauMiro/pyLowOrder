@@ -190,7 +190,7 @@ class Mesh(object):
 			cell_nodes = self.connectivity[cell_id]
 			nodes_xyz = self.xyz[cell_nodes]  # Get the nodes of the cell
 
-			cell_normals_list = edge_normals(nodes_xyz, cell_normal, self.nnodcell)  # Compute the edge normals of the cell
+			cell_normals_list = edge_normals(nodes_xyz, cell_normal)  # Compute the edge normals of the cell
 
 			edge_normals_arr[cell_id] = np.concatenate(cell_normals_list)  # Store the edge normals of the cell
 
