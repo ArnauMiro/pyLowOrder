@@ -10,7 +10,7 @@ cimport cython
 cimport numpy as np
 
 import numpy as np
-from collections import defaultdic
+from collections import defaultdict
 
 from .cfuncs       cimport real
 from .cfuncs       cimport c_scellCenters, c_snormals, c_seuclidean_d
@@ -218,7 +218,7 @@ def edge_to_cells(int[:,:] conec):
 	'''
 	cdef int i, cid, nnodcells, ncells = conec.shape[0], 
 	cdef int[:] cell_nodes
-	cdef object edge_to_cells = defaultdic(set)
+	cdef object edge_to_cells = defaultdict(set)
 
 	for cid in range(ncells):
 		# Get the nodes of the cell
