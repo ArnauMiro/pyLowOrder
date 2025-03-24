@@ -1,40 +1,43 @@
-#%%
+#!/usr/bin/env python
+#
+# Example to showcase mesh utilities.
+#
+# Last revision: 01/02/2023
+from __future__ import print_function, division
+
 import numpy as np
-import h5py
 import pyLOM
 
-file_path = '/home/p.yeste/pyLowOrder/Testsuite/DATA/CYLINDER.h5'
 
-#%%
-m = pyLOM.Mesh.load(file_path)
+## Load cylinder mesh
+DATAFILE = './DATA/CYLINDER.h5'
+
+m = pyLOM.Mesh.load(DATAFILE)
 print(m)
 
-#%%
-# Compute necessary geometrical information (this may take a while depending on your mesh size)
-cell_nodes = m.xyz # Cell nodes
+
+## Compute geometrical information (this may take a while depending on your mesh size)
+xyz_center = m.xyzc # Cell nodes
 surf_norms = m.normal
 edge_norms = m.edge_normal
-cell_connectivity = m.cell_connectivity
+cell_conec = m.cell_connectivity
 
-print("surf_norms: ", surf_norms.shape)
-print("edge_norms: ", edge_norms.shape)
-print("cell_connectivity: ", cell_connectivity.shape)
+pyLOM.pprint(0,"surf_norms: ", surf_norms.shape)
+pyLOM.pprint(0,"edge_norms: ", edge_norms.shape)
+pyLOM.pprint(0,"cell_connectivity: ", cell_conec.shape)
 
-#%%
-# Save the new data in an h5 file
 
-save_file = "/home/p.yeste/CETACEO_DATA/CYLINDER_extra.h5"
+## Export to ParaView for visualization
+d = pyLOM.Dataset(xyz=xyz_center, ptable=m.partition_table, order=m.cellOrder, point=False,
+	# Add the time as the only variable
+	vars  = {'time':{'idim':0,'value':np.array([0])}},
+	# Now add all the arrays to be stored in the dataset
+	# It is important to convert them as C contiguous arrays
+	SURF_NORMS = {'ndim':surf_norms.shape[1],'value':surf_norms.flatten()},
+	EDGE_NORMS = {'ndim':edge_norms.shape[1],'value':edge_norms.flatten()},
+	CELL_CONEC = {'ndim':cell_conec.shape[1],'value':cell_conec.flatten()},
+)
+pyLOM.io.pv_writer(m,d,'mesh',basedir='./',instants=[0],times=[0.],vars=['SURF_NORMS','EDGE_NORMS','CELL_CONEC'],fmt='vtkh5')
 
-# copy the original file and add the new data
-with h5py.File(file_path, 'r') as f:
-    with h5py.File(save_file, 'w') as f_save:
-        for key in f.keys():
-            f.copy(key, f_save)
-        f_save['MESH'].create_dataset('SurfNorms', data=surf_norms)
-        f_save['MESH'].create_dataset('EdgeNorm_1', data=edge_norms[:,:3])
-        f_save['MESH'].create_dataset('EdgeNorm_2', data=edge_norms[:,3:6])
-        f_save['MESH'].create_dataset('EdgeNorm_3', data=edge_norms[:,6:9])
-        f_save['MESH'].create_dataset('EdgeNorm_4', data=edge_norms[:,9:])
-        f_save['MESH'].create_dataset('CellConnectivity', data=cell_connectivity)
 
-print("Data saved in", save_file)
+pyLOM.cr_info()
