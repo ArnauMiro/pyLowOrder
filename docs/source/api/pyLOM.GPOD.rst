@@ -1,10 +1,10 @@
-pyLOM.SPOD
+pyLOM.GPOD
 ==========
 
 Module contents
 ---------------
 
-.. automodule:: pyLOM.SPOD
+.. automodule:: pyLOM.GPOD
    :members:
    :undoc-members:
    :show-inheritance:

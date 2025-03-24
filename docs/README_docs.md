@@ -17,6 +17,8 @@ which are gathered on `requirements_docs.txt` and can be installed in a python/c
 pip install -r requirements_docs.txt
 ```
 
+Pandoc needs to be installed to the system, running `sudo apt install pandoc` if possible. If not, see the documentation of [pandoc](https://pandoc.org/installing.html)
+
 Moreover, the needed dependencies to import pyLOM must be installed too. On a conda environment, this commands sould be sufficient:
 
 ```bash
@@ -48,3 +50,7 @@ This will create a _build folder containg the documentation.
 # How to document the code
 
 The format followed on this project is the one specified [here](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html).
+
+# How to add a new example as a notebook
+
+Copy the notebook on `docs/source/notebook/examples` in the corresponding folder and add the path to `docs/source/examples.rst` as the other examples.
