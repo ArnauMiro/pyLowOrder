@@ -17,7 +17,8 @@ name = "pyLowOrder"
 #
 # For a discussion on single-sourcing the version, see
 # https://packaging.python.org/guides/single-sourcing-package-version/
-version = "3.0.0"
+# version = "3.0.0"
+dynamic = ["version"]
 
 # This is a one-line description or tagline of what your project does. This
 # corresponds to the "Summary" metadata field:
@@ -177,6 +178,9 @@ optionals = [
 # If there are data files included in your packages that need to be
 # installed, specify them here.
 package-data = {}
+
+[tool.setuptools.dynamic]
+version = {attr = "pyLOM.__version__"}  
 
 [tool.setuptools.packages.find]
 exclude = ["Converters", "DATA","Deps","Examples","Testsuite","Tools"]
