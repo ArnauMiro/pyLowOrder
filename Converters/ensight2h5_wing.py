@@ -42,7 +42,7 @@ for partID,partName in zip(ids,names):
 		d.add_variable(v,True,1,X_VAR.copy())
 	print(d)
 	# Store dataset to disk - pyLOM format
-	mesh.save(name+'.h5') 
+	mesh.save(name+'.h5',mode='w')  
 	d.save(name+'.h5')
 	# Store dataset to disk - vtkhdf format
 	pyLOM.io.pv_writer(mesh,d,name+'.hdf',vars=case.get_variables(),fmt='vtkhdf')
