@@ -1,4 +1,4 @@
-setuptools>=43.0.0,<78.0.1
+setuptools>=43.0.0
 numpy
 cython>=3.0.0
 mpi4py>=4.0.0

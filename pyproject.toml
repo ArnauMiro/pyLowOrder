@@ -189,7 +189,7 @@ exclude = ["Converters", "DATA","Deps","Examples","Testsuite","Tools"]
 # These are the assumed default build requirements from pip:
 # https://pip.pypa.io/en/stable/reference/pip/#pep-517-and-518-support
 requires = [
-  "setuptools>=43.0.0,<78.0.1", 
+  "setuptools>=43.0.0", 
   "wheel",
   "numpy",
   "cython>=3.0.0",
