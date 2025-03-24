@@ -10,6 +10,7 @@ cimport cython
 cimport numpy as np
 
 import numpy as np
+from collections import defaultdic
 
 from .cfuncs       cimport real
 from .cfuncs       cimport c_scellCenters, c_snormals, c_seuclidean_d
@@ -197,3 +198,35 @@ def euclidean_d(real[:,:] X):
 		return _deuclidean_d(X)
 	else:
 		return _seuclidean_d(X)
+
+
+@cr('math.edge_to_cells')
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def edge_to_cells(int[:,:] conec):
+	r'''
+	Build a dictionary that maps each edge to the cells that share it.
+
+	Args:
+		conec (np.ndarray): connectivity array
+
+	Returns:
+		defaultdic: edges to cells connectivity dictionary
+	'''
+	cdef int i, cid, nnodcells, ncells = conec.shape[0], 
+	cdef int[:] cell_nodes
+	cdef object edge_to_cells = defaultdic(set)
+
+	for cid in range(ncells):
+		# Get the nodes of the cell
+		cell_nodes = conec[cid]
+		nnodcells  = len(cell_nodes)
+		for i in range(nnodcells):
+			# We are assuming the nodes are ciclically ordered.
+			v1, v2 = sorted([cell_nodes[i], cell_nodes[(i+1) % nnodcells]]) # Sort IDs
+			edge_to_cells[(v1, v2)].add(cid)  # Associate the cell with the edge
+
+	return edge_to_cells

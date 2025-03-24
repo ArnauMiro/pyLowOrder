@@ -94,9 +94,15 @@ def normals(xyz:np.ndarray,conec:np.ndarray) -> np.ndarray:
 
 
 @cr('math.edge_to_cells')
-def edge_to_cells(conec):
-	'''
+def edge_to_cells(conec:np.ndarray) -> dict:
+	r'''
 	Build a dictionary that maps each edge to the cells that share it.
+
+	Args:
+		conec (np.ndarray): connectivity array
+
+	Returns:
+		dict: edges to cells connectivity dictionary
 	'''
 	ncells = conec.shape[0]
 	edge_to_cells = defaultdict(set)
@@ -113,14 +119,20 @@ def edge_to_cells(conec):
 
 
 @cr('math.neighbors_dict')
-def neighbors_dict(connectivity):
+def neighbors_dict(conec:np.ndarray) -> dict:
 	'''
 	Build a dictionary that maps each cell to its neighbors.
+
+	Args:
+		conec (np.ndarray): connectivity array
+
+	Returns:
+		dict: cell to neighbours dictionary
 	'''
-	ncells = connectivity.shape[0]
+	ncells = conec.shape[0]
 
 	# Dictionary that maps each edge to the cells that share it
-	edge_dict = edge_to_cells(connectivity)
+	edge_dict = edge_to_cells(conec)
 
 	# Dictionary that maps each cell to its neighbors
 	neighbors_dict = {i: set() for i in range(ncells)}
