@@ -11,6 +11,15 @@ import os, sys, numpy as np, mpi4py
 from setuptools import setup, Extension, find_packages
 from Cython.Build import cythonize
 
+
+## Read INIT file
+with open('pyLOM/__init__.py') as f:
+	for l in f.readlines():
+		if '__version__' in l:
+			__version__ = eval(l.split('=')[1].strip())
+
+
+## Read README file
 with open('README.md') as f:
 	readme = f.read()
 
@@ -270,8 +279,7 @@ Module_Math += [Module_regression] if 'math.regression' in options['MODULES_COMP
 # ROM module
 Module_ROM   = [Module_POD]  if 'rom.pod'  in options['MODULES_COMPILED'] else []
 Module_ROM  += [Module_DMD]  if 'rom.dmd'  in options['MODULES_COMPILED'] else []
-Module_ROM  += [Module_SPOD] if 'rom.spod' in options['MODULES_CO'
-'MPILED'] else []
+Module_ROM  += [Module_SPOD] if 'rom.spod' in options['MODULES_COMPILED'] else []
 
 
 ## Decide which modules to compile
@@ -281,7 +289,7 @@ modules_list = Module_Math + Module_ROM if options['USE_COMPILED'] else []
 ## Main setup
 setup(
 	name             = 'pyLowOrder',
-	version          = '3.0.0',
+	version          = __version__,
 	author           = 'Benet Eiximeno, Beka Begiashvili, Arnau Miro, Eusebio Valero, Oriol Lehmkuhl',
 	author_email     = 'benet.eiximeno@bsc.es, beka.begiashvili@alumnos.upm.es, arnau.mirojane@bsc.es, eusebio.valero@upm.es, oriol.lehmkuhl@bsc.es',
 	maintainer       = 'Benet Eiximeno, Arnau Miro',
