@@ -19,7 +19,8 @@ from pyLOM.utils.mpi import MPI_RANK, MPI_SIZE
 
 ## Define the global matrix size for this example 
 # Sizes to be workable on a small machine
-M = 2000
+#M = 2000
+M = 1440*721*(MPI_RANK+1)
 N = 100
 
 
