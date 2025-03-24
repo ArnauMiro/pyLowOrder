@@ -40,6 +40,7 @@ autodoc_default_options = {
     'member-order': 'bysource',
     'show-inheritance': True,
     # 'special-members': '__init__',
+    'imported-members': True, # To show the modules imported on the __init__.py of every package
     'ignore-module-all': True,  # If True, ignore __all__ variable defined in the package's __init__.py
     'undoc-members': False, # If True, include members without docstrings
     'exclude-members': '__weakref__'

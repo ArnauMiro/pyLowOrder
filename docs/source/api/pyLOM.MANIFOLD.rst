@@ -1,17 +1,6 @@
 pyLOM.MANIFOLD
 ==============
 
-Submodules
-----------
-
-pyLOM.MANIFOLD.wrapper
-----------------------
-
-.. automodule:: pyLOM.MANIFOLD.wrapper
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Module contents
 ---------------
 
