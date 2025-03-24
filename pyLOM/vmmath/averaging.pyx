@@ -56,9 +56,15 @@ cdef np.ndarray[np.double_t,ndim=1] _dtemporal_mean(double[:,:] X):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def temporal_mean(real[:,:] X):
-	'''
+	r'''
 	Temporal mean of matrix X(m,n) where m is the spatial coordinates
 	and n is the number of snapshots.
+
+	Args:
+		X (numpy.ndarray): Snapshot matrix (m,n).
+
+	Returns:
+		numpy.ndarray: Averaged snapshot matrix (m,).
 	'''
 	if real is double:
 		return _dtemporal_mean(X)
@@ -106,9 +112,16 @@ cdef np.ndarray[np.double_t,ndim=2] _dsubtract_mean(double[:,:] X, double[:] X_m
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def subtract_mean(real[:,:] X, real[:] X_mean):
-	'''
+	r'''
 	Computes out(m,n) = X(m,n) - X_mean(m) where m is the spatial coordinates
 	and n is the number of snapshots.
+
+	Args:
+		X (numpy.ndarray): Snapshot matrix (m,n).
+		X_mean (numpy.ndarray): Averaged snapshot matrix (m,)
+
+	Returns:
+		numpy.ndarray: Snapshot matrix without the average(m,n).
 	'''
 	if real is double:
 		return _dsubtract_mean(X,X_mean)

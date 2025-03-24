@@ -25,7 +25,28 @@ from   ...utils                import cr, pprint
 
 ## Wrapper of a variational autoencoder
 class Autoencoder(nn.Module):
-    def __init__(self, latent_dim, in_shape, input_channels, encoder, decoder, device=DEVICE):
+    r"""
+    Autoencoder class for neural network module. The model is based on the PyTorch.
+
+    Args:
+        latent_dim (int): Dimension of the latent space.
+        in_shape (tuple): Shape of the input data.
+        input_channels (int): Number of input channels.
+        encoder (torch.nn.Module): Encoder model.
+        decoder (torch.nn.Module): Decoder model.
+        device (str): Device to run the model. Default is 'cuda' if available, otherwise 'cpu'.
+    
+    """
+
+    def __init__(
+        self,
+        latent_dim: int,
+        in_shape: tuple,
+        input_channels: int,
+        encoder: nn.Module,
+        decoder: nn.Module,
+        device: torch.device = DEVICE,
+    ):
         super(Autoencoder, self).__init__()
         self.lat_dim  = latent_dim
         self.in_shape = in_shape
@@ -45,9 +66,40 @@ class Autoencoder(nn.Module):
     def forward(self, x):
         z     = self.encoder(x)
         recon = self.decoder(z)
-        return recon, z  
+        return recon, z
 
-    def fit(self, train_dataset, eval_dataset=None, epochs=100, callback=None, lr=1e-3, BASEDIR='./', reduction='mean', lr_decay=0.999, batch_size=32, shuffle=True, num_workers=0, pin_memory=True):
+    def fit(
+        self,
+        train_dataset: torch.utils.data.Dataset,
+        eval_dataset: torch.utils.data.Dataset = None,
+        epochs: int = 100,
+        callback=None,
+        lr: float = 1e-3,
+        BASEDIR: str = "./",
+        reduction: str = "mean",
+        lr_decay: float = 0.999,
+        batch_size: int = 32,
+        shuffle: bool = True,
+        num_workers: int = 0,
+        pin_memory: bool = True,
+    ):
+        r"""
+        Train the autoencoder model. The logs are stored in the directory specified by BASEDIR with tensorboard format.
+
+        Args:
+            train_dataset (torch.utils.data.Dataset): Training dataset.
+            eval_dataset (torch.utils.data.Dataset): Evaluation dataset.
+            epochs (int): Number of epochs to train the model. Default is ``100``.
+            callback: Callback object. Default is ``None``.
+            lr (float): Learning rate. Default is ``1e-3``.
+            BASEDIR (str): Directory to save the model. Default is ``"./"``.
+            reduction (str): Reduction method for the loss function. Default is ``"mean"``.
+            lr_decay (float): Learning rate decay. Default is ``0.999``.
+            batch_size (int): Batch size. Default is ``32``.
+            shuffle (bool): Whether to shuffle the dataset or not. Default is ``True``.
+            num_workers (int): Number of workers for the Dataloader. Default is ``0``.
+            pin_memory (bool): Pin memory for Dataloader. Default is ``True``.
+        """
         dataloader_params = {
             "batch_size": batch_size,
             "shuffle": shuffle,
@@ -105,7 +157,16 @@ class Autoencoder(nn.Module):
         writer.close()
         torch.save(self.state_dict(), f'{BASEDIR}/model_state.pth')
 
-    def reconstruct(self, dataset):
+    def reconstruct(self, dataset: torch.utils.data.Dataset):
+        r"""
+        Reconstruct the dataset using the trained autoencoder model. It prints the energy, mean, and fluctuation of the reconstructed dataset.
+
+        Args:
+            dataset (torch.utils.data.Dataset): Dataset to reconstruct.
+
+        Returns:
+            np.ndarray: Reconstructed dataset.
+        """
         ## Compute reconstruction and its accuracy
         num_samples = len(dataset)
         ek = np.zeros(num_samples)
@@ -139,7 +200,16 @@ class Autoencoder(nn.Module):
 
         return rec.cpu().numpy()
     
-    def latent_space(self, dataset):
+    def latent_space(self, dataset: torch.utils.data.Dataset):
+        r"""
+        Compute the latent space of the elements of a given dataset.
+
+        Args:
+            dataset (torch.utils.data.Dataset): Dataset to compute the latent space.
+
+        Returns:
+            np.ndarray: Latent space of the dataset elements.
+        """
         # Compute latent vectors
         loader = torch.utils.data.DataLoader(dataset, batch_size=len(dataset), shuffle=False)
         with torch.no_grad():
@@ -150,6 +220,15 @@ class Autoencoder(nn.Module):
         return z
 
     def decode(self, z):
+        r"""
+        Decode the latent space to the original space.
+
+        Args:
+            z (np.ndarray): Element of the latent space.
+
+        Returns:
+            np.ndarray: Decoded latent space.
+        """
         zt  = torch.tensor(z, dtype=torch.float32)
         var = self.decoder(zt)
         var = var.cpu()
@@ -161,6 +240,18 @@ class Autoencoder(nn.Module):
 
 ## Wrapper of a variational autoencoder
 class VariationalAutoencoder(Autoencoder):
+    r"""
+    Variational Autoencoder class for neural network module. The model is based on the PyTorch.
+
+    Args:
+        latent_dim (int): Dimension of the latent space.
+        in_shape (tuple): Shape of the input data.
+        input_channels (int): Number of input channels.
+        encoder (torch.nn.Module): Encoder model.
+        decoder (torch.nn.Module): Decoder model.
+        device (str): Device to run the model. Default is 'cuda' if available, otherwise 'cpu'.
+
+    """
     def __init__(self, latent_dim, in_shape, input_channels, encoder, decoder, device=DEVICE):
         super(VariationalAutoencoder, self).__init__(latent_dim, in_shape, input_channels, encoder, decoder, device)
 
@@ -181,8 +272,39 @@ class VariationalAutoencoder(Autoencoder):
         recon = self.decoder(z)
         return recon, mu, logvar, z
     
-    @cr('VAE.fit')   
-    def fit(self, train_dataset, eval_dataset=None, betasch=None, epochs=1000, callback=None, lr=1e-4, BASEDIR='./', batch_size=32, shuffle=True, num_workers=0, pin_memory=True):
+    @cr('VAE.fit')
+    def fit(
+        self,
+        train_dataset,
+        eval_dataset=None,
+        betasch=None,
+        epochs=1000,
+        callback=None,
+        lr=1e-4,
+        BASEDIR="./",
+        batch_size=32,
+        shuffle=True,
+        num_workers=0,
+        pin_memory=True,
+    ):
+        r"""
+        Train the variational autoencoder model. The logs are stored in the directory specified by BASEDIR with tensorboard format.
+
+        Args:
+            train_dataset (torch.utils.data.Dataset): Training dataset.
+            eval_dataset (torch.utils.data.Dataset): Evaluation dataset.
+            epochs (int): Number of epochs to train the model. Default is ``100``.
+            callback: Callback object to change the value of beta during training. Default is ``None``.
+            lr (float): Learning rate. Default is ``1e-3``.
+            BASEDIR (str): Directory to save the model. Default is ``"./"``.
+            reduction (str): Reduction method for the loss function. Default is ``"mean"``.
+            lr_decay (float): Learning rate decay. Default is ``0.999``.
+            batch_size (int): Batch size. Default is ``32``.
+            shuffle (bool): Whether to shuffle the dataset or not. Default is ``True``.
+            num_workers (int): Number of workers for the Dataloader. Default is ``0``.
+            pin_memory (bool): Pin memory for Dataloader. Default is ``True``.
+        """
+
         dataloader_params = {
             "batch_size": batch_size,
             "shuffle": shuffle,
@@ -257,6 +379,15 @@ class VariationalAutoencoder(Autoencoder):
 
     @cr('VAE.reconstruct')
     def reconstruct(self, dataset):
+        r"""
+        Reconstruct the dataset using the trained variational autoencoder model. It prints the energy, mean, and fluctuation of the reconstructed dataset.
+
+        Args:
+            dataset (torch.utils.data.Dataset): Dataset to reconstruct.
+
+        Returns:
+            np.ndarray: Reconstructed dataset.
+        """
         ## Compute reconstruction and its accuracy
         num_samples = len(dataset)
         ek = np.zeros(num_samples)
@@ -291,6 +422,15 @@ class VariationalAutoencoder(Autoencoder):
         return rec.cpu().numpy()
   
     def correlation(self, dataset):
+        r"""
+        Compute the correlation between the latent variables of the given dataset.
+
+        Args:
+            dataset (torch.utils.data.Dataset): Dataset to compute the correlation.
+
+        Returns:
+            np.ndarray: Correlation between the latent variables.
+        """
         ##  Compute correlation between latent variables
         loader = torch.utils.data.DataLoader(dataset, batch_size=len(dataset), shuffle=False)
         with torch.no_grad():
@@ -305,6 +445,12 @@ class VariationalAutoencoder(Autoencoder):
         return corr, detR#.reshape((self.lat_dim*self.lat_dim,))
     
     def modes(self):
+        r"""
+        Compute the modes of the latent space.
+
+        Returns:
+            np.ndarray: Modes of the latent space.
+        """
         zmode = np.diag(np.ones((self.lat_dim,),dtype=float))
         zmodt = torch.tensor(zmode, dtype=torch.float32)
         zmodt = zmodt.to(self._device)
@@ -317,6 +463,15 @@ class VariationalAutoencoder(Autoencoder):
         return mymod.reshape((self.N*self.lat_dim,),order='C')
 
     def latent_space(self, dataset):
+        r"""
+        Compute the latent space of the elements of a given dataset.
+
+        Args:
+            dataset (torch.utils.data.Dataset): Dataset to compute the latent space.
+
+        Returns:
+            np.ndarray: Latent space of the dataset elements.
+        """
         # Compute latent vectors
         loader = torch.utils.data.DataLoader(dataset, batch_size=len(dataset), shuffle=False)
         with torch.no_grad():
@@ -392,6 +547,15 @@ class VariationalAutoencoder(Autoencoder):
         return 0
 
     def decode(self, z):
+        r"""
+        Decode a latent space element to the original space.
+
+        Args:
+            z (np.ndarray): Element of the latent space.
+
+        Returns:
+            np.ndarray: Decoded latent space.
+        """
         zt  = torch.tensor(z, dtype=torch.float32)
         var = self.decoder(zt)
         var = var.cpu()

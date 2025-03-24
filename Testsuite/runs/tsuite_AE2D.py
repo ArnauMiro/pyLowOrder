@@ -32,7 +32,7 @@ activations = [pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(), pyLOM.NN.tanh(
 
 ## Load pyLOM dataset and set up results output
 RESUDIR = os.path.join(OUTDIR,'ae_ld_%i' % (lat_dim))
-pyLOM.NN.create_results_folder(RESUDIR,echo=False)
+pyLOM.NN.create_results_folder(RESUDIR,verbose=False)
 
 
 ## Load pyLOM dataset

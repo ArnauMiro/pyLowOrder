@@ -27,7 +27,7 @@ print(d)
 
 ## Load pyLOM dataset and set up results output
 RESUDIR = os.path.join(OUTDIR,f'MLP_{DATAFILE}')
-pyLOM.NN.create_results_folder(RESUDIR,echo=False)
+pyLOM.NN.create_results_folder(RESUDIR,verbose=False)
 
 
 ## Generate torch dataset
@@ -48,7 +48,7 @@ td_train, td_test = dataset.get_splits([0.8, 0.2])
 
 ## Generate model
 training_params = {
-    "epochs": 250,
+    "epochs": 50,
     "lr": 0.00015,
     "lr_gamma": 0.98,
     "lr_scheduler_step": 15,

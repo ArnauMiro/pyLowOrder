@@ -43,10 +43,17 @@ def euclidean_d(X):
 
 
 @cr('math.cellCenters')
-def cellCenters(xyz,conec):
-	'''
+def cellCenters(xyz:np.ndarray,conec:np.ndarray) -> np.ndarray:
+	r'''
 	Compute the cell centers given a list 
 	of elements.
+
+	Args:
+		xyz (np.ndarray):   node positions
+		conec (np.ndarray): connectivity array
+
+	Returns:
+		np.ndarray: center positions
 	'''
 	p = cp if type(xyz) is cp.ndarray else np
 	xyz_cen = p.zeros((conec.shape[0],xyz.shape[1]),xyz.dtype)
@@ -56,8 +63,20 @@ def cellCenters(xyz,conec):
 		xyz_cen[ielem,:] = p.mean(xyz[c,:],axis=0)
 	return xyz_cen
 
+
 @cr('math.normals')
-def normals(xyz,conec):
+def normals(xyz:np.ndarray,conec:np.ndarray) -> np.ndarray:
+	r'''
+	Compute the cell normals given a list 
+	of elements.
+
+	Args:
+		xyz (np.ndarray):   node positions
+		conec (np.ndarray): connectivity array
+
+	Returns:
+		np.ndarray: cell normals
+	'''
 	p = cp if type(xyz) is cp.ndarray else np
 	normals = p.zeros(((conec.shape[0],3)),xyz.dtype)
 	for ielem in range(conec.shape[0]):
@@ -72,6 +91,7 @@ def normals(xyz,conec):
 			v = xyzel[inod-1] - cen
 			normals[ielem,:] += 0.5*p.cross(u,v)
 	return normals
+
 
 @cr('math.edge_to_cells')
 def edge_to_cells(conec):
@@ -90,6 +110,7 @@ def edge_to_cells(conec):
 			edge_to_cells[(v1, v2)].add(cell_id)  # Associate the cell with the edge
 
 	return edge_to_cells
+
 
 @cr('math.neighbors_dict')
 def neighbors_dict(connectivity):
