@@ -16,7 +16,7 @@ from ..utils  import cr_nvtx as cr, gpu_to_cpu, raiseWarning
 
 DEFAULTSTYLE = {
     'font'    : {
-		'fontsize'  : 16,
+		'size'  : 16,
 		'weight'    : 'normal'
 	},
     'legend'  : {

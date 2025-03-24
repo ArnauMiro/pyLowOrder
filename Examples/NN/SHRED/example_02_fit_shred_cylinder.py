@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import pyLOM, pyLOM.NN
 
-pyLOM.style_plots(legend_fsize=14)
+pyLOM.style_plots()
 
 ## Set device
 device = pyLOM.NN.select_device() # Force CPU for this example, if left in blank it will automatically select the device
@@ -21,28 +21,20 @@ shreds   = 'out/shreds/config_'
 nconfigs = 20
 
 ## Import sensor measurements
+sensors   = pyLOM.Dataset.load('sensors.h5')
+mask_trai = sensors.get_variable('training_time')
+mask_vali = sensors.get_variable('validation_time')
+mask_test = sensors.get_variable('test_time')
 # Training
-data_trai = pyLOM.Dataset.load('sensors_trai.h5')
-sens_trai = data_trai[sensvar].astype(np.float32)
+sens_trai = sensors.mask_field(sensvar, mask_trai)
 nsens     = sens_trai.shape[0]
-mask_trai = data_trai.get_variable('mask')
-time_trai = data_trai.get_variable('time')
 # Validation
-data_vali = pyLOM.Dataset.load('sensors_vali.h5')
-sens_vali = data_vali[sensvar].astype(np.float32)
-mask_vali = data_vali.get_variable('mask')
-time_vali = data_vali.get_variable('time')
+sens_vali = sensors.mask_field(sensvar, mask_vali)
 # Test
-data_test = pyLOM.Dataset.load('sensors_test.h5')
-sens_test = data_test[sensvar].astype(np.float32)
-mask_test = data_test.get_variable('mask')
-time_test = data_test.get_variable('time')
+sens_test = sensors.mask_field(sensvar, mask_test)
 # Compute total timesteps
-ntimeG = np.max(np.hstack((mask_trai,mask_vali,mask_test)))+1
-time   = np.zeros((ntimeG,), dtype=time_trai.dtype)
-time[mask_trai] = time_trai
-time[mask_vali] = time_vali
-time[mask_test] = time_test
+time   = sensors.get_variable('time')
+ntimeG = time.shape[0]
 
 ## Import POD coefficients and rescale them.
 # Training

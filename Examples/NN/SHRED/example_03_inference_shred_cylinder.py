@@ -3,7 +3,7 @@ import torch
 import pyLOM, pyLOM.NN
 
 ## Set plot styling
-pyLOM.style_plots(legend_fsize=14)
+pyLOM.style_plots()
 
 ## Set device
 device = pyLOM.NN.select_device() # Force CPU for this example, if left in blank it will automatically select the device
@@ -19,28 +19,20 @@ nconfigs  = 20
 configIDs = np.arange(nconfigs, dtype=int)
 
 ## Import sensor measurements
+sensors   = pyLOM.Dataset.load('sensors.h5')
+mask_trai = sensors.get_variable('training_time')
+mask_vali = sensors.get_variable('validation_time')
+mask_test = sensors.get_variable('test_time')
 # Training
-data_trai = pyLOM.Dataset.load('sensors_trai.h5')
-sens_trai = data_trai[sensvar].astype(np.float32)
+sens_trai = sensors.mask_field(sensvar, mask_trai)
 nsens     = sens_trai.shape[0]
-mask_trai = data_trai.get_variable('mask')
-time_trai = data_trai.get_variable('time')
 # Validation
-data_vali = pyLOM.Dataset.load('sensors_vali.h5')
-sens_vali = data_vali[sensvar].astype(np.float32)
-mask_vali = data_vali.get_variable('mask')
-time_vali = data_vali.get_variable('time')
+sens_vali = sensors.mask_field(sensvar, mask_vali)
 # Test
-data_test = pyLOM.Dataset.load('sensors_test.h5')
-sens_test = data_test[sensvar].astype(np.float32)
-mask_test = data_test.get_variable('mask')
-time_test = data_test.get_variable('time')
+sens_test = sensors.mask_field(sensvar, mask_test)
 # Compute total timesteps
-ntimeG = np.max(np.hstack((mask_trai,mask_vali,mask_test)))+1
-time   = np.zeros((ntimeG,), dtype=time_trai.dtype)
-time[mask_trai] = time_trai
-time[mask_vali] = time_vali
-time[mask_test] = time_test
+time   = sensors.get_variable('time')
+ntimeG = time.shape[0]
 
 ## Import POD coefficients and rescale them.
 # Training
@@ -53,7 +45,7 @@ pod_vali = pyLOM.POD.load('POD_vali_%s.h5' % podvar, vars='V')[0].astype(np.floa
 # Test
 pod_test = pyLOM.POD.load('POD_test_%s.h5' % podvar, vars='V')[0].astype(np.float32)
 # Full POD
-full_pod = np.zeros((output_size,ntimeG), dtype=pod_trai.dtype)
+full_pod = np.zeros((output_size,ntimeG), dtype=np.float32)
 full_pod[:,mask_trai] = pod_trai
 full_pod[:,mask_vali] = pod_vali
 full_pod[:,mask_test] = pod_test
@@ -80,7 +72,7 @@ for kk in range(nconfigs):
     vali_sca = myscaler.transform(myvali)
     test_sca = myscaler.transform(mytest)
     # Concatenate train, test and validation data to generate the embeddings correctly
-    embedded = np.zeros((trai_sca.shape[0],ntimeG), dtype=trai_sca.dtype)
+    embedded = np.zeros((trai_sca.shape[0],ntimeG), dtype=np.float32)
     embedded[:,mask_trai] = trai_sca
     embedded[:,mask_vali] = vali_sca
     embedded[:,mask_test] = test_sca
@@ -102,7 +94,7 @@ stdMRE  = np.std(MRE, axis=1)
 print('The mean MRE of the %i configurations is %.2f' % (nconfigs, np.mean(meanMRE)))
 
 ## Save the mean output between configurations as the POD coefficients for reconstruction
-pyLOM.POD.save('POD_predicted_%s.h5'% podvar,data_vali.partition_table,V=meanout,nvars=1)
+pyLOM.POD.save('POD_predicted_%s.h5'% podvar,None,None,meanout,sensors.partition_table,nvars=1)
 
 ## Plot error bars
 #Non-scaled

@@ -22,6 +22,7 @@ def data_splitting(Nt:int, mode:str, seed:int=-1):
 		mask[tridx] = 0
 		mask[0]     = 0
 		mask[-1]    = 0
+		tridx       = np.argwhere(mask==0)[:,0]
 		vate_idx    = np.arange(0, Nt)[np.where(mask!=0)[0]]
 		vaidx       = vate_idx[::2]
 		teidx       = vate_idx[1::2]

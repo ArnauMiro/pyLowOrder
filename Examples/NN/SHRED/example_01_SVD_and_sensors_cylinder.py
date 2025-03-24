@@ -12,7 +12,8 @@ import numpy as np
 import pyLOM
 
 ## Parameters
-DATAFILE  = '/home/benet/Dropbox/UNIVERSITAT/PhD/DATA_PYLOM/CYLINDER.h5'
+DATAFILE  = '/gpfs/scratch/bsc21/bsc021828/DATA_PYLOM/CYLINDER.h5'
+DATAFIL2  = './CYLINDER2.h5'
 VARLIST  = ['VELOX', 'VORTI']
 
 ## Data loading
@@ -23,9 +24,10 @@ N = t.shape[0]
 
 ## Divide in training, validation and test and append mask to current dataset
 tridx, vaidx, teidx = d.split_data('time', mode='reconstruct')
+pyLOM.pprint(0, tridx.shape, vaidx.shape, teidx.shape, t.shape)
 # Regenerate output datafile with the variable masks
-m.save(DATAFILE, nopartition=True, mode='w')
-d.save(DATAFILE, nopartition=True)
+m.save(DATAFIL2, nopartition=True, mode='w')
+d.save(DATAFIL2, nopartition=True)
 
 ## Extract sensors
 # Generate random sensors

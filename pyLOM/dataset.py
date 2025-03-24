@@ -181,7 +181,7 @@ class Dataset(object):
 		trid, vaid, teid = data_splitting(N, mode)
 		self.add_variable('training_%s'%var,idim,trid)
 		self.add_variable('validation_%s'%var,idim,vaid)
-		self.add_variable('test_%s'%var,idim,vaid)
+		self.add_variable('test_%s'%var,idim,teid)
 
 		return trid, vaid, teid
 
