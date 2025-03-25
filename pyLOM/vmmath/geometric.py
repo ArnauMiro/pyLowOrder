@@ -87,12 +87,14 @@ def edge_to_cells(conec):
 		for i in range(len(cell_nodes)):
 			# We are assuming the nodes are ciclically ordered.
 			v1, v2 = sorted([cell_nodes[i], cell_nodes[(i+1) % len(cell_nodes)]]) # Sort IDs
+			# Edges are undirected (v1, v2) == (v2, v1)
 			edge_to_cells[(v1, v2)].add(cell_id)  # Associate the cell with the edge
+			edge_to_cells[(v2, v1)].add(cell_id)  # Associate the cell with the edge
 
 	return edge_to_cells
 
-@cr('math.neighbors_dict')
-def neighbors_dict(connectivity):
+@cr('math.adjacency')
+def adjacency(connectivity):
 	'''
 	Build a dictionary that maps each cell to its neighbors.
 	'''
@@ -102,16 +104,16 @@ def neighbors_dict(connectivity):
 	edge_dict = edge_to_cells(connectivity)
 
 	# Dictionary that maps each cell to its neighbors
-	neighbors_dict = {i: set() for i in range(ncells)}
+	adjacency_dict = {i: set() for i in range(ncells)}
 
 	for edge, cells in edge_dict.items():
 		cells = list(cells)
 		if len(cells) == 2:  # If there are two cells sharing the edge
 			c1, c2 = cells
-			neighbors_dict[c1].add(c2)
-			neighbors_dict[c2].add(c1)
+			adjacency_dict[c1].add(c2)
+			adjacency_dict[c2].add(c1)
 
-	return neighbors_dict
+	return adjacency_dict
 
 @cr('math.fix_coherence')
 def fix_normals_coherence(normals, connectivity):
@@ -124,7 +126,7 @@ def fix_normals_coherence(normals, connectivity):
 	edge_dict = edge_to_cells(connectivity)
 
 	# Dictionary mapping each cell to its neighbors
-	adjacency = neighbors_dict(connectivity)
+	adjacency_dict = adjacency(connectivity)
 
     # Find the cells that are on the border
 	border_cells = set()
@@ -162,26 +164,34 @@ def fix_normals_coherence(normals, connectivity):
 
 	return normals
 
-@cr('math.edge_normals')
-def edge_normals(nodes_xyz, cell_normal):
+@cr('math.wall_normals')
+def wall_normals(nodes_idx, nodes_xyz, surf_normal):
 	'''
-	Compute the edge normals (pointing outwards) of a cell given the nodes of the cell, the number of nodes and the cell normal.
+	Compute the unitary normals to the cell walls (only for 2D cells).
+	Example: For a triangle, the wall normals are the three vectors normal to each of the sides.
+	The wall normals are always contained in the cell plane, thus are orthogonal themselves to the cell surface normal.
+	As a convention, wall normals are always pointing outwards the cell.
 
 	In:
+		- nodes_idx: List or array of the node indices of the cell
 		- nodes_xyz: List or array of the node coordinates of the cell
-		- cell_normal: Normal to the plane of the cell
+		- surf_normal: Normal to the plane of the cell
+
 
 	Returns:
-		- edge_normals: List of the edge normals of the cell
+		- cell_edges: List of graph edges representing the element walls (node indices)
+		- wall_normals: List of the unitary wall normals
 	'''
 	num_nodes = len(nodes_xyz)
-	edge_normals = []
+	wall_normals = []
+	cell_edges = []
 	# Iterate over each edge of the cell
 	for i in range(num_nodes):
 		v1, v2 = nodes_xyz[i], nodes_xyz[(i + 1) % num_nodes]  # Get the edge vertices
-		edge = v2 - v1  # Get the edge vector
+		edge = tuple([nodes_idx[i], nodes_idx[(i + 1) % num_nodes]])
+		edge_vector = v2 - v1  # Get the edge vector
 
-		edge_normal = np.cross(edge, cell_normal)  # Compute the edge normal
+		edge_normal = np.cross(edge_vector, surf_normal)  # Compute the edge normal
 		edge_normal /= np.linalg.norm(edge_normal)  # Normalize the edge normal
 
 		# Ensure the edge normal is pointing outwards (assumes convex polygon)
@@ -191,6 +201,7 @@ def edge_normals(nodes_xyz, cell_normal):
 		if np.dot(midpoint - auxiliary_node, edge_normal) < 0:
 			edge_normal *= -1
 
-		edge_normals.append(edge_normal)
+		wall_normals.append(edge_normal)
+		cell_edges.append(edge)
 
-	return edge_normals
+	return cell_edges, wall_normals
