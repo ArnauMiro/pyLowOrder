@@ -10,11 +10,8 @@ from __future__ import print_function, division
 import numpy as np
 
 from ..utils.gpu import cp
-from ..          import inp_out as io
+from ..          import inp_out as io, PartitionTable
 from ..utils.cr  import cr_nvtx as cr
-
-from ..partition_table import PartitionTable
-
 
 @cr('SPOD.extract_modes')
 def extract_modes(L:np.ndarray,P:np.ndarray,ivar:int,npoints:int,iblock:int=1,modes:list=[],reshape:bool=True):

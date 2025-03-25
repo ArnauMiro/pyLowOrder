@@ -9,6 +9,7 @@
 from .wrapper import run, truncate, reconstruct
 from .utils   import extract_modes, save, load
 from .plots   import plotMode
+from ..utils  import plotResidual, plotSnapshot
 
 
 del wrapper, plots

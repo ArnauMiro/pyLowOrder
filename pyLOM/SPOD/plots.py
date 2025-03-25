@@ -12,9 +12,8 @@ import matplotlib.pyplot as plt
 
 from .utils        import extract_modes
 from ..utils       import gpu_to_cpu
-from ..utils.plots import plotLayout
-from ..mesh        import Mesh
-from ..dataset     import Dataset
+from ..utils.plots import plotResidual, plotFieldStruct2D, plotSnapshot, plotLayout
+from ..            import Mesh, Dataset
 
 
 def plotMode(L:np.ndarray, P:np.ndarray, freqs:np.ndarray, mesh:Mesh, dset:Dataset, ivar:int, pointData:bool=True, modes:np.ndarray=np.array([1],np.int32),**kwargs):
