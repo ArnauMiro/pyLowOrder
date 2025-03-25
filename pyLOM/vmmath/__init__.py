@@ -23,7 +23,7 @@ from .geometric      import cellCenters, normals, euclidean_d
 # Regression routines
 from .regression     import least_squares, ridge_regresion
 # Data processing module
-from .dataprocessing import data_splitting, time_delay_embedding
+from .dataprocessing import data_splitting, time_delay_embedding, find_random_sensors
 
 
 del maths, averaging, truncation, stats, geometric, regression

@@ -11,8 +11,8 @@ import os, numpy as np
 
 from .partition_table import PartitionTable
 from .                import inp_out as io
-from .utils           import cr_nvtx as cr, raiseError, gpu_to_cpu, cpu_to_gpu, pprint, mpi_reduce, mpi_gather, MPI_RANK, MPI_SIZE
-from .vmmath          import data_splitting
+from .utils           import cr_nvtx as cr, raiseError, gpu_to_cpu, cpu_to_gpu, pprint, mpi_gather, MPI_RANK, MPI_SIZE
+from .vmmath          import data_splitting, find_random_sensors
 
 
 class Dataset(object):
@@ -215,34 +215,19 @@ class Dataset(object):
 		'''
 		np.random.seed(0) if seed == -1 else np.random.seed(seed)
 
-		# Generate random points using numpy's uniform distribution
-		x = np.random.uniform(bounds[0], bounds[1], nsensors)
-		y = np.random.uniform(bounds[2], bounds[3], nsensors)
-		z = np.random.uniform(bounds[4], bounds[5], nsensors) if len(bounds) > 4 else None
-		# Stack them into an Nxndim
-		randcoords  = np.vstack((x, y, z)).T if z is not None else np.vstack((x, y)).T 
-
-		# Find which rank has the closest point to the sensors
-		mysensors = list()
-		for ii, sensor in enumerate(randcoords):
-			dist       = np.sum((sensor-self.xyz)**2, axis=1)
-			mindist    = np.min(dist)
-			_,minrank  = mpi_reduce((mindist, MPI_RANK), all=True, op='argmin')
-			if minrank == MPI_RANK:
-				mysensors.append(np.argmin(dist))
-		mysensors  = np.array(mysensors)
-		myNsensors = len(mysensors)
+		mysensors = find_random_sensors(bounds, self.xyz, nsensors)
 
 		# Initialize new dataset
-		time      = self.get_variable('time')
-		nparts    = MPI_SIZE
-		ids       = np.arange(1,nparts+1,dtype=np.int32)
-		points    = mpi_gather(myNsensors, all=True) if MPI_SIZE > 1 else np.array([myNsensors])
-		elements  = np.zeros((MPI_SIZE,), dtype=int)
-		ptable    = PartitionTable(nparts, ids, elements, points, has_master=False)
-		sp, ep    = ptable.partition_bounds(MPI_RANK)
-		order     = np.linspace(start=sp, stop=ep-1, num=ep-sp, dtype=int)
-		sd        = self.__class__(xyz=self.xyz[mysensors], ptable=ptable, order=order, point=True, vars=self._vardict)#{'time':{'idim':0,'value':time}})
+		myNsensors = len(mysensors)
+		time       = self.get_variable('time')
+		nparts     = MPI_SIZE
+		ids        = np.arange(1,nparts+1,dtype=np.int32)
+		points     = mpi_gather(myNsensors, all=True) if MPI_SIZE > 1 else np.array([myNsensors])
+		elements   = np.zeros((MPI_SIZE,), dtype=int)
+		ptable     = PartitionTable(nparts, ids, elements, points, has_master=False)
+		sp, ep     = ptable.partition_bounds(MPI_RANK)
+		order      = np.linspace(start=sp, stop=ep-1, num=ep-sp, dtype=int)
+		sd         = self.__class__(xyz=self.xyz[mysensors], ptable=ptable, order=order, point=True, vars=self._vardict)#{'time':{'idim':0,'value':time}})
 		for field in self.fieldnames:
 			if field not in VARLIST:
 				continue

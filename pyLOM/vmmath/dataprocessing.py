@@ -1,6 +1,6 @@
 import numpy as np
 
-from ..utils     import raiseError
+from ..utils     import raiseError, mpi_reduce, MPI_RANK
 
 
 def data_splitting(Nt:int, mode:str, seed:int=-1):
@@ -46,3 +46,33 @@ def time_delay_embedding(X, dimension=50):
 				X_delay[i,j-1,:] = X[i,j-dimension:j]
 
 	return X_delay
+
+def find_random_sensors(bounds:np.ndarray, xyz:np.ndarray, nsensors:int):
+	r'''
+	Generate a set of random points inside a bounding box and find the closest grid points to them
+
+	Args:
+		bounds (np.ndarray): bounds of the box in the following format: np.array([xmin, xmax, ymin, ymax, zmin, zmax])
+		xyz (np.ndarray): coordinates of the grid
+		nsensors(int): number of sensors to generate
+
+	Returns:
+		np.ndarray: array with the indices of the points
+	'''
+	# Generate random points using numpy's uniform distribution
+	x = np.random.uniform(bounds[0], bounds[1], nsensors)
+	y = np.random.uniform(bounds[2], bounds[3], nsensors)
+	z = np.random.uniform(bounds[4], bounds[5], nsensors) if len(bounds) > 4 else None
+	# Stack them into an Nxndim
+	randcoords  = np.vstack((x, y, z)).T if z is not None else np.vstack((x, y)).T 
+	
+	# Find which rank has the closest point to the sensors
+	mysensors = list()
+	for ii, sensor in enumerate(randcoords):
+		dist       = np.sum((sensor-xyz)**2, axis=1)
+		mindist    = np.min(dist)
+		_,minrank  = mpi_reduce((mindist, MPI_RANK), all=True, op='argmin')
+		if minrank == MPI_RANK:
+			mysensors.append(np.argmin(dist))
+	
+	return np.array(mysensors)
