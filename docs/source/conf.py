@@ -2,13 +2,12 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../..'))
-# import pyLOM
+import pyLOM
 # -- Project information -----------------------------------------------------
 project = 'pyLOM'
 copyright = '2023-2025'
 author = 'pyLOM developers'
-# TODO: ask to add pyLOM.__version__  to avoid this hardcoded variable
-version = '2.1.0' # pyLOM.__version__ is not defined
+version = pyLOM.__version__
 
 # -- General configuration ---------------------------------------------------
 extensions = [
