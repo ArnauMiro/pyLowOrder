@@ -2,11 +2,12 @@ import numpy as np
 import torch
 import pyLOM, pyLOM.NN
 
-## Set plot styling
 pyLOM.style_plots()
+
 
 ## Set device
 device = pyLOM.NN.select_device() # Force CPU for this example, if left in blank it will automatically select the device
+
 
 ## Input parameters
 # Data paths
@@ -17,6 +18,7 @@ shreds  = 'out/shreds/config_' # Where the SHREDS models are saved
 # Select which sensor configurations have to be postprocessed
 nconfigs  = 20
 configIDs = np.arange(nconfigs, dtype=int)
+
 
 ## Import sensor measurements
 sensors   = pyLOM.Dataset.load('sensors.h5')
@@ -34,6 +36,7 @@ sens_test = sensors.mask_field(sensvar, mask_test)
 time   = sensors.get_variable('time')
 ntimeG = time.shape[0]
 
+
 ## Import POD coefficients and rescale them.
 # Training
 S, pod_trai = pyLOM.POD.load('POD_trai_%s.h5' % podvar, vars=['S','V'])
@@ -50,8 +53,10 @@ full_pod[:,mask_trai] = pod_trai
 full_pod[:,mask_vali] = pod_vali
 full_pod[:,mask_test] = pod_test
 
+
 ## Build SHRED architecture
 shred = pyLOM.NN.SHRED(output_size, device, nsens)
+
 
 ## Load all SHRED configurations and evaluate them using the data from the corresponding sensors
 outres = np.zeros((output_size, ntimeG, nconfigs), dtype=full_pod.dtype)
@@ -86,6 +91,7 @@ for kk in range(nconfigs):
     # Compute mean relative error
     MRE[:,kk] = pyLOM.math.MRE_array(full_pod, outres[:,:,kk])
 
+
 ## Compute reconstruction statistics
 meanout = np.mean(outres, axis=2)
 stdout  = np.std(outres, axis=2)
@@ -93,8 +99,10 @@ meanMRE = np.mean(MRE, axis=1)
 stdMRE  = np.std(MRE, axis=1)
 print('The mean MRE of the %i configurations is %.2f' % (nconfigs, np.mean(meanMRE)))
 
+
 ## Save the mean output between configurations as the POD coefficients for reconstruction
 pyLOM.POD.save('POD_predicted_%s.h5'% podvar,None,None,meanout,sensors.partition_table,nvars=1)
+
 
 ## Plot error bars
 #Non-scaled
@@ -107,5 +115,6 @@ fig.savefig('errorbars_scaled.pdf', dpi=300, bbox_inches='tight')
 ## Plot POD modes reconstruction
 fig, _ = pyLOM.utils.plotTimeSeries(time, full_pod, meanout, stdout)
 fig.savefig('output_modes.pdf', dpi=600)
+
 
 pyLOM.cr_info()

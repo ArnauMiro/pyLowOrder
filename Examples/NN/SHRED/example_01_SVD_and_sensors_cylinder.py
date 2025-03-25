@@ -11,10 +11,12 @@ mpi4py.rc.recv_mprobe = False
 import numpy as np
 import pyLOM
 
+
 ## Parameters
 DATAFILE  = '/gpfs/scratch/bsc21/bsc021828/DATA_PYLOM/CYLINDER.h5'
-DATAFIL2  = './CYLINDER2.h5'
+DATAFIL2  = './CYLINDER.h5'
 VARLIST  = ['VELOX', 'VORTI']
+
 
 ## Data loading
 m = pyLOM.Mesh.load(DATAFILE)
@@ -22,12 +24,14 @@ d = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table)
 t = d.get_variable('time')
 N = t.shape[0]
 
+
 ## Divide in training, validation and test and append mask to current dataset
 tridx, vaidx, teidx = d.split_data('time', mode='reconstruct')
 pyLOM.pprint(0, tridx.shape, vaidx.shape, teidx.shape, t.shape)
 # Regenerate output datafile with the variable masks
 m.save(DATAFIL2, nopartition=True, mode='w')
 d.save(DATAFIL2, nopartition=True)
+
 
 ## Extract sensors
 # Generate random sensors
@@ -38,6 +42,7 @@ bounds = np.array([x0,x1,y0,y1])
 dsens  = d.select_random_sensors(nsens, bounds, VARLIST)
 # Save the sensor dataset
 dsens.save('sensors.h5', nopartition=True, mode='w')
+
 
 ## Compute POD separately for each variable in order to reduce memory usage during the SVD. POD is computed only for the training dataset. Validation and test are projected to the POD modes
 for var in VARLIST:
@@ -59,5 +64,5 @@ for var in VARLIST:
     ## Save POD projection of validation data of each variable
     pyLOM.POD.save('POD_test_%s.h5'%var,None,None,Vtest,d.partition_table,nvars=1,pointData=d.point)     
 
-## print timings
+
 pyLOM.cr_info()

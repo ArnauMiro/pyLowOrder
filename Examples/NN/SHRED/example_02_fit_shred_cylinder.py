@@ -4,8 +4,10 @@ import pyLOM, pyLOM.NN
 
 pyLOM.style_plots()
 
+
 ## Set device
 device = pyLOM.NN.select_device() # Force CPU for this example, if left in blank it will automatically select the device
+
 
 ## Input parameters
 # Data paths
@@ -19,6 +21,7 @@ shreds   = 'out/shreds/config_'
 
 # SHRED sensor configurations for uncertainty quantification
 nconfigs = 20
+
 
 ## Import sensor measurements
 sensors   = pyLOM.Dataset.load('sensors.h5')
@@ -35,6 +38,7 @@ sens_test = sensors.mask_field(sensvar, mask_test)
 # Compute total timesteps
 time   = sensors.get_variable('time')
 ntimeG = time.shape[0]
+
 
 ## Import POD coefficients and rescale them.
 # Training
@@ -58,8 +62,10 @@ full_pod[:,mask_trai] = pod_trai
 full_pod[:,mask_vali] = pod_vali
 full_pod[:,mask_test] = pod_test
 
+
 ## Build SHRED architecture
 shred   = pyLOM.NN.SHRED(output_size, device, nsens, nconfigs=nconfigs)
+
 
 ## Fit all SHRED configurations using the data from the sensors
 for kk, mysensors in enumerate(shred.configs):
@@ -87,5 +93,6 @@ for kk, mysensors in enumerate(shred.configs):
     # Fit SHRED
     shred.fit(train_dataset, valid_dataset, epochs=1500, patience=100, verbose=False, mod_scale=torch.tensor(Sscale))
     shred.save('%s%i' % (shreds,kk), scalpath, outscale, mysensors)
+
 
 pyLOM.cr_info()
