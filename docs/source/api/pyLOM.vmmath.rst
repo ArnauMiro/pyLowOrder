@@ -1,16 +1,5 @@
-pyLOM.vmmath package
-====================
-
-Submodules
-----------
-
-pyLOM.vmmath.wrapper module
----------------------------
-
-.. automodule:: pyLOM.vmmath.wrapper
-   :members:
-   :undoc-members:
-   :show-inheritance:
+pyLOM.vmmath
+============
 
 Module contents
 ---------------
