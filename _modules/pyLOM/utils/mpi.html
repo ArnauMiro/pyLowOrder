@@ -48,11 +48,12 @@
     <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pyLOM/utils/mpi';</script>
+    <link rel="icon" href="../../../_static/favicon_tmp.ico"/>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2.0.1" />
+  <meta name="docsearch:version" content="2.1.0" />
   </head>
   
   
@@ -113,8 +114,14 @@
   
   
   
+    
+    
+      
+    
+    
+    <img src="../../../_static/logo_tmp.webp" class="logo__image only-light" alt="pyLOM"/>
+    <img src="../../../_static/logo_tmp.webp" class="logo__image only-dark pst-js-only" alt="pyLOM"/>
   
-    <p class="title logo__title">pyLOM</p>
   
 </a></div>
     
@@ -136,15 +143,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../../install.html">
+    Installation
   </a>
 </li>
 
@@ -243,15 +250,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../../install.html">
+    Installation
   </a>
 </li>
 
@@ -385,7 +392,7 @@
 
 
 <div class="viewcode-block" id="mpi_barrier">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mpi.mpi_barrier">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mpi_barrier">[docs]</a>
 <span class="k">def</span> <span class="nf">mpi_barrier</span><span class="p">():</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Implements the barrier</span>
@@ -395,7 +402,7 @@
 
 
 <div class="viewcode-block" id="mpi_send">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mpi.mpi_send">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mpi_send">[docs]</a>
 <span class="nd">@nvtxp</span><span class="p">(</span><span class="s1">&#39;mpi_send&#39;</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">mpi_send</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="n">dest</span><span class="p">,</span><span class="n">tag</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
@@ -406,7 +413,7 @@
 
 
 <div class="viewcode-block" id="mpi_recv">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mpi.mpi_recv">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mpi_recv">[docs]</a>
 <span class="nd">@nvtxp</span><span class="p">(</span><span class="s1">&#39;mpi_recv&#39;</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">mpi_recv</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
@@ -417,7 +424,7 @@
 
 
 <div class="viewcode-block" id="mpi_sendrecv">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mpi.mpi_sendrecv">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mpi_sendrecv">[docs]</a>
 <span class="nd">@nvtxp</span><span class="p">(</span><span class="s1">&#39;mpi_sendrecv&#39;</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">mpi_sendrecv</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
@@ -428,7 +435,7 @@
 
 
 <div class="viewcode-block" id="mpi_scatter">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mpi.mpi_scatter">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mpi_scatter">[docs]</a>
 <span class="nd">@nvtxp</span><span class="p">(</span><span class="s1">&#39;mpi_scatter&#39;</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">mpi_scatter</span><span class="p">(</span><span class="n">sendbuff</span><span class="p">,</span><span class="n">root</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">do_split</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
@@ -442,7 +449,7 @@
 
 
 <div class="viewcode-block" id="mpi_gather">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mpi.mpi_gather">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mpi_gather">[docs]</a>
 <span class="nd">@nvtxp</span><span class="p">(</span><span class="s1">&#39;mpi_gather&#39;</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">mpi_gather</span><span class="p">(</span><span class="n">sendbuff</span><span class="p">,</span><span class="n">root</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="nb">all</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
@@ -461,7 +468,7 @@
 
 
 <div class="viewcode-block" id="mpi_reduce">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mpi.mpi_reduce">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mpi_reduce">[docs]</a>
 <span class="nd">@nvtxp</span><span class="p">(</span><span class="s1">&#39;mpi_reduce&#39;</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">mpi_reduce</span><span class="p">(</span><span class="n">sendbuff</span><span class="p">,</span><span class="n">root</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">op</span><span class="o">=</span><span class="s1">&#39;sum&#39;</span><span class="p">,</span><span class="nb">all</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
@@ -488,7 +495,7 @@
 
 
 <div class="viewcode-block" id="mpi_bcast">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mpi.mpi_bcast">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mpi_bcast">[docs]</a>
 <span class="nd">@nvtxp</span><span class="p">(</span><span class="s1">&#39;mpi_bcast&#39;</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">mpi_bcast</span><span class="p">(</span><span class="n">sendbuff</span><span class="p">,</span><span class="n">root</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>

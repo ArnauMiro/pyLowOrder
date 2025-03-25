@@ -1,0 +1,881 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>How to train an MLP using the Pipeline &#8212; pyLOM  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=de90da8b" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'notebook_examples/NN/KAN_training';</script>
+    <link rel="icon" href="../../_static/favicon_tmp.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Installation" href="../../install.html" />
+    <link rel="prev" title="How to train an MLP using the Pipeline" href="MLP_training.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="2.1.0" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/logo_tmp.webp" class="logo__image only-light" alt="pyLOM"/>
+    <img src="../../_static/logo_tmp.webp" class="logo__image only-dark pst-js-only" alt="pyLOM"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api/modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../examples.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../install.html">
+    Installation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../api/modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../examples.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../install.html">
+    Installation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../burgers_PINN_training_pipeline.html">Train a PINN (Physics Informed Neural Network) with a custom PDE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="MLP_training.html">How to train an MLP using the Pipeline</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">How to train an MLP using the Pipeline</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../examples.html" class="nav-link">Examples</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">How to train an MLP using the Pipeline</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="How-to-train-an-MLP-using-the-Pipeline">
+<h1>How to train an MLP using the Pipeline<a class="headerlink" href="#How-to-train-an-MLP-using-the-Pipeline" title="Link to this heading">#</a></h1>
+<section id="Import-classes-and-define-paths">
+<h2>Import classes and define paths<a class="headerlink" href="#Import-classes-and-define-paths" title="Link to this heading">#</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pyLOM</span> <span class="kn">import</span> <span class="n">NN</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+0 Warning! Import - NVTX not present!
+/home/david/miniconda/envs/pruebasphinx/lib/python3.11/site-packages/tqdm/auto.py:21: TqdmWarning: IProgress not found. Please update jupyter and ipywidgets. See https://ipywidgets.readthedocs.io/en/stable/user_install.html
+  from .autonotebook import tqdm as notebook_tqdm
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+E0000 00:00:1742310863.229104   34093 cuda_dnn.cc:8310] Unable to register cuDNN factory: Attempting to register factory for plugin cuDNN when one has already been registered
+E0000 00:00:1742310863.234553   34093 cuda_blas.cc:1418] Unable to register cuBLAS factory: Attempting to register factory for plugin cuBLAS when one has already been registered
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">DATA_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;Testsuite/DATA&quot;</span>
+<span class="n">CASE_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span> <span class="o">/</span> <span class="s2">&quot;results&quot;</span>
+
+<span class="n">NN</span><span class="o">.</span><span class="n">create_results_folder</span><span class="p">(</span><span class="n">CASE_DIR</span> <span class="o">/</span> <span class="s1">&#39;models&#39;</span><span class="p">)</span>
+<span class="n">NN</span><span class="o">.</span><span class="n">create_results_folder</span><span class="p">(</span><span class="n">CASE_DIR</span> <span class="o">/</span> <span class="s1">&#39;hyperparameters&#39;</span><span class="p">)</span>
+<span class="n">NN</span><span class="o">.</span><span class="n">create_results_folder</span><span class="p">(</span><span class="n">CASE_DIR</span> <span class="o">/</span> <span class="s1">&#39;plots&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Folder already exists: /home/david/Desktop/pyLowOrder/docs/source/notebook_examples/NN/results/models
+Folder already exists: /home/david/Desktop/pyLowOrder/docs/source/notebook_examples/NN/results/hyperparameters
+Folder already exists: /home/david/Desktop/pyLowOrder/docs/source/notebook_examples/NN/results/plots
+</pre></div></div>
+</div>
+</section>
+<section id="Define-scalers-if-needed">
+<h2>Define scalers if needed<a class="headerlink" href="#Define-scalers-if-needed" title="Link to this heading">#</a></h2>
+<p>Here, we create 2 minmax scalers, one for scaling the inputs, and other for the outputs. They will be passed to the dataset and the data will be automatically scaled</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">input_scaler</span> <span class="o">=</span> <span class="n">NN</span><span class="o">.</span><span class="n">MinMaxScaler</span><span class="p">()</span>
+<span class="n">output_scaler</span> <span class="o">=</span> <span class="n">NN</span><span class="o">.</span><span class="n">MinMaxScaler</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Create-datasets">
+<h2>Create datasets<a class="headerlink" href="#Create-datasets" title="Link to this heading">#</a></h2>
+<p>For this example, a dataset of airfoils generated with XFoil is used. As inputs, the model will receive the x and y coordinates of a point of the airfoil, the Reynolds number and the angle of attack; and the output will be the cp on that point</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dataset</span> <span class="o">=</span> <span class="n">NN</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+    <span class="n">DATA_DIR</span> <span class="o">/</span> <span class="s1">&#39;AIRFOIL.h5&#39;</span><span class="p">,</span>
+    <span class="n">field_names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;cp&quot;</span><span class="p">],</span>
+    <span class="n">add_mesh_coordinates</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">variables_names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;AoA&quot;</span><span class="p">,</span> <span class="s2">&quot;Re&quot;</span><span class="p">],</span>
+    <span class="n">inputs_scaler</span><span class="o">=</span><span class="n">input_scaler</span><span class="p">,</span>
+    <span class="n">outputs_scaler</span><span class="o">=</span><span class="n">output_scaler</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">train_dataset</span><span class="p">,</span> <span class="n">test_dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">get_splits_by_parameters</span><span class="p">([</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<p>After creating the datasets, we can see the shape of the tensors</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">train_dataset</span><span class="p">[:]</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Train dataset length: &quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">Test dataset length: &quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">X, y train shapes:&quot;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+        Train dataset length:  27720
+        Test dataset length:  6831
+        X, y train shapes: torch.Size([27720, 4]) torch.Size([27720, 1])
+</pre></div></div>
+</div>
+</section>
+<section id="Model-creation">
+<h2>Model creation<a class="headerlink" href="#Model-creation" title="Link to this heading">#</a></h2>
+<p>Now, the only thing left is creating the model. For this example we are using a <code class="docutils literal notranslate"><span class="pre">KAN</span></code></p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">training_params</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;epochs&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+    <span class="s2">&quot;lr&quot;</span><span class="p">:</span> <span class="mf">1e-5</span><span class="p">,</span>
+    <span class="s1">&#39;lr_gamma&#39;</span><span class="p">:</span> <span class="mf">0.95</span><span class="p">,</span>
+    <span class="s1">&#39;lr_scheduler_step&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="s1">&#39;batch_size&#39;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="s2">&quot;print_eval_rate&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;optimizer_class&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">,</span>
+    <span class="s2">&quot;lr_kwargs&quot;</span><span class="p">:{</span>
+        <span class="s2">&quot;gamma&quot;</span><span class="p">:</span> <span class="mf">0.95</span><span class="p">,</span>
+        <span class="s2">&quot;step_size&quot;</span><span class="p">:</span> <span class="mi">3</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">)</span> <span class="o">//</span> <span class="mi">8</span> <span class="c1"># each 3 epochs</span>
+    <span class="p">},</span>
+    <span class="s2">&quot;max_norm_grad&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+    <span class="s2">&quot;save_logs_path&quot;</span><span class="p">:</span><span class="nb">str</span><span class="p">(</span><span class="n">CASE_DIR</span><span class="p">),</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<p>We can train the model on a GPU to speed up the training. pyLOM can detect if a GPU is available with ´NN.DEVICE´, that will select the fist GPU. If many GPUs are available, the device can be define with <code class="docutils literal notranslate"><span class="pre">device</span> <span class="pre">=</span> <span class="pre">cuda:i</span></code> where <code class="docutils literal notranslate"><span class="pre">i</span></code> is the index of the GPU</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">device</span> <span class="o">=</span> <span class="n">NN</span><span class="o">.</span><span class="n">DEVICE</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">NN</span><span class="o">.</span><span class="n">KAN</span><span class="p">(</span>
+    <span class="n">input_size</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+    <span class="n">output_size</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+    <span class="n">hidden_size</span><span class="o">=</span><span class="mi">31</span><span class="p">,</span>
+    <span class="n">n_layers</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">p_dropouts</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">layer_type</span><span class="o">=</span><span class="n">NN</span><span class="o">.</span><span class="n">ChebyshevLayer</span><span class="p">,</span>
+    <span class="n">model_name</span><span class="o">=</span><span class="s2">&quot;kan_example_xfoil&quot;</span><span class="p">,</span>
+    <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+    <span class="n">degree</span><span class="o">=</span><span class="mi">7</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Creating model KAN: kan_example_xfoil
+        input_size: 4
+        output_size: 1
+        n_layers: 3
+        hidden_size: 31
+        layer_type: &lt;class &#39;pyLOM.NN.architectures.kan.ChebyshevLayer&#39;&gt;
+        p_dropouts: 0.0
+        device: cpu
+        total_size (trained params):    24304
+</pre></div></div>
+</div>
+</section>
+<section id="Run-the-pipeline">
+<h2>Run the pipeline<a class="headerlink" href="#Run-the-pipeline" title="Link to this heading">#</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pipeline</span> <span class="o">=</span> <span class="n">NN</span><span class="o">.</span><span class="n">Pipeline</span><span class="p">(</span>
+    <span class="n">train_dataset</span><span class="o">=</span><span class="n">train_dataset</span><span class="p">,</span>
+    <span class="n">test_dataset</span><span class="o">=</span><span class="n">test_dataset</span><span class="p">,</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+    <span class="n">training_params</span><span class="o">=</span><span class="n">training_params</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">training_logs</span> <span class="o">=</span> <span class="n">pipeline</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+TRAINNING MODEL kan_example_xfoil
+
+Conditions:
+        epochs:     20
+        batch size: 2**3
+        optimizer class:  &lt;class &#39;torch.optim.adam.Adam&#39;&gt;
+        scheduler:  StepLR
+        loss_fn:  MSELoss()
+        save_path:  /home/david/Desktop/pyLowOrder/docs/source/notebook_examples/NN/results
+
+Scheduler conditions:
+        gamma: 0.95
+        step_size: 10395
+
+Epoch 1/20, Train Loss: 3.2465e-02, Test Loss: 3.6504e-03, LR: 1.00e-05
+Epoch 2/20, Train Loss: 2.5051e-03, Test Loss: 1.3975e-03, LR: 1.00e-05
+Epoch 3/20, Train Loss: 1.0072e-03, Test Loss: 1.1278e-03, LR: 9.50e-06
+Epoch 4/20, Train Loss: 7.0540e-04, Test Loss: 6.6096e-04, LR: 9.50e-06
+Epoch 5/20, Train Loss: 5.5156e-04, Test Loss: 6.9895e-04, LR: 9.50e-06
+Epoch 6/20, Train Loss: 4.6177e-04, Test Loss: 4.5064e-04, LR: 9.03e-06
+Epoch 7/20, Train Loss: 3.9933e-04, Test Loss: 3.9053e-04, LR: 9.03e-06
+Epoch 8/20, Train Loss: 3.5597e-04, Test Loss: 3.4745e-04, LR: 9.03e-06
+Epoch 9/20, Train Loss: 3.1841e-04, Test Loss: 3.2785e-04, LR: 8.57e-06
+Epoch 10/20, Train Loss: 2.9913e-04, Test Loss: 3.3283e-04, LR: 8.57e-06
+Epoch 11/20, Train Loss: 2.6019e-04, Test Loss: 2.9614e-04, LR: 8.57e-06
+Epoch 12/20, Train Loss: 2.4673e-04, Test Loss: 3.6127e-04, LR: 8.15e-06
+Epoch 13/20, Train Loss: 2.2978e-04, Test Loss: 2.6023e-04, LR: 8.15e-06
+Epoch 14/20, Train Loss: 2.0308e-04, Test Loss: 2.4842e-04, LR: 8.15e-06
+Epoch 15/20, Train Loss: 2.0037e-04, Test Loss: 2.7692e-04, LR: 7.74e-06
+Epoch 16/20, Train Loss: 1.8216e-04, Test Loss: 2.7529e-04, LR: 7.74e-06
+Epoch 17/20, Train Loss: 1.6976e-04, Test Loss: 1.6500e-04, LR: 7.74e-06
+Epoch 18/20, Train Loss: 1.6407e-04, Test Loss: 1.7524e-04, LR: 7.35e-06
+Epoch 19/20, Train Loss: 1.5729e-04, Test Loss: 2.3034e-04, LR: 7.35e-06
+Epoch 20/20, Train Loss: 1.4926e-04, Test Loss: 1.8573e-04, LR: 7.35e-06
+Printing losses on path /home/david/Desktop/pyLowOrder/docs/source/notebook_examples/NN/results
+</pre></div></div>
+</div>
+<p>To save the model:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">CASE_DIR</span> <span class="o">/</span> <span class="s2">&quot;models&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Show-plots">
+<h2>Show plots<a class="headerlink" href="#Show-plots" title="Link to this heading">#</a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="k">def</span> <span class="nf">true_vs_pred_plot</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Auxiliary function to plot the true vs predicted values</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">num_plots</span> <span class="o">=</span> <span class="n">y_true</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">num_plots</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_plots</span><span class="p">):</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="n">num_plots</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">y_true</span><span class="p">[:,</span> <span class="n">j</span><span class="p">],</span> <span class="n">y_pred</span><span class="p">[:,</span> <span class="n">j</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;True values&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Predicted values&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Scatterplot for Component </span><span class="si">{</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="k">def</span> <span class="nf">plot_train_test_loss</span><span class="p">(</span><span class="n">train_loss</span><span class="p">,</span> <span class="n">test_loss</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Auxiliary function to plot the training and test loss</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_loss</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">train_loss</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Training Loss&quot;</span><span class="p">)</span>
+    <span class="n">total_epochs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_loss</span><span class="p">)</span> <span class="c1"># test loss is calculated at the end of each epoch</span>
+    <span class="n">total_iters</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_loss</span><span class="p">)</span> <span class="c1"># train loss is calculated at the end of each iteration/batch</span>
+    <span class="n">iters_per_epoch</span> <span class="o">=</span> <span class="n">total_iters</span> <span class="o">//</span> <span class="n">total_epochs</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">iters_per_epoch</span><span class="p">,</span> <span class="n">total_iters</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">iters_per_epoch</span><span class="p">),</span> <span class="n">test_loss</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Test Loss&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Iterations&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Loss&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Training Loss vs Epoch&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">yscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plot_train_test_loss</span><span class="p">(</span><span class="n">training_logs</span><span class="p">[</span><span class="s1">&#39;train_loss&#39;</span><span class="p">],</span> <span class="n">training_logs</span><span class="p">[</span><span class="s1">&#39;test_loss&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/notebook_examples_NN_KAN_training_21_0.png" src="../../_images/notebook_examples_NN_KAN_training_21_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">preds</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">250</span><span class="p">)</span>
+
+<span class="n">scaled_preds</span> <span class="o">=</span> <span class="n">output_scaler</span><span class="o">.</span><span class="n">inverse_transform</span><span class="p">([</span><span class="n">preds</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">scaled_y</span> <span class="o">=</span> <span class="n">output_scaler</span><span class="o">.</span><span class="n">inverse_transform</span><span class="p">([</span><span class="n">train_dataset</span><span class="p">[:][</span><span class="mi">1</span><span class="p">]])[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">true_vs_pred_plot</span><span class="p">(</span><span class="n">scaled_y</span><span class="p">,</span> <span class="n">scaled_preds</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/notebook_examples_NN_KAN_training_22_0.png" src="../../_images/notebook_examples_NN_KAN_training_22_0.png" />
+</div>
+</div>
+</section>
+<section id="Evaluate-the-model-with-some-metrics">
+<h2>Evaluate the model with some metrics<a class="headerlink" href="#Evaluate-the-model-with-some-metrics" title="Link to this heading">#</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">evaluator</span> <span class="o">=</span> <span class="n">NN</span><span class="o">.</span><span class="n">RegressionEvaluator</span><span class="p">()</span>
+<span class="n">evaluator</span><span class="p">(</span><span class="n">scaled_y</span><span class="p">,</span> <span class="n">scaled_preds</span><span class="p">)</span>
+<span class="n">evaluator</span><span class="o">.</span><span class="n">print_metrics</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+Regression evaluator metrics:
+mse: 0.0198
+rmse: 0.1406
+mae: 0.0645
+mre: 116.0480%
+ae_95: 0.2076
+ae_99: 0.5622
+r2: 0.9899
+l2_error: 0.0915
+</pre></div></div>
+</div>
+<p>As you can see, this example is very similar that the one with the MLP, it just changes the model definition. This shows the power of pyLOM when training different models</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="MLP_training.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">How to train an MLP using the Pipeline</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../../install.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Installation</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Import-classes-and-define-paths">Import classes and define paths</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Define-scalers-if-needed">Define scalers if needed</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Create-datasets">Create datasets</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Model-creation">Model creation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Run-the-pipeline">Run the pipeline</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Show-plots">Show plots</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Evaluate-the-model-with-some-metrics">Evaluate the model with some metrics</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  
+  <div class="tocsection editthispage">
+    <a href="https://github.com/ArnauMiro/pyLowOrder/edit/master/docs/source/notebook_examples/NN/KAN_training.ipynb">
+      <i class="fa-solid fa-pencil"></i>
+      
+      
+        
+          Edit on GitHub
+        
+      
+    </a>
+  </div>
+</div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/notebook_examples/NN/KAN_training.ipynb.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2023-2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

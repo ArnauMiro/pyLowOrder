@@ -48,11 +48,12 @@
     <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pyLOM/utils/mem';</script>
+    <link rel="icon" href="../../../_static/favicon_tmp.ico"/>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2.0.1" />
+  <meta name="docsearch:version" content="2.1.0" />
   </head>
   
   
@@ -113,8 +114,14 @@
   
   
   
+    
+    
+      
+    
+    
+    <img src="../../../_static/logo_tmp.webp" class="logo__image only-light" alt="pyLOM"/>
+    <img src="../../../_static/logo_tmp.webp" class="logo__image only-dark pst-js-only" alt="pyLOM"/>
   
-    <p class="title logo__title">pyLOM</p>
   
 </a></div>
     
@@ -136,15 +143,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../../install.html">
+    Installation
   </a>
 </li>
 
@@ -243,15 +250,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../../install.html">
+    Installation
   </a>
 </li>
 
@@ -375,8 +382,6 @@
 <span class="p">}</span>
 
 
-<div class="viewcode-block" id="channel">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem.channel">[docs]</a>
 <span class="k">class</span> <span class="nc">channel</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	This is a channel for the cr counter</span>
@@ -407,8 +412,6 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_nop</span>  <span class="o">+=</span> <span class="n">other</span><span class="o">.</span><span class="n">_nop</span> 
 		<span class="k">return</span> <span class="bp">self</span>
 
-<div class="viewcode-block" id="channel.reset">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem.channel.reset">[docs]</a>
 	<span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Reset the channel</span>
@@ -417,69 +420,41 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_mmin</span> <span class="o">=</span> <span class="mf">0.0</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_msum</span> <span class="o">=</span> <span class="mf">0.0</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_nop</span>  <span class="o">=</span> <span class="mf">0.0</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_mini</span> <span class="o">=</span> <span class="mf">0.0</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_mini</span> <span class="o">=</span> <span class="mf">0.0</span>
 
-
-<div class="viewcode-block" id="channel.restart">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem.channel.restart">[docs]</a>
 	<span class="k">def</span> <span class="nf">restart</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_mini</span> <span class="o">=</span> <span class="mf">0.0</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_mini</span> <span class="o">=</span> <span class="mf">0.0</span>
 
-
-<div class="viewcode-block" id="channel.start">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem.channel.start">[docs]</a>
 	<span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">mini</span><span class="p">):</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_mini</span> <span class="o">=</span> <span class="n">mini</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_mini</span> <span class="o">=</span> <span class="n">mini</span>
 
-
-<div class="viewcode-block" id="channel.increase_nop">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem.channel.increase_nop">[docs]</a>
 	<span class="k">def</span> <span class="nf">increase_nop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_nop</span> <span class="o">+=</span> <span class="mi">1</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_nop</span> <span class="o">+=</span> <span class="mi">1</span>
 
-
-<div class="viewcode-block" id="channel.increase_value">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem.channel.increase_value">[docs]</a>
 	<span class="k">def</span> <span class="nf">increase_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_msum</span> <span class="o">+=</span> <span class="n">value</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_msum</span> <span class="o">+=</span> <span class="n">value</span>
 
-
-<div class="viewcode-block" id="channel.set_max">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem.channel.set_max">[docs]</a>
 	<span class="k">def</span> <span class="nf">set_max</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
-		<span class="k">if</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mmax</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nop</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mmax</span> <span class="o">=</span> <span class="n">value</span></div>
+		<span class="k">if</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mmax</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nop</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mmax</span> <span class="o">=</span> <span class="n">value</span>
 
-
-<div class="viewcode-block" id="channel.set_min">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem.channel.set_min">[docs]</a>
 	<span class="k">def</span> <span class="nf">set_min</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
-		<span class="k">if</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mmin</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nop</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mmin</span> <span class="o">=</span> <span class="n">value</span></div>
+		<span class="k">if</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mmin</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nop</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mmin</span> <span class="o">=</span> <span class="n">value</span>
 
-
-<div class="viewcode-block" id="channel.elapsed">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem.channel.elapsed">[docs]</a>
 	<span class="k">def</span> <span class="nf">elapsed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Negative values are discarded</span>
 <span class="sd">		&#39;&#39;&#39;</span>
-		<span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="n">value</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mini</span><span class="p">,</span><span class="mf">0.</span><span class="p">)</span></div>
+		<span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="n">value</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mini</span><span class="p">,</span><span class="mf">0.</span><span class="p">)</span>
 
-
-<div class="viewcode-block" id="channel.is_running">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem.channel.is_running">[docs]</a>
 	<span class="k">def</span> <span class="nf">is_running</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mini</span> <span class="o">==</span> <span class="mi">0</span></div>
+		<span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mini</span> <span class="o">==</span> <span class="mi">0</span>
 
-
-<div class="viewcode-block" id="channel.new">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem.channel.new">[docs]</a>
 	<span class="nd">@classmethod</span>
 	<span class="k">def</span> <span class="nf">new</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span><span class="n">name</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Create a new channel</span>
 <span class="sd">		&#39;&#39;&#39;</span>
-		<span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span></div>
-
+		<span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
 
 	<span class="nd">@property</span>
 	<span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -498,61 +473,45 @@
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_msum</span><span class="o">/</span><span class="p">(</span><span class="mf">1.</span><span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nop</span><span class="p">)</span>
 	<span class="nd">@property</span>
 	<span class="k">def</span> <span class="nf">msum</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_msum</span></div>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_msum</span>
 
 
-
-<div class="viewcode-block" id="_newch">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem._newch">[docs]</a>
 <span class="k">def</span> <span class="nf">_newch</span><span class="p">(</span><span class="n">ch_name</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Add a new channel to the list</span>
 <span class="sd">	&#39;&#39;&#39;</span>
 	<span class="n">CHANNEL_DICT</span><span class="p">[</span><span class="n">ch_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">channel</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">ch_name</span><span class="p">)</span>
-	<span class="k">return</span> <span class="n">CHANNEL_DICT</span><span class="p">[</span><span class="n">ch_name</span><span class="p">]</span></div>
+	<span class="k">return</span> <span class="n">CHANNEL_DICT</span><span class="p">[</span><span class="n">ch_name</span><span class="p">]</span>
 
-
-<div class="viewcode-block" id="_findch">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem._findch">[docs]</a>
 <span class="k">def</span> <span class="nf">_findch</span><span class="p">(</span><span class="n">ch_name</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Look for the channel</span>
 <span class="sd">	&#39;&#39;&#39;</span>
-	<span class="k">return</span> <span class="n">CHANNEL_DICT</span><span class="p">[</span><span class="n">ch_name</span><span class="p">]</span> <span class="k">if</span> <span class="n">ch_name</span> <span class="ow">in</span> <span class="n">CHANNEL_DICT</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span></div>
-
+	<span class="k">return</span> <span class="n">CHANNEL_DICT</span><span class="p">[</span><span class="n">ch_name</span><span class="p">]</span> <span class="k">if</span> <span class="n">ch_name</span> <span class="ow">in</span> <span class="n">CHANNEL_DICT</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span>
 
 <span class="k">def</span> <span class="nf">_addsuff</span><span class="p">(</span><span class="n">ch_name</span><span class="p">,</span><span class="n">suff</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
 	<span class="k">return</span> <span class="n">ch_name</span> <span class="k">if</span> <span class="n">suff</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="k">else</span> <span class="s1">&#39;</span><span class="si">%s%02d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ch_name</span><span class="p">,</span><span class="n">suff</span><span class="p">)</span>
 
-<div class="viewcode-block" id="_findch_crash">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem._findch_crash">[docs]</a>
 <span class="k">def</span> <span class="nf">_findch_crash</span><span class="p">(</span><span class="n">ch_name</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Look for the channel and crash if it does not exist</span>
 <span class="sd">	&#39;&#39;&#39;</span>
 	<span class="k">if</span> <span class="ow">not</span> <span class="n">ch_name</span> <span class="ow">in</span> <span class="n">CHANNEL_DICT</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
 		<span class="n">raiseError</span><span class="p">(</span><span class="s1">&#39;Channel </span><span class="si">%s</span><span class="s1"> does not exist!&#39;</span> <span class="o">%</span> <span class="n">ch_name</span><span class="p">)</span>
-	<span class="k">return</span> <span class="n">CHANNEL_DICT</span><span class="p">[</span><span class="n">ch_name</span><span class="p">]</span></div>
+	<span class="k">return</span> <span class="n">CHANNEL_DICT</span><span class="p">[</span><span class="n">ch_name</span><span class="p">]</span>
 
-
-<div class="viewcode-block" id="_findch_create">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem._findch_create">[docs]</a>
 <span class="k">def</span> <span class="nf">_findch_create</span><span class="p">(</span><span class="n">ch_name</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Find the channel and if not found create it</span>
 <span class="sd">	&#39;&#39;&#39;</span>
-	<span class="k">return</span> <span class="n">CHANNEL_DICT</span><span class="p">[</span><span class="n">ch_name</span><span class="p">]</span> <span class="k">if</span> <span class="n">ch_name</span> <span class="ow">in</span> <span class="n">CHANNEL_DICT</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">else</span> <span class="n">_newch</span><span class="p">(</span><span class="n">ch_name</span><span class="p">)</span></div>
+	<span class="k">return</span> <span class="n">CHANNEL_DICT</span><span class="p">[</span><span class="n">ch_name</span><span class="p">]</span> <span class="k">if</span> <span class="n">ch_name</span> <span class="ow">in</span> <span class="n">CHANNEL_DICT</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">else</span> <span class="n">_newch</span><span class="p">(</span><span class="n">ch_name</span><span class="p">)</span>
 
-
-<div class="viewcode-block" id="_getvalue">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem._getvalue">[docs]</a>
 <span class="k">def</span> <span class="nf">_getvalue</span><span class="p">(</span><span class="n">units</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Returns the used memory on an arbitrary instant but fixed.</span>
 <span class="sd">	&#39;&#39;&#39;</span>
 	<span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;cat /proc/meminfo | grep MemFree | cut -d &#39;:&#39; -f 2 | awk &#39;{$1=$1};1&#39; | cut -d &#39; &#39; -f 1&quot;</span>
-	<span class="k">return</span> <span class="nb">int</span><span class="p">(</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span><span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="p">)</span> <span class="k">if</span> <span class="n">PLATFORM</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;linux&#39;</span> <span class="k">else</span> <span class="mi">0</span></div>
-
+	<span class="k">return</span> <span class="nb">int</span><span class="p">(</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span><span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="p">)</span> <span class="k">if</span> <span class="n">PLATFORM</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;linux&#39;</span> <span class="k">else</span> <span class="mi">0</span>
 
 <span class="k">def</span> <span class="nf">_reduce_mem</span><span class="p">(</span><span class="n">m1</span><span class="p">,</span><span class="n">m2</span><span class="p">,</span><span class="n">dtype</span><span class="p">):</span>
 	<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">m2</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
@@ -596,17 +555,14 @@
 		<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span><span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="mem_reset">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem.mem_reset">[docs]</a>
 <span class="k">def</span> <span class="nf">mem_reset</span><span class="p">():</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Delete all channels and start again</span>
 <span class="sd">	&#39;&#39;&#39;</span>
-	<span class="n">CHANNEL_DICT</span> <span class="o">=</span> <span class="p">{}</span></div>
-
+	<span class="n">CHANNEL_DICT</span> <span class="o">=</span> <span class="p">{}</span>
 
 <div class="viewcode-block" id="mem_info">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem.mem_info">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem_info">[docs]</a>
 <span class="k">def</span> <span class="nf">mem_info</span><span class="p">(</span><span class="n">rank</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span><span class="n">units</span><span class="o">=</span><span class="s1">&#39;kB&#39;</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Print information - order by major sum</span>
@@ -618,7 +574,7 @@
 
 
 <div class="viewcode-block" id="mem_start">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem.mem_start">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem_start">[docs]</a>
 <span class="k">def</span> <span class="nf">mem_start</span><span class="p">(</span><span class="n">ch_name</span><span class="p">,</span><span class="n">suff</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Start the chrono of a channel</span>
@@ -631,7 +587,7 @@
 
 
 <div class="viewcode-block" id="mem_stop">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem.mem_stop">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem_stop">[docs]</a>
 <span class="k">def</span> <span class="nf">mem_stop</span><span class="p">(</span><span class="n">ch_name</span><span class="p">,</span><span class="n">suff</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Stop the chrono of a channel</span>
@@ -649,8 +605,6 @@
 	<span class="n">channel</span><span class="o">.</span><span class="n">restart</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="mem_value">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem.mem_value">[docs]</a>
 <span class="k">def</span> <span class="nf">mem_value</span><span class="p">(</span><span class="n">ch_name</span><span class="p">,</span><span class="n">suff</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Get the value of a channel that is running; channel keeps running</span>
@@ -658,11 +612,10 @@
 	<span class="n">end</span> <span class="o">=</span> <span class="n">_getvalue</span><span class="p">()</span>
 	<span class="n">name_tmp</span> <span class="o">=</span> <span class="n">_addsuff</span><span class="p">(</span><span class="n">ch_name</span><span class="p">,</span><span class="n">suff</span><span class="p">)</span>
 	<span class="n">channel</span>  <span class="o">=</span> <span class="n">_findch_crash</span><span class="p">(</span><span class="n">name_tmp</span><span class="p">)</span>
-	<span class="k">return</span> <span class="n">channel</span><span class="o">.</span><span class="n">elapsed</span><span class="p">(</span><span class="n">end</span><span class="p">)</span></div>
-
+	<span class="k">return</span> <span class="n">channel</span><span class="o">.</span><span class="n">elapsed</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
 
 <div class="viewcode-block" id="mem">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem.mem">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.mem">[docs]</a>
 <span class="k">def</span> <span class="nf">mem</span><span class="p">(</span><span class="n">ch_name</span><span class="p">,</span><span class="n">suff</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
 	<span class="k">def</span> <span class="nf">decorator</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
 		<span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>

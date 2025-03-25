@@ -48,11 +48,12 @@
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pyLOM/dataset';</script>
+    <link rel="icon" href="../../_static/favicon_tmp.ico"/>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2.0.1" />
+  <meta name="docsearch:version" content="2.1.0" />
   </head>
   
   
@@ -113,8 +114,14 @@
   
   
   
+    
+    
+      
+    
+    
+    <img src="../../_static/logo_tmp.webp" class="logo__image only-light" alt="pyLOM"/>
+    <img src="../../_static/logo_tmp.webp" class="logo__image only-dark pst-js-only" alt="pyLOM"/>
   
-    <p class="title logo__title">pyLOM</p>
   
 </a></div>
     
@@ -136,15 +143,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="../../examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../install.html">
+    Installation
   </a>
 </li>
 
@@ -243,15 +250,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="../../examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../install.html">
+    Installation
   </a>
 </li>
 
@@ -365,7 +372,7 @@
 
 
 <div class="viewcode-block" id="Dataset">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset">[docs]</a>
 <span class="k">class</span> <span class="nc">Dataset</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	The Dataset class wraps the position of the nodes and the time instants</span>
@@ -373,7 +380,7 @@
 <span class="sd">	in parallel are easier.</span>
 <span class="sd">	&#39;&#39;&#39;</span>
 <div class="viewcode-block" id="Dataset.__init__">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.__init__">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.__init__">[docs]</a>
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xyz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ptable</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">vars</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">point</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Class constructor</span>
@@ -400,7 +407,7 @@
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xyz</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
 <div class="viewcode-block" id="Dataset.__str__">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.__str__">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.__str__">[docs]</a>
 	<span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		String representation</span>
@@ -423,7 +430,7 @@
 		
 	<span class="c1"># Set and get functions</span>
 <div class="viewcode-block" id="Dataset.__getitem__">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.__getitem__">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.__getitem__">[docs]</a>
 	<span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">key</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Dataset[key]</span>
@@ -434,7 +441,7 @@
 
 
 <div class="viewcode-block" id="Dataset.__setitem__">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.__setitem__">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.__setitem__">[docs]</a>
 	<span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">key</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Dataset[key] = value</span>
@@ -446,7 +453,7 @@
 
 	<span class="c1"># Functions</span>
 <div class="viewcode-block" id="Dataset.rename">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.rename">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.rename">[docs]</a>
 	<span class="k">def</span> <span class="nf">rename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">new</span><span class="p">,</span><span class="n">old</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Rename a variable inside a field.</span>
@@ -456,7 +463,7 @@
 
 
 <div class="viewcode-block" id="Dataset.delete">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.delete">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.delete">[docs]</a>
 	<span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">varname</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Delete a variable inside a field.</span>
@@ -465,7 +472,7 @@
 
 
 <div class="viewcode-block" id="Dataset.get_variable">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.get_variable">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.get_variable">[docs]</a>
 	<span class="k">def</span> <span class="nf">get_variable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">key</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Recover the value of a variable given its key</span>
@@ -474,7 +481,7 @@
 
 
 <div class="viewcode-block" id="Dataset.set_variable">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.set_variable">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.set_variable">[docs]</a>
 	<span class="k">def</span> <span class="nf">set_variable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">key</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Recover the value of a variable given its key</span>
@@ -483,7 +490,7 @@
 
 
 <div class="viewcode-block" id="Dataset.get_dim">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.get_dim">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.get_dim">[docs]</a>
 	<span class="k">def</span> <span class="nf">get_dim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">var</span><span class="p">,</span><span class="n">idim</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Recover the value of a variable for a given dimension</span>
@@ -495,7 +502,7 @@
 
 
 <div class="viewcode-block" id="Dataset.info">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.info">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.info">[docs]</a>
 	<span class="k">def</span> <span class="nf">info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">var</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Returns the information for a certain variable</span>
@@ -504,7 +511,7 @@
 
 	
 <div class="viewcode-block" id="Dataset.to_gpu">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.to_gpu">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.to_gpu">[docs]</a>
 	<span class="k">def</span> <span class="nf">to_gpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fields</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Send field data to the GPU</span>
@@ -516,7 +523,7 @@
 
 
 <div class="viewcode-block" id="Dataset.to_cpu">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.to_cpu">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.to_cpu">[docs]</a>
 	<span class="k">def</span> <span class="nf">to_cpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fields</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Send field data to the CPU</span>
@@ -528,7 +535,7 @@
 
 
 <div class="viewcode-block" id="Dataset.add_field">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.add_field">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.add_field">[docs]</a>
 	<span class="k">def</span> <span class="nf">add_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">varname</span><span class="p">,</span><span class="n">ndim</span><span class="p">,</span><span class="n">var</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Add a field to the dataset</span>
@@ -540,7 +547,7 @@
 
 
 <div class="viewcode-block" id="Dataset.add_variable">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.add_variable">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.add_variable">[docs]</a>
 	<span class="k">def</span> <span class="nf">add_variable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">varname</span><span class="p">,</span><span class="n">idim</span><span class="p">,</span><span class="n">var</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Add a variable to the dataset</span>
@@ -552,7 +559,7 @@
 
 
 <div class="viewcode-block" id="Dataset.append_variable">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.append_variable">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.append_variable">[docs]</a>
 	<span class="k">def</span> <span class="nf">append_variable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">varname</span><span class="p">,</span><span class="n">var</span><span class="p">,</span><span class="o">**</span><span class="n">fieldict</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Appends new timesteps to the dataset</span>
@@ -570,7 +577,7 @@
 
 
 <div class="viewcode-block" id="Dataset.reshape">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.reshape">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.reshape">[docs]</a>
 	<span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;Dataset.reshape&#39;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">reshape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">field</span><span class="p">,</span><span class="n">info</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
@@ -584,7 +591,7 @@
 
 
 <div class="viewcode-block" id="Dataset.X">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.X">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.X">[docs]</a>
 	<span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;Dataset.X&#39;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">X</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
@@ -630,7 +637,7 @@
 
 
 <div class="viewcode-block" id="Dataset.save">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.save">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.save">[docs]</a>
 	<span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;Dataset.save&#39;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
@@ -655,7 +662,7 @@
 
 
 <div class="viewcode-block" id="Dataset.load">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.load">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.load">[docs]</a>
 	<span class="nd">@classmethod</span>
 	<span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;Dataset.load&#39;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span><span class="n">fname</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -680,7 +687,7 @@
 	<span class="k">def</span> <span class="nf">xyz</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xyz</span>
 <div class="viewcode-block" id="Dataset.x">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.dataset.Dataset.x">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.x">[docs]</a>
 	<span class="k">def</span> <span class="nf">x</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xyz</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span></div>
 

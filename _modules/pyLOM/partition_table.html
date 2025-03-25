@@ -48,11 +48,12 @@
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pyLOM/partition_table';</script>
+    <link rel="icon" href="../../_static/favicon_tmp.ico"/>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2.0.1" />
+  <meta name="docsearch:version" content="2.1.0" />
   </head>
   
   
@@ -113,8 +114,14 @@
   
   
   
+    
+    
+      
+    
+    
+    <img src="../../_static/logo_tmp.webp" class="logo__image only-light" alt="pyLOM"/>
+    <img src="../../_static/logo_tmp.webp" class="logo__image only-dark pst-js-only" alt="pyLOM"/>
   
-    <p class="title logo__title">pyLOM</p>
   
 </a></div>
     
@@ -136,15 +143,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="../../examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../install.html">
+    Installation
   </a>
 </li>
 
@@ -243,15 +250,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="../../examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../install.html">
+    Installation
   </a>
 </li>
 
@@ -364,7 +371,7 @@
 
 
 <div class="viewcode-block" id="PartitionTable">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.partition_table.PartitionTable">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.PartitionTable">[docs]</a>
 <span class="k">class</span> <span class="nc">PartitionTable</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	The partition table class contains information on the </span>
@@ -372,7 +379,7 @@
 <span class="sd">	a new partition</span>
 <span class="sd">	&#39;&#39;&#39;</span>
 <div class="viewcode-block" id="PartitionTable.__init__">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.partition_table.PartitionTable.__init__">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.PartitionTable.__init__">[docs]</a>
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">nparts</span><span class="p">,</span><span class="n">ids</span><span class="p">,</span><span class="n">elements</span><span class="p">,</span><span class="n">points</span><span class="p">,</span><span class="n">has_master</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Class constructor</span>
@@ -393,7 +400,7 @@
 		<span class="k">return</span> <span class="n">out</span>
 
 <div class="viewcode-block" id="PartitionTable.partition_bounds">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.partition_table.PartitionTable.partition_bounds">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.PartitionTable.partition_bounds">[docs]</a>
 	<span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;PartTable.pbounds&#39;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">partition_bounds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">rank</span><span class="p">,</span><span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">points</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
@@ -411,7 +418,7 @@
 
 
 <div class="viewcode-block" id="PartitionTable.create_partition_points">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.partition_table.PartitionTable.create_partition_points">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.PartitionTable.create_partition_points">[docs]</a>
 	<span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;PartTable.set_ppoints&#39;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">create_partition_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">conec</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
@@ -422,7 +429,7 @@
 
 
 <div class="viewcode-block" id="PartitionTable.partition_points">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.partition_table.PartitionTable.partition_points">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.PartitionTable.partition_points">[docs]</a>
 	<span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;PartTable.ppoints&#39;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">partition_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">npoints</span><span class="p">,</span><span class="n">ndim</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
@@ -436,7 +443,7 @@
 
 
 <div class="viewcode-block" id="PartitionTable.reorder_points">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.partition_table.PartitionTable.reorder_points">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.PartitionTable.reorder_points">[docs]</a>
 	<span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;PartTable.reorder&#39;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">reorder_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">xyz</span><span class="p">,</span><span class="n">conectivity</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
@@ -456,7 +463,7 @@
 
 
 <div class="viewcode-block" id="PartitionTable.update_points">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.partition_table.PartitionTable.update_points">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.PartitionTable.update_points">[docs]</a>
 	<span class="k">def</span> <span class="nf">update_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">npoints_new</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Update the number of points on the table</span>
@@ -466,7 +473,7 @@
 
 
 <div class="viewcode-block" id="PartitionTable.check_split">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.partition_table.PartitionTable.check_split">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.PartitionTable.check_split">[docs]</a>
 	<span class="k">def</span> <span class="nf">check_split</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		See if a table has the same number of subdomains</span>
@@ -478,7 +485,7 @@
 
 
 <div class="viewcode-block" id="PartitionTable.new">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.partition_table.PartitionTable.new">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.PartitionTable.new">[docs]</a>
 	<span class="nd">@classmethod</span>
 	<span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;PartTable.new&#39;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">new</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span><span class="n">nparts</span><span class="p">,</span><span class="n">nelems</span><span class="p">,</span><span class="n">npoints</span><span class="p">,</span><span class="n">has_master</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -502,7 +509,7 @@
 
 
 <div class="viewcode-block" id="PartitionTable.from_pyQvarsi">
-<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.partition_table.PartitionTable.from_pyQvarsi">[docs]</a>
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.PartitionTable.from_pyQvarsi">[docs]</a>
 	<span class="nd">@classmethod</span>
 	<span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;PartTable.from_pyQvarsi&#39;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">from_pyQvarsi</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span><span class="n">ptable</span><span class="p">,</span><span class="n">porder</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">has_master</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>

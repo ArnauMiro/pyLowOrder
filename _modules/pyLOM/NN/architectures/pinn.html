@@ -48,11 +48,12 @@
     <script src="../../../../_static/design-tabs.js?v=f930bc37"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pyLOM/NN/architectures/pinn';</script>
+    <link rel="icon" href="../../../../_static/favicon_tmp.ico"/>
     <link rel="index" title="Index" href="../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2.0.1" />
+  <meta name="docsearch:version" content="2.1.0" />
   </head>
   
   
@@ -113,8 +114,14 @@
   
   
   
+    
+    
+      
+    
+    
+    <img src="../../../../_static/logo_tmp.webp" class="logo__image only-light" alt="pyLOM"/>
+    <img src="../../../../_static/logo_tmp.webp" class="logo__image only-dark pst-js-only" alt="pyLOM"/>
   
-    <p class="title logo__title">pyLOM</p>
   
 </a></div>
     
@@ -136,15 +143,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="../../../../examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../../../install.html">
+    Installation
   </a>
 </li>
 
@@ -243,15 +250,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="../../../../examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../../../install.html">
+    Installation
   </a>
 </li>
 
@@ -366,7 +373,7 @@
 
 
 <div class="viewcode-block" id="PINN">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.PINN">[docs]</a>
 <span class="k">class</span> <span class="nc">PINN</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    This class represents a Physics-Informed Neural Network (PINN) model. It is an abstract class that needs to be subclassed to implement the pde_loss method.</span>
@@ -387,7 +394,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">neural_net</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
 <div class="viewcode-block" id="PINN.__call__">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.__call__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.PINN.__call__">[docs]</a>
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Forward pass of the PINN model.</span>
@@ -402,8 +409,6 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="PINN._prepare_input_variables">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN._prepare_input_variables">[docs]</a>
     <span class="k">def</span> <span class="nf">_prepare_input_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_batch</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Prepares the input variables for training.</span>
@@ -421,11 +426,8 @@
             <span class="n">flow_variable</span> <span class="o">=</span> <span class="n">x_batch</span><span class="p">[:,</span> <span class="n">input_variable</span> <span class="p">:</span> <span class="n">input_variable</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
             <span class="n">flow_variable</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">input_variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">flow_variable</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">input_variables</span></div>
+        <span class="k">return</span> <span class="n">input_variables</span>
 
-
-<div class="viewcode-block" id="PINN._get_dataloader">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN._get_dataloader">[docs]</a>
     <span class="k">def</span> <span class="nf">_get_dataloader</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Creates data loaders for training.</span>
@@ -443,11 +445,10 @@
             <span class="n">data_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">persistent_workers</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">data_loader</span> <span class="o">=</span> <span class="p">[</span><span class="n">dataset</span><span class="p">[:]]</span>
-        <span class="k">return</span> <span class="n">data_loader</span></div>
-
+        <span class="k">return</span> <span class="n">data_loader</span>
 
 <div class="viewcode-block" id="PINN.bc_data_loss">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.bc_data_loss">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.PINN.bc_data_loss">[docs]</a>
     <span class="k">def</span> <span class="nf">bc_data_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">boundary_conditions</span><span class="p">,</span> <span class="n">use_bfloat16</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Computes the loss from boundary conditions and data.</span>
@@ -475,7 +476,7 @@
 
 
 <div class="viewcode-block" id="PINN.compute_loss">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.compute_loss">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.PINN.compute_loss">[docs]</a>
     <span class="k">def</span> <span class="nf">compute_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">boundary_conditions</span><span class="p">,</span> <span class="n">use_bfloat16</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Computes the total loss for training.</span>
@@ -503,7 +504,7 @@
 
 
 <div class="viewcode-block" id="PINN.fit">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.fit">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.PINN.fit">[docs]</a>
     <span class="nd">@cr</span><span class="p">(</span><span class="s2">&quot;PINN.fit&quot;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -615,7 +616,7 @@
 
     
 <div class="viewcode-block" id="PINN.predict">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.predict">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.PINN.predict">[docs]</a>
     <span class="nd">@cr</span><span class="p">(</span><span class="s2">&quot;PINN.predict&quot;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -635,7 +636,7 @@
 
 
 <div class="viewcode-block" id="PINN.__repr__">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.__repr__">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.PINN.__repr__">[docs]</a>
     <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Returns a string representation of the PINN model.</span>
@@ -649,7 +650,7 @@
 
 
 <div class="viewcode-block" id="PINN.plot_training_logs">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.plot_training_logs">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.PINN.plot_training_logs">[docs]</a>
     <span class="k">def</span> <span class="nf">plot_training_logs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Plots the training logs.</span>
@@ -676,7 +677,7 @@
 
 
 <div class="viewcode-block" id="PINN.pde_loss">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.pde_loss">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.PINN.pde_loss">[docs]</a>
     <span class="nd">@abstractmethod</span>
     <span class="k">def</span> <span class="nf">pde_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="o">*</span><span class="n">input_variables</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -694,7 +695,7 @@
 
 
 <div class="viewcode-block" id="PINN.save">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.save">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.PINN.save">[docs]</a>
     <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Saves the model to a file using torchscript.</span>
@@ -711,7 +712,7 @@
         
 
 <div class="viewcode-block" id="PINN.load">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.PINN.load">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.PINN.load">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -732,7 +733,7 @@
 
 
 <div class="viewcode-block" id="BoundaryCondition">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.BoundaryCondition">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.BoundaryCondition">[docs]</a>
 <span class="k">class</span> <span class="nc">BoundaryCondition</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Abstract base class for defining boundary conditions. You need to implement the `loss` method to use a custom boundary condition.</span>
@@ -748,7 +749,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_points</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
     
 <div class="viewcode-block" id="BoundaryCondition.loss">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.BoundaryCondition.loss">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.BoundaryCondition.loss">[docs]</a>
     <span class="nd">@abstractmethod</span>
     <span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pred</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -769,8 +770,6 @@
 
 
 
-<div class="viewcode-block" id="DirichletCondition">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.DirichletCondition">[docs]</a>
 <span class="k">class</span> <span class="nc">DirichletCondition</span><span class="p">(</span><span class="n">BoundaryCondition</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    This class represents a Dirichlet boundary condition.</span>
@@ -783,15 +782,11 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_values</span> <span class="o">=</span> <span class="n">values</span>
 
-<div class="viewcode-block" id="DirichletCondition.loss">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.DirichletCondition.loss">[docs]</a>
     <span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pred</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">pred</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span></div>
-</div>
-
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">pred</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
 
 <div class="viewcode-block" id="BurgersPINN">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.BurgersPINN">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.BurgersPINN">[docs]</a>
 <span class="k">class</span> <span class="nc">BurgersPINN</span><span class="p">(</span><span class="n">PINN</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    This class represents a Physics-Informed Neural Network (PINN) model for the Burgers&#39; equation.</span>
@@ -810,7 +805,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">viscosity</span> <span class="o">=</span> <span class="n">viscosity</span>
 
 <div class="viewcode-block" id="BurgersPINN.pde_loss">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.BurgersPINN.pde_loss">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.BurgersPINN.pde_loss">[docs]</a>
     <span class="k">def</span> <span class="nf">pde_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="o">*</span><span class="n">input_variables</span><span class="p">):</span>
         <span class="n">t</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="n">input_variables</span>
         <span class="n">u</span> <span class="o">=</span> <span class="n">pred</span>
@@ -825,7 +820,7 @@
 
 
 <div class="viewcode-block" id="NavierStokesIncompressible2DPINN">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.NavierStokesIncompressible2DPINN">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.NavierStokesIncompressible2DPINN">[docs]</a>
 <span class="k">class</span> <span class="nc">NavierStokesIncompressible2DPINN</span><span class="p">(</span><span class="n">PINN</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    This class represents a Physics-Informed Neural Network (PINN) model for the incompressible steady 2D Navier-Stokes equations.</span>
@@ -849,7 +844,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">Re</span> <span class="o">=</span> <span class="n">Re</span>
     
 <div class="viewcode-block" id="NavierStokesIncompressible2DPINN.pde_loss">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.NavierStokesIncompressible2DPINN.pde_loss">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.NavierStokesIncompressible2DPINN.pde_loss">[docs]</a>
     <span class="k">def</span> <span class="nf">pde_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pred</span> <span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
 
         <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span> <span class="n">pred</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">],</span> <span class="n">pred</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="n">pred</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>        
@@ -889,7 +884,7 @@
 
 
 <div class="viewcode-block" id="Euler2DPINN">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.Euler2DPINN">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.Euler2DPINN">[docs]</a>
 <span class="k">class</span> <span class="nc">Euler2DPINN</span><span class="p">(</span><span class="n">PINN</span><span class="p">):</span>
     <span class="c1"># TODO: review the equations once sphinx documentation is working</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
@@ -912,7 +907,7 @@
     <span class="n">GAMMA</span> <span class="o">=</span> <span class="mf">1.4</span>
 
 <div class="viewcode-block" id="Euler2DPINN.pde_loss">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.pinn.Euler2DPINN.pde_loss">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.Euler2DPINN.pde_loss">[docs]</a>
     <span class="k">def</span> <span class="nf">pde_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="o">*</span><span class="n">input_variables</span><span class="p">):</span>
 
         <span class="n">x_coord</span> <span class="o">=</span> <span class="n">input_variables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>

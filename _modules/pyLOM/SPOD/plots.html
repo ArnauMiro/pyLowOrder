@@ -48,11 +48,12 @@
     <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pyLOM/SPOD/plots';</script>
+    <link rel="icon" href="../../../_static/favicon_tmp.ico"/>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2.0.1" />
+  <meta name="docsearch:version" content="2.1.0" />
   </head>
   
   
@@ -113,8 +114,14 @@
   
   
   
+    
+    
+      
+    
+    
+    <img src="../../../_static/logo_tmp.webp" class="logo__image only-light" alt="pyLOM"/>
+    <img src="../../../_static/logo_tmp.webp" class="logo__image only-dark pst-js-only" alt="pyLOM"/>
   
-    <p class="title logo__title">pyLOM</p>
   
 </a></div>
     
@@ -136,15 +143,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../../install.html">
+    Installation
   </a>
 </li>
 
@@ -243,15 +250,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../../install.html">
+    Installation
   </a>
 </li>
 
@@ -368,7 +375,7 @@
 
 
 <div class="viewcode-block" id="plotMode">
-<a class="viewcode-back" href="../../../api/pyLOM.SPOD.html#pyLOM.SPOD.plots.plotMode">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.SPOD.html#pyLOM.SPOD.plotMode">[docs]</a>
 <span class="k">def</span> <span class="nf">plotMode</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">freqs</span><span class="p">,</span> <span class="n">mesh</span><span class="p">,</span> <span class="n">dset</span><span class="p">,</span> <span class="n">ivar</span><span class="p">,</span> <span class="n">pointData</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">modes</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Plot the real and imaginary parts of a mode</span>
@@ -390,7 +397,7 @@
 
 
 <div class="viewcode-block" id="plotSpectra">
-<a class="viewcode-back" href="../../../api/pyLOM.SPOD.html#pyLOM.SPOD.plots.plotSpectra">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.SPOD.html#pyLOM.SPOD.plotSpectra">[docs]</a>
 <span class="k">def</span> <span class="nf">plotSpectra</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">fig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 	<span class="n">L</span><span class="p">,</span> <span class="n">f</span> <span class="o">=</span> <span class="n">gpu_to_cpu</span><span class="p">(</span><span class="n">L</span><span class="p">),</span> <span class="n">gpu_to_cpu</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 	<span class="c1"># Get or recover axis and figure</span>

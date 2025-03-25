@@ -48,11 +48,12 @@
     <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pyLOM/inp_out/io_vtkh5';</script>
+    <link rel="icon" href="../../../_static/favicon_tmp.ico"/>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2.0.1" />
+  <meta name="docsearch:version" content="2.1.0" />
   </head>
   
   
@@ -113,8 +114,14 @@
   
   
   
+    
+    
+      
+    
+    
+    <img src="../../../_static/logo_tmp.webp" class="logo__image only-light" alt="pyLOM"/>
+    <img src="../../../_static/logo_tmp.webp" class="logo__image only-dark pst-js-only" alt="pyLOM"/>
   
-    <p class="title logo__title">pyLOM</p>
   
 </a></div>
     
@@ -136,15 +143,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../../install.html">
+    Installation
   </a>
 </li>
 
@@ -243,15 +250,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../../install.html">
+    Installation
   </a>
 </li>
 
@@ -364,8 +371,6 @@
 <span class="n">VTKVERS</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="_vtkh5_create_structure">
-<a class="viewcode-back" href="../../../api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5._vtkh5_create_structure">[docs]</a>
 <span class="k">def</span> <span class="nf">_vtkh5_create_structure</span><span class="p">(</span><span class="n">file</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Create the basic structure of a VTKH5 file</span>
@@ -379,11 +384,8 @@
 	<span class="n">pdata</span> <span class="o">=</span> <span class="n">main</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="s1">&#39;PointData&#39;</span><span class="p">)</span>
 	<span class="n">fdata</span> <span class="o">=</span> <span class="n">main</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="s1">&#39;FieldData&#39;</span><span class="p">)</span>
 	<span class="c1"># Return created groups</span>
-	<span class="k">return</span> <span class="n">main</span><span class="p">,</span> <span class="n">cdata</span><span class="p">,</span> <span class="n">pdata</span><span class="p">,</span> <span class="n">fdata</span></div>
+	<span class="k">return</span> <span class="n">main</span><span class="p">,</span> <span class="n">cdata</span><span class="p">,</span> <span class="n">pdata</span><span class="p">,</span> <span class="n">fdata</span>
 
-
-<div class="viewcode-block" id="_vtkh5_connectivity_and_offsets">
-<a class="viewcode-back" href="../../../api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5._vtkh5_connectivity_and_offsets">[docs]</a>
 <span class="k">def</span> <span class="nf">_vtkh5_connectivity_and_offsets</span><span class="p">(</span><span class="n">lnods</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Build the offsets array (starting point per each element)</span>
@@ -398,11 +400,8 @@
 	<span class="c1"># Now build the offsets vector</span>
 	<span class="n">offset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">ppcell</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">,),</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
 	<span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">ppcell</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">zpcell</span><span class="p">)</span>
-	<span class="k">return</span> <span class="n">lnodsf</span><span class="p">,</span> <span class="n">offset</span></div>
+	<span class="k">return</span> <span class="n">lnodsf</span><span class="p">,</span> <span class="n">offset</span>
 
-
-<div class="viewcode-block" id="_vtkh5_write_mesh_serial">
-<a class="viewcode-back" href="../../../api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5._vtkh5_write_mesh_serial">[docs]</a>
 <span class="k">def</span> <span class="nf">_vtkh5_write_mesh_serial</span><span class="p">(</span><span class="n">file</span><span class="p">,</span><span class="n">xyz</span><span class="p">,</span><span class="n">lnods</span><span class="p">,</span><span class="n">ltype</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Write the mesh and the connectivity to the VTKH5 file.</span>
@@ -421,11 +420,8 @@
 	<span class="n">file</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s1">&#39;Offsets&#39;</span><span class="p">,(</span><span class="n">ncells</span><span class="o">+</span><span class="mi">1</span><span class="p">,),</span><span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span><span class="n">data</span><span class="o">=</span><span class="n">offsets</span><span class="p">)</span>
 	<span class="n">file</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s1">&#39;Types&#39;</span><span class="p">,(</span><span class="n">ncells</span><span class="p">,),</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">,</span><span class="n">data</span><span class="o">=</span><span class="n">ltype</span><span class="p">)</span>
 	<span class="c1"># Return some parameters</span>
-	<span class="k">return</span> <span class="n">npoints</span><span class="p">,</span> <span class="n">ncells</span> </div>
+	<span class="k">return</span> <span class="n">npoints</span><span class="p">,</span> <span class="n">ncells</span> 
 
-
-<div class="viewcode-block" id="_vtkh5_write_mesh_mpio">
-<a class="viewcode-back" href="../../../api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5._vtkh5_write_mesh_mpio">[docs]</a>
 <span class="k">def</span> <span class="nf">_vtkh5_write_mesh_mpio</span><span class="p">(</span><span class="n">file</span><span class="p">,</span><span class="n">xyz</span><span class="p">,</span><span class="n">lnods</span><span class="p">,</span><span class="n">ltype</span><span class="p">,</span> <span class="n">ptable</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Write the mesh and the connectivity to the VTKH5 file.</span>
@@ -461,11 +457,8 @@
 	<span class="n">istart</span><span class="p">,</span> <span class="n">iend</span> <span class="o">=</span> <span class="n">ptable</span><span class="o">.</span><span class="n">partition_bounds</span><span class="p">(</span><span class="n">myrank</span><span class="p">,</span><span class="n">ndim</span><span class="o">=</span><span class="n">npcells</span><span class="p">,</span><span class="n">points</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 	<span class="n">conec_dset</span><span class="p">[</span><span class="n">istart</span><span class="p">:</span><span class="n">iend</span><span class="p">]</span> <span class="o">=</span> <span class="n">lnods</span>
 	<span class="c1"># Return some parameters</span>
-	<span class="k">return</span> <span class="n">npG</span><span class="p">,</span> <span class="n">ncG</span></div>
+	<span class="k">return</span> <span class="n">npG</span><span class="p">,</span> <span class="n">ncG</span>
 
-
-<div class="viewcode-block" id="_vtkh5_link_mesh">
-<a class="viewcode-back" href="../../../api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5._vtkh5_link_mesh">[docs]</a>
 <span class="k">def</span> <span class="nf">_vtkh5_link_mesh</span><span class="p">(</span><span class="n">file</span><span class="p">,</span><span class="n">lname</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Create external link mesh to the VTKH5 file.</span>
@@ -476,12 +469,11 @@
 	<span class="n">file</span><span class="p">[</span><span class="s1">&#39;Points&#39;</span><span class="p">]</span>                  <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">ExternalLink</span><span class="p">(</span><span class="n">lname</span><span class="p">,</span><span class="s1">&#39;VTKHDF/Points&#39;</span><span class="p">)</span>
 	<span class="n">file</span><span class="p">[</span><span class="s1">&#39;Connectivity&#39;</span><span class="p">]</span>            <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">ExternalLink</span><span class="p">(</span><span class="n">lname</span><span class="p">,</span><span class="s1">&#39;VTKHDF/Connectivity&#39;</span><span class="p">)</span>
 	<span class="n">file</span><span class="p">[</span><span class="s1">&#39;Offsets&#39;</span><span class="p">]</span>                 <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">ExternalLink</span><span class="p">(</span><span class="n">lname</span><span class="p">,</span><span class="s1">&#39;VTKHDF/Offsets&#39;</span><span class="p">)</span>
-	<span class="n">file</span><span class="p">[</span><span class="s1">&#39;Types&#39;</span><span class="p">]</span>                   <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">ExternalLink</span><span class="p">(</span><span class="n">lname</span><span class="p">,</span><span class="s1">&#39;VTKHDF/Types&#39;</span><span class="p">)</span></div>
-
+	<span class="n">file</span><span class="p">[</span><span class="s1">&#39;Types&#39;</span><span class="p">]</span>                   <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">ExternalLink</span><span class="p">(</span><span class="n">lname</span><span class="p">,</span><span class="s1">&#39;VTKHDF/Types&#39;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="vtkh5_save_mesh">
-<a class="viewcode-back" href="../../../api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5.vtkh5_save_mesh">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.inp_out.html#pyLOM.inp_out.vtkh5_save_mesh">[docs]</a>
 <span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;vtkh5IO.save_mesh&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">vtkh5_save_mesh</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="n">mesh</span><span class="p">,</span><span class="n">ptable</span><span class="p">,</span><span class="n">mpio</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
@@ -493,8 +485,6 @@
 		<span class="n">vtkh5_save_mesh_serial</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="n">mode</span><span class="p">,</span><span class="n">mesh</span><span class="o">.</span><span class="n">xyz</span><span class="p">,</span><span class="n">mesh</span><span class="o">.</span><span class="n">connectivity</span><span class="p">,</span><span class="n">mesh</span><span class="o">.</span><span class="n">eltype2VTK</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="vtkh5_save_mesh_serial">
-<a class="viewcode-back" href="../../../api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5.vtkh5_save_mesh_serial">[docs]</a>
 <span class="k">def</span> <span class="nf">vtkh5_save_mesh_serial</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="n">mode</span><span class="p">,</span><span class="n">xyz</span><span class="p">,</span><span class="n">lnods</span><span class="p">,</span><span class="n">ltype</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Save the mesh component into a VTKH5 file (serial)</span>
@@ -506,11 +496,8 @@
 	<span class="c1"># Write the mesh</span>
 	<span class="n">_vtkh5_write_mesh_serial</span><span class="p">(</span><span class="n">main</span><span class="p">,</span><span class="n">xyz</span><span class="p">,</span><span class="n">lnods</span><span class="p">,</span><span class="n">ltype</span><span class="p">)</span>
 	<span class="c1"># Close file</span>
-	<span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+	<span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
-
-<div class="viewcode-block" id="vtkh5_save_mesh_mpio">
-<a class="viewcode-back" href="../../../api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5.vtkh5_save_mesh_mpio">[docs]</a>
 <span class="k">def</span> <span class="nf">vtkh5_save_mesh_mpio</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="n">mode</span><span class="p">,</span><span class="n">xyz</span><span class="p">,</span><span class="n">lnods</span><span class="p">,</span><span class="n">ltype</span><span class="p">,</span><span class="n">ptable</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Save the mesh component into a VTKH5 file (serial)</span>
@@ -522,12 +509,11 @@
 	<span class="c1"># Write the mesh</span>
 	<span class="n">_vtkh5_write_mesh_mpio</span><span class="p">(</span><span class="n">main</span><span class="p">,</span><span class="n">xyz</span><span class="p">,</span><span class="n">lnods</span><span class="p">,</span><span class="n">ltype</span><span class="p">,</span><span class="n">ptable</span><span class="p">)</span>
 	<span class="c1"># Close file</span>
-	<span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
-
+	<span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
 
 <div class="viewcode-block" id="vtkh5_link_mesh">
-<a class="viewcode-back" href="../../../api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5.vtkh5_link_mesh">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.inp_out.html#pyLOM.inp_out.vtkh5_link_mesh">[docs]</a>
 <span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;vtkh5IO.link_mesh&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">vtkh5_link_mesh</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="n">lname</span><span class="p">,</span><span class="n">mpio</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
@@ -539,8 +525,6 @@
 		<span class="n">vtkh5_link_mesh_serial</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="n">mode</span><span class="p">,</span><span class="n">lname</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="vtkh5_link_mesh_serial">
-<a class="viewcode-back" href="../../../api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5.vtkh5_link_mesh_serial">[docs]</a>
 <span class="k">def</span> <span class="nf">vtkh5_link_mesh_serial</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="n">mode</span><span class="p">,</span><span class="n">lname</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Save the mesh component into a VTKH5 file (serial)</span>
@@ -552,11 +536,8 @@
 	<span class="c1"># Link the mesh</span>
 	<span class="n">_vtkh5_link_mesh</span><span class="p">(</span><span class="n">main</span><span class="p">,</span><span class="n">lname</span><span class="p">)</span>
 	<span class="c1"># Close file</span>
-	<span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+	<span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
-
-<div class="viewcode-block" id="vtkh5_link_mesh_mpio">
-<a class="viewcode-back" href="../../../api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5.vtkh5_link_mesh_mpio">[docs]</a>
 <span class="k">def</span> <span class="nf">vtkh5_link_mesh_mpio</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="n">mode</span><span class="p">,</span><span class="n">lname</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Save the mesh component into a VTKH5 file (serial)</span>
@@ -568,12 +549,11 @@
 	<span class="c1"># Link the mesh</span>
 	<span class="n">_vtkh5_link_mesh</span><span class="p">(</span><span class="n">main</span><span class="p">,</span><span class="n">lname</span><span class="p">)</span>
 	<span class="c1"># Close file</span>
-	<span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
-
+	<span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
 
 <div class="viewcode-block" id="vtkh5_save_field">
-<a class="viewcode-back" href="../../../api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5.vtkh5_save_field">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.inp_out.html#pyLOM.inp_out.vtkh5_save_field">[docs]</a>
 <span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;vtkh5IO.save_field&#39;</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">vtkh5_save_field</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="n">instant</span><span class="p">,</span><span class="n">time</span><span class="p">,</span><span class="n">point</span><span class="p">,</span><span class="n">varDict</span><span class="p">,</span><span class="n">ptable</span><span class="p">,</span><span class="n">mpio</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;a&#39;</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
@@ -585,8 +565,6 @@
 		<span class="n">vtkh5_save_field_serial</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="n">mode</span><span class="p">,</span><span class="n">instant</span><span class="p">,</span><span class="n">time</span><span class="p">,</span><span class="n">point</span><span class="p">,</span><span class="n">varDict</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="vtkh5_save_field_serial">
-<a class="viewcode-back" href="../../../api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5.vtkh5_save_field_serial">[docs]</a>
 <span class="k">def</span> <span class="nf">vtkh5_save_field_serial</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="n">mode</span><span class="p">,</span><span class="n">instant</span><span class="p">,</span><span class="n">time</span><span class="p">,</span><span class="n">point</span><span class="p">,</span><span class="n">varDict</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Save the field component into a VTKH5 file (serial)</span>
@@ -604,11 +582,8 @@
 		<span class="c1"># Create and write</span>
 		<span class="n">main</span><span class="p">[</span><span class="n">group</span><span class="p">]</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="n">var</span><span class="p">,</span><span class="n">varDict</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="n">varDict</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span><span class="n">data</span><span class="o">=</span><span class="n">varDict</span><span class="p">[</span><span class="n">var</span><span class="p">])</span>
 	<span class="c1"># Close file</span>
-	<span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+	<span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
-
-<div class="viewcode-block" id="vtkh5_save_field_mpio">
-<a class="viewcode-back" href="../../../api/pyLOM.inp_out.html#pyLOM.inp_out.io_vtkh5.vtkh5_save_field_mpio">[docs]</a>
 <span class="k">def</span> <span class="nf">vtkh5_save_field_mpio</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="n">mode</span><span class="p">,</span><span class="n">instant</span><span class="p">,</span><span class="n">time</span><span class="p">,</span><span class="n">point</span><span class="p">,</span><span class="n">varDict</span><span class="p">,</span><span class="n">ptable</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Save the mesh component into a VTKH5 file (serial)</span>
@@ -635,8 +610,7 @@
 		<span class="k">else</span><span class="p">:</span> <span class="c1"># Vectorial or tensorial field</span>
 			<span class="n">dsets</span><span class="p">[</span><span class="n">var</span><span class="p">][</span><span class="n">istart</span><span class="p">:</span><span class="n">iend</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">varDict</span><span class="p">[</span><span class="n">var</span><span class="p">]</span>
 	<span class="c1"># Close file</span>
-	<span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
-
+	<span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 </pre></div>
 
                 </article>

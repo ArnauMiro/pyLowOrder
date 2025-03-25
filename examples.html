@@ -51,13 +51,14 @@
     <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
     <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'examples';</script>
+    <link rel="icon" href="_static/favicon_tmp.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Train a PINN (Physics Informed Neural Network) with a custom PDE" href="notebook_examples/burgers_PINN_training_pipeline.html" />
-    <link rel="prev" title="pyLOM.vmmath package" href="api/pyLOM.vmmath.html" />
+    <link rel="prev" title="pyLOM.vmmath" href="api/pyLOM.vmmath.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2.0.1" />
+  <meta name="docsearch:version" content="2.1.0" />
   </head>
   
   
@@ -118,8 +119,14 @@
   
   
   
+    
+    
+      
+    
+    
+    <img src="_static/logo_tmp.webp" class="logo__image only-light" alt="pyLOM"/>
+    <img src="_static/logo_tmp.webp" class="logo__image only-dark pst-js-only" alt="pyLOM"/>
   
-    <p class="title logo__title">pyLOM</p>
   
 </a></div>
     
@@ -140,16 +147,16 @@
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Examples
   </a>
 </li>
 
 
-<li class="nav-item current active">
-  <a class="nav-link nav-internal" href="#">
-    Examples
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="install.html">
+    Installation
   </a>
 </li>
 
@@ -249,16 +256,16 @@
 </li>
 
 
-<li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Examples
   </a>
 </li>
 
 
-<li class="nav-item current active">
-  <a class="nav-link nav-internal" href="#">
-    Examples
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="install.html">
+    Installation
   </a>
 </li>
 
@@ -307,6 +314,8 @@
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
   <div class="bd-toc-item navbar-nav"><ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="notebook_examples/burgers_PINN_training_pipeline.html">Train a PINN (Physics Informed Neural Network) with a custom PDE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook_examples/NN/MLP_training.html">How to train an MLP using the Pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook_examples/NN/KAN_training.html">How to train an MLP using the Pipeline</a></li>
 </ul>
 </div>
 </nav></div>
@@ -366,6 +375,7 @@
                   
   <section id="examples">
 <h1>Examples<a class="headerlink" href="#examples" title="Link to this heading">#</a></h1>
+<p>This is the exmaples section, here you can find some notebooks that will guide you through the basic usage of pyLOM.</p>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="notebook_examples/burgers_PINN_training_pipeline.html">Train a PINN (Physics Informed Neural Network) with a custom PDE</a><ul>
@@ -375,6 +385,26 @@
 <li class="toctree-l2"><a class="reference internal" href="notebook_examples/burgers_PINN_training_pipeline.html#Train-the-pinn">Train the pinn</a></li>
 <li class="toctree-l2"><a class="reference internal" href="notebook_examples/burgers_PINN_training_pipeline.html#Make-the-predictions-and-plot-the-results">Make the predictions and plot the results</a></li>
 <li class="toctree-l2"><a class="reference internal" href="notebook_examples/burgers_PINN_training_pipeline.html#Save-and-load-the-model">Save and load the model</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="notebook_examples/NN/MLP_training.html">How to train an MLP using the Pipeline</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/MLP_training.html#Import-classes-and-define-paths">Import classes and define paths</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/MLP_training.html#Define-scalers-if-needed">Define scalers if needed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/MLP_training.html#Create-datasets">Create datasets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/MLP_training.html#Model-creation">Model creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/MLP_training.html#Run-the-pipeline">Run the pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/MLP_training.html#Show-plots">Show plots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/MLP_training.html#Evaluate-the-model-with-some-metrics">Evaluate the model with some metrics</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="notebook_examples/NN/KAN_training.html">How to train an MLP using the Pipeline</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/KAN_training.html#Import-classes-and-define-paths">Import classes and define paths</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/KAN_training.html#Define-scalers-if-needed">Define scalers if needed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/KAN_training.html#Create-datasets">Create datasets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/KAN_training.html#Model-creation">Model creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/KAN_training.html#Run-the-pipeline">Run the pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/KAN_training.html#Show-plots">Show plots</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/KAN_training.html#Evaluate-the-model-with-some-metrics">Evaluate the model with some metrics</a></li>
 </ul>
 </li>
 </ul>
@@ -397,7 +427,7 @@
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">pyLOM.vmmath package</p>
+        <p class="prev-next-title">pyLOM.vmmath</p>
       </div>
     </a>
     <a class="right-next"

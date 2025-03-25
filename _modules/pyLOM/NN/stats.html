@@ -48,11 +48,12 @@
     <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pyLOM/NN/stats';</script>
+    <link rel="icon" href="../../../_static/favicon_tmp.ico"/>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2.0.1" />
+  <meta name="docsearch:version" content="2.1.0" />
   </head>
   
   
@@ -113,8 +114,14 @@
   
   
   
+    
+    
+      
+    
+    
+    <img src="../../../_static/logo_tmp.webp" class="logo__image only-light" alt="pyLOM"/>
+    <img src="../../../_static/logo_tmp.webp" class="logo__image only-dark pst-js-only" alt="pyLOM"/>
   
-    <p class="title logo__title">pyLOM</p>
   
 </a></div>
     
@@ -136,15 +143,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../../install.html">
+    Installation
   </a>
 </li>
 
@@ -243,15 +250,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../../install.html">
+    Installation
   </a>
 </li>
 
@@ -357,7 +364,7 @@
 <span class="kn">from</span> <span class="nn">..utils</span> <span class="kn">import</span> <span class="n">raiseError</span>
 
 <div class="viewcode-block" id="RegressionEvaluator">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.stats.RegressionEvaluator">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.RegressionEvaluator">[docs]</a>
 <span class="k">class</span> <span class="nc">RegressionEvaluator</span><span class="p">():</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Evaluator class for regression tasks. </span>
@@ -389,7 +396,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_tolerance</span> <span class="o">=</span> <span class="n">value</span>
 
 <div class="viewcode-block" id="RegressionEvaluator.mean_squared_error">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.stats.RegressionEvaluator.mean_squared_error">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.RegressionEvaluator.mean_squared_error">[docs]</a>
     <span class="k">def</span> <span class="nf">mean_squared_error</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">y_true</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -409,7 +416,7 @@
 
     
 <div class="viewcode-block" id="RegressionEvaluator.mean_absolute_error">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.stats.RegressionEvaluator.mean_absolute_error">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.RegressionEvaluator.mean_absolute_error">[docs]</a>
     <span class="k">def</span> <span class="nf">mean_absolute_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute the mean absolute error (MAE) between the true values and the predicted values.</span>
@@ -425,7 +432,7 @@
 
     
 <div class="viewcode-block" id="RegressionEvaluator.mean_relative_error">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.stats.RegressionEvaluator.mean_relative_error">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.RegressionEvaluator.mean_relative_error">[docs]</a>
     <span class="k">def</span> <span class="nf">mean_relative_error</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">y_pred</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -448,7 +455,7 @@
 
     
 <div class="viewcode-block" id="RegressionEvaluator.ae_q">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.stats.RegressionEvaluator.ae_q">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.RegressionEvaluator.ae_q">[docs]</a>
     <span class="k">def</span> <span class="nf">ae_q</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">y_pred</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -472,7 +479,7 @@
 
 
 <div class="viewcode-block" id="RegressionEvaluator.l2_error">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.stats.RegressionEvaluator.l2_error">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.RegressionEvaluator.l2_error">[docs]</a>
     <span class="k">def</span> <span class="nf">l2_error</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">y_pred</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -493,7 +500,7 @@
 
     
 <div class="viewcode-block" id="RegressionEvaluator.R2">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.stats.RegressionEvaluator.R2">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.RegressionEvaluator.R2">[docs]</a>
     <span class="k">def</span> <span class="nf">R2</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">y_true</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -517,7 +524,7 @@
 
 
 <div class="viewcode-block" id="RegressionEvaluator.print_metrics">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.stats.RegressionEvaluator.print_metrics">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.RegressionEvaluator.print_metrics">[docs]</a>
     <span class="k">def</span> <span class="nf">print_metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Print the calculated regression metrics.</span>
@@ -541,7 +548,7 @@
 
 
 <div class="viewcode-block" id="RegressionEvaluator.__call__">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.stats.RegressionEvaluator.__call__">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.RegressionEvaluator.__call__">[docs]</a>
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">y_true</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>

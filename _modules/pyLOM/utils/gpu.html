@@ -48,11 +48,12 @@
     <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pyLOM/utils/gpu';</script>
+    <link rel="icon" href="../../../_static/favicon_tmp.ico"/>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2.0.1" />
+  <meta name="docsearch:version" content="2.1.0" />
   </head>
   
   
@@ -113,8 +114,14 @@
   
   
   
+    
+    
+      
+    
+    
+    <img src="../../../_static/logo_tmp.webp" class="logo__image only-light" alt="pyLOM"/>
+    <img src="../../../_static/logo_tmp.webp" class="logo__image only-dark pst-js-only" alt="pyLOM"/>
   
-    <p class="title logo__title">pyLOM</p>
   
 </a></div>
     
@@ -136,15 +143,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../../install.html">
+    Installation
   </a>
 </li>
 
@@ -243,15 +250,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../../install.html">
+    Installation
   </a>
 </li>
 
@@ -393,7 +400,7 @@
 	<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">cp</span>
 
 <div class="viewcode-block" id="gpu_device">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.gpu.gpu_device">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.gpu_device">[docs]</a>
 	<span class="k">def</span> <span class="nf">gpu_device</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">MPI_RANK</span><span class="p">,</span><span class="n">gpu_per_node</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Setup the GPU to be used</span>
@@ -402,7 +409,7 @@
 
 
 <div class="viewcode-block" id="gpu_to_cpu">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.gpu.gpu_to_cpu">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.gpu_to_cpu">[docs]</a>
 	<span class="k">def</span> <span class="nf">gpu_to_cpu</span><span class="p">(</span><span class="n">X</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Move an array from GPU to CPU</span>
@@ -411,7 +418,7 @@
 
 
 <div class="viewcode-block" id="cpu_to_gpu">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.gpu.cpu_to_gpu">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.cpu_to_gpu">[docs]</a>
 	<span class="k">def</span> <span class="nf">cpu_to_gpu</span><span class="p">(</span><span class="n">X</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Move an array from GPU to CPU</span>
@@ -420,7 +427,7 @@
 
 
 <div class="viewcode-block" id="ascontiguousarray">
-<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.utils.gpu.ascontiguousarray">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.utils.html#pyLOM.ascontiguousarray">[docs]</a>
 	<span class="k">def</span> <span class="nf">ascontiguousarray</span><span class="p">(</span><span class="n">X</span><span class="p">):</span>
 		<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">X</span><span class="p">)</span></div>
 

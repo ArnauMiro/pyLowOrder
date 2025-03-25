@@ -48,11 +48,12 @@
     <script src="../../../../_static/design-tabs.js?v=f930bc37"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pyLOM/NN/architectures/autoencoders';</script>
+    <link rel="icon" href="../../../../_static/favicon_tmp.ico"/>
     <link rel="index" title="Index" href="../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2.0.1" />
+  <meta name="docsearch:version" content="2.1.0" />
   </head>
   
   
@@ -113,8 +114,14 @@
   
   
   
+    
+    
+      
+    
+    
+    <img src="../../../../_static/logo_tmp.webp" class="logo__image only-light" alt="pyLOM"/>
+    <img src="../../../../_static/logo_tmp.webp" class="logo__image only-dark pst-js-only" alt="pyLOM"/>
   
-    <p class="title logo__title">pyLOM</p>
   
 </a></div>
     
@@ -136,15 +143,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="../../../../examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../../../install.html">
+    Installation
   </a>
 </li>
 
@@ -243,15 +250,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="../../../../examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../../examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../../../install.html">
+    Installation
   </a>
 </li>
 
@@ -379,7 +386,7 @@
 
 <span class="c1">## Wrapper of a variational autoencoder</span>
 <div class="viewcode-block" id="Autoencoder">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.Autoencoder">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.Autoencoder">[docs]</a>
 <span class="k">class</span> <span class="nc">Autoencoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Autoencoder class for neural network module. The model is based on the PyTorch.</span>
@@ -420,7 +427,7 @@
         <span class="k">return</span>  <span class="n">F</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="n">recon_x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">),</span> <span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">),</span><span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span><span class="p">)</span>
     
 <div class="viewcode-block" id="Autoencoder.forward">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.Autoencoder.forward">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.Autoencoder.forward">[docs]</a>
     <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
         <span class="n">z</span>     <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="n">recon</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
@@ -428,7 +435,7 @@
 
 
 <div class="viewcode-block" id="Autoencoder.fit">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.Autoencoder.fit">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.Autoencoder.fit">[docs]</a>
     <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">train_dataset</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
@@ -520,7 +527,7 @@
 
 
 <div class="viewcode-block" id="Autoencoder.reconstruct">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.Autoencoder.reconstruct">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.Autoencoder.reconstruct">[docs]</a>
     <span class="k">def</span> <span class="nf">reconstruct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reconstruct the dataset using the trained autoencoder model. It prints the energy, mean, and fluctuation of the reconstructed dataset.</span>
@@ -566,7 +573,7 @@
 
     
 <div class="viewcode-block" id="Autoencoder.latent_space">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.Autoencoder.latent_space">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.Autoencoder.latent_space">[docs]</a>
     <span class="k">def</span> <span class="nf">latent_space</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute the latent space of the elements of a given dataset.</span>
@@ -588,7 +595,7 @@
 
 
 <div class="viewcode-block" id="Autoencoder.decode">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.Autoencoder.decode">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.Autoencoder.decode">[docs]</a>
     <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Decode the latent space to the original space.</span>
@@ -612,7 +619,7 @@
 
 <span class="c1">## Wrapper of a variational autoencoder</span>
 <div class="viewcode-block" id="VariationalAutoencoder">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.VariationalAutoencoder">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.VariationalAutoencoder">[docs]</a>
 <span class="k">class</span> <span class="nc">VariationalAutoencoder</span><span class="p">(</span><span class="n">Autoencoder</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Variational Autoencoder class for neural network module. The model is based on the PyTorch.</span>
@@ -641,7 +648,7 @@
         <span class="k">return</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">logvar</span> <span class="o">-</span> <span class="n">mum</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">logvarm</span><span class="o">.</span><span class="n">exp</span><span class="p">())</span>
     
 <div class="viewcode-block" id="VariationalAutoencoder.forward">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.VariationalAutoencoder.forward">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.VariationalAutoencoder.forward">[docs]</a>
     <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
         <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reparamatrizate</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">)</span>
@@ -650,7 +657,7 @@
 
     
 <div class="viewcode-block" id="VariationalAutoencoder.fit">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.VariationalAutoencoder.fit">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.VariationalAutoencoder.fit">[docs]</a>
     <span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;VAE.fit&#39;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -758,7 +765,7 @@
 
 
 <div class="viewcode-block" id="VariationalAutoencoder.reconstruct">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.VariationalAutoencoder.reconstruct">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.VariationalAutoencoder.reconstruct">[docs]</a>
     <span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;VAE.reconstruct&#39;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">reconstruct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
@@ -805,7 +812,7 @@
 
   
 <div class="viewcode-block" id="VariationalAutoencoder.correlation">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.VariationalAutoencoder.correlation">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.VariationalAutoencoder.correlation">[docs]</a>
     <span class="k">def</span> <span class="nf">correlation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute the correlation between the latent variables of the given dataset.</span>
@@ -831,7 +838,7 @@
 
     
 <div class="viewcode-block" id="VariationalAutoencoder.modes">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.VariationalAutoencoder.modes">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.VariationalAutoencoder.modes">[docs]</a>
     <span class="k">def</span> <span class="nf">modes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute the modes of the latent space.</span>
@@ -852,7 +859,7 @@
 
 
 <div class="viewcode-block" id="VariationalAutoencoder.latent_space">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.VariationalAutoencoder.latent_space">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.VariationalAutoencoder.latent_space">[docs]</a>
     <span class="k">def</span> <span class="nf">latent_space</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute the latent space of the elements of a given dataset.</span>
@@ -874,7 +881,7 @@
 
 
 <div class="viewcode-block" id="VariationalAutoencoder.fine_tune">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.VariationalAutoencoder.fine_tune">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.VariationalAutoencoder.fine_tune">[docs]</a>
     <span class="k">def</span> <span class="nf">fine_tune</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_dataset</span><span class="p">,</span> <span class="n">shape_</span><span class="p">,</span> <span class="n">eval_dataset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">BASEDIR</span><span class="o">=</span><span class="s1">&#39;./&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">dataloader_params</span><span class="p">):</span>
         <span class="n">train_data</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="o">**</span><span class="n">dataloader_params</span><span class="p">)</span>
         <span class="n">eval_data</span>  <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">eval_dataset</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="o">**</span><span class="n">dataloader_params</span><span class="p">)</span>
@@ -942,7 +949,7 @@
 
 
 <div class="viewcode-block" id="VariationalAutoencoder.decode">
-<a class="viewcode-back" href="../../../../api/pyLOM.NN.architectures.html#pyLOM.NN.architectures.autoencoders.VariationalAutoencoder.decode">[docs]</a>
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.VariationalAutoencoder.decode">[docs]</a>
     <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Decode a latent space element to the original space.</span>

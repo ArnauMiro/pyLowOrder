@@ -48,11 +48,12 @@
     <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pyLOM/NN/utils';</script>
+    <link rel="icon" href="../../../_static/favicon_tmp.ico"/>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2.0.1" />
+  <meta name="docsearch:version" content="2.1.0" />
   </head>
   
   
@@ -113,8 +114,14 @@
   
   
   
+    
+    
+      
+    
+    
+    <img src="../../../_static/logo_tmp.webp" class="logo__image only-light" alt="pyLOM"/>
+    <img src="../../../_static/logo_tmp.webp" class="logo__image only-dark pst-js-only" alt="pyLOM"/>
   
-    <p class="title logo__title">pyLOM</p>
   
 </a></div>
     
@@ -136,15 +143,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../../install.html">
+    Installation
   </a>
 </li>
 
@@ -243,15 +250,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="../../../examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="../../../install.html">
+    Installation
   </a>
 </li>
 
@@ -376,7 +383,7 @@
 
 
 <div class="viewcode-block" id="MinMaxScaler">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.MinMaxScaler">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.MinMaxScaler">[docs]</a>
 <span class="k">class</span> <span class="nc">MinMaxScaler</span><span class="p">:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Min-max scaling to scale variables to a desired range. The formula is given by:</span>
@@ -398,7 +405,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_fitted</span>
     
 <div class="viewcode-block" id="MinMaxScaler.fit">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.MinMaxScaler.fit">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.MinMaxScaler.fit">[docs]</a>
     <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variables</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">]],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">]):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute the min and max values of each variable.</span>
@@ -417,7 +424,7 @@
 
 
 <div class="viewcode-block" id="MinMaxScaler.transform">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.MinMaxScaler.transform">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.MinMaxScaler.transform">[docs]</a>
     <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">variables</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">]],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">]]:</span>
@@ -455,7 +462,7 @@
 
     
 <div class="viewcode-block" id="MinMaxScaler.fit_transform">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.MinMaxScaler.fit_transform">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.MinMaxScaler.fit_transform">[docs]</a>
     <span class="k">def</span> <span class="nf">fit_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variables</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Fit and transform the variables using min-max scaling.</span>
@@ -470,7 +477,7 @@
 
 
 <div class="viewcode-block" id="MinMaxScaler.inverse_transform">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.MinMaxScaler.inverse_transform">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.MinMaxScaler.inverse_transform">[docs]</a>
     <span class="k">def</span> <span class="nf">inverse_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variables</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Inverse scale variables that have been scaled using min-max scaling.</span>
@@ -507,7 +514,7 @@
 
 
 <div class="viewcode-block" id="MinMaxScaler.save">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.MinMaxScaler.save">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.MinMaxScaler.save">[docs]</a>
     <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Save the fitted scaler parameters to a JSON file.</span>
@@ -528,7 +535,7 @@
 
 
 <div class="viewcode-block" id="MinMaxScaler.load">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.MinMaxScaler.load">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.MinMaxScaler.load">[docs]</a>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;MinMaxScaler&#39;</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -566,7 +573,7 @@
 
 
 <div class="viewcode-block" id="Dataset">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Dataset">[docs]</a>
 <span class="k">class</span> <span class="nc">Dataset</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Dataset class to be used with PyTorch. It can be used with both mesh and point data.</span>
@@ -674,7 +681,7 @@
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">variables_out</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Dataset.__getitem__">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.__getitem__">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Dataset.__getitem__">[docs]</a>
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">slice</span><span class="p">]):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return the input data and the output data for a given index as a tuple. If there is no input data, only the output data will be returned.</span>
@@ -703,7 +710,7 @@
 
 
 <div class="viewcode-block" id="Dataset.__setitem__">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.__setitem__">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Dataset.__setitem__">[docs]</a>
     <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">slice</span><span class="p">],</span> <span class="n">value</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Set the input data and the output data for a given index. If there is no input data, only the output data will be set.</span>
@@ -738,7 +745,7 @@
 
         
 <div class="viewcode-block" id="Dataset.__add__">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.__add__">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Dataset.__add__">[docs]</a>
     <span class="k">def</span> <span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Concatenate two datasets. The datasets must have the same number of input coordinates and parameters.</span>
@@ -766,7 +773,7 @@
 
     
 <div class="viewcode-block" id="Dataset.concatenate">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.concatenate">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Dataset.concatenate">[docs]</a>
     <span class="k">def</span> <span class="nf">concatenate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Alias for the `__add__` method.</span>
@@ -786,7 +793,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">mesh_shape</span>    <span class="o">=</span> <span class="p">(</span><span class="n">nh</span><span class="p">,</span> <span class="n">nw</span><span class="p">,</span> <span class="n">nd</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Dataset.crop">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.crop">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Dataset.crop">[docs]</a>
     <span class="k">def</span> <span class="nf">crop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Crop the dataset to a desired shape. The cropping currently works for 2D and 3D meshes.</span>
@@ -813,7 +820,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">mesh_shape</span>    <span class="o">=</span> <span class="p">(</span><span class="n">n0h</span><span class="p">,</span> <span class="n">n0w</span><span class="p">,</span> <span class="n">n0d</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Dataset.pad">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.pad">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Dataset.pad">[docs]</a>
     <span class="k">def</span> <span class="nf">pad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Pad the dataset to a desired shape. The padding currently works for 2D and 3D meshes.</span>
@@ -830,7 +837,7 @@
 
 
 <div class="viewcode-block" id="Dataset.get_splits">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.get_splits">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Dataset.get_splits">[docs]</a>
     <span class="k">def</span> <span class="nf">get_splits</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">sizes</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
@@ -904,7 +911,7 @@
 
 
 <div class="viewcode-block" id="Dataset.get_splits_by_parameters">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.get_splits_by_parameters">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Dataset.get_splits_by_parameters">[docs]</a>
     <span class="k">def</span> <span class="nf">get_splits_by_parameters</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> 
         <span class="n">sizes</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> 
@@ -1007,7 +1014,7 @@
 
     
 <div class="viewcode-block" id="Dataset.load">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.load">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Dataset.load">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">load</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
@@ -1068,7 +1075,7 @@
 
     
 <div class="viewcode-block" id="Dataset.map">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.map">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Dataset.map">[docs]</a>
     <span class="nd">@cr</span><span class="p">(</span><span class="s2">&quot;NN.Dataset.map&quot;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">map</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -1111,7 +1118,7 @@
 
 
 <div class="viewcode-block" id="Dataset.filter">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.filter">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Dataset.filter">[docs]</a>
     <span class="nd">@cr</span><span class="p">(</span><span class="s2">&quot;NN.Dataset.filter&quot;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">filter</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -1185,7 +1192,7 @@
             <span class="k">return</span> <span class="n">Subset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indices</span><span class="p">)</span>
         
 <div class="viewcode-block" id="Dataset.remove_column">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.Dataset.remove_column">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Dataset.remove_column">[docs]</a>
     <span class="k">def</span> <span class="nf">remove_column</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">column_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">from_variables_out</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Remove a column from the dataset.</span>
@@ -1214,7 +1221,7 @@
 
 
 <div class="viewcode-block" id="set_seed">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.set_seed">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.set_seed">[docs]</a>
 <span class="k">def</span> <span class="nf">set_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span> <span class="n">deterministic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
     <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
     <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
@@ -1231,7 +1238,7 @@
  
 
 <div class="viewcode-block" id="create_results_folder">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.create_results_folder">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.create_results_folder">[docs]</a>
 <span class="k">def</span> <span class="nf">create_results_folder</span><span class="p">(</span><span class="n">RESUDIR</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Create a folder to store the results of the neural network training.</span>
@@ -1250,7 +1257,7 @@
 
 
 <div class="viewcode-block" id="select_device">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.select_device">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.select_device">[docs]</a>
 <span class="k">def</span> <span class="nf">select_device</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEVICE</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Select the device to be used for the training.</span>
@@ -1264,7 +1271,7 @@
 
 
 <div class="viewcode-block" id="betaLinearScheduler">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.betaLinearScheduler">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.betaLinearScheduler">[docs]</a>
 <span class="k">class</span> <span class="nc">betaLinearScheduler</span><span class="p">:</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Linear scheduler for beta parameter in the loss function of the Autoencoders.</span>
@@ -1282,7 +1289,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">warmup</span> <span class="o">=</span> <span class="n">warmup</span>
 
 <div class="viewcode-block" id="betaLinearScheduler.getBeta">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.utils.betaLinearScheduler.getBeta">[docs]</a>
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.betaLinearScheduler.getBeta">[docs]</a>
     <span class="k">def</span> <span class="nf">getBeta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Get the value of beta for a given epoch.</span>

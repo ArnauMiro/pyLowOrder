@@ -51,12 +51,13 @@
     <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
     <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'index';</script>
+    <link rel="icon" href="_static/favicon_tmp.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="pyLOM" href="api/modules.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2.0.1" />
+  <meta name="docsearch:version" content="2.1.0" />
   </head>
   
   
@@ -117,8 +118,14 @@
   
   
   
+    
+    
+      
+    
+    
+    <img src="_static/logo_tmp.webp" class="logo__image only-light" alt="pyLOM"/>
+    <img src="_static/logo_tmp.webp" class="logo__image only-dark pst-js-only" alt="pyLOM"/>
   
-    <p class="title logo__title">pyLOM</p>
   
 </a></div>
     
@@ -140,15 +147,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="install.html">
+    Installation
   </a>
 </li>
 
@@ -251,15 +258,15 @@
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment">
-    Building from source
+  <a class="nav-link nav-internal" href="examples.html">
+    Examples
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="examples.html">
-    Examples
+  <a class="nav-link nav-internal" href="install.html">
+    Installation
   </a>
 </li>
 
@@ -333,13 +340,12 @@
 <h1>Welcome to pyLOM’s documentation<a class="headerlink" href="#welcome-to-pylom-s-documentation" title="Link to this heading">#</a></h1>
 <div class="toctree-wrapper compound">
 </div>
-<p><strong>Version</strong>: 2.0.1</p>
+<p><strong>Version</strong>: 2.1.0</p>
 <p><strong>Useful links</strong>:
 <a class="reference external" href="https://github.com/ArnauMiro/pyLowOrder">Source Repository</a> |
 <a class="reference external" href="https://github.com/ArnauMiro/pyLowOrder/issues">Issue Tracker</a> |
 <a class="reference external" href="https://github.com/ArnauMiro/pyLowOrder/wiki">Wiki</a></p>
-<p><strong>pyLOM</strong> is a Python library for low-order modeling techniques.
-This tool is a port of the POD/DMD of the tools from UPM in MATLAB to C/C++ using a python interface. So far POD, DMD and sPOD are fully implemented and work is being done to bring hoDMD and VAEs inside the tool. Please check the wiki for instructions on how to deploy the tool.</p>
+<p><strong>pyLOM</strong> is a high-performance-computing enabled tool for massively parallel reduced order modelling. This tool includes parallel algorithms for the proper orthogonal decomposition (POD), dynamic mode decomposition (DMD) and spectral proper orthogonal decomposition (SPOD) as well as a set of deep learning architectures for model order reduction and surrogate modelling such as variational autoencoders. All pyLOM modules are GPU-enabled.</p>
 <div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
 <div class="sd-row sd-row-cols-1 sd-row-cols-xs-1 sd-row-cols-sm-1 sd-row-cols-md-2 sd-row-cols-lg-2 sd-g-2 sd-g-xs-2 sd-g-sm-3 sd-g-md-4 sd-g-lg-4 docutils">
 <div class="sd-col sd-d-flex-row docutils">
@@ -366,7 +372,7 @@ This tool is a port of the POD/DMD of the tools from UPM in MATLAB to C/C++ usin
 <p class="sd-card-text">To install the tool you can see the instructions in the wiki. The tool is available in PyPI and can be installed using pip.</p>
 </div>
 <div class="sd-card-footer docutils">
-<p class="sd-card-text"><span class="sd-d-grid"><a class="sd-sphinx-override sd-btn sd-text-wrap sd-btn-secondary sd-stretched-link reference external" href="https://github.com/ArnauMiro/pyLowOrder/wiki/Deployment"><span>To the installation guide</span></a></span></p>
+<p class="sd-card-text"><span class="sd-d-grid"><a class="sd-sphinx-override sd-btn sd-text-wrap sd-btn-secondary sd-stretched-link reference internal" href="install.html"><span class="doc">To the installation guide</span></a></span></p>
 </div>
 </div>
 </div>
