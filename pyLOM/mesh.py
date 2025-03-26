@@ -62,11 +62,11 @@ ID2MTYPE = {
 }
 
 class Mesh(object):
-	'''
+	r'''
 	The Mesh class wraps the mesh details of the case.
 	'''
 	def __init__(self,mtype,xyz,connectivity,eltype,cellOrder,pointOrder,ptable):
-		'''
+		r'''
 		Class constructor
 		'''
 		self._type   = mtype
@@ -80,40 +80,40 @@ class Mesh(object):
 		self._ptable = ptable
 
 	def __str__(self):
-		'''
+		r'''
 		String representation
 		'''
 		s   = 'Mesh (%s) of %d nodes and %d elements:\n' % (self.type,self.npoints,self.ncells)
 		s  += '  > xyz  - max = ' + str(np.nanmax(self._xyz,axis=0)) + ', min = ' + str(np.nanmin(self._xyz,axis=0)) + '\n'
 		return s
 
-	def find_point(self,xyz):
-		'''
+	def find_point(self,xyz:np.array):
+		r'''
 		Return all the points where self._xyz == xyz
 		'''
 		return np.where(np.all(self._xyz == xyz,axis=1))[0]
 
-	def find_cell(self,eltype):
-		'''
+	def find_cell(self,eltype:int):
+		r'''
 		Return all the elements where self._elemList == elem
 		'''
 		return np.where(np.all(self._eltype == eltype))[0]
 
-	def find_point_in_cell(self,inode):
-		'''
+	def find_point_in_cell(self,inode:int):
+		r'''
 		Return all the elements where the node is
 		'''
 		return np.where(np.any(np.isin(self._conec,inode),axis=1))[0]
 
-	def size(self,pointData):
-		'''
+	def size(self,pointData:bool):
+		r'''
 		Return the size accoding to the type of data
 		'''
 		return self.npoints if pointData else self.ncells
 
 	@cr('Mesh.cellcenters')
 	def cellcenters(self):
-		'''
+		r'''
 		Computes and returns the cell centers
 		'''
 		if self.type == 'STRUCT2D':
@@ -150,8 +150,8 @@ class Mesh(object):
 		return xyzc
 
 	@cr('Mesh.reshape')
-	def reshape_var(self,var,info):
-		'''
+	def reshape_var(self,var:str,info:dict):
+		r'''
 		Reshape a variable according to the mesh
 		'''
 		# Obtain number of points from the mesh
@@ -164,8 +164,8 @@ class Mesh(object):
 		return out
 
 	@cr('Mesh.save')
-	def save(self,fname,**kwargs):
-		'''
+	def save(self,fname:str,**kwargs):
+		r'''
 		Store the mesh in various formats.
 		'''
 		# Guess format from extension
@@ -184,8 +184,8 @@ class Mesh(object):
 
 	@classmethod
 	@cr('Mesh.load')
-	def load(cls,fname,**kwargs):
-		'''
+	def load(cls,fname:str,**kwargs):
+		r'''
 		Load a mesh from various formats
 		'''
 		# Guess format from extension
@@ -202,7 +202,7 @@ class Mesh(object):
 
 	@classmethod
 	@cr('Mesh.new_struct2D')
-	def new_struct2D(cls,nx,ny,x,y,dimsx,dimsy,ptable=None):
+	def new_struct2D(cls,nx:int,ny:int,x:float,y:float,dimsx:float,dimsy:float,ptable=None):
 		xyz    = _struct2d_compute_xyz(nx,ny,x,y,dimsx,dimsy)
 		conec  = _struct2d_compute_conec(nx,ny,xyz)
 		eltype = 3*np.ones(((nx-1)*(ny-1),),np.uint8)
@@ -212,7 +212,7 @@ class Mesh(object):
 
 	@classmethod
 	@cr('Mesh.new_struct3D')
-	def new_struct3D(cls,nx,ny,nz,x,y,z,dimsx,dimsy,dimsz,ptable=None):
+	def new_struct3D(cls,nx:int,ny:int,nz:int,x:float,y:float,z:float,dimsx:float,dimsy:float,dimsz:float,ptable=None):
 		xyz    = _struct3d_compute_xyz(nx,ny,nz,x,y,z,dimsx,dimsy,dimsz)
 		conec  = _struct3d_compute_conec(nx,ny,nz,xyz)
 		eltype = 5*np.ones(((nx-1)*(ny-1)*(nz-1),),np.uint8)
@@ -222,7 +222,7 @@ class Mesh(object):
 
 	@classmethod
 	@cr('Mesh.from_pyQvarsi')
-	def from_pyQvarsi(cls,mesh,ptable=None,sod=False):
+	def from_pyQvarsi(cls,mesh,ptable=None,sod:bool=False):
 		'''
 		Create the mesh structure from a pyQvarsi mesh structure
 		'''
@@ -314,8 +314,8 @@ class Mesh(object):
 		return ELTYPE2ENSI[self._eltype[0]]
 
 
-def _struct2d_compute_xyz(nx,ny,x,y,dimsx,dimsy):
-	'''
+def _struct2d_compute_xyz(nx:int,ny:int,x:float,y:float,dimsx:float,dimsy:float):
+	r'''
 	Compute points for a 2D structured mesh
 	'''
 	if x is None:
@@ -330,8 +330,8 @@ def _struct2d_compute_xyz(nx,ny,x,y,dimsx,dimsy):
 	xy[:,1] = yy.reshape((nx*ny,),order='C')
 	return xy
 
-def _struct2d_compute_conec(nx,ny,xyz):
-	'''
+def _struct2d_compute_conec(nx:int,ny:int,xyz:np.array):
+	r'''
 	Compute connectivity for a 2D structured mesh
 	'''
 	# Obtain the ids
@@ -346,8 +346,8 @@ def _struct2d_compute_conec(nx,ny,xyz):
 	return conec
 
 
-def _struct3d_compute_xyz(nx,ny,nz,x,y,z,dimsx,dimsy,dimsz):
-	'''
+def _struct3d_compute_xyz(nx:int,ny:int,nz:int,x:float,y:float,z:float,dimsx:float,dimsy:float,dimsz:float):
+	r'''
 	Compute points for a 2D structured mesh
 	'''
 	if x is None:
@@ -366,8 +366,8 @@ def _struct3d_compute_xyz(nx,ny,nz,x,y,z,dimsx,dimsy,dimsz):
 	xyz[:,2] = zz.reshape((nx*ny*nz,),order='C')
 	return xyz
 
-def _struct3d_compute_conec(nx,ny,nz,xyz):
-	'''
+def _struct3d_compute_conec(nx:int,ny:int,nz:int,xyz:np.array):
+	r'''
 	Compute connectivity for a 2D structured mesh
 	'''
 	# Obtain the ids
