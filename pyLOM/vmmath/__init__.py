@@ -19,7 +19,7 @@ from .svd        import qr, svd, tsqr, randomized_qr, init_qr_streaming, update_
 # FFT routines
 from .fft        import hammwin, fft
 # Geometry and mesh routines
-from .geometric  import cellCenters, normals, euclidean_d
+from .geometric  import euclidean_d, cellCenters, normals, edge_normals, neighbors_dict, fix_normals_coherence
 # Regression routines
 from .regression import least_squares, ridge_regresion
 
