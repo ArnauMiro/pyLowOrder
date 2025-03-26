@@ -1,10 +1,10 @@
-pyLOM.inp\_out
-==============
+pyLOM.math
+============
 
 Module contents
 ---------------
 
-.. automodule:: pyLOM.inp_out
+.. automodule:: pyLOM.math
    :members:
    :undoc-members:
    :show-inheritance:
