@@ -1,10 +1,10 @@
-pyLOM.vmmath
-============
+pyLOM.inp\_out
+==============
 
 Module contents
 ---------------
 
-.. automodule:: pyLOM.vmmath
+.. automodule:: pyLOM.io
    :members:
    :undoc-members:
    :show-inheritance:

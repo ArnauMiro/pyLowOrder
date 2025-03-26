@@ -2,6 +2,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath('_ext'))
 import pyLOM
 # -- Project information -----------------------------------------------------
 project = 'pyLOM'
@@ -14,6 +15,7 @@ extensions = [
     'sphinx.ext.duration',
     'sphinx.ext.doctest',
     'sphinx.ext.autodoc',
+    'module_alias',
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
@@ -21,7 +23,7 @@ extensions = [
     'sphinx_copybutton',
     'sphinx.ext.mathjax',
     'sphinx_design',
-    'nbsphinx'
+    'nbsphinx',
 ]
 
 # Set the default syntax highlighter
