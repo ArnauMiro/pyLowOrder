@@ -106,14 +106,14 @@ pyLOM.POD.save('POD_predicted_%s.h5'% podvar,None,None,meanout,sensors.partition
 
 ## Plot error bars
 #Non-scaled
-fig, _ = pyLOM.utils.plotModalErrorBars(meanMRE)
+fig, _ = pyLOM.NN.plotModalErrorBars(meanMRE)
 fig.savefig('errorbars.pdf', dpi=300, bbox_inches='tight')
 #Scaled
-fig, _ = pyLOM.utils.plotModalErrorBars(Sscale*meanMRE)
+fig, _ = pyLOM.NN.plotModalErrorBars(Sscale*meanMRE)
 fig.savefig('errorbars_scaled.pdf', dpi=300, bbox_inches='tight')
 
 ## Plot POD modes reconstruction
-fig, _ = pyLOM.utils.plotTimeSeries(time, full_pod, meanout, stdout)
+fig, _ = pyLOM.NN.plotTimeSeries(time, full_pod, meanout, stdout)
 fig.savefig('output_modes.pdf', dpi=600)
 
 
