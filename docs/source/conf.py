@@ -2,19 +2,20 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../..'))
-# import pyLOM
+sys.path.insert(0, os.path.abspath('_ext'))
+import pyLOM
 # -- Project information -----------------------------------------------------
 project = 'pyLOM'
 copyright = '2023-2025'
 author = 'pyLOM developers'
-# TODO: ask to add pyLOM.__version__  to avoid this hardcoded variable
-version = '2.1.0' # pyLOM.__version__ is not defined
+version = pyLOM.__version__
 
 # -- General configuration ---------------------------------------------------
 extensions = [
     'sphinx.ext.duration',
     'sphinx.ext.doctest',
     'sphinx.ext.autodoc',
+    'module_alias',
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
@@ -22,7 +23,7 @@ extensions = [
     'sphinx_copybutton',
     'sphinx.ext.mathjax',
     'sphinx_design',
-    'nbsphinx'
+    'nbsphinx',
 ]
 
 # Set the default syntax highlighter

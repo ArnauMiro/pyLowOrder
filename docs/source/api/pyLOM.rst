@@ -14,9 +14,9 @@ Subpackages
    pyLOM.NN
    pyLOM.POD
    pyLOM.SPOD
-   pyLOM.inp_out
+   pyLOM.io
    pyLOM.utils
-   pyLOM.vmmath
+   pyLOM.math
 
 Module contents
 ---------------

@@ -146,7 +146,6 @@ def h5_load_meshes(file,ptable,repart):
 	conec2 = -np.ones_like(conec).flatten()# This is a 1D array of -1 of the size of our connectivity
 	conec2[conec.flatten() >= 0] = np.searchsorted(pointO, conec[conec >= 0].flatten()) # Search only the positive values
 	conec = conec2.reshape(conec.shape).astype(np.int32) # Reshape the connectivity to its original format
-	print(conec,conec[conec<0])
 	# Return
 	return mtype, xyz, conec, eltype, cellO, pointO
 
@@ -714,18 +713,18 @@ def h5_save_POD(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
 	# Create the datasets for U, S and V
 	group.create_dataset('pointData',(1,),dtype='u1',data=pointData)
 	group.create_dataset('n_variables',(1,),dtype='u1',data=nvars)
-	Usize = (mpi_reduce(U.shape[0],op='sum',all=True),U.shape[1])
-	dsetU = group.create_dataset('U',Usize,dtype=U.dtype)
-	dsetS = group.create_dataset('S',S.shape,dtype=S.dtype)
-	dsetV = group.create_dataset('V',V.shape,dtype=V.dtype)
+	Usize = (mpi_reduce(U.shape[0],op='sum',all=True),U.shape[1]) if U is not None else None
+	dsetU = group.create_dataset('U',Usize,dtype=U.dtype)   if U is not None else None
+	dsetS = group.create_dataset('S',S.shape,dtype=S.dtype) if S is not None else None
+	dsetV = group.create_dataset('V',V.shape,dtype=V.dtype) if V is not None else None
 	# Store S and U that are repeated across the ranks
 	# So it is enough that one rank stores them
 	if is_rank_or_serial(0):
-		dsetS[:] = S
-		dsetV[:] = V
+		if dsetS is not None: dsetS[:] = S
+		if dsetV is not None: dsetV[:] = V 
 	# Store U in parallel
 	istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=pointData)
-	dsetU[istart:iend,:] = U
+	if dsetU is not None: dsetU[istart:iend,:] = U
 	file.close()
 
 @cr('h5IO.load_POD')
@@ -747,9 +746,9 @@ def h5_load_POD(fname,vars,nmod,ptable=None):
 		nvars = int(file['POD']['n_variables'][0])
 		point = bool(file['POD']['pointData'][0])
 		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=point)
-		varList.append( np.array(file['POD']['U'][istart:iend,:nmod]) )
-	if 'S' in vars: varList.append( np.array(file['POD']['S'][:]) )
-	if 'V' in vars: varList.append( np.array(file['POD']['V'][:,:]) )
+		varList.append(np.array(file['POD']['U'][istart:iend,:]) if nmod < 0 else np.array(file['POD']['U'][istart:iend,:nmod]))
+	if 'S' in vars: varList.append( np.array(file['POD']['S'][:]) if nmod < 0 else  np.array(file['POD']['S'][:nmod]) )
+	if 'V' in vars: varList.append( np.array(file['POD']['V'][:,:]) if nmod < 0 else np.array(file['POD']['V'][:nmod,:]) )
 	# Return
 	file.close()
 	return varList
