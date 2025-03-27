@@ -316,7 +316,10 @@ class MessagePassingLayer(MessagePassing):
 
 class ScalerProtocol(Protocol):
     '''
-    Protocol for scalers.
+    Protocol for scalers. Must include:
+        - fit: Fit the scaler to the data.
+        - transform: Transform the data using the fitted scaler.
+        - fit_transform: Fit the scaler to the data and transform it.
     '''
     def fit(self, X: np.ndarray, y=None) -> "ScalerProtocol":
         """ Ajusta el escalador a los datos. """
@@ -336,13 +339,14 @@ class Graph(Data):
     Custom class derived from torch.geometric.Data to handle graph data.
     
     Custom features:
-        - filter_graph: Method to filter the graph by eliminating nodes not in a given mask.
-        - from_pyLOM_mesh: Method to create a graph from a pyLOM Mesh object.
+        - from_pyLOM_mesh: Create a torch_geometric Data object from a pyLOM Mesh object.
+        - filter: Filter graph by eliminating nodes not in node_mask.
     '''
 
     @classmethod
     def from_pyLOM_mesh(cls,
                         mesh: Mesh,
+                        y: Optional[np.ndarray] = None,
                         scaler: Optional[ScalerProtocol] = None,
                         operational_parameters_size: int = 3):
         """
@@ -350,7 +354,11 @@ class Graph(Data):
 
         Args:
             mesh (pyLOM.Mesh): The input mesh.
-            scaler (Optional[ScalerProtocol]): Optional scaler to normalize node and edge features.
+            y (Optional[np.ndarray]): Optional node target values. Must have dimension (n_nodes, :).
+            scaler (Optional[ScalerProtocol]): Optional scaler to normalize node and edge features. Must include:
+                - fit: Fit the scaler to the data.
+                - transform: Transform the data using the fitted scaler.
+                -   fit_transform: Fit the scaler to the data and transform it.
             operational_parameters_size (int): The number of operational parameters (e.g.: 2 for Mach and alpha)
 
         Returns:
@@ -388,43 +396,46 @@ class Graph(Data):
             x = scaler.fit_transform(x)
             edge_attr = scaler.fit_transform(edge_attr)
 
+        x = torch.tensor(x, dtype=torch.float32)
+        y = torch.tensor(y, dtype=torch.float32) if y is not None else None
+        edge_index = torch.tensor(edge_index, dtype=torch.long)
+        edge_attr = torch.tensor(edge_attr, dtype=torch.float32)
+
         # Return the class instance with the necessary attributes
-        return cls(x=torch.tensor(x, dtype=torch.float32),
-                    edge_index=torch.tensor(edge_index, dtype=torch.long),
-                    edge_attr=torch.tensor(edge_attr, dtype=torch.float32))
+        return cls(x=x, y=y, edge_index=edge_index, edge_attr=edge_attr)
+    
 
-
-    def neighbors_dict_to_edge_index(self, neighbors_dict):
-        """
-        Convert a dictionary with neighbors to edge index.
+    def filter(self,
+        node_mask: Optional[Union[list, torch.Tensor, np.ndarray]]=None,
+        node_indices: Optional[Union[list, torch.Tensor, np.ndarray]]=None
+    ):
+        '''
+        Filter graph by providing either a boolean mask or a list of node indices to keep.
 
         Args:
-            neighbors_dict (Dict): The dictionary with neighbors.
-
-        Returns:
-            Tuple: The edge index.
-        """
-        edge_index = []
-        for i, neighbors in neighbors_dict.items():
-            for j in neighbors:
-                edge_index.append([i, j])
-
-        edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()
-        return edge_index
-
-    def filter_graph(self,
-        node_mask: torch.Tensor,
-        y: Optional[torch.Tensor]):
+            node_mask: Boolean mask to filter nodes.
+            node_indices: List of node indices to keep.
         '''
-        Filter graph by eliminating nodes not in node_mask. Modify the edge_index and the node features x and y accordingly.
+        
 
-        Args:
-            node_mask (torch.Tensor): The mask for the nodes to keep.
-            edge_index (torch.Tensor): The edge index of the full graph
-            x (Optional[torch.Tensor]): The node features.
-            y (Optional[torch.Tensor]): The target values.
-        '''
-        pass
+        if node_mask is None and node_indices is None:
+            raise ValueError("Either node_mask or node_indices must be provided.")
+        elif node_mask is not None and node_indices is not None:
+            raise ValueError("Only one of node_mask or node_indices must be provided.")
+        elif node_mask is not None:
+            node_mask = torch.tensor(node_mask, dtype=torch.bool)
+        elif node_indices is not None:
+            node_mask = torch.zeros(self.x.shape[0], dtype=torch.bool)
+            node_mask[node_indices] = True
+
+        self.x = self.x[node_mask]
+        self.y = self.y[node_mask] if self.y is not None else None
+
+
+        self.edge_attr = self.edge_attr[torch.logical_and(node_mask[self.edge_index[0]], node_mask[self.edge_index[1]])]
+        self.edge_index = self.edge_index[:, torch.logical_and(node_mask[self.edge_index[0]], node_mask[self.edge_index[1]])]
+        self.edge_index -= torch.min(self.edge_index)
+     
 
     
     @staticmethod
