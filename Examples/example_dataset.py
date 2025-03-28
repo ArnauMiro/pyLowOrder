@@ -61,9 +61,8 @@ d = pyLOM.Dataset(xyz=xyz,ptable=ptable,order=pointO,point=True,
         'var2' : {'idim':1,'value':var2},
     },
     # Now we add the fields, i.e., the actual data to compute
-    # things. So K has ndim = 2 as there are two extra dimensions
-    # other than the number of points
-    K = {'ndim':2,'value':K}
+    # things. So K has ndim = 1 as there is only one field
+    K = {'ndim':1,'value':K}
 )
 print(d)
 
