@@ -53,7 +53,7 @@
     <link rel="search" title="Search" href="../../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2.1.0" />
+  <meta name="docsearch:version" content="3.1.0" />
   </head>
   
   
@@ -368,6 +368,7 @@
 <span class="c1"># Last rev: 09/10/2024</span>
 
 <span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">import</span> <span class="nn">torch</span>
 
 
 <div class="viewcode-block" id="Encoder2D">
@@ -455,7 +456,16 @@
 
 <div class="viewcode-block" id="Encoder2D.forward">
 <a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.Encoder2D.forward">[docs]</a>
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>  
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span> 
+<span class="w">        </span><span class="sa">r</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Do a forward evaluation of the data.</span>
+
+<span class="sd">		Args:</span>
+<span class="sd">			x (torch.Tensor): input data to the neural network.</span>
+
+<span class="sd">		Returns:</span>
+<span class="sd">		    (torch.Tensor): Prediction of the neural network.</span>
+<span class="sd">		&#39;&#39;&#39;</span> 
         <span class="n">out</span> <span class="o">=</span> <span class="n">x</span>
         <span class="k">for</span> <span class="n">ilayer</span><span class="p">,</span> <span class="n">conv_layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv_layers</span><span class="p">):</span>
             <span class="n">out</span> <span class="o">=</span> <span class="n">conv_layer</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
@@ -553,7 +563,16 @@
 
 <div class="viewcode-block" id="Decoder2D.forward">
 <a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.Decoder2D.forward">[docs]</a>
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Do a forward evaluation of the data.</span>
+
+<span class="sd">		Args:</span>
+<span class="sd">			x (torch.Tensor): input data to the neural network.</span>
+
+<span class="sd">		Returns:</span>
+<span class="sd">			(torch.Tensor): Prediction of the neural network.</span>
+<span class="sd">		&#39;&#39;&#39;</span>
         <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">nlayers</span><span class="o">+</span><span class="mi">1</span><span class="p">](</span><span class="bp">self</span><span class="o">.</span><span class="n">fc1</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
         <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">nlayers</span><span class="p">](</span><span class="bp">self</span><span class="o">.</span><span class="n">fc2</span><span class="p">(</span><span class="n">out</span><span class="p">))</span>
         <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">filt_chan</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlayers</span><span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nh</span> <span class="o">//</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlayers</span><span class="p">)),</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nw</span> <span class="o">//</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlayers</span><span class="p">)))</span>
@@ -655,7 +674,16 @@
     
 <div class="viewcode-block" id="Encoder3D.forward">
 <a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.Encoder3D.forward">[docs]</a>
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Do a forward evaluation of the data.</span>
+
+<span class="sd">		Args:</span>
+<span class="sd">			x (torch.Tensor): input data to the neural network.</span>
+
+<span class="sd">		Returns:</span>
+<span class="sd">			(torch.Tensor): Prediction of the neural network.</span>
+<span class="sd">		&#39;&#39;&#39;</span>
         <span class="n">out</span> <span class="o">=</span> <span class="n">x</span>
         <span class="k">for</span> <span class="n">ilayer</span><span class="p">,</span> <span class="n">conv_layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv_layers</span><span class="p">):</span>
             <span class="n">out</span> <span class="o">=</span> <span class="n">conv_layer</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
@@ -757,7 +785,16 @@
 
 <div class="viewcode-block" id="Decoder3D.forward">
 <a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.Decoder3D.forward">[docs]</a>
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Do a forward evaluation of the data.</span>
+
+<span class="sd">		Args:</span>
+<span class="sd">			x (torch.Tensor): input data to the neural network.</span>
+
+<span class="sd">		Returns:</span>
+<span class="sd">			(torch.Tensor): Prediction of the neural network.</span>
+<span class="sd">		&#39;&#39;&#39;</span>
         <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">nlayers</span><span class="o">+</span><span class="mi">1</span><span class="p">](</span><span class="bp">self</span><span class="o">.</span><span class="n">fc1</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
         <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">nlayers</span><span class="p">](</span><span class="bp">self</span><span class="o">.</span><span class="n">fc2</span><span class="p">(</span><span class="n">out</span><span class="p">))</span>
         <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">filt_chan</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nlayers</span><span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nx</span> <span class="o">//</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlayers</span><span class="p">)),</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ny</span> <span class="o">//</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlayers</span><span class="p">)),</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nz</span> <span class="o">//</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">nlayers</span><span class="p">)))</span>
@@ -766,6 +803,48 @@
                 <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm_layers</span><span class="p">[</span><span class="n">ilayer</span><span class="p">](</span><span class="n">out</span><span class="p">)</span>
             <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">nlayers</span><span class="o">-</span><span class="n">ilayer</span><span class="o">-</span><span class="mi">1</span><span class="p">](</span><span class="n">deconv_layer</span><span class="p">(</span><span class="n">out</span><span class="p">))</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">deconv_layers</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">](</span><span class="n">out</span><span class="p">)</span></div>
+</div>
+
+
+<div class="viewcode-block" id="ShallowDecoder">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.ShallowDecoder">[docs]</a>
+<span class="k">class</span> <span class="nc">ShallowDecoder</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">	</span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Decoder used for the SHRED architecture. </span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        output_size (int): Number of POD modes to predict.</span>
+<span class="sd">        hidden_size (int): Dimension of the LSTM hidden layers.</span>
+<span class="sd">		decoder_sizes (list): Integer list of the decoder layer sizes.</span>
+<span class="sd">        dropout (float): Dropout probability for the decoder.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_size</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">decoder_sizes</span><span class="p">:</span><span class="nb">list</span><span class="p">,</span> <span class="n">dropout</span><span class="p">:</span><span class="nb">float</span><span class="p">):</span>
+		<span class="nb">super</span><span class="p">(</span><span class="n">ShallowDecoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+		<span class="n">decoder_sizes</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">)</span>
+		<span class="n">decoder_sizes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">output_size</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">layers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
+
+		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">decoder_sizes</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">decoder_sizes</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">decoder_sizes</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]))</span>
+			<span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">decoder_sizes</span><span class="p">)</span><span class="o">-</span><span class="mi">2</span><span class="p">:</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">))</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">())</span>
+
+<div class="viewcode-block" id="ShallowDecoder.forward">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.ShallowDecoder.forward">[docs]</a>
+	<span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">:</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+<span class="w">		</span><span class="sa">r</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Do a forward evaluation of the data.</span>
+
+<span class="sd">		Args:</span>
+<span class="sd">			x (torch.Tensor): input data to the neural network.</span>
+
+<span class="sd">		Returns:</span>
+<span class="sd">			(torch.Tensor): Prediction of the neural network.</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+			<span class="n">output</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+		<span class="k">return</span> <span class="n">output</span></div>
 </div>
 
 </pre></div>

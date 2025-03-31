@@ -1,0 +1,1054 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>SHRED at scale &#8212; pyLOM  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=de90da8b" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'notebook_examples/NN/SHRED/step_01_SVD_and_sensor_cylinder';</script>
+    <link rel="icon" href="../../../_static/favicon_tmp.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Train a PINN (Physics Informed Neural Network) with a custom PDE" href="../PINNs/burgers_PINN_training_pipeline.html" />
+    <link rel="prev" title="Example of parallel Proper Orthogonal Decomposition" href="../../example_POD_cylinder.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="3.1.0" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/logo_tmp.webp" class="logo__image only-light" alt="pyLOM"/>
+    <img src="../../../_static/logo_tmp.webp" class="logo__image only-dark pst-js-only" alt="pyLOM"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api/modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../install.html">
+    Installation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api/modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../install.html">
+    Installation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="../../example_POD_cylinder.html">Example of parallel Proper Orthogonal Decomposition</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">SHRED at scale</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../PINNs/burgers_PINN_training_pipeline.html">Train a PINN (Physics Informed Neural Network) with a custom PDE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../MLP_training.html">How to train an MLP using the Pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../KAN_training.html">How to train an KAN using the Pipeline</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../../examples.html" class="nav-link">Examples</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">SHRED at scale</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="SHRED-at-scale">
+<h1>SHRED at scale<a class="headerlink" href="#SHRED-at-scale" title="Link to this heading">#</a></h1>
+<p>This tutorial shows how to use the <a class="reference external" href="link">SHallow REcurrent Decoders</a> at scale. It consists on four different steps which entail the parallel reduction of the data and interpolation to the input sensors, the fit of the SHRED architecture, the evaluation and of the fitted SHRED configurations and finally the parallel reconstruction of the model using the POD coefficients predicted by SHRED. Although this tutorial can be launched all together in serial when working with such a small dataset,
+when working at scale each of the following steps is thought to be executed in separate scripts. Therefore, at introduction of each part of the tutorial, the link to the full script will be provided.</p>
+<section id="Step-1:-parallel-POD-and-sensor-interpolation">
+<h2>Step 1: parallel POD and sensor interpolation<a class="headerlink" href="#Step-1:-parallel-POD-and-sensor-interpolation" title="Link to this heading">#</a></h2>
+<p>This is the first step of the tutorial on how to use SHRED at scale. It consists on preparing large-scale data for the input (sensors) and output (POD coefficients) of the SHRED architecture. A script combining all chunks of code can be found <a class="reference external" href="https://github.com/ArnauMiro/pyLowOrder/blob/120-add-shred/Examples/NN/SHRED/example_01_SVD_and_sensors_cylinder.py">here</a>. This script can be executed with as many processors as needed because both the POD computation and the sensor interpolation are
+performed in parallel.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+
+<span class="kn">import</span> <span class="nn">mpi4py</span>
+<span class="n">mpi4py</span><span class="o">.</span><span class="n">rc</span><span class="o">.</span><span class="n">recv_mprobe</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pyLOM</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="n">pyLOM</span><span class="o">.</span><span class="n">style_plots</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+0 Warning! Import - NVTX not present!
+</pre></div></div>
+</div>
+<p>Let’s define the path to the pyLOM Dataset which we are going to work with and the list of dataset variables which we will use for this example. As you’ll see later in the tutorial, both the sensor data and the POD coefficients have to be saved on dataset which is agnostic to the original partition (i.e. we need to use the nopartition=True), hence, we can only extract and save sensors of unidimensional variables and multidimensional fields will be omitted when saving in pyLOM format.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">DATAFILE</span> <span class="o">=</span> <span class="s1">&#39;../../../../../Examples/DATA/CYLINDER.h5&#39;</span>
+<span class="n">VARIABLE</span> <span class="o">=</span> <span class="s1">&#39;VELOX&#39;</span>
+</pre></div>
+</div>
+</div>
+<p>Now it’s time to load the mesh and dataset of the full-scale data</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">m</span> <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">Mesh</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">DATAFILE</span><span class="p">)</span>
+<span class="n">d</span> <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">DATAFILE</span><span class="p">,</span><span class="n">ptable</span><span class="o">=</span><span class="n">m</span><span class="o">.</span><span class="n">partition_table</span><span class="p">)</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+<span class="n">N</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">pyLOM</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="s1">&#39;Number of available snapshots&#39;</span><span class="p">,</span><span class="n">N</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Number of available snapshots 151
+</pre></div></div>
+</div>
+<p>Now it’s time to split the dataset snapshots in training, validation and test. In this case the reconstruct mode splitting is used, therefore, the three different sets span the full data range</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tridx</span><span class="p">,</span> <span class="n">vaidx</span><span class="p">,</span> <span class="n">teidx</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">split_data</span><span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;reconstruct&#39;</span><span class="p">)</span>
+<span class="n">pyLOM</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="s1">&#39;Number of training snapshots </span><span class="si">%i</span><span class="s1">, validation snapshots </span><span class="si">%i</span><span class="s1">, test snapshots </span><span class="si">%i</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">tridx</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">vaidx</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">teidx</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Number of training snapshots 106, validation snapshots 23, test snapshots 22
+</pre></div></div>
+</div>
+<p>Next step is defining the number of sensors and the region of the domain in which we want them to be. In this case only the X and Y axis are bounded because the input data is two-dimensional but in three-dimensional cases the Z axis bounds should also be defined.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">nsens</span>  <span class="o">=</span> <span class="mi">3</span>
+<span class="n">x0</span><span class="p">,</span> <span class="n">x1</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">8</span>
+<span class="n">y0</span><span class="p">,</span> <span class="n">y1</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span>
+<span class="n">bounds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x0</span><span class="p">,</span><span class="n">x1</span><span class="p">,</span><span class="n">y0</span><span class="p">,</span><span class="n">y1</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<p>We are going to generate now the new pyLOM Dataset containing the sensor coordinates and the data values on them. In this case the sensors are an existing point of the full dataset which is randomly selected inside the bounds given by the user. The sensor dataset also contains the training, validation and tests masks.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dsens</span>  <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">select_random_sensors</span><span class="p">(</span><span class="n">nsens</span><span class="p">,</span> <span class="n">bounds</span><span class="p">,</span> <span class="p">[</span><span class="n">VARIABLE</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">dsens</span><span class="o">.</span><span class="n">xyz</span><span class="p">)</span>
+<span class="c1"># Save the sensor dataset</span>
+<span class="n">dsens</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">&#39;sensors.h5&#39;</span><span class="p">,</span> <span class="n">nopartition</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[[ 4.62249443  0.08040201]
+ [ 5.86525612 -0.16080402]
+ [ 5.0233853   0.30150754]]
+</pre></div></div>
+</div>
+<p>Once the input is prepared, it’s time to prepare the POD coefficients for the output. To do so, the POD modes are computed for the training test and then the validation and test snapshots are projected into it. Then, we compute and save the POD modes of the training set. Note that the spatial modes and singular values are also saved as they will be needed to reconstruct the flow at the end of the tutorial. In this case we are computing 8 modes of the streamwise velocity fluctuations through
+randomized POD with 3 power iterations</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">Xtrai</span>   <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">mask_field</span><span class="p">(</span><span class="n">VARIABLE</span><span class="p">,</span> <span class="n">tridx</span><span class="p">)</span>
+<span class="n">PSI</span><span class="p">,</span><span class="n">S</span><span class="p">,</span><span class="n">V</span> <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">POD</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">Xtrai</span><span class="p">,</span><span class="n">remove_mean</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">randomized</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">r</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span><span class="n">q</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">pyLOM</span><span class="o">.</span><span class="n">POD</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">&#39;POD_trai_</span><span class="si">%s</span><span class="s1">.h5&#39;</span><span class="o">%</span><span class="k">VARIABLE</span>,PSI,S,V,d.partition_table,nvars=1,pointData=d.point)
+</pre></div>
+</div>
+</div>
+<p>We can now project the validation and test snapshots to the training spatial modes. For the validation and test sets we only save their POD coefficients</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">## Fetch validation dataset and project POD modes</span>
+<span class="n">Xvali</span>   <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">mask_field</span><span class="p">(</span><span class="n">VARIABLE</span><span class="p">,</span> <span class="n">vaidx</span><span class="p">)</span>
+<span class="n">proj</span>    <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">matmulp</span><span class="p">(</span><span class="n">PSI</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Xvali</span><span class="p">)</span>
+<span class="n">Vvali</span>   <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">pyLOM</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">S</span><span class="p">),</span> <span class="n">proj</span><span class="p">)</span>
+<span class="n">pyLOM</span><span class="o">.</span><span class="n">POD</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">&#39;POD_vali_</span><span class="si">%s</span><span class="s1">.h5&#39;</span><span class="o">%</span><span class="k">VARIABLE</span>,None,None,Vvali,d.partition_table,nvars=1,pointData=d.point)
+<span class="c1">## Fetch test dataset and project POD modes</span>
+<span class="n">Xtest</span>   <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">mask_field</span><span class="p">(</span><span class="n">VARIABLE</span><span class="p">,</span> <span class="n">teidx</span><span class="p">)</span>
+<span class="n">proj</span>    <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">matmulp</span><span class="p">(</span><span class="n">PSI</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Xtest</span><span class="p">)</span>
+<span class="n">Vtest</span>   <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">pyLOM</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">S</span><span class="p">),</span> <span class="n">proj</span><span class="p">)</span>
+<span class="n">pyLOM</span><span class="o">.</span><span class="n">POD</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">&#39;POD_test_</span><span class="si">%s</span><span class="s1">.h5&#39;</span><span class="o">%</span><span class="k">VARIABLE</span>,None,None,Vtest,d.partition_table,nvars=1,pointData=d.point)
+</pre></div>
+</div>
+</div>
+<p>To finish this step, we plot the first POD coefficient for the training, validation and test snapshots</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">## Plot the first mode</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;dark_background&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">tridx</span><span class="p">],</span> <span class="n">V</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span> <span class="s1">&#39;rx&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Training&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">vaidx</span><span class="p">],</span> <span class="n">Vvali</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span> <span class="s1">&#39;bo&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Validation&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">teidx</span><span class="p">],</span> <span class="n">Vtest</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span> <span class="s1">&#39;g*&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Time&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;$V_1$&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;First POD coefficient&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.legend.Legend at 0x7fe9be089640&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/notebook_examples_NN_SHRED_step_01_SVD_and_sensor_cylinder_20_1.png" src="../../../_images/notebook_examples_NN_SHRED_step_01_SVD_and_sensor_cylinder_20_1.png" />
+</div>
+</div>
+</section>
+<section id="Step-2:-Fit-SHRED">
+<h2>Step 2: Fit SHRED<a class="headerlink" href="#Step-2:-Fit-SHRED" title="Link to this heading">#</a></h2>
+<p>Once the data has been extracted and the POD has been computed, it is time to fit the SHRED model. This step is done in serial and the script combining all chunks of code can be found <a class="reference external" href="https://github.com/ArnauMiro/pyLowOrder/blob/120-add-shred/Examples/NN/SHRED/example_02_fit_shred_cylinder.py">here</a>. Note that this script ensambles different SHRED configurations for uncertainty quantification, but the core steps are the same as the ones in this tutorial.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pyLOM</span><span class="o">,</span> <span class="nn">pyLOM.NN</span>
+
+<span class="n">device</span> <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">NN</span><span class="o">.</span><span class="n">select_device</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/home/benet/.local/lib/python3.9/site-packages/tqdm/auto.py:21: TqdmWarning: IProgress not found. Please update jupyter and ipywidgets. See https://ipywidgets.readthedocs.io/en/stable/user_install.html
+  from .autonotebook import tqdm as notebook_tqdm
+</pre></div></div>
+</div>
+<p>We need to define first the variable that is measured in the sensors and the one that we’ll be reconstructing</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sensvar</span>  <span class="o">=</span> <span class="s1">&#39;VELOX&#39;</span>
+<span class="n">podvar</span>   <span class="o">=</span> <span class="s1">&#39;VELOX&#39;</span>
+</pre></div>
+</div>
+</div>
+<p>We then define the paths where we’ll save the output of SHRED. Including the input scalers, the POD scaler and the weights of each SHRED configuration</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">inscaler</span> <span class="o">=</span> <span class="s1">&#39;scalers_config_&#39;</span>
+<span class="n">outscale</span> <span class="o">=</span> <span class="s1">&#39;scalers_pod.json&#39;</span>
+<span class="n">shreds</span>   <span class="o">=</span> <span class="s1">&#39;shreds_config_&#39;</span>
+</pre></div>
+</div>
+</div>
+<p>Now we need to load the sensor measurements that will be used for training, validation and test. Note that for each sensor we’ll also load the snapshot ID (mask) and its time value</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">## Import sensor measurements</span>
+<span class="n">sensors</span>   <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;sensors.h5&#39;</span><span class="p">)</span>
+<span class="n">mask_trai</span> <span class="o">=</span> <span class="n">sensors</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;training_time&#39;</span><span class="p">)</span>
+<span class="n">mask_vali</span> <span class="o">=</span> <span class="n">sensors</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;validation_time&#39;</span><span class="p">)</span>
+<span class="n">mask_test</span> <span class="o">=</span> <span class="n">sensors</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;test_time&#39;</span><span class="p">)</span>
+<span class="c1"># Training</span>
+<span class="n">sens_trai</span> <span class="o">=</span> <span class="n">sensors</span><span class="o">.</span><span class="n">mask_field</span><span class="p">(</span><span class="n">sensvar</span><span class="p">,</span> <span class="n">mask_trai</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="n">nsens</span>     <span class="o">=</span> <span class="n">sens_trai</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="c1"># Validation</span>
+<span class="n">sens_vali</span> <span class="o">=</span> <span class="n">sensors</span><span class="o">.</span><span class="n">mask_field</span><span class="p">(</span><span class="n">sensvar</span><span class="p">,</span> <span class="n">mask_vali</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="c1"># Test</span>
+<span class="n">sens_test</span> <span class="o">=</span> <span class="n">sensors</span><span class="o">.</span><span class="n">mask_field</span><span class="p">(</span><span class="n">sensvar</span><span class="p">,</span> <span class="n">mask_test</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="c1"># Compute total timesteps</span>
+<span class="n">time</span>   <span class="o">=</span> <span class="n">sensors</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+<span class="n">ntimeG</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<p>Now it’s time to load the POD coefficients of the training set together with their corresponding singular values. The singular values will be used to penalize the SHRED loss function so that the model puts more effort in learning the higher energy modes.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">S</span><span class="p">,</span> <span class="n">pod_trai</span> <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">POD</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;POD_trai_</span><span class="si">%s</span><span class="s1">.h5&#39;</span> <span class="o">%</span> <span class="n">podvar</span><span class="p">,</span> <span class="nb">vars</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">,</span><span class="s1">&#39;V&#39;</span><span class="p">])</span>
+<span class="n">pod_trai</span>    <span class="o">=</span> <span class="n">pod_trai</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="n">output_size</span> <span class="o">=</span> <span class="n">pod_trai</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">Sscale</span>      <span class="o">=</span> <span class="n">S</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>A MinMaxScaler is created and fitted with the training POD data to scale the SHRED outputs between 0 and 1</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pod_scaler</span>  <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">NN</span><span class="o">.</span><span class="n">MinMaxScaler</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">pod_scaler</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">pod_trai</span><span class="p">)</span>
+<span class="n">pod_scaler</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">outscale</span><span class="p">)</span>
+<span class="n">trai_out</span>    <span class="o">=</span> <span class="n">pod_scaler</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">pod_trai</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>After the scaler is defined, the validation and test coefficients are loaded and transformed with it</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Validation</span>
+<span class="n">pod_vali</span> <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">POD</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;POD_vali_</span><span class="si">%s</span><span class="s1">.h5&#39;</span> <span class="o">%</span> <span class="n">podvar</span><span class="p">,</span> <span class="nb">vars</span><span class="o">=</span><span class="s1">&#39;V&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="n">vali_out</span> <span class="o">=</span> <span class="n">pod_scaler</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">pod_vali</span><span class="p">)</span>
+<span class="c1"># Test</span>
+<span class="n">pod_test</span> <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">POD</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;POD_test_</span><span class="si">%s</span><span class="s1">.h5&#39;</span> <span class="o">%</span> <span class="n">podvar</span><span class="p">,</span> <span class="nb">vars</span><span class="o">=</span><span class="s1">&#39;V&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="n">test_out</span> <span class="o">=</span> <span class="n">pod_scaler</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">pod_test</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>The full POD coefficients can be reensambled for any plotting purposes in the following way:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">full_pod</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">output_size</span><span class="p">,</span><span class="n">ntimeG</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">pod_trai</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+<span class="n">full_pod</span><span class="p">[:,</span><span class="n">mask_trai</span><span class="p">]</span> <span class="o">=</span> <span class="n">pod_trai</span>
+<span class="n">full_pod</span><span class="p">[:,</span><span class="n">mask_vali</span><span class="p">]</span> <span class="o">=</span> <span class="n">pod_vali</span>
+<span class="n">full_pod</span><span class="p">[:,</span><span class="n">mask_test</span><span class="p">]</span> <span class="o">=</span> <span class="n">pod_test</span>
+</pre></div>
+</div>
+</div>
+<p>Now that we know the output size of the SHRED model (number of POD modes), we can generate the SHRED model. Note that the default hyperparameters are used in this case. A single sensor setup is used in this case, hence only a SHRED configuration will be generated.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">shred</span>     <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">NN</span><span class="o">.</span><span class="n">SHRED</span><span class="p">(</span><span class="n">output_size</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">nsens</span><span class="p">)</span>
+<span class="n">mysensors</span> <span class="o">=</span> <span class="n">shred</span><span class="o">.</span><span class="n">configs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">shred</span><span class="o">.</span><span class="n">configs</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[[2 1 0]]
+</pre></div></div>
+</div>
+<p>Select the training, validation and test dataset of the sensors used in this configuration.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">mytrai</span> <span class="o">=</span> <span class="n">sens_trai</span><span class="p">[</span><span class="n">mysensors</span><span class="p">,:]</span>
+<span class="n">myvali</span> <span class="o">=</span> <span class="n">sens_vali</span><span class="p">[</span><span class="n">mysensors</span><span class="p">,:]</span>
+<span class="n">mytest</span> <span class="o">=</span> <span class="n">sens_test</span><span class="p">[</span><span class="n">mysensors</span><span class="p">,:]</span>
+</pre></div>
+</div>
+</div>
+<p>Scale the data of each sensor with a MinMaxScaler fitted on the training data. The MinMaxScaler is saved in a .json file.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">myscaler</span> <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">NN</span><span class="o">.</span><span class="n">MinMaxScaler</span><span class="p">(</span><span class="n">column</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">scalpath</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s%i</span><span class="s1">.json&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">inscaler</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="n">myscaler</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">mytrai</span><span class="p">)</span>
+<span class="n">myscaler</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">scalpath</span><span class="p">)</span>
+<span class="n">trai_sca</span> <span class="o">=</span> <span class="n">myscaler</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">mytrai</span><span class="p">)</span>
+<span class="n">vali_sca</span> <span class="o">=</span> <span class="n">myscaler</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">myvali</span><span class="p">)</span>
+<span class="n">test_sca</span> <span class="o">=</span> <span class="n">myscaler</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">mytest</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>The three different datasets are concatenated again to compute the time delay embedding</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">embedded</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">trai_sca</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">ntimeG</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">trai_sca</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+<span class="n">embedded</span><span class="p">[:,</span><span class="n">mask_trai</span><span class="p">]</span> <span class="o">=</span> <span class="n">trai_sca</span>
+<span class="n">embedded</span><span class="p">[:,</span><span class="n">mask_vali</span><span class="p">]</span> <span class="o">=</span> <span class="n">vali_sca</span>
+<span class="n">embedded</span><span class="p">[:,</span><span class="n">mask_test</span><span class="p">]</span> <span class="o">=</span> <span class="n">test_sca</span>
+<span class="n">delayed</span> <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">time_delay_embedding</span><span class="p">(</span><span class="n">embedded</span><span class="p">,</span> <span class="n">dimension</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>The SHRED model is fitted and its weights are saved together with the ID of the input sensors and the path to the used scalers</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train_dataset</span> <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">NN</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">trai_out</span><span class="p">,</span> <span class="n">variables_in</span><span class="o">=</span><span class="n">delayed</span><span class="p">[:,</span><span class="n">mask_trai</span><span class="p">,:])</span>
+<span class="n">valid_dataset</span> <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">NN</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">vali_out</span><span class="p">,</span> <span class="n">variables_in</span><span class="o">=</span><span class="n">delayed</span><span class="p">[:,</span><span class="n">mask_vali</span><span class="p">,:])</span>
+<span class="n">shred</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">valid_dataset</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">1500</span><span class="p">,</span> <span class="n">patience</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mod_scale</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">Sscale</span><span class="p">))</span>
+<span class="n">shred</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s%i</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">shreds</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span> <span class="n">scalpath</span><span class="p">,</span> <span class="n">outscale</span><span class="p">,</span> <span class="n">mysensors</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Training done: Training loss = 0.29 Validation loss = 0.93
+</pre></div></div>
+</div>
+</section>
+<section id="Step-3:-inference-SHRED">
+<h2>Step 3: inference SHRED<a class="headerlink" href="#Step-3:-inference-SHRED" title="Link to this heading">#</a></h2>
+<p>After training the SHRED models, it is time to evaluate their performance on reconstructing the POD coefficients. This step is also done in serial and reuses the results from the SHRED model fitted in the previous step. However, a script combining all chunks of code and working with N pre-trained SHRED configurations for uncertainty quantification can be found <a class="reference external" href="https://github.com/ArnauMiro/pyLowOrder/blob/120-add-shred/Examples/NN/SHRED/example_03_inference_shred_cylinder.py">here</a>.</p>
+<p>We first evaluate the SHRED Model with the full dataset (including training, validation and test)</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">output</span> <span class="o">=</span> <span class="n">shred</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">delayed</span><span class="p">)</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">))</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">T</span>
+</pre></div>
+</div>
+</div>
+<p>Then, we rescale the output using the MinMaxScaler used to scale the POD coefficients so that we can compare the SHRED output with the original values. The comparison is done using the Mean Relative Error</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">outres</span> <span class="o">=</span> <span class="n">pod_scaler</span><span class="o">.</span><span class="n">inverse_transform</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+<span class="n">MRE</span>    <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">MRE_array</span><span class="p">(</span><span class="n">full_pod</span><span class="p">,</span> <span class="n">outres</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>We then save the predicted POD coefficients so that we can load them in the reconstruction step of the tutorial</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pyLOM</span><span class="o">.</span><span class="n">POD</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">&#39;POD_predicted_</span><span class="si">%s</span><span class="s1">.h5&#39;</span><span class="o">%</span> <span class="n">podvar</span><span class="p">,</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">outres</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">partition_table</span><span class="p">,</span><span class="n">nvars</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>We can evaluate the SHRED performance on the POD coefficients with a bar plot that represents the MRE for each of the modes</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">NN</span><span class="o">.</span><span class="n">plotModalErrorBars</span><span class="p">(</span><span class="n">MRE</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/notebook_examples_NN_SHRED_step_01_SVD_and_sensor_cylinder_57_0.png" src="../../../_images/notebook_examples_NN_SHRED_step_01_SVD_and_sensor_cylinder_57_0.png" />
+</div>
+</div>
+<p>And by comparing the prediction of the time evolution of each of the modes with their original values</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">NN</span><span class="o">.</span><span class="n">plotTimeSeries</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">full_pod</span><span class="p">,</span> <span class="n">outres</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/notebook_examples_NN_SHRED_step_01_SVD_and_sensor_cylinder_59_0.png" src="../../../_images/notebook_examples_NN_SHRED_step_01_SVD_and_sensor_cylinder_59_0.png" />
+</div>
+</div>
+</section>
+<section id="Step-4:-parallel-reconstruction">
+<h2>Step 4: parallel reconstruction<a class="headerlink" href="#Step-4:-parallel-reconstruction" title="Link to this heading">#</a></h2>
+<p>The last step is loading the predicted POD coefficients and reconstructing the flow to evaluate its error regarding the original field. This part of the tutorial needs to be executed with the same amount of processors as Step 1 (where we extracted the data from the sensors and computed the POD). A script combining all chunks of code can be found <a class="reference external" href="https://github.com/ArnauMiro/pyLowOrder/blob/120-add-shred/Examples/NN/SHRED/example_01_SVD_and_sensors_cylinder.py">here</a>. Note that this script
+reloads the original dataset, the training POD modes and the predicted POD coefficients by SHRED, but in this case we can just reuse the computed ones.</p>
+<p>We start by reconstructing the field from the training POD modes and singular values and then add the temporal mean of the original dataset (remember that until now we have been working with the fluctuations).</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">X_POD</span>  <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">POD</span><span class="o">.</span><span class="n">reconstruct</span><span class="p">(</span><span class="n">PSI</span><span class="p">,</span><span class="n">S</span><span class="p">,</span><span class="n">outres</span><span class="p">)</span>
+<span class="n">mean</span>   <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">temporal_mean</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="n">VARIABLE</span><span class="p">])</span>
+<span class="n">X_PODm</span> <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">subtract_mean</span><span class="p">(</span><span class="n">X_POD</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="n">mean</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>We compute the root mean square error between the original field and the reconstruction</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">rmse</span> <span class="o">=</span> <span class="n">pyLOM</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">RMSE</span><span class="p">(</span><span class="n">X_PODm</span><span class="p">,</span><span class="n">d</span><span class="p">[</span><span class="n">VARIABLE</span><span class="p">])</span>
+<span class="n">pyLOM</span><span class="o">.</span><span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="s1">&#39;RMSE = </span><span class="si">%e</span><span class="s1">&#39;</span><span class="o">%</span><span class="k">rmse</span>)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+RMSE = 9.365563e-03
+</pre></div></div>
+</div>
+<p>Then, we add the reconstruction to the dataset so that we can plot the snapshots (serial cases) or save them to visualize them afterwards using any parallel visualization tool such as ParaView.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">d</span><span class="o">.</span><span class="n">add_field</span><span class="p">(</span><span class="s1">&#39;VELOR&#39;</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">X_PODm</span><span class="p">)</span>
+<span class="n">pyLOM</span><span class="o">.</span><span class="n">POD</span><span class="o">.</span><span class="n">plotSnapshot</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="n">d</span><span class="o">.</span><span class="n">to_cpu</span><span class="p">([</span><span class="s1">&#39;VELOR&#39;</span><span class="p">]),</span><span class="nb">vars</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;VELOR&#39;</span><span class="p">],</span><span class="n">instant</span><span class="o">=</span><span class="n">teidx</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">component</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;jet&#39;</span><span class="p">,</span><span class="n">cpos</span><span class="o">=</span><span class="s1">&#39;xy&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/home/benet/.local/lib/python3.9/site-packages/pyvista/jupyter/notebook.py:58: UserWarning: Failed to use notebook backend:
+
+No module named &#39;trame.ui.vuetify&#39;
+
+Falling back to a static output.
+  warnings.warn(
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/notebook_examples_NN_SHRED_step_01_SVD_and_sensor_cylinder_67_1.png" src="../../../_images/notebook_examples_NN_SHRED_step_01_SVD_and_sensor_cylinder_67_1.png" />
+</div>
+</div>
+<p>We can compare it with the original flow at the same time instant (the first one in the test set)</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pyLOM</span><span class="o">.</span><span class="n">POD</span><span class="o">.</span><span class="n">plotSnapshot</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="n">d</span><span class="o">.</span><span class="n">to_cpu</span><span class="p">([</span><span class="s1">&#39;VELOX&#39;</span><span class="p">]),</span><span class="nb">vars</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;VELOX&#39;</span><span class="p">],</span><span class="n">instant</span><span class="o">=</span><span class="n">teidx</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">component</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;jet&#39;</span><span class="p">,</span><span class="n">cpos</span><span class="o">=</span><span class="s1">&#39;xy&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/home/benet/.local/lib/python3.9/site-packages/pyvista/jupyter/notebook.py:58: UserWarning: Failed to use notebook backend:
+
+No module named &#39;trame.ui.vuetify&#39;
+
+Falling back to a static output.
+  warnings.warn(
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/notebook_examples_NN_SHRED_step_01_SVD_and_sensor_cylinder_69_1.png" src="../../../_images/notebook_examples_NN_SHRED_step_01_SVD_and_sensor_cylinder_69_1.png" />
+</div>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../../example_POD_cylinder.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Example of parallel Proper Orthogonal Decomposition</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="../PINNs/burgers_PINN_training_pipeline.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Train a PINN (Physics Informed Neural Network) with a custom PDE</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Step-1:-parallel-POD-and-sensor-interpolation">Step 1: parallel POD and sensor interpolation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Step-2:-Fit-SHRED">Step 2: Fit SHRED</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Step-3:-inference-SHRED">Step 3: inference SHRED</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#Step-4:-parallel-reconstruction">Step 4: parallel reconstruction</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  
+  <div class="tocsection editthispage">
+    <a href="https://github.com/ArnauMiro/pyLowOrder/edit/master/docs/source/notebook_examples/NN/SHRED/step_01_SVD_and_sensor_cylinder.ipynb">
+      <i class="fa-solid fa-pencil"></i>
+      
+      
+        
+          Edit on GitHub
+        
+      
+    </a>
+  </div>
+</div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/notebook_examples/NN/SHRED/step_01_SVD_and_sensor_cylinder.ipynb.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2023-2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

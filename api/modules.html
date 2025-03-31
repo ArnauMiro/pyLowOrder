@@ -58,7 +58,7 @@
     <link rel="prev" title="Welcome to pyLOM’s documentation" href="../index.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2.1.0" />
+  <meta name="docsearch:version" content="3.1.0" />
   </head>
   
   
@@ -324,9 +324,9 @@
 </details></li>
 <li class="toctree-l2"><a class="reference internal" href="pyLOM.POD.html">pyLOM.POD</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyLOM.SPOD.html">pyLOM.SPOD</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pyLOM.inp_out.html">pyLOM.inp_out</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.io.html">pyLOM.io</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyLOM.utils.html">pyLOM.utils</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pyLOM.vmmath.html">pyLOM.vmmath</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.math.html">pyLOM.math</a></li>
 </ul>
 </details></li>
 </ul>
@@ -421,16 +421,16 @@
 <li class="toctree-l4"><a class="reference internal" href="pyLOM.SPOD.html#module-pyLOM.SPOD">Module contents</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.inp_out.html">pyLOM.inp_out</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="pyLOM.inp_out.html#module-pyLOM.inp_out">Module contents</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html">pyLOM.io</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.io.html#module-pyLOM.io">Module contents</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.utils.html">pyLOM.utils</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="pyLOM.utils.html#module-pyLOM.utils">Module contents</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html">pyLOM.vmmath</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="pyLOM.vmmath.html#module-pyLOM.vmmath">Module contents</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html">pyLOM.math</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.math.html#module-pyLOM.math">Module contents</a></li>
 </ul>
 </li>
 </ul>
@@ -451,7 +451,10 @@
 <li class="toctree-l4"><a class="reference internal" href="pyLOM.html#pyLOM.Dataset.to_cpu"><code class="docutils literal notranslate"><span class="pre">Dataset.to_cpu()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="pyLOM.html#pyLOM.Dataset.add_field"><code class="docutils literal notranslate"><span class="pre">Dataset.add_field()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="pyLOM.html#pyLOM.Dataset.add_variable"><code class="docutils literal notranslate"><span class="pre">Dataset.add_variable()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.html#pyLOM.Dataset.split_data"><code class="docutils literal notranslate"><span class="pre">Dataset.split_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.html#pyLOM.Dataset.mask_field"><code class="docutils literal notranslate"><span class="pre">Dataset.mask_field()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="pyLOM.html#pyLOM.Dataset.append_variable"><code class="docutils literal notranslate"><span class="pre">Dataset.append_variable()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.html#pyLOM.Dataset.select_random_sensors"><code class="docutils literal notranslate"><span class="pre">Dataset.select_random_sensors()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="pyLOM.html#pyLOM.Dataset.reshape"><code class="docutils literal notranslate"><span class="pre">Dataset.reshape()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="pyLOM.html#pyLOM.Dataset.X"><code class="docutils literal notranslate"><span class="pre">Dataset.X()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="pyLOM.html#pyLOM.Dataset.save"><code class="docutils literal notranslate"><span class="pre">Dataset.save()</span></code></a></li>
@@ -533,9 +536,10 @@
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.html#pyLOM.cr_info"><code class="docutils literal notranslate"><span class="pre">cr_info()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.html#pyLOM.nvtxp"><code class="docutils literal notranslate"><span class="pre">nvtxp()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.html#pyLOM.pprint"><code class="docutils literal notranslate"><span class="pre">pprint()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.html#pyLOM.gpu_device"><code class="docutils literal notranslate"><span class="pre">gpu_device()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.html#pyLOM.show_plots"><code class="docutils literal notranslate"><span class="pre">show_plots()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.html#pyLOM.close_plots"><code class="docutils literal notranslate"><span class="pre">close_plots()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.html#pyLOM.style_plots"><code class="docutils literal notranslate"><span class="pre">style_plots()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.html#pyLOM.gpu_device"><code class="docutils literal notranslate"><span class="pre">gpu_device()</span></code></a></li>
 </ul>
 </li>
 </ul>

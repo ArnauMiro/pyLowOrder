@@ -53,7 +53,7 @@
     <link rel="search" title="Search" href="../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2.1.0" />
+  <meta name="docsearch:version" content="3.1.0" />
   </head>
   
   
@@ -367,8 +367,10 @@
 
 <span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
-<span class="kn">from</span> <span class="nn">.</span>      <span class="kn">import</span> <span class="n">inp_out</span> <span class="k">as</span> <span class="n">io</span>
-<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">cr_nvtx</span> <span class="k">as</span> <span class="n">cr</span><span class="p">,</span> <span class="n">mem</span><span class="p">,</span> <span class="n">raiseError</span><span class="p">,</span> <span class="n">gpu_to_cpu</span><span class="p">,</span> <span class="n">cpu_to_gpu</span>
+<span class="kn">from</span> <span class="nn">.partition_table</span> <span class="kn">import</span> <span class="n">PartitionTable</span>
+<span class="kn">from</span> <span class="nn">.</span>                <span class="kn">import</span> <span class="n">inp_out</span> <span class="k">as</span> <span class="n">io</span>
+<span class="kn">from</span> <span class="nn">.utils</span>           <span class="kn">import</span> <span class="n">cr_nvtx</span> <span class="k">as</span> <span class="n">cr</span><span class="p">,</span> <span class="n">raiseError</span><span class="p">,</span> <span class="n">gpu_to_cpu</span><span class="p">,</span> <span class="n">cpu_to_gpu</span><span class="p">,</span> <span class="n">pprint</span><span class="p">,</span> <span class="n">mpi_gather</span><span class="p">,</span> <span class="n">MPI_RANK</span><span class="p">,</span> <span class="n">MPI_SIZE</span>
+<span class="kn">from</span> <span class="nn">.vmmath</span>          <span class="kn">import</span> <span class="n">data_splitting</span><span class="p">,</span> <span class="n">find_random_sensors</span>
 
 
 <div class="viewcode-block" id="Dataset">
@@ -422,9 +424,9 @@
 			<span class="n">field</span>  <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span>
 			<span class="n">nanstr</span> <span class="o">=</span> <span class="s1">&#39; (has NaNs) &#39;</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">field</span><span class="p">))</span> <span class="k">else</span> <span class="s1">&#39; &#39;</span>
 			<span class="n">s</span>     <span class="o">+=</span> <span class="s1">&#39;  &gt; &#39;</span> <span class="o">+</span>  <span class="n">key</span> <span class="o">+</span> <span class="n">nanstr</span> <span class="o">+</span> <span class="s1">&#39;- max = &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">field</span><span class="p">))</span> \
-										    <span class="o">+</span> <span class="s1">&#39;, min = &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">field</span><span class="p">))</span> \
-										    <span class="o">+</span> <span class="s1">&#39;, avg = &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">field</span><span class="p">))</span> \
-										    <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+											<span class="o">+</span> <span class="s1">&#39;, min = &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">field</span><span class="p">))</span> \
+											<span class="o">+</span> <span class="s1">&#39;, avg = &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">field</span><span class="p">))</span> \
+											<span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
 		<span class="k">return</span> <span class="n">s</span></div>
 
 		
@@ -473,9 +475,15 @@
 
 <div class="viewcode-block" id="Dataset.get_variable">
 <a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.get_variable">[docs]</a>
-	<span class="k">def</span> <span class="nf">get_variable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">key</span><span class="p">):</span>
-<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+	<span class="k">def</span> <span class="nf">get_variable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">key</span><span class="p">:</span><span class="nb">str</span><span class="p">):</span>
+<span class="w">		</span><span class="sa">r</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">		Recover the value of a variable given its key</span>
+
+<span class="sd">		Args:</span>
+<span class="sd">			key (str): name of the variable</span>
+
+<span class="sd">		Returns:</span>
+<span class="sd">			(np.ndarray): value of the variable</span>
 <span class="sd">		&#39;&#39;&#39;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vardict</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span></div>
 
@@ -558,6 +566,40 @@
 		<span class="p">}</span></div>
 
 
+<div class="viewcode-block" id="Dataset.split_data">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.split_data">[docs]</a>
+	<span class="k">def</span> <span class="nf">split_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">var</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;reconstruct&#39;</span><span class="p">):</span>
+<span class="w">		</span><span class="sa">r</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Generate random training, validation and test masks for a dataset of Nt samples.</span>
+
+<span class="sd">		Args:</span>
+<span class="sd">			variable (str): variable which will be splitted in different samples</span>
+<span class="sd">			mode (str, optional): type of splitting to perform (default, ``&#39;reconstruct&#39;``). In reconstruct mode all three datasets have samples along all the data range.</span>
+<span class="sd">	</span>
+<span class="sd">		Returns:</span>
+<span class="sd">			[(np.ndarray), (np.ndarray), (np.ndarray)]: List of arrays containing the identifiers of the training, validation and test samples.</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		
+		<span class="n">N</span>    <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">var</span><span class="p">][</span><span class="s2">&quot;value&quot;</span><span class="p">])</span>
+		<span class="n">idim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">var</span><span class="p">][</span><span class="s2">&quot;idim&quot;</span><span class="p">]</span>
+		<span class="n">trid</span><span class="p">,</span> <span class="n">vaid</span><span class="p">,</span> <span class="n">teid</span> <span class="o">=</span> <span class="n">data_splitting</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">add_variable</span><span class="p">(</span><span class="s1">&#39;training_</span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="n">var</span><span class="p">,</span><span class="n">idim</span><span class="p">,</span><span class="n">trid</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">add_variable</span><span class="p">(</span><span class="s1">&#39;validation_</span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="n">var</span><span class="p">,</span><span class="n">idim</span><span class="p">,</span><span class="n">vaid</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">add_variable</span><span class="p">(</span><span class="s1">&#39;test_</span><span class="si">%s</span><span class="s1">&#39;</span><span class="o">%</span><span class="n">var</span><span class="p">,</span><span class="n">idim</span><span class="p">,</span><span class="n">teid</span><span class="p">)</span>
+
+		<span class="k">return</span> <span class="n">trid</span><span class="p">,</span> <span class="n">vaid</span><span class="p">,</span> <span class="n">teid</span></div>
+
+
+<div class="viewcode-block" id="Dataset.mask_field">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.mask_field">[docs]</a>
+	<span class="k">def</span> <span class="nf">mask_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Mask a field over a defined variable</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span> <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">str</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">][:,</span><span class="n">mask</span><span class="p">]</span></div>
+
+
 <div class="viewcode-block" id="Dataset.append_variable">
 <a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.append_variable">[docs]</a>
 	<span class="k">def</span> <span class="nf">append_variable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">varname</span><span class="p">,</span><span class="n">var</span><span class="p">,</span><span class="o">**</span><span class="n">fieldict</span><span class="p">):</span>
@@ -574,6 +616,39 @@
 		<span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">fieldict</span><span class="p">:</span>
 			<span class="n">aux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="bp">self</span><span class="p">[</span><span class="n">v</span><span class="p">][:,:,</span><span class="n">idim</span><span class="p">],</span><span class="n">fieldict</span><span class="p">[</span><span class="n">v</span><span class="p">]),</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span><span class="n">idx</span><span class="p">]</span>
 			<span class="bp">self</span><span class="p">[</span><span class="n">v</span><span class="p">][:,:,</span><span class="n">idim</span><span class="p">]</span> <span class="o">=</span> <span class="n">aux</span></div>
+
+
+<div class="viewcode-block" id="Dataset.select_random_sensors">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Dataset.select_random_sensors">[docs]</a>
+	<span class="k">def</span> <span class="nf">select_random_sensors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nsensors</span><span class="p">,</span> <span class="n">bounds</span><span class="p">,</span> <span class="n">VARLIST</span><span class="p">,</span> <span class="n">seed</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Generates a set of coordinats of nsensors random sensors inside the region defined by bounds.</span>
+<span class="sd">		Then for each sensor finds the nearest point from the dataset to get its coordinates and dataset value.</span>
+<span class="sd">		It creates a new dataset containing all the sensor coordinates and values</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="k">if</span> <span class="n">seed</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+		<span class="n">mysensors</span> <span class="o">=</span> <span class="n">find_random_sensors</span><span class="p">(</span><span class="n">bounds</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyz</span><span class="p">,</span> <span class="n">nsensors</span><span class="p">)</span>
+
+		<span class="c1"># Initialize new dataset</span>
+		<span class="n">myNsensors</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mysensors</span><span class="p">)</span>
+		<span class="n">time</span>       <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+		<span class="n">nparts</span>     <span class="o">=</span> <span class="n">MPI_SIZE</span>
+		<span class="n">ids</span>        <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">nparts</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+		<span class="n">points</span>     <span class="o">=</span> <span class="n">mpi_gather</span><span class="p">(</span><span class="n">myNsensors</span><span class="p">,</span> <span class="nb">all</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">if</span> <span class="n">MPI_SIZE</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">myNsensors</span><span class="p">])</span>
+		<span class="n">elements</span>   <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">MPI_SIZE</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+		<span class="n">ptable</span>     <span class="o">=</span> <span class="n">PartitionTable</span><span class="p">(</span><span class="n">nparts</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">elements</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">has_master</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+		<span class="n">sp</span><span class="p">,</span> <span class="n">ep</span>     <span class="o">=</span> <span class="n">ptable</span><span class="o">.</span><span class="n">partition_bounds</span><span class="p">(</span><span class="n">MPI_RANK</span><span class="p">)</span>
+		<span class="n">order</span>      <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="n">sp</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">ep</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="n">ep</span><span class="o">-</span><span class="n">sp</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+		<span class="n">sd</span>         <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">xyz</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">xyz</span><span class="p">[</span><span class="n">mysensors</span><span class="p">],</span> <span class="n">ptable</span><span class="o">=</span><span class="n">ptable</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">,</span> <span class="n">point</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="nb">vars</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_vardict</span><span class="p">)</span><span class="c1">#{&#39;time&#39;:{&#39;idim&#39;:0,&#39;value&#39;:time}})</span>
+		<span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fieldnames</span><span class="p">:</span>
+			<span class="k">if</span> <span class="n">field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">VARLIST</span><span class="p">:</span>
+				<span class="k">continue</span>
+			<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="n">field</span><span class="p">][</span><span class="s2">&quot;ndim&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+				<span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;WARNING!! Multidimensional variables are skipped as sensor datasets must be saved in nopartition mode. Separate each dimension of your variable&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+				<span class="k">continue</span>
+			<span class="n">sd</span><span class="o">.</span><span class="n">add_field</span><span class="p">(</span><span class="n">field</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="bp">self</span><span class="p">[</span><span class="n">field</span><span class="p">][</span><span class="n">mysensors</span><span class="p">])</span>
+		<span class="k">return</span> <span class="n">sd</span></div>
 
 
 <div class="viewcode-block" id="Dataset.reshape">

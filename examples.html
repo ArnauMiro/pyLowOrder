@@ -54,11 +54,11 @@
     <link rel="icon" href="_static/favicon_tmp.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Train a PINN (Physics Informed Neural Network) with a custom PDE" href="notebook_examples/burgers_PINN_training_pipeline.html" />
-    <link rel="prev" title="pyLOM.vmmath" href="api/pyLOM.vmmath.html" />
+    <link rel="next" title="Example of parallel Proper Orthogonal Decomposition" href="notebook_examples/example_POD_cylinder.html" />
+    <link rel="prev" title="pyLOM.math" href="api/pyLOM.math.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2.1.0" />
+  <meta name="docsearch:version" content="3.1.0" />
   </head>
   
   
@@ -313,9 +313,11 @@
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
   <div class="bd-toc-item navbar-nav"><ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="notebook_examples/burgers_PINN_training_pipeline.html">Train a PINN (Physics Informed Neural Network) with a custom PDE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook_examples/example_POD_cylinder.html">Example of parallel Proper Orthogonal Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook_examples/NN/SHRED/step_01_SVD_and_sensor_cylinder.html">SHRED at scale</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook_examples/NN/PINNs/burgers_PINN_training_pipeline.html">Train a PINN (Physics Informed Neural Network) with a custom PDE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="notebook_examples/NN/MLP_training.html">How to train an MLP using the Pipeline</a></li>
-<li class="toctree-l1"><a class="reference internal" href="notebook_examples/NN/KAN_training.html">How to train an MLP using the Pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook_examples/NN/KAN_training.html">How to train an KAN using the Pipeline</a></li>
 </ul>
 </div>
 </nav></div>
@@ -375,16 +377,24 @@
                   
   <section id="examples">
 <h1>Examples<a class="headerlink" href="#examples" title="Link to this heading">#</a></h1>
-<p>This is the exmaples section, here you can find some notebooks that will guide you through the basic usage of pyLOM.</p>
+<p>This is the examples section, here you can find some notebooks that will guide you through the basic usage of pyLOM. The data used for these notebooks can be found in the following Hugging face repository: <a class="reference external" href="https://huggingface.co/datasets/bef-18/pyLOM_examples/tree/main">https://huggingface.co/datasets/bef-18/pyLOM_examples/tree/main</a></p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="notebook_examples/burgers_PINN_training_pipeline.html">Train a PINN (Physics Informed Neural Network) with a custom PDE</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="notebook_examples/burgers_PINN_training_pipeline.html#Define-the-collocation-points">Define the collocation points</a></li>
-<li class="toctree-l2"><a class="reference internal" href="notebook_examples/burgers_PINN_training_pipeline.html#Define-the-PDE">Define the PDE</a></li>
-<li class="toctree-l2"><a class="reference internal" href="notebook_examples/burgers_PINN_training_pipeline.html#Define-the-boundary-conditions">Define the boundary conditions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="notebook_examples/burgers_PINN_training_pipeline.html#Train-the-pinn">Train the pinn</a></li>
-<li class="toctree-l2"><a class="reference internal" href="notebook_examples/burgers_PINN_training_pipeline.html#Make-the-predictions-and-plot-the-results">Make the predictions and plot the results</a></li>
-<li class="toctree-l2"><a class="reference internal" href="notebook_examples/burgers_PINN_training_pipeline.html#Save-and-load-the-model">Save and load the model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook_examples/example_POD_cylinder.html">Example of parallel Proper Orthogonal Decomposition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook_examples/NN/SHRED/step_01_SVD_and_sensor_cylinder.html">SHRED at scale</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/SHRED/step_01_SVD_and_sensor_cylinder.html#Step-1:-parallel-POD-and-sensor-interpolation">Step 1: parallel POD and sensor interpolation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/SHRED/step_01_SVD_and_sensor_cylinder.html#Step-2:-Fit-SHRED">Step 2: Fit SHRED</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/SHRED/step_01_SVD_and_sensor_cylinder.html#Step-3:-inference-SHRED">Step 3: inference SHRED</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/SHRED/step_01_SVD_and_sensor_cylinder.html#Step-4:-parallel-reconstruction">Step 4: parallel reconstruction</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="notebook_examples/NN/PINNs/burgers_PINN_training_pipeline.html">Train a PINN (Physics Informed Neural Network) with a custom PDE</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/PINNs/burgers_PINN_training_pipeline.html#Define-the-collocation-points">Define the collocation points</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/PINNs/burgers_PINN_training_pipeline.html#Define-the-PDE">Define the PDE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/PINNs/burgers_PINN_training_pipeline.html#Define-the-boundary-conditions">Define the boundary conditions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/PINNs/burgers_PINN_training_pipeline.html#Train-the-pinn">Train the pinn</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/PINNs/burgers_PINN_training_pipeline.html#Make-the-predictions-and-plot-the-results">Make the predictions and plot the results</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/PINNs/burgers_PINN_training_pipeline.html#Save-and-load-the-model">Save and load the model</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="notebook_examples/NN/MLP_training.html">How to train an MLP using the Pipeline</a><ul>
@@ -397,7 +407,7 @@
 <li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/MLP_training.html#Evaluate-the-model-with-some-metrics">Evaluate the model with some metrics</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="notebook_examples/NN/KAN_training.html">How to train an MLP using the Pipeline</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="notebook_examples/NN/KAN_training.html">How to train an KAN using the Pipeline</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/KAN_training.html#Import-classes-and-define-paths">Import classes and define paths</a></li>
 <li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/KAN_training.html#Define-scalers-if-needed">Define scalers if needed</a></li>
 <li class="toctree-l2"><a class="reference internal" href="notebook_examples/NN/KAN_training.html#Create-datasets">Create datasets</a></li>
@@ -422,20 +432,20 @@
                   
 <div class="prev-next-area">
     <a class="left-prev"
-       href="api/pyLOM.vmmath.html"
+       href="api/pyLOM.math.html"
        title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">pyLOM.vmmath</p>
+        <p class="prev-next-title">pyLOM.math</p>
       </div>
     </a>
     <a class="right-next"
-       href="notebook_examples/burgers_PINN_training_pipeline.html"
+       href="notebook_examples/example_POD_cylinder.html"
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">Train a PINN (Physics Informed Neural Network) with a custom PDE</p>
+        <p class="prev-next-title">Example of parallel Proper Orthogonal Decomposition</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>

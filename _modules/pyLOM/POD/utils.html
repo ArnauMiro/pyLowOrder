@@ -53,7 +53,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2.1.0" />
+  <meta name="docsearch:version" content="3.1.0" />
   </head>
   
   
@@ -368,16 +368,25 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="kn">from</span> <span class="nn">..utils.gpu</span> <span class="kn">import</span> <span class="n">cp</span>
-<span class="kn">from</span> <span class="nn">..</span>          <span class="kn">import</span> <span class="n">inp_out</span> <span class="k">as</span> <span class="n">io</span>
+<span class="kn">from</span> <span class="nn">..</span>          <span class="kn">import</span> <span class="n">inp_out</span> <span class="k">as</span> <span class="n">io</span><span class="p">,</span> <span class="n">PartitionTable</span>
 <span class="kn">from</span> <span class="nn">..utils</span>     <span class="kn">import</span> <span class="n">cr_nvtx</span> <span class="k">as</span> <span class="n">cr</span><span class="p">,</span> <span class="n">gpu_to_cpu</span>
-
 
 <div class="viewcode-block" id="extract_modes">
 <a class="viewcode-back" href="../../../api/pyLOM.POD.html#pyLOM.POD.extract_modes">[docs]</a>
 <span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;POD.extract_modes&#39;</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">extract_modes</span><span class="p">(</span><span class="n">U</span><span class="p">,</span><span class="n">ivar</span><span class="p">,</span><span class="n">npoints</span><span class="p">,</span><span class="n">modes</span><span class="o">=</span><span class="p">[],</span><span class="n">reshape</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-<span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">	Extract modes for a certain variables</span>
+<span class="k">def</span> <span class="nf">extract_modes</span><span class="p">(</span><span class="n">U</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span><span class="n">ivar</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span><span class="n">npoints</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span><span class="n">modes</span><span class="p">:</span><span class="nb">list</span><span class="o">=</span><span class="p">[],</span><span class="n">reshape</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">	</span><span class="sa">r</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	When performing POD of several variables simultaneously, this function separates the spatial modes from each of the variables.</span>
+
+<span class="sd">	Args:</span>
+<span class="sd">		U (np.ndarray): POD spatial modes</span>
+<span class="sd">		ivar (int): ID of the variable (i. e.) position in which it was concatenated to the rest of data (min=1, max=number of concatenated variables)</span>
+<span class="sd">		npoints (int): number of points in the domain per variable</span>
+<span class="sd">		modes (list, optional): list containing the id of the modes to separate (default ``[]``).</span>
+<span class="sd">		reshape (bool, optional): if true the output will be given as (len(modes)*npoints,) if not it the result will be (npoints, len(modes)) (default `` True ``)</span>
+
+<span class="sd">	Returns:</span>
+<span class="sd">		np.ndarray: modes of the variable ivar</span>
 <span class="sd">	&#39;&#39;&#39;</span>
 	<span class="n">p</span> <span class="o">=</span> <span class="n">cp</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">U</span><span class="p">)</span> <span class="ow">is</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span> <span class="k">else</span> <span class="n">np</span>
 	<span class="n">nvars</span> <span class="o">=</span> <span class="n">U</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">//</span><span class="n">npoints</span>
@@ -395,10 +404,20 @@
 <div class="viewcode-block" id="save">
 <a class="viewcode-back" href="../../../api/pyLOM.POD.html#pyLOM.POD.save">[docs]</a>
 <span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;POD.save&#39;</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="n">U</span><span class="p">,</span><span class="n">S</span><span class="p">,</span><span class="n">V</span><span class="p">,</span><span class="n">ptable</span><span class="p">,</span><span class="n">nvars</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">pointData</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">):</span>
-<span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">	Store POD variables in serial or parallel</span>
-<span class="sd">	according to the partition used to compute the POD.</span>
+<span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="n">fname</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span><span class="n">U</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span><span class="n">S</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span><span class="n">V</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span><span class="n">ptable</span><span class="p">:</span><span class="n">PartitionTable</span><span class="p">,</span><span class="n">nvars</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">pointData</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">mode</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">):</span>
+<span class="w">	</span><span class="sa">r</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Store POD results in serial or parallel according to the partition used to compute the POD. It will be saved on a h5 file.</span>
+
+<span class="sd">	Args:</span>
+<span class="sd">		fname (str): path to the .h5 file in which the POD will be saved</span>
+<span class="sd">		U (np.ndarray): spatial modes to save. To avoid saving the spatial modes, just give None as input</span>
+<span class="sd">		S (np.ndarray): singular values to save. To avoid saving the singular values, just give None as input</span>
+<span class="sd">		V (np.ndarray): temporal coefficients to save. To avoid saving the temporal coefficients, just give None as input</span>
+<span class="sd">		ptable (PartitionTable): partition table used to compute the POD</span>
+<span class="sd">		nvars (int, optional): number of concatenated variables when computing the POD (default ``1``)</span>
+<span class="sd">		pointData (bool, optional): bool to specify if the POD was performed either on point data or cell data (default ``True``)</span>
+<span class="sd">		mode (str, optional): mode in which the HDF5 file is opened, &#39;w&#39; stands for write mode and &#39;a&#39; stands for append mode. Write mode will overwrite the file and append mode will add the informaiton at the end of the current file, choose with great care what to do in your case (default ``w``).</span>
+
 <span class="sd">	&#39;&#39;&#39;</span>
 	<span class="n">io</span><span class="o">.</span><span class="n">h5_save_POD</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="n">gpu_to_cpu</span><span class="p">(</span><span class="n">U</span><span class="p">),</span><span class="n">gpu_to_cpu</span><span class="p">(</span><span class="n">S</span><span class="p">),</span><span class="n">gpu_to_cpu</span><span class="p">(</span><span class="n">V</span><span class="p">),</span><span class="n">ptable</span><span class="p">,</span><span class="n">nvars</span><span class="o">=</span><span class="n">nvars</span><span class="p">,</span><span class="n">pointData</span><span class="o">=</span><span class="n">pointData</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span></div>
 
@@ -407,10 +426,19 @@
 <div class="viewcode-block" id="load">
 <a class="viewcode-back" href="../../../api/pyLOM.POD.html#pyLOM.POD.load">[docs]</a>
 <span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;POD.load&#39;</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="nb">vars</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;U&#39;</span><span class="p">,</span><span class="s1">&#39;S&#39;</span><span class="p">,</span><span class="s1">&#39;V&#39;</span><span class="p">],</span><span class="n">nmod</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span><span class="n">ptable</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">	</span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">	Load POD variables in serial or parallel</span>
-<span class="sd">	according to the partition used to compute the POD.</span>
+<span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">fname</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span><span class="nb">vars</span><span class="p">:</span><span class="nb">list</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;U&#39;</span><span class="p">,</span><span class="s1">&#39;S&#39;</span><span class="p">,</span><span class="s1">&#39;V&#39;</span><span class="p">],</span><span class="n">nmod</span><span class="p">:</span><span class="nb">int</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span><span class="n">ptable</span><span class="p">:</span><span class="n">PartitionTable</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">	</span><span class="sa">r</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Load POD results from a .h5 file in serial or parallel according to the partition used to compute the POD.</span>
+
+<span class="sd">	Args:</span>
+<span class="sd">		fname (str): path to the .h5 file in which the POD was saved</span>
+<span class="sd">		vars (list): list of variables to load. The following notation, consistent with the save function, is used,</span>
+<span class="sd">			&#39;U&#39;: spatial modes</span>
+<span class="sd">			&#39;S&#39;: singular values</span>
+<span class="sd">			&#39;V&#39;: temporal coefficients</span>
+<span class="sd">		the default option is to load them all, but it is not recommended to load the spatial modes if they are not going to be used during the rest of the script.</span>
+<span class="sd">		nmod (int, optional): number of modes to load. By default it will load all the saved modes (default, ``-1``)</span>
+<span class="sd">		ptable (PartitionTable, optional): partition table to use when loading the data (default ``None``).</span>
 <span class="sd">	&#39;&#39;&#39;</span>
 	<span class="k">return</span> <span class="n">io</span><span class="o">.</span><span class="n">h5_load_POD</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="nb">vars</span><span class="p">,</span><span class="n">nmod</span><span class="p">,</span><span class="n">ptable</span><span class="p">)</span></div>
 

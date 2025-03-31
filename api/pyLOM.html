@@ -58,7 +58,7 @@
     <link rel="prev" title="pyLOM" href="modules.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="2.1.0" />
+  <meta name="docsearch:version" content="3.1.0" />
   </head>
   
   
@@ -324,9 +324,9 @@
 </details></li>
 <li class="toctree-l2"><a class="reference internal" href="pyLOM.POD.html">pyLOM.POD</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyLOM.SPOD.html">pyLOM.SPOD</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pyLOM.inp_out.html">pyLOM.inp_out</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.io.html">pyLOM.io</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyLOM.utils.html">pyLOM.utils</a></li>
-<li class="toctree-l2"><a class="reference internal" href="pyLOM.vmmath.html">pyLOM.vmmath</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.math.html">pyLOM.math</a></li>
 </ul>
 </details></li>
 </ul>
@@ -450,6 +450,8 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="pyLOM.NN.html#module-pyLOM.NN">Module contents</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.plotSnapshot"><code class="docutils literal notranslate"><span class="pre">plotSnapshot()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.plotModalErrorBars"><code class="docutils literal notranslate"><span class="pre">plotModalErrorBars()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.plotTimeSeries"><code class="docutils literal notranslate"><span class="pre">plotTimeSeries()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Pipeline"><code class="docutils literal notranslate"><span class="pre">Pipeline</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Pipeline.model"><code class="docutils literal notranslate"><span class="pre">Pipeline.model</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Pipeline.run"><code class="docutils literal notranslate"><span class="pre">Pipeline.run()</span></code></a></li>
@@ -571,6 +573,10 @@
 <li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Decoder3D.forward"><code class="docutils literal notranslate"><span class="pre">Decoder3D.forward()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.ShallowDecoder"><code class="docutils literal notranslate"><span class="pre">ShallowDecoder</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.ShallowDecoder.forward"><code class="docutils literal notranslate"><span class="pre">ShallowDecoder.forward()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.PINN"><code class="docutils literal notranslate"><span class="pre">PINN</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.PINN.__call__"><code class="docutils literal notranslate"><span class="pre">PINN.__call__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.PINN.bc_data_loss"><code class="docutils literal notranslate"><span class="pre">PINN.bc_data_loss()</span></code></a></li>
@@ -602,6 +608,14 @@
 <li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.BoundaryCondition.points"><code class="docutils literal notranslate"><span class="pre">BoundaryCondition.points</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.SHRED"><code class="docutils literal notranslate"><span class="pre">SHRED</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.SHRED.forward"><code class="docutils literal notranslate"><span class="pre">SHRED.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.SHRED.freeze"><code class="docutils literal notranslate"><span class="pre">SHRED.freeze()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.SHRED.unfreeze"><code class="docutils literal notranslate"><span class="pre">SHRED.unfreeze()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.SHRED.fit"><code class="docutils literal notranslate"><span class="pre">SHRED.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.SHRED.save"><code class="docutils literal notranslate"><span class="pre">SHRED.save()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.tanh"><code class="docutils literal notranslate"><span class="pre">tanh()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.relu"><code class="docutils literal notranslate"><span class="pre">relu()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.elu"><code class="docutils literal notranslate"><span class="pre">elu()</span></code></a></li>
@@ -620,8 +634,8 @@
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.POD.html#pyLOM.POD.extract_modes"><code class="docutils literal notranslate"><span class="pre">extract_modes()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.POD.html#pyLOM.POD.save"><code class="docutils literal notranslate"><span class="pre">save()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.POD.html#pyLOM.POD.load"><code class="docutils literal notranslate"><span class="pre">load()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.POD.html#pyLOM.POD.plotResidual"><code class="docutils literal notranslate"><span class="pre">plotResidual()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.POD.html#pyLOM.POD.plotMode"><code class="docutils literal notranslate"><span class="pre">plotMode()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.POD.html#pyLOM.POD.plotResidual"><code class="docutils literal notranslate"><span class="pre">plotResidual()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.POD.html#pyLOM.POD.plotSnapshot"><code class="docutils literal notranslate"><span class="pre">plotSnapshot()</span></code></a></li>
 </ul>
 </li>
@@ -639,26 +653,26 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="pyLOM.inp_out.html">pyLOM.inp_out</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="pyLOM.inp_out.html#module-pyLOM.inp_out">Module contents</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.inp_out.html#pyLOM.inp_out.pkl_load"><code class="docutils literal notranslate"><span class="pre">pkl_load()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.inp_out.html#pyLOM.inp_out.pkl_save"><code class="docutils literal notranslate"><span class="pre">pkl_save()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.inp_out.html#pyLOM.inp_out.h5_load_dset"><code class="docutils literal notranslate"><span class="pre">h5_load_dset()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.inp_out.html#pyLOM.inp_out.h5_save_dset"><code class="docutils literal notranslate"><span class="pre">h5_save_dset()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.inp_out.html#pyLOM.inp_out.h5_append_dset"><code class="docutils literal notranslate"><span class="pre">h5_append_dset()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.inp_out.html#pyLOM.inp_out.h5_save_mesh"><code class="docutils literal notranslate"><span class="pre">h5_save_mesh()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.inp_out.html#pyLOM.inp_out.h5_load_mesh"><code class="docutils literal notranslate"><span class="pre">h5_load_mesh()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.inp_out.html#pyLOM.inp_out.h5_save_POD"><code class="docutils literal notranslate"><span class="pre">h5_save_POD()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.inp_out.html#pyLOM.inp_out.h5_load_POD"><code class="docutils literal notranslate"><span class="pre">h5_load_POD()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.inp_out.html#pyLOM.inp_out.h5_save_DMD"><code class="docutils literal notranslate"><span class="pre">h5_save_DMD()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.inp_out.html#pyLOM.inp_out.h5_load_DMD"><code class="docutils literal notranslate"><span class="pre">h5_load_DMD()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.inp_out.html#pyLOM.inp_out.h5_save_SPOD"><code class="docutils literal notranslate"><span class="pre">h5_save_SPOD()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.inp_out.html#pyLOM.inp_out.h5_load_SPOD"><code class="docutils literal notranslate"><span class="pre">h5_load_SPOD()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.inp_out.html#pyLOM.inp_out.h5_save_VAE"><code class="docutils literal notranslate"><span class="pre">h5_save_VAE()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.inp_out.html#pyLOM.inp_out.vtkh5_save_mesh"><code class="docutils literal notranslate"><span class="pre">vtkh5_save_mesh()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.inp_out.html#pyLOM.inp_out.vtkh5_link_mesh"><code class="docutils literal notranslate"><span class="pre">vtkh5_link_mesh()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.inp_out.html#pyLOM.inp_out.vtkh5_save_field"><code class="docutils literal notranslate"><span class="pre">vtkh5_save_field()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.inp_out.html#pyLOM.inp_out.pv_writer"><code class="docutils literal notranslate"><span class="pre">pv_writer()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="pyLOM.io.html">pyLOM.io</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.io.html#module-pyLOM.io">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_append_dset"><code class="docutils literal notranslate"><span class="pre">h5_append_dset()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_load_DMD"><code class="docutils literal notranslate"><span class="pre">h5_load_DMD()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_load_POD"><code class="docutils literal notranslate"><span class="pre">h5_load_POD()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_load_SPOD"><code class="docutils literal notranslate"><span class="pre">h5_load_SPOD()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_load_dset"><code class="docutils literal notranslate"><span class="pre">h5_load_dset()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_load_mesh"><code class="docutils literal notranslate"><span class="pre">h5_load_mesh()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_save_DMD"><code class="docutils literal notranslate"><span class="pre">h5_save_DMD()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_save_POD"><code class="docutils literal notranslate"><span class="pre">h5_save_POD()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_save_SPOD"><code class="docutils literal notranslate"><span class="pre">h5_save_SPOD()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_save_VAE"><code class="docutils literal notranslate"><span class="pre">h5_save_VAE()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_save_dset"><code class="docutils literal notranslate"><span class="pre">h5_save_dset()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_save_mesh"><code class="docutils literal notranslate"><span class="pre">h5_save_mesh()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.pkl_load"><code class="docutils literal notranslate"><span class="pre">pkl_load()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.pkl_save"><code class="docutils literal notranslate"><span class="pre">pkl_save()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.pv_writer"><code class="docutils literal notranslate"><span class="pre">pv_writer()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.vtkh5_link_mesh"><code class="docutils literal notranslate"><span class="pre">vtkh5_link_mesh()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.vtkh5_save_field"><code class="docutils literal notranslate"><span class="pre">vtkh5_save_field()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.vtkh5_save_mesh"><code class="docutils literal notranslate"><span class="pre">vtkh5_save_mesh()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -698,47 +712,51 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="pyLOM.vmmath.html">pyLOM.vmmath</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="pyLOM.vmmath.html#module-pyLOM.vmmath">Module contents</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.transpose"><code class="docutils literal notranslate"><span class="pre">transpose()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.vector_sum"><code class="docutils literal notranslate"><span class="pre">vector_sum()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.vector_norm"><code class="docutils literal notranslate"><span class="pre">vector_norm()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.vector_mean"><code class="docutils literal notranslate"><span class="pre">vector_mean()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.matmul"><code class="docutils literal notranslate"><span class="pre">matmul()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.matmulp"><code class="docutils literal notranslate"><span class="pre">matmulp()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.vecmat"><code class="docutils literal notranslate"><span class="pre">vecmat()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.argsort"><code class="docutils literal notranslate"><span class="pre">argsort()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.eigen"><code class="docutils literal notranslate"><span class="pre">eigen()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.polar"><code class="docutils literal notranslate"><span class="pre">polar()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.cholesky"><code class="docutils literal notranslate"><span class="pre">cholesky()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.vandermonde"><code class="docutils literal notranslate"><span class="pre">vandermonde()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.conj"><code class="docutils literal notranslate"><span class="pre">conj()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.diag"><code class="docutils literal notranslate"><span class="pre">diag()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.inv"><code class="docutils literal notranslate"><span class="pre">inv()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.flip"><code class="docutils literal notranslate"><span class="pre">flip()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.vandermondeTime"><code class="docutils literal notranslate"><span class="pre">vandermondeTime()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.temporal_mean"><code class="docutils literal notranslate"><span class="pre">temporal_mean()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.subtract_mean"><code class="docutils literal notranslate"><span class="pre">subtract_mean()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.compute_truncation_residual"><code class="docutils literal notranslate"><span class="pre">compute_truncation_residual()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.energy"><code class="docutils literal notranslate"><span class="pre">energy()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.RMSE"><code class="docutils literal notranslate"><span class="pre">RMSE()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.MAE"><code class="docutils literal notranslate"><span class="pre">MAE()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.r2"><code class="docutils literal notranslate"><span class="pre">r2()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.qr"><code class="docutils literal notranslate"><span class="pre">qr()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.svd"><code class="docutils literal notranslate"><span class="pre">svd()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.tsqr"><code class="docutils literal notranslate"><span class="pre">tsqr()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.randomized_qr"><code class="docutils literal notranslate"><span class="pre">randomized_qr()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.init_qr_streaming"><code class="docutils literal notranslate"><span class="pre">init_qr_streaming()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.update_qr_streaming"><code class="docutils literal notranslate"><span class="pre">update_qr_streaming()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.tsqr_svd"><code class="docutils literal notranslate"><span class="pre">tsqr_svd()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.randomized_svd"><code class="docutils literal notranslate"><span class="pre">randomized_svd()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.hammwin"><code class="docutils literal notranslate"><span class="pre">hammwin()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.fft"><code class="docutils literal notranslate"><span class="pre">fft()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.cellCenters"><code class="docutils literal notranslate"><span class="pre">cellCenters()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.normals"><code class="docutils literal notranslate"><span class="pre">normals()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.euclidean_d"><code class="docutils literal notranslate"><span class="pre">euclidean_d()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.least_squares"><code class="docutils literal notranslate"><span class="pre">least_squares()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="pyLOM.vmmath.html#pyLOM.vmmath.ridge_regresion"><code class="docutils literal notranslate"><span class="pre">ridge_regresion()</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="pyLOM.math.html">pyLOM.math</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.math.html#module-pyLOM.math">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.MAE"><code class="docutils literal notranslate"><span class="pre">MAE()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.MRE_array"><code class="docutils literal notranslate"><span class="pre">MRE_array()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.RMSE"><code class="docutils literal notranslate"><span class="pre">RMSE()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.argsort"><code class="docutils literal notranslate"><span class="pre">argsort()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.cellCenters"><code class="docutils literal notranslate"><span class="pre">cellCenters()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.cholesky"><code class="docutils literal notranslate"><span class="pre">cholesky()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.compute_truncation_residual"><code class="docutils literal notranslate"><span class="pre">compute_truncation_residual()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.conj"><code class="docutils literal notranslate"><span class="pre">conj()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.data_splitting"><code class="docutils literal notranslate"><span class="pre">data_splitting()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.diag"><code class="docutils literal notranslate"><span class="pre">diag()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.eigen"><code class="docutils literal notranslate"><span class="pre">eigen()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.energy"><code class="docutils literal notranslate"><span class="pre">energy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.euclidean_d"><code class="docutils literal notranslate"><span class="pre">euclidean_d()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.fft"><code class="docutils literal notranslate"><span class="pre">fft()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.find_random_sensors"><code class="docutils literal notranslate"><span class="pre">find_random_sensors()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.flip"><code class="docutils literal notranslate"><span class="pre">flip()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.hammwin"><code class="docutils literal notranslate"><span class="pre">hammwin()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.init_qr_streaming"><code class="docutils literal notranslate"><span class="pre">init_qr_streaming()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.inv"><code class="docutils literal notranslate"><span class="pre">inv()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.least_squares"><code class="docutils literal notranslate"><span class="pre">least_squares()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.matmul"><code class="docutils literal notranslate"><span class="pre">matmul()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.matmulp"><code class="docutils literal notranslate"><span class="pre">matmulp()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.normals"><code class="docutils literal notranslate"><span class="pre">normals()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.polar"><code class="docutils literal notranslate"><span class="pre">polar()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.qr"><code class="docutils literal notranslate"><span class="pre">qr()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.r2"><code class="docutils literal notranslate"><span class="pre">r2()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.randomized_qr"><code class="docutils literal notranslate"><span class="pre">randomized_qr()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.randomized_svd"><code class="docutils literal notranslate"><span class="pre">randomized_svd()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.ridge_regresion"><code class="docutils literal notranslate"><span class="pre">ridge_regresion()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.subtract_mean"><code class="docutils literal notranslate"><span class="pre">subtract_mean()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.svd"><code class="docutils literal notranslate"><span class="pre">svd()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.temporal_mean"><code class="docutils literal notranslate"><span class="pre">temporal_mean()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.time_delay_embedding"><code class="docutils literal notranslate"><span class="pre">time_delay_embedding()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.transpose"><code class="docutils literal notranslate"><span class="pre">transpose()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.tsqr"><code class="docutils literal notranslate"><span class="pre">tsqr()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.tsqr_svd"><code class="docutils literal notranslate"><span class="pre">tsqr_svd()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.update_qr_streaming"><code class="docutils literal notranslate"><span class="pre">update_qr_streaming()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.vandermonde"><code class="docutils literal notranslate"><span class="pre">vandermonde()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.vandermondeTime"><code class="docutils literal notranslate"><span class="pre">vandermondeTime()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.vecmat"><code class="docutils literal notranslate"><span class="pre">vecmat()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.vector_mean"><code class="docutils literal notranslate"><span class="pre">vector_mean()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.vector_norm"><code class="docutils literal notranslate"><span class="pre">vector_norm()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.vector_sum"><code class="docutils literal notranslate"><span class="pre">vector_sum()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -810,8 +828,19 @@ in parallel are easier.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pyLOM.Dataset.get_variable">
-<span class="sig-name descname"><span class="pre">get_variable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/dataset.html#Dataset.get_variable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Dataset.get_variable" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">get_variable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/dataset.html#Dataset.get_variable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Dataset.get_variable" title="Link to this definition">#</a></dt>
 <dd><p>Recover the value of a variable given its key</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>key</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – name of the variable</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>value of the variable</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(np.ndarray)</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -857,9 +886,43 @@ in parallel are easier.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.Dataset.split_data">
+<span class="sig-name descname"><span class="pre">split_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'reconstruct'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/dataset.html#Dataset.split_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Dataset.split_data" title="Link to this definition">#</a></dt>
+<dd><p>Generate random training, validation and test masks for a dataset of Nt samples.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>variable</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – variable which will be splitted in different samples</p></li>
+<li><p><strong>mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – type of splitting to perform (default, <code class="docutils literal notranslate"><span class="pre">'reconstruct'</span></code>). In reconstruct mode all three datasets have samples along all the data range.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of arrays containing the identifiers of the training, validation and test samples.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>[(np.ndarray), (np.ndarray), (np.ndarray)]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.Dataset.mask_field">
+<span class="sig-name descname"><span class="pre">mask_field</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/dataset.html#Dataset.mask_field"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Dataset.mask_field" title="Link to this definition">#</a></dt>
+<dd><p>Mask a field over a defined variable</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="pyLOM.Dataset.append_variable">
 <span class="sig-name descname"><span class="pre">append_variable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">varname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">fieldict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/dataset.html#Dataset.append_variable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Dataset.append_variable" title="Link to this definition">#</a></dt>
 <dd><p>Appends new timesteps to the dataset</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.Dataset.select_random_sensors">
+<span class="sig-name descname"><span class="pre">select_random_sensors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nsensors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">VARLIST</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/dataset.html#Dataset.select_random_sensors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Dataset.select_random_sensors" title="Link to this definition">#</a></dt>
+<dd><p>Generates a set of coordinats of nsensors random sensors inside the region defined by bounds.
+Then for each sensor finds the nearest point from the dataset to get its coordinates and dataset value.
+It creates a new dataset containing all the sensor coordinates and values</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1003,7 +1066,7 @@ than the number of mpi ranks</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pyLOM.PartitionTable.from_pyQvarsi">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_pyQvarsi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">porder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_master</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/partition_table.html#PartitionTable.from_pyQvarsi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.PartitionTable.from_pyQvarsi" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_pyQvarsi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">porder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ndime</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_master</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/partition_table.html#PartitionTable.from_pyQvarsi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.PartitionTable.from_pyQvarsi" title="Link to this definition">#</a></dt>
 <dd><p>Create a partition table from a partition table coming
 from pyQvarsi</p>
 </dd></dl>
@@ -1059,25 +1122,25 @@ from pyQvarsi</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pyLOM.Mesh.find_point">
-<span class="sig-name descname"><span class="pre">find_point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/mesh.html#Mesh.find_point"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Mesh.find_point" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">find_point</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xyz</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">array</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/mesh.html#Mesh.find_point"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Mesh.find_point" title="Link to this definition">#</a></dt>
 <dd><p>Return all the points where self._xyz == xyz</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pyLOM.Mesh.find_cell">
-<span class="sig-name descname"><span class="pre">find_cell</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">eltype</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/mesh.html#Mesh.find_cell"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Mesh.find_cell" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">find_cell</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">eltype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/mesh.html#Mesh.find_cell"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Mesh.find_cell" title="Link to this definition">#</a></dt>
 <dd><p>Return all the elements where self._elemList == elem</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pyLOM.Mesh.find_point_in_cell">
-<span class="sig-name descname"><span class="pre">find_point_in_cell</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/mesh.html#Mesh.find_point_in_cell"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Mesh.find_point_in_cell" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">find_point_in_cell</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/mesh.html#Mesh.find_point_in_cell"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Mesh.find_point_in_cell" title="Link to this definition">#</a></dt>
 <dd><p>Return all the elements where the node is</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pyLOM.Mesh.size">
-<span class="sig-name descname"><span class="pre">size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pointData</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/mesh.html#Mesh.size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Mesh.size" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pointData</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/mesh.html#Mesh.size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Mesh.size" title="Link to this definition">#</a></dt>
 <dd><p>Return the size accoding to the type of data</p>
 </dd></dl>
 
@@ -1089,35 +1152,35 @@ from pyQvarsi</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pyLOM.Mesh.reshape_var">
-<span class="sig-name descname"><span class="pre">reshape_var</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">info</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/mesh.html#Mesh.reshape_var"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Mesh.reshape_var" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">reshape_var</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><span class="pre">dict</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/mesh.html#Mesh.reshape_var"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Mesh.reshape_var" title="Link to this definition">#</a></dt>
 <dd><p>Reshape a variable according to the mesh</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pyLOM.Mesh.save">
-<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/mesh.html#Mesh.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Mesh.save" title="Link to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/mesh.html#Mesh.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Mesh.save" title="Link to this definition">#</a></dt>
 <dd><p>Store the mesh in various formats.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pyLOM.Mesh.load">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/mesh.html#Mesh.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Mesh.load" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/mesh.html#Mesh.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Mesh.load" title="Link to this definition">#</a></dt>
 <dd><p>Load a mesh from various formats</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pyLOM.Mesh.new_struct2D">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">new_struct2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ny</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dimsx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dimsy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/mesh.html#Mesh.new_struct2D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Mesh.new_struct2D" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">new_struct2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ny</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dimsx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dimsy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/mesh.html#Mesh.new_struct2D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Mesh.new_struct2D" title="Link to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pyLOM.Mesh.new_struct3D">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">new_struct3D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ny</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dimsx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dimsy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dimsz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/mesh.html#Mesh.new_struct3D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Mesh.new_struct3D" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">new_struct3D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ny</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">nz</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dimsx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dimsy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dimsz</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/mesh.html#Mesh.new_struct3D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Mesh.new_struct3D" title="Link to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pyLOM.Mesh.from_pyQvarsi">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_pyQvarsi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mesh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sod</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/mesh.html#Mesh.from_pyQvarsi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Mesh.from_pyQvarsi" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_pyQvarsi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mesh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sod</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/mesh.html#Mesh.from_pyQvarsi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Mesh.from_pyQvarsi" title="Link to this definition">#</a></dt>
 <dd><p>Create the mesh structure from a pyQvarsi mesh structure</p>
 </dd></dl>
 
@@ -1285,12 +1348,6 @@ rank that should print.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="pyLOM.gpu_device">
-<span class="sig-prename descclassname"><span class="pre">pyLOM.</span></span><span class="sig-name descname"><span class="pre">gpu_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">MPI_RANK</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu_per_node</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/gpu.html#gpu_device"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.gpu_device" title="Link to this definition">#</a></dt>
-<dd><p>Setup the GPU to be used</p>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="pyLOM.show_plots">
 <span class="sig-prename descclassname"><span class="pre">pyLOM.</span></span><span class="sig-name descname"><span class="pre">show_plots</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/plots.html#show_plots"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.show_plots" title="Link to this definition">#</a></dt>
 <dd><p>Wrapper to matplotlib.pyplot.show()</p>
@@ -1300,6 +1357,18 @@ rank that should print.</p>
 <dt class="sig sig-object py" id="pyLOM.close_plots">
 <span class="sig-prename descclassname"><span class="pre">pyLOM.</span></span><span class="sig-name descname"><span class="pre">close_plots</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/plots.html#close_plots"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.close_plots" title="Link to this definition">#</a></dt>
 <dd><p>Wrapper to matplotlib.pyplot.close()</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.style_plots">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.</span></span><span class="sig-name descname"><span class="pre">style_plots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">styleDict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">DEFAULTSTYLE</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/plots.html#style_plots"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.style_plots" title="Link to this definition">#</a></dt>
+<dd><p>Define a common plot style in the scripts</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.gpu_device">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.</span></span><span class="sig-name descname"><span class="pre">gpu_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">MPI_RANK</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu_per_node</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/gpu.html#gpu_device"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.gpu_device" title="Link to this definition">#</a></dt>
+<dd><p>Setup the GPU to be used</p>
 </dd></dl>
 
 </section>
@@ -1369,7 +1438,10 @@ rank that should print.</p>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Dataset.to_cpu"><code class="docutils literal notranslate"><span class="pre">Dataset.to_cpu()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Dataset.add_field"><code class="docutils literal notranslate"><span class="pre">Dataset.add_field()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Dataset.add_variable"><code class="docutils literal notranslate"><span class="pre">Dataset.add_variable()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Dataset.split_data"><code class="docutils literal notranslate"><span class="pre">Dataset.split_data()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Dataset.mask_field"><code class="docutils literal notranslate"><span class="pre">Dataset.mask_field()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Dataset.append_variable"><code class="docutils literal notranslate"><span class="pre">Dataset.append_variable()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Dataset.select_random_sensors"><code class="docutils literal notranslate"><span class="pre">Dataset.select_random_sensors()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Dataset.reshape"><code class="docutils literal notranslate"><span class="pre">Dataset.reshape()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Dataset.X"><code class="docutils literal notranslate"><span class="pre">Dataset.X()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Dataset.save"><code class="docutils literal notranslate"><span class="pre">Dataset.save()</span></code></a></li>
@@ -1451,9 +1523,10 @@ rank that should print.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.cr_info"><code class="docutils literal notranslate"><span class="pre">cr_info()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.nvtxp"><code class="docutils literal notranslate"><span class="pre">nvtxp()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.pprint"><code class="docutils literal notranslate"><span class="pre">pprint()</span></code></a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.gpu_device"><code class="docutils literal notranslate"><span class="pre">gpu_device()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.show_plots"><code class="docutils literal notranslate"><span class="pre">show_plots()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.close_plots"><code class="docutils literal notranslate"><span class="pre">close_plots()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.style_plots"><code class="docutils literal notranslate"><span class="pre">style_plots()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.gpu_device"><code class="docutils literal notranslate"><span class="pre">gpu_device()</span></code></a></li>
 </ul>
 </li>
 </ul>
