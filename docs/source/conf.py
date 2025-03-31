@@ -28,7 +28,10 @@ extensions = [
 
 # Set the default syntax highlighter
 highlight_language = 'python'
+# Don't run the notebooks
+nbsphinx_execute = 'never' 
 
+nbsphinx_allow_errors = True
 # For nbsphinx
 nbsphinx_codecell_lexer = 'ipython3'
 
