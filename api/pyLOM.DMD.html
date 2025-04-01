@@ -396,23 +396,22 @@
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-pyLOM.DMD" title="Link to this heading">#</a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="pyLOM.DMD.run">
-<span class="sig-prename descclassname"><span class="pre">pyLOM.DMD.</span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.DMD.run" title="Link to this definition">#</a></dt>
-<dd><p>Run DMD analysis of a matrix X.</p>
-<dl class="simple">
-<dt>Inputs:</dt><dd><ul class="simple">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.DMD.</span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/DMD/wrapper.html#run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.DMD.run" title="Link to this definition">#</a></dt>
+<dd><p>DMD analysis of snapshot matrix X
+Inputs:</p>
+<blockquote>
+<div><ul class="simple">
 <li><p>X[ndims*nmesh,n_temp_snapshots]: data matrix</p></li>
 <li><p>remove_mean:                     whether or not to remove the mean flow</p></li>
-<li><p>r:                               maximum truncation residual</p></li>
 </ul>
-</dd>
-</dl>
+</div></blockquote>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>DMD Modes
 - muReal:   Real part of the eigenvalues
 - muImag:   Imaginary part of the eigenvalues
 - b:        Amplitude of the DMD modes
-- Variables needed to reconstruct flow</p>
+- X_DMD:    Reconstructed flow</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><ul class="simple">
@@ -425,14 +424,14 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pyLOM.DMD.frequency_damping">
-<span class="sig-prename descclassname"><span class="pre">pyLOM.DMD.</span></span><span class="sig-name descname"><span class="pre">frequency_damping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rreal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iimag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.DMD.frequency_damping" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pyLOM.DMD.</span></span><span class="sig-name descname"><span class="pre">frequency_damping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">real</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/DMD/wrapper.html#frequency_damping"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.DMD.frequency_damping" title="Link to this definition">#</a></dt>
 <dd><p>Computation of the damping ratio and the frequency of each mode</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pyLOM.DMD.reconstruction_jovanovic">
-<span class="sig-prename descclassname"><span class="pre">pyLOM.DMD.</span></span><span class="sig-name descname"><span class="pre">reconstruction_jovanovic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">muReal</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">muImag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bJov</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.DMD.reconstruction_jovanovic" title="Link to this definition">#</a></dt>
-<dd><p>Computation of the reconstructed flow from the DMD computations</p>
+<span class="sig-prename descclassname"><span class="pre">pyLOM.DMD.</span></span><span class="sig-name descname"><span class="pre">reconstruction_jovanovic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">real</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bJov</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/DMD/wrapper.html#reconstruction_jovanovic"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.DMD.reconstruction_jovanovic" title="Link to this definition">#</a></dt>
+<dd><p>Reconstruction of the DMD modes according to the Jovanovic method</p>
 </dd></dl>
 
 <dl class="py function">

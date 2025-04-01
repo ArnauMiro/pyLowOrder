@@ -396,81 +396,74 @@
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-pyLOM.POD" title="Link to this heading">#</a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="pyLOM.POD.run">
-<span class="sig-prename descclassname"><span class="pre">pyLOM.POD.</span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">randomized</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.POD.run" title="Link to this definition">#</a></dt>
-<dd><p>Run POD analysis of a matrix X.</p>
-<dl class="simple">
-<dt>Inputs:</dt><dd><ul class="simple">
-<li><p>X[ndims*nmesh,n_temp_snapshots]: data matrix</p></li>
-<li><p>remove_mean:                     whether or not to remove the mean flow</p></li>
-</ul>
-</dd>
-</dl>
+<span class="sig-prename descclassname"><span class="pre">pyLOM.POD.</span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><span class="pre">ndarray</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_mean</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">randomized</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/POD/wrapper.html#run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.POD.run" title="Link to this definition">#</a></dt>
+<dd><p>Run POD analysis of a matrix.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>are the POD modes.
-- S:  are the singular values.
-- V:  are the right singular vectors.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p>U</p></li>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X</strong> (<em>np.ndarray</em>) – data matrix of size [ndims*nmesh,n_temp_snapshots].</p></li>
+<li><p><strong>remove_mean</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – whether or not to remove the mean flow (default: <code class="docutils literal notranslate"><span class="pre">True</span></code>).</p></li>
+<li><p><strong>randomized</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – whether to perform randomized POD or not (default: <code class="docutils literal notranslate"><span class="pre">False</span></code>).</p></li>
+<li><p><strong>r</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – in case of performing randomized POD, how many modes do we want to recover. This option has no effect when randomized=False (default: <code class="docutils literal notranslate"><span class="pre">1</span></code>).</p></li>
+<li><p><strong>q</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – in case of performing randomized POD, how many power iterations are performed. This option has no effect when randomized=False (default: <code class="docutils literal notranslate"><span class="pre">3</span></code>).</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – seed for reproducibility of randomized operations. This option has no effect when randomized=False (default: <code class="docutils literal notranslate"><span class="pre">-1</span></code>).</p></li>
 </ul>
-</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>POD spatial modes (left singular vectors), singular values and temporal coefficients (right singular vectors).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>[(np.ndarray), (np.ndarray), (np.ndarray)]</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pyLOM.POD.truncate">
-<span class="sig-prename descclassname"><span class="pre">pyLOM.POD.</span></span><span class="sig-name descname"><span class="pre">truncate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">U</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-08</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.POD.truncate" title="Link to this definition">#</a></dt>
-<dd><p>Truncate POD matrices (U,S,V) given a residual r.</p>
-<dl>
-<dt>Inputs:</dt><dd><ul>
-<li><p>U(m,n)  are the POD modes.</p></li>
-<li><p>S(n)    are the singular values.</p></li>
-<li><p>V(n,n)  are the right singular vectors.</p></li>
-<li><dl>
-<dt>r       target residual, number of modes, or cumulative energy threshold.</dt><dd><ul class="simple">
-<li><p>If r &gt;= 1, it is treated as the number of modes.</p></li>
-<li><p>If r &lt; 1 and r &gt; 0 it is treated as the residual target.</p></li>
-<li><p>If r &lt; 1 and r &lt; 0 it is treated as the fraction of cumulative energy to retain.</p></li>
-</ul>
-<p>Note:  must be in (0,-1] and r = -1 is valid</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-</dl>
+<span class="sig-prename descclassname"><span class="pre">pyLOM.POD.</span></span><span class="sig-name descname"><span class="pre">truncate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">U</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><span class="pre">ndarray</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><span class="pre">ndarray</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">V</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><span class="pre">ndarray</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1e-8</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/POD/wrapper.html#truncate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.POD.truncate" title="Link to this definition">#</a></dt>
+<dd><p>Truncate POD matrices (U, S, V) given a residual, number of modes or cumulative energy r.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p><ul class="simple">
-<li><p>U(m,N)  are the POD modes (truncated at N).</p></li>
-<li><p>S(N)    are the singular values (truncated at N).</p></li>
-<li><p>V(N,n)  are the right singular vectors (truncated at N).</p></li>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>U</strong> (<em>np.ndarray</em>) – of size (m,n), are the POD modes.</p></li>
+<li><p><strong>S</strong> (<em>np.ndarray</em>) – of size (n), are the singular values.</p></li>
+<li><p><strong>V</strong> (<em>np.ndarray</em>) – of size (n,n), are the right singular vectors.</p></li>
+<li><p><strong>r</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><em>optional</em>) – <code class="docutils literal notranslate"><span class="pre">1e-8</span></code>).
+* If r &gt;= 1, it is treated as the number of modes.
+* If r &lt; 1 and r &gt; 0 it is treated as the residual target.
+* If r &lt; 1 and r &lt; 0 it is treated as the fraction of cumulative energy to retain.
+Note:  must be in (0,-1] and r = -1 is valid</p></li>
 </ul>
-</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Truncated POD spatial modes (left singular vectors), singular values and temporal coefficients (right singular vectors).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>[(np.array), (np.array), (np.array)]</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="pyLOM.POD.reconstruct">
-<span class="sig-prename descclassname"><span class="pre">pyLOM.POD.</span></span><span class="sig-name descname"><span class="pre">reconstruct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">U</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.POD.reconstruct" title="Link to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pyLOM.POD.</span></span><span class="sig-name descname"><span class="pre">reconstruct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">U</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><span class="pre">ndarray</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><span class="pre">ndarray</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">V</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><span class="pre">ndarray</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/POD/wrapper.html#reconstruct"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.POD.reconstruct" title="Link to this definition">#</a></dt>
 <dd><p>Reconstruct the flow given the POD decomposition matrices
 that can be possibly truncated.
 N is the truncated size
 n is the number of snapshots</p>
-<dl class="simple">
-<dt>Inputs:</dt><dd><ul class="simple">
-<li><p>U(m,N)  are the POD modes.</p></li>
-<li><p>S(N)    are the singular values.</p></li>
-<li><p>V(N,n)  are the right singular vectors.</p></li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>U</strong> (<em>np.ndarray</em>) – of size (m,n), are the POD modes.</p></li>
+<li><p><strong>S</strong> (<em>np.ndarray</em>) – of size (n), are the singular values.</p></li>
+<li><p><strong>V</strong> (<em>np.ndarray</em>) – of size (n,n), are the right singular vectors.</p></li>
 </ul>
 </dd>
-<dt>Outputs</dt><dd><ul class="simple">
-<li><p>X(m,n)  is the reconstructed flow.</p></li>
-</ul>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Reconstructed flow.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(np.array)</p>
 </dd>
 </dl>
 </dd></dl>
