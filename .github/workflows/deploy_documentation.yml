@@ -40,14 +40,13 @@ jobs:
         run: |
           sed -i 's/USE_MKL       = ON/USE_MKL       = OFF/g' options.cfg
           sed -i 's/FORCE_GCC     = OFF/FORCE_GCC     = ON/g' options.cfg
+          sed -i 's/USE_COMPILED     = ON/USE_COMPILED     = OFF/g' options.cfg
       - name: Fix h5py
         run: |
           sudo apt install libhdf5-mpi-dev
           CC=mpicc HDF5_MPI="ON" pip install --no-binary=h5py h5py
       - name: Set up dependencies
         run: make deps requirements_full
-      - name: Build compiled code
-        run: make python
       - name: Install
         run: make install
       - name: Install sphinx dependencies
