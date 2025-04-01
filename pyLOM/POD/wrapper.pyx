@@ -135,17 +135,19 @@ def _drun(double[:,:] X, int remove_mean, int randomized, int r, int q, int seed
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def run(real[:,:] X, int remove_mean=True, int randomized=False, const int r=1, const int q=3, const int seed=-1):
-	'''
-	Run POD analysis of a matrix X.
+	r'''
+	Run POD analysis of a matrix.
 
-	Inputs:
-		- X[ndims*nmesh,n_temp_snapshots]: data matrix
-		- remove_mean:                     whether or not to remove the mean flow
+	Args:
+		X (np.ndarray): data matrix of size [ndims*nmesh,n_temp_snapshots].
+		remove_mean (bool, optional): whether or not to remove the mean flow (default: ``True``).
+		randomized (bool, optional): whether to perform randomized POD or not (default: ``False``).
+		r (int, optional): in case of performing randomized POD, how many modes do we want to recover. This option has no effect when randomized=False (default: ``1``).
+		q (int, optional): in case of performing randomized POD, how many power iterations are performed. This option has no effect when randomized=False (default: ``3``).
+		seed (int, optional): seed for reproducibility of randomized operations. This option has no effect when randomized=False (default: ``-1``).
 
 	Returns:
-		- U:  are the POD modes.
-		- S:  are the singular values.
-		- V:  are the right singular vectors.
+		[(np.ndarray), (np.ndarray), (np.ndarray)]: POD spatial modes (left singular vectors), singular values and temporal coefficients (right singular vectors).
 	'''
 	seed = <int>time(NULL) if seed < 0 else seed
 	if real is double:
@@ -234,23 +236,22 @@ def _dtruncate(double[:,:] U, double[:] S, double[:,:] V, double r):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def truncate(real[:,:] U, real[:] S, real[:,:] V, real r=1e-8):
-	'''
-	Truncate POD matrices (U,S,V) given a residual r.
+	r'''
+	Truncate POD matrices (U, S, V) given a residual, number of modes or cumulative energy r.
 
-	Inputs:
-		- U(m,n)  are the POD modes.
-		- S(n)    are the singular values.
-		- V(n,n)  are the right singular vectors.
-		- r       target residual, number of modes, or cumulative energy threshold.
-					* If r >= 1, it is treated as the number of modes.
-					* If r < 1 and r > 0 it is treated as the residual target.
-					* If r < 1 and r < 0 it is treated as the fraction of cumulative energy to retain.
-					Note:  must be in (0,-1] and r = -1 is valid
+	Args:
+		U (np.ndarray): of size (m,n), are the POD modes.
+		S (np.ndarray): of size (n), are the singular values.
+		V (np.ndarray): of size (n,n), are the right singular vectors.
+		r (float, optional) target residual, number of modes, or cumulative energy threshold (default: ``1e-8``).
+			* If r >= 1, it is treated as the number of modes.
+			* If r < 1 and r > 0 it is treated as the residual target.
+			* If r < 1 and r < 0 it is treated as the fraction of cumulative energy to retain.
+			Note:  must be in (0,-1] and r = -1 is valid
 
 	Returns:
-		- U(m,N)  are the POD modes (truncated at N).
-		- S(N)    are the singular values (truncated at N).
-		- V(N,n)  are the right singular vectors (truncated at N).
+		[(np.array), (np.array), (np.array)]: Truncated POD spatial modes (left singular vectors), singular values and temporal coefficients (right singular vectors).
+
 	'''
 	if real is double:
 		return _dtruncate(U,S,V,r)
@@ -334,19 +335,19 @@ def _dreconstruct(double[:,:] U, double[:] S, double[:,:] V):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def reconstruct(real[:,:] U, real[:] S, real[:,:] V):
-	'''
+	r'''
 	Reconstruct the flow given the POD decomposition matrices
 	that can be possibly truncated.
 	N is the truncated size
 	n is the number of snapshots
 
-	Inputs:
-		- U(m,N)  are the POD modes.
-		- S(N)    are the singular values.
-		- V(N,n)  are the right singular vectors.
+	Args:
+		U (np.ndarray): of size (m,n), are the POD modes.
+		S (np.ndarray): of size (n), are the singular values.
+		V (np.ndarray): of size (n,n), are the right singular vectors.
 
-	Outputs
-		- X(m,n)  is the reconstructed flow.
+	Returns:
+		(np.array): Reconstructed flow.
 	'''
 	if real is double:
 		return _dreconstruct(U,S,V)
