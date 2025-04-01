@@ -430,20 +430,18 @@ def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def run(real[:,:] X, real[:] t, int nDFT=0, int nolap=0, int remove_mean=True):
-	'''
+	r'''
 	Run SPOD analysis of a matrix X.
 
-	Inputs:
-		- X[ndims*nmesh,nt]: data matrix
-		- dt:                timestep between adjacent snapshots
-		- npwin:             number of points in each window (0 will set default value: ~10% nt)
-		- nolap:             number of overlap points between windows (0 will set default value: 50% nwin)
-		- remove_mean:       whether or not to remove the mean flow
+	Args:
+		X (np.ndarray): data matrix.
+		t (np.ndarray): times at which the snapshots of X were collected
+		nDFT (int, optional): number of points in each window (0 will set default value: ~10% nt)
+		nolap (int, optional): number of overlap points between windows (0 will set default value: 50% nwin)
+		remove_mean (bool, optional): whether or not to remove the mean flow (default, ``True``)
 
 	Returns:
-		- L:  modal energy spectra.
-		- P:  SPOD modes, whose spatial dimensions are identical to those of X.
-		- f:  frequency vector.
+		[(np.ndarray), (np.ndarray), (np.ndarray)]: where the first array is L, the modal energy spectra, the second array is  P, SPOD modes, whose spatial dimensions are identical to those of X and finally f is the frequency vectors
 	''' 
 	if real is double:
 		return _drun(X,t,nDFT,nolap,remove_mean)
