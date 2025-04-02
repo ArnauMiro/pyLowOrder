@@ -4,24 +4,26 @@
 #
 # Message passing graph neural network architecture for NN Module
 #
-# Last rev: 21/03/2025
+# Last rev: 30/03/2025
 
 import numpy as np
-from sklearn.preprocessing import MinMaxScaler
+import matplotlib.pyplot as plt
+import os
 
 import torch
 import torch.nn as nn
 from torch.nn import ELU
 from torch_geometric.nn import MessagePassing
-from torch_geometric.data import Data, DataLoader
+from torch_geometric.data import Data, DataLoader, Batch
+from torch_geometric.utils import k_hop_subgraph
 
 
 from pyLOM import Mesh
 from pyLOM.vmmath.geometric import edge_to_cells, wall_normals
-from pyLOM.NN.utils import Dataset
+from pyLOM.NN.utils import MinMaxScaler, Dataset
 from pyLOM.NN.optimizer import OptunaOptimizer, TrialPruned
 from pyLOM.NN import DEVICE, set_seed  # pyLOM/NN/__init__.py
-from pyLOM.utils import pprint, cr  # pyLOM/__init__.py
+from pyLOM import pprint, cr  # pyLOM/__init__.py
 from pyLOM.utils.errors import raiseWarning
 
 from typing import Protocol, Optional, Dict, Tuple, Union
@@ -293,28 +295,34 @@ class GNS(nn.Module):
         decoder_hidden_layers (int): The number of hidden layers in the decoder.
         message_hidden_layers (int): The number of hidden layers in the message MLP.
         update_hidden_layers (int): The number of hidden layers in the update MLP.
+        edge_dim (int): The dimension of edge features. Default is ``6``.
+        # graph (Union[Data, Graph] = Graph()): The Graph object used to train the GNN. Default is Graph().
+        p_dropouts (float, optional): The dropout probability. Default is ``0``.
+        checkpoint_file (str, optional): The path to the checkpoint file. Default is ``None``.
         activation (Union[str, nn.Module]): The activation function to use.
-        drop_p (float): The dropout probability.
-        edge_dim (int): The number of edge features.
-        graph (Optional[Graph]): torch-geometric Data object with the graph structure.
+        device (Union[str, torch.device]): The device to use for training. Default is ``'cuda'`` if available, otherwise ``'cpu'``.
+        seed (int): The random seed for reproducibility. Default is None.
     """
 
     def __init__(self,
-                    input_dim: int,
-                    latent_dim: int,
-                    output_dim: int,
-                    hidden_size: int,
-                    GNN_layers: int,
-                    encoder_hidden_layers: int,
-                    decoder_hidden_layers: int,
-                    message_hidden_layers: int,
-                    update_hidden_layers: int,
-                    activation: Union[str, nn.Module] = nn.ELU(),
-                    drop_p: float = 0.,
-                    edge_dim: int = 6,
-                    graph: Optional[Graph] = None):
+                 input_dim: int,
+                 latent_dim: int,
+                 output_dim: int,
+                 hidden_size: int,
+                 GNN_layers: int,
+                 encoder_hidden_layers: int = 6,
+                 decoder_hidden_layers: int = 1,
+                 message_hidden_layers: int = 2,
+                 update_hidden_layers: int = 2,
+                 edge_dim: int = 6,
+                 graph: Optional[Union[Data, Graph]] = Graph(),
+                 p_dropouts: float = 0.0,
+                 activation: Union[str, nn.Module] = 'ELU',
+                 device: Union[str, torch.device] = DEVICE,
+                 seed: Optional[int] = None):
+        
         super().__init__()
-        torch.manual_seed(11235)
+        # torch.manual_seed(11235)
 
         # Save the model parameters
         self.input_dim = input_dim
@@ -324,9 +332,13 @@ class GNS(nn.Module):
         self.GNN_layers = GNN_layers
         self.encoder_hidden_layers = encoder_hidden_layers
         self.decoder_hidden_layers = decoder_hidden_layers
-        self.drop_p = drop_p
+        self.message_hidden_layers = message_hidden_layers
+        self.update_hidden_layers = update_hidden_layers
         self.edge_dim = edge_dim
-        self.graph = graph if graph is not None else Graph()
+        self.p_dropouts = p_dropouts
+        self.device = device
+        self.graph = graph  # Placeholder for the graph object.
+        self.seed = seed
 
         # Activation function
         if isinstance(activation, str):
@@ -348,11 +360,11 @@ class GNS(nn.Module):
             "decoder_hidden_layers": decoder_hidden_layers,
             "message_hidden_layers": message_hidden_layers,
             "update_hidden_layers": update_hidden_layers,
-            "activation": self.activation.__class__.__name__,
-            "drop_p": drop_p,
             "edge_dim": edge_dim,
-            "graph": graph,
-            "model_parameters": {}
+            "p_dropouts": p_dropouts,
+            "activation": activation,
+            "device": device,
+            "seed": seed
         }
 
         # Encoder: from graph node features to latent space
@@ -361,7 +373,7 @@ class GNS(nn.Module):
             output_size=self.latent_dim,
             hidden_sizes=[self.hidden_size] * self.encoder_hidden_layers,
             activation=self.activation,
-            drop_p=self.drop_p
+            drop_p=self.p_dropouts
         )
 
         # Decoder: from latent space to output features
@@ -370,7 +382,7 @@ class GNS(nn.Module):
             output_size=self.output_dim,
             hidden_sizes=[self.hidden_size] * self.decoder_hidden_layers,
             activation=self.activation,
-            drop_p=self.drop_p
+            drop_p=self.p_dropouts
         )
 
         # Message-passing layers
@@ -378,7 +390,7 @@ class GNS(nn.Module):
             MessagePassingLayer(
                 in_channels=2 * self.latent_dim + self.edge_dim,
                 out_channels=self.latent_dim,
-                drop_p=self.drop_p,
+                drop_p=self.p_dropouts,
                 hiddim=self.hidden_size
             )
             for _ in range(self.GNN_layers)
@@ -421,6 +433,7 @@ class GNS(nn.Module):
         return y_hat
 
 
+    @cr('GNS.fit')
     def fit(self,
             train_dataset,
             eval_dataset=None,
@@ -429,8 +442,10 @@ class GNS(nn.Module):
             lr_gamma: float = 0.1,
             lr_scheduler_step: int = 1,
             loss_fn: torch.nn.Module = nn.MSELoss(reduction='mean'),
-            optimizer_class: torch.optim.Optimizer = torch.optim.Adam,
-            scheduler_class: torch.optim.lt_scheduler.LRScheduler = torch.optim.lr_scheduler.StepLR,
+            optimizer: torch.optim.Optimizer = torch.optim.Adam,
+            scheduler: torch.optim.lt_scheduler.LRScheduler = torch.optim.lr_scheduler.StepLR,
+            print_rate_batch: int = 0,
+            print_rate_epoch: int = 1,
             **kwargs):
         """
         Fit the model to the training data.
@@ -456,112 +471,174 @@ class GNS(nn.Module):
             Dict[str, List[float]]: A dictionary with the training and validation losses for each epoch.
         """
 
+        
+
+        @torch.enable_grad()
+        def train(self, op_loader, node_loader, scheduler):
+            '''Train for 1 epoch. To be called inside a loop with ``epochs`` iterations.'''
+
+            self.train()
+            total_loss = 0
+
+            for  i, (params_batch, y_batch) in enumerate(op_loader):
+                params_batch = params_batch.to(self.device) # [B, 3]
+                y_batch = y_batch.to(self.device) # [B, N]
+                
+                for seed_nodes in node_loader:
+                    # Compute the k-hop subgraph
+                    # node_batch, _, _, _= k_hop_subgraph(seed_nodes, num_hops=1, edge_index=train_graph.edge_index)
+                    subset, edge_index, mapping, edge_mask = k_hop_subgraph(seed_nodes, num_hops=1, edge_index=self.graph.edge_index, relabel_nodes=True)
+
+                    # Complete the subgraph data and append it to a subgraphs batch
+                    x = self.graph.x[subset]
+                    y_batch = y_batch[:, subset]
+                    # Create a boolean mask for the seed nodes (original tensor is not useful bc of the relabeling)
+                    seed_nodes = torch.zeros(subset.shape[0], dtype=torch.bool, device=self.device)
+                    seed_nodes[mapping] = True # Store this mapping as we only care about the seed nodes for the loss
+                    G_list = []
+                    for p, y in zip(params_batch, y_batch):
+                        x[:, :3] = p
+                        y = y.reshape(-1,1)
+                        G = Data(x=x.clone(), y=y.clone(), seed_nodes=seed_nodes, edge_index=edge_index, edge_attr=self.graph.edge_attr[edge_mask])
+                        G_list.append(G)
+
+                    G_batch = Batch.from_data_list(G_list)
+                    G_batch = G_batch.to(self.device)
+                    
+                    optimizer.zero_grad()
+                    # Forward pass: only look at the seed nodes for the loss
+                    output = self(G_batch)[G_batch.seed_nodes]
+                    targets = G_batch.y[G_batch.seed_nodes]
+                    loss = loss_fn(output, targets)
+                    loss.backward()
+                    optimizer.step()
+                    total_loss += loss.item()
+
+                scheduler.step()
+
+            return total_loss / (len(self.op_loader) * len(self.node_loader))
+
+
         op_loader_params = {
             "batch_size": kwargs.get("batch_size", 15),
             "shuffle": kwargs.get("shuffle", True),
             "num_workers": kwargs.get("num_workers", 0),
-            "pin_memory": kwargs.get("pin_memory", True),
+            "pin_memory": kwargs.get("pin_memory", True)
         }
 
         node_loader_params = {
             "batch_size": kwargs.get("node_batch_size", 256),
             "shuffle": kwargs.get("shuffle", True),
             "num_workers": kwargs.get("num_workers", 0),
-            "pin_memory": kwargs.get("pin_memory", True),
+            "pin_memory": kwargs.get("pin_memory", True)
         }
 
         # Create the DataLoader for the operational parameters
         if not hasattr(self, "op_loader"):
-            self.op_loader = DataLoader(train_dataset, **op_loader_params)
+            op_loader = DataLoader(train_dataset, **op_loader_params)
         # Create the DataLoader for the nodes
         if not hasattr(self, "node_loader"):
             node_indices = np.arange(self.graph.num_nodes)
             node_indices = torch.tensor(node_indices, dtype=torch.long)
-            self.node_loader = DataLoader(node_indices, **node_loader_params)
+            node_loader = DataLoader(node_indices, **node_loader_params)
 
-        self.eval_dataloader = DataLoader(eval_dataset, **op_loader_params) if eval_dataset is not None else None
+        eval_dataloader = DataLoader(eval_dataset, **op_loader_params) if eval_dataset is not None else None
 
-        @torch.enable_grad()
-        def train(model, optimizer, op_loader, node_loader, epoch, verbose = False, interactive_plot = False):
+        if not hasattr(self, "optimizer"):
+            self.optimizer = optimizer(self.parameters(), lr=lr)
+        if not hasattr(self, "scheduler"):
+            self.scheduler = scheduler(self.optimizer, step_size=lr_scheduler_step, gamma=lr_gamma) if scheduler is not None else None
 
-            num_batches  = train_graph.num_nodes // NODE_BATCH_SIZE
-            model.train()
-            total_loss = 0
-            if interactive_plot:
-                fig, ax = plt.subplots()
-                fig.suptitle(f'Training loss (epoch {epoch})', fontsize=16, )
-                ax.set_xlim(0, num_batches)
-                ax.set_xlabel('Batch (node space)')
-                ax.set_ylabel('Loss')
-                ax.set_title("Color indicates different batches in the operational parameters space", fontsize=12, color='gray')
-                ax.axhline(0, color='black', linewidth=0.5)
-                clrs = np.arange(0.1, 1, 0.9/len(op_loader)).tolist() # Greyscale
-                display(fig)
+        if hasattr(self, "checkpoint"):
+            self.optimizer.load_state_dict(self.checkpoint["state"][0])
+            if self.scheduler is not None and len(self.checkpoint["state"][1]) > 0:
+                self.scheduler.load_state_dict(self.checkpoint["state"][1])
+                self.scheduler.gamma = lr_gamma
+                self.scheduler.step_size = lr_scheduler_step
+            epoch_list = self.checkpoint["state"][2]
+            train_loss_list = self.checkpoint["state"][3]
+            test_loss_list = self.checkpoint["state"][4]
+        else:
+            epoch_list = []
+            train_loss_list = []
+            test_loss_list = []
 
+
+
+        total_epochs = len(epoch_list) + epochs
+        for epoch in range(1+len(epoch_list), 1+total_epochs):
+            
+            self.train()
+            train_loss = 0
             for  i, (params_batch, y_batch) in enumerate(op_loader):
-                params_batch = params_batch.to(device) # [B, 3]
-                y_batch = y_batch.to(device) # [B, N]
+                params_batch = params_batch.to(self.device) # [B, 3]
+                y_batch = y_batch.to(self.device) # [B, N]
                 
-                # Plotting
-                if interactive_plot:
-                    clr = (0.1, 0.2, 0.5, clrs[i])
-                    x_axis, losses = [], []
-                    line, = ax.plot([],[], color=clr, label=f'Batch {i+1}')
-                
-                for batch_counter, seed_nodes in enumerate(node_loader):
+                for seed_nodes in node_loader:
                     # Compute the k-hop subgraph
-                    # node_batch, _, _, _= k_hop_subgraph(seed_nodes, num_hops=1, edge_index=train_graph.edge_index)
-                    subset, edge_index, mapping, edge_mask = k_hop_subgraph(seed_nodes, num_hops=1, edge_index=train_graph.edge_index, relabel_nodes=True)
+                    subset, edge_index, mapping, edge_mask = k_hop_subgraph(seed_nodes, num_hops=1, edge_index=self.graph.edge_index, relabel_nodes=True)
 
                     # Complete the subgraph data and append it to a subgraphs batch
-                    x = train_graph.x[subset]
+                    x = self.graph.x[subset]
                     y_batch = y_batch[:, subset]
                     # Create a boolean mask for the seed nodes (original tensor is not useful bc of the relabeling)
-                    seed_nodes = torch.zeros(subset.shape[0], dtype=torch.bool, device=device)
+                    seed_nodes = torch.zeros(subset.shape[0], dtype=torch.bool, device=self.device)
                     seed_nodes[mapping] = True # Store this mapping as we only care about the seed nodes for the loss
                     G_list = []
                     for p, y in zip(params_batch, y_batch):
                         x[:, :3] = p
                         y = y.reshape(-1,1)
-                        G = torch_geometric.data.Data(x=x.clone(), y=y.clone(), seed_nodes=seed_nodes, edge_index=edge_index, edge_attr=train_graph.edge_attr[edge_mask])
+                        G = Data(x=x.clone(), y=y.clone(), seed_nodes=seed_nodes, edge_index=edge_index, edge_attr=self.graph.edge_attr[edge_mask])
                         G_list.append(G)
 
                     G_batch = Batch.from_data_list(G_list)
-                    G_batch = G_batch.to(device)
-
-                    start = time.time()
+                    G_batch = G_batch.to(self.device)
                     
-                    optimizer.zero_grad()
+                    self.optimizer.zero_grad()
                     # Forward pass: only look at the seed nodes for the loss
-                    output = model(G_batch)[G_batch.seed_nodes]
+                    oupt = self(G_batch)[G_batch.seed_nodes]
                     targets = G_batch.y[G_batch.seed_nodes]
-                    loss = criterion(output, targets)
-                    loss.backward()
-                    optimizer.step()
-                    total_loss += loss.item()
+                    loss_val = loss_fn(oupt, targets)
+                    loss_val.backward()
+                    self.optimizer.step()
+                    loss_val_item = loss_val.item()
+                    train_loss += loss_val_item
+                    if print_rate_batch != 0 and (i % print_rate_batch) == 0:
+                        pprint(0, f"Epoch {epoch}/{total_epochs} | Batch {i}/{len(op_loader)} | Train loss (x1e5) {loss_val_item * 1e5:.4f}", flush=True)
 
-                    end = time.time()
+            train_loss = train_loss / (len(op_loader) * len(node_loader))
 
-                    # Plotting
-                    if interactive_plot:
-                        x_axis.append(batch_counter)
-                        losses.append(loss.item())
-                        line.set_xdata(x_axis)
-                        line.set_ydata(losses)
-                        ax.relim()
-                        # legend = ax.legend()
-                        # legend.set_title('Batch (operational parameters space)')
-                        ax.autoscale_view()
-                        clear_output(wait=True)
-                        display(fig)
+            if self.scheduler is not None:
+                self.scheduler.step()
+            
+            test_loss = 0.0
+            if eval_dataloader is not None:
+                self.eval()
+                with torch.no_grad():
+                    for n_idx, sample in enumerate(eval_dataloader):
+                        x_test, y_test = sample[0].to(self.device), sample[1].to(self.device)
+                        test_output = self(x_test)
+                        loss_val = loss_fn(test_output, y_test)
+                        test_loss += loss_val.item()
 
-                    if verbose:
-                        print(f"Batch {batch_counter} of {num_batches} | Loss: {loss.item():.4f} | Time: {end-start:.4f}")
-                    batch_counter += 1
+                test_loss = test_loss / (n_idx + 1)
+                test_loss_list.append(test_loss)
+            
+            if print_rate_epoch != 0 and (epoch % print_rate_epoch) == 0:
+                test_log = f" | Test loss (x1e5) {test_loss * 1e5:.4f}" if eval_dataloader is not None else ""
+                pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss (x1e5) {train_loss * 1e5:.4f} {test_log}", flush=True)
 
-                # scheduler.step()
+            epoch_list.append(epoch)
+            self.state = (
+                self.optimizer.state_dict(),
+                self.scheduler.state_dict() if self.scheduler is not None else {},
+                epoch_list,
+                train_loss_list,
+                test_loss_list,
+                )
+            
+        return {"train_loss": train_loss_list, "test_loss": test_loss_list}
 
-            return total_loss / (len(op_loader) * len(node_loader))
         
 
     def predict(self, X: Dataset, **kwargs):
