@@ -431,6 +431,74 @@ class GNS(nn.Module):
         y_hat = self.decoder(h)
 
         return y_hat
+    
+
+    @cr('GNS._train')
+    # @torch.enable_grad()
+    def _train(self, op_loader, node_loader):
+        '''Train for 1 epoch. To be called inside a loop with ``epochs`` iterations.'''
+
+        self.train()
+        total_loss = 0
+
+        for  i, (params_batch, y_batch) in enumerate(op_loader):
+            params_batch = params_batch.to(self.device) # [B, 3]
+            y_batch = y_batch.to(self.device) # [B, N]
+            
+            for seed_nodes in node_loader:
+                # Compute the k-hop subgraph
+                # node_batch, _, _, _= k_hop_subgraph(seed_nodes, num_hops=1, edge_index=train_graph.edge_index)
+                subset, edge_index, mapping, edge_mask = k_hop_subgraph(seed_nodes, num_hops=1, edge_index=self.graph.edge_index, relabel_nodes=True)
+
+                # Complete the subgraph data and append it to a subgraphs batch
+                x = self.graph.x[subset]
+                y_batch = y_batch[:, subset]
+                # Create a boolean mask for the seed nodes (original tensor is not useful bc of the relabeling)
+                seed_nodes = torch.zeros(subset.shape[0], dtype=torch.bool, device=self.device)
+                seed_nodes[mapping] = True # Store this mapping as we only care about the seed nodes for the loss
+                G_list = []
+                for p, y in zip(params_batch, y_batch):
+                    x[:, :3] = p
+                    y = y.reshape(-1,1)
+                    G = Data(x=x.clone(), y=y.clone(), seed_nodes=seed_nodes, edge_index=edge_index, edge_attr=self.graph.edge_attr[edge_mask])
+                    G_list.append(G)
+
+                G_batch = Batch.from_data_list(G_list)
+                G_batch = G_batch.to(self.device)
+                
+                self.optimizer.zero_grad()
+                # Forward pass: only look at the seed nodes for the loss
+                output = self(G_batch)[G_batch.seed_nodes]
+                targets = G_batch.y[G_batch.seed_nodes]
+                loss = self.loss_fn(output, targets)
+                loss.backward()
+                self.optimizer.step()
+                total_loss += loss.item()
+
+            if self.scheduler is not None:
+                self.scheduler.step()
+
+        return total_loss / (len(self.op_loader) * len(self.node_loader))
+
+
+    @cr('GNS._eval')
+    def _eval(self, op_loader):
+        with torch.no_grad():
+            self.eval()
+            total_loss = 0
+            # Batch size must be set to 1!
+            for params_batch, y_batch in op_loader:
+                params_batch = params_batch.to(self.device)
+                y_batch = y_batch.to(self.device)
+
+                for p, y in zip(params_batch, y_batch):
+                    self.graph.x[:, :3] = p
+                    targets = y.reshape(-1,1)
+                    output = self(self.graph)
+                    loss = self.loss_fn(output, targets)
+                    total_loss += loss.item()
+
+            return total_loss / (len(op_loader))
 
 
     @cr('GNS.fit')
@@ -470,54 +538,7 @@ class GNS(nn.Module):
         Returns:
             Dict[str, List[float]]: A dictionary with the training and validation losses for each epoch.
         """
-
         
-
-        @torch.enable_grad()
-        def train(self, op_loader, node_loader, scheduler):
-            '''Train for 1 epoch. To be called inside a loop with ``epochs`` iterations.'''
-
-            self.train()
-            total_loss = 0
-
-            for  i, (params_batch, y_batch) in enumerate(op_loader):
-                params_batch = params_batch.to(self.device) # [B, 3]
-                y_batch = y_batch.to(self.device) # [B, N]
-                
-                for seed_nodes in node_loader:
-                    # Compute the k-hop subgraph
-                    # node_batch, _, _, _= k_hop_subgraph(seed_nodes, num_hops=1, edge_index=train_graph.edge_index)
-                    subset, edge_index, mapping, edge_mask = k_hop_subgraph(seed_nodes, num_hops=1, edge_index=self.graph.edge_index, relabel_nodes=True)
-
-                    # Complete the subgraph data and append it to a subgraphs batch
-                    x = self.graph.x[subset]
-                    y_batch = y_batch[:, subset]
-                    # Create a boolean mask for the seed nodes (original tensor is not useful bc of the relabeling)
-                    seed_nodes = torch.zeros(subset.shape[0], dtype=torch.bool, device=self.device)
-                    seed_nodes[mapping] = True # Store this mapping as we only care about the seed nodes for the loss
-                    G_list = []
-                    for p, y in zip(params_batch, y_batch):
-                        x[:, :3] = p
-                        y = y.reshape(-1,1)
-                        G = Data(x=x.clone(), y=y.clone(), seed_nodes=seed_nodes, edge_index=edge_index, edge_attr=self.graph.edge_attr[edge_mask])
-                        G_list.append(G)
-
-                    G_batch = Batch.from_data_list(G_list)
-                    G_batch = G_batch.to(self.device)
-                    
-                    optimizer.zero_grad()
-                    # Forward pass: only look at the seed nodes for the loss
-                    output = self(G_batch)[G_batch.seed_nodes]
-                    targets = G_batch.y[G_batch.seed_nodes]
-                    loss = loss_fn(output, targets)
-                    loss.backward()
-                    optimizer.step()
-                    total_loss += loss.item()
-
-                scheduler.step()
-
-            return total_loss / (len(self.op_loader) * len(self.node_loader))
-
 
         op_loader_params = {
             "batch_size": kwargs.get("batch_size", 15),
@@ -568,60 +589,11 @@ class GNS(nn.Module):
         total_epochs = len(epoch_list) + epochs
         for epoch in range(1+len(epoch_list), 1+total_epochs):
             
-            self.train()
-            train_loss = 0
-            for  i, (params_batch, y_batch) in enumerate(op_loader):
-                params_batch = params_batch.to(self.device) # [B, 3]
-                y_batch = y_batch.to(self.device) # [B, N]
-                
-                for seed_nodes in node_loader:
-                    # Compute the k-hop subgraph
-                    subset, edge_index, mapping, edge_mask = k_hop_subgraph(seed_nodes, num_hops=1, edge_index=self.graph.edge_index, relabel_nodes=True)
-
-                    # Complete the subgraph data and append it to a subgraphs batch
-                    x = self.graph.x[subset]
-                    y_batch = y_batch[:, subset]
-                    # Create a boolean mask for the seed nodes (original tensor is not useful bc of the relabeling)
-                    seed_nodes = torch.zeros(subset.shape[0], dtype=torch.bool, device=self.device)
-                    seed_nodes[mapping] = True # Store this mapping as we only care about the seed nodes for the loss
-                    G_list = []
-                    for p, y in zip(params_batch, y_batch):
-                        x[:, :3] = p
-                        y = y.reshape(-1,1)
-                        G = Data(x=x.clone(), y=y.clone(), seed_nodes=seed_nodes, edge_index=edge_index, edge_attr=self.graph.edge_attr[edge_mask])
-                        G_list.append(G)
-
-                    G_batch = Batch.from_data_list(G_list)
-                    G_batch = G_batch.to(self.device)
-                    
-                    self.optimizer.zero_grad()
-                    # Forward pass: only look at the seed nodes for the loss
-                    oupt = self(G_batch)[G_batch.seed_nodes]
-                    targets = G_batch.y[G_batch.seed_nodes]
-                    loss_val = loss_fn(oupt, targets)
-                    loss_val.backward()
-                    self.optimizer.step()
-                    loss_val_item = loss_val.item()
-                    train_loss += loss_val_item
-                    if print_rate_batch != 0 and (i % print_rate_batch) == 0:
-                        pprint(0, f"Epoch {epoch}/{total_epochs} | Batch {i}/{len(op_loader)} | Train loss (x1e5) {loss_val_item * 1e5:.4f}", flush=True)
-
-            train_loss = train_loss / (len(op_loader) * len(node_loader))
-
-            if self.scheduler is not None:
-                self.scheduler.step()
+            train_loss = self._train(op_loader, node_loader)
             
             test_loss = 0.0
             if eval_dataloader is not None:
-                self.eval()
-                with torch.no_grad():
-                    for n_idx, sample in enumerate(eval_dataloader):
-                        x_test, y_test = sample[0].to(self.device), sample[1].to(self.device)
-                        test_output = self(x_test)
-                        loss_val = loss_fn(test_output, y_test)
-                        test_loss += loss_val.item()
-
-                test_loss = test_loss / (n_idx + 1)
+                test_loss = self._eval(eval_dataloader)
                 test_loss_list.append(test_loss)
             
             if print_rate_epoch != 0 and (epoch % print_rate_epoch) == 0:
