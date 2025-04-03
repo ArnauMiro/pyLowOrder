@@ -98,7 +98,7 @@ class MessagePassingLayer(MessagePassing):
 
 class ScalerProtocol(Protocol):
     '''
-    Protocol for scalers. Must include:
+    Abstract protocol for scalers. Must include:
         - fit: Fit the scaler to the data.
         - transform: Transform the data using the fitted scaler.
         - fit_transform: Fit the scaler to the data and transform it.
@@ -282,7 +282,7 @@ class Graph(Data):
 
 class GNS(nn.Module):
     """
-    Graph Neural Network model for predicting aerodynamic variables on RANS meshes.
+    Graph Neural Solver class for predicting aerodynamic variables on RANS meshes.
     The model uses a message-passing architecture with MLPs for the message and update functions.
 
     Args:
@@ -290,7 +290,7 @@ class GNS(nn.Module):
         latent_dim (int): The number of latent features.
         output_dim (int): The number of output features.
         hidden_size (int): The number of hidden units in the MLPs.
-        GNN_layers (int): The number of GNN layers.
+        num_gnn_layers (int): The number of GNN layers.
         encoder_hidden_layers (int): The number of hidden layers in the encoder.
         decoder_hidden_layers (int): The number of hidden layers in the decoder.
         message_hidden_layers (int): The number of hidden layers in the message MLP.
@@ -309,7 +309,7 @@ class GNS(nn.Module):
                  latent_dim: int,
                  output_dim: int,
                  hidden_size: int,
-                 GNN_layers: int,
+                 num_num_gnn_layers: int,
                  encoder_hidden_layers: int = 6,
                  decoder_hidden_layers: int = 1,
                  message_hidden_layers: int = 2,
@@ -329,7 +329,8 @@ class GNS(nn.Module):
         self.latent_dim = latent_dim
         self.output_dim = output_dim
         self.hidden_size = hidden_size
-        self.GNN_layers = GNN_layers
+        self.op_size = None
+        self.num_num_gnn_layers = num_num_gnn_layers
         self.encoder_hidden_layers = encoder_hidden_layers
         self.decoder_hidden_layers = decoder_hidden_layers
         self.message_hidden_layers = message_hidden_layers
@@ -339,6 +340,8 @@ class GNS(nn.Module):
         self.device = device
         self.graph = graph  # Placeholder for the graph object.
         self.seed = seed
+        self.state = {} # Save the state of the optimizer, scheduler and epoch list
+        self.checkpoint = None # Placeholder for the checkpoint object.
 
         # Activation function
         if isinstance(activation, str):
@@ -355,7 +358,7 @@ class GNS(nn.Module):
             "latent_dim": latent_dim,
             "output_dim": output_dim,
             "hidden_size": hidden_size,
-            "GNN_layers": GNN_layers,
+            "num_num_gnn_layers": num_num_gnn_layers,
             "encoder_hidden_layers": encoder_hidden_layers,
             "decoder_hidden_layers": decoder_hidden_layers,
             "message_hidden_layers": message_hidden_layers,
@@ -393,13 +396,15 @@ class GNS(nn.Module):
                 drop_p=self.p_dropouts,
                 hiddim=self.hidden_size
             )
-            for _ in range(self.GNN_layers)
+            for _ in range(self.num_gnn_layers)
         ])
 
         # Normalization layer
         self.groupnorm = nn.GroupNorm(2, self.latent_dim)
 
-
+    @property
+    def trainable_params(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
     def forward(self, subgraph):
         """
@@ -434,7 +439,6 @@ class GNS(nn.Module):
     
 
     @cr('GNS._train')
-    # @torch.enable_grad()
     def _train(self, op_loader, node_loader):
         '''Train for 1 epoch. To be called inside a loop with ``epochs`` iterations.'''
 
@@ -493,7 +497,7 @@ class GNS(nn.Module):
 
                 for p, y in zip(params_batch, y_batch):
                     self.graph.x[:, :3] = p
-                    targets = y.reshape(-1,1)
+                    targets = y.reshape(-1, self.output_dim)
                     output = self(self.graph)
                     loss = self.loss_fn(output, targets)
                     total_loss += loss.item()
@@ -538,6 +542,7 @@ class GNS(nn.Module):
         Returns:
             Dict[str, List[float]]: A dictionary with the training and validation losses for each epoch.
         """
+        self.op_size = train_dataset.variables_in.shape[1]
         
 
         op_loader_params = {
@@ -613,31 +618,75 @@ class GNS(nn.Module):
 
         
 
-    def predict(self, X: Dataset, **kwargs):
+    def predict(self, 
+        X, 
+        return_targets: bool = False,
+        **kwargs,
+    ):
+        r"""
+        Predict the target values for the input data. The dataset is loaded to a DataLoader with the provided keyword arguments. 
+        The model is set to evaluation mode and the predictions are made using the input data. 
+        To make a prediction from a torch tensor, use the `__call__` method directly.
+
+        Args:
+            X: The dataset whose target values are to be predicted using the input data.
+            rescale_output (bool): Whether to rescale the output with the scaler of the dataset (default: ``True``).
+            kwargs (dict, optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):
+                - batch_size (int, optional): Batch size (default: ``256``).
+                - shuffle (bool, optional): Shuffle the data (default: ``False``).
+                - num_workers (int, optional): Number of workers to use (default: ``0``).
+                - pin_memory (bool, optional): Pin memory (default: ``True``).
+ 
+        Returns:
+            Tuple [np.ndarray, np.ndarray]: The predictions and the true target values.
         """
-        Predict the target values for the input data.
+        dataloader_params = {
+            "batch_size": 15,
+            "shuffle": False,
+            "num_workers": 0,
+            "pin_memory": True,
+        }
         
-        Args:
-            X: The input data. This dataset should have the same type as 
-            the ones used on fit
-            **kwargs: Additional parameters for the predict method.
+        for key in dataloader_params.keys():
+            if key in kwargs:
+                dataloader_params[key] = kwargs[key]
 
-        Returns:
-            np.array: The predicted target values.
-        """
-        pass
+        predict_dataloader = DataLoader(X, **dataloader_params)
 
-    def load_graph_from_mesh(self, mesh: Mesh):
-        """
-        Build the graph needed to train the model from a pyLOM Mesh object.
+        total_rows = len(predict_dataloader.dataset)
+        num_columns = self.output_dim
+        all_predictions = np.empty((total_rows, num_columns))
+        all_targets = np.empty((total_rows, num_columns))
 
-        Args:
-            mesh (pyLOM.Mesh): The input mesh.
+        self.eval()
+        start_idx = 0
+        with torch.no_grad():
+            for params_batch, y_batch in predict_dataloader:
+                for p, y in zip(params_batch, y_batch):
+                    self.graph.x[:, :3] = p
+                    targets = y.reshape(-1, self.output_dim)
+                    output = self(self.graph)
+                    loss = self.loss_fn(output, targets)
+                    total_loss += loss.item()
 
-        Returns:
-            Data: The graph structure.
-        """
-        pass
+                    if return_targets:
+                        all_targets[start_idx:end_idx, :] = targets.cpu().numpy()
+            return total_loss / (len(op_loader))
+
+
+                output = self(x.to(self.device))
+                batch_size = x.size(0)
+                end_idx = start_idx + batch_size
+                all_predictions[start_idx:end_idx, :] = output.cpu().numpy()
+                if return_targets:
+                    all_targets[start_idx:end_idx, :] = y.cpu().numpy()
+                start_idx = end_idx
+
+        if return_targets:
+            return all_predictions, all_targets
+        else:
+            return all_predictions
+
 
     @classmethod
     def create_optimized_model(
@@ -666,7 +715,29 @@ class GNS(nn.Module):
         Args:
             path (str): The path to save the model.
         """
-        pass
+        r"""
+        Save the model to a checkpoint file.
+
+        Args:
+            path (str): Path to save the model. It can be either a path to a directory or a file name. 
+            If it is a directory, the model will be saved with a filename that includes the number of epochs trained.
+        """
+        checkpoint = {
+            "input_size": self.input_size,
+            "output_size": self.output_size,
+            "n_layers": self.n_layers,
+            "hidden_size": self.hidden_size,
+            "p_dropouts": self.p_dropouts,
+            "activation": self.activation,
+            "device": self.device,
+            "state_dict": self.state_dict(),
+            "state": self.state,
+        }
+        
+        if os.path.isdir(path):
+            filename = "/trained_model_{:06d}".format(len(self.state[2])) + ".pth"
+            path = path + filename
+        torch.save(checkpoint, path)
 
     @classmethod
     def load(self, path: str):
@@ -680,8 +751,3 @@ class GNS(nn.Module):
             Model: The loaded model.
         """
         pass
-    
-
-    @property
-    def trainable_params(self):
-        return sum(p.numel() for p in self.parameters() if p.requires_grad)
