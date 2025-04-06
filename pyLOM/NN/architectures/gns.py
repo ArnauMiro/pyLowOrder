@@ -336,7 +336,7 @@ class GNS(nn.Module):
                  latent_dim: int,
                  output_dim: int,
                  hidden_size: int,
-                 num_num_gnn_layers: int,
+                 num__gnn_layers: int,
                  encoder_hidden_layers: int,
                  decoder_hidden_layers: int,
                  message_hidden_layers: int,
@@ -373,7 +373,7 @@ class GNS(nn.Module):
         self.output_dim = output_dim
         self.encoder_input_dim = None # To be determined from self.graph
         self.hidden_size = hidden_size
-        self.num_num_gnn_layers = num_num_gnn_layers
+        self.num__gnn_layers = num__gnn_layers
         self.encoder_hidden_layers = encoder_hidden_layers
         self.decoder_hidden_layers = decoder_hidden_layers
         self.message_hidden_layers = message_hidden_layers
@@ -401,7 +401,7 @@ class GNS(nn.Module):
             "latent_dim": latent_dim,
             "output_dim": output_dim,
             "hidden_size": hidden_size,
-            "num_num_gnn_layers": num_num_gnn_layers,
+            "num__gnn_layers": num__gnn_layers,
             "encoder_hidden_layers": encoder_hidden_layers,
             "decoder_hidden_layers": decoder_hidden_layers,
             "message_hidden_layers": message_hidden_layers,
@@ -844,7 +844,7 @@ class GNS(nn.Module):
             latent_dim=checkpoint["latent_dim"],
             output_dim=checkpoint["output_dim"],
             hidden_size=checkpoint["hidden_size"],
-            num_num_gnn_layers=checkpoint["num_num_gnn_layers"],
+            num_gnn_layers=checkpoint["num_gnn_layers"],
             encoder_hidden_layers=checkpoint["encoder_hidden_layers"],
             decoder_hidden_layers=checkpoint["decoder_hidden_layers"],
             message_hidden_layers=checkpoint["message_hidden_layers"],
@@ -896,7 +896,7 @@ class GNS(nn.Module):
             >>>     "latent_dim": 16,
             >>>     "output_dim": 1,
             >>>     "hidden_size": (64, 512),
-            >>>     "num_num_gnn_layers": (1, 10),
+            >>>     "num__gnn_layers": (1, 10),
             >>>     "encoder_hidden_layers": (1, 10),
             >>>     "decoder_hidden_layers": (1, 10),
             >>>     "message_hidden_layers": (1, 10),
@@ -940,7 +940,7 @@ class GNS(nn.Module):
                 latent_dim=hyperparams["latent_dim"],
                 output_dim=hyperparams["output_dim"],
                 hidden_size=hyperparams["hidden_size"],
-                num_num_gnn_layers=hyperparams["num_num_gnn_layers"],
+                num__gnn_layers=hyperparams["num__gnn_layers"],
                 encoder_hidden_layers=hyperparams["encoder_hidden_layers"],
                 decoder_hidden_layers=hyperparams["decoder_hidden_layers"],
                 message_hidden_layers=hyperparams["message_hidden_layers"],
@@ -991,7 +991,7 @@ class GNS(nn.Module):
             latent_dim=optimization_params["latent_dim"],
             output_dim=optimization_params["output_dim"],
             hidden_size=optimization_params["hidden_size"],
-            num_gnn_layers=optimization_params["num_num_gnn_layers"],
+            num_gnn_layers=optimization_params["num__gnn_layers"],
             encoder_hidden_layers=optimization_params["encoder_hidden_layers"],
             decoder_hidden_layers=optimization_params["decoder_hidden_layers"],
             message_hidden_layers=optimization_params["message_hidden_layers"],
