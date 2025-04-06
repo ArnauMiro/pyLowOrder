@@ -323,7 +323,6 @@ class GNS(nn.Module):
         decoder_hidden_layers (int): The number of hidden layers in the decoder.
         message_hidden_layers (int): The number of hidden layers in the message MLP.
         update_hidden_layers (int): The number of hidden layers in the update MLP.
-        edge_dim (int): The dimension of edge features. Default is ``6``.
         # graph (Union[Data, Graph] = Graph()): The Graph object used to train the GNN. Default is Graph().
         p_dropouts (float, optional): The dropout probability. Default is ``0``.
         checkpoint_file (str, optional): The path to the checkpoint file. Default is ``None``.
@@ -333,30 +332,40 @@ class GNS(nn.Module):
     """
 
     def __init__(self,
+                 graph: Union[Data, Graph],
                  input_dim: int,
                  latent_dim: int,
                  output_dim: int,
                  hidden_size: int,
                  num_num_gnn_layers: int,
-                 encoder_hidden_layers: int = 6,
-                 decoder_hidden_layers: int = 1,
-                 message_hidden_layers: int = 2,
-                 update_hidden_layers: int = 2,
-                 edge_dim: int = 6,
-                 graph: Optional[Union[Data, Graph]] = Graph(),
-                 p_dropouts: float = 0.0,
-                 activation: Union[str, nn.Module] = 'ELU',
-                 device: Union[str, torch.device] = DEVICE,
-                 seed: Optional[int] = None):
+                 encoder_hidden_layers: int,
+                 decoder_hidden_layers: int,
+                 message_hidden_layers: int,
+                 update_hidden_layers: int,
+                 **kwargs
+                 ):
         
         super().__init__()
 
+        p_dropouts = kwargs.get("p_dropouts", 0.0)
+        activation = kwargs.get("activation", 'ELU')
+        device = kwargs.get("device", DEVICE)
+        if isinstance(device, str):
+            device = torch.device(device)
+        if device.type == "cuda":
+            if not torch.cuda.is_available():
+                raise ValueError("CUDA is not available. Please use CPU instead.")
+            torch.cuda.set_device(0)
+        if seed is not None:
+            set_seed(seed)
+
         # Save the model parameters
+        self._graph = None  # Placeholder for the graph object.
+        self._edge_dim = None # To be determined from self.graph
         self.input_dim = input_dim
         self.latent_dim = latent_dim
         self.output_dim = output_dim
         self.encoder_input_dim = None # To be determined from self.graph
-        self.edge_dim = None # To be determined from self.graph
         self.hidden_size = hidden_size
         self.num_num_gnn_layers = num_num_gnn_layers
         self.encoder_hidden_layers = encoder_hidden_layers
@@ -365,10 +374,11 @@ class GNS(nn.Module):
         self.update_hidden_layers = update_hidden_layers
         self.p_dropouts = p_dropouts
         self.device = device
-        self._graph = None  # Placeholder for the graph object.
         self.seed = seed
         self.state = {} # Save the state of the optimizer, scheduler and epoch list
         self.checkpoint = None # Placeholder for the checkpoint object.
+
+        self.graph = graph  # Set the graph object
 
         # Activation function
         if isinstance(activation, str):
@@ -390,15 +400,11 @@ class GNS(nn.Module):
             "decoder_hidden_layers": decoder_hidden_layers,
             "message_hidden_layers": message_hidden_layers,
             "update_hidden_layers": update_hidden_layers,
-            "edge_dim": edge_dim,
             "p_dropouts": p_dropouts,
             "activation": activation,
             "device": device,
             "seed": seed
         }
-
-        # Set the graph object
-        self.graph = graph
 
         # Encoder: from graph node features to latent space
         self.encoder = MLP(
@@ -421,7 +427,7 @@ class GNS(nn.Module):
         # Message-passing layers
         self.conv_layers_list = nn.ModuleList([
             MessagePassingLayer(
-                in_channels=2 * self.latent_dim + self.edge_dim,
+                in_channels=2 * self.latent_dim + self._edge_dim,
                 out_channels=self.latent_dim,
                 drop_p=self.p_dropouts,
                 hiddim=self.hidden_size
@@ -504,7 +510,7 @@ class GNS(nn.Module):
         )
 
         self.encoder_input_dim = graph.x.shape[1] # Update node features dimension
-        self.edge_dim = graph.edge_attr.shape[1] # Update edge features dimension
+        self._edge_dim = graph.edge_attr.shape[1] # Update edge features dimension
 
         self._graph = graph
 
@@ -600,39 +606,39 @@ class GNS(nn.Module):
     def fit(self,
             train_dataset,
             eval_dataset=None,
-            epochs: int = 300,
-            lr: float = 1e-4,
-            lr_gamma: float = 0.1,
-            lr_scheduler_step: int = 1,
-            loss_fn: torch.nn.Module = nn.MSELoss(reduction='mean'),
-            optimizer: torch.optim.Optimizer = torch.optim.Adam,
-            scheduler: torch.optim.lt_scheduler.LRScheduler = torch.optim.lr_scheduler.StepLR,
-            print_rate_batch: int = 0,
-            print_rate_epoch: int = 1,
-            **kwargs):
+            **kwargs
+            ):
         """
         Fit the model to the training data.
 
         Args:
             train_dataset (Dataset): The training dataset.
-            eval_dataset (Optional[Dataset]): The evaluation dataset.
-            epochs (int): The number of training epochs.
-            lr (float): The learning rate.
-            lr_gamma (float): The learning rate decay factor.
-            lr_scheduler_step (int): The step size for the learning rate scheduler.
-            loss_fn (torch.nn.Module): The loss function to use.
-            optimizer_class (torch.optim.Optimizer): The optimizer class to use.
-            scheduler_class (torch.optim.lr_scheduler.LRScheduler): The scheduler class to use.
-            **kwargs (dict, optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):
-                - batch_size (int, optional): Size of the operational parameters batch (default: ``15``).
-                - node_batch_size (int, optional): Size of the node batch (default: ``256``).
-                - shuffle (bool, optional): Shuffle the data (default: ``True``).
-                - num_workers (int, optional): Number of workers to use (default: ``0``).
-                - pin_memory (bool, optional): Pin memory (default: ``True``).
+            eval_dataset (Dataset, optional): The evaluation dataset. Default is None.
+            kwargs (dict, optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):
+                - epochs (int): Number of epochs to train the model. Default is 100.
+                - lr (float): Learning rate. Default is 1e-4.
+                - lr_gamma (float): Learning rate decay factor. Default is 0.1.
+                - lr_scheduler_step (int): Learning rate scheduler step size. Default is 1.
+                - loss_fn (torch.nn.Module): Loss function. Default is nn.MSELoss(reduction='mean').
+                - optimizer (torch.optim.Optimizer): Optimizer class. Default is torch.optim.Adam.
+                - scheduler (torch.optim.lr_scheduler._LRScheduler): Learning rate scheduler class. Default is torch.optim.lr_scheduler.StepLR.
+                - print_rate_batch (int): Print rate for batch loss. Default is 0.
+                - print_rate_epoch (int): Print rate for epoch loss. Default is 1.
 
         Returns:
             Dict[str, List[float]]: A dictionary with the training and validation losses for each epoch.
         """
+
+        epochs = kwargs.get("epochs", 100)
+        lr = kwargs.get("lr", 1e-4)
+        lr_gamma = kwargs.get("lr_gamma", 0.1)
+        lr_scheduler_step = kwargs.get("lr_scheduler_step", 1)
+        loss_fn = kwargs.get("loss_fn", nn.MSELoss(reduction='mean'))
+        optimizer = kwargs.get("optimizer", torch.optim.Adam)
+        scheduler = kwargs.get("scheduler", torch.optim.lr_scheduler.StepLR)
+        print_rate_batch = kwargs.get("print_rate_batch", 0)
+        print_rate_epoch = kwargs.get("print_rate_epoch", 1)
+
 
         op_dataloader_params = {
             "batch_size": kwargs.get("batch_size", 15),
@@ -826,6 +832,7 @@ class GNS(nn.Module):
         
         checkpoint = torch.load(path, map_location='cpu')
         model = cls(
+            graph=checkpoint["graph"],
             input_dim=checkpoint["input_dim"],
             latent_dim=checkpoint["latent_dim"],
             output_dim=checkpoint["output_dim"],
@@ -835,12 +842,10 @@ class GNS(nn.Module):
             decoder_hidden_layers=checkpoint["decoder_hidden_layers"],
             message_hidden_layers=checkpoint["message_hidden_layers"],
             update_hidden_layers=checkpoint["update_hidden_layers"],
-            edge_dim=checkpoint["edge_dim"],
             p_dropouts=checkpoint["p_dropouts"],
             activation=checkpoint["activation"],
-            device=checkpoint["device"],
             seed=checkpoint["seed"],
-            graph=checkpoint["graph"]
+            device=device,
         )
         model.load_state_dict(checkpoint["state_dict"])
         model.state = checkpoint["state"]
@@ -854,77 +859,113 @@ class GNS(nn.Module):
     @classmethod
     @cr('MLP.create_optimized_model')
     def create_optimized_model(
-        cls, 
+        cls,
+        graph: Graph, 
         train_dataset, 
         eval_dataset, 
         optuna_optimizer: OptunaOptimizer,
-        **kwargs,
     ) -> Tuple[nn.Module, Dict]:
         r"""
         Create an optimized model using Optuna. The model is trained on the training dataset and evaluated on the validation dataset.
         
         Args:
-            train_dataset: The training dataset.
-            eval_dataset: The evaluation dataset.
-            optuna_optimizer (OptunaOptimizer): The optimizer to use for optimization.
-            kwargs: Additional keyword arguments.
-
+            graph (Graph): The graph object used to train the GNN.
+            train_dataset (Dataset): The training dataset.
+            eval_dataset (Dataset): The evaluation dataset.
+            optuna_optimizer (OptunaOptimizer): The Optuna optimizer object.
         Returns:
-            Tuple [MLP, Dict]: The optimized model and the optimization parameters.
+            Tuple[nn.Module, Dict]: The optimized model and the optimization parameters.
 
         Example:
-            >>> from pyLOM.NN import MLP, OptunaOptimizer
+            >>> from pyLOM.NN import GNS, OptunaOptimizer
             >>> # Split the dataset
             >>> train_dataset, eval_dataset = dataset.get_splits([0.8, 0.2])
+            >>> # Create the graph
+            >>> graph = Graph.from_mesh(mesh, x=x, y=y, scaler=scaler)
             >>> 
             >>> # Define the optimization parameters
             >>> optimization_params = {
-            >>>     "lr": (0.00001, 0.01), # optimizable parameter
-            >>>     "epochs": 50, # fixed parameter
-            >>>     "n_layers": (1, 4),
-            >>>     "batch_size": (128, 512),
-            >>>     "hidden_size": (200, 400),
-            >>>     "p_dropouts": (0.1, 0.5),
-            >>>     "num_workers": 0,
-            >>>     'print_rate_epoch': 5
+            >>>     "input_dim": 2,
+            >>>     "output_dim": 1,
+            >>>     "hidden_size": (64, 512),
+            >>>     "num_num_gnn_layers": (1, 10),
+            >>>     "encoder_hidden_layers": (1, 10),
+            >>>     "decoder_hidden_layers": (1, 10),
+            >>>     "message_hidden_layers": (1, 10),
+            >>>     "update_hidden_layers": (1, 10),
+            >>>     "epochs": 1000,
+            >>>     "lr": (1e-5, 1e-2),
+            >>>     "lr_gamma": (0.1, 1),
+            >>>     "lr_scheduler_step": (1, 10),
+            >>>     "loss_fn": nn.MSELoss(reduction='mean'),
+            >>>     "optimizer": torch.optim.Adam,
+            >>>     "scheduler": torch.optim.lr_scheduler.StepLR,
+            >>>     "batch_size": (1, 16),
+            >>>     "node_batch_size": (2**3, 2**16),
             >>> }
             >>>
             >>> # Define the optimizer
             >>> optimizer = OptunaOptimizer(
             >>>     optimization_params=optimization_params,
-            >>>     n_trials=5,
+            >>>     n_trials=100,
             >>>     direction="minimize",
-            >>>     pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=5, interval_steps=1),
+            >>>     pruner=optuna.pruners.MedianPruner(n_startup_trials=10, n_warmup_steps=5, interval_steps=5),
             >>>     save_dir=None,
             >>> )
             >>>
             >>> # Create the optimized model
-            >>> model, optimization_params = MLP.create_optimized_model(train_dataset, eval_dataset, optimizer)
+            >>> model, optimization_params = MLP.create_optimized_model(graph, train_dataset, eval_dataset, optimizer)
             >>> 
             >>> # Fit the model
             >>> model.fit(train_dataset, eval_dataset, **optimization_params)
         """
         optimization_params = optuna_optimizer.optimization_params
-        input_dim, output_dim = train_dataset[0][0].shape[0], train_dataset[0][1].shape[0]
         def optimization_function(trial) -> float:
-            training_params = {}       
+            hyperparams = {}       
             for key, params in optimization_params.items():
-                training_params[key] = cls._get_optimizing_value(key, params, trial)
-            model = cls(input_dim, output_dim, **training_params)
+                hyperparams[key] = cls._get_optimizing_value(key, params, trial)
+
+            
+            model = cls(
+                graph=graph,
+                input_dim=hyperparams["input_dim"],
+                output_dim=hyperparams["output_dim"],
+                hidden_size=hyperparams["hidden_size"],
+                num_num_gnn_layers=hyperparams["num_num_gnn_layers"],
+                encoder_hidden_layers=hyperparams["encoder_hidden_layers"],
+                decoder_hidden_layers=hyperparams["decoder_hidden_layers"],
+                message_hidden_layers=hyperparams["message_hidden_layers"],
+                update_hidden_layers=hyperparams["update_hidden_layers"],
+                **hyperparams
+            )
             if optuna_optimizer.pruner is not None:
-                epochs = training_params["epochs"]
-                training_params["epochs"] = 1
+                # prune epoch-wise
+                epochs = hyperparams["epochs"]
+                hyperparams["epochs"] = 1
                 for epoch in range(epochs):
-                    model.fit(train_dataset, **training_params)
-                    y_pred, y_true = model.predict(eval_dataset, return_targets=True)
-                    loss_val = ((y_pred - y_true)**2).mean()
+                    losses = model.fit(train_dataset, eval_dataset, **hyperparams)
+                    loss_val = losses["test_loss"][-1]
+                    # Report the loss to Optuna
                     trial.report(loss_val, epoch)
                     if trial.should_prune(): 
                         raise TrialPruned()
             else:
-                model.fit(train_dataset, **training_params)
-                y_pred, y_true = model.predict(eval_dataset, return_targets=True)
-                loss_val = ((y_pred - y_true)**2).mean()
+                losses = model.fit(
+                    train_dataset,
+                    epochs = hyperparams.get("epochs"),
+                    lr = hyperparams.get("lr"),
+                    lr_gamma = hyperparams.get("lr_gamma"),
+                    lr_scheduler_step = hyperparams.get("lr_scheduler_step"),
+                    loss_fn = hyperparams.get("loss_fn"),
+                    optimizer = hyperparams.get("optimizer"),
+                    scheduler = hyperparams.get("scheduler"),
+                    print_rate_batch = hyperparams.get("print_rate_batch"),
+                    print_rate_epoch = hyperparams.get("print_rate_epoch"),
+                    **hyperparams
+                    )
+                loss_val = losses["test_loss"][-1]
+                # Report the loss to Optuna
+                trial.report(loss_val, 0)
             
             return loss_val
         
@@ -935,7 +976,18 @@ class GNS(nn.Module):
             if param in optimization_params:
                 optimization_params[param] = best_params[param]
         
-        return cls(input_dim, output_dim, **optimization_params), optimization_params
+        return cls(
+            graph=graph,
+            input_dim=optimization_params["input_dim"],
+            output_dim=optimization_params["output_dim"],
+            hidden_size=optimization_params["hidden_size"],
+            num_num_gnn_layers=optimization_params["num_num_gnn_layers"],
+            encoder_hidden_layers=optimization_params["encoder_hidden_layers"],
+            decoder_hidden_layers=optimization_params["decoder_hidden_layers"],
+            message_hidden_layers=optimization_params["message_hidden_layers"],
+            update_hidden_layers=optimization_params["update_hidden_layers"],
+            **best_params
+        ), optimization_params
 
     def _get_optimizing_value(name, value, trial):
         if isinstance(value, tuple) or isinstance(value, list):
