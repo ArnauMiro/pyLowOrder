@@ -143,7 +143,9 @@ class Graph(Data):
     def from_pyLOM_mesh(cls,
                         mesh: Mesh,
                         y: Optional[np.ndarray] = None,
-                        scaler: Optional[ScalerProtocol] = None
+                        scaler: Optional[ScalerProtocol] = None,
+                        name: Optional[str] = None,
+                        device: Optional[Union[str, torch.device]] = DEVICE,
                                 ) -> "Graph":
         r"""
         Create a torch_geometric Data object from a pyLOM Mesh object.
@@ -168,13 +170,6 @@ class Graph(Data):
         print("Computing dual edges and wall normals")
         edge_index, wall_normals = cls._dual_edges_and_wall_normals(mesh)
 
-        # Create the node features (node coordinates + surface normals)
-        x = np.concatenate((
-            xyzc,
-            surface_normals
-        ),
-        axis=1)
-
         # Create the edge features
         c_i = xyzc[edge_index[0, :]]
         c_j = xyzc[edge_index[1, :]]
@@ -187,7 +182,9 @@ class Graph(Data):
 
         # Scale node and edge features if scaler is provided
         if scaler is not None:
-            x = scaler.fit_transform(x)
+            # x = scaler.fit_transform(x)
+            xyzc = scaler.fit_transform(xyzc)
+            surface_normals = scaler.fit_transform(surface_normals)
             edge_attr = scaler.fit_transform(edge_attr)
 
         x = torch.tensor(x, dtype=torch.float32)
@@ -195,8 +192,27 @@ class Graph(Data):
         edge_index = torch.tensor(edge_index, dtype=torch.long)
         edge_attr = torch.tensor(edge_attr, dtype=torch.float32)
 
-        # Return the class instance with the necessary attributes
-        return cls(x=x, y=y, edge_index=edge_index, edge_attr=edge_attr)
+        # Return the class instance with the necessary attributes. Leave x as None as the final edge attributes need to be computed dynamically during training.
+        graph = cls(
+            x=None,
+            pos=torch.tensor(xyzc, dtype=torch.float32),
+            surf_norms = torch.tensor(surface_normals, dtype=torch.float32),
+            y=y,
+            edge_index=edge_index,
+            edge_attr=edge_attr
+            )
+
+        # Set the graph name
+        if name is not None:
+            graph.name = name
+        
+        # Set the device
+        if device is not None:
+            if isinstance(device, str):
+                device = torch.device(device)
+            graph.to(device)
+
+        return graph
     
 
     def filter(self,
@@ -298,7 +314,7 @@ class GNS(nn.Module):
     The model uses a message-passing architecture with MLPs for the message and update functions.
 
     Args:
-        input_dim (int): The number of input features.
+        input_dim (int): The dimension of the operational parameters.
         latent_dim (int): The number of latent features.
         output_dim (int): The number of output features.
         hidden_size (int): The number of hidden units in the MLPs.
@@ -334,23 +350,22 @@ class GNS(nn.Module):
                  seed: Optional[int] = None):
         
         super().__init__()
-        # torch.manual_seed(11235)
 
         # Save the model parameters
         self.input_dim = input_dim
         self.latent_dim = latent_dim
         self.output_dim = output_dim
+        self.encoder_input_dim = None # To be determined from self.graph
+        self.edge_dim = None # To be determined from self.graph
         self.hidden_size = hidden_size
-        self.op_size = None
         self.num_num_gnn_layers = num_num_gnn_layers
         self.encoder_hidden_layers = encoder_hidden_layers
         self.decoder_hidden_layers = decoder_hidden_layers
         self.message_hidden_layers = message_hidden_layers
         self.update_hidden_layers = update_hidden_layers
-        self.edge_dim = edge_dim
         self.p_dropouts = p_dropouts
         self.device = device
-        self.graph = graph  # Placeholder for the graph object.
+        self._graph = None  # Placeholder for the graph object.
         self.seed = seed
         self.state = {} # Save the state of the optimizer, scheduler and epoch list
         self.checkpoint = None # Placeholder for the checkpoint object.
@@ -382,9 +397,12 @@ class GNS(nn.Module):
             "seed": seed
         }
 
+        # Set the graph object
+        self.graph = graph
+
         # Encoder: from graph node features to latent space
         self.encoder = MLP(
-            input_size=self.input_dim,
+            input_size=self.encoder_input_dim,
             output_size=self.latent_dim,
             hidden_sizes=[self.hidden_size] * self.encoder_hidden_layers,
             activation=self.activation,
@@ -418,21 +436,21 @@ class GNS(nn.Module):
     def trainable_params(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
-    def forward(self, subgraph):
+    def forward(self, graph):
         """
         Forward pass of the model.
 
         Args:
-            subgraph (Data): The input subgraph.
+            graph (Data): The input graph.
 
         Returns:
             torch.Tensor: The predicted target values.
         """
 
         # Get node and edge features
-        x = subgraph.x
-        edge_index = subgraph.edge_index
-        edge_attr = subgraph.edge_attr
+        x = graph.x
+        edge_index = graph.edge_index
+        edge_attr = graph.edge_attr
 
         # 1. Encode node features
         h = self.encoder(x)
@@ -450,16 +468,59 @@ class GNS(nn.Module):
         return y_hat
     
 
+    @property
+    def graph(self):
+        '''Graph property to get the graph object.'''
+        return self._graph
+    
+    @graph.setter
+    def graph(self, graph: Graph):
+        '''Graph property to set the graph object.'''
+        if self._graph is not None:
+            raise Warning("Graph is already set! Graph name is: {}".format(self._graph.name))
+        if not isinstance(graph, Graph):
+            raise TypeError("Graph must be of type Graph.")
+        if not graph.is_undirected():
+            raise Warning("Graph is not undirected. This may lead to unexpected results.")
+        if getattr(graph, "edge_index", None) is None:
+            raise ValueError("Graph must have edge_index attribute.")
+        if getattr(graph, "edge_attr", None) is None:
+            raise ValueError("Graph must have edge_attr attribute.")
+        if getattr(graph, "pos", None) is None:
+            raise ValueError("Graph must have pos attribute.")
+        if getattr(graph, "surf_norms", None) is None:
+            raise ValueError("Graph must have surf_norms attribute.")
+        
+        
+        graph = graph.to(self.device)
+
+        # Precompute the graph node features. Concatenate all node attrs in a single tensor with preallocated memory for the operational parameters
+        graph.x = torch.cat(
+            [
+                torch.zeros((graph.num_nodes, self.input_dim), dtype=torch.float32, device=self.device),
+                *[getattr(graph, attr) for attr in graph.node_attrs()]
+            ],
+            dim=1
+        )
+
+        self.encoder_input_dim = graph.x.shape[1] # Update node features dimension
+        self.edge_dim = graph.edge_attr.shape[1] # Update edge features dimension
+
+        self._graph = graph
+
+
+
     @cr('GNS._train')
-    def _train(self, op_loader, node_loader, loss_fn):
-        '''Train for 1 epoch. To be called inside a loop with ``epochs`` iterations.
+    def _train(self, op_dataloader, node_dataloader, loss_fn):
+        '''Train for 1 epoch. Used in the fit method inside a loop with ``epochs`` iterations.
         Args:
-            op_loader (DataLoader): The DataLoader for the operational parameters. Should contain also target values.
-            node_loader (DataLoader): The DataLoader for the nodes.
+            op_dataloader (DataLoader): The DataLoader for the operational parameters. Should contain also target values.
+            node_dataloader (DataLoader): The DataLoader for the nodes.
             loss_fn (torch.nn.Module): The loss function to use.
         Returns:
             float: The average loss for the epoch.
         '''
+
         # Set the model to training mode
         if self.seed is not None:
             set_seed(self.seed)
@@ -467,11 +528,11 @@ class GNS(nn.Module):
         self.train()
         total_loss = 0
 
-        for params_batch, y_batch in op_loader:
+        for params_batch, y_batch in op_dataloader:
             params_batch = params_batch.to(self.device) # [B, 3]
             y_batch = y_batch.to(self.device) # [B, N]
             
-            for seed_nodes in node_loader:
+            for seed_nodes in node_dataloader:
                 # Compute the k-hop subgraph
                 subset, edge_index, mapping, edge_mask = k_hop_subgraph(seed_nodes, num_hops=1, edge_index=self.graph.edge_index, relabel_nodes=True)
 
@@ -483,7 +544,7 @@ class GNS(nn.Module):
                 seed_nodes[mapping] = True # Store this mapping as we only care about the seed nodes for the loss
                 G_list = []
                 for p, y in zip(params_batch, y_batch):
-                    x[:, :3] = p
+                    x[:, :self.op_dim] = p # Prepend the operational parameters to node features
                     y = y.reshape(-1,1)
                     G = Data(x=x.clone(), y=y.clone(), seed_nodes=seed_nodes, edge_index=edge_index, edge_attr=self.graph.edge_attr[edge_mask])
                     G_list.append(G)
@@ -503,56 +564,36 @@ class GNS(nn.Module):
             if self.scheduler is not None:
                 self.scheduler.step()
 
-        return total_loss / (len(self.op_loader) * len(self.node_loader))
+        return total_loss / (len(self.op_dataloader) * len(self.node_dataloader))
 
-
-    @cr('GNS.predict')
-    def predict(self,
-                X: Dataset,
-                return_targets: bool = False,
-                **kwargs):
-        '''Evaluate the model on a validation set.
+    @cr('GNS._eval')
+    def _eval(self, eval_dataloader, loss_fn):
+        '''Evaluate the model on a validation set. Used in the fit method inside a loop with ``epochs`` iterations.
         Args:
-            op_loader (DataLoader): The DataLoader for the operational parameters. Should contain also target values.
-            return_tensors (bool): If True, return the predictions and targets as tensors. If False, return the average loss.'''
+            eval_dataloader (DataLoader): The DataLoader for the evaluation set.
+            loss_fn (torch.nn.Module): The loss function to use.
+        Returns:
+            float: The average loss for the evaluation set.
+        '''
         
-        dataloader_params = {
-            "batch_size": 15,
-            "shuffle": False,
-            "num_workers": 0,
-            "pin_memory": True,
-        }
-
-        for key in dataloader_params.keys():
-            if key in kwargs:
-                dataloader_params[key] = kwargs[key]
-
-        predict_dataloader = DataLoader(X, **dataloader_params)
-
-        num_rows = len(predict_dataloader.dataset)
-        num_columns = predict_dataloader[0][1].shape[1] # Columns of the targets in the dataloader
-        all_predictions = torch.zeros((num_rows, num_columns), dtype=torch.float32, device=self.device)
-        if return_targets == True:
-            all_targets = torch.zeros((num_rows, num_columns), dtype=torch.float32, device=self.device)
+        self.eval()
+        total_loss = 0
 
         with torch.no_grad():
-            self.eval()
-            for params_batch, y_batch in predict_dataloader:
+            for params_batch, y_batch in eval_dataloader:
                 params_batch = params_batch.to(self.device)
                 y_batch = y_batch.to(self.device)
 
-                for i, (p, y) in enumerate(zip(params_batch, y_batch)):
-                    self.graph.x[:, -self.op_size:] = p
+                for (p, y) in zip(params_batch, y_batch):
+                    self.graph.x[:, :self.op_dim] = p
                     targets = y.reshape(-1, self.output_dim)
                     output = self(self.graph)
-                    all_predictions[i] = output
-                    if return_targets == True:
-                        all_targets[i] = targets
+                    loss = loss_fn(output, targets)
+                    total_loss += loss.item()
 
-        if return_targets == True:
-            return all_predictions.cpu().numpy(), all_targets.cpu().numpy()
-        else:
-            return all_predictions.cpu().numpy()
+        return total_loss / eval_dataloader.dataset.__len__()
+
+
 
 
     @cr('GNS.fit')
@@ -592,19 +633,15 @@ class GNS(nn.Module):
         Returns:
             Dict[str, List[float]]: A dictionary with the training and validation losses for each epoch.
         """
-        assert self.input_dim == self.graph.x.shape[1] + train_dataset.variables_in.shape[1], ...
-        f"Dimension of model input must match the dimension of graph node features plus the dimension of input features in your dataloader.\nCurrenntly the model is expecting an input of size {self.input_dim}, but graph node features are of size {self.graph.x.shape[1]} and the input features in your dataloader are of size {train_dataset.variables_in.shape[1]}.\nPlease check your dataloader and the model input dimension."
-        self.op_size = train_dataset.variables_in.shape[1]
-        self.graph.x = torch.hstack([self.graph.x, torch.zeros((self.graph.x.shape[0], self.op_size), dtype=torch.float32, device=self.device)]) # Add space for the operational parameters in the graph node features
 
-        op_loader_params = {
+        op_dataloader_params = {
             "batch_size": kwargs.get("batch_size", 15),
             "shuffle": kwargs.get("shuffle", True),
             "num_workers": kwargs.get("num_workers", 0),
             "pin_memory": kwargs.get("pin_memory", True)
         }
 
-        node_loader_params = {
+        node_dataloader_params = {
             "batch_size": kwargs.get("node_batch_size", 256),
             "shuffle": kwargs.get("shuffle", True),
             "num_workers": kwargs.get("num_workers", 0),
@@ -612,15 +649,15 @@ class GNS(nn.Module):
         }
 
         # Create the DataLoader for the operational parameters
-        if not hasattr(self, "op_loader"):
-            op_loader = DataLoader(train_dataset, **op_loader_params)
+        if not hasattr(self, "op_dataloader"):
+            op_dataloader = DataLoader(train_dataset, **op_dataloader_params)
         # Create the DataLoader for the nodes
-        if not hasattr(self, "node_loader"):
+        if not hasattr(self, "node_dataloader"):
             node_indices = np.arange(self.graph.num_nodes)
             node_indices = torch.tensor(node_indices, dtype=torch.long)
-            node_loader = DataLoader(node_indices, **node_loader_params)
+            node_dataloader = DataLoader(node_indices, **node_dataloader_params)
 
-        eval_dataloader = DataLoader(eval_dataset, **op_loader_params) if eval_dataset is not None else None
+        eval_dataloader = DataLoader(eval_dataset, **op_dataloader_params) if eval_dataset is not None else None
 
         if not hasattr(self, "optimizer"):
             self.optimizer = optimizer(self.parameters(), lr=lr)
@@ -646,7 +683,7 @@ class GNS(nn.Module):
         total_epochs = len(epoch_list) + epochs
         for epoch in range(1+len(epoch_list), 1+total_epochs):
             
-            train_loss = self._train(op_loader, node_loader, loss_fn)
+            train_loss = self._train(op_dataloader, node_dataloader, loss_fn)
             train_loss_list.append(train_loss)
             if print_rate_batch != 0 and (epoch % print_rate_batch) == 0:
                 pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss (x1e5) {train_loss * 1e5:.4f}", flush=True)
@@ -693,7 +730,8 @@ class GNS(nn.Module):
                 - pin_memory (bool, optional): Pin memory (default: ``True``).
  
         Returns:
-            Tuple [np.ndarray, np.ndarray]: The predictions and the true target values.
+            np.ndarray: The predicted target values if return_targets is False.
+            Tuple[np.ndarray, np.ndarray]: The predicted target values and the target values from the dataset if return_targets is True.
         """
         dataloader_params = {
             "batch_size": 15,
@@ -708,25 +746,24 @@ class GNS(nn.Module):
 
         predict_dataloader = DataLoader(X, **dataloader_params)
 
-        total_rows = len(predict_dataloader.dataset)
+        num_rows = len(predict_dataloader.dataset)
         num_columns = self.output_dim
-        all_predictions = np.empty((total_rows, num_columns))
-        all_targets = np.empty((total_rows, num_columns))
+        all_predictions = np.empty((num_rows, num_columns))
+        all_targets = np.empty((num_rows, num_columns))
+
 
         with torch.no_grad():
             self.eval()
-            total_loss = 0
-            # Batch size must be set to 1!
             for params_batch, y_batch in predict_dataloader:
                 params_batch = params_batch.to(self.device)
                 y_batch = y_batch.to(self.device)
 
                 for (p, y) in zip(params_batch, y_batch):
-                    self.graph.x[:, -self.op_size:] = p
+                    self.graph.x[:, :self.op_dim] = p
                     targets = y.reshape(-1, self.output_dim)
                     output = self(self.graph)
-                    loss = self.loss_fn(output, targets)
-                    total_loss += loss.item()      
+                    all_predictions[i] = output.cpu().numpy()
+                    all_targets[i] = targets.cpu().numpy()    
 
         if return_targets:
             return all_predictions, all_targets
