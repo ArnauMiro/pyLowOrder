@@ -130,7 +130,7 @@ class ScalerProtocol(Protocol):
         ...
 
 
-class Graph(Data):
+class pyLOMGraph(Data):
     '''
     Custom class derived from torch.geometric.Data to handle graphs for GNN.
     
@@ -146,7 +146,7 @@ class Graph(Data):
                         scaler: Optional[ScalerProtocol] = None,
                         name: Optional[str] = None,
                         device: Optional[Union[str, torch.device]] = DEVICE,
-                                ) -> "Graph":
+                                ) -> "pyLOMGraph":
         r"""
         Create a torch_geometric Data object from a pyLOM Mesh object.
 
@@ -160,7 +160,7 @@ class Graph(Data):
             operational_parameters_size (int): The number of operational parameters (e.g.: 2 for Mach and alpha)
 
         Returns:
-            Data: The graph structure.
+            pyLOMGraph: The graph structure.
         """
         xyzc = mesh.xyzc  # Cell centers coordinates
         print("Computing surface normals")
@@ -323,7 +323,7 @@ class GNS(nn.Module):
         decoder_hidden_layers (int): The number of hidden layers in the decoder.
         message_hidden_layers (int): The number of hidden layers in the message MLP.
         update_hidden_layers (int): The number of hidden layers in the update MLP.
-        # graph (Union[Data, Graph] = Graph()): The Graph object used to train the GNN. Default is Graph().
+        # graph (Union[Data, pyLOMGraph]: The pyLOMGraph object used to train the GNN..
         p_dropouts (float, optional): The dropout probability. Default is ``0``.
         checkpoint_file (str, optional): The path to the checkpoint file. Default is ``None``.
         activation (Union[str, nn.Module]): The activation function to use.
@@ -332,7 +332,7 @@ class GNS(nn.Module):
     """
 
     def __init__(self,
-                 graph: Union[Data, Graph],
+                 graph: Union[Data, pyLOMGraph],
                  input_dim: int,
                  latent_dim: int,
                  output_dim: int,
@@ -487,12 +487,12 @@ class GNS(nn.Module):
         return self._graph
     
     @graph.setter
-    def graph(self, graph: Graph):
+    def graph(self, graph: pyLOMGraph):
         '''Graph property to set the graph object.'''
         if self._graph is not None:
             raise Warning("Graph is already set! Graph name is: {}".format(self._graph.name))
         if not isinstance(graph, Graph):
-            raise TypeError("Graph must be of type Graph.")
+            raise TypeError("Graph must be of type torch_geometric.data.Data or pyLOMGraph.")
         if not graph.is_undirected():
             raise Warning("Graph is not undirected. This may lead to unexpected results.")
         if getattr(graph, "edge_index", None) is None:
@@ -867,7 +867,7 @@ class GNS(nn.Module):
     @cr('MLP.create_optimized_model')
     def create_optimized_model(
         cls,
-        graph: Graph, 
+        graph: Union[Data, pyLOMGraph], 
         train_dataset, 
         eval_dataset, 
         optuna_optimizer: OptunaOptimizer,
