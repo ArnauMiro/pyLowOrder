@@ -347,9 +347,16 @@ class GNS(nn.Module):
         
         super().__init__()
 
-        p_dropouts = kwargs.get("p_dropouts", 0.0)
-        activation = kwargs.get("activation", 'ELU')
-        device = kwargs.get("device", DEVICE)
+        p_dropouts = kwargs.get("p_dropouts")
+        activation = kwargs.get("activation")
+        device = kwargs.get("device")
+        seed = kwargs.get("seed")
+        if p_dropouts is None:
+            p_dropouts = 0.0
+        if activation is None:
+            activation = 'ELU'
+        if device is None:
+            device = DEVICE
         if isinstance(device, str):
             device = torch.device(device)
         if device.type == "cuda":
@@ -764,7 +771,7 @@ class GNS(nn.Module):
                 params_batch = params_batch.to(self.device)
                 y_batch = y_batch.to(self.device)
 
-                for (p, y) in zip(params_batch, y_batch):
+                for i, (p, y) in enumerate(zip(params_batch, y_batch)):
                     self.graph.x[:, :self.op_dim] = p
                     targets = y.reshape(-1, self.output_dim)
                     output = self(self.graph)
@@ -842,10 +849,10 @@ class GNS(nn.Module):
             decoder_hidden_layers=checkpoint["decoder_hidden_layers"],
             message_hidden_layers=checkpoint["message_hidden_layers"],
             update_hidden_layers=checkpoint["update_hidden_layers"],
-            p_dropouts=checkpoint["p_dropouts"],
-            activation=checkpoint["activation"],
-            seed=checkpoint["seed"],
-            device=device,
+            p_dropouts=checkpoint.get("p_dropouts"),
+            activation=checkpoint.get("activation"),
+            seed=checkpoint.get("seed"),
+            device=checkpoint.get("device"),
         )
         model.load_state_dict(checkpoint["state_dict"])
         model.state = checkpoint["state"]
