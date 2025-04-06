@@ -893,6 +893,7 @@ class GNS(nn.Module):
             >>> # Define the optimization parameters
             >>> optimization_params = {
             >>>     "input_dim": 2,
+            >>>     "latent_dim": 16,
             >>>     "output_dim": 1,
             >>>     "hidden_size": (64, 512),
             >>>     "num_num_gnn_layers": (1, 10),
@@ -936,6 +937,7 @@ class GNS(nn.Module):
             model = cls(
                 graph=graph,
                 input_dim=hyperparams["input_dim"],
+                latent_dim=hyperparams["latent_dim"],
                 output_dim=hyperparams["output_dim"],
                 hidden_size=hyperparams["hidden_size"],
                 num_num_gnn_layers=hyperparams["num_num_gnn_layers"],
@@ -986,9 +988,10 @@ class GNS(nn.Module):
         return cls(
             graph=graph,
             input_dim=optimization_params["input_dim"],
+            latent_dim=optimization_params["latent_dim"],
             output_dim=optimization_params["output_dim"],
             hidden_size=optimization_params["hidden_size"],
-            num_num_gnn_layers=optimization_params["num_num_gnn_layers"],
+            num_gnn_layers=optimization_params["num_num_gnn_layers"],
             encoder_hidden_layers=optimization_params["encoder_hidden_layers"],
             decoder_hidden_layers=optimization_params["decoder_hidden_layers"],
             message_hidden_layers=optimization_params["message_hidden_layers"],
