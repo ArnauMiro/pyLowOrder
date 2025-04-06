@@ -20,11 +20,9 @@ from torch_geometric.utils import k_hop_subgraph
 
 from pyLOM import Mesh
 from pyLOM.vmmath.geometric import edge_to_cells, wall_normals
-from pyLOM.NN.utils import MinMaxScaler, Dataset
 from pyLOM.NN.optimizer import OptunaOptimizer, TrialPruned
 from pyLOM.NN import DEVICE, set_seed  # pyLOM/NN/__init__.py
 from pyLOM import pprint, cr  # pyLOM/__init__.py
-from pyLOM.utils.errors import raiseWarning
 
 from typing import Protocol, Optional, Dict, Tuple, Union
 
@@ -182,19 +180,17 @@ class pyLOMGraph(Data):
 
         # Scale node and edge features if scaler is provided
         if scaler is not None:
-            # x = scaler.fit_transform(x)
             xyzc = scaler.fit_transform(xyzc)
             surface_normals = scaler.fit_transform(surface_normals)
             edge_attr = scaler.fit_transform(edge_attr)
 
-        x = torch.tensor(x, dtype=torch.float32)
         y = torch.tensor(y, dtype=torch.float32) if y is not None else None
         edge_index = torch.tensor(edge_index, dtype=torch.long)
         edge_attr = torch.tensor(edge_attr, dtype=torch.float32)
 
         # Return the class instance with the necessary attributes. Leave x as None as the final edge attributes need to be computed dynamically during training.
         graph = cls(
-            x=None,
+            x=None, # To be completed with the operational parameters during training
             pos=torch.tensor(xyzc, dtype=torch.float32),
             surf_norms = torch.tensor(surface_normals, dtype=torch.float32),
             y=y,
@@ -238,7 +234,10 @@ class pyLOMGraph(Data):
             node_mask = torch.zeros(self.x.shape[0], dtype=torch.bool)
             node_mask[node_indices] = True
 
-        self.x = self.x[node_mask]
+        for attr in self.node_attrs():
+            if getattr(self, attr) is not None:
+                setattr(self, attr, getattr(self, attr)[node_mask])
+
         self.y = self.y[node_mask] if self.y is not None else None
 
 
@@ -491,8 +490,9 @@ class GNS(nn.Module):
         '''Graph property to set the graph object.'''
         if self._graph is not None:
             raise Warning("Graph is already set! Graph name is: {}".format(self._graph.name))
-        if not isinstance(graph, Graph):
-            raise TypeError("Graph must be of type torch_geometric.data.Data or pyLOMGraph.")
+        if not isinstance(graph, pyLOMGraph):
+            if not isinstance(graph, Data):
+                raise TypeError("Graph must be of type torch_geometric.data.Data or pyLOMGraph.")
         if not graph.is_undirected():
             raise Warning("Graph is not undirected. This may lead to unexpected results.")
         if getattr(graph, "edge_index", None) is None:
