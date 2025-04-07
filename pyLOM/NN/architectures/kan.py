@@ -802,3 +802,17 @@ class JacobiLayer(nn.Module):
         )  # shape = (batch_size, outdim)
         y = y.view(-1, self.outdim)
         return y
+
+class SineLayer(nn.Module):
+    def __init__(self, input_size, output_size, sigma=1.0):
+        super(SineLayer, self).__init__()
+        self.linear = nn.Linear(input_size, output_size)
+        self.sigma = sigma
+        self.init_weights()
+ 
+    def init_weights(self):
+        nn.init.normal_(self.linear.weight, mean=0.0, std=self.sigma)
+        nn.init.zeros_(self.linear.bias)
+ 
+    def forward(self, x):
+        return torch.sin( self.linear(x))
