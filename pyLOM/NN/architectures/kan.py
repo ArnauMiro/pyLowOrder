@@ -707,6 +707,7 @@ class KAN(nn.Module):
 class KAN_SIN(KAN):
     """
     KAN model with a sine layer at the beginning. This model adds a sin layer at the beggining of a KAN model.
+    
     Args:
         nneuron_sin (int): The number of neurons in the sine layer.
         sigma (float): The sigma (standard deviation of the weights) parameter for the sine layer. Default is ``1.0``.

@@ -106,8 +106,6 @@ model = pyLOM.NN.KAN(
 training_params = {
     "epochs": 20,
     "lr": 1e-5,
-    'lr_gamma': 0.95,
-    'lr_scheduler_step': 10,
     'batch_size': 8,
     "print_eval_rate": 1,
     "optimizer_class": torch.optim.Adam,

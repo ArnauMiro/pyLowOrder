@@ -83,7 +83,6 @@ model = pyLOM.NN.KAN(
 training_params = {
     "epochs": 20,
     "lr": 1e-5,
-    'lr_gamma': 0.95,
     'lr_scheduler_step': 10,
     'batch_size': 8,
     "print_eval_rate": 1,
@@ -92,7 +91,7 @@ training_params = {
         "gamma": 0.95,
         "step_size": 3 * len(td_train) // 8 # each 3 epochs
     },
-    "max_norm_grad": 0.5,
+    "max_norm_grad": 10,
     "save_logs_path":RESUDIR,
 }
 
