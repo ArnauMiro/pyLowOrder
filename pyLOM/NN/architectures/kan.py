@@ -704,6 +704,47 @@ class KAN(nn.Module):
             return optimizing_parameters[parameter_name]
 
 
+class KAN_SIN(KAN):
+    """
+    KAN model with a sine layer at the beginning. This model adds a sin layer at the beggining of a KAN model.
+    Args:
+        nneuron_sin (int): The number of neurons in the sine layer.
+        sigma (float): The sigma (standard deviation of the weights) parameter for the sine layer. Default is ``1.0``.
+        *args: Additional positional arguments to pass to the KAN class.
+        **kwargs: Additional keyword arguments to pass to the KAN class.
+    
+    """
+    
+    def __init__(
+        self,
+        nneuron_sin:int,
+        sigma:float = 1.0,
+        *args,
+        **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+        self.nneuron_sin = nneuron_sin
+        self.sigma = sigma
+
+        self.input = SineLayer(self.ninput, self.nneuron_sin, self.sigma)
+
+        self.kan_layers[0] = self.layer_type(self.nneuron_sin, self.hidden_neur, self.degree)
+        self.to(self.device)
+
+        if self.intro:
+            print('Adding sin layer at the beginning:')
+            keys_print = ['nneuron_sin', 'sigma']
+            for key in keys_print:
+                print(f"   {key}: {getattr(self, key)}")
+                
+    def _define_checkpoint(self):
+        checkpoint = super().define_checkpoint()
+        checkpoint["sigma"] = self.sigma
+        checkpoint["nneuron_sin"] = self.nneuron_sin
+        checkpoint["state_dict"] = self.state_dict()
+
+        return checkpoint
+
 class ChebyshevLayer(nn.Module):
     """
     Chebyshev layer for KAN model.
@@ -804,6 +845,14 @@ class JacobiLayer(nn.Module):
         return y
 
 class SineLayer(nn.Module):
+    """
+    Sine layer for KAN model.
+    Args:
+        input_size (int): The number of input features.
+        output_size (int): The number of output features.
+        sigma (float, Optional): The standard deviation of the weights (default: ``1.0``).
+    """
+
     def __init__(self, input_size, output_size, sigma=1.0):
         super(SineLayer, self).__init__()
         self.linear = nn.Linear(input_size, output_size)
