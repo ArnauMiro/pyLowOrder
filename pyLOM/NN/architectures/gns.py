@@ -336,7 +336,7 @@ class GNS(nn.Module):
                  latent_dim: int,
                  output_dim: int,
                  hidden_size: int,
-                 num__gnn_layers: int,
+                 num_gnn_layers: int,
                  encoder_hidden_layers: int,
                  decoder_hidden_layers: int,
                  message_hidden_layers: int,
@@ -869,7 +869,6 @@ class GNS(nn.Module):
     @cr('MLP.create_optimized_model')
     def create_optimized_model(
         cls,
-        # graph: Union[Data, pyLOMGraph], 
         train_dataset, 
         eval_dataset, 
         optuna_optimizer: OptunaOptimizer,
@@ -944,7 +943,7 @@ class GNS(nn.Module):
                 latent_dim=hyperparams["latent_dim"],
                 output_dim=hyperparams["output_dim"],
                 hidden_size=hyperparams["hidden_size"],
-                num__gnn_layers=hyperparams["num__gnn_layers"],
+                num_gnn_layers=hyperparams["num__gnn_layers"],
                 encoder_hidden_layers=hyperparams["encoder_hidden_layers"],
                 decoder_hidden_layers=hyperparams["decoder_hidden_layers"],
                 message_hidden_layers=hyperparams["message_hidden_layers"],
