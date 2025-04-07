@@ -4,17 +4,13 @@
 #
 # Last revision: 6/04/2025
 
-import os
 import numpy as np
 import h5py
 
 import torch
-import torch_geometric
-import matplotlib.pyplot as plt
+import optuna
 
-import pyLOM
-import pyLOM.NN
-from pyLOM.NN import GNS, Dataset, pyLOMGraph, MinMaxScaler
+from pyLOM.NN import GNS, Dataset, pyLOMGraph, MinMaxScaler, OptunaOptimizer
 
 
 def load_graph_data(file_list):
@@ -103,8 +99,10 @@ def process_edge_attr(edge_index, xyz, facenormals):
 if __name__ == "__main__":
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    # Build the graph object
     DATA_DIR = '/home/p.yeste/CETACEO_DATA/nlr7301/'
+    SAVE_DIR = '/home/p.yeste/CETACEO_RESULTS/nlr7301/'
+
+    # Build the graph object
 
     # Load the necessary data
     files = ['train', 'val', 'test']
@@ -163,16 +161,65 @@ if __name__ == "__main__":
         outputs_scaler = None
     )
 
-    # Create the GNS model
-    model = GNS(
-        graph = g,
-        input_dim=2,
-        latent_dim=16,
-        output_dim=1,
-        hidden_size=256,
-        num_gnn_layers=1,
-        encoder_hidden_layers=6,
-        decoder_hidden_layers=1,
-        message_hidden_layers=2,
-        update_hidden_layers=2
+    # Create a dict with training parameters to be optimized
+    optimization_params = {
+        'graph': g,
+        'input_dim': 2,
+        'output_dim': 1,
+        'latent_dim': (1, 64),
+        'hidden_size': (64, 1024),
+        'num_gnn_layers': (1, 16),
+        'encoder_hidden_layers': (1, 16),
+        'decoder_hidden_layers': (1, 16),
+        'message_hidden_layers': (1, 16),
+        'update_hidden_layers': (1, 16),
+        'activation': torch.nn.ELU(),
+        'p_dropouts': (0.0, 0.5),
+        'device': device,
+
+        'epochs': 1000,
+        'lr': (1e-5, 1e-2),
+        'lr_gamma': (0.9, 0.999),
+        'lr_scheduler_step': 1,
+        'loss_fn': torch.nn.MSELoss(reduction='mean'),
+        'optimizer': torch.optim.Adam,
+        'scheduler': torch.optim.lr_scheduler.StepLR,
+
+        'batch_size': (1, 32),
+        'node_batch_size': (g.num_nodes//10000, g.num_nodes//1000),
+        'num_workers': 10,
+        'pin_memory': True
+    }
+
+
+    # Define the optimizer
+    optimizer = OptunaOptimizer(
+        study_name = 'GNS_airfoil',
+        optimization_params = optimization_params,
+        n_trials = 100,
+        direction = 'minimize',
+        pruner = optuna.pruners.MedianPruner(
+            n_startup_trials = 10,
+            n_warmup_steps = 10,
+            interval_steps = 5
+        ),
+        save_dir = SAVE_DIR
     )
+
+
+    # Create the optimized model
+    model, optimization_params = GNS.create_optimized_model(
+        train_dataset = train_dataset,
+        test_dataset = test_dataset,
+        val_dataset = val_dataset,
+        training_params = optimization_params,
+        optimizer = optimizer,
+        model_class = GNS
+    )
+
+    # Fit the model
+    model.fit(train_dataset, val_dataset, **optimization_params)
+
+    # Save the model
+    model.save_model(SAVE_DIR + 'GNS_DLR.pt')
+
