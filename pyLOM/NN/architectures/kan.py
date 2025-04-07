@@ -306,11 +306,10 @@ class KAN(nn.Module):
             "check": [True],
         }
         if save_logs_path is not None:
-            if os.path.isdir(save_logs_path):
-                print(f"Printing losses on path {save_logs_path}")
-            else:
-                print("Path not found. Printing losses on local folder (.)")
+            if not os.path.isdir(save_logs_path):
                 save_logs_path = '.'
+            if verbose:
+                pprint(0, f"Printing losses on path {save_logs_path}")
 
             if os.path.isfile(save_logs_path + f"training_results_{self.model_name}.npy"):
                 results_old = np.load(save_logs_path + f"training_results_{self.model_name}.npy", allow_pickle=True).item()
@@ -324,8 +323,8 @@ class KAN(nn.Module):
                 pprint(0, "Updating previous data in file" + save_logs_path + f"training_results_{self.model_name}.npy")
 
             np.save(save_logs_path + f"training_results_{self.model_name}.npy", results)
-
-            pprint(0, f"Training results saved at {save_logs_path}training_results_{self.model_name}.npy")
+            if verbose:
+                pprint(0, f"Training results saved at {save_logs_path}training_results_{self.model_name}.npy")
 
         return results
             
