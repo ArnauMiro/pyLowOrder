@@ -65,16 +65,16 @@ class MessagePassingLayer(MessagePassing):
         hiddim (int): Hidden dimension.
         drop_p (float): Dropout probability.
     '''
-    def __init__(self, in_channels, out_channels, hiddim, drop_p=0.):
+    def __init__(self, in_channels, out_channels, hiddim, activation=ELU(), drop_p=0.):
         # Message passing with "mean" aggregation.
         super().__init__(aggr='mean')
         self.dropout = torch.nn.Dropout(p=drop_p)
 
         # MLP for the message function
-        self.phi = MLP(in_channels, out_channels, 1*[hiddim], drop_p=0, activation=ELU())
+        self.phi = MLP(in_channels, out_channels, 1*[hiddim], drop_p=0, activation=activation)
         
         # MLP for the update function
-        self.gamma = MLP(2*out_channels, out_channels, 1*[hiddim], drop_p=0, activation=ELU())
+        self.gamma = MLP(2*out_channels, out_channels, 1*[hiddim], drop_p=0, activation=activation)
 
 
     def forward(self, x, edge_index, edge_attr):
@@ -378,6 +378,7 @@ class GNS(nn.Module):
         self.decoder_hidden_layers = decoder_hidden_layers
         self.message_hidden_layers = message_hidden_layers
         self.update_hidden_layers = update_hidden_layers
+        self.activation = None
         self.p_dropouts = p_dropouts
         self.device = device
         self.seed = seed
@@ -435,8 +436,9 @@ class GNS(nn.Module):
             MessagePassingLayer(
                 in_channels=2 * self.latent_dim + self._edge_dim,
                 out_channels=self.latent_dim,
+                hiddim=self.hidden_size,
+                activation=self.activation,
                 drop_p=self.p_dropouts,
-                hiddim=self.hidden_size
             )
             for _ in range(self.num_gnn_layers)
         ])
@@ -867,7 +869,7 @@ class GNS(nn.Module):
     @cr('MLP.create_optimized_model')
     def create_optimized_model(
         cls,
-        graph: Union[Data, pyLOMGraph], 
+        # graph: Union[Data, pyLOMGraph], 
         train_dataset, 
         eval_dataset, 
         optuna_optimizer: OptunaOptimizer,
@@ -892,6 +894,7 @@ class GNS(nn.Module):
             >>> 
             >>> # Define the optimization parameters
             >>> optimization_params = {
+            >>>     "graph": graph,
             >>>     "input_dim": 2,
             >>>     "latent_dim": 16,
             >>>     "output_dim": 1,
@@ -901,6 +904,7 @@ class GNS(nn.Module):
             >>>     "decoder_hidden_layers": (1, 10),
             >>>     "message_hidden_layers": (1, 10),
             >>>     "update_hidden_layers": (1, 10),
+            >>>     "activation": "ELU",
             >>>     "epochs": 1000,
             >>>     "lr": (1e-5, 1e-2),
             >>>     "lr_gamma": (0.1, 1),
@@ -922,7 +926,7 @@ class GNS(nn.Module):
             >>> )
             >>>
             >>> # Create the optimized model
-            >>> model, optimization_params = MLP.create_optimized_model(graph, train_dataset, eval_dataset, optimizer)
+            >>> model, optimization_params = MLP.create_optimized_model(train_dataset, eval_dataset, optimizer)
             >>> 
             >>> # Fit the model
             >>> model.fit(train_dataset, eval_dataset, **optimization_params)
@@ -935,7 +939,7 @@ class GNS(nn.Module):
 
             
             model = cls(
-                graph=graph,
+                graph=hyperparams["graph"],
                 input_dim=hyperparams["input_dim"],
                 latent_dim=hyperparams["latent_dim"],
                 output_dim=hyperparams["output_dim"],
@@ -986,7 +990,7 @@ class GNS(nn.Module):
                 optimization_params[param] = best_params[param]
         
         return cls(
-            graph=graph,
+            graph=optimization_params["graph"],
             input_dim=optimization_params["input_dim"],
             latent_dim=optimization_params["latent_dim"],
             output_dim=optimization_params["output_dim"],
