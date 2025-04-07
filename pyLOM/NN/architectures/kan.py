@@ -52,6 +52,7 @@ class KAN(nn.Module):
         self.model_name = model_name
         self.p_dropouts = p_dropouts
         self.device = device
+        self.degree = degree
 
         # Hidden layers with dropout
         hidden_layers = []
@@ -390,13 +391,13 @@ class KAN(nn.Module):
         
     def _define_checkpoint(self):
         checkpoint = {
-            "ninput": self.ninput,
-            "noutput": self.noutput,
-            "nlayers": self.nlayers,
-            "hidden_neur": self.hidden_neur,
+            "input_size": self.input_size,
+            "output_size": self.output_size,
+            "n_layers": self.n_layers,
+            "hidden_size": self.hidden_size,
             "layer_type": self.layer_type,
             "model_name": self.model_name,
-            "dropout_p": self.dropout_p,
+            "p_dropouts": self.p_dropouts,
             "degree": self.degree,
             "state_dict": self.state_dict(),
         }
@@ -441,14 +442,17 @@ class KAN(nn.Module):
         checkpoint = torch.load(path, map_location=device, weights_only=False)
         raiseWarning("The model has been loaded with weights_only set to False. According with torch documentation, this is not recommended if you do not trust the source of your saved model, as it could lead to arbitrary code execution.")
         state_dict = checkpoint['state_dict']
+        optimizer_state = checkpoint.get('optimizer', None)
+        scheduler_state = checkpoint.get('scheduler', None)
         del checkpoint['state_dict']
+        del checkpoint['optimizer']
+        del checkpoint['scheduler']
         model = cls(device=device, **checkpoint)
 
-        if "optimizer" in checkpoint:
-            model.optimizer_state_dict = checkpoint["optimizer"]
-        if "scheduler" in checkpoint:
-            model.scheduler_state_dict = checkpoint["scheduler"]
-
+        if optimizer_state is not None:
+            model.optimizer_state_dict = optimizer_state
+        if scheduler_state is not None:
+            model.scheduler_state_dict = scheduler_state
         model.load_state_dict(state_dict)
         pprint(0, f"Loaded KAN model: {checkpoint['model_name']}")
         keys_print = [
