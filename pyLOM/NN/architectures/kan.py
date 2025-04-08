@@ -41,7 +41,7 @@ class KAN(nn.Module):
         p_dropouts: float = 0.0,
         device: torch.device = DEVICE,
         verbose: bool = True,
-        **layer_kwargs,
+        degree = 5,
     ):
         super().__init__()
         self.input_size = input_size
@@ -52,18 +52,19 @@ class KAN(nn.Module):
         self.model_name = model_name
         self.p_dropouts = p_dropouts
         self.device = device
+        self.degree = degree
 
         # Hidden layers with dropout
         hidden_layers = []
         for _ in range(n_layers):
-            hidden_layers.append(layer_type(hidden_size, hidden_size, **layer_kwargs))
+            hidden_layers.append(layer_type(hidden_size, hidden_size, degree))
             hidden_layers.append(nn.Dropout(p=p_dropouts))
 
         self.kan_layers = nn.ModuleList(hidden_layers)
 
         # Input and output layers
-        self.input = layer_type(input_size, hidden_size, **layer_kwargs)
-        self.output = layer_type(hidden_size, output_size, **layer_kwargs)
+        self.input = layer_type(input_size, hidden_size, degree)
+        self.output = layer_type(hidden_size, output_size, degree)
 
         self.to(self.device)
         if verbose:
@@ -186,6 +187,7 @@ class KAN(nn.Module):
         loss_iterations_test = []
         self.optimizer = optimizer_class(self.parameters(), lr=lr, **opti_kwargs)
         current_lr_vec = []
+        grad_norms = []
 
         if scheduler_type == "StepLR":
             self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, **lr_kwargs)
@@ -233,6 +235,10 @@ class KAN(nn.Module):
                     targets.float().to(self.device),
                 )
                 train_loss += self.optimizer.step(closure).item()
+                total_norm = torch.norm(
+                    torch.stack([p.grad.norm() for p in self.parameters() if p.grad is not None])
+                )
+                grad_norms.append(total_norm.item())
                 if scheduler_type != "ReduceLROnPlateau":
                     self.scheduler.step()
                     current_lr = self.optimizer.param_groups[0]["lr"]
@@ -285,50 +291,44 @@ class KAN(nn.Module):
                         f"Epoch {epoch + 1}/{epochs}, Train Loss: {train_loss:.4e}, Test Loss: {test_loss:.4e}, "
                         f"LR: {current_lr:.2e}{memory_usage_str}",
                     )
+                # check if the loss is NaN and stop training
+                if torch.isnan(torch.tensor(test_loss)):
+                    if verbose:
+                        pprint(0, f"Stopping training at epoch {epoch + 1} due to NaN in test loss.")
+                    break
 
-        if save_logs_path is not None:
-            if not os.path.exists(save_logs_path):
-                os.makedirs(save_logs_path)
-            train_losses_np = train_losses.cpu().numpy()
-            test_losses_np = test_losses.cpu().numpy()
-            current_lr_np = np.array(current_lr_vec)
-            if os.path.isdir(save_logs_path):
-                if verbose:
-                    pprint(0, f"Printing losses on path {save_logs_path}")
-            else:
-                if verbose:
-                    pprint(0, "Path not found. Printing losses on local folder (.)")
-                save_logs_path = "."
-
-            np.save(
-                save_logs_path + "/train_losses_" + self.model_name + ".npy",
-                train_losses_np,
-            )
-            np.save(
-                save_logs_path + "/test_losses_" + self.model_name + ".npy",
-                test_losses_np,
-            )
-            np.save(
-                save_logs_path + "/current_lr_" + self.model_name + ".npy",
-                current_lr_np,
-            )
-            np.save(
-                save_logs_path + "/losses_iterations_train_" + self.model_name + ".npy",
-                np.array(loss_iterations_train),
-            )
-            np.save(
-                save_logs_path + "/losses_iterations_test_" + self.model_name + ".npy",
-                np.array(loss_iterations_test),
-            )
-
-        return {
-            "train_loss": train_losses,
-            "test_loss": test_losses,
-            "lr": current_lr_vec,
-            "loss_iterations_train": loss_iterations_train,
-            "loss_iterations_test": loss_iterations_test,
+        results = {
+            "train_loss": train_losses.cpu().numpy(),
+            "test_loss": test_losses.cpu().numpy(),
+            "lr": np.array(current_lr_vec),
+            "loss_iterations_train": np.array(loss_iterations_train),
+            "loss_iterations_test": np.array(loss_iterations_test),
+            "grad_norms": np.array(grad_norms),
+            "check": [True],
         }
+        if save_logs_path is not None:
+            if not os.path.isdir(save_logs_path):
+                save_logs_path = '.'
+            if verbose:
+                pprint(0, f"Printing losses on path {save_logs_path}")
 
+            if os.path.isfile(save_logs_path + f"training_results_{self.model_name}.npy"):
+                results_old = np.load(save_logs_path + f"training_results_{self.model_name}.npy", allow_pickle=True).item()
+
+                for key in results.keys():
+                    if key != 'check':
+                        results[key]=np.concatenate((results[key], results_old[key]), axis=0)
+                    else:
+                        results[key].extend(results_old[key][:])
+                if verbose:
+                    pprint(0, "Updating previous data in file" + save_logs_path + f"training_results_{self.model_name}.npy")
+
+            np.save(save_logs_path + f"training_results_{self.model_name}.npy", results)
+            if verbose:
+                pprint(0, f"Training results saved at {save_logs_path}training_results_{self.model_name}.npy")
+
+        return results
+            
     @cr("KAN.predict")
     def predict(
         self,
@@ -388,7 +388,22 @@ class KAN(nn.Module):
             return all_predictions, all_targets
         else:
             return all_predictions
+        
+    def _define_checkpoint(self):
+        checkpoint = {
+            "input_size": self.input_size,
+            "output_size": self.output_size,
+            "n_layers": self.n_layers,
+            "hidden_size": self.hidden_size,
+            "layer_type": self.layer_type,
+            "model_name": self.model_name,
+            "p_dropouts": self.p_dropouts,
+            "degree": self.degree,
+            "state_dict": self.state_dict(),
+        }
 
+        return checkpoint
+    
     def save(self, path: str, save_only_model: bool = False):
         r"""
         Save the model to a checkpoint file.
@@ -398,18 +413,7 @@ class KAN(nn.Module):
             If it is a directory, the model will be saved with a filename that includes the number of epochs trained.
             save_only_model (bool, Optional): Whether to only save the model, or also the optimizer and scheduler. Note that when this is true, you won't be able to resume training from checkpoint.(default: ``False``).
         """
-        checkpoint = {
-            "input_size": self.input_size,
-            "output_size": self.output_size,
-            "n_layers": self.n_layers,
-            "hidden_size": self.hidden_size,
-            "layer_type": self.layer_type,
-            "model_name": self.model_name,
-            "p_dropouts": self.p_dropouts,
-            "state_dict": self.state_dict(),
-        }
-        if hasattr(self.input, "degree"):
-            checkpoint["degree"] = self.input.degree
+        checkpoint = self._define_checkpoint()
 
         if not save_only_model:
             checkpoint["optimizer"] = self.optimizer.state_dict()
@@ -437,28 +441,19 @@ class KAN(nn.Module):
         pprint(0, "Loading model...")
         checkpoint = torch.load(path, map_location=device, weights_only=False)
         raiseWarning("The model has been loaded with weights_only set to False. According with torch documentation, this is not recommended if you do not trust the source of your saved model, as it could lead to arbitrary code execution.")
+        state_dict = checkpoint['state_dict']
+        optimizer_state = checkpoint.get('optimizer', None)
+        scheduler_state = checkpoint.get('scheduler', None)
+        del checkpoint['state_dict']
+        del checkpoint['optimizer']
+        del checkpoint['scheduler']
+        model = cls(device=device, **checkpoint)
 
-        degree = checkpoint["degree"]
-        layer_kwargs = {"degree": degree}
-
-        model = cls(
-            input_size=checkpoint["input_size"],
-            output_size=checkpoint["output_size"],
-            n_layers=checkpoint["n_layers"],
-            hidden_size=checkpoint["hidden_size"],
-            layer_type=checkpoint["layer_type"],
-            model_name=checkpoint["model_name"],
-            p_dropouts=checkpoint["p_dropouts"],
-            device=device,
-            **layer_kwargs,  # Pass the specific layer arguments
-        )
-
-        if "optimizer" in checkpoint:
-            model.optimizer_state_dict = checkpoint["optimizer"]
-        if "scheduler" in checkpoint:
-            model.scheduler_state_dict = checkpoint["scheduler"]
-
-        model.load_state_dict(checkpoint["state_dict"])
+        if optimizer_state is not None:
+            model.optimizer_state_dict = optimizer_state
+        if scheduler_state is not None:
+            model.scheduler_state_dict = scheduler_state
+        model.load_state_dict(state_dict)
         pprint(0, f"Loaded KAN model: {checkpoint['model_name']}")
         keys_print = [
             "input_size",
@@ -467,6 +462,7 @@ class KAN(nn.Module):
             "hidden_size",
             "layer_type",
             "p_dropouts",
+            "degree"
         ]
         for key in keys_print:
             pprint(0, f"{key}: {checkpoint[key]}")
@@ -712,6 +708,48 @@ class KAN(nn.Module):
             return optimizing_parameters[parameter_name]
 
 
+class KAN_SIN(KAN):
+    """
+    KAN model with a sine layer at the beginning. This model adds a sin layer at the beggining of a KAN model.
+    
+    Args:
+        nneuron_sin (int): The number of neurons in the sine layer.
+        sigma (float): The sigma (standard deviation of the weights) parameter for the sine layer. Default is ``1.0``.
+        *args: Additional positional arguments to pass to the KAN class.
+        **kwargs: Additional keyword arguments to pass to the KAN class.
+    
+    """
+    
+    def __init__(
+        self,
+        nneuron_sin:int,
+        sigma:float = 1.0,
+        *args,
+        **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+        self.nneuron_sin = nneuron_sin
+        self.sigma = sigma
+
+        self.input = SineLayer(self.ninput, self.nneuron_sin, self.sigma)
+
+        self.kan_layers[0] = self.layer_type(self.nneuron_sin, self.hidden_neur, self.degree)
+        self.to(self.device)
+
+        if self.intro:
+            print('Adding sin layer at the beginning:')
+            keys_print = ['nneuron_sin', 'sigma']
+            for key in keys_print:
+                print(f"   {key}: {getattr(self, key)}")
+                
+    def _define_checkpoint(self):
+        checkpoint = super().define_checkpoint()
+        checkpoint["sigma"] = self.sigma
+        checkpoint["nneuron_sin"] = self.nneuron_sin
+        checkpoint["state_dict"] = self.state_dict()
+
+        return checkpoint
+
 class ChebyshevLayer(nn.Module):
     """
     Chebyshev layer for KAN model.
@@ -810,3 +848,25 @@ class JacobiLayer(nn.Module):
         )  # shape = (batch_size, outdim)
         y = y.view(-1, self.outdim)
         return y
+
+class SineLayer(nn.Module):
+    """
+    Sine layer for KAN model.
+    Args:
+        input_size (int): The number of input features.
+        output_size (int): The number of output features.
+        sigma (float, Optional): The standard deviation of the weights (default: ``1.0``).
+    """
+
+    def __init__(self, input_size, output_size, sigma=1.0):
+        super(SineLayer, self).__init__()
+        self.linear = nn.Linear(input_size, output_size)
+        self.sigma = sigma
+        self.init_weights()
+ 
+    def init_weights(self):
+        nn.init.normal_(self.linear.weight, mean=0.0, std=self.sigma)
+        nn.init.zeros_(self.linear.bias)
+ 
+    def forward(self, x):
+        return torch.sin( self.linear(x))

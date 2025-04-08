@@ -98,13 +98,12 @@ optimization_params = {
         "gamma": (0.95, 0.99),
         "step_size": 7000
     },
-    "max_norm_grad": 0.5,
+    "max_norm_grad": 10,
     "model_name": "kan_test_optuna",
     'device': device,
     "layer_type": (pyLOM.NN.ChebyshevLayer, pyLOM.NN.JacobiLayer),
-    "layer_kwargs": {
-        "degree": (3, 10),
-    },
+    "degree": (3, 10),
+ 
 }
 
 # define the optimizer
