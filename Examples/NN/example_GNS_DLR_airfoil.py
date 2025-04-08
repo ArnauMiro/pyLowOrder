@@ -99,7 +99,6 @@ def process_edge_attr(edge_index, xyz, facenormals):
 #%%
 if __name__ == "__main__":
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    # device = 'cpu'
 
     DATA_DIR = '/home/p.yeste/CETACEO_DATA/nlr7301/'
     SAVE_DIR = '/home/p.yeste/CETACEO_RESULTS/nlr7301/'
@@ -216,5 +215,7 @@ if __name__ == "__main__":
     model.fit(train_dataset, eval_dataset, **optimization_params)
 
     # Save the model
-    model.save_model(SAVE_DIR + 'GNS_DLR.pt')
+    model.save(SAVE_DIR + 'GNS_DLR.pt')
+
+    print("Optuna optimization completed. Best model saved in", SAVE_DIR + 'GNS_DLR.pt')
 

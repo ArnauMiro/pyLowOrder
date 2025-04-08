@@ -414,7 +414,6 @@ class GNS(nn.Module):
             "update_hidden_layers": update_hidden_layers,
             "p_dropouts": p_dropouts,
             "activation": activation,
-            "device": device,
             "seed": seed
         }
 
@@ -444,9 +443,9 @@ class GNS(nn.Module):
                 hiddim=self.hidden_size,
                 activation=self.activation,
                 drop_p=self.p_dropouts,
-            ).to(self.device)
+            )
             for _ in range(self.num_msg_passing_layers)
-        ])
+        ]).to(self.device)
 
         # Normalization layer
         self.groupnorm = nn.GroupNorm(2, self.latent_dim).to(self.device)
@@ -515,7 +514,7 @@ class GNS(nn.Module):
         graph.x = torch.cat(
             [
                 torch.zeros((graph.num_nodes, self.input_dim), dtype=torch.float32, device=self.device),
-                *[getattr(graph, attr) for attr in graph.node_attrs()]
+                *[getattr(graph, attr) for attr in graph.node_attrs() if attr not in ['x', 'y']]
             ],
             dim=1
         )
@@ -693,7 +692,6 @@ class GNS(nn.Module):
             test_loss_list = []
 
 
-
         total_epochs = len(epoch_list) + epochs
         for epoch in range(1+len(epoch_list), 1+total_epochs):
             
@@ -702,7 +700,6 @@ class GNS(nn.Module):
             if print_rate_batch != 0 and (epoch % print_rate_batch) == 0:
                 pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss: {train_loss:.2f}", flush=True)
             
-            test_loss = 0.0
             if eval_dataloader is not None:
                 test_loss = self._eval(eval_dataloader, loss_fn)
                 test_loss_list.append(test_loss)
@@ -785,6 +782,8 @@ class GNS(nn.Module):
             return all_predictions
 
 
+
+
     def save(self, path: str):
         """
         Save the model to a file.
@@ -853,12 +852,10 @@ class GNS(nn.Module):
             p_dropouts=checkpoint.get("p_dropouts"),
             activation=checkpoint.get("activation"),
             seed=checkpoint.get("seed"),
-            device=checkpoint.get("device"),
+            device=device
         )
         model.load_state_dict(checkpoint["state_dict"])
         model.state = checkpoint["state"]
-        model.graph = checkpoint["graph"]
-        model.to(model.device)
         model.eval()
         
         return model
