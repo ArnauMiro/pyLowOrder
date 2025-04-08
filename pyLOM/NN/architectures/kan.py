@@ -293,7 +293,8 @@ class KAN(nn.Module):
                     )
                 # check if the loss is NaN and stop training
                 if torch.isnan(torch.tensor(test_loss)):
-                    pprint(0, f"Stopping training at epoch {epoch + 1} due to NaN in test loss.")
+                    if verbose:
+                        pprint(0, f"Stopping training at epoch {epoch + 1} due to NaN in test loss.")
                     break
 
         results = {
@@ -319,8 +320,8 @@ class KAN(nn.Module):
                         results[key]=np.concatenate((results[key], results_old[key]), axis=0)
                     else:
                         results[key].extend(results_old[key][:])
-
-                pprint(0, "Updating previous data in file" + save_logs_path + f"training_results_{self.model_name}.npy")
+                if verbose:
+                    pprint(0, "Updating previous data in file" + save_logs_path + f"training_results_{self.model_name}.npy")
 
             np.save(save_logs_path + f"training_results_{self.model_name}.npy", results)
             if verbose:
