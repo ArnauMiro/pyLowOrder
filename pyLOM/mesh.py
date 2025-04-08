@@ -8,10 +8,12 @@
 from __future__ import print_function, division
 
 import os, numpy as np
+from collections import defaultdict
 
 from .       import inp_out as io
-from .vmmath import cellCenters, normals
+from .vmmath import cellCenters, normals, adjacency, wall_normals, edge_to_cells 
 from .utils  import cr_nvtx as cr, mem, raiseError, mpi_reduce
+
 
 
 ALYA2ELTYP = {
@@ -65,6 +67,7 @@ class Mesh(object):
 	r'''
 	The Mesh class wraps the mesh details of the case.
 	'''
+
 	def __init__(self,mtype,xyz,connectivity,eltype,cellOrder,pointOrder,ptable):
 		r'''
 		Class constructor
@@ -73,7 +76,9 @@ class Mesh(object):
 		self._xyz    = xyz
 		self._xyzc   = None
 		self._normal = None
+		self._wall_normal = None
 		self._conec  = connectivity
+		self._cell_conec = None
 		self._eltype = eltype
 		self._cellO  = cellOrder
 		self._pointO = pointOrder
@@ -148,6 +153,70 @@ class Mesh(object):
 		if self.type == 'UNSTRUCT':
 			xyzc = cellCenters(self._xyz,self._conec)
 		return xyzc
+	
+	def _cell_connectivity(self):
+		'''Computes the connectivity between cells that share an edge.
+
+		Returns
+		-------
+		padded_neighbors : list
+			Connectivity array of neighbors for each cell. Each list is padded with -1s to have a fixed length.
+		'''
+
+		# Neighbors dictionary asigning the neighbors to each cell
+		adjacency_dict = adjacency(self.connectivity)
+
+		# Step 3: Pad the neighbors list with -1s
+		max_len = max(len(adjacency_dict[cell]) for cell in range(self.ncells))
+		padded_neighbors = np.array([list(adjacency_dict[cell]) + [-1] * (max_len - len(adjacency_dict[cell])) for cell in range(self.ncells)], dtype=np.int32)
+
+		return padded_neighbors
+
+	def dual_edges_and_wall_normals(self):
+		'''Computes the directed edges in the dual graph and the unitary wall normals of each cell (only for 2D cells) in the way its needed to build an atributed graph
+		as described in
+			Hines, D., & Bekemeyer, P. (2023). Graph neural networks for the prediction of aircraft surface pressure distributions.
+			Aerospace Science and Technology, 137, 108268.
+			https://doi.org/10.1016/j.ast.2023.108268
+		
+		Edges in the dual graph connect cells in the primal graph and are given as pairs of cell indices.
+		Wall unitary normals are orthogonal to the cell walls and point outwards. They are contained in the cell plane, so are orthogonal themselves to the cell normal.
+		The order in which dual edges and wall normals are saved is coherent, meaning that if the i-th dual edge is (a, b), then the i-th wall normal is ortogonal to the wall shared by cells a and b and points outwards of cell a. 
+		As a convention the dual graph is bidirectional, so if the i-th dual edge is (a, b), then there is some edge (b, a) and the wall normal at that position is equal to - the wall normal at the i-th position.
+
+		As boundary walls lack a corresponging edge in the dual graph, their wall normals are not saved as a convention.
+		'''
+		
+		# Dictionary that maps each edge to the cells that share it
+		edge_dict = edge_to_cells(self.connectivity)
+		# List storying directed edges in the dual graph
+		dual_edges_list = []
+		# List to store the wall normals.
+		wall_normals_list = []
+
+		# Iterate over each cell
+		for cell_id in range(self.ncells):
+			cell_normal = self.normal[cell_id]
+			cell_nodes = self.connectivity[cell_id]
+			nodes_xyz = self.xyz[cell_nodes]  # Get the nodes of the cell
+
+			cell_edges, cell_wall_normals = wall_normals(cell_nodes, nodes_xyz, cell_normal)  # Compute the edge normals of the cell
+			
+			# Directed dual edges: tuples of the form (cell_id, neighbor_id)
+			dual_edges = [
+				(cell_id, (edge_dict[edge] - {cell_id}).pop()) if len(edge_dict[edge]) == 2 else None # If the edge is not a boundary edge, get the neighbor cell
+				for edge in cell_edges
+			]
+
+			dual_edges_list.extend(dual_edges)
+			wall_normals_list.extend(cell_wall_normals)
+
+		# Remove the wall normals and dual edges at the boundary walls
+		dual_edges_list, wall_normals_list = zip(*[
+				(x, y) for x, y in zip(dual_edges_list, wall_normals_list) if x is not None
+			])
+
+		return np.array(dual_edges_list, dtype=np.int32), np.array(wall_normals_list, dtype=np.float64)
 
 	@cr('Mesh.reshape')
 	def reshape_var(self,var:str,info:dict):
@@ -285,10 +354,19 @@ class Mesh(object):
 	def normal(self):
 		if self._normal is None: self._normal = normals(self._xyz,self._conec)
 		return self._normal
+	@property
+	def wall_normal(self):
+		if self._wall_normal is None: _, self._wall_normal = self.dual_edges_and_wall_normals()
+		return self._wall_normal
 
 	@property
 	def connectivity(self):
 		return self._conec
+	@property
+	def cell_connectivity(self):
+		if self._cell_conec is None:
+			self._cell_conec = self._cell_connectivity()
+		return self._cell_conec
 	@property
 	def cellOrder(self):
 		return self._cellO
