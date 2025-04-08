@@ -317,12 +317,12 @@ class GNS(nn.Module):
         latent_dim (int): The number of latent features.
         output_dim (int): The number of output features.
         hidden_size (int): The number of hidden units in the MLPs.
-        num_gnn_layers (int): The number of GNN layers.
+        num_msg_passing_layers (int): The number of GNN layers.
         encoder_hidden_layers (int): The number of hidden layers in the encoder.
         decoder_hidden_layers (int): The number of hidden layers in the decoder.
         message_hidden_layers (int): The number of hidden layers in the message MLP.
         update_hidden_layers (int): The number of hidden layers in the update MLP.
-        # graph (Union[Data, pyLOMGraph]: The pyLOMGraph object used to train the GNN..
+        graph (Union[torch_geometric.data.Data, pyLOMGraph]): The graph object with node and edge attributes.
         p_dropouts (float, optional): The dropout probability. Default is ``0``.
         checkpoint_file (str, optional): The path to the checkpoint file. Default is ``None``.
         activation (Union[str, nn.Module]): The activation function to use.
@@ -331,12 +331,11 @@ class GNS(nn.Module):
     """
 
     def __init__(self,
-                 graph: Union[Data, pyLOMGraph],
                  input_dim: int,
                  latent_dim: int,
                  output_dim: int,
                  hidden_size: int,
-                 num_gnn_layers: int,
+                 num_msg_passing_layers: int,
                  encoder_hidden_layers: int,
                  decoder_hidden_layers: int,
                  message_hidden_layers: int,
@@ -346,10 +345,13 @@ class GNS(nn.Module):
         
         super().__init__()
 
+        graph = kwargs.get("graph")
         p_dropouts = kwargs.get("p_dropouts")
         activation = kwargs.get("activation")
         device = kwargs.get("device")
         seed = kwargs.get("seed")
+        if graph is None:
+            raise Warning("Graph not provided. A graph object must be set with cls.graph setter before training.")
         if p_dropouts is None:
             p_dropouts = 0.0
         if activation is None:
@@ -373,7 +375,7 @@ class GNS(nn.Module):
         self.output_dim = output_dim
         self.encoder_input_dim = None # To be determined from self.graph
         self.hidden_size = hidden_size
-        self.num__gnn_layers = num__gnn_layers
+        self.num_msg_passing_layers = num_msg_passing_layers
         self.encoder_hidden_layers = encoder_hidden_layers
         self.decoder_hidden_layers = decoder_hidden_layers
         self.message_hidden_layers = message_hidden_layers
@@ -384,8 +386,11 @@ class GNS(nn.Module):
         self.seed = seed
         self.state = {} # Save the state of the optimizer, scheduler and epoch list
         self.checkpoint = None # Placeholder for the checkpoint object.
+        self.optimizer = None
+        self.scheduler = None
 
-        self.graph = graph  # Set the graph object
+        if graph is not None:
+            self.graph = graph  # Set the graph object
 
         # Activation function
         if isinstance(activation, str):
@@ -402,7 +407,7 @@ class GNS(nn.Module):
             "latent_dim": latent_dim,
             "output_dim": output_dim,
             "hidden_size": hidden_size,
-            "num__gnn_layers": num__gnn_layers,
+            "num_msg_passing_layers": num_msg_passing_layers,
             "encoder_hidden_layers": encoder_hidden_layers,
             "decoder_hidden_layers": decoder_hidden_layers,
             "message_hidden_layers": message_hidden_layers,
@@ -420,7 +425,7 @@ class GNS(nn.Module):
             hidden_sizes=[self.hidden_size] * self.encoder_hidden_layers,
             activation=self.activation,
             drop_p=self.p_dropouts
-        )
+        ).to(self.device)
 
         # Decoder: from latent space to output features
         self.decoder = MLP(
@@ -429,7 +434,7 @@ class GNS(nn.Module):
             hidden_sizes=[self.hidden_size] * self.decoder_hidden_layers,
             activation=self.activation,
             drop_p=self.p_dropouts
-        )
+        ).to(self.device)
 
         # Message-passing layers
         self.conv_layers_list = nn.ModuleList([
@@ -439,12 +444,12 @@ class GNS(nn.Module):
                 hiddim=self.hidden_size,
                 activation=self.activation,
                 drop_p=self.p_dropouts,
-            )
-            for _ in range(self.num_gnn_layers)
+            ).to(self.device)
+            for _ in range(self.num_msg_passing_layers)
         ])
 
         # Normalization layer
-        self.groupnorm = nn.GroupNorm(2, self.latent_dim)
+        self.groupnorm = nn.GroupNorm(2, self.latent_dim).to(self.device)
 
     @property
     def trainable_params(self):
@@ -495,8 +500,6 @@ class GNS(nn.Module):
         if not isinstance(graph, pyLOMGraph):
             if not isinstance(graph, Data):
                 raise TypeError("Graph must be of type torch_geometric.data.Data or pyLOMGraph.")
-        if not graph.is_undirected():
-            raise Warning("Graph is not undirected. This may lead to unexpected results.")
         if getattr(graph, "edge_index", None) is None:
             raise ValueError("Graph must have edge_index attribute.")
         if getattr(graph, "edge_attr", None) is None:
@@ -504,8 +507,7 @@ class GNS(nn.Module):
         if getattr(graph, "pos", None) is None:
             raise ValueError("Graph must have pos attribute.")
         if getattr(graph, "surf_norms", None) is None:
-            raise ValueError("Graph must have surf_norms attribute.")
-        
+            raise ValueError("Graph must have surf_norms attribute.")   
         
         graph = graph.to(self.device)
 
@@ -546,22 +548,21 @@ class GNS(nn.Module):
         for params_batch, y_batch in op_dataloader:
             params_batch = params_batch.to(self.device) # [B, 3]
             y_batch = y_batch.to(self.device) # [B, N]
-            
             for seed_nodes in node_dataloader:
                 # Compute the k-hop subgraph
-                subset, edge_index, mapping, edge_mask = k_hop_subgraph(seed_nodes, num_hops=1, edge_index=self.graph.edge_index, relabel_nodes=True)
+                subset, edge_index, mapping, edge_mask = k_hop_subgraph(seed_nodes, num_hops=self.num_msg_passing_layers, edge_index=self.graph.edge_index, relabel_nodes=True)
 
                 # Complete the subgraph data and append it to a subgraphs batch
-                x = self.graph.x[subset]
-                y_batch = y_batch[:, subset]
+                x_subg = self.graph.x[subset]
+                y_batch_subg = y_batch[:, subset]
                 # Create a boolean mask for the seed nodes (original tensor is not useful bc of the relabeling)
                 seed_nodes = torch.zeros(subset.shape[0], dtype=torch.bool, device=self.device)
                 seed_nodes[mapping] = True # Store this mapping as we only care about the seed nodes for the loss
                 G_list = []
-                for p, y in zip(params_batch, y_batch):
-                    x[:, :self.op_dim] = p # Prepend the operational parameters to node features
-                    y = y.reshape(-1,1)
-                    G = Data(x=x.clone(), y=y.clone(), seed_nodes=seed_nodes, edge_index=edge_index, edge_attr=self.graph.edge_attr[edge_mask])
+                for p, y_subg in zip(params_batch, y_batch_subg):
+                    x_subg[:, :self.input_dim] = p # Prepend the operational parameters to node features
+                    y_subg = y_subg.reshape(-1,1)
+                    G = Data(x=x_subg.clone(), y=y_subg.clone(), seed_nodes=seed_nodes, edge_index=edge_index, edge_attr=self.graph.edge_attr[edge_mask])
                     G_list.append(G)
 
                 G_batch = Batch.from_data_list(G_list)
@@ -579,7 +580,7 @@ class GNS(nn.Module):
             if self.scheduler is not None:
                 self.scheduler.step()
 
-        return total_loss / (len(self.op_dataloader) * len(self.node_dataloader))
+        return total_loss / (len(op_dataloader) * len(node_dataloader))
 
     @cr('GNS._eval')
     def _eval(self, eval_dataloader, loss_fn):
@@ -600,7 +601,7 @@ class GNS(nn.Module):
                 y_batch = y_batch.to(self.device)
 
                 for (p, y) in zip(params_batch, y_batch):
-                    self.graph.x[:, :self.op_dim] = p
+                    self.graph.x[:, :self.input_dim] = p
                     targets = y.reshape(-1, self.output_dim)
                     output = self(self.graph)
                     loss = loss_fn(output, targets)
@@ -664,22 +665,20 @@ class GNS(nn.Module):
         }
 
         # Create the DataLoader for the operational parameters
-        if not hasattr(self, "op_dataloader"):
-            op_dataloader = DataLoader(train_dataset, **op_dataloader_params)
+        op_dataloader = DataLoader(train_dataset, **op_dataloader_params)
         # Create the DataLoader for the nodes
-        if not hasattr(self, "node_dataloader"):
-            node_indices = np.arange(self.graph.num_nodes)
-            node_indices = torch.tensor(node_indices, dtype=torch.long)
-            node_dataloader = DataLoader(node_indices, **node_dataloader_params)
+        node_indices = np.arange(self.graph.num_nodes)
+        node_indices = torch.tensor(node_indices, dtype=torch.long)
+        node_dataloader = DataLoader(node_indices, **node_dataloader_params)
 
         eval_dataloader = DataLoader(eval_dataset, **op_dataloader_params) if eval_dataset is not None else None
 
-        if not hasattr(self, "optimizer"):
+        if self.optimizer is None:
             self.optimizer = optimizer(self.parameters(), lr=lr)
-        if not hasattr(self, "scheduler"):
+        if self.scheduler is None:
             self.scheduler = scheduler(self.optimizer, step_size=lr_scheduler_step, gamma=lr_gamma) if scheduler is not None else None
 
-        if hasattr(self, "checkpoint"):
+        if self.checkpoint is not None:
             self.optimizer.load_state_dict(self.checkpoint["state"][0])
             if self.scheduler is not None and len(self.checkpoint["state"][1]) > 0:
                 self.scheduler.load_state_dict(self.checkpoint["state"][1])
@@ -701,16 +700,16 @@ class GNS(nn.Module):
             train_loss = self._train(op_dataloader, node_dataloader, loss_fn)
             train_loss_list.append(train_loss)
             if print_rate_batch != 0 and (epoch % print_rate_batch) == 0:
-                pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss (x1e5) {train_loss * 1e5:.4f}", flush=True)
+                pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss: {train_loss:.2f}", flush=True)
             
             test_loss = 0.0
             if eval_dataloader is not None:
-                test_loss = self._eval(eval_dataloader)
+                test_loss = self._eval(eval_dataloader, loss_fn)
                 test_loss_list.append(test_loss)
             
             if print_rate_epoch != 0 and (epoch % print_rate_epoch) == 0:
-                test_log = f" | Test loss (x1e5) {test_loss * 1e5:.4f}" if eval_dataloader is not None else ""
-                pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss (x1e5) {train_loss * 1e5:.4f} {test_log}", flush=True)
+                test_log = f" | Test loss:{test_loss:.2f}" if eval_dataloader is not None else ""
+                pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss: {train_loss:.4f} {test_log}", flush=True)
 
             epoch_list.append(epoch)
             self.state = (
@@ -774,7 +773,7 @@ class GNS(nn.Module):
                 y_batch = y_batch.to(self.device)
 
                 for i, (p, y) in enumerate(zip(params_batch, y_batch)):
-                    self.graph.x[:, :self.op_dim] = p
+                    self.graph.x[:, :self.input_dim] = p
                     targets = y.reshape(-1, self.output_dim)
                     output = self(self.graph)
                     all_predictions[i] = output.cpu().numpy()
@@ -846,7 +845,7 @@ class GNS(nn.Module):
             latent_dim=checkpoint["latent_dim"],
             output_dim=checkpoint["output_dim"],
             hidden_size=checkpoint["hidden_size"],
-            num_gnn_layers=checkpoint["num_gnn_layers"],
+            num_msg_passing_layers=checkpoint["num_msg_passing_layers"],
             encoder_hidden_layers=checkpoint["encoder_hidden_layers"],
             decoder_hidden_layers=checkpoint["decoder_hidden_layers"],
             message_hidden_layers=checkpoint["message_hidden_layers"],
@@ -898,7 +897,7 @@ class GNS(nn.Module):
             >>>     "latent_dim": 16,
             >>>     "output_dim": 1,
             >>>     "hidden_size": (64, 512),
-            >>>     "num__gnn_layers": (1, 10),
+            >>>     "num_msg_passing_layers": (1, 10),
             >>>     "encoder_hidden_layers": (1, 10),
             >>>     "decoder_hidden_layers": (1, 10),
             >>>     "message_hidden_layers": (1, 10),
@@ -936,19 +935,21 @@ class GNS(nn.Module):
             for key, params in optimization_params.items():
                 hyperparams[key] = cls._get_optimizing_value(key, params, trial)
 
+            model_kwargs = {key: value for (key, value) in hyperparams.items() if key in ['graph', 'activation', 'p_dropouts', 'device', 'seed']}
+            training_kwargs = {key: value for (key, value) in hyperparams.items() if key in ['batch_size', 'node_batch_size', 'num_workers', 'pin_memory']}
+
             
             model = cls(
-                graph=hyperparams["graph"],
                 input_dim=hyperparams["input_dim"],
                 latent_dim=hyperparams["latent_dim"],
                 output_dim=hyperparams["output_dim"],
                 hidden_size=hyperparams["hidden_size"],
-                num_gnn_layers=hyperparams["num__gnn_layers"],
+                num_msg_passing_layers=hyperparams["num_msg_passing_layers"],
                 encoder_hidden_layers=hyperparams["encoder_hidden_layers"],
                 decoder_hidden_layers=hyperparams["decoder_hidden_layers"],
                 message_hidden_layers=hyperparams["message_hidden_layers"],
                 update_hidden_layers=hyperparams["update_hidden_layers"],
-                **hyperparams
+                **model_kwargs
             )
             if optuna_optimizer.pruner is not None:
                 # prune epoch-wise
@@ -973,7 +974,7 @@ class GNS(nn.Module):
                     scheduler = hyperparams.get("scheduler"),
                     print_rate_batch = hyperparams.get("print_rate_batch"),
                     print_rate_epoch = hyperparams.get("print_rate_epoch"),
-                    **hyperparams
+                    **training_kwargs
                     )
                 loss_val = losses["test_loss"][-1]
                 # Report the loss to Optuna
@@ -982,6 +983,7 @@ class GNS(nn.Module):
             return loss_val
         
         best_params = optuna_optimizer.optimize(objective_function=optimization_function)
+        best_model_kwargs = {key: value for (key, value) in best_params if key in  ['graph', 'activation', 'p_dropouts', 'device', 'seed']}
 
         # Update params with best ones
         for param in best_params.keys():
@@ -989,24 +991,26 @@ class GNS(nn.Module):
                 optimization_params[param] = best_params[param]
         
         return cls(
-            graph=optimization_params["graph"],
             input_dim=optimization_params["input_dim"],
             latent_dim=optimization_params["latent_dim"],
             output_dim=optimization_params["output_dim"],
             hidden_size=optimization_params["hidden_size"],
-            num_gnn_layers=optimization_params["num__gnn_layers"],
+            num_msg_passing_layers=optimization_params["num_msg_passing_layers"],
             encoder_hidden_layers=optimization_params["encoder_hidden_layers"],
             decoder_hidden_layers=optimization_params["decoder_hidden_layers"],
             message_hidden_layers=optimization_params["message_hidden_layers"],
             update_hidden_layers=optimization_params["update_hidden_layers"],
-            **best_params
+            **best_model_kwargs
         ), optimization_params
 
     def _get_optimizing_value(name, value, trial):
         if isinstance(value, tuple) or isinstance(value, list):
             use_log = value[1] / (value[0] + 0.1) >= 1000
             if isinstance(value[0], int):
-                return trial.suggest_int(name, value[0], value[1], log=use_log)
+                if name == 'latent_dim':
+                    return trial.suggest_int(name, value[0]+value[0]%2, value[1]+value[1]%2, step=2)
+                else:
+                    return trial.suggest_int(name, value[0], value[1], log=use_log)
             elif isinstance(value[0], float):
                 return trial.suggest_float(name, value[0], value[1], log=use_log)
         else:
