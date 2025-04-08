@@ -4,6 +4,7 @@
 #
 # Last revision: 6/04/2025
 
+#%%
 import numpy as np
 import h5py
 
@@ -12,7 +13,7 @@ import optuna
 
 from pyLOM.NN import GNS, Dataset, pyLOMGraph, MinMaxScaler, OptunaOptimizer
 
-
+#%%
 def load_graph_data(file_list):
     """
     Load the graph data from the specified files.
@@ -48,7 +49,7 @@ def load_graph_data(file_list):
                         op[file] = np.concatenate((op[file], f['features'][feature]), axis=1)
                 else:
                     # Save the rows of the Cp values
-                    y[file] = np.array(f['features'][feature])
+                    y[file] = np.array(f['features'][feature]).T
     else:
         with h5py.File(DATA_DIR + file + '.h5', 'r') as f:
             mesh_data = {}
@@ -95,9 +96,10 @@ def process_edge_attr(edge_index, xyz, facenormals):
     return edge_attr
 
 
-
+#%%
 if __name__ == "__main__":
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    # device = 'cpu'
 
     DATA_DIR = '/home/p.yeste/CETACEO_DATA/nlr7301/'
     SAVE_DIR = '/home/p.yeste/CETACEO_RESULTS/nlr7301/'
@@ -108,15 +110,12 @@ if __name__ == "__main__":
     files = ['train', 'val', 'test']
     
     op_params, y, mesh_data = load_graph_data(files)
-
+    
     # Delete y coordinate as it is not used
     mesh_data['facenormals'] = mesh_data['facenormals'][:, [0, 2]]
     mesh_data['normals'] = mesh_data['normals'][:, [0, 2]]
     mesh_data['xyz'] = mesh_data['xyz'][:, [0, 2]]
-
-    print(mesh_data['edgesCOO'].shape)
-    print(y['train'].shape)
-    print(mesh_data)
+    
 
     # Create the graph object
     edge_attr = process_edge_attr(mesh_data['edgesCOO'], mesh_data['xyz'], mesh_data['facenormals'])
@@ -124,16 +123,16 @@ if __name__ == "__main__":
     scaler = MinMaxScaler()
     edge_attr = scaler.fit_transform(edge_attr)
     xyz = scaler.fit_transform(mesh_data['xyz'])
-    facenormals = scaler.fit_transform(mesh_data['facenormals'])
+    unit_norms = mesh_data['normals'] / np.linalg.norm(mesh_data['normals'], axis=1).reshape(-1,1)
 
     xyz = torch.tensor(xyz, dtype=torch.float32)
-    facenormals = torch.tensor(facenormals, dtype=torch.float32)
+    unit_norms = torch.tensor(unit_norms, dtype=torch.float32)
     edge_attr = torch.tensor(edge_attr, dtype=torch.float32)
 
     # Create the graph object
     g = pyLOMGraph(
         pos = xyz,
-        facenormals = facenormals,
+        surf_norms = unit_norms,
         edge_attr = edge_attr,
         edge_index = mesh_data['edgesCOO']
     )
@@ -154,7 +153,7 @@ if __name__ == "__main__":
         outputs_scaler = None
     )
 
-    val_dataset = Dataset(
+    eval_dataset = Dataset(
         variables_in = op_params['val'],
         variables_out = y['val'],
         inputs_scaler = scaler,
@@ -168,7 +167,7 @@ if __name__ == "__main__":
         'output_dim': 1,
         'latent_dim': (1, 64),
         'hidden_size': (64, 1024),
-        'num_gnn_layers': (1, 16),
+        'num_msg_passing_layers': (1, 16),
         'encoder_hidden_layers': (1, 16),
         'decoder_hidden_layers': (1, 16),
         'message_hidden_layers': (1, 16),
@@ -186,7 +185,7 @@ if __name__ == "__main__":
         'scheduler': torch.optim.lr_scheduler.StepLR,
 
         'batch_size': (1, 32),
-        'node_batch_size': (g.num_nodes//10000, g.num_nodes//1000),
+        'node_batch_size': (g.num_nodes//100, g.num_nodes//1),
         'num_workers': 10,
         'pin_memory': True
     }
@@ -194,7 +193,6 @@ if __name__ == "__main__":
 
     # Define the optimizer
     optimizer = OptunaOptimizer(
-        study_name = 'GNS_airfoil',
         optimization_params = optimization_params,
         n_trials = 100,
         direction = 'minimize',
@@ -210,15 +208,12 @@ if __name__ == "__main__":
     # Create the optimized model
     model, optimization_params = GNS.create_optimized_model(
         train_dataset = train_dataset,
-        test_dataset = test_dataset,
-        val_dataset = val_dataset,
-        training_params = optimization_params,
-        optimizer = optimizer,
-        model_class = GNS
+        eval_dataset = eval_dataset,
+        optuna_optimizer = optimizer,
     )
 
     # Fit the model
-    model.fit(train_dataset, val_dataset, **optimization_params)
+    model.fit(train_dataset, eval_dataset, **optimization_params)
 
     # Save the model
     model.save_model(SAVE_DIR + 'GNS_DLR.pt')
