@@ -11,7 +11,7 @@ import h5py
 import torch
 import optuna
 
-from pyLOM.NN import GNS, Dataset, pyLOMGraph, MinMaxScaler, OptunaOptimizer
+from pyLOM.NN import GNS, Dataset, pyLOMGraph, MinMaxScaler, OptunaOptimizer, Pipeline
 
 #%%
 def load_graph_data(file_list):
@@ -164,18 +164,18 @@ if __name__ == "__main__":
         'graph': g,
         'input_dim': 2,
         'output_dim': 1,
-        'latent_dim': (1, 64),
-        'hidden_size': (64, 1024),
-        'num_msg_passing_layers': (1, 16),
-        'encoder_hidden_layers': (1, 16),
-        'decoder_hidden_layers': (1, 16),
-        'message_hidden_layers': (1, 16),
-        'update_hidden_layers': (1, 16),
+        'latent_dim': (1, 32),
+        'hidden_size': (64, 512),
+        'num_msg_passing_layers': (1, 4),
+        'encoder_hidden_layers': (1, 8),
+        'decoder_hidden_layers': (1, 8),
+        'message_hidden_layers': (1, 8),
+        'update_hidden_layers': (1, 8),
         'activation': torch.nn.ELU(),
         'p_dropouts': (0.0, 0.5),
         'device': device,
 
-        'epochs': 1000,
+        'epochs': 50,
         'lr': (1e-5, 1e-2),
         'lr_gamma': (0.9, 0.999),
         'lr_scheduler_step': 1,
@@ -185,7 +185,7 @@ if __name__ == "__main__":
 
         'batch_size': (1, 32),
         'node_batch_size': (g.num_nodes//100, g.num_nodes//1),
-        'num_workers': 10,
+        'num_workers': 1,
         'pin_memory': True
     }
 
@@ -212,7 +212,7 @@ if __name__ == "__main__":
     )
 
     # Fit the model
-    model.fit(train_dataset, eval_dataset, **optimization_params)
+    loss_history = model.fit(train_dataset, eval_dataset, **optimization_params)
 
     # Save the model
     model.save(SAVE_DIR + 'GNS_DLR.pt')
