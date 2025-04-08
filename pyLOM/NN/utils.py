@@ -13,7 +13,6 @@ from torch.utils.data import Subset
 from torch            import Generator, randperm, default_generator
 from itertools        import product, accumulate
 from typing           import List, Optional, Tuple, cast, Sequence, Union, Callable
-from tqdm             import tqdm
 
 from .                import DEVICE
 from ..utils.cr       import cr
@@ -688,8 +687,7 @@ class Dataset(torch.utils.data.Dataset):
 
         if not batched:
             batch_size = 1
-        pbar = tqdm(range(0, len(self), batch_size), desc="Mapping dataset", unit="iters")
-        for i in pbar:
+        for i in range(0, len(self), batch_size):
             batch = self[i:i + batch_size]
             if self.variables_in is not None:
                 inputs, outputs = batch
@@ -733,8 +731,7 @@ class Dataset(torch.utils.data.Dataset):
         if not batched:
             batch_size = 1
         indices = []
-        pbar = tqdm(range(0, len(self), batch_size), desc="Filtering dataset", unit="iters")
-        for i in pbar:
+        for i in range(0, len(self), batch_size):
             batch = self[i:i + batch_size]
             if self.variables_in is not None:
                 inputs, outputs = batch
