@@ -149,7 +149,6 @@ GPR = [
 ]
 # Optional visualization dependencies
 optionals = [
-  "ensight-reader",
   "pyvista",
   "scikit-learn",
   "nvtx",
