@@ -9,12 +9,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import json
 
 import torch
 import torch.nn as nn
 from torch.nn import ELU
 from torch_geometric.nn import MessagePassing
-from torch_geometric.data import Data, DataLoader, Batch
+from torch_geometric.data import Data, Batch
+from torch_geometric.loader import DataLoader
 from torch_geometric.utils import k_hop_subgraph
 
 
@@ -645,7 +647,6 @@ class GNS(nn.Module):
         loss_fn = kwargs.get("loss_fn", nn.MSELoss(reduction='mean'))
         optimizer = kwargs.get("optimizer", torch.optim.Adam)
         scheduler = kwargs.get("scheduler", torch.optim.lr_scheduler.StepLR)
-        print_rate_batch = kwargs.get("print_rate_batch", 0)
         print_rate_epoch = kwargs.get("print_rate_epoch", 1)
 
 
@@ -697,15 +698,13 @@ class GNS(nn.Module):
             
             train_loss = self._train(op_dataloader, node_dataloader, loss_fn)
             train_loss_list.append(train_loss)
-            if print_rate_batch != 0 and (epoch % print_rate_batch) == 0:
-                pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss: {train_loss:.2f}", flush=True)
             
             if eval_dataloader is not None:
                 test_loss = self._eval(eval_dataloader, loss_fn)
                 test_loss_list.append(test_loss)
             
             if print_rate_epoch != 0 and (epoch % print_rate_epoch) == 0:
-                test_log = f" | Test loss:{test_loss:.2f}" if eval_dataloader is not None else ""
+                test_log = f" | Test loss:{test_loss:.4f}" if eval_dataloader is not None else ""
                 pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss: {train_loss:.4f} {test_log}", flush=True)
 
             epoch_list.append(epoch)
@@ -948,6 +947,9 @@ class GNS(nn.Module):
                 update_hidden_layers=hyperparams["update_hidden_layers"],
                 **model_kwargs
             )
+
+            print(f"\n\n\nTrial {trial._trial_id +1}/{optuna_optimizer.num_trials}. Training with hyperparams:\n",
+                  json.dumps(hyperparams, indent=4, default = cls._hyperparams_serializer), flush=True)
             if optuna_optimizer.pruner is not None:
                 # prune epoch-wise
                 epochs = hyperparams["epochs"]
@@ -957,7 +959,9 @@ class GNS(nn.Module):
                     loss_val = losses["test_loss"][-1]
                     # Report the loss to Optuna
                     trial.report(loss_val, epoch)
-                    if trial.should_prune(): 
+                    print("Epoch {}/{}".format(epoch+1, epochs), flush=True)
+                    if trial.should_prune():
+                        print("\nTrial pruned at epoch {}".format(epoch+1), flush=True)
                         raise TrialPruned()
             else:
                 losses = model.fit(
@@ -1000,6 +1004,7 @@ class GNS(nn.Module):
             **best_model_kwargs
         ), optimization_params
 
+    @staticmethod
     def _get_optimizing_value(name, value, trial):
         if isinstance(value, tuple) or isinstance(value, list):
             use_log = value[1] / (value[0] + 0.1) >= 1000
@@ -1012,3 +1017,13 @@ class GNS(nn.Module):
                 return trial.suggest_float(name, value[0], value[1], log=use_log)
         else:
             return value
+
+    @staticmethod
+    def _hyperparams_serializer(obj):
+        """
+        Function used to print hyperparams in JSON format.
+        """
+
+        if hasattr(obj, "__class__"):  # Verify whether the object has a class
+            return obj.__class__.__name__  # Return the class name
+        raise TypeError(f"Type {type(obj)} not serializable")  # Raise an error if the object is not serializable
