@@ -83,10 +83,10 @@ def mpi_gather(sendbuff,root=0,all=False):
 	if MPI_SIZE > 1:
 		if not isinstance(sendbuff,np.ndarray) and not isinstance(sendbuff,list): sendbuff = [sendbuff]
 		if all:
-			out = np.array(MPI_COMM.allgather(sendbuff))
+			out = MPI_COMM.allgather(sendbuff)
 			return np.concatenate(out,axis=0)
 		else:
-			out = np.array(MPI_COMM.gather(sendbuff,root=root))
+			out = MPI_COMM.gather(sendbuff,root=root)
 			return np.concatenate(out,axis=0) if MPI_RANK == root else None
 	return sendbuff
 
@@ -103,6 +103,8 @@ def mpi_reduce(sendbuff,root=0,op='sum',all=False):
 			if 'min'    in op: opf = MPI.MIN
 			if 'nanmin' in op: opf = mpi_nanmin
 			if 'nanmax' in op: opf = mpi_nanmax
+			if 'argmin' in op: opf = MPI.MINLOC
+			if 'argmax' in op: opf = MPI.MAXLOC
 			if 'nansum' in op: opf = mpi_nansum
 		else:
 			opf = op

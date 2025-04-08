@@ -114,7 +114,8 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+docs/source/_build/
+docs/source/data/
 
 # PyBuilder
 target/
@@ -183,6 +184,10 @@ Examples/Data/*
 flow/*
 events*
 model_state
-*.out
-*.err
 submit*.sh
+*.err
+*.out
+*.json
+*.png
+*.pth
+*.pdf

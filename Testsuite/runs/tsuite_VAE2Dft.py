@@ -36,7 +36,7 @@ activations = [pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(
 
 ## Load pyLOM dataset and set up results output
 RESUDIR = os.path.join(OUTDIR,'vae_beta_%.2e_ld_%i' % (beta, lat_dim))
-pyLOM.NN.create_results_folder(RESUDIR,echo=False)
+pyLOM.NN.create_results_folder(RESUDIR,verbose=False)
 
 
 ## Load pyLOM dataset
@@ -73,7 +73,7 @@ pipeline = pyLOM.NN.Pipeline(
     model=model,
     training_params={
         "batch_size": 4,
-        "epochs": 100,
+        "epochs": 10,
         "lr": 1e-4,
         "betasch": betasch,
         "BASEDIR":RESUDIR
@@ -107,7 +107,7 @@ dataloader_params = {
         }
 
 RESUDIR_FT = f"{RESUDIR}/ft_vae_beta_{beta}_{lat_dim}"
-pyLOM.NN.create_results_folder(RESUDIR_FT,echo=False)
+pyLOM.NN.create_results_folder(RESUDIR_FT,verbose=False)
 model.fine_tune(train_dataset=dataset_train, eval_dataset=dataset_train, epochs=PARAMS["epochs_ft"], shape_=td_ft.shape, BASEDIR=RESUDIR_FT, **dataloader_params)
 rec_ft = model.reconstruct(td_ft)
 rd_ft  = pyLOM.NN.Dataset((rec_ft,), (nh, nw))

@@ -35,7 +35,7 @@ activations = [pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(
 
 ## Load pyLOM dataset and set up results output
 RESUDIR = os.path.join(OUTDIR,'vae_beta_%.2e_ld_%i' % (beta, lat_dim))
-pyLOM.NN.create_results_folder(RESUDIR,echo=False)
+pyLOM.NN.create_results_folder(RESUDIR,verbose=False)
 
 
 ## Load pyLOM dataset

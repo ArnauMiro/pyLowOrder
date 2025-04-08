@@ -165,15 +165,15 @@ class RegressionEvaluator():
 
     def __call__(
         self,
-        y_true: np.typing.ArrayLike,
-        y_pred: np.typing.ArrayLike,
+        y_true: np.ndarray,
+        y_pred: np.ndarray,
     ) -> dict:
         """
         Calculate multiple regression metrics between the true and predicted values.
 
         Args:
-            y_true (np.typing.ArrayLike): An array-like object containing the true values.
-            y_pred (np.typing.ArrayLike): An array-like object containing the predicted values.
+            y_true (numpy.ndarray): An array-like object containing the true values.
+            y_pred (numpy.ndarray): An array-like object containing the predicted values.
 
         Returns:
             dict: A dictionary containing the calculated regression metrics.

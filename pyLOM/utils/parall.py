@@ -36,7 +36,7 @@ def worksplit(istart,iend,whoAmI,nWorkers=MPI_SIZE):
 		remainder = irange - rangePerProcess*nWorkers
 		if remainder > whoAmI:
 			istart_l += whoAmI
-			iend_l   += whoAmI+1;
+			iend_l   += whoAmI+1
 		else:
 			istart_l += remainder
 			iend_l   += remainder

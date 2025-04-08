@@ -45,8 +45,8 @@ d = pyLOM.Dataset(xyz=mesh.xyz, ptable=ptable, order=mesh.pointOrder, point=True
 )
 print(d)
 
-mesh.save(OUTFILE) # Store the mesh
-d.save(OUTFILE)    # Store dataset
+mesh.save(OUTFILE,mode='w') # Store the mesh, overwrite
+d.save(OUTFILE)             # Store dataset, append
 
 
 pyLOM.cr_info()

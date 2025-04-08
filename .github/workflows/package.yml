@@ -50,7 +50,7 @@ jobs:
       - name: Build package
         run: |
           make requirements_full
-          sed -i 's/USE_COMPILED  = ON/USE_COMPILED  = OFF/g' options.cfg
+          sed -i 's/USE_COMPILED     = ON/USE_COMPILED     = OFF/g' options.cfg
           make package-build
           make install
       # Publish to PyPi once the test-sute has been successfully run

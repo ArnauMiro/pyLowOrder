@@ -18,7 +18,7 @@ OUTDIR    = sys.argv[3]
 
 device  = 'cpu'
 RESUDIR = os.path.join(OUTDIR,f'PINN_{DATAFILE}')
-pyLOM.NN.create_results_folder(RESUDIR,echo=False)
+pyLOM.NN.create_results_folder(RESUDIR,verbose=False)
 
 # Define the domain and the amount of points to sample
 POINTS_ON_X = 256
@@ -92,7 +92,7 @@ training_params = {
     'optimizer_params': {'lr': 1e-3},
     'lr_scheduler_class': torch.optim.lr_scheduler.StepLR,
     'lr_scheduler_params': {'step_size': 1000, 'gamma': 0.99},
-    'epochs': 1000,
+    'epochs': 100,
     'update_logs_steps': 100,
     'boundary_conditions': [initial_bc, boundary_bc],
 }
