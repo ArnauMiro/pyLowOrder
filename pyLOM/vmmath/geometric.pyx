@@ -216,7 +216,7 @@ def edge_to_cells(int[:,:] conec):
 	Returns:
 		defaultdic: edges to cells connectivity dictionary
 	'''
-	cdef int i, cid, nnodcells, ncells = conec.shape[0], 
+	cdef int i, cid, v1, v2, nnodcells, ncells = conec.shape[0], 
 	cdef int[:] cell_nodes
 	cdef object edge_to_cells = defaultdict(set)
 
@@ -230,3 +230,32 @@ def edge_to_cells(int[:,:] conec):
 			edge_to_cells[(v1, v2)].add(cid)  # Associate the cell with the edge
 
 	return edge_to_cells
+
+
+@cr('math.neighbors_dict')
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def neighbors_dict(object edge_dict):
+	'''
+	Build a dictionary that maps each cell to its neighbors.
+
+	Args:
+		edge_dict (dict): Dictionary mapping edges to cells sharing that edge.
+
+	Returns:
+		dict: cell to neighbours dictionary
+	'''
+	cdef int c1, c2
+	cdef object cells, neighbors_dict = defaultdict(set)
+
+	for _, cells in edge_dict.items():
+		cells = list(cells)
+		if len(cells) == 2:  # If there are two cells sharing the edge
+			c1, c2 = cells
+			neighbors_dict[c1].add(c2)
+			neighbors_dict[c2].add(c1)
+
+	return neighbors_dict
