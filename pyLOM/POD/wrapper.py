@@ -38,7 +38,7 @@ def run(X:np.ndarray, remove_mean:bool=True, divide_variance:bool=False, randomi
 		Y = subtract_mean(X,X_mean)
 		if divide_variance:
 			Y_var = temporal_variance(Y)
-			Z     = divide_variance(Y, Y_var)
+			Z     = norm_variance(Y, Y_var)
 		cr_stop('POD.temporal_mean',0)
 	else:
 		Z = X.copy()
