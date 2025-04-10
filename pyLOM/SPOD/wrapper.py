@@ -21,21 +21,19 @@ def _fft(Xf, winWeight, nDFT, nf):
 
 ## SPOD run method
 @cr('SPOD.run')
-def run(X, t, nDFT=0, nolap=0, remove_mean=True):
-	'''
+def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=True):
+	r'''
 	Run SPOD analysis of a matrix X.
 
-	Inputs:
-		- X[ndims*nmesh,nt]: data matrix
-		- dt:                timestep between adjacent snapshots
-		- npwin:             number of points in each window (0 will set default value: ~10% nt)
-		- nolap:             number of overlap points between windows (0 will set default value: 50% nwin)
-		- remove_mean:       whether or not to remove the mean flow
+	Args:
+		X (np.ndarray): data matrix.
+		t (np.ndarray): times at which the snapshots of X were collected
+		nDFT (int, optional): number of points in each window (0 will set default value: ~10% nt)
+		nolap (int, optional): number of overlap points between windows (0 will set default value: 50% nwin)
+		remove_mean (bool, optional): whether or not to remove the mean flow (default, ``True``)
 
 	Returns:
-		- L:  modal energy spectra.
-		- P:  SPOD modes, whose spatial dimensions are identical to those of X.
-		- f:  frequency vector.
+		[(np.ndarray), (np.ndarray), (np.ndarray)]: where the first array is L, the modal energy spectra, the second array is  P, SPOD modes, whose spatial dimensions are identical to those of X and finally f is the frequency vectors
 	''' 
 	cnp = cp if type(X) is cp.ndarray else np
 	M,N = X.shape

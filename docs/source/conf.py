@@ -2,18 +2,20 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../..'))
-# import pyLOM
+sys.path.insert(0, os.path.abspath('_ext'))
+import pyLOM
 # -- Project information -----------------------------------------------------
 project = 'pyLOM'
 copyright = '2023-2025'
 author = 'pyLOM developers'
-version = '2.0.1' # pyLOM.__version__ is not defined
+version = pyLOM.__version__
 
 # -- General configuration ---------------------------------------------------
 extensions = [
     'sphinx.ext.duration',
     'sphinx.ext.doctest',
     'sphinx.ext.autodoc',
+    'module_alias',
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
@@ -21,12 +23,15 @@ extensions = [
     'sphinx_copybutton',
     'sphinx.ext.mathjax',
     'sphinx_design',
-    'nbsphinx'
+    'nbsphinx',
 ]
 
 # Set the default syntax highlighter
 highlight_language = 'python'
+# Don't run the notebooks
+nbsphinx_execute = 'never' 
 
+nbsphinx_allow_errors = True
 # For nbsphinx
 nbsphinx_codecell_lexer = 'ipython3'
 
@@ -39,6 +44,7 @@ autodoc_default_options = {
     'member-order': 'bysource',
     'show-inheritance': True,
     # 'special-members': '__init__',
+    'imported-members': True, # To show the modules imported on the __init__.py of every package
     'ignore-module-all': True,  # If True, ignore __all__ variable defined in the package's __init__.py
     'undoc-members': False, # If True, include members without docstrings
     'exclude-members': '__weakref__'
@@ -52,7 +58,7 @@ autodoc_preserve_defaults = True
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
 napoleon_include_init_with_doc = True
-napoleon_include_private_with_doc = True
+napoleon_include_private_with_doc = False # don't document privete methods (the ones that start with _)
 napoleon_include_special_with_doc = True
 napoleon_use_admonition_for_examples = True
 napoleon_use_admonition_for_notes = True
@@ -80,7 +86,9 @@ html_theme_options = {
     "navigation_depth": 4,
     "collapse_navigation": False,
     "logo": {
-        "text": "pyLOM",
+        "alt_text": "pyLOM",
+        "image_light": "_static/logo_tmp.webp",
+        "image_dark": "_static/logo_tmp.webp",
     },
 }
 
@@ -89,7 +97,7 @@ html_static_path = ['_static']
 html_css_files = [
     'custom.css',
 ]
-# html_favicon = '_static/placeholder_favicon.ico'
+html_favicon = '_static/favicon_tmp.ico'
 # -- Options for HTML theme -----------------------------------------------
 html_context = {
     "github_user": "ArnauMiro",

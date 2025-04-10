@@ -13,7 +13,6 @@ from torch.utils.data import Subset
 from torch            import Generator, randperm, default_generator
 from itertools        import product, accumulate
 from typing           import List, Optional, Tuple, cast, Sequence, Union, Callable
-from tqdm             import tqdm
 
 from .                import DEVICE
 from ..utils.cr       import cr
@@ -31,11 +30,13 @@ class MinMaxScaler:
 
     Args:
         feature_range (Tuple): Desired range of transformed data. Default is ``(0, 1)``.
+        column (bool, optional): Scale over the column space or the row space (default ``False``)
     """
 
-    def __init__(self, feature_range=(0, 1)):
+    def __init__(self, feature_range=(0, 1), column=False):
         self.feature_range = feature_range
         self._is_fitted = False
+        self._column    = column
 
     @property
     def is_fitted(self):
@@ -90,7 +91,7 @@ class MinMaxScaler:
         elif is_tensor:
             scaled_variables = torch.hstack(scaled_variables)
 
-        return scaled_variables
+        return scaled_variables.T if self._column else scaled_variables
     
     def fit_transform(self, variables: List[Union[np.ndarray, torch.tensor]]) -> List[Union[np.ndarray, torch.tensor]]:
         """
@@ -135,8 +136,7 @@ class MinMaxScaler:
             inverse_scaled_variables = np.hstack(inverse_scaled_variables)
         elif is_tensor:
             inverse_scaled_variables = torch.hstack(inverse_scaled_variables)
-
-        return inverse_scaled_variables
+        return inverse_scaled_variables.T if self._column else inverse_scaled_variables
 
     def save(self, filepath: str) -> None:
         """
@@ -151,6 +151,7 @@ class MinMaxScaler:
         save_dict = {
             "feature_range": self.feature_range,
             "variable_scaling_params": self.variable_scaling_params,
+            "column": self._column
         }
         
         with open(filepath, 'w') as f:
@@ -174,7 +175,7 @@ class MinMaxScaler:
         with open(filepath, 'r') as f:
             loaded_dict = json.load(f)
         
-        scaler = MinMaxScaler(feature_range=tuple(loaded_dict["feature_range"]))
+        scaler = MinMaxScaler(feature_range=tuple(loaded_dict["feature_range"]),column=loaded_dict["column"])
         
         # Restore the scaling parameters
         scaler.variable_scaling_params = loaded_dict["variable_scaling_params"]
@@ -183,6 +184,7 @@ class MinMaxScaler:
         return scaler   
 
     def _cast_variables(self, variables):
+        variables = variables.T if self._column else variables
         if isinstance(variables, (torch.Tensor)):
             variables = [variables[:, i].unsqueeze(1) for i in range(variables.shape[1])]
         elif isinstance(variables, (np.ndarray)):
@@ -664,14 +666,8 @@ class Dataset(torch.utils.data.Dataset):
         )
     
     @cr("NN.Dataset.map")
-    def map(
-        self,
-        function: Callable,
-        fn_kwargs: dict = {},
-        batched: bool = False,
-        batch_size: int = 1000,
-    ):
-        """
+    def map(self, function: Callable, fn_kwargs: dict = {}, batched: bool = False, batch_size: int = 1000):
+        '''
         Apply a function to the dataset.
 
         Args:
@@ -687,12 +683,11 @@ class Dataset(torch.utils.data.Dataset):
 
         Returns:
             Dataset: A reference to the dataset with th e function applied.
-        """
+        '''
 
         if not batched:
             batch_size = 1
-        pbar = tqdm(range(0, len(self), batch_size), desc="Mapping dataset", unit="iters")
-        for i in pbar:
+        for i in range(0, len(self), batch_size):
             batch = self[i:i + batch_size]
             if self.variables_in is not None:
                 inputs, outputs = batch
@@ -736,8 +731,7 @@ class Dataset(torch.utils.data.Dataset):
         if not batched:
             batch_size = 1
         indices = []
-        pbar = tqdm(range(0, len(self), batch_size), desc="Filtering dataset", unit="iters")
-        for i in pbar:
+        for i in range(0, len(self), batch_size):
             batch = self[i:i + batch_size]
             if self.variables_in is not None:
                 inputs, outputs = batch

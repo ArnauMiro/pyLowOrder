@@ -8,11 +8,30 @@
 from __future__ import print_function, division
 
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib, matplotlib.pyplot as plt
 
 from ..vmmath import vector_norm
 from ..utils  import cr_nvtx as cr, gpu_to_cpu, raiseWarning
 
+
+DEFAULTSTYLE = {
+    'font'    : {
+		'size'  : 16,
+		'weight'    : 'normal'
+	},
+    'legend'  : {
+		'fontsize'  : 12 
+	},
+    'text'    : {
+		'usetex'    : False
+	},
+    'axes'    : {
+		'linewidth' : 2.75 
+	},
+    'savefig' : {
+		'bbox'      : 'tight'
+	}
+}
 
 def show_plots():
 	'''
@@ -26,6 +45,12 @@ def close_plots():
 	'''
 	plt.close()
 
+def style_plots(styleDict=DEFAULTSTYLE):
+	'''
+	Define a common plot style in the scripts
+	'''
+	for key in styleDict.keys():
+		matplotlib.rc(key,**styleDict[key])
 
 def plotFieldStruct2D(ax,nx,ny,ndim,xyz,field,dim,cmap,clear=False):
 	'''
@@ -42,7 +67,6 @@ def plotFieldStruct2D(ax,nx,ny,ndim,xyz,field,dim,cmap,clear=False):
 	Z = field.reshape((nx,ny,ndim),order='c').T if ndim > 1 else field.reshape((nx,ny),order='c').T
 	levels = np.linspace(-1e-2, 1e-2, 11)
 	return ax.contourf(X,Y,Z[ndim,:,:] if dim >= 0 else np.linalg.norm(Z,axis=0) if ndim > 1 else Z,cmap=cmap)
-
 
 def plotResidual(S,fig=None,ax=None):
 	'''
@@ -66,6 +90,44 @@ def plotResidual(S,fig=None,ax=None):
 	ax.set_title(r'Tolerance')
 	# Return
 	return fig, ax
+
+def plotModalErrorBars(error:np.ndarray):
+	'''
+	Do a barplot of a 1D array of errors, where each element is the error associated in the prediction of a mode.
+	'''
+	indices = np.arange(len(error))+1
+	cmap    = plt.cm.jet
+	colors  = cmap(np.linspace(0.1, 0.9, len(error)))
+	fig, ax = plt.subplots(figsize=(20, 3))
+	bars = ax.bar(indices, error, capsize=5, color=colors, edgecolor='black')
+	ax.set_xlabel("Rank", fontsize=14)
+	ax.set_ylabel("Average Relative Error", fontsize=14)
+	ax.set_xticks(indices[24::25])
+	ax.set_xticklabels([f"{i}" for i in indices[24::25]], fontsize=12)
+	ax.tick_params(axis='both', labelsize=12)
+	fig.tight_layout()
+	return fig, ax
+
+def plotTimeSeries(time:np.ndarray, truth:np.ndarray, pred:np.ndarray, std:np.ndarray = None):
+	'''
+	Function to plot the comparison between the truth and predicted N temporal series.
+	'''
+	N, nt = truth.shape
+	std   = std if std is not None else np.zeros((N,nt))
+	fig, axs = plt.subplots(N,1, figsize=(20, 3*N))
+	axs = axs.flatten()
+	for rr in range(len(axs)):
+		if rr == 0:
+			axs[rr].plot(time, pred[rr], 'r-.', label='Prediction')
+			axs[rr].plot(time, truth[rr], 'b--', label='Truth')
+		else:
+			axs[rr].plot(time, pred[rr], 'r-.')
+			axs[rr].plot(time, truth[rr], 'b--')
+		axs[rr].fill_between(time, pred[rr] - 1.96*std[rr], pred[rr] + 1.96*std[rr], color='r', alpha=0.25) #95% confidence interval of a Gaussian distribution
+		axs[rr].set_ylabel('Mode %i' % rr)
+	fig.legend()
+	fig.tight_layout()
+	return fig, axs
 
 
 try:
