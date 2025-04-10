@@ -119,23 +119,18 @@ def edge_to_cells(conec:np.ndarray) -> dict:
 
 
 @cr('math.neighbors_dict')
-def neighbors_dict(conec:np.ndarray) -> dict:
+def neighbors_dict(edge_dict) -> dict:
 	'''
 	Build a dictionary that maps each cell to its neighbors.
 
 	Args:
-		conec (np.ndarray): connectivity array
+		edge_dict (dict): Dictionary mapping edges to cells sharing that edge.
 
 	Returns:
 		dict: cell to neighbours dictionary
 	'''
-	ncells = conec.shape[0]
-
-	# Dictionary that maps each edge to the cells that share it
-	edge_dict = edge_to_cells(conec)
-
-	# Dictionary that maps each cell to its neighbors
-	neighbors_dict = {i: set() for i in range(ncells)}
+	
+	neighbors_dict = defaultdict(set)
 
 	for edge, cells in edge_dict.items():
 		cells = list(cells)

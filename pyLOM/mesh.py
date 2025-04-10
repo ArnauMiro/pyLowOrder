@@ -11,7 +11,7 @@ import os, numpy as np
 from collections import defaultdict
 
 from .       import inp_out as io
-from .vmmath import cellCenters, normals, neighbors_dict, edge_normals
+from .vmmath import cellCenters, normals, neighbors_dict, edge_to_cells, edge_normals
 from .utils  import cr_nvtx as cr, mem, raiseError, mpi_reduce
 
 
@@ -161,9 +161,11 @@ class Mesh(object):
 		padded_neighbors : list
 			Connectivity array of neighbors for each cell. Each list is padded with -1s to have a fixed length.
 		'''
+		# Step 1: Create a dictionary to store the edges and their corresponding cells
+		edge_dict = edge_to_cells(self.connectivity)  # Dictionary mapping edges to cells
 
 		# Neighbors dictionary asigning the neighbors to each cell
-		adjacency = neighbors_dict(self.connectivity)
+		adjacency = neighbors_dict(edge_dict)
 
 		# Step 3: Pad the neighbors list with -1s
 		max_len = max(len(adjacency[cell]) for cell in range(self.ncells))
