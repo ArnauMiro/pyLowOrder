@@ -153,7 +153,8 @@ class Mesh(object):
 			xyzc = cellCenters(self._xyz,self._conec)
 		return xyzc
 	
-	def _cell_connectivity(self):
+	@cr('Mesh.cell_connectivity')
+	def cell_connectivity(self):
 		'''Computes the connectivity between cells that share an edge.
 
 		Returns
@@ -173,7 +174,8 @@ class Mesh(object):
 
 		return padded_neighbors
 
-	def _edge_normals(self):
+	@cr('Mesh.edge_normals')
+	def edge_normals(self):
 		'''Computes the normalized edge normals of the cells in the mesh.
 		Edge normals are the vectors normal to the edges and tangent to the cell.
 			
@@ -336,7 +338,7 @@ class Mesh(object):
 		return self._normal
 	@property
 	def edge_normal(self):
-		if self._edge_normal is None: self._edge_normal = self._edge_normals()
+		if self._edge_normal is None: self._edge_normal = self.edge_normals()
 		return self._edge_normal
 
 	@property
@@ -345,7 +347,7 @@ class Mesh(object):
 	@property
 	def cell_connectivity(self):
 		if self._cell_conec is None:
-			self._cell_conec = self._cell_connectivity()
+			self._cell_conec = self.cell_connectivity()
 		return self._cell_conec
 	@property
 	def cellOrder(self):
