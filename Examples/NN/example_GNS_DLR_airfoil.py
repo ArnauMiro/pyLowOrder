@@ -7,10 +7,13 @@
 #%%
 import numpy as np
 import h5py
+import os
+import matplotlib.pyplot as plt
 
 import torch
 import optuna
 
+import pyLOM
 from pyLOM.NN import GNS, Dataset, pyLOMGraph, MinMaxScaler, OptunaOptimizer, Pipeline
 
 #%%
@@ -40,7 +43,7 @@ def load_graph_data(file_list):
     for file in file_list:
         op[file] = None
         y[file] = None
-        with h5py.File(DATA_DIR + file + '.h5', 'r') as f:
+        with h5py.File(BASEDIR + file + '.h5', 'r') as f:
             for feature in f['features']:
                 if feature != 'cp': # Only parse the operational parameters
                     if op[file] is None:
@@ -51,7 +54,7 @@ def load_graph_data(file_list):
                     # Save the rows of the Cp values
                     y[file] = np.array(f['features'][feature]).T
     else:
-        with h5py.File(DATA_DIR + file + '.h5', 'r') as f:
+        with h5py.File(BASEDIR + file + '.h5', 'r') as f:
             mesh_data = {}
             for data in f['mesh']:
                 if data == 'edgesCOO':
@@ -96,12 +99,48 @@ def process_edge_attr(edge_index, xyz, facenormals):
     return edge_attr
 
 
+def true_vs_pred_plot(y_true, y_pred, path):
+    """
+    Auxiliary function to plot the true vs predicted values
+    """
+    num_plots = y_true.shape[1]
+    plt.figure(figsize=(10, 5 * num_plots))
+    for j in range(num_plots):
+        plt.subplot(num_plots, 1, j + 1)
+        plt.scatter(y_true[:, j], y_pred[:, j], s=1, c="b", alpha=0.5)
+        plt.xlabel("True values")
+        plt.ylabel("Predicted values")
+        plt.title(f"Scatterplot for Component {j+1}")
+        plt.grid(True)
+
+    plt.tight_layout()
+    plt.savefig(path, dpi=300)
+
+def plot_train_test_loss(train_loss, test_loss, path):
+    """
+    Auxiliary function to plot the training and test loss
+    """
+    plt.figure()
+    plt.plot(range(1, len(train_loss) + 1), train_loss, label="Training Loss")
+    total_epochs = len(test_loss) # test loss is calculated at the end of each epoch
+    total_iters = len(train_loss) # train loss is calculated at the end of each iteration/batch
+    iters_per_epoch = total_iters // total_epochs
+    plt.plot(np.arange(iters_per_epoch, total_iters+1, step=iters_per_epoch), test_loss, label="Test Loss")
+    plt.xlabel("Iterations")
+    plt.ylabel("Loss")
+    plt.title("Training Loss vs Epoch")
+    plt.yscale("log")
+    plt.legend()
+    plt.grid()
+    plt.savefig(path, dpi=300)
+
+
 #%%
 if __name__ == "__main__":
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    DATA_DIR = '/home/p.yeste/CETACEO_DATA/nlr7301/'
-    SAVE_DIR = '/home/p.yeste/CETACEO_RESULTS/nlr7301/'
+    BASEDIR = '/home/p.yeste/CETACEO_DATA/nlr7301/'
+    RESUDIR = '/home/p.yeste/CETACEO_RESULTS/nlr7301/'
 
     # Build the graph object
 
@@ -136,6 +175,7 @@ if __name__ == "__main__":
         edge_index = mesh_data['edgesCOO']
     )
 
+    scaler.fit(np.concatenate((op_params['train'], op_params['val'], op_params['test']), axis=0))
 
     # Create the datasets
     train_dataset = Dataset(
@@ -175,9 +215,9 @@ if __name__ == "__main__":
         'p_dropouts': (0.0, 0.5),
         'device': device,
 
-        'epochs': 50,
+        'epochs': 25,
         'lr': (1e-5, 1e-2),
-        'lr_gamma': (0.9, 0.999),
+        'lr_gamma': (0.99, 0.999),
         'lr_scheduler_step': 1,
         'loss_fn': torch.nn.MSELoss(reduction='mean'),
         'optimizer': torch.optim.Adam,
@@ -200,22 +240,45 @@ if __name__ == "__main__":
             n_warmup_steps = 10,
             interval_steps = 5
         ),
-        save_dir = SAVE_DIR
+        RESUDIR = RESUDIR
+    )
+
+    pipeline = Pipeline(
+    train_dataset=train_dataset,
+    test_dataset=test_dataset,
+    valid_dataset=eval_dataset,
+    optimizer=optimizer,
+    model_class=GNS
     )
 
 
-    # Create the optimized model
-    model, optimization_params = GNS.create_optimized_model(
-        train_dataset = train_dataset,
-        eval_dataset = eval_dataset,
-        optuna_optimizer = optimizer,
-    )
+    training_logs = pipeline.run()
 
-    # Fit the model
-    loss_history = model.fit(train_dataset, eval_dataset, **optimization_params)
+    # check saving and loading the model
+    pipeline.model.save(os.path.join(RESUDIR,"GNS_DLR.pth"))
+    model = GNS.load(RESUDIR + "/model.pth")
 
-    # Save the model
-    model.save(SAVE_DIR + 'GNS_DLR.pt')
+    # check saving and loading the scalers
+    scaler.save(os.path.join(RESUDIR,"input_scaler.json"))
+    input_scaler = MinMaxScaler.load(os.path.join(RESUDIR,"input_scaler.json"))
 
-    print("Optuna optimization completed. Best model saved in", SAVE_DIR + 'GNS_DLR.pt')
+    # to predict from a dataset
+    preds = model.predict(test_dataset)
+    y = test_dataset[:][1]
+
+    # to predict from a tensor
+    # preds = model(torch.tensor(dataset_test[:][0], device=model.device)).cpu().detach().numpy()
+
+    # check that the scaling is correct
+    pyLOM.pprint(0,y.min(), y.max())
+
+    evaluator = pyLOM.NN.RegressionEvaluator()
+    evaluator(y, preds)
+    evaluator.print_metrics()
+
+    true_vs_pred_plot(y, preds, RESUDIR + '/true_vs_pred.png')
+    plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss.png')
+
+    pyLOM.cr_info()
+    plt.show()
 
