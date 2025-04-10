@@ -132,7 +132,7 @@ def neighbors_dict(edge_dict) -> dict:
 	
 	neighbors_dict = defaultdict(set)
 
-	for edge, cells in edge_dict.items():
+	for _, cells in edge_dict.items():
 		cells = list(cells)
 		if len(cells) == 2:  # If there are two cells sharing the edge
 			c1, c2 = cells
@@ -140,6 +140,7 @@ def neighbors_dict(edge_dict) -> dict:
 			neighbors_dict[c2].add(c1)
 
 	return neighbors_dict
+
 
 @cr('math.fix_coherence')
 def fix_normals_coherence(normals, connectivity):
@@ -190,35 +191,36 @@ def fix_normals_coherence(normals, connectivity):
 
 	return normals
 
+
 @cr('math.edge_normals')
-def edge_normals(nodes_xyz, cell_normal, num_nodes):
+def edge_normals(xyz, cell_normal, num_nodes) -> np.ndarray:
 	'''
 	Compute the edge normals (pointing outwards) of a cell given the nodes of the cell, the number of nodes and the cell normal.
 
 	In:
-		- nodes_xyz: List or array of the node coordinates of the cell
+		- xyz: Array of the node coordinates of the cell
 		- num_nodes: Number of nodes of the cell
 		- cell_normal: Normal to the plane of the cell
 
 	Returns:
 		- edge_normals: List of the edge normals of the cell
 	'''
-	edge_normals = []
+	edge_normals = np.zeros((xyz.shape[0],cell_normal.shape[0]),xyz.dtype)
 	# Iterate over each edge of the cell
-	for i in range(len(nodes_xyz)):
-		v1, v2 = nodes_xyz[i], nodes_xyz[(i + 1) % num_nodes]  # Get the edge vertices
+	for i in range(len(xyz)):
+		v1, v2 = xyz[i], xyz[(i + 1) % num_nodes]  # Get the edge vertices
 		edge = v2 - v1  # Get the edge vector
 
 		edge_normal = np.cross(edge, cell_normal)  # Compute the edge normal
 		edge_normal /= np.linalg.norm(edge_normal)  # Normalize the edge normal
 
 		# Ensure the edge normal is pointing outwards (assumes convex polygon)
-		auxiliary_node = nodes_xyz[(i+2) % num_nodes]
+		auxiliary_node = xyz[(i+2) % num_nodes]
 		midpoint = (v1 + v2) / 2
 
 		if np.dot(midpoint - auxiliary_node, edge_normal) < 0:
 			edge_normal *= -1
 
-		edge_normals.append(edge_normal)
+		edge_normals[i,:] = edge_normal
 
 	return edge_normals
