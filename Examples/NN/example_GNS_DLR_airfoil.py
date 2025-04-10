@@ -236,11 +236,11 @@ if __name__ == "__main__":
         n_trials = 100,
         direction = 'minimize',
         pruner = optuna.pruners.MedianPruner(
-            n_startup_trials = 10,
-            n_warmup_steps = 10,
-            interval_steps = 5
+            n_startup_trials = 5,
+            n_warmup_steps = 5,
+            interval_steps = 1
         ),
-        RESUDIR = RESUDIR
+        save_dir = RESUDIR
     )
 
     pipeline = Pipeline(
@@ -255,7 +255,7 @@ if __name__ == "__main__":
     training_logs = pipeline.run()
 
     # check saving and loading the model
-    pipeline.model.save(os.path.join(RESUDIR,"GNS_DLR.pth"))
+    pipeline.model.save(os.path.join(RESUDIR,"NLR7301.pth"))
     model = GNS.load(RESUDIR + "/model.pth")
 
     # check saving and loading the scalers
@@ -278,6 +278,78 @@ if __name__ == "__main__":
 
     true_vs_pred_plot(y, preds, RESUDIR + '/true_vs_pred.png')
     plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss.png')
+
+    pyLOM.cr_info()
+    plt.show()
+
+
+    # Compare against dlr results
+
+    # DLR hyperparameters
+    dlr_params = {
+        'graph': g,
+        'input_dim': 2,
+        'output_dim': 1,
+        'latent_dim': 16,
+        'hidden_size': 256,
+        'num_msg_passing_layers': 1,
+        'encoder_hidden_layers': 6,
+        'decoder_hidden_layers': 1,
+        'message_hidden_layers': 2,
+        'update_hidden_layers': 2,
+        'activation': torch.nn.ELU(),
+        'p_dropouts': 0.0,
+        'device': device,
+
+        'epochs': 1000,
+        'lr': 6.50e-4,
+        'lr_gamma': 0.9954,
+        'lr_scheduler_step': 1,
+        'loss_fn': torch.nn.MSELoss(reduction='mean'),
+        'optimizer': torch.optim.Adam,
+        'scheduler': torch.optim.lr_scheduler.StepLR,
+
+        'batch_size': 15,
+        'node_batch_size': 32,
+        'num_workers': 1,
+        'pin_memory': True
+    }
+
+    dlr_model = GNS(
+        input_dim = 2,
+        output_dim = 1,
+        latent_dim = 16,
+        hidden_size = 256,
+        num_msg_passing_layers = 1,
+        encoder_hidden_layers = 6,
+        decoder_hidden_layers = 1,
+        message_hidden_layers = 2,
+        update_hidden_layers = 2,
+        **dlr_params        
+    )
+
+    pipeline = Pipeline(
+        train_dataset=train_dataset,
+        test_dataset=test_dataset,
+        valid_dataset=eval_dataset,
+        model=dlr_model,
+        training_params=dlr_params
+    )
+    training_logs = pipeline.run()
+    # check saving and loading the model
+    pipeline.model.save(os.path.join(RESUDIR,"NLR7301_DLR.pth"))
+    model = GNS.load(RESUDIR + "/NLR7301_DLR.pth")
+
+    # to predict from a dataset
+    preds = model.predict(test_dataset)
+    y = test_dataset[:][1]
+
+    evaluator = pyLOM.NN.RegressionEvaluator()
+    evaluator(y, preds)
+    evaluator.print_metrics()
+
+    true_vs_pred_plot(y, preds, RESUDIR + '/true_vs_pred_DLR.png')
+    plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss_DLR.png')
 
     pyLOM.cr_info()
     plt.show()
