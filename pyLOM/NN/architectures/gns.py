@@ -984,7 +984,7 @@ class GNS(nn.Module):
             return loss_val
         
         best_params = optuna_optimizer.optimize(objective_function=optimization_function)
-        best_model_kwargs = {key: value for (key, value) in best_params if key in  ['graph', 'activation', 'p_dropouts', 'device', 'seed']}
+        best_model_kwargs = {key: value for key, value in best_params.items() if key in  ['graph', 'activation', 'p_dropouts', 'device', 'seed']}
 
         # Update params with best ones
         for param in best_params.keys():
