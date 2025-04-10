@@ -757,9 +757,9 @@ class GNS(nn.Module):
         predict_dataloader = DataLoader(X, **dataloader_params)
 
         num_rows = len(predict_dataloader.dataset)
-        num_columns = self.output_dim
-        all_predictions = np.empty((num_rows, num_columns))
-        all_targets = np.empty((num_rows, num_columns))
+        num_columns = self.graph.num_nodes * self.output_dim
+        all_predictions = np.zeros((num_rows, num_columns))
+        all_targets = np.zeros((num_rows, num_columns))
 
 
         with torch.no_grad():
@@ -772,8 +772,8 @@ class GNS(nn.Module):
                     self.graph.x[:, :self.input_dim] = p
                     targets = y.reshape(-1, self.output_dim)
                     output = self(self.graph)
-                    all_predictions[i] = output.cpu().numpy()
-                    all_targets[i] = targets.cpu().numpy()    
+                    all_predictions[i] = output.cpu().numpy().reshape(-1)
+                    all_targets[i] = targets.cpu().numpy().reshape(-1) 
 
         if return_targets:
             return all_predictions, all_targets
@@ -867,7 +867,7 @@ class GNS(nn.Module):
         train_dataset, 
         eval_dataset, 
         optuna_optimizer: OptunaOptimizer,
-    ) -> Tuple[nn.Module, Dict]:
+        ) -> Tuple[nn.Module, Dict]:
         r"""
         Create an optimized model using Optuna. The model is trained on the training dataset and evaluated on the validation dataset.
         
@@ -984,12 +984,16 @@ class GNS(nn.Module):
             return loss_val
         
         best_params = optuna_optimizer.optimize(objective_function=optimization_function)
-        best_model_kwargs = {key: value for key, value in best_params.items() if key in  ['graph', 'activation', 'p_dropouts', 'device', 'seed']}
+
+        best_model_kwargs = {key: value for key, value in optimization_params.items() if key in ['graph', 'activation', 'p_dropouts', 'device', 'seed']}
 
         # Update params with best ones
         for param in best_params.keys():
             if param in optimization_params:
                 optimization_params[param] = best_params[param]
+            if param in best_model_kwargs:
+                best_model_kwargs[param] = best_params[param]
+
         
         return cls(
             input_dim=optimization_params["input_dim"],
