@@ -215,7 +215,7 @@ if __name__ == "__main__":
         'p_dropouts': (0.0, 0.5),
         'device': device,
 
-        'epochs': 25,
+        'epochs': 30,
         'lr': (1e-5, 1e-2),
         'lr_gamma': (0.99, 0.999),
         'lr_scheduler_step': 1,
@@ -255,8 +255,8 @@ if __name__ == "__main__":
     training_logs = pipeline.run()
 
     # check saving and loading the model
-    pipeline.model.save(os.path.join(RESUDIR,"NLR7301.pth"))
-    model = GNS.load(RESUDIR + "/model.pth")
+    pipeline.model.save(os.path.join(RESUDIR,"NLR7301_optuna.pth"))
+    model = GNS.load(RESUDIR + "NLR7301_optuna.pth")
 
     # check saving and loading the scalers
     scaler.save(os.path.join(RESUDIR,"input_scaler.json"))
@@ -276,7 +276,7 @@ if __name__ == "__main__":
     evaluator(y, preds)
     evaluator.print_metrics()
 
-    true_vs_pred_plot(y, preds, RESUDIR + '/true_vs_pred.png')
+    true_vs_pred_plot(y, preds, RESUDIR + 'true_vs_pred.png')
     plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss.png')
 
     pyLOM.cr_info()
@@ -338,7 +338,7 @@ if __name__ == "__main__":
     training_logs = pipeline.run()
     # check saving and loading the model
     pipeline.model.save(os.path.join(RESUDIR,"NLR7301_DLR.pth"))
-    model = GNS.load(RESUDIR + "/NLR7301_DLR.pth")
+    model = GNS.load(RESUDIR + "NLR7301_DLR.pth")
 
     # to predict from a dataset
     preds = model.predict(test_dataset)
@@ -348,7 +348,7 @@ if __name__ == "__main__":
     evaluator(y, preds)
     evaluator.print_metrics()
 
-    true_vs_pred_plot(y, preds, RESUDIR + '/true_vs_pred_DLR.png')
+    true_vs_pred_plot(y, preds, RESUDIR + 'true_vs_pred_DLR.png')
     plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss_DLR.png')
 
     pyLOM.cr_info()
