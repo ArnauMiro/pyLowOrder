@@ -8,19 +8,20 @@
 from __future__ import print_function
 import numpy as np ## Only for documentation
 
-from ..vmmath       import vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, randomized_svd, compute_truncation_residual
+from ..vmmath       import vecmat, matmul, temporal_mean, subtract_mean, temporal_variance, norm_variance, tsqr_svd, randomized_svd, compute_truncation_residual
 from ..utils.cr     import cr_nvtx as cr, cr_start, cr_stop
 
 
 ## POD run method
 @cr('POD.run')
-def run(X:np.ndarray,remove_mean:bool=True, randomized:bool=False, r:int=1, q:int=3, seed:int=-1):
+def run(X:np.ndarray, remove_mean:bool=True, divide_variance:bool=False, randomized:bool=False, r:int=1, q:int=3, seed:int=-1):
 	r'''
 	Run POD analysis of a matrix.
 
 	Args:
 		X (np.ndarray): data matrix of size [ndims*nmesh,n_temp_snapshots].
 		remove_mean (bool, optional): whether or not to remove the mean flow (default: ``True``).
+		divide_variance (bool, optional): whether or not to normalize the data with the variance. It is only effective when removing the mean (default: ``False``).
 		randomized (bool, optional): whether to perform randomized POD or not (default: ``False``).
 		r (int, optional): in case of performing randomized POD, how many modes do we want to recover. This option has no effect when randomized=False (default: ``1``).
 		q (int, optional): in case of performing randomized POD, how many power iterations are performed. This option has no effect when randomized=False (default: ``3``).
@@ -35,12 +36,15 @@ def run(X:np.ndarray,remove_mean:bool=True, randomized:bool=False, r:int=1, q:in
 		X_mean = temporal_mean(X)
 		# Compute substract temporal mean
 		Y = subtract_mean(X,X_mean)
+		if divide_variance:
+			Y_var = temporal_variance(Y)
+			Z     = divide_variance(Y, Y_var)
 		cr_stop('POD.temporal_mean',0)
 	else:
-		Y = X.copy()
+		Z = X.copy()
 	# Compute SVD
 	cr_start('POD.SVD',0)
-	U,S,V = tsqr_svd(Y) if not randomized else randomized_svd(Y,r,q,seed=seed)
+	U,S,V = tsqr_svd(Z) if not randomized else randomized_svd(X,r,q,seed=seed)
 	cr_stop('POD.SVD',0)
 	# Return
 	return U,S,V
