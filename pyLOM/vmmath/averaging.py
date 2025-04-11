@@ -56,7 +56,7 @@ def temporal_variance(X:np.ndarray, X_mean:np.ndarray) -> np.ndarray:
 		numpy.ndarray: Variance of the snapshot matrix (m,).
 	'''
 	p = cp if type(X) is cp.ndarray else np
-	return p.std(X,axis=1,keepdims=True)
+	return p.var(X,axis=1,keepdims=True)
 
 @cr('math.temporal_variance')
 def norm_variance(X:np.ndarray,X_mean:np.ndarray,X_var:np.ndarray) -> np.ndarray:
