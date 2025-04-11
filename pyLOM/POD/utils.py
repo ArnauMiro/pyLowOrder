@@ -106,7 +106,7 @@ def coherent_modes(V:np.ndarray, time:np.ndarray, divide_variance:bool=False, nc
 		if ii == 0:
 			power = np.zeros((V.shape[0],f1.shape[0]))
 		power[ii,:] = ps1
-	T,P = pcarun(power, divide_variance=divide_variance)
+	T,P = pcarun(power.T, divide_variance=divide_variance)
 	T2, T2_limit = T2score(P, ncomp=ncomp, confidence=confidence)	
 	imodes = np.arange(T2.shape[0])
 
