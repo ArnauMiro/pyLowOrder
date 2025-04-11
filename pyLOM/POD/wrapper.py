@@ -35,18 +35,17 @@ def run(X:np.ndarray, remove_mean:bool=True, divide_variance:bool=False, randomi
 		# Compute temporal mean
 		X_mean = temporal_mean(X)
 		# Compute substract temporal mean
-		Y = subtract_mean(X,X_mean)
 		if divide_variance:
-			Y_var = temporal_variance(Y)
-			Z     = norm_variance(Y, Y_var)
+			X_var = temporal_variance(X, X_mean)
+			Y     = norm_variance(X, X_mean, X_var)
 		else:
-			Z = Y.copy()
+			Y = subtract_mean(X,X_mean)
 		cr_stop('POD.temporal_mean',0)
 	else:
-		Z = X.copy()
+		Y = X.copy()
 	# Compute SVD
 	cr_start('POD.SVD',0)
-	U,S,V = tsqr_svd(Z) if not randomized else randomized_svd(X,r,q,seed=seed)
+	U,S,V = tsqr_svd(Y) if not randomized else randomized_svd(Y,r,q,seed=seed)
 	cr_stop('POD.SVD',0)
 	# Return
 	return U,S,V

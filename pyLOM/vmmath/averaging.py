@@ -44,12 +44,13 @@ def subtract_mean(X:np.ndarray,X_mean:np.ndarray) -> np.ndarray:
 	return X - p.tile(X_mean,(X.shape[1],1)).T
 
 @cr('math.temporal_variance')
-def temporal_variance(X:np.ndarray) -> np.ndarray:
+def temporal_variance(X:np.ndarray, X_mean:np.ndarray) -> np.ndarray:
 	r'''
 	Variance of matrix X(m,n) on time where m is the spatial coordinates and n is the number of snapshots.
 
 	Args:
 		X (numpy.ndarray): Snapshot matrix (m,n).
+		X_mean (numpy.ndarray): Mean of the snapshot matrix (m,n).
 
 	Returns:
 		numpy.ndarray: Variance of the snapshot matrix (m,).
@@ -58,14 +59,17 @@ def temporal_variance(X:np.ndarray) -> np.ndarray:
 	return p.std(X,axis=1,keepdims=True)
 
 @cr('math.temporal_variance')
-def norm_variance(X:np.ndarray,X_var:np.ndarray) -> np.ndarray:
+def norm_variance(X:np.ndarray,X_mean:np.ndarray,X_var:np.ndarray) -> np.ndarray:
 	r'''
 	Normalizes the snapshot matrix X(m,n) with its variance
 
 	Args:
 		X (numpy.ndarray): Snapshot matrix (m,n).
+		X_mean (numpy.ndarray): Mean of the snapshot matrix (m,n).
+		X_var (numpy.ndarray): Variance of the snapshot matrix (m,n).
 
 	Returns:
 		numpy.ndarray: Snapshot matrix normalized by its variance(m,n).
 	'''
-	return X/X_var
+	Xnm = subtract_mean(X, X_mean)
+	return Xnm/X_var
