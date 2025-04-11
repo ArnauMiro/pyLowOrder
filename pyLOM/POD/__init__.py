@@ -8,7 +8,7 @@
 
 from .wrapper      import run, truncate, reconstruct
 from .utils        import extract_modes, save, load, coherent_modes
-from .plots        import plotMode
+from .plots        import plotMode, plotEnergy
 from ..utils.plots import plotResidual, plotSnapshot
 
 
