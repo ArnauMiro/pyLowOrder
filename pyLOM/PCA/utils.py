@@ -21,7 +21,7 @@ def T2score(P:np.ndarray, ncomp:int=1, confidence:float=0.8):
 	Args:
 		P (np.ndarray): scores from PCA.
 		ncomp (int, optional): number of components to summarize the scores from (default: ``1``).
-		cofnidence (float, optional): threshold confidence interval for clustering according to the T2 statistic. It is computed as in a F probability distribution (default: ``0.8``).
+		confidence (float, optional): threshold confidence interval for clustering according to the T2 statistic. It is computed as in a F probability distribution (default: ``0.8``).
 
 	Returns:
 		[(np.ndarray), float]: T2 scores and clustering threshold.
