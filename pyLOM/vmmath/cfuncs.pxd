@@ -63,9 +63,11 @@ cdef extern from "averaging.h" nogil:
 	# Single precision
 	cdef void c_stemporal_mean       "stemporal_mean"(float *out, float *X, const int m, const int n)
 	cdef void c_ssubtract_mean       "ssubtract_mean"(float *out, float *X, float *X_mean, const int m, const int n)
+	cdef void c_stemporal_variance   "stemporal_variance"(float *out, float *X, float *X_mean, const int m, const int n)
 	# Double precision
 	cdef void c_dtemporal_mean       "dtemporal_mean"(double *out, double *X, const int m, const int n)
 	cdef void c_dsubtract_mean       "dsubtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
+	cdef void c_dtemporal_variance   "dtemporal_variance"(double *out, double *X, double *X_mean, const int m, const int n)
 cdef extern from "svd.h" nogil:
 	# Single precision
 	cdef int c_sqr                   "sqr"(float *Q, float *R, float *A,  const int m, const int n)

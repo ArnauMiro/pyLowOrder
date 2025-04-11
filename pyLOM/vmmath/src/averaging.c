@@ -45,6 +45,50 @@ void dtemporal_mean(double *out, double *X, const int m, const int n) {
 	}
 }
 
+void stemporal_variance(float *out, float *X, float *Xmean, const int m, const int n) {
+	/*
+		Temporal variance of matrix X(m,n) where m is the spatial coordinates
+		and n is the number of snapshots.
+
+		out(m) is the output matrix that must have been previously allocated.
+	*/
+	int ii,jj;
+	float diff;
+	#ifdef USE_OMP
+	#pragma omp parallel for private(ii,jj) shared(out,X) firstprivate(m,n)
+	#endif
+	for(ii=0; ii<m; ++ii) {
+		out[ii] = 0.;
+		for(jj=0; jj<n; ++jj){
+			diff = AC_MAT(X,n,ii,jj) - Xmean[ii];
+			out[ii] += diff*diff;
+		}
+		out[ii] /= (float)(n);
+	}
+}
+
+void dtemporal_variance(double *out, double *X, double *Xmean, const int m, const int n) {
+	/*
+		Temporal variance of matrix X(m,n) where m is the spatial coordinates
+		and n is the number of snapshots.
+
+		out(m) is the output matrix that must have been previously allocated.
+	*/
+	int ii,jj;
+	double diff;
+	#ifdef USE_OMP
+	#pragma omp parallel for private(ii,jj) shared(out,X) firstprivate(m,n)
+	#endif
+	for(ii=0; ii<m; ++ii) {
+		out[ii] = 0.;
+		for(jj=0; jj<n; ++jj){
+			diff = AC_MAT(X,n,ii,jj) - Xmean[ii];
+			out[ii] += diff*diff;
+		}
+		out[ii] /= (double)(n);
+	}
+}
+
 void ssubtract_mean(float *out, float *X, float *X_mean, const int m, const int n) {
 	/*
 		Computes out(m,n) = X(m,n) - X_mean(m) where m is the spatial coordinates

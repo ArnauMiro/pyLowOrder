@@ -4,14 +4,14 @@
 #
 # Math operations module - averaging.
 #
-# Last rev: 27/10/2021
+# Last rev: 11/04/2025
 
 cimport cython
 cimport numpy as np
 
 import numpy as np
 
-from .cfuncs    cimport real, c_stemporal_mean, c_dtemporal_mean, c_ssubtract_mean, c_dsubtract_mean
+from .cfuncs    cimport real, c_stemporal_mean, c_dtemporal_mean, c_ssubtract_mean, c_dsubtract_mean, c_stemporal_variance, c_dtemporal_variance
 from ..utils.cr  import cr
 
 
@@ -70,6 +70,62 @@ def temporal_mean(real[:,:] X):
 		return _dtemporal_mean(X)
 	else:
 		return _stemporal_mean(X)
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.float32_t,ndim=1] _stemporal_variance(float[:,:] X, float[:] X_mean):
+	'''
+	Temporal variance of matrix X(m,n) where m is the spatial coordinates
+	and n is the number of snapshots.
+	'''
+	cdef int m = X.shape[0], n = X.shape[1]
+	cdef np.ndarray[np.float32_t,ndim=1] out = np.zeros((m,),dtype=np.float32)
+	# Compute temporal variance
+	c_stemporal_variance(&out[0],&X[0,0],&X_mean[0],m,n)
+	# Return
+	return out
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.double_t,ndim=1] _dtemporal_variance(double[:,:] X, double[:] X_mean):
+	'''
+	Temporal variance of matrix X(m,n) where m is the spatial coordinates
+	and n is the number of snapshots.
+	'''
+	cdef int m = X.shape[0], n = X.shape[1]
+	cdef np.ndarray[np.double_t,ndim=1] out = np.zeros((m,),dtype=np.double)
+	# Compute temporal variance
+	c_dtemporal_variance(&out[0],&X[0,0],&X_mean[0],m,n)
+	# Return
+	return out
+
+@cr('math.temporal_mean')
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def temporal_variance(real[:,:] X, real[:] X_mean):
+	r'''
+	Temporal variance of matrix X(m,n) where m is the spatial coordinates
+	and n is the number of snapshots.
+
+	Args:
+		X (numpy.ndarray): Snapshot matrix (m,n).
+
+	Returns:
+		numpy.ndarray: Averaged snapshot matrix (m,).
+	'''
+	if real is double:
+		return _dtemporal_variance(X, X_mean)
+	else:
+		return _stemporal_variance(X, X_mean)
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
