@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# PCA general utilities.
+#
+# Last rev: 11/04/2025
 import numpy as np ## Only for documentation
 
 from scipy.stats import f
