@@ -130,6 +130,9 @@ cuda = [
 cuda12x = [
     "cupy-cuda12x",
 ]
+cuda11x = [
+    "cupy-cuda11x",
+]
 rocm-4-0 = [
     "cupy-rocm-4-0",
 ]
