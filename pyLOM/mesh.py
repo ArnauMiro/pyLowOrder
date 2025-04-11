@@ -256,11 +256,7 @@ class Mesh(object):
 		return mpi_reduce(self.ncells,op='sum',all=True)
 	@property
 	def ncellsG2(self):
-		if self.cellOrder.shape[0] > 0:
-			ncells = self.cellOrder.max()
-		else:
-			ncells = 0
-		return mpi_reduce(ncells,op='max',all=True) + 1
+		return mpi_reduce(self.cellOrder.max() if self.cellOrder.shape[0] > 0 else 0,op='max',all=True) + 1
 	@property
 	def nnodcell(self):
 		return self._conec.shape[1]
