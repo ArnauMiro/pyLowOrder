@@ -315,18 +315,7 @@ if __name__ == "__main__":
         'pin_memory': True
     }
 
-    dlr_model = GNS(
-        input_dim = 2,
-        output_dim = 1,
-        latent_dim = 16,
-        hidden_size = 256,
-        num_msg_passing_layers = 1,
-        encoder_hidden_layers = 6,
-        decoder_hidden_layers = 1,
-        message_hidden_layers = 2,
-        update_hidden_layers = 2,
-        **dlr_params        
-    )
+    dlr_model = GNS(**dlr_params)
 
     pipeline = Pipeline(
         train_dataset=train_dataset,
