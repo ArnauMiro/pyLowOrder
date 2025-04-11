@@ -605,8 +605,17 @@ class GNS(nn.Module):
                     self.graph.x[:, :self.input_dim] = p
                     targets = y.reshape(-1, self.output_dim)
                     output = self(self.graph)
+                    # print("targets:", targets[:5], flush=True)
+                    # print("output:", output[:5], flush=True)
                     loss = loss_fn(output, targets)
+                    # print(f"Loss**1/2: {loss.item()**0.5:.4f}", flush=True)
+                    # print(f"rmse: {torch.sqrt(torch.mean((output - targets)**2)):.4f}", flush=True)
                     total_loss += loss.item()
+
+        # print("total_loss:", total_loss, flush=True)
+        # print("Dividing loss by:", eval_dataloader.dataset.__len__(), flush=True)
+        # print("total_loss/len:", total_loss / eval_dataloader.dataset.__len__(), flush=True)
+        # print("rmse:", (total_loss / eval_dataloader.dataset.__len__())**0.5, flush=True)
 
         return total_loss / eval_dataloader.dataset.__len__()
 
@@ -772,6 +781,7 @@ class GNS(nn.Module):
                     self.graph.x[:, :self.input_dim] = p
                     targets = y.reshape(-1, self.output_dim)
                     output = self(self.graph)
+                    # print(f"RMSE of input {i}: {torch.sqrt(torch.mean((output - targets)**2))}", flush=True)
                     all_predictions[i] = output.cpu().numpy().reshape(-1)
                     all_targets[i] = targets.cpu().numpy().reshape(-1) 
 
