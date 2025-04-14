@@ -143,18 +143,10 @@ def neighbors_dict(edge_dict) -> dict:
 
 
 @cr('math.fix_coherence')
-def fix_normals_coherence(normals, connectivity):
+def fix_normals_coherence(normals, edge_dict, adjacency, num_cells) -> np.ndarray:
 	'''
 	Ensure the coherence of the normals of the cells.
 	'''
-	num_cells = connectivity.shape[0]
-
-	# Dictionary that maps each cell to its neighbors
-	edge_dict = edge_to_cells(connectivity)
-
-	# Dictionary mapping each cell to its neighbors
-	adjacency = neighbors_dict(connectivity)
-
     # Find the cells that are on the border
 	border_cells = set()
 	for e, faces in edge_dict.items():
@@ -185,9 +177,6 @@ def fix_normals_coherence(normals, connectivity):
 	if np.dot(np.mean(border_normals, axis=0), avg_internal_normal) < 0:
 		for i in border_cells:
 			normals[i] *= -1
-
-    # # Invertir todas las normales para que apunten hacia afuera
-	# normals = -1*normals
 
 	return normals
 

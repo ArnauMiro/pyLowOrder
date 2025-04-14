@@ -10,7 +10,7 @@ cimport cython
 cimport numpy as np
 
 import numpy as np
-from collections import defaultdict
+from collections import defaultdict, deque
 
 from .cfuncs       cimport real
 from .cfuncs       cimport c_scellCenters, c_snormals, c_seuclidean_d
@@ -259,3 +259,176 @@ def neighbors_dict(object edge_dict):
 			neighbors_dict[c2].add(c1)
 
 	return neighbors_dict
+
+
+@cr('math.fix_coherence')
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def fix_normals_coherence(real[:,:] normals, object edge_dict, object adjacency, int num_cells):
+	'''
+	Ensure the coherence of the normals of the cells.
+	'''
+	cdef int i, j, k, current, neighbor, count = 0, n_border
+	cdef list faces, border_cells = set(), queue
+	cdef np.ndarray[np.double_t,ndim=1] border_normals, avg_internal_normal = np.zeros((normals.shape[1],),np.double)
+	cdef np.ndarray[np.npy_bool,ndim=1] visited = np.zeros(num_cells, dtype=bool)
+
+    # Find the cells that are on the border
+	for _, faces in edge_dict.items():
+		if len(faces) == 1:  # If the edge is on the border
+			border_cells.add(faces[0])
+	n_border = len(border_cells)
+
+    # Propagate the normals using a BFS algorithm
+	queue   = deque([next(iter(border_cells))])  # Start from a border cell
+	visited[queue[0]] = True
+
+	while queue:
+		current = queue.popleft()
+		for neighbor in adjacency[current]:
+			if not visited[neighbor]:
+				# Check if the normals are consistent
+				if np.dot(normals[current], normals[neighbor]) < 0:
+					for j in normals.shape[1]:
+						normals[neighbor,j] *= -1  # Invert the normal
+
+				visited[neighbor] = True
+				queue.append(neighbor)
+
+	# Adjust the normals of the border cells
+	border_normals = np.zeros((n_border,),np.double)
+	for k,i in enumerate(border_cells):
+		for j in normals.shape[1]:
+			border_normals[k,j] = normals[i,j]
+			avg_internal_normal[j] += normals[i,j]
+		count += 1
+	
+	for j in normals.shape[1]:
+		avg_internal_normal[j] /= <double>(count)
+
+    # If the average normal of the border cells is pointing inwards, invert all the normals
+	if np.dot(np.mean(border_normals, axis=0), avg_internal_normal) < 0:
+		for i in border_cells:
+			for j in normals.shape[1]:
+				normals[i,j] *= -1
+
+	return normals
+
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.float_t,ndim=2] _sedge_normals(float[:,:] xyz, float[:] cell_normal, int num_nodes):
+	'''
+	Compute the edge normals (pointing outwards) of a cell given the nodes of the cell, the number of nodes and the cell normal.
+
+	In:
+		- xyz: Array of the node coordinates of the cell
+		- num_nodes: Number of nodes of the cell
+		- cell_normal: Normal to the plane of the cell
+
+	Returns:
+		- edge_normals: List of the edge normals of the cell
+	'''
+	cdef int i, j, nnodes = xyz.shape[0], ndim = cell_normal.shape[0]
+	cdef float[:] edge_normal
+	cdef np.ndarray[np.float_t,ndim=1] v1           = np.zeros((ndim,),np.float)
+	cdef np.ndarray[np.float_t,ndim=1] v2           = np.zeros((ndim,),np.float)
+	cdef np.ndarray[np.float_t,ndim=1] edge         = np.zeros((ndim,),np.float)
+	cdef np.ndarray[np.float_t,ndim=1] midpoint     = np.zeros((ndim,),np.float)
+	cdef np.ndarray[np.float_t,ndim=2] edge_normals = np.zeros((nnodes,ndim),np.float)
+	# Iterate over each edge of the cell
+	for i in range(nnodes):
+		for j in range(ndim):
+			v1[j]   = xyz[i,j]
+			v2[j]   = xyz[(i + 1) % num_nodes,j]  # Get the edge vertices
+			edge[j] = v2[j] - v1[j]  # Get the edge vector
+
+		edge_normal  = np.cross(edge, cell_normal)  # Compute the edge normal
+		edge_normal /= np.linalg.norm(edge_normal)  # Normalize the edge normal
+
+		# Ensure the edge normal is pointing outwards (assumes convex polygon)
+		for j in range(ndim):
+			midpoint[j] = (v1[j] + v2[j])/2. - xyz[(i+2) % num_nodes,j]
+
+		if np.dot(midpoint, edge_normal) < 0:
+			for j in range(ndim):
+				edge_normal[j] *= -1.
+
+		edge_normals[i,:] = edge_normal
+
+	return edge_normals
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.double_t,ndim=2] _dedge_normals(double[:,:] xyz, double[:] cell_normal, int num_nodes):
+	'''
+	Compute the edge normals (pointing outwards) of a cell given the nodes of the cell, the number of nodes and the cell normal.
+
+	In:
+		- xyz: Array of the node coordinates of the cell
+		- num_nodes: Number of nodes of the cell
+		- cell_normal: Normal to the plane of the cell
+
+	Returns:
+		- edge_normals: List of the edge normals of the cell
+	'''
+	cdef int i, j, nnodes = xyz.shape[0], ndim = cell_normal.shape[0]
+	cdef double[:] edge_normal
+	cdef np.ndarray[np.float_t,ndim=1] v1            = np.zeros((ndim,),np.float)
+	cdef np.ndarray[np.float_t,ndim=1] v2            = np.zeros((ndim,),np.float)
+	cdef np.ndarray[np.double_t,ndim=1] edge         = np.zeros((ndim,),np.double)
+	cdef np.ndarray[np.double_t,ndim=1] midpoint     = np.zeros((ndim,),np.double)
+	cdef np.ndarray[np.double_t,ndim=2] edge_normals = np.zeros((nnodes,ndim),np.double)
+	# Iterate over each edge of the cell
+	for i in range(nnodes):
+		for j in range(ndim):
+			v1[j]   = xyz[i,j]
+			v2[j]   = xyz[(i + 1) % num_nodes,j]  # Get the edge vertices
+			edge[j] = v2[j] - v1[j]  # Get the edge vector
+
+		edge_normal  = np.cross(edge, cell_normal)  # Compute the edge normal
+		edge_normal /= np.linalg.norm(edge_normal)  # Normalize the edge normal
+
+		# Ensure the edge normal is pointing outwards (assumes convex polygon)
+		for j in range(ndim):
+			midpoint[j] = (v1[j] + v2[j])/2. - xyz[(i+2) % num_nodes,j]
+
+		if np.dot(midpoint, edge_normal) < 0:
+			for j in range(ndim):
+				edge_normal[j] *= -1.
+
+		edge_normals[i,:] = edge_normal
+
+	return edge_normals
+
+@cr('math.edge_normals')
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def edge_normals(real[:,:] xyz, real[:] cell_normal, int num_nodes):
+	'''
+	Compute the edge normals (pointing outwards) of a cell given the nodes of the cell, the number of nodes and the cell normal.
+
+	In:
+		- xyz: Array of the node coordinates of the cell
+		- num_nodes: Number of nodes of the cell
+		- cell_normal: Normal to the plane of the cell
+
+	Returns:
+		- edge_normals: List of the edge normals of the cell
+	'''
+	if real is double:
+		return _dedge_normals(xyz, cell_normal, num_nodes)
+	else:
+		return _sedge_normals(xyz, cell_normal, num_nodes)
