@@ -16,8 +16,8 @@ from libc.stdlib     cimport malloc, free
 from libc.string     cimport memcpy
 from libc.time       cimport time
 from ..vmmath.cfuncs cimport real
-from ..vmmath.cfuncs cimport c_svector_norm, c_smatmul, c_svecmat, c_stemporal_mean, c_ssubtract_mean, c_stsqr_svd, c_srandomized_svd, c_scompute_truncation_residual, c_scompute_truncation
-from ..vmmath.cfuncs cimport c_dvector_norm, c_dmatmul, c_dvecmat, c_dtemporal_mean, c_dsubtract_mean, c_dtsqr_svd, c_drandomized_svd, c_dcompute_truncation_residual, c_dcompute_truncation
+from ..vmmath.cfuncs cimport c_svector_norm, c_smatmul, c_svecmat, c_stemporal_mean, c_ssubtract_mean, c_stemporal_variance, c_snorm_variance, c_stsqr_svd, c_srandomized_svd, c_scompute_truncation_residual, c_scompute_truncation
+from ..vmmath.cfuncs cimport c_dvector_norm, c_dmatmul, c_dvecmat, c_dtemporal_mean, c_dsubtract_mean, c_dtemporal_variance, c_dnorm_variance, c_dtsqr_svd, c_drandomized_svd, c_dcompute_truncation_residual, c_dcompute_truncation
 
 from ..utils.cr       import cr, cr_start, cr_stop
 from ..utils.errors   import raiseError
@@ -29,7 +29,7 @@ from ..utils.errors   import raiseError
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _srun(float[:,:] X, int remove_mean, int randomized, int r, int q, int seed):
+def _srun(float[:,:] X, int remove_mean, int divide_variance, int randomized, int r, int q, int seed):
 	'''
 	Run POD analysis of a matrix X.
 
@@ -45,7 +45,9 @@ def _srun(float[:,:] X, int remove_mean, int randomized, int r, int q, int seed)
 	# Variables
 	cdef int m = X.shape[0], n = X.shape[1], mn = min(m,n), retval
 	cdef float *X_mean
+	cdef float *X_var
 	cdef float *Y
+	cdef float *Z
 	# Output arrays
 	r = r if randomized else mn
 	cdef np.ndarray[np.float32_t,ndim=2] U = np.zeros((m,r),dtype=np.float32) 
@@ -53,6 +55,7 @@ def _srun(float[:,:] X, int remove_mean, int randomized, int r, int q, int seed)
 	cdef np.ndarray[np.float32_t,ndim=2] V = np.zeros((r,n),dtype=np.float32) 
 	# Allocate memory
 	Y = <float*>malloc(m*n*sizeof(float))
+	Z = <float*>malloc(m*n*sizeof(float))
 	if remove_mean:
 		cr_start('POD.temporal_mean',0)
 		X_mean = <float*>malloc(m*sizeof(float))
@@ -60,7 +63,14 @@ def _srun(float[:,:] X, int remove_mean, int randomized, int r, int q, int seed)
 		c_stemporal_mean(X_mean,&X[0,0],m,n)
 		# Compute substract temporal mean
 		c_ssubtract_mean(Y,&X[0,0],X_mean,m,n)
+		if divide_variance:
+			c_stemporal_variance(X_var,&X[0,0],X_mean,m,n)
+			c_snorm_variance(Y,Z,X_var,m,n)
+			free(X_var)
+		else:
+			memcpy(Y,Z,m*n*sizeof(double))
 		free(X_mean)
+		free(Z)
 		cr_stop('POD.temporal_mean',0)
 	else:
 		memcpy(Y,&X[0,0],m*n*sizeof(float))
@@ -81,7 +91,7 @@ def _srun(float[:,:] X, int remove_mean, int randomized, int r, int q, int seed)
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _drun(double[:,:] X, int remove_mean, int randomized, int r, int q, int seed):
+def _drun(double[:,:] X, int remove_mean, int divide_variance, int randomized, int r, int q, int seed):
 	'''
 	Run POD analysis of a matrix X.
 
@@ -97,7 +107,9 @@ def _drun(double[:,:] X, int remove_mean, int randomized, int r, int q, int seed
 	# Variables
 	cdef int m = X.shape[0], n = X.shape[1], mn = min(m,n), retval
 	cdef double *X_mean
+	cdef double *X_var
 	cdef double *Y
+	cdef double *Z
 	# Output arrays
 	r = r if randomized else mn
 	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,r),dtype=np.double) 
@@ -105,14 +117,23 @@ def _drun(double[:,:] X, int remove_mean, int randomized, int r, int q, int seed
 	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((r,n),dtype=np.double) 
 	# Allocate memory
 	Y = <double*>malloc(m*n*sizeof(double))
+	Z = <double*>malloc(m*n*sizeof(double))
 	if remove_mean:
 		cr_start('POD.temporal_mean',0)
 		X_mean = <double*>malloc(m*sizeof(double))
 		# Compute temporal mean
 		c_dtemporal_mean(X_mean,&X[0,0],m,n)
 		# Compute substract temporal mean
-		c_dsubtract_mean(Y,&X[0,0],X_mean,m,n)
+		c_dsubtract_mean(Z,&X[0,0],X_mean,m,n)
+		if divide_variance:
+			X_var = <double*>malloc(m*sizeof(double))
+			c_dtemporal_variance(X_var,&X[0,0],X_mean,m,n)
+			c_dnorm_variance(Y,Z,X_var,m,n)
+			free(X_var)
+		else:
+			memcpy(Y,Z,m*n*sizeof(double))
 		free(X_mean)
+		free(Z)
 		cr_stop('POD.temporal_mean',0)
 	else:
 		memcpy(Y,&X[0,0],m*n*sizeof(double))
@@ -134,7 +155,7 @@ def _drun(double[:,:] X, int remove_mean, int randomized, int r, int q, int seed
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def run(real[:,:] X, int remove_mean=True, int randomized=False, const int r=1, const int q=3, const int seed=-1):
+def run(real[:,:] X, int remove_mean=True, int divide_variance=False, int randomized=False, const int r=1, const int q=3, const int seed=-1):
 	r'''
 	Run POD analysis of a matrix.
 
@@ -151,9 +172,9 @@ def run(real[:,:] X, int remove_mean=True, int randomized=False, const int r=1, 
 	'''
 	seed = <int>time(NULL) if seed < 0 else seed
 	if real is double:
-		return _drun(X,remove_mean, randomized, r, q, seed)
+		return _drun(X,remove_mean, divide_variance, randomized, r, q, seed)
 	else:
-		return _srun(X,remove_mean, randomized, r, q, seed)
+		return _srun(X,remove_mean, divide_variance, randomized, r, q, seed)
 
 
 ## POD truncate method

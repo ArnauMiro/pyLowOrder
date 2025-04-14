@@ -9,7 +9,7 @@
 # Vector matrix routines
 from .maths          import transpose, vector_sum, vector_norm, vector_mean, matmul, matmulp, vecmat, argsort, eigen, polar, cholesky, vandermonde, conj, diag, inv, flip, vandermondeTime
 # Averaging routines
-from .averaging      import temporal_mean, subtract_mean
+from .averaging      import temporal_mean, subtract_mean, temporal_variance, norm_variance
 # Truncation routines
 from .truncation     import compute_truncation_residual, energy
 # Statistics routines

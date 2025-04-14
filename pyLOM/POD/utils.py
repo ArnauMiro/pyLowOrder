@@ -12,6 +12,9 @@ import numpy as np
 from ..utils.gpu import cp
 from ..          import inp_out as io, PartitionTable
 from ..utils     import cr_nvtx as cr, gpu_to_cpu
+from ..PCA       import run as pcarun, T2score
+
+from pyplomb     import plomb
 
 @cr('POD.extract_modes')
 def extract_modes(U:np.ndarray,ivar:int,npoints:int,modes:list=[],reshape:bool=True):
@@ -75,3 +78,36 @@ def load(fname:str,vars:list=['U','S','V'],nmod:int=-1,ptable:PartitionTable=Non
 		ptable (PartitionTable, optional): partition table to use when loading the data (default ``None``).
 	'''
 	return io.h5_load_POD(fname,vars,nmod,ptable)
+
+@cr('POD.cluster')
+def coherent_modes(V:np.ndarray, time:np.ndarray, divide_variance:bool=False, ncomp:int=1, confidence:bool=0.8):
+	r'''
+	Cluster the modes according to the coherence of their temporal coefficient. Methodology fully described in:
+
+	Eiximeno, B., Sanchís-Agudo, M., Miró, A., Rodríguez, I., Vinuesa, R., & Lehmkuhl, O. (2024). 
+	On Deep-Learning-Based Closures for Algebraic Surrogate Models of Turbulent Flows. arXiv preprint arXiv:2412.04239.  	
+	https://doi.org/10.48550/arXiv.2412.04239
+
+	Args:
+		V (np.ndarray): temporal coefficients of the POD modes
+		time (np.ndarray): instants where the coefficients are computed
+		divide_variance (bool, optional): whether to normalize the power spectral density with its variance when doing PCA (default ```False```)
+		ncomp (int, optional): number of components to summarize the scores from PCA analysis when computing T2 (default: ``1``)
+		confidence (float, optional): threshold confidence interval for clustering according to the T2 statistic. It is computed as in a F probability distribution (default: ``0.8``).
+
+	Returns:
+		[np.ndarray, float, np.ndarray, np.ndarray]: T2 scores, limit between the coherent and non-coherent modes and the arrays containing the coherent and non-coherent modes, respectively.
+	
+	'''
+
+	for ii in range(V.shape[0]):
+		Vnmean  = V[ii,:] - np.mean(V[ii,:])
+		f1, ps1 = np.array(plomb(time.astype(np.double), Vnmean.astype(np.double)))
+		if ii == 0:
+			power = np.zeros((V.shape[0],f1.shape[0]))
+		power[ii,:] = ps1
+	T,P = pcarun(power.T, divide_variance=divide_variance)
+	T2, T2_limit = T2score(P, ncomp=ncomp, confidence=confidence)	
+	imodes = np.arange(T2.shape[0])
+
+	return T2, T2_limit, imodes[T2>T2_limit], imodes[T2<T2_limit]
