@@ -3,7 +3,7 @@ run-name: Running test suite of pyLOM by @${{ github.actor }}
 
 on:
   push:
-    branches: [ "main", "develop", "177-tests-fail-due-to-failed-dependency-with-pyplomb" ]
+    branches: [ "main", "develop" ]
 
 defaults:
   run:
