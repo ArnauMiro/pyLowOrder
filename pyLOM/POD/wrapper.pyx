@@ -64,6 +64,7 @@ def _srun(float[:,:] X, int remove_mean, int divide_variance, int randomized, in
 		# Compute substract temporal mean
 		c_ssubtract_mean(Y,&X[0,0],X_mean,m,n)
 		if divide_variance:
+			X_var = <float*>malloc(m*sizeof(float))
 			c_stemporal_variance(X_var,&X[0,0],X_mean,m,n)
 			c_snorm_variance(Y,Z,X_var,m,n)
 			free(X_var)

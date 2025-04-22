@@ -13,8 +13,7 @@ from ..utils.gpu import cp
 from ..          import inp_out as io, PartitionTable
 from ..utils     import cr_nvtx as cr, gpu_to_cpu
 from ..PCA       import run as pcarun, T2score
-
-from pyplomb     import plomb
+from ..vmmath    import fft
 
 @cr('POD.extract_modes')
 def extract_modes(U:np.ndarray,ivar:int,npoints:int,modes:list=[],reshape:bool=True):
@@ -102,7 +101,7 @@ def coherent_modes(V:np.ndarray, time:np.ndarray, divide_variance:bool=False, nc
 
 	for ii in range(V.shape[0]):
 		Vnmean  = V[ii,:] - np.mean(V[ii,:])
-		f1, ps1 = np.array(plomb(time.astype(np.double), Vnmean.astype(np.double)))
+		f1, ps1 = np.array(fft(time.astype(np.double), Vnmean.astype(np.double), equispaced=False))
 		if ii == 0:
 			power = np.zeros((V.shape[0],f1.shape[0]))
 		power[ii,:] = ps1

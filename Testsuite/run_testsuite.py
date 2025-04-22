@@ -16,7 +16,7 @@ from dragon       import dragon, dragonAllOK, dragonAlmostOK, dragonAngry
 RELTOL  = 1e-3
 ZEROTOL = 1e-4
 OUTROOT = '/tmp/TESTSUITE/' # WARNING: OUTROOT IS ERASED BEFORE EVERY RUN
-MODULES = ['POD','DMD','SPOD','NN','MANIFOLD','GPR', 'GPOD']
+MODULES = ['POD','PCA','DMD','SPOD','NN','MANIFOLD','GPR', 'GPOD']
 
 
 ## Testsuite aux functions
