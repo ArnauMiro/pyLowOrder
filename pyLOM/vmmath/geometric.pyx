@@ -323,7 +323,7 @@ def fix_normals_coherence(real[:,:] normals, object edge_dict, object adjacency,
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.float_t,ndim=2] _sedge_normals(float[:,:] xyz, float[:] cell_normal, int num_nodes):
+cdef np.ndarray[np.float32_t,ndim=2] _sedge_normals(float[:,:] xyz, float[:] cell_normal, int num_nodes):
 	'''
 	Compute the edge normals (pointing outwards) of a cell given the nodes of the cell, the number of nodes and the cell normal.
 
@@ -337,11 +337,11 @@ cdef np.ndarray[np.float_t,ndim=2] _sedge_normals(float[:,:] xyz, float[:] cell_
 	'''
 	cdef int i, j, nnodes = xyz.shape[0], ndim = cell_normal.shape[0]
 	cdef float[:] edge_normal
-	cdef np.ndarray[np.float_t,ndim=1] v1           = np.zeros((ndim,),np.float)
-	cdef np.ndarray[np.float_t,ndim=1] v2           = np.zeros((ndim,),np.float)
-	cdef np.ndarray[np.float_t,ndim=1] edge         = np.zeros((ndim,),np.float)
-	cdef np.ndarray[np.float_t,ndim=1] midpoint     = np.zeros((ndim,),np.float)
-	cdef np.ndarray[np.float_t,ndim=2] edge_normals = np.zeros((nnodes,ndim),np.float)
+	cdef np.ndarray[np.float32_t,ndim=1] v1           = np.zeros((ndim,),np.float32)
+	cdef np.ndarray[np.float32_t,ndim=1] v2           = np.zeros((ndim,),np.float32)
+	cdef np.ndarray[np.float32_t,ndim=1] edge         = np.zeros((ndim,),np.float32)
+	cdef np.ndarray[np.float32_t,ndim=1] midpoint     = np.zeros((ndim,),np.float32)
+	cdef np.ndarray[np.float32_t,ndim=2] edge_normals = np.zeros((nnodes,ndim),np.float32)
 	# Iterate over each edge of the cell
 	for i in range(nnodes):
 		for j in range(ndim):
@@ -383,8 +383,8 @@ cdef np.ndarray[np.double_t,ndim=2] _dedge_normals(double[:,:] xyz, double[:] ce
 	'''
 	cdef int i, j, nnodes = xyz.shape[0], ndim = cell_normal.shape[0]
 	cdef double[:] edge_normal
-	cdef np.ndarray[np.float_t,ndim=1] v1            = np.zeros((ndim,),np.float)
-	cdef np.ndarray[np.float_t,ndim=1] v2            = np.zeros((ndim,),np.float)
+	cdef np.ndarray[np.float32_t,ndim=1] v1          = np.zeros((ndim,),np.float32)
+	cdef np.ndarray[np.float32_t,ndim=1] v2          = np.zeros((ndim,),np.float32)
 	cdef np.ndarray[np.double_t,ndim=1] edge         = np.zeros((ndim,),np.double)
 	cdef np.ndarray[np.double_t,ndim=1] midpoint     = np.zeros((ndim,),np.double)
 	cdef np.ndarray[np.double_t,ndim=2] edge_normals = np.zeros((nnodes,ndim),np.double)

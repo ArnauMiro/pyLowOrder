@@ -212,9 +212,9 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean):
 	# Set frequency axis
 	nf = <int>(ceil(nDFT/2)) + 1
 
-	f = np.zeros((nf,)       ,dtype=np.float)
-	L = np.zeros((nf,nBlks)  ,dtype=np.float)
-	P = np.zeros((M*nBlks,nf),dtype=np.float)
+	f = np.zeros((nf,)       ,dtype=np.float32)
+	L = np.zeros((nf,nBlks)  ,dtype=np.float32)
+	P = np.zeros((M*nBlks,nf),dtype=np.float32)
 
 	# Set frequency axis
 	for i in range(nf):
