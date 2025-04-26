@@ -177,6 +177,30 @@
 		"active" : true
 	},
 
+	"comment": "PCA tests",
+	"PCA_Cylinder": {
+		"name"   : "PCA Cylinder 2D",
+		"module" : "PCA",
+		"file"   : "runs/tsuite_PCA.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {"run":{"divide_variance":true}},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"PCA_Cylinder1": {
+		"name"   : "PCA Cylinder 2D",
+		"module" : "PCA",
+		"file"   : "runs/tsuite_PCA.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {"run":{"divide_variance":true}},
+		"nprocs" : 4,
+		"reset"  : false,
+		"active" : true
+	},
+
 	"comment": "DMD tests",
 	"DMD_Cylinder": {
 		"name"   : "DMD Cylinder 2D",
