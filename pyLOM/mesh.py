@@ -153,8 +153,8 @@ class Mesh(object):
 			xyzc = cellCenters(self._xyz,self._conec)
 		return xyzc
 	
-	@cr('Mesh.cell_connectivity')
-	def cell_connectivity(self):
+	@cr('Mesh._compute_cell_connectivity')
+	def _compute_cell_connectivity(self):
 		'''Computes the connectivity between cells that share an edge.
 
 		Returns
@@ -343,7 +343,7 @@ class Mesh(object):
 	@property
 	def cell_connectivity(self):
 		if self._cell_conec is None:
-			self._cell_conec = self.cell_connectivity()
+			self._cell_conec = self._compute_cell_connectivity()
 		return self._cell_conec
 	@property
 	def cellOrder(self):
