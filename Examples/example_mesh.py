@@ -10,7 +10,7 @@ import pyLOM
 
 
 ## Load cylinder mesh
-DATAFILE = './DATA/CYLINDER.h5'
+DATAFILE = './Testsuite/DATA/CYLINDER.h5'
 
 m = pyLOM.Mesh.load(DATAFILE)
 print(m)
@@ -34,10 +34,13 @@ d = pyLOM.Dataset(xyz=xyz_center, ptable=m.partition_table, order=m.cellOrder, p
 	# Now add all the arrays to be stored in the dataset
 	# It is important to convert them as C contiguous arrays
 	SURF_NORMS = {'ndim':surf_norms.shape[1],'value':surf_norms.flatten()},
-	EDGE_NORMS = {'ndim':edge_norms.shape[1],'value':edge_norms.flatten()},
+    EDGE_NORM_1 = {'ndim': 3,'value':edge_norms[:,:3].flatten()},
+	EDGE_NORM_2 = {'ndim': 3,'value':edge_norms[:,3:6].flatten()},
+	EDGE_NORM_3 = {'ndim': 3,'value':edge_norms[:,6:9].flatten()},
+	EDGE_NORM_4 = {'ndim': 3,'value':edge_norms[:,9:12].flatten()},
 	CELL_CONEC = {'ndim':cell_conec.shape[1],'value':cell_conec.flatten()},
 )
-pyLOM.io.pv_writer(m,d,'mesh',basedir='./',instants=[0],times=[0.],vars=['SURF_NORMS','EDGE_NORMS','CELL_CONEC'],fmt='vtkh5')
+pyLOM.io.pv_writer(m,d,'mesh',basedir='./',instants=[0],times=[0.],vars=['SURF_NORMS','EDGE_NORM_1', 'EDGE_NORM_2', 'EDGE_NORM_3', 'EDGE_NORM_4','CELL_CONEC'],fmt='vtkh5')
 
 
 pyLOM.cr_info()
