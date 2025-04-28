@@ -4,7 +4,7 @@
 #
 # GPR Module
 #
-# Last rev: 19/02/2025
+# Last rev: 24/04/2025
 
 import numpy as np, GPy
 
@@ -20,11 +20,22 @@ from ..utils  import cr_nvtx as cr, raiseError, pprint
 # KernelSelector: instantiates kernels with bounds and provides information
 class KernelSelector:
     """
-    A kernel selector with a limited list of available kernels.
-    Allows retrieving the parameters of each kernel without needing to instantiate it.
+    A selector for GPy kernel classes that allows dynamic instantiation
+    with optional bounds and inspection of kernel parameters.
+
+    Attributes:
+        input_dim (int): The dimensionality of the input space.
+        available_kernels (Dict[str, Type[GPy.kern.Kern]]): Mapping
+            of kernel names to their GPy classes.
     """
 
     def __init__(self, input_dim: int):
+        """
+        Initializes the KernelSelector.
+
+        Args:
+            input_dim (int): Dimensionality of the input features for kernels.
+        """
         self.input_dim = input_dim
         self.available_kernels = {
             "RBF": GPy.kern.RBF,
@@ -44,11 +55,30 @@ class KernelSelector:
 
     def _make_kernel_func(self, kernel_name: str):
         """
-        Creates a function that generates a kernel with the specified name.
-        Allows passing parameters and bounds.
+        Produces a kernel function that accepts constructor parameters and optional bounds.
+
+        Args:
+            kernel_name (str): Key matching one of available_kernels.
+
+        Returns:
+            Callable[..., GPy.kern.Kern]: A function that creates the kernel.
         """
 
         def kernel_func(**kwargs):
+            """
+            Instantiates the kernel with given parameters and applies bounds.
+
+            Keyword Args:
+                Any valid constructor args for the GPy kernel class.
+                limits (Dict[str, Tuple[float, float]], optional):
+                    Bounds for kernel parameters, mapping parameter name to (min, max).
+
+            Returns:
+                GPy.kern.Kern: Configured kernel instance.
+
+            Raises:
+                RuntimeError: If specified limit refers to non-existent parameter.
+            """
             limits = kwargs.pop("limits", None)
             kernel_class = self.available_kernels[kernel_name]
             kernel = kernel_class(self.input_dim, **kwargs)
@@ -66,7 +96,19 @@ class KernelSelector:
 
     def get_kernel_parameters(self, kernel_name: str):
         """
-        Returns the parameter names of the kernel and indicates if it supports ARD.
+        Retrieves the list of parameter names for a kernel and whether it supports ARD.
+
+        Args:
+            kernel_name (str): Name of the kernel to inspect.
+
+        Returns:
+            Dict[str, Any]: {
+                'parameters': List[str],  # Names of trainable parameters
+                'ARD': bool              # True if kernel uses Automatic Relevance Determination
+            }
+
+        Raises:
+            RuntimeError: If kernel_name is invalid or instantiation fails.
         """
         kernel_class = self.available_kernels.get(kernel_name)
         if kernel_class is None:
@@ -85,13 +127,23 @@ class KernelSelector:
 
     def __dir__(self):
         """
-        Allows dir(obj) to list the available kernels.
+        Extends dir() to list available kernel names as attributes.
+
+        Returns:
+            List[str]: List of attribute names including kernel factory methods.
         """
         return list(self.available_kernels.keys()) + super().__dir__()
 
 
 # Base class with common utilities
 class GPRBase:
+    """
+    Base class providing common utilities for Gaussian Process Regression models.
+
+    Attributes:
+        model (Optional[Any]): Underlying GPy or Emukit model, once fitted.
+        input_dim (Optional[int]): Feature dimensionality.
+    """
     def __init__(self):
         self.model = None
         self.input_dim = None
@@ -99,7 +151,13 @@ class GPRBase:
     @staticmethod
     def ensure_column_matrix(arr):
         """
-        Ensures that the array is in column matrix shape.
+        Converts a 1D or row-oriented array into a column matrix.
+
+        Args:
+            arr (array-like): Input data array.
+
+        Returns:
+            numpy.ndarray: Array reshaped to (n_samples, n_features) format.
         """
         arr = np.asarray(arr)
         if arr.ndim == 1:
@@ -112,18 +170,21 @@ class GPRBase:
 # Single Fidelity GPR Model
 class SF_GPR(GPRBase):
     """
-    Class for Single Fidelity Gaussian Process Regression (GPR) using GPy.
+    Single-fidelity Gaussian process regression model.
 
-    The interface is similar to sklearn:
-      - fit(X_train, y_train, kernel, noise_var, num_restarts, verbose)
-      - predict(X_test) returns a dictionary with 'mean' and 'std'
+    Interface:
+      - fit(X, y, kernel, noise_var, num_restarts, verbose)
+      - predict(X) → {'mean': array, 'std': array}
 
-    It ensures that the data are in column matrix shape.
+    Automatically reshapes input arrays to column matrices for consistency.
     """
 
     def __init__(self, input_dim=None):
         """
-        If input_dim is provided, a KernelSelector is created immediately.
+        Initializes the SF_GPR model.
+
+        Args:
+            input_dim (int, optional): Dimensionality of input features.
         """
         super().__init__()
         self._kernel_selector = None
@@ -135,7 +196,13 @@ class SF_GPR(GPRBase):
     @property
     def kernel(self):
         """
-        Allows access to the KernelSelector to create kernels (e.g., model.kernel.RBF(...)).
+        Access the KernelSelector to build kernels before fitting.
+
+        Returns:
+            KernelSelector: Factory for kernel instantiation.
+
+        Raises:
+            RuntimeError: If input_dim was not provided at construction.
         """
         if self._kernel_selector is None:
             raiseError(
@@ -148,12 +215,18 @@ class SF_GPR(GPRBase):
         self, X_train, y_train, kernel, noise_var=None, num_restarts=5, verbose=True
     ):
         """
-        Fits the GPR model:
-          - X_train, y_train: training data (converted to column matrix).
-          - kernel: expects a kernel already created.
-          - noise_var: if provided (not None), the Gaussian noise variance is fixed;
-                       otherwise, it is left free for optimization.
-          - num_restarts and verbose: parameters for optimization.
+        Fits the GP regression model to training data.
+
+        Args:
+            X_train (array-like): Training features.
+            y_train (array-like): Training targets.
+            kernel (GPy.kern.Kern): Pre-configured kernel instance.
+            noise_var (float, optional): Fixed Gaussian noise variance.
+            num_restarts (int): Number of restarts for optimizer.
+            verbose (bool): Whether to print optimization progress.
+
+        Returns:
+            SF_GPR: The fitted model instance.
         """
         self.train_features = self.ensure_column_matrix(X_train)
         self.train_labels = self.ensure_column_matrix(y_train)
@@ -173,8 +246,19 @@ class SF_GPR(GPRBase):
 
     def predict(self, X_test):
         """
-        Makes predictions with the model using the test data X_test.
-        Ensures that X_test is in column matrix shape and returns a dictionary with 'mean' and 'std'.
+        Predicts mean and standard deviation on new data.
+
+        Args:
+            X_test (array-like): Test feature set.
+
+        Returns:
+            Dict[str, numpy.ndarray]: {
+                'mean': Predicted means,
+                'std': Predicted standard deviations
+            }
+
+        Raises:
+            RuntimeError: If called before fitting.
         """
         if self.model is None:
             raiseError("Fit the model before predicting.")
@@ -184,23 +268,33 @@ class SF_GPR(GPRBase):
 
     def display_model(self):
         """
-        Displays the model summary.
+        Prints the summary of the underlying GPy model.
         """
         pprint(0,self.model)
 
 
 class MF_GPR(GPRBase):
     """
-    Model for multi-fidelity Gaussian Process Regression.
+    Multi-fidelity Gaussian process regression model.
 
-    Interface similar to sklearn:
-      - fit(train_features_list, train_labels_list, kernels, noise_vars, num_restarts, verbose)
-      - predict(predict_features_list) returns a dictionary with predictions for each fidelity.
+    Interface:
+      - fit(feature_list, label_list, kernels, noise_vars, num_restarts, verbose)
+      - predict(feature_list) → {
+            'fidelity_1': {'mean': array, 'std': array},
+            'fidelity_2': {'mean': array, 'std': array},
+            ...
+        }
 
-    It ensures that each array is in column matrix shape.
+    Automatically reshapes input arrays to column matrices for consistency.
     """
 
     def __init__(self, input_dim=None):
+        """
+        Initializes the multi-fidelity GPR model.
+
+        Args:
+            input_dim (int, optional): Dimensionality of each fidelity feature space.
+        """
         super().__init__()
         self.train_features_list = None
         self.train_labels_list = None
@@ -215,7 +309,13 @@ class MF_GPR(GPRBase):
     @property
     def kernel(self):
         """
-        Allows access to the KernelSelector to create kernels for each fidelity.
+        Access the KernelSelector to build kernels for each fidelity.
+
+        Returns:
+            KernelSelector: Factory for multi-fidelity kernels.
+
+        Raises:
+            RuntimeError: If input_dim was not provided at construction.
         """
         if self._kernel_selector is None:
             raiseError(
@@ -234,11 +334,21 @@ class MF_GPR(GPRBase):
         verbose=True,
     ):
         """
-        Fits the multi-fidelity model:
-          - train_features_list, train_labels_list: lists of training arrays (one per fidelity)
-          - kernels: list of kernels (one per fidelity), which are combined internally
-          - noise_vars: float or list of floats to fix the noise; if None, noise is free for optimization.
-          - num_restarts and verbose: parameters for optimization.
+        Fits the linear multi-fidelity model to lists of data arrays.
+
+        Args:
+            train_features_list (List[array-like]): Features per fidelity.
+            train_labels_list (List[array-like]): Targets per fidelity.
+            kernels (List[GPy.kern.Kern]): One kernel per fidelity.
+            noise_vars (float or List[float], optional): Noise variances.
+            num_restarts (int): Number of optimization restarts.
+            verbose (bool): Print optimization logs.
+
+        Returns:
+            MF_GPR: The fitted multi-fidelity model.
+
+        Raises:
+            RuntimeError: If kernels list length mismatches number of fidelities.
         """
         self.train_features_list = [
             self.ensure_column_matrix(x) for x in train_features_list
@@ -277,8 +387,13 @@ class MF_GPR(GPRBase):
 
     def _fix_noise(self, noise_vars):
         """
-        Internal method to fix the Gaussian noise for each fidelity.
-        noise_vars: float or list of floats.
+        Fixes Gaussian noise parameters in the wrapped GPy model.
+
+        Args:
+            noise_vars (float or List[float]): Desired noise variances.
+
+        Raises:
+            RuntimeError: If length of noise_vars mismatches number of noise parameters.
         """
         noise_params = [
             p
@@ -296,9 +411,17 @@ class MF_GPR(GPRBase):
 
     def predict(self, predict_features_list):
         """
-        Performs prediction for each fidelity using the provided test data.
-        Expects a list of arrays (one per fidelity); ensures that each array is in column matrix shape.
-        Returns a dictionary with predictions for each fidelity (keys 'fidelity_1', etc.).
+        Predicts outputs at each fidelity level for new data.
+
+        Args:
+            predict_features_list (List[array-like]): Test arrays per fidelity.
+
+        Returns:
+            Dict[str, Dict[str, numpy.ndarray]]: Mapping
+            fidelity_i → {'mean': ..., 'std': ...}
+
+        Raises:
+            RuntimeError: If input is not a list of arrays.
         """
         if not isinstance(predict_features_list, list):
             raiseError(
@@ -320,7 +443,7 @@ class MF_GPR(GPRBase):
 
     def display_model(self):
         """
-        Displays the multi-fidelity model summary.
+        Prints the summary of the underlying multi-fidelity GPy model.
         """
         pprint(0,self.wrapper.gpy_model)
 
