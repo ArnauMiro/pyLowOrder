@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# GPOD Module
+#
+# Last rev: 29/04/2025
+
 from __future__ import print_function
 
 import numpy as np
@@ -9,6 +17,21 @@ from ..POD       import run, truncate
 
 
 class GappyPOD:
+	"""
+	This class implements the Gappy POD algorithm. Gappy POD model for reconstructing 
+	incomplete data using POD basis modes.
+
+	Attributes:
+		centered (bool): If True, subtract the mean from inputs.
+		truncate (bool): If True, apply modal truncation based on a threshold.
+		truncation_param (float or int): Parameter controlling truncation.
+		reconstruction_type (callable): Function to compute POD coefficients.
+		ridge_lambda (float): Regularization weight for ridge reconstruction.
+		mean (np.ndarray or cp.ndarray): Mean vector computed during fitting.
+		U_truncated (np.ndarray or cp.ndarray): Truncated POD modes.
+		S_truncated (np.ndarray or cp.ndarray): Corresponding singular values.
+		U_truncated_scaled (np.ndarray or cp.ndarray or cp.ndarray): Modes scaled by singular values.
+	"""
 	def __init__(
 		self,
 		centered=False,
@@ -18,14 +41,23 @@ class GappyPOD:
 		ridge_lambda=0.01,
 	):
 		"""
-		Gappy POD model for reconstructing incomplete data using POD modes.
+		Initialize a Gappy POD instance.
 
 		Args:
-			centered (bool): Whether to center the data by subtracting the mean.
-			apply_truncation (bool): Whether to apply truncation.
-			truncation_method (float or int): Threshold for truncation.
-			reconstruction_method (str): Reconstruction method ('standard' or 'ridge').
-			ridge_lambda (float): Regularization parameter for ridge reconstruction.
+			centered (bool): Whether to subtract the mean from data.
+			apply_truncation (bool): Whether to truncate POD modes.
+			truncation_param (float or int): Parameter controlling truncation (r):
+				If r >= 1, it is treated as the number of modes.
+				If r < 1 and r > 0 it is treated as the residual target.
+				If r < 1 and r < 0 it is treated as the fraction of cumulative energy to retain.
+				Note:  must be in (0,-1] and r = -1 is valid
+			reconstruction_method (str): 
+				"standard" for least squares.
+				"ridge" for ridge regression.
+			ridge_lambda (float): Regularization parameter for ridge solver.
+
+		Raises:
+			ValueError: If `reconstruction_method` is not "standard" or "ridge".
 		"""
 		# Validate reconstruction method
 		if not reconstruction_method.lower() in ["standard", "ridge"]:
@@ -43,10 +75,18 @@ class GappyPOD:
 	@cr('GPOD.fit')
 	def fit(self, snapshot_matrix: np.ndarray, **kwargs) -> None:
 		"""
-		Fit the Gappy POD model using the snapshot matrix.
+		Fit the Gappy POD model using a complete snapshot matrix.
+
+		Computes the POD basis (via SVD) of the input data, optionally centers
+		the data and truncates modes.
 
 		Args:
-			snapshot_matrix  (np.ndarray): Training matrix [n_features, n_samples].
+			snapshot_matrix (np.ndarray or cp.ndarray):
+				Array of shape (n_features, n_samples) containing training snapshots.
+			**kwargs: Additional keyword arguments forwarded to the POD `run` function.
+
+		Returns:
+			None
 		"""
 		cnp = cp if type(snapshot_matrix) is cp.ndarray else np
 		# Center data if required
@@ -66,13 +106,20 @@ class GappyPOD:
 	@cr('GPOD.predict')
 	def predict(self, gappy_vector: np.ndarray) -> np.ndarray:
 		"""
-		Reconstruct missing data using the fitted Gappy POD model.
+		Reconstruct a single vector with missing entries.
+
+		Uses the fitted POD basis to estimate missing values in the input vector.
 
 		Args:
-			gappy_vector (np.ndarray): Sparse vector with missing values.
+			gappy_vector (np.ndarray or cp.ndarray):
+				Input vector of length n_features where missing entries are zeroed.
 
 		Returns:
-			np.ndarray: Reconstructed data vector.
+			np.ndarray or cp.ndarray:
+				Full reconstructed vector of length n_features.
+
+		Raises:
+			RuntimeError: If the model has not been fitted prior to prediction.
 		"""
 		if self.U_truncated_scaled is None:
 			raiseError("The model must be fitted before calling predict.")
@@ -94,15 +141,26 @@ class GappyPOD:
 		self, incomplete_snapshot: np.ndarray, iter_num: int
 	) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 		"""
-		Iteratively reconstruct an incomplete snapshot matrix using Gappy POD.
+		Iteratively reconstruct an entire snapshot matrix with missing data.
+
+		Applies the Gappy POD algorithm for a specified number of iterations,
+		updating missing entries based on previous reconstructions.
 
 		Args:
-			incomplete_snapshot (np.ndarray): Snapshot matrix with missing values (n_features, n_samples).
-			iter_num (int): Number of iterations for the iterative reconstruction process.
+			incomplete_snapshot (np.ndarray or cp.ndarray):
+				Array of shape (n_features, n_samples) with zeros indicating missing values.
+			iter_num (int): Number of iterations to perform.
 
 		Returns:
-			tuple: Reconstructed snapshot matrix, eigenvalue spectrum across iterations,
-				   and cumulative energy.
+			tuple:
+				- reconstructed (np.ndarray or cp.ndarray):
+					Reconstructed snapshot matrix of same shape as input.
+				- eig_spec_iter (np.ndarray or cp.ndarray):
+					Eigenvalue spectrum (normalized squared singular values)
+					at each iteration, shape (n_samples, iter_num).
+				- cumulative_energy (np.ndarray or cp.ndarray):
+					Cumulative energy content of modes per iteration,
+					shape (n_modes, iter_num).
 		"""
 		cnp = cp if type(incomplete_snapshot) is cp.ndarray else np
 		# Step 1: Create mask for missing values
