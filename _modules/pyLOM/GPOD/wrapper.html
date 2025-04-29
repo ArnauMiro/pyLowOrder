@@ -356,7 +356,15 @@
                 <article class="bd-article">
                   
   <h1>Source code for pyLOM.GPOD.wrapper</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1">#</span>
+<span class="c1"># pyLOM - Python Low Order Modeling.</span>
+<span class="c1">#</span>
+<span class="c1"># GPOD Module</span>
+<span class="c1">#</span>
+<span class="c1"># Last rev: 29/04/2025</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
@@ -369,6 +377,21 @@
 <div class="viewcode-block" id="GappyPOD">
 <a class="viewcode-back" href="../../../api/pyLOM.GPOD.html#pyLOM.GPOD.GappyPOD">[docs]</a>
 <span class="k">class</span> <span class="nc">GappyPOD</span><span class="p">:</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	This class implements the Gappy POD algorithm. Gappy POD model for reconstructing </span>
+<span class="sd">	incomplete data using POD basis modes.</span>
+
+<span class="sd">	Attributes:</span>
+<span class="sd">		centered (bool): If True, subtract the mean from inputs.</span>
+<span class="sd">		truncate (bool): If True, apply modal truncation based on a threshold.</span>
+<span class="sd">		truncation_param (float or int): Parameter controlling truncation.</span>
+<span class="sd">		reconstruction_type (callable): Function to compute POD coefficients.</span>
+<span class="sd">		ridge_lambda (float): Regularization weight for ridge reconstruction.</span>
+<span class="sd">		mean (np.ndarray or cp.ndarray): Mean vector computed during fitting.</span>
+<span class="sd">		U_truncated (np.ndarray or cp.ndarray): Truncated POD modes.</span>
+<span class="sd">		S_truncated (np.ndarray or cp.ndarray): Corresponding singular values.</span>
+<span class="sd">		U_truncated_scaled (np.ndarray or cp.ndarray or cp.ndarray): Modes scaled by singular values.</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 <div class="viewcode-block" id="GappyPOD.__init__">
 <a class="viewcode-back" href="../../../api/pyLOM.GPOD.html#pyLOM.GPOD.GappyPOD.__init__">[docs]</a>
 	<span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -380,14 +403,23 @@
 		<span class="n">ridge_lambda</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
 	<span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Gappy POD model for reconstructing incomplete data using POD modes.</span>
+<span class="sd">		Initialize a Gappy POD instance.</span>
 
 <span class="sd">		Args:</span>
-<span class="sd">			centered (bool): Whether to center the data by subtracting the mean.</span>
-<span class="sd">			apply_truncation (bool): Whether to apply truncation.</span>
-<span class="sd">			truncation_method (float or int): Threshold for truncation.</span>
-<span class="sd">			reconstruction_method (str): Reconstruction method (&#39;standard&#39; or &#39;ridge&#39;).</span>
-<span class="sd">			ridge_lambda (float): Regularization parameter for ridge reconstruction.</span>
+<span class="sd">			centered (bool): Whether to subtract the mean from data.</span>
+<span class="sd">			apply_truncation (bool): Whether to truncate POD modes.</span>
+<span class="sd">			truncation_param (float or int): Parameter controlling truncation (r):</span>
+<span class="sd">				If r &gt;= 1, it is treated as the number of modes.</span>
+<span class="sd">				If r &lt; 1 and r &gt; 0 it is treated as the residual target.</span>
+<span class="sd">				If r &lt; 1 and r &lt; 0 it is treated as the fraction of cumulative energy to retain.</span>
+<span class="sd">				Note:  must be in (0,-1] and r = -1 is valid</span>
+<span class="sd">			reconstruction_method (str): </span>
+<span class="sd">				&quot;standard&quot; for least squares.</span>
+<span class="sd">				&quot;ridge&quot; for ridge regression.</span>
+<span class="sd">			ridge_lambda (float): Regularization parameter for ridge solver.</span>
+
+<span class="sd">		Raises:</span>
+<span class="sd">			ValueError: If `reconstruction_method` is not &quot;standard&quot; or &quot;ridge&quot;.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="c1"># Validate reconstruction method</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="n">reconstruction_method</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;standard&quot;</span><span class="p">,</span> <span class="s2">&quot;ridge&quot;</span><span class="p">]:</span>
@@ -408,10 +440,18 @@
 	<span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;GPOD.fit&#39;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">snapshot_matrix</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Fit the Gappy POD model using the snapshot matrix.</span>
+<span class="sd">		Fit the Gappy POD model using a complete snapshot matrix.</span>
+
+<span class="sd">		Computes the POD basis (via SVD) of the input data, optionally centers</span>
+<span class="sd">		the data and truncates modes.</span>
 
 <span class="sd">		Args:</span>
-<span class="sd">			snapshot_matrix  (np.ndarray): Training matrix [n_features, n_samples].</span>
+<span class="sd">			snapshot_matrix (np.ndarray or cp.ndarray):</span>
+<span class="sd">				Array of shape (n_features, n_samples) containing training snapshots.</span>
+<span class="sd">			**kwargs: Additional keyword arguments forwarded to the POD `run` function.</span>
+
+<span class="sd">		Returns:</span>
+<span class="sd">			None</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">cnp</span> <span class="o">=</span> <span class="n">cp</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">snapshot_matrix</span><span class="p">)</span> <span class="ow">is</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span> <span class="k">else</span> <span class="n">np</span>
 		<span class="c1"># Center data if required</span>
@@ -434,13 +474,20 @@
 	<span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;GPOD.predict&#39;</span><span class="p">)</span>
 	<span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gappy_vector</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Reconstruct missing data using the fitted Gappy POD model.</span>
+<span class="sd">		Reconstruct a single vector with missing entries.</span>
+
+<span class="sd">		Uses the fitted POD basis to estimate missing values in the input vector.</span>
 
 <span class="sd">		Args:</span>
-<span class="sd">			gappy_vector (np.ndarray): Sparse vector with missing values.</span>
+<span class="sd">			gappy_vector (np.ndarray or cp.ndarray):</span>
+<span class="sd">				Input vector of length n_features where missing entries are zeroed.</span>
 
 <span class="sd">		Returns:</span>
-<span class="sd">			np.ndarray: Reconstructed data vector.</span>
+<span class="sd">			np.ndarray or cp.ndarray:</span>
+<span class="sd">				Full reconstructed vector of length n_features.</span>
+
+<span class="sd">		Raises:</span>
+<span class="sd">			RuntimeError: If the model has not been fitted prior to prediction.</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">U_truncated_scaled</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="n">raiseError</span><span class="p">(</span><span class="s2">&quot;The model must be fitted before calling predict.&quot;</span><span class="p">)</span>
@@ -465,15 +512,26 @@
 		<span class="bp">self</span><span class="p">,</span> <span class="n">incomplete_snapshot</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">iter_num</span><span class="p">:</span> <span class="nb">int</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">		Iteratively reconstruct an incomplete snapshot matrix using Gappy POD.</span>
+<span class="sd">		Iteratively reconstruct an entire snapshot matrix with missing data.</span>
+
+<span class="sd">		Applies the Gappy POD algorithm for a specified number of iterations,</span>
+<span class="sd">		updating missing entries based on previous reconstructions.</span>
 
 <span class="sd">		Args:</span>
-<span class="sd">			incomplete_snapshot (np.ndarray): Snapshot matrix with missing values (n_features, n_samples).</span>
-<span class="sd">			iter_num (int): Number of iterations for the iterative reconstruction process.</span>
+<span class="sd">			incomplete_snapshot (np.ndarray or cp.ndarray):</span>
+<span class="sd">				Array of shape (n_features, n_samples) with zeros indicating missing values.</span>
+<span class="sd">			iter_num (int): Number of iterations to perform.</span>
 
 <span class="sd">		Returns:</span>
-<span class="sd">			tuple: Reconstructed snapshot matrix, eigenvalue spectrum across iterations,</span>
-<span class="sd">				   and cumulative energy.</span>
+<span class="sd">			tuple:</span>
+<span class="sd">				- reconstructed (np.ndarray or cp.ndarray):</span>
+<span class="sd">					Reconstructed snapshot matrix of same shape as input.</span>
+<span class="sd">				- eig_spec_iter (np.ndarray or cp.ndarray):</span>
+<span class="sd">					Eigenvalue spectrum (normalized squared singular values)</span>
+<span class="sd">					at each iteration, shape (n_samples, iter_num).</span>
+<span class="sd">				- cumulative_energy (np.ndarray or cp.ndarray):</span>
+<span class="sd">					Cumulative energy content of modes per iteration,</span>
+<span class="sd">					shape (n_modes, iter_num).</span>
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">cnp</span> <span class="o">=</span> <span class="n">cp</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">incomplete_snapshot</span><span class="p">)</span> <span class="ow">is</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span> <span class="k">else</span> <span class="n">np</span>
 		<span class="c1"># Step 1: Create mask for missing values</span>
