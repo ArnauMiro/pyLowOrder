@@ -145,7 +145,14 @@ def neighbors_dict(edge_dict) -> dict:
 @cr('math.fix_coherence')
 def fix_normals_coherence(normals, edge_dict, adjacency, num_cells) -> np.ndarray:
 	'''
-	Ensure the coherence of the normals of the cells.
+	Ensure that the normals of the cells are coherent. (i.e. they point all in the same direction).
+	In:
+		- normals: Array of normals of the cells
+		- edge_dict: Dictionary mapping edges to cells sharing that edge.
+		- adjacency: Dictionary mapping cells to their neighbors.
+		- num_cells: Number of cells in the mesh
+	Returns:
+		- normals: Array of normals of the cells
 	'''
     # Find the cells that are on the border
 	border_cells = set()

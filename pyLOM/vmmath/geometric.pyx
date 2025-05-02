@@ -269,7 +269,14 @@ def neighbors_dict(object edge_dict):
 @cython.cdivision(True)    # turn off zero division check
 def fix_normals_coherence(real[:,:] normals, object edge_dict, object adjacency, int num_cells):
 	'''
-	Ensure the coherence of the normals of the cells.
+	Ensure that the normals of the cells are coherent. (i.e. they point all in the same direction).
+	In:
+		- normals: Array of normals of the cells
+		- edge_dict: Dictionary mapping edges to cells sharing that edge.
+		- adjacency: Dictionary mapping cells to their neighbors.
+		- num_cells: Number of cells in the mesh
+	Returns:
+		- normals: Array of normals of the cells
 	'''
 	cdef int i, j, k, current, neighbor, count = 0, n_border
 	cdef list faces, border_cells = set(), queue
