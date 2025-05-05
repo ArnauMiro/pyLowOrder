@@ -190,7 +190,7 @@ def _csvd(np.complex64_t[:,:] A, int do_copy):
 	cdef int m = A.shape[0], n = A.shape[1], mn = min(m,n)
 	cdef np.complex64_t *Y_copy
 	cdef np.ndarray[np.complex64_t,ndim=2] U = np.zeros((m,mn),dtype=np.complex64)
-	cdef np.ndarray[np.float32_t,ndim=1]     S = np.zeros((mn,) ,dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=1]   S = np.zeros((mn,) ,dtype=np.float32)
 	cdef np.ndarray[np.complex64_t,ndim=2] V = np.zeros((n,mn),dtype=np.complex64)
 	# Compute SVD
 	if do_copy:
@@ -414,7 +414,7 @@ def _ctsqr_svd(np.complex64_t[:,:] A):
 	cdef int retval
 	cdef int m = A.shape[0], n = A.shape[1], mn = min(m,n)
 	cdef np.ndarray[np.complex64_t,ndim=2] U = np.zeros((m,mn),dtype=np.complex64)
-	cdef np.ndarray[np.float32_t,ndim=1]     S = np.zeros((mn,) ,dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=1]   S = np.zeros((mn,) ,dtype=np.float32)
 	cdef np.ndarray[np.complex64_t,ndim=2] V = np.zeros((n,mn),dtype=np.complex64)
 	# Compute SVD using TSQR algorithm
 	retval = c_ctsqr_svd(&U[0,0],&S[0],&V[0,0],&A[0,0],m,n)
