@@ -11,7 +11,7 @@ import os, numpy as np
 from collections import defaultdict
 
 from .       import inp_out as io
-from .vmmath import cellCenters, normals, neighbors_dict, edge_to_cells, edge_normals
+from .vmmath import cellCenters, normals, cell_adjacency, edge_to_cells, wall_normals
 from .utils  import cr_nvtx as cr, mem, raiseError, mpi_reduce
 
 
@@ -75,7 +75,7 @@ class Mesh(object):
 		self._xyz    = xyz
 		self._xyzc   = None
 		self._normal = None
-		self._edge_normal = None
+		self._wall_normal = None
 		self._conec  = connectivity
 		self._cell_conec = None
 		self._eltype = eltype
@@ -166,27 +166,35 @@ class Mesh(object):
 		edge_dict = edge_to_cells(self.connectivity)  # Dictionary mapping edges to cells
 
 		# Neighbors dictionary asigning the neighbors to each cell
-		adjacency = neighbors_dict(edge_dict)
+		adjacency_dict = cell_adjacency(edge_dict)
 
 		# Step 3: Pad the neighbors list with -1s
-		max_len = max(len(adjacency[cell]) for cell in range(self.ncells))
-		padded_neighbors = np.array([list(adjacency[cell]) + [-1] * (max_len - len(adjacency[cell])) for cell in range(self.ncells)], dtype=np.int32)
+		max_len = max(len(adjacency_dict[cell]) for cell in range(self.ncells))
+		padded_neighbors = np.array([list(adjacency_dict[cell]) + [-1] * (max_len - len(adjacency_dict[cell])) for cell in range(self.ncells)], dtype=np.int32)
 
 		return padded_neighbors
 
-	@cr('Mesh.edge_normals')
-	def edge_normals(self):
-		'''Computes the normalized edge normals of the cells in the mesh.
-		Edge normals are the vectors normal to the edges and tangent to the cell.
-			
-		Returns
-		-------
-		edge_normals : np.ndarray
-			Array with the edge normals of each cell concatenated along axis 1.
-		'''
+	def dual_edges_and_wall_normals(self):
+		'''Computes the directed edges in the dual graph and the unitary wall normals of each cell (only for 2D cells) in the way its needed to build an atributed graph
+		as described in
+			Hines, D., & Bekemeyer, P. (2023). Graph neural networks for the prediction of aircraft surface pressure distributions.
+			Aerospace Science and Technology, 137, 108268.
+			https://doi.org/10.1016/j.ast.2023.108268
+		
+		Edges in the dual graph connect cells in the primal graph and are given as pairs of cell indices.
+		Wall unitary normals are orthogonal to the cell walls and point outwards. They are contained in the cell plane, so are orthogonal themselves to the cell normal.
+		The order in which dual edges and wall normals are saved is coherent, meaning that if the i-th dual edge is (a, b), then the i-th wall normal is ortogonal to the wall shared by cells a and b and points outwards of cell a. 
+		As a convention the dual graph is bidirectional, so if the i-th dual edge is (a, b), then there is some edge (b, a) and the wall normal at that position is equal to - the wall normal at the i-th position.
 
-		# Array to store the edge normals of each cell. Assumes every cell has the same number of edges.
-		edge_normals_arr = np.zeros((self.ncells, 3*self.nnodcell))
+		As boundary walls lack a corresponging edge in the dual graph, their wall normals are not saved as a convention.
+		'''
+		
+		# Dictionary that maps each edge to the cells that share it
+		edge_dict = edge_to_cells(self.connectivity)
+		# List storying directed edges in the dual graph
+		dual_edges_list = []
+		# List to store the wall normals.
+		wall_normals_list = []
 
 		# Iterate over each cell
 		for cell_id in range(self.ncells):
@@ -194,11 +202,23 @@ class Mesh(object):
 			cell_nodes = self.connectivity[cell_id]
 			nodes_xyz = self.xyz[cell_nodes]  # Get the nodes of the cell
 
-			cell_normals_list = edge_normals(nodes_xyz, cell_normal, self.nnodcell)  # Compute the edge normals of the cell
+			cell_edges, cell_wall_normals = wall_normals(cell_nodes, nodes_xyz, cell_normal)  # Compute the edge normals of the cell
+			
+			# Directed dual edges: tuples of the form (cell_id, neighbor_id)
+			dual_edges = [
+				(cell_id, (edge_dict[edge] - {cell_id}).pop()) if len(edge_dict[edge]) == 2 else None # If the edge is not a boundary edge, get the neighbor cell
+				for edge in cell_edges
+			]
 
-			edge_normals_arr[cell_id] = np.concatenate(cell_normals_list)  # Store the edge normals of the cell
+			dual_edges_list.extend(dual_edges)
+			wall_normals_list.extend(cell_wall_normals)
 
-		return edge_normals_arr
+		# Remove the wall normals and dual edges at the boundary walls
+		dual_edges_list, wall_normals_list = zip(*[
+				(x, y) for x, y in zip(dual_edges_list, wall_normals_list) if x is not None
+			])
+
+		return np.array(dual_edges_list, dtype=np.int32), np.array(wall_normals_list, dtype=np.float64)
 
 	@cr('Mesh.reshape')
 	def reshape_var(self,var:str,info:dict):
@@ -333,9 +353,9 @@ class Mesh(object):
 		if self._normal is None: self._normal = normals(self._xyz,self._conec)
 		return self._normal
 	@property
-	def edge_normal(self):
-		if self._edge_normal is None: self._edge_normal = self.edge_normals()
-		return self._edge_normal
+	def wall_normal(self):
+		if self._wall_normal is None: _, self._wall_normal = self.dual_edges_and_wall_normals()
+		return self._wall_normal
 
 	@property
 	def connectivity(self):
