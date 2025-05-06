@@ -8,6 +8,7 @@ from __future__ import print_function, division
 import numpy as np
 import pyLOM
 
+file_path = './Testsuite/DATA/CYLINDER.h5'
 
 ## Load cylinder mesh
 DATAFILE = './Testsuite/DATA/CYLINDER.h5'
