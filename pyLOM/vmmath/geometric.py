@@ -189,8 +189,9 @@ def fix_normals_coherence(normals, edge_dict, adjacency, num_cells) -> np.ndarra
 	return normals
 
 
+
 @cr('math.wall_normals')
-def wall_normals(nodes_idx, nodes_xyz, surf_normal):
+def wall_normals(nodes_idx, nodes_xyz, surf_normal) -> list:
 	'''
 	Compute the unitary normals to the cell walls (only for 2D cells).
 	Example: For a triangle, the wall normals are the three vectors normal to each of the sides.
