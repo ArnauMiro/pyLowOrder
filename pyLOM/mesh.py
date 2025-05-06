@@ -174,8 +174,9 @@ class Mesh(object):
 
 		return padded_neighbors
 
-	def dual_edges_and_wall_normals(self):
-		'''Computes the directed edges in the dual graph and the unitary wall normals of each cell (only for 2D cells) in the way its needed to build an atributed graph
+	def dual_edges_and_wall_normals(self) -> np.ndarray:
+		r'''
+		Computes the directed edges in the dual graph and the unitary wall normals of each cell (only for 2D cells) in the way its needed to build an atributed graph
 		as described in
 			Hines, D., & Bekemeyer, P. (2023). Graph neural networks for the prediction of aircraft surface pressure distributions.
 			Aerospace Science and Technology, 137, 108268.
@@ -218,7 +219,7 @@ class Mesh(object):
 				(x, y) for x, y in zip(dual_edges_list, wall_normals_list) if x is not None
 			])
 
-		return np.array(dual_edges_list, dtype=np.int32), np.array(wall_normals_list, dtype=np.float64)
+		return np.array(dual_edges_list, dtype=np.int32), np.array(wall_normals_list, dtype=self.xyz.dtype)
 
 	@cr('Mesh.reshape')
 	def reshape_var(self,var:str,info:dict):
