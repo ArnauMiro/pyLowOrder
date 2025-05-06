@@ -19,7 +19,7 @@ print(m)
 ## Compute geometrical information (this may take a while depending on your mesh size)
 xyz_center = m.xyzc # Cell nodes
 surf_norms = m.normal
-edge_norms = m.edge_normal
+edge_norms = m.wall_normal
 cell_conec = m.cell_connectivity
 
 pyLOM.pprint(0,"surf_norms: ", surf_norms.shape)
