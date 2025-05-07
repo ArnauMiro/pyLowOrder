@@ -21,7 +21,7 @@ from torch_geometric.utils import k_hop_subgraph
 
 
 from pyLOM import Mesh
-from pyLOM.vmmath.geometric import edge_to_cells, wall_normals
+from pyLOM.vmmath.geometric import edge_to_cells, edge_normals
 from pyLOM.NN.optimizer import OptunaOptimizer, TrialPruned
 from pyLOM.NN import DEVICE, set_seed  # pyLOM/NN/__init__.py
 from pyLOM import pprint, cr  # pyLOM/__init__.py
@@ -162,39 +162,23 @@ class pyLOMGraph(Data):
         Returns:
             pyLOMGraph: The graph structure.
         """
-        xyzc = mesh.xyzc  # Cell centers coordinates
-        print("Computing surface normals")
-        surface_normals = mesh.normal
-        print("Surface normals computed")
-
-        print("Computing dual edges and wall normals")
-        edge_index, wall_normals = cls._dual_edges_and_wall_normals(mesh)
-
-        # Create the edge features
-        c_i = xyzc[edge_index[0, :]]
-        c_j = xyzc[edge_index[1, :]]
-        d_ij = c_j - c_i
-        # Transform to spherical coordinates
-        r = np.linalg.norm(d_ij, axis=1)
-        theta = np.arccos(d_ij[:, 2] / r)
-        phi = np.arctan2(d_ij[:, 1], d_ij[:, 0])
-        edge_attr = np.concatenate((r[:, None], theta[:, None], phi[:, None], wall_normals), axis=1)  # Ensure correct shape
+        node_attr = cls._node_attr(mesh)  # Get the node attributes
+        edge_index, edge_attr = cls._edge_index_and_attr(mesh)  # Get the edge attributes
 
         # Scale node and edge features if scaler is provided
         if scaler is not None:
-            xyzc = scaler.fit_transform(xyzc)
-            surface_normals = scaler.fit_transform(surface_normals)
+            node_attr = scaler.fit_transform(node_attr)
             edge_attr = scaler.fit_transform(edge_attr)
 
         y = torch.tensor(y, dtype=torch.float32) if y is not None else None
         edge_index = torch.tensor(edge_index, dtype=torch.long)
+        node_attr = torch.tensor(node_attr, dtype=torch.float32)
         edge_attr = torch.tensor(edge_attr, dtype=torch.float32)
 
         # Return the class instance with the necessary attributes. Leave x as None as the final edge attributes need to be computed dynamically during training.
         graph = cls(
             x=None, # To be completed with the operational parameters during training
-            pos=torch.tensor(xyzc, dtype=torch.float32),
-            surf_norms = torch.tensor(surface_normals, dtype=torch.float32),
+            node_attr = node_attr,
             y=y,
             edge_index=edge_index,
             edge_attr=edge_attr
@@ -248,9 +232,22 @@ class pyLOMGraph(Data):
         self.edge_index -= torch.min(self.edge_index)
      
 
-    
     @staticmethod
-    def _dual_edges_and_wall_normals(mesh):
+    def _node_attr(mesh: Mesh) -> np.ndarray:
+        '''Computes the node attributes of the mesh. The node attributes are the spherical coordinates of the nodes in the mesh.
+        The node attributes are given as a 2D array with shape (n_nodes, 6), where each row is given as (r, theta, phi, nx, ny, nz).
+        The node normals are computed using the wall_normals function.
+        '''
+        # Get the cell centers
+        xyzc = mesh.xyzc
+        # Get the surface normals
+        surface_normals = mesh.normal
+        
+        return np.concatenate((xyzc, surface_normals), axis=1)
+
+
+    @staticmethod
+    def _edge_index_and_attr(mesh):
         '''Computes the directed edges in the dual graph and the unitary wall normals of each cell (only for 2D cells) in the way its needed to build an atributed graph
         as described in
             Hines, D., & Bekemeyer, P. (2023). Graph neural networks for the prediction of aircraft surface pressure distributions.
@@ -264,7 +261,6 @@ class pyLOMGraph(Data):
 
         As boundary walls lack a corresponging edge in the dual graph, their wall normals are not saved as a convention.
         '''
-
         # Check whether the cells are 2D
         if not np.all(np.isin(mesh.eltype, [2, 3, 4, 5])):
             raise ValueError("The mesh must contain only 2D cells in order to compute the wall normals.")
@@ -273,9 +269,9 @@ class pyLOMGraph(Data):
         # Dictionary that maps each edge to the cells that share it
         edge_dict = edge_to_cells(mesh.connectivity)
         # List storying directed edges in the dual graph
-        dual_edges_list = []
+        edge_list = []
         # List to store the wall normals.
-        wall_normals_list = []
+        edge_normals_list = []
 
         # Iterate over each cell
         for i, cell_id in enumerate(range(mesh.ncells)):
@@ -283,7 +279,7 @@ class pyLOMGraph(Data):
             cell_nodes = mesh.connectivity[cell_id]
             nodes_xyz = mesh.xyz[cell_nodes]  # Get the nodes of the cell
 
-            cell_edges, cell_wall_normals = wall_normals(cell_nodes, nodes_xyz, cell_normal)  # Compute the edge normals of the cell
+            cell_edges, cell_edge_normals = edge_normals(cell_nodes, nodes_xyz, cell_normal)  # Compute the edge normals of the cell
             
             # Directed dual edges: tuples of the form (cell_id, neighbor_id)
             dual_edges = [
@@ -291,18 +287,35 @@ class pyLOMGraph(Data):
                 for edge in cell_edges
             ]
 
-            dual_edges_list.extend(dual_edges)
-            wall_normals_list.extend(cell_wall_normals)
+            edge_list.extend(dual_edges)
+            edge_normals_list.extend(cell_edge_normals)
 
             if i%1e5 == 0:
                 print(f"Processing mesh. {i} cells out of {mesh.ncells} processed.")
 
         # Remove the wall normals and dual edges at the boundary walls
-        dual_edges_list, wall_normals_list = zip(*[
-                (x, y) for x, y in zip(dual_edges_list, wall_normals_list) if x is not None
+        edge_list, edge_normals_list = zip(*[
+                (x, y) for x, y in zip(edge_list, edge_normals_list) if x is not None
             ])
 
-        return np.array(dual_edges_list, dtype=np.int32).T, np.array(wall_normals_list, dtype=np.float64)
+        edge_index = np.array(edge_list, dtype=np.int32).T  # Convert to numpy array and transpose
+        edge_normals = np.array(edge_normals_list, dtype=np.float64)  # Convert to numpy array
+
+        # Compute the rest of the edge_attributes
+        # Get the cell centers
+        xyzc = mesh.xyzc
+        # Get the edge coordinates
+        c_i = xyzc[edge_index[0, :]]
+        c_j = xyzc[edge_index[1, :]]
+        d_ij = c_j - c_i
+        # Transform to spherical coordinates
+        r = np.linalg.norm(d_ij, axis=1)
+        theta = np.arccos(d_ij[:, 2] / r)
+        phi = np.arctan2(d_ij[:, 1], d_ij[:, 0])
+
+        edge_attr = np.concatenate((r[:, None], theta[:, None], phi[:, None], edge_normals), axis=1)  # Ensure correct shape
+
+        return edge_index, edge_attr
     
 
 
