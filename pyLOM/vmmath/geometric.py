@@ -119,7 +119,7 @@ def edge_to_cells(conec:np.ndarray) -> dict:
 	return edge_to_cells
 
 
-@cr('math.cell_adjacency')
+# @cr('math.cell_adjacency')
 def cell_adjacency(edge_dict) -> dict:
 	'''
 	Build a dictionary that maps each cell to its neighbors.
