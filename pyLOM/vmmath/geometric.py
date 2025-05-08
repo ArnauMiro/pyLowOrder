@@ -119,7 +119,7 @@ def edge_to_cells(conec:np.ndarray) -> dict:
 	return edge_to_cells
 
 
-# @cr('math.cell_adjacency')
+@cr('math.cell_adjacency')
 def cell_adjacency(edge_dict) -> dict:
 	'''
 	Build a dictionary that maps each cell to its neighbors.
@@ -159,7 +159,7 @@ def fix_normals_coherence(normals, edge_dict, adjacency, num_cells) -> np.ndarra
 	border_cells = set()
 	for e, faces in edge_dict.items():
 		if len(faces) == 1:  # If the edge is on the border
-			border_cells.add(faces[0])
+			border_cells.add(next(iter(faces)))  # Add the cell to the border cells
 
     # Propagate the normals using a BFS algorithm
 	visited = np.zeros(num_cells, dtype=bool)
