@@ -22,6 +22,10 @@ surf_norms = m.normal
 edge_norms = m.wall_normal
 cell_conec = m.cell_connectivity
 
+# Ensure that the normals are coherent
+edge_dict = pyLOM.vmmath.edge_to_cells(cell_conec)
+surf_norms = pyLOM.vmmath.fix_normals_coherence(surf_norms, edge_dict, cell_conec, m.ncells)
+
 pyLOM.pprint(0,"surf_norms: ", surf_norms.shape)
 pyLOM.pprint(0,"edge_norms: ", edge_norms.shape)
 pyLOM.pprint(0,"cell_connectivity: ", cell_conec.shape)
