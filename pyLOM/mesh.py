@@ -174,20 +174,20 @@ class Mesh(object):
 
 		return padded_neighbors
 
-	@cr('Mesh.edge_normals')
-	def edge_normals(self) -> np.ndarray:
+	@cr('Mesh.wall_normals')
+	def wall_normals(self) -> np.ndarray:
 		r'''
-		Computes the normalized edge normals of the cells in the mesh.
-		Edge normals are the vectors normal to the edges and tangent to the cell.
+		Computes the normalized wall normals of the cells in the mesh.
+		Wall normals are the vectors normal to the edges and tangent to the cell.
 			
 		Returns
 		-------
-		edge_normals : np.ndarray
+		wall_normals : np.ndarray
 			Array with the edge normals of each cell concatenated along axis 1.
 		'''
 
 		# Array to store the edge normals of each cell. Assumes every cell has the same number of edges.
-		edge_normals_arr = np.zeros((self.ncells, 3*self.nnodcell))
+		wall_normals_arr = np.zeros((self.ncells, 3*self.nnodcell))
 
 		# Iterate over each cell
 		for cell_id in range(self.ncells):
@@ -195,11 +195,11 @@ class Mesh(object):
 			cell_nodes = self.connectivity[cell_id]
 			nodes_xyz = self.xyz[cell_nodes]  # Get the nodes of the cell
 
-			_, cell_normals_list = wall_normals(nodes_xyz, cell_normal, self.nnodcell)  # Compute the edge normals of the cell
+			_, cell_normals_list = wall_normals(cell_nodes, nodes_xyz, cell_normal)  # Compute the edge normals of the cell
 
-			edge_normals_arr[cell_id] = np.concatenate(cell_normals_list)  # Store the edge normals of the cell
+			wall_normals_arr[cell_id] = np.concatenate(cell_normals_list)  # Store the edge normals of the cell
 
-		return edge_normals_arr
+		return wall_normals_arr
 
 	@cr('Mesh.reshape')
 	def reshape_var(self,var:str,info:dict):
@@ -335,7 +335,7 @@ class Mesh(object):
 		return self._normal
 	@property
 	def wall_normal(self):
-		if self._wall_normal is None: _, self._wall_normal = self.dual_edges_and_wall_normals()
+		if self._wall_normal is None: self._wall_normal = self.wall_normals()
 		return self._wall_normal
 
 	@property
