@@ -190,7 +190,7 @@ def fix_normals_coherence(normals, edge_dict, adjacency, num_cells) -> np.ndarra
 
 
 
-# @cr('math.wall_normals')
+@cr('math.wall_normals')
 def wall_normals(nodes_idx, nodes_xyz, surf_normal) -> list:
 	'''
 	Compute the unitary normals to the cell walls (only for 2D cells).
