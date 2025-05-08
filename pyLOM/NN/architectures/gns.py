@@ -21,7 +21,7 @@ from torch_geometric.utils import k_hop_subgraph
 
 
 from pyLOM import Mesh
-from pyLOM.vmmath.geometric import edge_to_cells, edge_normals
+from pyLOM.vmmath.geometric import edge_to_cells, wall_normals
 from pyLOM.NN.optimizer import OptunaOptimizer, TrialPruned
 from pyLOM.NN import DEVICE, set_seed  # pyLOM/NN/__init__.py
 from pyLOM import pprint, cr  # pyLOM/__init__.py
@@ -29,7 +29,7 @@ from pyLOM import pprint, cr  # pyLOM/__init__.py
 from typing import Protocol, Optional, Dict, Tuple, Union
 
 class MLP(torch.nn.Module):
-    '''Simple MLP with dropout and activation function
+    r'''Simple MLP with dropout and activation function
     Args:
         input_size (int): Input size.
         output_size (int): Output size.
@@ -60,7 +60,7 @@ class MLP(torch.nn.Module):
 
 
 class MessagePassingLayer(MessagePassing):
-    '''Message passing layer for the GNN. Uses mean aggregation and MLPs for message and update functions.
+    r'''Message passing layer for the GNN. Uses mean aggregation and MLPs for message and update functions.
     Args:
         in_channels (int): Input channels.
         out_channels (int): Output channels.
@@ -111,27 +111,27 @@ class MessagePassingLayer(MessagePassing):
 
 
 class ScalerProtocol(Protocol):
-    '''
+    r'''
     Abstract protocol for scalers. Must include:
         - fit: Fit the scaler to the data.
         - transform: Transform the data using the fitted scaler.
         - fit_transform: Fit the scaler to the data and transform it.
     '''
     def fit(self, X: np.ndarray, y=None) -> "ScalerProtocol":
-        """ Ajusta el escalador a los datos. """
+        r""" Fit the scaler to the data. """
         ...
 
     def transform(self, X: np.ndarray) -> np.ndarray:
-        """ Transforma los datos utilizando el escalador ajustado. """
+        r""" Transform the data using the fitted scaler. """
         ...
 
     def fit_transform(self, X: np.ndarray, y=None) -> np.ndarray:
-        """ Ajusta el escalador a los datos y los transforma. """
+        r""" Adjust the scaler to the data and transform it. """
         ...
 
 
 class pyLOMGraph(Data):
-    '''
+    r'''
     Custom class derived from torch.geometric.Data to handle graphs for GNN.
     
     Custom features:
@@ -156,11 +156,10 @@ class pyLOMGraph(Data):
             scaler (Optional[ScalerProtocol]): Optional scaler to normalize node and edge features. Must include:
                 - fit: Fit the scaler to the data.
                 - transform: Transform the data using the fitted scaler.
-                -   fit_transform: Fit the scaler to the data and transform it.
-            operational_parameters_size (int): The number of operational parameters (e.g.: 2 for Mach and alpha)
+                - fit_transform: Fit the scaler to the data and transform it.
 
         Returns:
-            pyLOMGraph: The graph structure.
+            pyLOMGraph: An instance of the pyLOMGraph class which can be directly used to train a GNS.
         """
         node_attr = cls._node_attr(mesh)  # Get the node attributes
         edge_index, edge_attr = cls._edge_index_and_attr(mesh)  # Get the edge attributes
@@ -201,7 +200,7 @@ class pyLOMGraph(Data):
         node_mask: Optional[Union[list, torch.Tensor, np.ndarray]]=None,
         node_indices: Optional[Union[list, torch.Tensor, np.ndarray]]=None
     ):
-        '''
+        r'''
         Filter graph by providing either a boolean mask or a list of node indices to keep.
 
         Args:
@@ -234,9 +233,15 @@ class pyLOMGraph(Data):
 
     @staticmethod
     def _node_attr(mesh: Mesh) -> np.ndarray:
-        '''Computes the node attributes of the mesh. The node attributes are the spherical coordinates of the nodes in the mesh.
-        The node attributes are given as a 2D array with shape (n_nodes, 6), where each row is given as (r, theta, phi, nx, ny, nz).
-        The node normals are computed using the wall_normals function.
+        r'''Computes the node attributes of Graph as described in
+            Hines, D., & Bekemeyer, P. (2023). Graph neural networks for the prediction of aircraft surface pressure distributions.
+            Aerospace Science and Technology, 137, 108268.
+            https://doi.org/10.1016/j.ast.2023.108268
+
+        Args:
+            mesh (Mesh): A RANS mesh in pyLOM format.
+        Returns:
+            np.ndarray: Node attributes of the graph.
         '''
         # Get the cell centers
         xyzc = mesh.xyzc
@@ -247,19 +252,15 @@ class pyLOMGraph(Data):
 
 
     @staticmethod
-    def _edge_index_and_attr(mesh):
-        '''Computes the directed edges in the dual graph and the unitary wall normals of each cell (only for 2D cells) in the way its needed to build an atributed graph
-        as described in
+    def _edge_index_and_attr(mesh: Mesh) -> Tuple[np.ndarray, np.ndarray]:
+        r'''Computes the edge index and attributes of Graph as described in
             Hines, D., & Bekemeyer, P. (2023). Graph neural networks for the prediction of aircraft surface pressure distributions.
             Aerospace Science and Technology, 137, 108268.
             https://doi.org/10.1016/j.ast.2023.108268
-        
-        Edges in the dual graph connect cells in the primal graph and are given as pairs of cell indices.
-        Wall unitary normals are orthogonal to the cell walls and point outwards. They are contained in the cell plane, so are orthogonal themselves to the cell normal.
-        The order in which dual edges and wall normals are saved is coherent, meaning that if the i-th dual edge is (a, b), then the i-th wall normal is ortogonal to the wall shared by cells a and b and points outwards of cell a. 
-        As a convention the dual graph is bidirectional, so if the i-th dual edge is (a, b), then there is some edge (b, a) and the wall normal at that position is equal to - the wall normal at the i-th position.
-
-        As boundary walls lack a corresponging edge in the dual graph, their wall normals are not saved as a convention.
+        Args:
+            mesh (Mesh): A RANS mesh in pyLOM format.
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: Edge index and attributes of the graph.
         '''
         # Check whether the cells are 2D
         if not np.all(np.isin(mesh.eltype, [2, 3, 4, 5])):
@@ -271,7 +272,7 @@ class pyLOMGraph(Data):
         # List storying directed edges in the dual graph
         edge_list = []
         # List to store the wall normals.
-        edge_normals_list = []
+        wall_normals_list = []
 
         # Iterate over each cell
         for i, cell_id in enumerate(range(mesh.ncells)):
@@ -279,7 +280,7 @@ class pyLOMGraph(Data):
             cell_nodes = mesh.connectivity[cell_id]
             nodes_xyz = mesh.xyz[cell_nodes]  # Get the nodes of the cell
 
-            cell_edges, cell_edge_normals = edge_normals(cell_nodes, nodes_xyz, cell_normal)  # Compute the edge normals of the cell
+            cell_edges, cell_wall_normals = wall_normals(cell_nodes, nodes_xyz, cell_normal)  # Compute the edge normals of the cell
             
             # Directed dual edges: tuples of the form (cell_id, neighbor_id)
             dual_edges = [
@@ -288,18 +289,18 @@ class pyLOMGraph(Data):
             ]
 
             edge_list.extend(dual_edges)
-            edge_normals_list.extend(cell_edge_normals)
+            wall_normals_list.extend(cell_wall_normals)
 
             if i%1e5 == 0:
                 print(f"Processing mesh. {i} cells out of {mesh.ncells} processed.")
 
         # Remove the wall normals and dual edges at the boundary walls
-        edge_list, edge_normals_list = zip(*[
-                (x, y) for x, y in zip(edge_list, edge_normals_list) if x is not None
+        edge_list, wall_normals_list = zip(*[
+                (x, y) for x, y in zip(edge_list, wall_normals_list) if x is not None
             ])
 
         edge_index = np.array(edge_list, dtype=np.int32).T  # Convert to numpy array and transpose
-        edge_normals = np.array(edge_normals_list, dtype=np.float64)  # Convert to numpy array
+        wall_normals = np.array(wall_normals_list, dtype=np.float64)  # Convert to numpy array
 
         # Compute the rest of the edge_attributes
         # Get the cell centers
@@ -313,7 +314,7 @@ class pyLOMGraph(Data):
         theta = np.arccos(d_ij[:, 2] / r)
         phi = np.arctan2(d_ij[:, 1], d_ij[:, 0])
 
-        edge_attr = np.concatenate((r[:, None], theta[:, None], phi[:, None], edge_normals), axis=1)  # Ensure correct shape
+        edge_attr = np.concatenate((r[:, None], theta[:, None], phi[:, None], wall_normals), axis=1)  # Ensure correct shape
 
         return edge_index, edge_attr
     
@@ -323,7 +324,7 @@ class pyLOMGraph(Data):
 
 
 class GNS(nn.Module):
-    """
+    r"""
     Graph Neural Solver class for predicting aerodynamic variables on RANS meshes.
     The model uses a message-passing architecture with MLPs for the message and update functions.
 
@@ -356,7 +357,7 @@ class GNS(nn.Module):
                  message_hidden_layers: int,
                  update_hidden_layers: int,
                  **kwargs
-                 ):
+                 ) -> None:
         
         super().__init__()
 
@@ -465,12 +466,9 @@ class GNS(nn.Module):
         # Normalization layer
         self.groupnorm = nn.GroupNorm(2, self.latent_dim).to(self.device)
 
-    @property
-    def trainable_params(self):
-        return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
-    def forward(self, graph):
-        """
+    def forward(self, graph) -> torch.Tensor:
+        r"""
         Forward pass of the model.
 
         Args:
@@ -500,15 +498,17 @@ class GNS(nn.Module):
 
         return y_hat
     
-
     @property
-    def graph(self):
-        '''Graph property to get the graph object.'''
+    def trainable_params(self) -> int:
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+    @property
+    def graph(self) -> pyLOMGraph:
+        r'''Graph property to get the graph object.'''
         return self._graph
     
     @graph.setter
-    def graph(self, graph: pyLOMGraph):
-        '''Graph property to set the graph object.'''
+    def graph(self, graph: pyLOMGraph) -> None:
+        r'''Graph property to set the graph object.'''
         if self._graph is not None:
             raise Warning("Graph is already set! Graph name is: {}".format(self._graph.name))
         if not isinstance(graph, pyLOMGraph):
@@ -542,8 +542,8 @@ class GNS(nn.Module):
 
 
     @cr('GNS._train')
-    def _train(self, op_dataloader, node_dataloader, loss_fn):
-        '''Train for 1 epoch. Used in the fit method inside a loop with ``epochs`` iterations.
+    def _train(self, op_dataloader, node_dataloader, loss_fn) -> float:
+        r'''Train for 1 epoch. Used in the fit method inside a loop with ``epochs`` iterations.
         Args:
             op_dataloader (DataLoader): The DataLoader for the operational parameters. Should contain also target values.
             node_dataloader (DataLoader): The DataLoader for the nodes.
@@ -597,8 +597,8 @@ class GNS(nn.Module):
         return total_loss / (len(op_dataloader) * len(node_dataloader))
 
     @cr('GNS._eval')
-    def _eval(self, eval_dataloader, loss_fn):
-        '''Evaluate the model on a validation set. Used in the fit method inside a loop with ``epochs`` iterations.
+    def _eval(self, eval_dataloader, loss_fn) -> float:
+        r'''Evaluate the model on a validation set. Used in the fit method inside a loop with ``epochs`` iterations.
         Args:
             eval_dataloader (DataLoader): The DataLoader for the evaluation set.
             loss_fn (torch.nn.Module): The loss function to use.
@@ -640,8 +640,8 @@ class GNS(nn.Module):
             train_dataset,
             eval_dataset=None,
             **kwargs
-            ):
-        """
+            ) -> Dict:
+        r"""
         Fit the model to the training data.
 
         Args:
@@ -746,7 +746,7 @@ class GNS(nn.Module):
         X, 
         return_targets: bool = False,
         **kwargs,
-    ):
+    ) -> Tuple[np.ndarray, ...]:
         r"""
         Predict the target values for the input data. The dataset is loaded to a DataLoader with the provided keyword arguments. 
         The model is set to evaluation mode and the predictions are made using the input data. 
@@ -806,13 +806,7 @@ class GNS(nn.Module):
 
 
 
-    def save(self, path: str):
-        """
-        Save the model to a file.
-
-        Args:
-            path (str): The path to save the model.
-        """
+    def save(self, path: str) -> None:
         r"""
         Save the model to a checkpoint file.
 
@@ -836,8 +830,8 @@ class GNS(nn.Module):
     def load(cls,
              path: str,
              device: Union[str, torch.device] = DEVICE,
-             ):
-        """
+             ) -> "GNS":
+        r"""
         Load a model from a file.
 
         Args:
@@ -1032,7 +1026,17 @@ class GNS(nn.Module):
         ), optimization_params
 
     @staticmethod
-    def _get_optimizing_value(name, value, trial):
+    def _get_optimizing_value(name, value, trial) -> Union[int, float, str]:
+        r"""
+        Function used to get the optimizing value for a given hyperparameter.
+        Args:
+            name (str): The name of the hyperparameter.
+            value (Any): The value of the hyperparameter.
+            trial (optuna.Trial): The Optuna trial object.
+        Returns:
+            Any: The optimizing value for the hyperparameter.
+        """
+
         if isinstance(value, tuple) or isinstance(value, list):
             use_log = value[1] / (value[0] + 0.1) >= 1000
             if isinstance(value[0], int):
@@ -1046,8 +1050,8 @@ class GNS(nn.Module):
             return value
 
     @staticmethod
-    def _hyperparams_serializer(obj):
-        """
+    def _hyperparams_serializer(obj) -> str:
+        r"""
         Function used to print hyperparams in JSON format.
         """
 
