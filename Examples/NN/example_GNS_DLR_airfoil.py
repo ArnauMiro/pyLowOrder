@@ -328,7 +328,7 @@ if __name__ == "__main__":
     pyLOM.cr_info()
     plt.show()
 
-
+#%%
     # Compare against dlr results
 
     # DLR hyperparameters
@@ -347,7 +347,7 @@ if __name__ == "__main__":
         'p_dropouts': 0.0,
         'device': device,
 
-        'epochs': 1000,
+        'epochs': 100,
         'lr': 6.50e-4,
         'lr_gamma': 0.9954,
         'lr_scheduler_step': 1,
