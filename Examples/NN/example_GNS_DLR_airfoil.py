@@ -152,7 +152,7 @@ def plot_cp_snapshots(params, predictions, targets, inputs_scaler, x_vector):
         if index in indexes:
 
             params = params.cpu().numpy()
-            targets = targets.cpu().numpy()
+            # targets = targets.cpu().numpy()
 
             print("params:", params.shape)
             print("predictions:", predictions.shape)
@@ -379,12 +379,14 @@ if __name__ == "__main__":
 
     # to predict from a dataset
     params = test_dataset[:][0]
-    preds = model.predict(test_dataset)
-    y = test_dataset[:][1]
-
-    print("params shape", params.shape)
-    print("preds shape", preds.shape)
+    preds, y = model.predict(test_dataset, return_targets=True)
+    # y = test_dataset[:][1]
+    # Check whether y is the same as the one in the dataset
     print("y shape", y.shape)
+    print("test_dataset[:][0].shape", test_dataset[:][0].shape)
+    print(y)
+    print()
+    print(test_dataset[:][1])
 
     evaluator = pyLOM.NN.RegressionEvaluator()
     evaluator(y, preds)
@@ -398,6 +400,9 @@ if __name__ == "__main__":
     # Plot Cp snapshots
     profile_x = mesh_data['xyz'][:, 0]
 
+    print("preds shape", preds.shape)
+    print("y shape", y.shape)
+
     plot_cp_snapshots(
         params = test_dataset[:][0],
         predictions = preds,
@@ -405,6 +410,42 @@ if __name__ == "__main__":
         inputs_scaler = scaler,
         x_vector = profile_x
     )
+#%%
+    profile_x = mesh_data['xyz'][:, 0]
+
+    indexes = [5, 14, 31, 36]
+    op_params = test_dataset[:][0][indexes]
+    targets = test_dataset[:][1][indexes]
+    print(op_params)
+
+    predictions = []
+    for params in op_params:
+        predictions.append(model(params))
+
+    predictions = torch.stack(predictions).squeeze()
+    predictions = predictions.cpu().detach().numpy()
+    
+    fig, ax = plt.subplots(2, 2, figsize=(10, 10))
+    index = 0
+    subfig = 0
+    for (params, predictions, targets) in zip(op_params, predictions, targets):
+        params = params.cpu().numpy()
+        targets = targets.cpu().numpy()
+
+        # Undo params scaling
+        params = scaler.inverse_transform(params.reshape(1, -1)).squeeze()   
+
+        ax[subfig // 2, subfig % 2].plot(profile_x, predictions, label='Predicted')
+        ax[subfig // 2, subfig % 2].plot(profile_x, targets, label='True')
+        ax[subfig // 2, subfig % 2].set_xlabel('x/c')
+        ax[subfig // 2, subfig % 2].set_ylabel('Cp')
+        ax[subfig // 2, subfig % 2].set_title(f'Alfa = {params[0]:1.3f}\nMach = {params[1]:.4f}')
+        ax[subfig // 2, subfig % 2].legend()
+        subfig+=1
+    plt.tight_layout()
+    # plt.savefig(RESUDIR + 'cp_snapshots.png', dpi=300)
+
+
 
     pyLOM.cr_info()
     plt.show()

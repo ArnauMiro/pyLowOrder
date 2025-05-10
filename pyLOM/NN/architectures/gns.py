@@ -13,10 +13,11 @@ import json
 
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader
 from torch.nn import ELU
 from torch_geometric.nn import MessagePassing
 from torch_geometric.data import Data, Batch
-from torch_geometric.loader import DataLoader
+# from torch_geometric.loader import DataLoader
 from torch_geometric.utils import k_hop_subgraph
 
 
@@ -639,7 +640,7 @@ class GNS(nn.Module):
 
                 for (params, y) in zip(params_batch, y_batch):
                     targets = y.reshape(-1, self.output_dim)
-                    output = self(op_params = params)
+                    output = self(params)
                     # print("targets:", targets[:5], flush=True)
                     # print("output:", output[:5], flush=True)
                     loss = loss_fn(output, targets)
@@ -808,16 +809,21 @@ class GNS(nn.Module):
 
         with torch.no_grad():
             self.eval()
+            i = 0
             for params_batch, y_batch in predict_dataloader:
+                # print(f"params_bartch:\n {params_batch}", flush=True)
+                # print(f"y_batch:\n {y_batch}", flush=True)
                 params_batch = params_batch.to(self.device)
                 y_batch = y_batch.to(self.device)
 
-                for i, (params, y) in enumerate(zip(params_batch, y_batch)):
+                for params, y in zip(params_batch, y_batch):
+                    print(f"params:\n {params}", flush=True)
                     targets = y.reshape(-1, self.output_dim)
-                    output = self(op_params=params)
+                    output = self(params)
                     # print(f"RMSE of input {i}: {torch.sqrt(torch.mean((output - targets)**2))}", flush=True)
                     all_predictions[i] = output.cpu().numpy().reshape(-1)
-                    all_targets[i] = targets.cpu().numpy().reshape(-1) 
+                    all_targets[i] = targets.cpu().numpy().reshape(-1)
+                    i += 1
 
         if return_targets:
             return all_predictions, all_targets
