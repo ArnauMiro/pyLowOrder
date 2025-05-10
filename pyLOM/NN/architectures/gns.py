@@ -467,31 +467,44 @@ class GNS(nn.Module):
         self.groupnorm = nn.GroupNorm(2, self.latent_dim).to(self.device)
 
 
-    def forward(self, op_params: torch.Tensor) -> torch.Tensor:
+    def forward(self,
+                op_params: torch.Tensor = None,
+                graph: Union[Data, pyLOMGraph] = None) -> torch.Tensor:
         r"""
         Forward pass of the model.
 
         Args:
-            op_params: The operational parameters. E.g. [alpha, Mach]. Dimension must match the input_dim of the model.
+            op_params (torch.Tensor, optional): The operational parameters. Shape should be [B, input_dim]. If not provided, the model will compute a forward pass with the provided graph as-is.
+            graph (Union[Data, pyLOMGraph], optional): The graph object. If not provided, the graph set in the model will be used.
 
         Returns:
             torch.Tensor: The predicted target values.
         """
-        # Check if the graph is set
-        if self.graph is None:
-            raise ValueError("Graph not set. Please set the graph before training.")
+        if op_params is None and graph is None:
+            raise ValueError("Either op_params or graph must be provided.")
         
-        # Check if the input parameters are of the correct shape
-        if op_params.shape[1] != self.input_dim:
-            raise ValueError(f"Input parameters must have shape [B, {self.input_dim}]. Got {op_params.shape} instead.")
+        # Set the model to evaluation mode
+        self.eval()
+        # Set the graph to the provided graph if not None
+        if graph is None:
+            # Check if the graph is set
+            if self.graph is None:
+                raise ValueError("Graph not set. Please set the graph before training.")
+            graph = self.graph
+
+        if op_params is not None:
+            # Check if the input parameters are of the correct shape
+            if len(op_params.squeeze()) != self.input_dim:
+                raise ValueError(f"Input parameters must have shape [B, {self.input_dim}]. Got {op_params.shape} instead.")
+            
+            # Prepend the operational parameters to the node features
+            graph.x[:, :self.input_dim] = op_params
         
-        # Prepend the operational parameters to the node features
-        self.graph.x[:, :self.input_dim] = op_params
 
         # Get node and edge features
-        x = self.graph.x
-        edge_index = self.graph.edge_index
-        edge_attr = self.graph.edge_attr
+        x = graph.x
+        edge_index = graph.edge_index
+        edge_attr = graph.edge_attr
 
         # 1. Encode node features
         h = self.encoder(x)
@@ -594,7 +607,7 @@ class GNS(nn.Module):
                 
                 self.optimizer.zero_grad()
                 # Forward pass: only look at the seed nodes for the loss
-                output = self(G_batch)[G_batch.seed_nodes]
+                output = self(graph=G_batch)[G_batch.seed_nodes]
                 targets = G_batch.y[G_batch.seed_nodes]
                 loss = loss_fn(output, targets)
                 loss.backward()
@@ -626,7 +639,7 @@ class GNS(nn.Module):
 
                 for (params, y) in zip(params_batch, y_batch):
                     targets = y.reshape(-1, self.output_dim)
-                    output = self(params)
+                    output = self(op_params = params)
                     # print("targets:", targets[:5], flush=True)
                     # print("output:", output[:5], flush=True)
                     loss = loss_fn(output, targets)
@@ -801,7 +814,7 @@ class GNS(nn.Module):
 
                 for i, (params, y) in enumerate(zip(params_batch, y_batch)):
                     targets = y.reshape(-1, self.output_dim)
-                    output = self(params)
+                    output = self(op_params=params)
                     # print(f"RMSE of input {i}: {torch.sqrt(torch.mean((output - targets)**2))}", flush=True)
                     all_predictions[i] = output.cpu().numpy().reshape(-1)
                     all_targets[i] = targets.cpu().numpy().reshape(-1) 
