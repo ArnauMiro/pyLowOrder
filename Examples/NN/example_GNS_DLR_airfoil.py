@@ -134,6 +134,50 @@ def plot_train_test_loss(train_loss, test_loss, path):
     plt.grid()
     plt.savefig(path, dpi=300)
 
+def plot_cp_snapshots(params, predictions, targets, inputs_scaler, x_vector):
+    """
+    Plot Cp snapshots for different parameter values.
+    """
+
+    print("params shape", params.shape)
+    print("predictions shape", predictions.shape)
+    print("targets shape", targets.shape)
+
+    indexes = [5, 14, 31, 36]
+    fig, ax = plt.subplots(2, 2, figsize=(10, 10))
+
+    index = 0
+    subfig = 0
+    for (params, predictions, targets) in zip(params, predictions, targets):
+        if index in indexes:
+
+            params = params.cpu().numpy()
+            targets = targets.cpu().numpy()
+
+            print("params:", params.shape)
+            print("predictions:", predictions.shape)
+            print("targets:", targets.shape)
+            print("x_vector:", x_vector.shape)
+
+            # params_snap = params[index]
+            # predictions_snap = predictions[index]
+            # targets_snap = targets[index]
+
+            # Undo params scaling
+            params = inputs_scaler.inverse_transform(params.reshape(1, -1)).squeeze()   
+
+            ax[subfig // 2, subfig % 2].plot(x_vector, predictions, label='Predicted')
+            ax[subfig // 2, subfig % 2].plot(x_vector, targets, label='True')
+            ax[subfig // 2, subfig % 2].set_xlabel('x/c')
+            ax[subfig // 2, subfig % 2].set_ylabel('Cp')
+            ax[subfig // 2, subfig % 2].set_title(f'Alfa = {params[0]:1.3f}\nMach = {params[1]:.4f}')
+            ax[subfig // 2, subfig % 2].legend()
+            subfig+=1
+        index += 1
+
+    plt.tight_layout()
+    plt.show()
+
 
 #%%
 if __name__ == "__main__":
@@ -159,6 +203,7 @@ if __name__ == "__main__":
     edge_attr = process_edge_attr(mesh_data['edgesCOO'], mesh_data['xyz'], mesh_data['facenormals'])
 
     scaler = MinMaxScaler()
+    scaler.fit(np.concatenate((op_params['train'], op_params['val'], op_params['test']), axis=0))
     edge_attr = scaler.fit_transform(edge_attr)
     xyz = scaler.fit_transform(mesh_data['xyz'])
     unit_norms = mesh_data['normals'] / np.linalg.norm(mesh_data['normals'], axis=1).reshape(-1,1)
@@ -199,6 +244,7 @@ if __name__ == "__main__":
         outputs_scaler = None
     )
 
+#%%
     # Create a dict with training parameters to be optimized
     optimization_params = {
         'graph': g,
@@ -327,19 +373,41 @@ if __name__ == "__main__":
     training_logs = pipeline.run()
     # check saving and loading the model
     pipeline.model.save(os.path.join(RESUDIR,"NLR7301_DLR.pth"))
+
+#%%
     model = GNS.load(RESUDIR + "NLR7301_DLR.pth")
 
     # to predict from a dataset
+    params = test_dataset[:][0]
     preds = model.predict(test_dataset)
     y = test_dataset[:][1]
+
+    print("params shape", params.shape)
+    print("preds shape", preds.shape)
+    print("y shape", y.shape)
 
     evaluator = pyLOM.NN.RegressionEvaluator()
     evaluator(y, preds)
     evaluator.print_metrics()
 
-    true_vs_pred_plot(y, preds, RESUDIR + 'true_vs_pred_DLR.png')
-    plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss_DLR.png')
+    # true_vs_pred_plot(y, preds, RESUDIR + 'true_vs_pred_DLR.png')
+    # plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss_DLR.png')
+
+
+#%%
+    # Plot Cp snapshots
+    profile_x = mesh_data['xyz'][:, 0]
+
+    plot_cp_snapshots(
+        params = test_dataset[:][0],
+        predictions = preds,
+        targets = y,
+        inputs_scaler = scaler,
+        x_vector = profile_x
+    )
 
     pyLOM.cr_info()
     plt.show()
 
+
+# %%
