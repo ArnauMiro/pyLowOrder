@@ -8,6 +8,7 @@ from __future__ import print_function, division
 import numpy as np
 import pyLOM
 
+file_path = './Testsuite/DATA/CYLINDER.h5'
 
 ## Load cylinder mesh
 DATAFILE = './Testsuite/DATA/CYLINDER.h5'
@@ -19,8 +20,12 @@ print(m)
 ## Compute geometrical information (this may take a while depending on your mesh size)
 xyz_center = m.xyzc # Cell nodes
 surf_norms = m.normal
-edge_norms = m.edge_normal
+edge_norms = m.wall_normal
 cell_conec = m.cell_connectivity
+
+# Ensure that the normals are coherent
+edge_dict = pyLOM.vmmath.edge_to_cells(cell_conec)
+surf_norms = pyLOM.vmmath.fix_normals_coherence(surf_norms, edge_dict, cell_conec, m.ncells)
 
 pyLOM.pprint(0,"surf_norms: ", surf_norms.shape)
 pyLOM.pprint(0,"edge_norms: ", edge_norms.shape)

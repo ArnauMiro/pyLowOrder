@@ -330,112 +330,129 @@ def fix_normals_coherence(real[:,:] normals, object edge_dict, object adjacency,
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.float32_t,ndim=2] _sedge_normals(float[:,:] xyz, float[:] cell_normal, int num_nodes):
+def _swall_normals(int[:] nodes_idx, float[:,:] nodes_xyz, float[:] surf_normal):
 	'''
-	Compute the edge normals (pointing outwards) of a cell given the nodes of the cell, the number of nodes and the cell normal.
+	Compute the unitary normals to the cell walls (only for 2D cells).
+	Example: For a triangle, the wall normals are the three vectors normal to each of the sides.
+	The wall normals are always contained in the cell plane, thus are orthogonal themselves to the cell surface normal.
+	As a convention, wall normals are always pointing outwards the cell.
 
 	In:
-		- xyz: Array of the node coordinates of the cell
-		- num_nodes: Number of nodes of the cell
-		- cell_normal: Normal to the plane of the cell
+		- nodes_idx: List or array of the node indices of the cell
+		- nodes_xyz: List or array of the node coordinates of the cell
+		- surf_normal: Normal to the plane of the cell
+
 
 	Returns:
-		- edge_normals: List of the edge normals of the cell
+		- cell_edges: List of graph edges representing the element walls (node indices)
+		- wall_normals: List of the unitary wall normals
 	'''
-	cdef int i, j, nnodes = xyz.shape[0], ndim = cell_normal.shape[0]
-	cdef float[:] edge_normal
+	cdef int i, num_nodes = nodes_xyz.shape[0], ndim = nodes_xyz.shape[1]
+	cdef list wall_normals = [], cell_edges = []
+	cdef float[:] edge_normal, auxiliary_node
 	cdef np.ndarray[np.float32_t,ndim=1] v1           = np.zeros((ndim,),np.float32)
 	cdef np.ndarray[np.float32_t,ndim=1] v2           = np.zeros((ndim,),np.float32)
 	cdef np.ndarray[np.float32_t,ndim=1] edge         = np.zeros((ndim,),np.float32)
 	cdef np.ndarray[np.float32_t,ndim=1] midpoint     = np.zeros((ndim,),np.float32)
-	cdef np.ndarray[np.float32_t,ndim=2] edge_normals = np.zeros((nnodes,ndim),np.float32)
-	# Iterate over each edge of the cell
-	for i in range(nnodes):
-		for j in range(ndim):
-			v1[j]   = xyz[i,j]
-			v2[j]   = xyz[(i + 1) % num_nodes,j]  # Get the edge vertices
-			edge[j] = v2[j] - v1[j]  # Get the edge vector
 
-		edge_normal  = np.cross(edge, cell_normal)  # Compute the edge normal
+	# Iterate over each edge of the cell
+	for i in range(num_nodes):
+		v1, v2 = nodes_xyz[i], nodes_xyz[(i + 1) % num_nodes]  # Get the edge vertices
+		edge = tuple([nodes_idx[i], nodes_idx[(i + 1) % num_nodes]])
+		edge_vector = v2 - v1  # Get the edge vector
+
+		edge_normal = np.cross(edge_vector, surf_normal)  # Compute the edge normal
 		edge_normal /= np.linalg.norm(edge_normal)  # Normalize the edge normal
 
 		# Ensure the edge normal is pointing outwards (assumes convex polygon)
-		for j in range(ndim):
-			midpoint[j] = (v1[j] + v2[j])/2. - xyz[(i+2) % num_nodes,j]
+		auxiliary_node = nodes_xyz[(i+2) % num_nodes]
+		midpoint = (v1 + v2) / 2
 
-		if np.dot(midpoint, edge_normal) < 0:
+		if np.dot(midpoint - auxiliary_node, edge_normal) < 0:
 			for j in range(ndim):
-				edge_normal[j] *= -1.
+				edge_normal[j] *= -1
 
-		edge_normals[i,:] = edge_normal
+		wall_normals.append(edge_normal)
+		cell_edges.append(edge)
 
-	return edge_normals
+	return cell_edges, wall_normals
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=2] _dedge_normals(double[:,:] xyz, double[:] cell_normal, int num_nodes):
+def _dwall_normals(int[:] nodes_idx, double[:,:] nodes_xyz, double[:] surf_normal):
 	'''
-	Compute the edge normals (pointing outwards) of a cell given the nodes of the cell, the number of nodes and the cell normal.
+	Compute the unitary normals to the cell walls (only for 2D cells).
+	Example: For a triangle, the wall normals are the three vectors normal to each of the sides.
+	The wall normals are always contained in the cell plane, thus are orthogonal themselves to the cell surface normal.
+	As a convention, wall normals are always pointing outwards the cell.
 
 	In:
-		- xyz: Array of the node coordinates of the cell
-		- num_nodes: Number of nodes of the cell
-		- cell_normal: Normal to the plane of the cell
+		- nodes_idx: List or array of the node indices of the cell
+		- nodes_xyz: List or array of the node coordinates of the cell
+		- surf_normal: Normal to the plane of the cell
+
 
 	Returns:
-		- edge_normals: List of the edge normals of the cell
+		- cell_edges: List of graph edges representing the element walls (node indices)
+		- wall_normals: List of the unitary wall normals
 	'''
-	cdef int i, j, nnodes = xyz.shape[0], ndim = cell_normal.shape[0]
-	cdef double[:] edge_normal
-	cdef np.ndarray[np.float32_t,ndim=1] v1          = np.zeros((ndim,),np.float32)
-	cdef np.ndarray[np.float32_t,ndim=1] v2          = np.zeros((ndim,),np.float32)
+	cdef int i, j, num_nodes = nodes_xyz.shape[0], ndim = nodes_xyz.shape[1]
+	cdef list wall_normals = [], cell_edges = []
+	cdef double[:] edge_normal, auxiliary_node
+	cdef np.ndarray[np.double_t,ndim=1] v1           = np.zeros((ndim,),np.double)
+	cdef np.ndarray[np.double_t,ndim=1] v2           = np.zeros((ndim,),np.double)
 	cdef np.ndarray[np.double_t,ndim=1] edge         = np.zeros((ndim,),np.double)
 	cdef np.ndarray[np.double_t,ndim=1] midpoint     = np.zeros((ndim,),np.double)
-	cdef np.ndarray[np.double_t,ndim=2] edge_normals = np.zeros((nnodes,ndim),np.double)
-	# Iterate over each edge of the cell
-	for i in range(nnodes):
-		for j in range(ndim):
-			v1[j]   = xyz[i,j]
-			v2[j]   = xyz[(i + 1) % num_nodes,j]  # Get the edge vertices
-			edge[j] = v2[j] - v1[j]  # Get the edge vector
 
-		edge_normal  = np.cross(edge, cell_normal)  # Compute the edge normal
+	# Iterate over each edge of the cell
+	for i in range(num_nodes):
+		v1, v2 = nodes_xyz[i], nodes_xyz[(i + 1) % num_nodes]  # Get the edge vertices
+		edge = tuple([nodes_idx[i], nodes_idx[(i + 1) % num_nodes]])
+		edge_vector = v2 - v1  # Get the edge vector
+
+		edge_normal = np.cross(edge_vector, surf_normal)  # Compute the edge normal
 		edge_normal /= np.linalg.norm(edge_normal)  # Normalize the edge normal
 
 		# Ensure the edge normal is pointing outwards (assumes convex polygon)
-		for j in range(ndim):
-			midpoint[j] = (v1[j] + v2[j])/2. - xyz[(i+2) % num_nodes,j]
+		auxiliary_node = nodes_xyz[(i+2) % num_nodes]
+		midpoint = (v1 + v2) / 2
 
-		if np.dot(midpoint, edge_normal) < 0:
+		if np.dot(midpoint - auxiliary_node, edge_normal) < 0:
 			for j in range(ndim):
-				edge_normal[j] *= -1.
+				edge_normal[j] *= -1
 
-		edge_normals[i,:] = edge_normal
+		wall_normals.append(edge_normal)
+		cell_edges.append(edge)
 
-	return edge_normals
+	return cell_edges, wall_normals
 
-@cr('math.edge_normals')
+@cr('math.wall_normals')
 @cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def edge_normals(real[:,:] xyz, real[:] cell_normal, int num_nodes):
+def wall_normals(int[:] nodes_idx, real[:,:] nodes_xyz, real[:] surf_normal):
 	'''
-	Compute the edge normals (pointing outwards) of a cell given the nodes of the cell, the number of nodes and the cell normal.
+	Compute the unitary normals to the cell walls (only for 2D cells).
+	Example: For a triangle, the wall normals are the three vectors normal to each of the sides.
+	The wall normals are always contained in the cell plane, thus are orthogonal themselves to the cell surface normal.
+	As a convention, wall normals are always pointing outwards the cell.
 
 	In:
-		- xyz: Array of the node coordinates of the cell
-		- num_nodes: Number of nodes of the cell
-		- cell_normal: Normal to the plane of the cell
+		- nodes_idx: List or array of the node indices of the cell
+		- nodes_xyz: List or array of the node coordinates of the cell
+		- surf_normal: Normal to the plane of the cell
+
 
 	Returns:
-		- edge_normals: List of the edge normals of the cell
+		- cell_edges: List of graph edges representing the element walls (node indices)
+		- wall_normals: List of the unitary wall normals
 	'''
 	if real is double:
-		return _dedge_normals(xyz, cell_normal, num_nodes)
+		return _dwall_normals(nodes_idx, nodes_xyz, surf_normal)
 	else:
-		return _sedge_normals(xyz, cell_normal, num_nodes)
+		return _swall_normals(nodes_idx, nodes_xyz, surf_normal)
