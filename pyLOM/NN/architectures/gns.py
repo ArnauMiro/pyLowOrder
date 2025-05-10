@@ -467,21 +467,31 @@ class GNS(nn.Module):
         self.groupnorm = nn.GroupNorm(2, self.latent_dim).to(self.device)
 
 
-    def forward(self, graph) -> torch.Tensor:
+    def forward(self, op_params: torch.Tensor) -> torch.Tensor:
         r"""
         Forward pass of the model.
 
         Args:
-            graph (Data): The input graph.
+            op_params: The operational parameters. E.g. [alpha, Mach]. Dimension must match the input_dim of the model.
 
         Returns:
             torch.Tensor: The predicted target values.
         """
+        # Check if the graph is set
+        if self.graph is None:
+            raise ValueError("Graph not set. Please set the graph before training.")
+        
+        # Check if the input parameters are of the correct shape
+        if op_params.shape[1] != self.input_dim:
+            raise ValueError(f"Input parameters must have shape [B, {self.input_dim}]. Got {op_params.shape} instead.")
+        
+        # Prepend the operational parameters to the node features
+        self.graph.x[:, :self.input_dim] = op_params
 
         # Get node and edge features
-        x = graph.x
-        edge_index = graph.edge_index
-        edge_attr = graph.edge_attr
+        x = self.graph.x
+        edge_index = self.graph.edge_index
+        edge_attr = self.graph.edge_attr
 
         # 1. Encode node features
         h = self.encoder(x)
@@ -614,10 +624,9 @@ class GNS(nn.Module):
                 params_batch = params_batch.to(self.device)
                 y_batch = y_batch.to(self.device)
 
-                for (p, y) in zip(params_batch, y_batch):
-                    self.graph.x[:, :self.input_dim] = p
+                for (params, y) in zip(params_batch, y_batch):
                     targets = y.reshape(-1, self.output_dim)
-                    output = self(self.graph)
+                    output = self(params)
                     # print("targets:", targets[:5], flush=True)
                     # print("output:", output[:5], flush=True)
                     loss = loss_fn(output, targets)
@@ -790,10 +799,9 @@ class GNS(nn.Module):
                 params_batch = params_batch.to(self.device)
                 y_batch = y_batch.to(self.device)
 
-                for i, (p, y) in enumerate(zip(params_batch, y_batch)):
-                    self.graph.x[:, :self.input_dim] = p
+                for i, (params, y) in enumerate(zip(params_batch, y_batch)):
                     targets = y.reshape(-1, self.output_dim)
-                    output = self(self.graph)
+                    output = self(params)
                     # print(f"RMSE of input {i}: {torch.sqrt(torch.mean((output - targets)**2))}", flush=True)
                     all_predictions[i] = output.cpu().numpy().reshape(-1)
                     all_targets[i] = targets.cpu().numpy().reshape(-1) 
