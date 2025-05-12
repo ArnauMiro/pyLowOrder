@@ -21,6 +21,8 @@ from .optimizer     import OptunaOptimizer
 from .stats         import RegressionEvaluator
 from .callbacks     import EarlyStopper
 
+from .interpolator import Interpolator
+
 from .architectures.mlp               import MLP
 from .architectures.kan               import KAN, KAN_SIN, ChebyshevLayer, JacobiLayer, SineLayer
 from .architectures.autoencoders      import Autoencoder, VariationalAutoencoder
