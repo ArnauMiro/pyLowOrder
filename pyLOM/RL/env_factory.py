@@ -2,16 +2,15 @@ from dataclasses import dataclass
 from typing import Tuple, Optional
 
 import gymnasium as gym
-import shape_optimizer_env  # noqa: F401
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor
 
-from airfoil_solvers import (
+from pyLOM.RL.airfoil_solvers import (
     NeuralFoilSolver,
     XFoilSolver,
     DummySolver,
     BaseSolver
 )
-from shape_parameterizers import AirfoilCSTParametrizer
+from pyLOM.RL.shape_parameterizers import AirfoilCSTParametrizer
 
 
 
@@ -28,7 +27,7 @@ class AirfoilOperatingConditions:
         mach (float): Mach number for the simulation. Default is ``0.5``.
     """
     alpha: float = 2  # degrees
-    reynolds: float = 1e6
+    Reynolds: float = 1e6
     mach: float = 0.5
 
 
@@ -187,13 +186,13 @@ class SolverFactory:
         if solver_name == "neuralfoil":
             return NeuralFoilSolver(
                 alpha=conditions.alpha,
-                Reynolds=conditions.reynolds,
+                Reynolds=conditions.Reynolds,
                 model_size="xxsmall",
             )
         elif solver_name == "xfoil":
             return XFoilSolver(
                 alpha=conditions.alpha,
-                Reynolds=conditions.reynolds,
+                Reynolds=conditions.Reynolds,
                 mach_number=conditions.mach,
             )
         elif solver_name == "dummy":
@@ -262,7 +261,7 @@ def create_env(
         thickness_penalization_factor=thickness_penalization_factor,
     )
     
-    env = gym.make("ShapeOptimizerEnv-v0", **env_args)
+    env = gym.make("ShapeOptimizationEnv-v0", **env_args)
     if initial_seed is not None:
         env.seed(initial_seed)
         

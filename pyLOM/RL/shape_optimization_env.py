@@ -128,5 +128,5 @@ class ShapeOptimizationEnv(gym.Env):
 
 gym.envs.registration.register(
     id="ShapeOptimizationEnv-v0",
-    entry_point="shape_optimization_env:ShapeOptimizationEnv",
+    entry_point="pyLOM.RL.shape_optimization_env:ShapeOptimizationEnv",
 )

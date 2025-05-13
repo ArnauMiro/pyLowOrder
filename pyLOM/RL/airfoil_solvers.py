@@ -6,7 +6,7 @@ from aerosandbox import XFoil
 import neuralfoil as nf
 
 from pyLOM.RL import NON_CONVERGED_REWARD
-from utils import raiseWarning, pprint
+from pyLOM.utils import raiseWarning, pprint
 
 
 class BaseSolver(ABC):
