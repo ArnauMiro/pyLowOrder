@@ -4,7 +4,7 @@ import numpy as np
 import torch.nn as nn
 
 from torch.utils.data import DataLoader
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Callable
 from ..optimizer import OptunaOptimizer, TrialPruned
 from .. import DEVICE, set_seed  # pyLOM/NN/__init__.py
 from ... import pprint, cr  # pyLOM/__init__.py
@@ -37,6 +37,8 @@ class MLP(nn.Module):
         p_dropouts: float = 0.0,
         activation: torch.nn.Module = torch.nn.functional.relu,
         device: torch.device = DEVICE,
+        initialization: Callable = torch.nn.init.xavier_uniform_,
+        initialization_kwargs: Dict = {},
         seed: int = None,
         **kwargs: Dict,
     ):
@@ -47,6 +49,8 @@ class MLP(nn.Module):
         self.p_dropouts = p_dropouts
         self.activation = activation
         self.device = device
+        self.initialization = initialization
+        self.initialization_kwargs = initialization_kwargs
 
         super().__init__()
         if seed is not None:
@@ -62,9 +66,9 @@ class MLP(nn.Module):
 
         for layer in self.layers:
             if (isinstance(layer, nn.Linear) and i % 2 == 0): # Initialize only non-dropout linear layers
-                nn.init.xavier_uniform_(layer.weight)
+                self.initialization(layer.weight, **self.initialization_kwargs)
                 nn.init.zeros_(layer.bias)
-        nn.init.xavier_uniform_(self.oupt.weight)
+        self.initialization(layer.weight, **self.initialization_kwargs)
         nn.init.zeros_(self.oupt.bias)
 
         self.to(self.device)
