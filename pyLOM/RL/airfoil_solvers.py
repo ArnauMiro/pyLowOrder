@@ -10,6 +10,9 @@ from utils import raiseWarning, pprint
 
 
 class BaseSolver(ABC):
+    """
+    Base class for all solvers. It defines the interface for the solvers.
+    """
     def __init__(self):
         self.NON_CONVERGED_REWARD = NON_CONVERGED_REWARD
 
@@ -19,6 +22,18 @@ class BaseSolver(ABC):
 
 
 class XFoilSolver(BaseSolver):
+    """
+    XFoil solver for airfoil analysis. It uses the XFoil library to compute the lift and drag coefficients. Under the hood, it uses the XFoil class from aerosandbox.
+    Requires XFoil to be on installed your machine; XFoil is available here: https://web.mit.edu/drela/Public/web/xfoil/
+    And xfoil to be in your PATH. You can check this by running `which xfoil` in your terminal.
+    
+    Args:
+        alpha (float): Angle of attack in degrees.
+        mach (float): Mach number.
+        Reynolds (float, optional): Reynolds number. If not provided, inviscid mode is used. Default is ``None``.
+        xfoil_params (dict, optional): Additional parameters that are passed to the XFoil class. For example, you can set `xfoil_params={"xfoil_repanel": True}` to repanel the airfoil. Default is ``{}``.
+    """
+
     def __init__(self, alpha: float, mach: float, Reynolds: float = None, xfoil_params: dict = {}):
         super().__init__()
         self.Reynolds = Reynolds
@@ -56,26 +71,27 @@ class XFoilSolver(BaseSolver):
 
 
 class NeuralFoilSolver(BaseSolver):
-    def __init__(self, alpha: float, Reynolds: float, model_size: str = "xxxlarge", device: str = "cpu"):
+    """
+    NeuralFoil solver for airfoil analysis. It uses the NeuralFoil library to compute the lift and drag coefficients.
+
+    Args:
+        alpha (float): Angle of attack in degrees.
+        Reynolds (float): Reynolds number.
+        model_size (str, optional): Size of the model. Default is "xxxlarge". Other options are "xxsmall", "xsmall", "small", "medium", "large", "xlarge", "xxlarge", "xxxlarge".
+    """
+    def __init__(self, alpha: float, Reynolds: float, model_size: str = "xxxlarge"):
         super().__init__()
         self.Reynolds = Reynolds
         self.alpha = alpha
         self.model_size = model_size
-        if not hasattr(nf, "get_aero_from_airfoil"):
-            raiseWarning("NeuralFoil-torch is not installed, for larger model sizes it will run")
-            self.device = None 
-        else:
-            self.device = device
 
-    def __call__(self, airfoil):
+    def __call__(self, airfoil: asb.Airfoil):
         params = dict(
             airfoil=airfoil,
             alpha=self.alpha,
             Re=self.Reynolds,
             model_size=self.model_size,
         )
-        if self.device is not None:
-            params["device"] = self.device 
 
         result = nf.get_aero_from_airfoil(**params)
         confidence = result["analysis_confidence"][0]
@@ -83,8 +99,11 @@ class NeuralFoilSolver(BaseSolver):
         return reward
     
 
-
 class DummySolver(BaseSolver):
+    """
+    Dummy solver for airfoil analysis. It returns a constant reward for all airfoils.
+    This is useful for testing purposes.
+    """
     def __init__(self):
         super().__init__()
 

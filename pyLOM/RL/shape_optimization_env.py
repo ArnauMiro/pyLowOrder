@@ -5,6 +5,16 @@ from pyLOM.RL import BaseParameterizer, BaseSolver
 from pyLOM.utils import pprint
 
 class ShapeOptimizationEnv(gym.Env):
+    """
+    Custom Environment that follows gym interface for shape optimization using reinforcement learning.
+    
+    Args:
+        solver (BaseSolver): Solver object that computes the reward.
+        parameterizer (BaseParameterizer): Parameterizer object that defines the shape to optimize.
+        episode_max_length (int): Maximum length of an episode, i.e, maximum number of modifications that the agent can perform on the shape. Default is ``64``.
+        thickness_penalization_factor (float): Penalty factor for thickness changes. Default is ``0``.
+    """
+
     def __init__(
         self,
         solver: BaseSolver,
@@ -87,12 +97,11 @@ class ShapeOptimizationEnv(gym.Env):
         current_reward *= thickness_factor
         reward = current_reward - self.previous_reward
         self.previous_reward = current_reward
-        # a termination condition
         self.current_iterations += 1
         return (
             self.shape_params,
             reward,
-            self.current_iterations >= self.episode_max_length,
+            self.current_iterations >= self.episode_max_length, # a termination condition
             truncated,  # truncated,
             {"shape": shape},
         )

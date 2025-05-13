@@ -14,36 +14,70 @@ airfoil_database_root = _asb_root / "geometry" / "airfoil" / "airfoil_database"
 
 
 class BaseParameterizer(ABC):
+    """
+    Base class for all parameterizers. It defines the interface for the parameterizers.
+    """
     @abstractmethod
-    def get_shape_from_params(self, params):
+    def get_shape_from_params(self, params: np.ndarray) -> asb.Airfoil:
         """
         Create a shape from the given parameters.
+
+        Args:
+            params (np.ndarray): Parameters to create the shape.
+
+        Returns:
+            asb.Airfoil: Created shape.
         """
         pass
     
     @abstractmethod
-    def get_optimizable_bounds(self):
+    def get_optimizable_bounds(self) -> Tuple[List, List]:
         """
         Get the bounds of the optimizable parameters.
+
+        Returns:
+            Tuple[List, List]: Lower and upper bounds of the parameters.
         """
         pass
     
     @abstractmethod
-    def get_params_from_shape(self, shape):
+    def get_params_from_shape(self, shapea: asb.Airfoil) -> np.ndarray:
         """
         Get the parameters from the given shape.
+        Args:
+            shape (asb.Airfoil): Shape to get the parameters from.
+
+        Returns:
+            np.ndarray: Parameters of the shape.
         """
         pass
     
     @abstractmethod
-    def generate_random_params(self, seed=None):
+    def generate_random_params(self, seed=None) -> np.ndarray:
         """
         Generate random parameters within the bounds.
+
+        Args:
+            seed (int, optional): Seed for the random number generator. Default is ``None``.
+
+        Returns:
+            np.ndarray: Random parameters within the bounds.
         """
         pass
 
 
 class AirfoilCSTParametrizer(BaseParameterizer):
+    """
+    CST parameterization of airfoils. The CST method is a way to parameterize airfoils using a set of control points.
+    Depending on the number of points in upper and lower surfaces, the number of parameters will be different.
+
+    Args:
+        upper_surface_bounds (Tuple[List, List]): Bounds for the upper surface parameters. The first list has the lower bounds and the second list has the upper bounds.The length of the lists should be equal to the number of parameters for the upper surface.
+        lower_surface_bounds (Tuple[List, List]): Bounds for the lower surface parameters. The first list has the lower bounds and the second list has the upper bounds.The length of the lists should be equal to the number of parameters for the lower surface.
+        TE_thickness_bounds (Tuple[float, float]): Bounds for the TE thickness. The first value is the lower bound and the second value is the upper bound.
+        leading_edge_weight (Tuple[float, float]): Bounds for the leading edge weight. The first value is the lower bound and the second value is the upper bound.
+    """
+
     naca_4digit_airfoils = [
         "naca0006", "naca0009", "naca0012", "naca0015",
         "naca0018", "naca1408", "naca1410", "naca1412",
@@ -54,10 +88,10 @@ class AirfoilCSTParametrizer(BaseParameterizer):
 
     def __init__(
         self,
-        upper_surface_bounds: Tuple[List],
-        lower_surface_bounds: Tuple[List],
-        TE_thickness_bounds: Tuple[List],
-        leading_edge_weight: Tuple[List],
+        upper_surface_bounds: Tuple[List, List],
+        lower_surface_bounds: Tuple[List, List],
+        TE_thickness_bounds: Tuple[List, List],
+        leading_edge_weight: Tuple[List, List],
     ):
         self.upper_surface_bounds = upper_surface_bounds
         self.lower_surface_bounds = lower_surface_bounds
@@ -68,11 +102,6 @@ class AirfoilCSTParametrizer(BaseParameterizer):
 
 
     def get_shape_from_params(self, params):
-        """
-        Create an airfoil using the CST method.
-        The first 16 parameters are for the upper surface, the next 16 are for the lower surface,
-        the next 2 are for the TE thickness and leading edge weight.
-        """
         # Check if the params are within the bounds
         upper_surface_params, lower_surface_params, leading_edge_weight, TE_thickness = self._deserialize_params(params)
         airfoil = asb.KulfanAirfoil(
@@ -84,12 +113,7 @@ class AirfoilCSTParametrizer(BaseParameterizer):
         
         return airfoil
     
-    def get_params_from_shape(self, airfoil):
-        """
-        Get the parameters from the airfoil.
-        The first 16 parameters are for the upper surface, the next 16 are for the lower surface,
-        the next 2 are for the TE thickness and leading edge weight.
-        """
+    def get_params_from_shape(self, airfoil: asb.Airfoil) -> np.ndarray:
         if not isinstance(airfoil, asb.KulfanAirfoil):
             airfoil = airfoil.to_kulfan_airfoil(n_weights_per_side=self.num_upper_surface_params)
         return np.hstack(
@@ -101,12 +125,18 @@ class AirfoilCSTParametrizer(BaseParameterizer):
             dtype=np.float32,
         )
 
-    def generate_random_params(self, source="naca", seed=None):
+    def generate_random_params(self, source="naca", seed=None) -> np.ndarray:
         """
         Generate random parameters within the bounds.
 
         If source is "naca", generate a random NACA 4-digit airfoil.
         If source is "uiuc", generate random airfoil from the UIUC dataset.
+
+        Args:
+            source (str): Source of the airfoil. Can be "naca" or "uiuc". Default is "naca".
+            seed (int, optional): Seed for the random number generator. Default is ``None``.
+        Returns:
+            np.ndarray: Random parameters for an airfoil.
         """
         if seed is not None:
             random.seed(seed)
@@ -138,9 +168,13 @@ class AirfoilCSTParametrizer(BaseParameterizer):
     
         return upper_surface_params, lower_surface_params, leading_edge_weight, TE_thickness
     
-    def get_optimizable_bounds(self):
+    def get_optimizable_bounds(self) -> Tuple[List, List]:
         """
         Get the bounds of the parameters.
+
+        Returns:
+            Tuple[List, List]: Lower and upper bounds of the parameters. The first list has the lower bounds and the second list has the upper bounds.
+        
         """
         return (
             self.upper_surface_bounds[0] + self.lower_surface_bounds[0] + [self.leading_edge_weight_bounds[0], self.TE_thickness_bounds[0]],
