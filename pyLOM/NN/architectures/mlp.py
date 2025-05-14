@@ -55,6 +55,7 @@ class MLP(nn.Module):
         super().__init__()
         if seed is not None:
             set_seed(seed)
+        
         self.layers = nn.ModuleList()
         for i in range(n_layers):
             in_size = input_size if i == 0 else hidden_size
@@ -65,10 +66,10 @@ class MLP(nn.Module):
         self.oupt = nn.Linear(hidden_size, output_size)
 
         for layer in self.layers:
-            if (isinstance(layer, nn.Linear) and i % 2 == 0): # Initialize only non-dropout linear layers
+            if isinstance(layer, nn.Linear):
                 self.initialization(layer.weight, **self.initialization_kwargs)
                 nn.init.zeros_(layer.bias)
-        self.initialization(layer.weight, **self.initialization_kwargs)
+        self.initialization(self.oupt.weight, **self.initialization_kwargs)
         nn.init.zeros_(self.oupt.bias)
 
         self.to(self.device)
