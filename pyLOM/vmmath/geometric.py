@@ -130,7 +130,6 @@ def cell_adjacency(edge_dict) -> dict:
 	Returns:
 		dict: cell to neighbours dictionary
 	'''
-	
 	cell_adjacency = defaultdict(set)
 
 	for _, cells in edge_dict.items():
@@ -155,13 +154,13 @@ def fix_normals_coherence(normals, edge_dict, adjacency, num_cells) -> np.ndarra
 	Returns:
 		- normals: Array of normals of the cells
 	'''
-    # Find the cells that are on the border
+	# Find the cells that are on the border
 	border_cells = set()
-	for e, faces in edge_dict.items():
+	for _, faces in edge_dict.items():
 		if len(faces) == 1:  # If the edge is on the border
 			border_cells.add(next(iter(faces)))  # Add the cell to the border cells
 
-    # Propagate the normals using a BFS algorithm
+	# Propagate the normals using a BFS algorithm
 	visited = np.zeros(num_cells, dtype=bool)
 	queue = deque([next(iter(border_cells))])  # Start from a border cell
 	visited[queue[0]] = True
@@ -170,18 +169,18 @@ def fix_normals_coherence(normals, edge_dict, adjacency, num_cells) -> np.ndarra
 		current = queue.popleft()
 		for neighbor in adjacency[current]:
 			if not visited[neighbor]:
-                # Check if the normals are consistent
+				# Check if the normals are consistent
 				if np.dot(normals[current], normals[neighbor]) < 0:
 					normals[neighbor] *= -1  # Invert the normal
 
 				visited[neighbor] = True
 				queue.append(neighbor)
 
-    # Adjust the normals of the border cells
+	# Adjust the normals of the border cells
 	border_normals = normals[list(border_cells)]
 	avg_internal_normal = np.mean(normals[~np.isin(range(num_cells), list(border_cells))], axis=0)
 
-    # If the average normal of the border cells is pointing inwards, invert all the normals
+	# If the average normal of the border cells is pointing inwards, invert all the normals
 	if np.dot(np.mean(border_normals, axis=0), avg_internal_normal) < 0:
 		for i in border_cells:
 			normals[i] *= -1
