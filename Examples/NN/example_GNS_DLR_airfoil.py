@@ -261,7 +261,7 @@ if __name__ == "__main__":
         'p_dropouts': (0.0, 0.5),
         'device': device,
 
-        'epochs': 30,
+        'epochs': 300,
         'lr': (1e-5, 1e-2),
         'lr_gamma': (0.99, 0.999),
         'lr_scheduler_step': 1,
@@ -282,8 +282,8 @@ if __name__ == "__main__":
         n_trials = 100,
         direction = 'minimize',
         pruner = optuna.pruners.MedianPruner(
-            n_startup_trials = 5,
-            n_warmup_steps = 5,
+            n_startup_trials = 10,
+            n_warmup_steps = 10,
             interval_steps = 1
         ),
         save_dir = RESUDIR
@@ -297,7 +297,8 @@ if __name__ == "__main__":
     model_class=GNS
     )
 
-
+    print("Starting optimization...")
+    # Run the optimization
     training_logs = pipeline.run()
 
     # check saving and loading the model
