@@ -374,7 +374,7 @@ class GNS(nn.Module):
         if activation is None:
             activation = 'ELU'
         if device is None:
-            device = DEVICE
+            device = torch.device(DEVICE)
         if isinstance(device, str):
             device = torch.device(device)
         if device.type == "cuda":
@@ -383,6 +383,8 @@ class GNS(nn.Module):
             torch.cuda.set_device(0)
         if seed is not None:
             set_seed(seed)
+
+        print(f"Using device: {device}", flush=True)
 
         # Save the model parameters
         self._graph = None  # Placeholder for the graph object.
@@ -577,7 +579,7 @@ class GNS(nn.Module):
         '''
 
         # Set the model to training mode
-        if self.seed is not None:
+        if self.seed is not None: 
             set_seed(self.seed)
 
         self.train()
@@ -593,14 +595,19 @@ class GNS(nn.Module):
                 # Complete the subgraph data and append it to a subgraphs batch
                 x_subg = self.graph.x[subset]
                 y_batch_subg = y_batch[:, subset]
+                edge_attr_subg = self.graph.edge_attr[edge_mask]
+
                 # Create a boolean mask for the seed nodes (original tensor is not useful bc of the relabeling)
                 seed_nodes = torch.zeros(subset.shape[0], dtype=torch.bool, device=self.device)
                 seed_nodes[mapping] = True # Store this mapping as we only care about the seed nodes for the loss
                 G_list = []
                 for p, y_subg in zip(params_batch, y_batch_subg):
-                    x_subg[:, :self.input_dim] = p # Prepend the operational parameters to node features
-                    y_subg = y_subg.reshape(-1,1)
-                    G = Data(x=x_subg.clone(), y=y_subg.clone(), seed_nodes=seed_nodes, edge_index=edge_index, edge_attr=self.graph.edge_attr[edge_mask])
+                    x = x_subg.clone()
+                    y = y_subg.clone()
+                    # Prepend the operational parameters to node features
+                    x[:, :self.input_dim] = p
+                    y = y.reshape(-1,1)
+                    G = Data(x=x, y=y, seed_nodes=seed_nodes, edge_index=edge_index, edge_attr=edge_attr_subg)
                     G_list.append(G)
 
                 G_batch = Batch.from_data_list(G_list)
@@ -614,6 +621,9 @@ class GNS(nn.Module):
                 loss.backward()
                 self.optimizer.step()
                 total_loss += loss.item()
+
+                self.cleanup(G_list, G_batch, output, targets, loss)
+
 
             if self.scheduler is not None:
                 self.scheduler.step()
@@ -647,6 +657,7 @@ class GNS(nn.Module):
                     # print(f"Loss**1/2: {loss.item()**0.5:.4f}", flush=True)
                     # print(f"rmse: {torch.sqrt(torch.mean((output - targets)**2)):.4f}", flush=True)
                     total_loss += loss.item()
+
 
         # print("total_loss:", total_loss, flush=True)
         # print("Dividing loss by:", eval_dataloader.dataset.__len__(), flush=True)
@@ -749,8 +760,13 @@ class GNS(nn.Module):
                 test_loss_list.append(test_loss)
             
             if print_rate_epoch != 0 and (epoch % print_rate_epoch) == 0:
-                test_log = f" | Test loss:{test_loss:.4f}" if eval_dataloader is not None else ""
-                pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss: {train_loss:.4f} {test_log}", flush=True)
+                test_log = f" | Test loss:{test_loss:.4e}" if eval_dataloader is not None else ""
+                pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss: {train_loss:.4e} {test_log}", flush=True)
+                if self.device.type == "cuda":
+                    allocated = torch.cuda.memory_allocated(self.device) / 1024**2
+                    reserved = torch.cuda.memory_reserved(self.device) / 1024**2
+                    pprint(0, f"[GPU] Allocated: {allocated:.2f} MB | Reserved: {reserved:.2f} MB", flush=True)
+        
 
             epoch_list.append(epoch)
             self.state = (
@@ -760,6 +776,8 @@ class GNS(nn.Module):
                 train_loss_list,
                 test_loss_list,
                 )
+                
+
             
         return {"train_loss": train_loss_list, "test_loss": test_loss_list}
 
@@ -1080,8 +1098,25 @@ class GNS(nn.Module):
     def _hyperparams_serializer(obj) -> str:
         r"""
         Function used to print hyperparams in JSON format.
+        Args:
+            obj (Any): The object to serialize.
+        Returns:
+            str: The serialized object.
         """
 
         if hasattr(obj, "__class__"):  # Verify whether the object has a class
             return obj.__class__.__name__  # Return the class name
         raise TypeError(f"Type {type(obj)} not serializable")  # Raise an error if the object is not serializable
+
+    @staticmethod
+    def cleanup(*tensors) -> None:
+        r"""
+        Cleanup the GPU memory by deleting the tensors and emptying the cache.
+        Args:
+            tensors (tuple): The tensors to delete.
+        """
+
+        for t in tensors:
+            del t
+        torch.cuda.empty_cache()
+
