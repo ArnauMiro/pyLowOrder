@@ -193,7 +193,7 @@ class SolverFactory:
             return XFoilSolver(
                 alpha=conditions.alpha,
                 Reynolds=conditions.Reynolds,
-                mach_number=conditions.mach,
+                mach=conditions.mach,
             )
         elif solver_name == "dummy":
             return DummySolver()

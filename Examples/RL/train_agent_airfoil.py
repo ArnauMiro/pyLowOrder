@@ -1,3 +1,7 @@
+# This script shows an example of how to train an agent using 
+# the PPO algorithm from Stable Baselines3. The solver used is neuralfoil
+# and the space state bounds used are the default ones.
+
 from pyLOM.RL import create_env, AirfoilOperatingConditions
 from stable_baselines3 import PPO
 import torch

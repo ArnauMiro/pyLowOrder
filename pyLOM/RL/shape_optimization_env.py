@@ -69,7 +69,7 @@ class ShapeOptimizationEnv(gym.Env):
                 pprint(0, "Error in computing initial thickness, the shape returned by the parameterizer may no have implemented the max_thickness method: ", e)
                 pprint(0, "The agent will not be penalized for changing the thickness")
                 self.thickness_penalization_factor = 0
-        return self.shape_params, {"shape": initial_shape}
+        return self.shape_params, {"shape": initial_shape, "initial_reward": self.previous_reward}
 
     def step(self, action):
         # modify current airfoil parameters
