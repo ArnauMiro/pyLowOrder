@@ -22,6 +22,7 @@ from .stats         import RegressionEvaluator
 from .callbacks     import EarlyStopper
 
 from .interpolator import Interpolator
+from .aerodynamics import lift_drag_coeff
 
 from .architectures.mlp               import MLP
 from .architectures.kan               import KAN, KAN_SIN, ChebyshevLayer, JacobiLayer, SineLayer
