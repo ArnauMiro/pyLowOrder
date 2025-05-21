@@ -14,7 +14,7 @@ import torch
 import optuna
 
 import pyLOM
-from pyLOM.NN import GNS, Dataset, pyLOMGraph, MinMaxScaler, OptunaOptimizer, Pipeline
+from pyLOM.NN import GNS, Dataset, Graph, MinMaxScaler, OptunaOptimizer, Pipeline
 
 #%%
 def load_graph_data(file_list):
@@ -213,7 +213,7 @@ if __name__ == "__main__":
     edge_attr = torch.tensor(edge_attr, dtype=torch.float32)
 
     # Create the graph object
-    g = pyLOMGraph(
+    g = Graph(
         pos = xyz,
         surf_norms = unit_norms,
         edge_attr = edge_attr,

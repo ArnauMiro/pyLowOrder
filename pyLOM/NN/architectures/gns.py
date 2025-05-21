@@ -131,7 +131,7 @@ class ScalerProtocol(Protocol):
         ...
 
 
-class pyLOMGraph(Data):
+class Graph(Data):
     r'''
     Custom class derived from torch.geometric.Data to handle graphs for GNN.
     
@@ -147,7 +147,7 @@ class pyLOMGraph(Data):
                         scaler: Optional[ScalerProtocol] = None,
                         name: Optional[str] = None,
                         device: Optional[Union[str, torch.device]] = DEVICE,
-                                ) -> "pyLOMGraph":
+                                ) -> "Graph":
         r"""
         Create a torch_geometric Data object from a pyLOM Mesh object.
 
@@ -160,7 +160,7 @@ class pyLOMGraph(Data):
                 - fit_transform: Fit the scaler to the data and transform it.
 
         Returns:
-            pyLOMGraph: An instance of the pyLOMGraph class which can be directly used to train a GNS.
+            Graph: An instance of the Graph class which can be directly used to train a GNS.
         """
         node_attr = cls._node_attr(mesh)  # Get the node attributes
         edge_index, edge_attr = cls._edge_index_and_attr(mesh)  # Get the edge attributes
@@ -339,7 +339,7 @@ class GNS(nn.Module):
         decoder_hidden_layers (int): The number of hidden layers in the decoder.
         message_hidden_layers (int): The number of hidden layers in the message MLP.
         update_hidden_layers (int): The number of hidden layers in the update MLP.
-        graph (Union[torch_geometric.data.Data, pyLOMGraph]): The graph object with node and edge attributes.
+        graph (Union[torch_geometric.data.Data, Graph]): The graph object with node and edge attributes.
         p_dropouts (float, optional): The dropout probability. Default is ``0``.
         checkpoint_file (str, optional): The path to the checkpoint file. Default is ``None``.
         activation (Union[str, nn.Module]): The activation function to use.
@@ -472,13 +472,13 @@ class GNS(nn.Module):
 
     def forward(self,
                 op_params: torch.Tensor = None,
-                graph: Union[Data, pyLOMGraph] = None) -> torch.Tensor:
+                graph: Union[Data, Graph] = None) -> torch.Tensor:
         r"""
         Forward pass of the model.
 
         Args:
             op_params (torch.Tensor, optional): The operational parameters. Shape should be [B, input_dim]. If not provided, the model will compute a forward pass with the provided graph as-is.
-            graph (Union[Data, pyLOMGraph], optional): The graph object. If not provided, the graph set in the model will be used.
+            graph (Union[Data, Graph], optional): The graph object. If not provided, the graph set in the model will be used.
 
         Returns:
             torch.Tensor: The predicted target values.
@@ -528,18 +528,18 @@ class GNS(nn.Module):
     def trainable_params(self) -> int:
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
     @property
-    def graph(self) -> pyLOMGraph:
+    def graph(self) -> Graph:
         r'''Graph property to get the graph object.'''
         return self._graph
     
     @graph.setter
-    def graph(self, graph: pyLOMGraph) -> None:
+    def graph(self, graph: Graph) -> None:
         r'''Graph property to set the graph object.'''
         if self._graph is not None:
             raise Warning("Graph is already set! Graph name is: {}".format(self._graph.name))
-        if not isinstance(graph, pyLOMGraph):
+        if not isinstance(graph, Graph):
             if not isinstance(graph, Data):
-                raise TypeError("Graph must be of type torch_geometric.data.Data or pyLOMGraph.")
+                raise TypeError("Graph must be of type torch_geometric.data.Data or Graph.")
         if getattr(graph, "edge_index", None) is None:
             raise ValueError("Graph must have edge_index attribute.")
         if getattr(graph, "edge_attr", None) is None:
