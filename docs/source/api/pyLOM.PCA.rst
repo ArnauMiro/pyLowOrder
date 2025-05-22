@@ -1,10 +1,10 @@
-pyLOM.NN.architectures
-======================
+pyLOM.PCA
+=========
 
 Module contents
 ---------------
 
-.. automodule:: pyLOM.NN.architectures
+.. automodule:: pyLOM.PCA
    :members:
    :undoc-members:
    :show-inheritance:

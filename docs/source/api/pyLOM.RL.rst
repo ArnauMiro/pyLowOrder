@@ -1,10 +1,10 @@
-pyLOM.NN.architectures
-======================
+pyLOM.RL
+========
 
 Module contents
 ---------------
 
-.. automodule:: pyLOM.NN.architectures
+.. automodule:: pyLOM.RL
    :members:
    :undoc-members:
    :show-inheritance:
