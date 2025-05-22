@@ -259,10 +259,9 @@ def create_env(
         parameterizer=parameterizer,
         episode_max_length=episode_max_length,
         thickness_penalization_factor=thickness_penalization_factor,
+        # disable_env_checker=True
     )
-    
-    env = gym.make("ShapeOptimizationEnv-v0", **env_args)
     if initial_seed is not None:
-        env.seed(initial_seed)
-        
+        env_args['seed'] = initial_seed
+    env = gym.make("ShapeOptimizationEnv-v0", **env_args)
     return env

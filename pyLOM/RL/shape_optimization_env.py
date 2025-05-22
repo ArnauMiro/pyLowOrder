@@ -19,8 +19,9 @@ class ShapeOptimizationEnv(gym.Env):
         self,
         solver: BaseSolver,
         parameterizer: BaseParameterizer,
-        episode_max_length=64,
-        thickness_penalization_factor=0
+        episode_max_length: int = 64,
+        thickness_penalization_factor:float = 0,
+        seed=None
     ):
         self.solver = solver
         self.parameterizer = parameterizer
@@ -47,6 +48,8 @@ class ShapeOptimizationEnv(gym.Env):
         # according to the authors, it should work better with action range [-1, 1]
         self.reward_range = (-np.inf, np.inf)
         self.previous_reward = 0
+        if seed is not None:
+            self.seed(seed)
 
     def reset(self, seed=None, options=None):
         self.current_iterations = 0
