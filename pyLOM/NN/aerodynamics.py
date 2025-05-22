@@ -4,7 +4,7 @@
 #
 # Global aerodynamic calculation routines.
 #
-# Last rev: 20/05/2025
+# Last rev: 22/05/2025
 
 import torch
 
