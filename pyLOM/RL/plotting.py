@@ -4,20 +4,16 @@ from matplotlib.colors import LinearSegmentedColormap
 import aerosandbox.tools.pretty_plots as p
 
 
-def create_airfoil_optimization_progress_plot(airfoils, rewards, aifoil_name='Airfoil Shape', save_path=None):
+def create_airfoil_optimization_progress_plot(airfoils, rewards, airfoil_name='Airfoil Shape', save_path=None):
     fig, ax = plt.subplots(1, 2, figsize=(10, 4), dpi=300)
-    # p.show_plot(show=False, rotate_axis_labels=False)
     plt.rcParams['figure.facecolor'] = 'white'
-    # plt.rcParams['axes.facecolor'] = 'white'
     plt.rcParams['savefig.facecolor'] = 'white'
-    ax[0].set_title(f"{aifoil_name} Evolution")
+    ax[0].set_title(f"{airfoil_name} Evolution")
     ax[0].set_xlabel("$x/c$")
     ax[0].set_ylabel("$y/c$")
-    ax[0].set_facecolor('white')
 
     ax[1].set_xlabel("Step")
     ax[1].set_ylabel("Lift-to-Drag Ratio $C_L/C_D$")
-    ax[1].set_facecolor('white')
     plt.tight_layout()
 
     cmap = LinearSegmentedColormap.from_list(

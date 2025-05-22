@@ -13,9 +13,9 @@ N_ENVS = 4
 N_TIMESTEPS = 50_000
 
 ppo_params = {
-    "learning_rate": 2.5e-4,  # 7e-4
-    "n_steps": 2048 // N_ENVS,  # 64
-    "batch_size": 64,  # 8
+    "learning_rate": 2.5e-4,
+    "n_steps": 2048 // N_ENVS,
+    "batch_size": 64,
     "n_epochs": 10,
     "gamma": 0.3,
     "ent_coef": 0, 

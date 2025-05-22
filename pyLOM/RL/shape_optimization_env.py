@@ -112,7 +112,7 @@ class ShapeOptimizationEnv(gym.Env):
     def render(self, show=False):
         shape = self.parameterizer.get_shape_from_params(self.shape_params)
         plot = (
-            shape.draw(backend="plotly", show=show)
+            shape.draw(backend="matplotlib", show=show)
             if hasattr(shape, "draw")
             else None
         )

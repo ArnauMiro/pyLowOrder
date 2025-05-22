@@ -7,5 +7,17 @@ from pyLOM.RL.airfoil_solvers import (
     DummySolver
 )
 from pyLOM.RL.shape_parameterizers import BaseParameterizer, AirfoilCSTParametrizer
-from . import shape_optimization_env 
-from pyLOM.RL.env_factory import create_env, AirfoilOperatingConditions, AirfoilParameterizerConfig, SolverFactory
+from . import shape_optimization_env
+from pyLOM.RL.env_factory import (
+    create_env,
+    AirfoilOperatingConditions,
+    AirfoilParameterizerConfig,
+    SolverFactory,
+)
+from pyLOM.RL.evaluations import (
+    run_episode,
+    evaluate_airfoil_agent,
+    evaluate_airfoil_agent_whole_uiuc,
+    evaluate_airfoil_agent_whole_uiuc_mpi,
+)
+from pyLOM.RL.plotting import create_airfoil_optimization_progress_plot
