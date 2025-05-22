@@ -8,7 +8,9 @@
 
 import torch
 
-from ..dataset        import Dataset as pyLOMDataset
+from ..dataset          import Dataset as pyLOMDataset
+from ..utils.errors     import raiseError
+from ..                 import pprint
 
 class Interpolator():
     def __init__(
@@ -97,7 +99,7 @@ class Interpolator():
             elif source_type == 'field':
                 val = dataset[original_name]
             else:
-                raise ValueError(f"Unknown source type '{source_type}' for variable '{original_name}'")
+                raiseError(f"Unknown source type '{source_type}' for variable '{original_name}'")
 
             if func_arg_name in kwargs.get('target_names', []):
                 ref_values[func_arg_name] = torch.tensor(val)
@@ -188,7 +190,7 @@ class Interpolator():
             losses = []
 
             if disp_progress[0]:
-                print(f"\nCase {i}:")
+                pprint(0, f"\nCase {i}:")
 
             prev_loss = float('inf')
             n_improvement = 0
@@ -199,7 +201,7 @@ class Interpolator():
                 losses.append([obj_loss.item(), penalty.item(), total_loss.item()])
 
                 if disp_progress[0] and (epoch % disp_progress[1] == 0):
-                    print(f"Epoch {epoch:4}: Total Loss = {total_loss.item():.2e}, Objective = {obj_loss.item():.2e}, Penalty = {penalty.item():.2e}")
+                    pprint(0, f"Epoch {epoch:4}: Total Loss = {total_loss.item():.2e}, Objective = {obj_loss.item():.2e}, Penalty = {penalty.item():.2e}")
 
                 loss_diff = abs(prev_loss - total_loss.item())
                 prev_loss = total_loss.item()
@@ -208,10 +210,10 @@ class Interpolator():
                 else:
                     n_improvement = 0
                 if n_improvement >= config['patience']:
-                    print(f"Early stopping at epoch {epoch}, no significant improvement.")
+                    pprint(0, f"Early stopping at epoch {epoch}, no significant improvement.")
                     break
                 if epoch >= config['niter'] - 1:
-                    print(f"Reached maximum number of epochs ({config['niter']}). Stopping.")
+                    pprint(0, f"Reached maximum number of epochs ({config['niter']}). Stopping.")
                     break
 
             field_mod[:, i] = colTensor.detach().numpy()

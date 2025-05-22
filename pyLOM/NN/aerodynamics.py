@@ -8,6 +8,8 @@
 
 import torch
 
+from ..utils.errors     import raiseError
+
 def lift_drag_coeff(
     CoefPressure: torch.Tensor = None,
     CoefSkinFriction: torch.Tensor = None,
@@ -34,7 +36,7 @@ def lift_drag_coeff(
     if normals.flatten().ndimension() == 1:
         normals = normals.view(-1, 3)
     elif normals.shape[1] != 3:
-        raise ValueError("Normals must have shape (n,3).")
+        raiseError(f"Normals must have shape (n,3).")
     
     # Handle CoefPressure
     if CoefPressure is not None:
@@ -43,14 +45,14 @@ def lift_drag_coeff(
             CoefLiftPressure = ForcePressure[2]*torch.cos(alpha) - ForcePressure[0]*torch.sin(alpha)
             CoefDragPressure = ForcePressure[2]*torch.sin(alpha) + ForcePressure[0]*torch.cos(alpha)
         else:
-            raise ValueError("CoefPressure must have shape (n,) or (n,1).")
+            raiseError(f"CoefPressure must have shape (n,) or (n,1).")
     
     # Handle CoefSkinFriction
     if CoefSkinFriction is not None:
         if CoefSkinFriction.ndimension() == 1:
             CoefSkinFriction = CoefSkinFriction.view(-1, 3)
         elif CoefSkinFriction.shape[1] != 3:
-            raise ValueError("CoefSkinFriction must have shape (n,3).")
+            raiseError(f"CoefSkinFriction must have shape (n,3).")
         
         Si = torch.sqrt(normals[:, 0]**2 + normals[:, 1]**2 + normals[:, 2]**2).view(-1, 1)
         ForceFriction = CoefSkinFriction * Si
@@ -58,7 +60,7 @@ def lift_drag_coeff(
         CoefDragFriction = torch.sum(ForceFriction[:, 2] * torch.sin(alpha)) + torch.sum(ForceFriction[:, 0] * torch.cos(alpha))
     
     if CoefPressure is None and CoefSkinFriction is None:
-        raise ValueError("At least one of CoefPressure or CoefSkinFriction must be provided.")
+        raiseError(f"At least one of CoefPressure or CoefSkinFriction must be provided.")
     
     # Compute final lift and drag coefficients
     CL = (CoefLiftPressure + CoefLiftFriction) / Sref 
