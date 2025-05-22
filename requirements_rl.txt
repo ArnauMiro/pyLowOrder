@@ -1,0 +1,5 @@
+AeroSandbox==4.2.8
+gymnasium==1.1.1
+stable_baselines3==2.6.0
+neuralFoil-torch==0.3.2
+pandas==2.2.3
