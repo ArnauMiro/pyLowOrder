@@ -9,6 +9,8 @@ from __future__ import print_function, division
 
 import os, numpy as np, h5py
 
+from typing import Optional, Mapping, Union
+
 from ..partition_table import PartitionTable
 from ..mesh            import MTYPE2ID, ID2MTYPE
 from ..utils           import cr, MPI_COMM, MPI_RANK, MPI_SIZE, worksplit, writesplit, is_rank_or_serial, mpi_reduce, mpi_gather, raiseError
@@ -893,3 +895,117 @@ def h5_load_SPOD(fname,vars,nmod,ptable=None):
 	# Return
 	file.close()
 	return varList
+
+def h5_save_graph(fname:str,x:np.ndarray,edge_index:np.ndarray,edge_attr:np.ndarray,y:np.ndarray,mode='w',**kwargs:Mapping[str, Union[str,int,bool,np.ndarray]]) -> None:
+	'''
+	Store a Graph object into an HDF5 file. In general, Graph tries to mimic the behavior of a regular Python dictionary. Therefore the Graph object is saved as such.
+
+	Parameters
+	----------
+	fname : str
+		Name of the file to save the graph to.
+	x : np.ndarray
+		Node features to be used as input to some model.
+	edge_index : np.ndarray
+		Edge indices.
+	edge_attr : np.ndarray
+		Edge features to be used as input to some model.
+	y : np.ndarray
+		Node features to be used as output of some model.
+	mode : str
+		Mode in which to open the file. Can be 'w' for write, 'a' for append, or 'r' for read.
+	kwargs : Mapping[str, Union[str,int,bool,np.ndarray]]
+		Additional attributes to be saved in the HDF5 file. The keys should be strings and the values can be either strings, integers, booleans, or numpy arrays.
+	Returns
+	-------
+		None
+	Raises
+		ValueError
+			If the value in kwargs is not a string or a numpy array.
+	'''
+
+	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,mode)
+
+	graph_group = file.create_group("Graph")
+	node_group = graph_group.create_group("node_attr")
+	edge_group = graph_group.create_group("edge_attr")
+
+
+	# Store attributes
+	if not mode == 'a':
+		file.attrs['Version'] = PYLOM_H5_VERSION
+	node_group.create_dataset("x", data=x)
+	node_group.create_dataset("y", data=y)
+	edge_group.create_dataset("edge_index", data=edge_index)
+	edge_group.create_dataset("edge_attr", data=edge_attr)
+
+	for key, value in kwargs.items():
+		if isinstance(value, np.ndarray):
+			if value.ndim == 0:
+				value = np.expand_dims(value, axis=0)
+			elif value.ndim == 1:
+				value = np.expand_dims(value, axis=1)
+			elif value.ndim > 2:
+				raise ValueError(f"Unsupported array dimension: {value.ndim}. Only 0, 1, and 2 dimensions are supported.")
+			graph_group.create_dataset(key, data=value)
+		elif isinstance(value, bool):
+			graph_group.create_dataset(key, data=np.bool_(value))
+		elif isinstance(value, int):
+			graph_group.create_dataset(key, data=np.int64(value))
+		elif isinstance(value, str):
+			dt = h5py.string_dtype(encoding="utf-8")
+			graph_group.create_dataset(key, data=value, dtype=dt)
+	file.close()
+
+def h5_load_graph(fname: str) -> tuple[np.ndarray, ...]:
+	'''
+	Load a Graph object from an HDF5 file. In general, Graph tries to mimic the behavior of a regular Python dictionary.
+
+	Parameters
+	----------
+	fname : str
+		Name of the file to load the graph from.
+	Returns
+	-------
+		tuple[np.ndarray, ...]
+		A tuple containing the following elements:
+		- x:np.ndarray
+			Node features to be used as input to some model.
+		- y:np.ndarray
+			Node features to be used as output of some model.
+		- edge_index:np.ndarray
+			Edge indices.
+		- edge_attr:np.ndarray
+			Edge features to be used as input to some model.
+		- kwargs:Optional[dict] Any additional attributes saved in the HDF5 file.
+	'''
+
+	file = h5py.File(fname, 'r', driver='mpio', comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname, 'r')
+	# Check the file version
+	version = tuple(file.attrs['Version'])
+	if not version == PYLOM_H5_VERSION:
+		raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
+	# Read the requested variables S, V
+	graph_group = file["Graph"]
+	node_group = graph_group["node_attr"]
+	edge_group = graph_group["edge_attr"]
+	x = np.array(node_group["x"])
+	y = np.array(node_group["y"])
+	edge_index = np.array(edge_group["edge_index"])
+	edge_attr = np.array(edge_group["edge_attr"])
+	
+	kwargs = {}
+	for key in graph_group.keys():
+		value = graph_group[key]
+		if isinstance(value, h5py.Dataset):
+			kwargs[key] = np.array(value)
+		elif isinstance(value, h5py.Group):
+			kwargs[key] = {k: np.array(v) for k, v in value.items()}
+		else:
+			kwargs[key] = value
+	# Check if the value is a numpy array
+	# If the value is a numpy array, it will be saved as a dataset in the HDF5 file.
+	# If the value is a string, it will be saved as a dataset with string encoding.
+	# If the value is an integer, it will be saved as a dataset with int64 data type.	
+	file.close()
+	return x, y, edge_index, edge_attr, kwargs
