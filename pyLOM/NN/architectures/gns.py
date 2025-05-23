@@ -177,8 +177,8 @@ class Graph(Data):
 
         # Return the class instance with the necessary attributes. Leave x as None as the final edge attributes need to be computed dynamically during training.
         graph = cls(
-            x=None, # To be completed with the operational parameters during training
-            node_attr = node_attr,
+            x=node_attr,
+            model_inputs=None, # To be calculated on-the-fly during training
             y=y,
             edge_index=edge_index,
             edge_attr=edge_attr
@@ -501,11 +501,11 @@ class GNS(nn.Module):
                 raise ValueError(f"Input parameters must have shape [B, {self.input_dim}]. Got {op_params.shape} instead.")
             
             # Prepend the operational parameters to the node features
-            graph.x[:, :self.input_dim] = op_params
+            graph.model_inputs[:, :self.input_dim] = op_params
         
 
         # Get node and edge features
-        x = graph.x
+        x = graph.model_inputs
         edge_index = graph.edge_index
         edge_attr = graph.edge_attr
 
@@ -551,16 +551,16 @@ class GNS(nn.Module):
         
         graph = graph.to(self.device)
 
-        # Precompute the graph node features. Concatenate all node attrs in a single tensor with preallocated memory for the operational parameters
-        graph.x = torch.cat(
+        # Allocate the node features used as inputs to the model
+        graph.model_inputs = torch.cat(
             [
                 torch.zeros((graph.num_nodes, self.input_dim), dtype=torch.float32, device=self.device),
-                *[getattr(graph, attr) for attr in graph.node_attrs() if attr not in ['x', 'y']]
+                graph.x
             ],
             dim=1
         )
 
-        self.encoder_input_dim = graph.x.shape[1] # Update node features dimension
+        self.encoder_input_dim = graph.model_inputs.shape[1] # Update node features dimension
         self._edge_dim = graph.edge_attr.shape[1] # Update edge features dimension
 
         self._graph = graph
@@ -593,7 +593,7 @@ class GNS(nn.Module):
                 subset, edge_index, mapping, edge_mask = k_hop_subgraph(seed_nodes, num_hops=self.num_msg_passing_layers, edge_index=self.graph.edge_index, relabel_nodes=True)
 
                 # Complete the subgraph data and append it to a subgraphs batch
-                x_subg = self.graph.x[subset]
+                x_subg = self.graph.model_inputs[subset]
                 y_batch_subg = y_batch[:, subset]
                 edge_attr_subg = self.graph.edge_attr[edge_mask]
 
