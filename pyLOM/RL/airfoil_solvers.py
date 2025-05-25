@@ -66,7 +66,7 @@ class XFoilSolver(BaseSolver):
         try:
             result = xfoil.alpha(self.alpha)
             lift_drag_ratio = result["CL"] / result["CD"] # cd predition of inviscid xfoil is poor
-            if np.isnan(lift_drag_ratio) or np.isinf(lift_drag_ratio):
+            if len(lift_drag_ratio) == 0 or np.isnan(lift_drag_ratio) or np.isinf(lift_drag_ratio):
                 return self.NON_CONVERGED_REWARD
             # [0] is because xfoil returns an array
             return lift_drag_ratio[0]

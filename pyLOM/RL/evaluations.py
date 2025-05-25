@@ -4,10 +4,11 @@ import random
 import aerosandbox as asb
 import numpy as np
 import pandas as pd
-from aerosandbox import KulfanAirfoil, _asb_root
+from aerosandbox import _asb_root
 from tqdm import tqdm
 
 from pyLOM.utils import pprint
+from pyLOM.RL import NON_CONVERGED_REWARD
 
 airfoil_database_root = _asb_root / "geometry" / "airfoil" / "airfoil_database"
 
@@ -56,6 +57,7 @@ def evaluate_airfoil_agent(agent, env, num_episodes=200, save_path=None):
         all_rewards.append(rewards)
         states.append(airfoils)
 
+    print_metric_summary(all_rewards, states,)
     if save_path is not None:
         save_results_to_csv(all_rewards, states, save_path)
     return all_rewards, states
@@ -150,3 +152,14 @@ def save_results_to_csv(rewards, states, save_results_path):
     df.to_csv(save_results_path, index=False)
 
 
+def print_metric_summary(rewards, states):
+    initial_rewards, _, best_rewards, _, _ = extract_metrics(rewards, states)
+    # remove states that didn't converge
+    converged_mask = (initial_rewards > NON_CONVERGED_REWARD) & (best_rewards > NON_CONVERGED_REWARD) & (initial_rewards != best_rewards)
+    initial_rewards = initial_rewards[converged_mask]
+    best_rewards = best_rewards[converged_mask]
+    q75, q25 = np.percentile(best_rewards, [75 ,25])
+    pprint(0, f"Number of airfoils converged: {len(best_rewards)}")
+    pprint(0, f"Best CL/CD (median(IQR)): {round(np.median(best_rewards))} ({round(q75 - q25)})")
+    pprint(0, f"Best CL/CD increment (mean +/- std): {(best_rewards - initial_rewards).mean():.1f}+/-{(best_rewards - initial_rewards).std():.1f}")
+        

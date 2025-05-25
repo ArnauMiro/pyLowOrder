@@ -20,4 +20,4 @@ from pyLOM.RL.evaluations import (
     evaluate_airfoil_agent_whole_uiuc,
     evaluate_airfoil_agent_whole_uiuc_mpi,
 )
-from pyLOM.RL.plotting import create_airfoil_optimization_progress_plot
+from pyLOM.RL.plotting import create_airfoil_optimization_progress_plot, AirfoilEvolutionAnimation
