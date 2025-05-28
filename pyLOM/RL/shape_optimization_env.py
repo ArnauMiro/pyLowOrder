@@ -13,6 +13,7 @@ class ShapeOptimizationEnv(gym.Env):
         parameterizer (BaseParameterizer): Parameterizer object that defines the shape to optimize.
         episode_max_length (int): Maximum length of an episode, i.e, maximum number of modifications that the agent can perform on the shape. Default is ``64``.
         thickness_penalization_factor (float): Penalty factor for thickness changes. Default is ``0``.
+        seed (int, optional): Seed for random number generation. Default is ``None``.
     """
 
     def __init__(

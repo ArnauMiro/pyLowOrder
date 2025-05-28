@@ -21,7 +21,7 @@ class AirfoilOperatingConditions:
     This class encapsulates the physical parameters used in airfoil simulations,
     including angle of attack, Reynolds number, and Mach number.
     
-    Attributes:
+    Args:
         alpha (float): Angle of attack in degrees. Default is ``2`` degrees.
         reynolds (float): Reynolds number for the simulation. Default is ``1e6``.
         mach (float): Mach number for the simulation. Default is ``0.5``.
@@ -39,7 +39,7 @@ class AirfoilParameterizerConfig:
     Class-Shape Transformation (CST) method. It controls the number of control
     points and their bounds for both upper and lower surfaces.
     
-    Attributes:
+    Args:
         n_weights_per_side (int): Number of control points per surface side. Default is ``8``.
         leading_edge_weight_bounds (Tuple[float, float]): Min and max values for 
             the leading edge weight parameter. Default is ``(-0.05, 0.75)``.
@@ -211,14 +211,14 @@ def create_env(
     initial_seed=None
 ):
     """
-    Create a reinforcement learning environment for shape optimization. Those environments are used to train RL agents in https://arxiv.org/pdf/2505.02634.
+    Create a reinforcement learning environment for shape optimization. Using these environments, the RL agents have been trained in https://arxiv.org/pdf/2505.02634.
     
     Args:
         solver_name (str): Name of the solver to use.
         parameterizer: Parameterizer object that defines the shape to optimize (if None, a default will be used)
         num_envs (int): Number of parallel environments to create. Default is ``1``.
         episode_max_length (int): Maximum episode length. Default is ``64``.
-        operating_conditions (Optional[Union[AirfoilOperatingConditions, WingOperatingConditions]]): Operating conditions for the solver. Default is ``None``.
+        operating_conditions (Optional[AirfoilOperatingConditions]): Operating conditions for the solver. Default is ``None``.
         thickness_penalization_factor (float): Penalty factor for thickness changes. Default is ``0``.
         initial_seed (Optional[int]): Initial random seed. Default is ``None``.
         

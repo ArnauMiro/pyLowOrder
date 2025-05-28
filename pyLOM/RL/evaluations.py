@@ -12,7 +12,21 @@ from pyLOM.RL import NON_CONVERGED_REWARD
 
 airfoil_database_root = _asb_root / "geometry" / "airfoil" / "airfoil_database"
 
-def run_episode(rl_model, env, reset_options={}, seed=None, keep_unconverged=False):
+def run_episode(rl_model, env, initial_shape=None, seed=None, keep_unconverged=False):
+    """
+    Runs a single episode of the RL agent in the given environment.
+
+    Args:
+        rl_model: The RL model to evaluate.
+        env: The environment in which to run the episode.
+        initial_shape: An initial airfoil shape to start the episode with. Default: ``None``, which means a random shape will be generated.
+        seed: A seed for reproducibility. Default: ``None``.
+        keep_unconverged: If True, keeps the last state and reward even if the episode was truncated. Default: ``False``.
+
+    Returns:
+        rewards: A list of cumulative rewards at each step.
+        states: A list of airfoil shapes at each step.
+    """
     done = False
     truncated = False
     states = []
@@ -22,7 +36,7 @@ def run_episode(rl_model, env, reset_options={}, seed=None, keep_unconverged=Fal
     if seed is not None:
         np.random.seed(seed)
         env.action_space.seed(seed)
-    
+    reset_options = {"initial_shape": initial_shape} if initial_shape is not None else {}
     obs, info = env.reset(seed=seed, options=reset_options)
     initial_reward = info["initial_reward"]
     rewards.append(initial_reward)
@@ -43,6 +57,19 @@ def run_episode(rl_model, env, reset_options={}, seed=None, keep_unconverged=Fal
 
 
 def evaluate_airfoil_agent(agent, env, num_episodes=200, save_path=None):
+    """
+    Evaluates an RL agent on a set of airfoils from the UIUC airfoil database and prints a summary of the results.
+
+    Args:
+        agent: The RL agent to evaluate.
+        env: The environment in which to run the episodes.
+        num_episodes: The number of airfoils to evaluate. Default: 200.
+        save_path: If provided, saves the results to a CSV file at this path. Default: ``None``.
+
+    Returns:
+        all_rewards: A list with the lists of cumulative rewards for each airfoil optimization.
+        states: A list with lists of airfoil shapes for each step of the optimization of each airfoil.
+    """
     all_rewards, states = [], []
     airfoil_list = random.sample(os.listdir(airfoil_database_root), num_episodes)
     if "utils" in airfoil_list:
@@ -53,7 +80,7 @@ def evaluate_airfoil_agent(agent, env, num_episodes=200, save_path=None):
             initial_airfoil = asb.Airfoil(airfoil_name)
         except:  # noqa: E722
             continue
-        rewards, airfoils = run_episode(agent, env, reset_options={'initial_airfoil': initial_airfoil})
+        rewards, airfoils = run_episode(agent, env, initial_shape=initial_airfoil)
         all_rewards.append(rewards)
         states.append(airfoils)
 
@@ -64,6 +91,16 @@ def evaluate_airfoil_agent(agent, env, num_episodes=200, save_path=None):
 
 
 def evaluate_airfoil_agent_whole_uiuc(agent, env, save_path=None):
+    """
+    Evaluates an RL agent on all airfoils in the UIUC airfoil database and prints a summary of the results.
+    Args:
+        agent: The RL agent to evaluate.
+        env: The environment in which to run the episodes.
+        save_path: If provided, saves the results to a CSV file at this path. Default: ``None``.
+    Returns:
+        all_rewards: A list with the lists of cumulative rewards for each airfoil optimization.
+        states: A list with lists of airfoil shapes for each step of the optimization of each airfoil.
+    """
     return evaluate_airfoil_agent(
         agent,
         env,
@@ -71,7 +108,16 @@ def evaluate_airfoil_agent_whole_uiuc(agent, env, save_path=None):
         save_path=save_path
     )
 
-def evaluate_airfoil_agent_whole_uiuc_mpi(agent, env, save_results_path=None):
+def evaluate_airfoil_agent_whole_uiuc_mpi(agent, env, save_results_path):
+    """
+    Evaluates an RL agent on all airfoils in the UIUC airfoil database using MPI for parallel processing and saves the results to a CSV file.
+    If this function is used on a script, it should be run with `mpiexec -n <num_processes> python <script_name>.py`.
+
+    Args:
+        agent: The RL agent to evaluate.
+        env: The environment in which to run the episodes.
+        save_results_path: If provided, saves the results to a CSV file at this path.
+    """
     from mpi4py import MPI
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
@@ -125,7 +171,7 @@ def evaluate_airfoil_agent_whole_uiuc_mpi(agent, env, save_results_path=None):
                 break
             try:
                 initial_airfoil = asb.Airfoil(airfoil_name)
-                rewards, airfoils = run_episode(agent, env, reset_options={'initial_airfoil': initial_airfoil})
+                rewards, airfoils = run_episode(agent, env, initial_shape=initial_airfoil)
                 comm.send((rewards, airfoils, airfoil_name), dest=0, tag=2)
             except Exception as e:
                 pprint(rank, f"Error processing airfoil {airfoil_name}: {e}")

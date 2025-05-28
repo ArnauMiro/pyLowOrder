@@ -18,6 +18,13 @@ class BaseSolver(ABC):
 
     @abstractmethod
     def __call__(self, shape):
+        """
+        Compute the reward for the given shape.
+        Args:
+            shape: Shape to compute the reward for.
+        Returns:
+            float: Reward for the shape.
+        """
         pass
 
 
@@ -124,4 +131,4 @@ class DummySolver(BaseSolver):
         super().__init__()
 
     def __call__(self, shape):
-        return self.NON_CONVERGED_REWARD    
+        return 0

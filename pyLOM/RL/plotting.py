@@ -2,9 +2,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 import aerosandbox.tools.pretty_plots as p
+import aerosandbox as asb
 
+from typing import List, Optional
 
 def create_airfoil_optimization_progress_plot(airfoils, rewards, airfoil_name='Airfoil Shape', save_path=None):
+    """
+    Create a plot showing the evolution of airfoil shapes and their corresponding lift-to-drag ratios.
+    
+    Args:
+        airfoils (List[asb.Airfoil]): List of airfoil objects representing the evolution.
+        rewards (List[float]): List of lift-to-drag ratios corresponding to each airfoil.
+        airfoil_name (str): Name of the airfoil for the plot title. Default: ``'Airfoil Shape'``.
+        save_path (Optional[str]): Path to save the plot. If None, the plot will not be saved. Default: ``None``.
+    
+    """
     fig, ax = plt.subplots(1, 2, figsize=(10, 4), dpi=300)
     plt.rcParams['figure.facecolor'] = 'white'
     plt.rcParams['savefig.facecolor'] = 'white'
@@ -69,7 +81,41 @@ def create_airfoil_optimization_progress_plot(airfoils, rewards, airfoil_name='A
     plt.show()
 
 def AirfoilEvolutionAnimation(*args, **kwargs):
-    """Factory function that creates AirfoilEvolution instances."""
+    """
+    Factory function that creates AirfoilEvolution instances.
+    Manim is required to run this animation, and it is recommended to install it with `conda install -c conda-forge manim`.
+
+    Properties:
+        - `airfoils`: List of airfoil objects representing the evolution.
+        - `rewards`: List of lift-to-drag ratios corresponding to each airfoil.
+        - `run_time`: Duration of the animation in seconds. Default: ``5``.
+        - `title`: Title of the animation. Default: ``"Airfoil evolution"``.
+
+    Examples:
+        To use in a notebook:
+
+        >>> import manim
+        >>> from pyLOM.RL import AirfoilEvolutionAnimation
+
+        >>> %%manim -qm -v WARNING AirfoilEvolution
+        >>> AirfoilEvolutionAnimation.airfoils = airfoils
+        >>> AirfoilEvolutionAnimation.rewards = rewards
+        >>> AirfoilEvolutionAnimation.title = "NACA0012 Evolution"
+
+        To use it in a script:
+
+        >>> from pyLOM.RL import AirfoilEvolutionAnimation
+        >>> from manim import *
+        >>> from main import config
+        >>> # config.format = "gif"  # Change output format to GIF
+        >>> config.output_file = "airfoil_evolution.mp4"  # Change output file name
+        >>> config.quality = "production_quality"  # Set quality to maximum (Full HD)
+        >>> animation = AirfoilEvolutionAnimation()
+        >>> animation.airfoils = airfoils
+        >>> animation.rewards = rewards
+        >>> animation.title = "Airfoil Evolution"
+        >>> animation.render()
+    """
     try:
         from manim import Scene
     except ImportError as e:
