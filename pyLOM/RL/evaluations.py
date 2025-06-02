@@ -3,9 +3,9 @@ import random
 
 import aerosandbox as asb
 import numpy as np
-import pandas as pd
 from aerosandbox import _asb_root
 from tqdm import tqdm
+from mpi4py import MPI
 
 from pyLOM.utils import pprint
 from pyLOM.RL import NON_CONVERGED_REWARD
@@ -118,7 +118,6 @@ def evaluate_airfoil_agent_whole_uiuc_mpi(agent, env, save_results_path):
         env: The environment in which to run the episodes.
         save_results_path: If provided, saves the results to a CSV file at this path.
     """
-    from mpi4py import MPI
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
@@ -159,6 +158,7 @@ def evaluate_airfoil_agent_whole_uiuc_mpi(agent, env, save_results_path):
         # Finalize results
         rewards = [res[0] for res in results]
         states = [res[1] for res in results]
+        print_metric_summary(rewards, states)
 
         if save_results_path is not None:
             save_results_to_csv(rewards, states, save_results_path)
@@ -192,10 +192,11 @@ def save_results_to_csv(rewards, states, save_results_path):
     initial_rewards, _, best_rewards, initial_states, best_states = extract_metrics(rewards, states)
     columns_names = ["initial_param_" + str(i) for i in range(initial_states[0].shape[0])]
     columns_names += ["best_param_" + str(i) for i in range(best_states[0].shape[0])]
-    df = pd.DataFrame(np.hstack((initial_states, best_states)), columns=columns_names)
-    df["initial_CLCD"] = initial_rewards
-    df["best_CLCD"] = best_rewards
-    df.to_csv(save_results_path, index=False)
+    columns_names += ["initial_CLCD", "best_CLCD"]
+    combined_data = np.column_stack((initial_states, best_states, initial_rewards, best_rewards))
+
+    np.savetxt(save_results_path, combined_data, delimiter=',', 
+               header=','.join(columns_names), comments='', fmt='%.6f')
 
 
 def print_metric_summary(rewards, states):
