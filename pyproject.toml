@@ -156,6 +156,13 @@ optionals = [
   "scikit-learn",
   "nvtx",
 ]
+# Dependencies for teh RL module
+rl = [
+  "AeroSandbox==4.2.8",
+  "gymnasium==1.1.1",
+  "stable_baselines3==2.6.0",
+  "neuralFoil-torch==0.3.2",
+]
 
 # List URLs that are relevant to your project
 #
