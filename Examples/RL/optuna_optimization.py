@@ -1,23 +1,30 @@
-from typing import Any, Dict
+# This file serves as an example of how to use Optuna for hyperparameter optimization
+# in Reinforcement Learning with Stable-Baselines3 and pyLOM.
+# It optimizes the hyperparameters of a PPO agent on the 'neuralfoil' environment.
+
 from copy import deepcopy
 
-from pyLOM.utils import pprint
+import pyLOM
 try: 
     from optuna.pruners import MedianPruner
     from optuna.samplers import TPESampler
     from optuna.visualization import plot_optimization_history, plot_param_importances, plot_parallel_coordinate
 except:
     import sys
-    pprint(0, "To run this example you need to have optuna intalled. Please, intall it with pip install optuna")
+    pyLOM.pprint(0, "To run this example you need to have optuna intalled. Please, intall it with pip install optuna")
     sys.exit(1)
 
 import gymnasium as gym
 import optuna
 import torch
 import torch.nn as nn
-from pyLOM.RL import create_env
+import pyLOM.RL 
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import EvalCallback
+
+# Set pytorch num threads to 1 for faster training. This is because torch parallelize the network (in both, neuralfoil and PPO networks) inference with all available cpus,
+# which in some cases and with small networks can lead to slower training.
+torch.set_num_threads(1)
 
 N_TRIALS = 1000  # Maximum number of trials
 N_JOBS = 1 # Number of jobs to run in parallel
@@ -28,14 +35,14 @@ EVAL_FREQ = int(N_TIMESTEPS / N_EVALUATIONS)
 N_EVAL_EPISODES = 80
 TIMEOUT = int(60 * 15)  # 15 minutes
 
-TRAIN_ENV = create_env('neuralfoil')
+TRAIN_ENV = pyLOM.RL.create_env('neuralfoil')
 
 DEFAULT_HYPERPARAMS = {
     "policy": "MlpPolicy",
     "env": TRAIN_ENV,
 }
 
-def sample_ppo_params(trial: optuna.Trial) -> Dict[str, Any]:
+def sample_ppo_params(trial):
 
     batch_size = trial.suggest_categorical("batch_size", [8, 16, 32, 64, 128])
     n_steps = trial.suggest_categorical("n_steps", [32, 64, 128, 256, 512, 1024, 2048])
@@ -126,14 +133,14 @@ class TrialEvalCallback(EvalCallback):
                 return False
         return True
     
-def objective(trial: optuna.Trial) -> float:
+def objective(trial) -> float:
     kwargs = deepcopy(DEFAULT_HYPERPARAMS)
 
     # 1. Sample hyperparameters and update the default keyword arguments: `kwargs.update(other_params)`
     sampled_params = sample_ppo_params(trial)
     kwargs.update(sampled_params)
     # 2. Create the evaluation envs
-    eval_envs = create_env('neuralfoil', num_envs=1)
+    eval_envs = pyLOM.RL.create_env('neuralfoil', num_envs=1)
     # 3. Create the `TrialEvalCallback`
     eval_callback = TrialEvalCallback(
         eval_env=eval_envs,
@@ -150,7 +157,7 @@ def objective(trial: optuna.Trial) -> float:
         model.learn(N_TIMESTEPS, callback=eval_callback)
     except AssertionError as e:
         # Sometimes, random hyperparams can generate NaN
-        pprint(0, e)
+        pyLOM.pprint(0, e)
         nan_encountered = True
     finally:
         # Free memory
@@ -166,50 +173,49 @@ def objective(trial: optuna.Trial) -> float:
 
     return eval_callback.last_mean_reward
 
-if __name__ == "__main__":
-    torch.set_num_threads(1)
-    sampler = TPESampler(n_startup_trials=N_STARTUP_TRIALS)
-    # Do not prune before 1/3 of the max budget is used
-    pruner = MedianPruner(
-        n_startup_trials=N_STARTUP_TRIALS, n_warmup_steps=N_EVALUATIONS // 3
-    )
-    # Create the study and start the hyperparameter optimization
-    study = optuna.create_study(sampler=sampler, pruner=pruner, direction="maximize")
 
-    try:
-        study.optimize(objective, n_trials=N_TRIALS, n_jobs=N_JOBS)
-    except KeyboardInterrupt:
-        pass
+sampler = TPESampler(n_startup_trials=N_STARTUP_TRIALS)
+# Do not prune before 1/3 of the max budget is used
+pruner = MedianPruner(
+    n_startup_trials=N_STARTUP_TRIALS, n_warmup_steps=N_EVALUATIONS // 3
+)
+# Create the study and start the hyperparameter optimization
+study = optuna.create_study(sampler=sampler, pruner=pruner, direction="maximize")
 
-    pprint(0, "Number of finished trials: ", len(study.trials))
+try:
+    study.optimize(objective, n_trials=N_TRIALS, n_jobs=N_JOBS)
+except KeyboardInterrupt:
+    pass
 
-    pprint(0, "Best trial:")
-    trial = study.best_trial
+pyLOM.pprint(0, "Number of finished trials: ", len(study.trials))
 
-    pprint(0, f"  Value: {trial.value}")
+pyLOM.pprint(0, "Best trial:")
+trial = study.best_trial
 
-    pprint(0, "  Params: ")
-    for key, value in trial.params.items():
-        pprint(0, f"    {key}: {value}")
+pyLOM.pprint(0, f"  Value: {trial.value}")
 
-    pprint(0, "  User attrs:")
-    for key, value in trial.user_attrs.items():
-        pprint(0, f"    {key}: {value}")
+pyLOM.pprint(0, "  Params: ")
+for key, value in trial.params.items():
+    pyLOM.pprint(0, f"    {key}: {value}")
 
-    # Write report
-    study.trials_dataframe().to_csv("study_results_ppo_optuna.csv")
+pyLOM.pprint(0, "  User attrs:")
+for key, value in trial.user_attrs.items():
+    pyLOM.pprint(0, f"    {key}: {value}")
 
-    fig1 = plot_optimization_history(study)
-    fig2 = plot_param_importances(study)
-    fig3 = plot_parallel_coordinate(study)
-    # save the Figures
-    fig1.write_image("optuna_optimization_history.png")
-    fig2.write_image("optuna_param_importances.png")
-    fig3.write_image("optuna_parallel_coordinate.png")
-    # save as html too
-    fig1.write_html("optuna_optimization_history.html")
-    fig2.write_html("optuna_param_importances.html")
-    fig3.write_html("optuna_parallel_coordinate.html")
-    fig1.show()
-    fig2.show()
-    fig3.show()
+# Write report
+study.trials_dataframe().to_csv("study_results_ppo_optuna.csv")
+
+fig1 = plot_optimization_history(study)
+fig2 = plot_param_importances(study)
+fig3 = plot_parallel_coordinate(study)
+# save the Figures
+fig1.write_image("optuna_optimization_history.png")
+fig2.write_image("optuna_param_importances.png")
+fig3.write_image("optuna_parallel_coordinate.png")
+# save as html too
+fig1.write_html("optuna_optimization_history.html")
+fig2.write_html("optuna_param_importances.html")
+fig3.write_html("optuna_parallel_coordinate.html")
+fig1.show()
+fig2.show()
+fig3.show()

@@ -1,16 +1,19 @@
-from pyLOM.RL import create_env
+import pyLOM.RL
 from stable_baselines3 import PPO
 import torch
 
+# Set pytorch num threads to 1 for faster training. This is because torch parallelize the network (in both, neuralfoil and PPO networks) inference with all available cpus,
+# which in some cases and with small networks can lead to slower training.
 torch.set_num_threads(1)
 
+# Configuration parameters
 NUM_ENVS = 8
 NEURALFOIL_ITERATIONS = 25000
 XFOIL_ITERATIONS = 15000
 THICKNESS_PENALIZATION = 0
 
 if __name__ == "__main__":
-    first_env = create_env(
+    first_env = pyLOM.RL.create_env(
         "neuralfoil", thickness_penalization_factor=THICKNESS_PENALIZATION
     )
     neuralfoil_hyperparameters = {
@@ -31,7 +34,7 @@ if __name__ == "__main__":
     initial_model.save("pretrained_model")
     initial_policy = initial_model.policy
 
-    second_env = create_env(
+    second_env = pyLOM.RL.create_env(
         "xfoil", num_envs=NUM_ENVS, thickness_penalization_factor=THICKNESS_PENALIZATION
     )
     xfoil_hyperparameters = {

@@ -2,11 +2,12 @@
 # the PPO algorithm from Stable Baselines3. The solver used is neuralfoil
 # and the space state bounds used are the default ones.
 
-from pyLOM.RL import create_env, AirfoilOperatingConditions
+import pyLOM.RL
 from stable_baselines3 import PPO
 import torch
 
-# Set pytorch num threads to 1 for faster training
+# Set pytorch num threads to 1 for faster training. This is because torch parallelize the network inference (in both, neuralfoil and PPO networks) with all available cpus,
+# which in some cases and with small networks can lead to slower training.
 torch.set_num_threads(1)
 
 N_ENVS = 4
@@ -26,22 +27,22 @@ ppo_params = {
 }
 
 if __name__ == "__main__":
-    operating_conditions = AirfoilOperatingConditions(
+    operating_conditions = pyLOM.RL.AirfoilOperatingConditions(
         alpha=4.0,
         mach=0.2,
         Reynolds=1e6,
     )
-    
+
     # Create the environment
-    env = create_env(
+    env = pyLOM.RL.create_env(
         solver_name="neuralfoil",
         operating_conditions=operating_conditions,
         num_envs=N_ENVS,
         episode_max_length=64,
         thickness_penalization_factor=0.0
     )
-    
-    # Define the model
+
+    # Instantiate and train the model
     model = PPO("MlpPolicy", env, **ppo_params)
     model.learn(total_timesteps=N_TIMESTEPS)
 
