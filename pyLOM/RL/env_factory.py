@@ -212,11 +212,11 @@ def create_env(
 ):
     """
     Create a reinforcement learning environment for shape optimization. Using these environments, the RL agents have been trained in https://arxiv.org/pdf/2505.02634.
-    
+
     Args:
         solver_name (str): Name of the solver to use.
         parameterizer: Parameterizer object that defines the shape to optimize (if None, a default will be used)
-        num_envs (int): Number of parallel environments to create. Default is ``1``.
+        num_envs (int): Number of parallel environments to create. If greater than 1, you need to wrap the code in ``if __name__ == "__main__":`` to avoid issues with multiprocessing. Ref: https://stable-baselines3.readthedocs.io/en/master/guide/vec_envs.html. Default is ``1``.
         episode_max_length (int): Maximum episode length. Default is ``64``.
         operating_conditions (Optional[AirfoilOperatingConditions]): Operating conditions for the solver. Default is ``None``.
         thickness_penalization_factor (float): Penalty factor for thickness changes. Default is ``0``.
