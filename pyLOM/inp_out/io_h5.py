@@ -694,6 +694,71 @@ def h5_load_mesh_mpio(fname):
 	file.close()
 	return mtype, xyz, conec, eltype, cellO, pointO, ptable
 
+@cr('h5IO.save_QR')
+def h5_save_QR(fname,Q,Y,B,ptable,nvars=1,pointData=True,mode='w'):
+	'''
+	Store POD variables into an HDF5 file.
+	Can be appended to another HDF by setting the
+	mode to 'a'. Then no partition table will be saved.
+	'''
+	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,mode)
+	# Store attributes and partition table
+	if not mode == 'a':
+		file.attrs['Version'] = PYLOM_H5_VERSION
+		# Store partition table
+		h5_save_partition(file,ptable)
+	# Now create a QR group
+	group = file.create_group('QR')
+	# Create the datasets for U, S and V
+	group.create_dataset('pointData',(1,),dtype='u1',data=pointData)
+	group.create_dataset('n_variables',(1,),dtype='u1',data=nvars)
+	Qsize = (mpi_reduce(Q.shape[0],op='sum',all=True),Q.shape[1]) if Q is not None else None
+	Ysize = (mpi_reduce(Y.shape[0],op='sum',all=True),Y.shape[1]) if Y is not None else None
+	dsetQ = group.create_dataset('Q',Qsize,dtype=Q.dtype)         if Q is not None else None
+	dsetY = group.create_dataset('Y',Ysize,dtype=Y.dtype)         if Y is not None else None
+	dsetB = group.create_dataset('B',B.shape,dtype=B.dtype)       if B is not None else None
+	# Store S and U that are repeated across the ranks
+	# So it is enough that one rank stores them
+	if is_rank_or_serial(0):
+		if dsetB is not None: dsetB[:] = B 
+	# Store U in parallel
+	istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=pointData)
+	if dsetQ is not None: dsetQ[istart:iend,:] = Q
+	if dsetY is not None: dsetY[istart:iend,:] = Y
+	file.close()
+
+@cr('h5IO.load_QR')
+def h5_load_QR(fname,vars,ptable=None):
+	'''
+	Load POD variables from an HDF5 file.
+	'''
+	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,'r')
+	# Check the file version
+	version = tuple(file.attrs['Version'])
+	if not version == PYLOM_H5_VERSION:
+		raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
+	# Read the requested variables S, V
+	varList = []
+	if 'Q' in vars:
+		# Check if we need to read the partition table
+		if ptable is None: ptable = h5_load_partition(file)
+		# Read
+		nvars = int(file['QR']['n_variables'][0])
+		point = bool(file['QR']['pointData'][0])
+		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=point)
+		varList.append(np.array(file['QR']['Q'][istart:iend,:]))
+	if 'Y' in vars:
+		# Check if we need to read the partition table
+		if ptable is None: ptable = h5_load_partition(file)
+		# Read
+		nvars = int(file['QR']['n_variables'][0])
+		point = bool(file['QR']['pointData'][0])
+		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=point)
+		varList.append(np.array(file['QR']['Y'][istart:iend,:]))
+	if 'B' in vars: varList.append( np.array(file['QR']['B'][:,:]))
+	# Return
+	file.close()
+	return varList
 
 @cr('h5IO.save_POD')
 def h5_save_POD(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
