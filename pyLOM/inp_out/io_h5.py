@@ -18,8 +18,12 @@ PYLOM_H5_VERSION = (3,0)
 
 
 def h5_save_partition(file,ptable):
-	'''
-	Save a partition table inside an HDF5 file
+	r'''
+	Save a partition table inside an HDF5 file.
+
+	Args:
+		file (string): file name
+		ptable (PartitionTable): partition table to be saved
 	'''
 	# Create a group for the mesh
 	group = file.create_group('PARTITIONS')
@@ -29,8 +33,14 @@ def h5_save_partition(file,ptable):
 	group.create_dataset('Points',(ptable.n_partitions,),dtype='i4',data=ptable.Points)
 
 def h5_load_partition(file):
-	'''
-	Load a partition table inside an HDF5 file
+	r'''
+	Load a partition table inside an HDF5 file.
+
+	Args:
+		file (string): file name to load the partition from
+
+	Returns:
+		PartitionTable
 	'''
 	# Load file
 	if not 'PARTITIONS' in file.keys(): raiseError('No partition table stored in dataset!')
@@ -42,8 +52,18 @@ def h5_load_partition(file):
 	return PartitionTable(nparts,ids,elements,points)
 
 def h5_save_meshes(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
-	'''
+	r'''
 	Save the mesh inside the HDF5 file
+
+	Args:
+		file (string): file name to load the partition from
+		mtype
+		xyz (np.ndarray): coordinates
+		conec (np.ndarray): connectivity
+		eltype (np.ndarray): type of element
+		cellO (np.ndarray): cell order
+		pointO (np.ndarray): point order
+		ptable (PartitionTable): partition table
 	'''
 	# Save the mesh type
 	file.create_dataset('type',(1,),dtype='i4',data=MTYPE2ID[mtype])
@@ -78,8 +98,18 @@ def h5_save_meshes(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	dcellO[istart:iend]   = cellO
 
 def h5_save_meshes_nopartition(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
-	'''
-	Save the mesh inside the HDF5 file
+	r'''
+	Save the mesh inside the HDF5 file removing the repeated points so that we can change the partition while running the POD.
+
+	Args:
+		file (string): file name to load the partition from
+		mtype
+		xyz (np.ndarray): coordinates
+		conec (np.ndarray): connectivity
+		eltype (np.ndarray): type of element
+		cellO (np.ndarray): cell order
+		pointO (np.ndarray): point order
+		ptable (PartitionTable): partition table
 	'''
 	# Save the mesh type
 	file.create_dataset('type',(1,),dtype='i4',data=MTYPE2ID[mtype])
@@ -111,8 +141,14 @@ def h5_save_meshes_nopartition(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	dcellO[istart:iend]   = cellO
 
 def h5_load_meshes_size(file):
-	'''
+	r'''
 	Load only the number of cells and points for the partition
+
+	Args:
+		file (string): file where the mesh is stored
+	
+	Returns
+		int, int: number of points and number of cells
 	'''
 	# If the mesh is present read the size
 	npoints = int(file['npoints'][0])
@@ -120,8 +156,16 @@ def h5_load_meshes_size(file):
 	return npoints, ncells
 
 def h5_load_meshes(file,ptable,repart):
-	'''
+	r'''
 	Load the mesh inside the HDF5 file
+
+	Args:
+		file (string): file where the mesh is stored
+		ptable (PartitionTable): partition table which the mesh will be loaded
+		repart (Bool): whether the mesh has to be repartitioned or not
+
+	Returns
+		_, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray: mesh type, coordinates, connectivity, element type, cell order and point order
 	'''
 	# Read mesh type
 	mtype  = ID2MTYPE[int(file['type'][0])]
@@ -696,10 +740,18 @@ def h5_load_mesh_mpio(fname):
 
 @cr('h5IO.save_QR')
 def h5_save_QR(fname,Q,Y,B,ptable,nvars=1,pointData=True,mode='w'):
-	'''
-	Store POD variables into an HDF5 file.
-	Can be appended to another HDF by setting the
-	mode to 'a'. Then no partition table will be saved.
+	r'''
+	Store QR variables into an HDF5 file. Can be appended to another HDF by setting the mode to 'a'. Then no partition table will be saved.
+
+	Args:
+		fname (string): file name
+		Q (np.ndarray): Q matrix
+		Y (np.ndarray): Randomized matrix before QR
+		B (np.ndarray): R upper triangular matrix or B in case of doing randomized QR
+		ptable (PartitionTable): partition table
+		nvars (int, optional): number of variables analyzed jointly (default=1)
+		pointData(bool, optional): whether is point data or cell data (default=True)
+		Writing mode (string, optional): the h5 will be written again or appended.
 	'''
 	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,mode)
 	# Store attributes and partition table
@@ -729,8 +781,16 @@ def h5_save_QR(fname,Q,Y,B,ptable,nvars=1,pointData=True,mode='w'):
 
 @cr('h5IO.load_QR')
 def h5_load_QR(fname,vars,ptable=None):
-	'''
-	Load POD variables from an HDF5 file.
+	r'''
+	Load QR variables from an HDF5 file.
+	
+	Args:
+		fname (string): file name
+		vars (list): variables to load, it must be any of Q, B, Y.
+		ptable (PartitionTable, optional): partition table used to load the data (default, None)
+	
+	Returns:
+		list: list of the np.ndarray requested to load.
 	'''
 	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,'r')
 	# Check the file version
