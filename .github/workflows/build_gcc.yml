@@ -40,8 +40,8 @@ jobs:
       # Run pyLOM compilation and deployment
       - name: Set up configuration
         run: |
-          sed -i 's/USE_MKL       = ON/USE_MKL       = OFF/g' options.cfg
-          sed -i 's/FORCE_GCC     = OFF/FORCE_GCC     = ON/g' options.cfg
+          sed -i 's/USE_MKL          = ON/USE_MKL          = OFF/g' options.cfg
+          sed -i 's/USE_GCC          = OFF/USE_GCC          = ON/g' options.cfg
       - name: Set up dependencies
         run: make deps requirements_full
 #      - name: Fix h5py
