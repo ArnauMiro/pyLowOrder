@@ -37,34 +37,65 @@ options['MODULES_COMPILED'] = options['MODULES_COMPILED'].lower().split(',')
 
 
 ## Set up compiler options and flags
-ICC = 'icx' if 'ACC' in options['PLATFORM'] else 'icc'
-CC  = 'mpicc'   if options['FORCE_GCC'] or not os.system('which %s > /dev/null'%ICC) == 0 else 'mpiicc'
-CXX = 'mpicxx'  if options['FORCE_GCC'] or not os.system('which %s > /dev/null'%ICC) == 0 else 'mpiicpc'
-FC  = 'mpifort' if options['FORCE_GCC'] or not os.system('which %s > /dev/null'%ICC) == 0 else 'mpiifort'
+ICC = 'icx'    if 'ACC' in options['PLATFORM'] else 'icc'
+CC  = 'mpicc'  if not os.system('which %s > /dev/null'%ICC) == 0 else 'mpiicc'
+CXX = 'mpicxx' if not os.system('which %s > /dev/null'%ICC) == 0 else 'mpiicpc'
+FC  = 'mpif90' if not os.system('which %s > /dev/null'%ICC) == 0 else 'mpiifort'
+if options['USE_GCC'] or options['USE_NVHPC']:
+	CC  = 'mpicc'
+	CXX = 'mpicxx'
+	FC  = 'mpif90'
 
-CFLAGS   = ''
-CXXFLAGS = ' -std=c++11'
-FFLAGS   = ''
+CFLAGS   = ' -fPIC'
+CXXFLAGS = ' -fPIC -std=c++11'
+FFLAGS   = ' -fPIC'
 DFLAGS   = ' -DNPY_NO_DEPRECATED_API'
 if options['USE_MKL']:   DFLAGS += ' -DUSE_MKL'
 if options['USE_FFTW']:  DFLAGS += ' -DUSE_FFTW3'
 if options['USE_GESVD']: DFLAGS += ' -DUSE_LAPACK_DGESVD'
 if CC == 'mpicc':
 	# Using GCC as a compiler
-	CFLAGS   += ' -O0 -g -rdynamic -fPIC' if options['DEBUGGING'] else ' -O%s -ffast-math -fPIC' % options['OPTL']
-	CXXFLAGS += ' -O0 -g -rdynamic -fPIC' if options['DEBUGGING'] else ' -O%s -ffast-math -fPIC' % options['OPTL']
-	FFLAGS   += ' -O0 -g -rdynamic -fPIC' if options['DEBUGGING'] else ' -O%s -ffast-math -fPIC' % options['OPTL']
-	# Vectorization flags
-	if options['VECTORIZATION']:
-		CFLAGS   += ' -march=native -ftree-vectorize'
-		CXXFLAGS += ' -march=native -ftree-vectorize'
-		FFLAGS   += ' -march=native -ftree-vectorize'
-	# OpenMP flag
-	if options['OPENMP_PARALL']:
-		CFLAGS   += ' -fopenmp'
-		CXXFLAGS += ' -fopenmp'
+	if options['USE_GCC']:
+		if options['DEBUGGING']:
+			CFLAGS   += ' -O0 -g -rdynamic'
+			CXXFLAGS += ' -O0 -g -rdynamic'
+			FFLAGS   += ' -O0 -g -rdynamic'
+		else:
+			CFLAGS   += ' -O%s -ffast-math' % options['OPTL']
+			CXXFLAGS += ' -O%s -ffast-math' % options['OPTL']
+			FFLAGS   += ' -O%s -ffast-math' % options['OPTL']
+		# Vectorization flags
+		if options['VECTORIZATION']:
+			CFLAGS   += ' -march=native -ftree-vectorize'
+			CXXFLAGS += ' -march=native -ftree-vectorize'
+			FFLAGS   += ' -march=native -ftree-vectorize'	
+		# OpenMP flag
+		if options['OPENMP_PARALL']:
+			CFLAGS   += ' -fopenmp '
+			CXXFLAGS += ' -fopenmp '
+			DFLAGS   += ' -DUSE_OMP'
+	# Using NVHPC as a compiler
+	if options['USE_NVHPC']:
+		if options['DEBUGGING']:
+			CFLAGS   += ' -O0 -g'
+			CXXFLAGS += ' -O0 -g'
+			FFLAGS   += ' -O0 -g'
+		else:
+			CFLAGS   += ' -O%s' % options['OPTL']
+			CXXFLAGS += ' -O%s' % options['OPTL']
+			FFLAGS   += ' -O%s' % options['OPTL']
+		# Vectorization flags
+		if options['VECTORIZATION']:
+			CFLAGS   += ' -tp=%s -fast' % options['TUNE']
+			CXXFLAGS += ' -tp=%s -fast' % options['TUNE']
+			FFLAGS   += ' -tp=%s -fast' % options['TUNE']	
+		# OpenMP flag
+		if options['OPENMP_PARALL']:
+			CFLAGS   += ' -mp'
+			CXXFLAGS += ' -mp'
+			DFLAGS   += ' -DUSE_OMP'
 else:
-	# Using GCC as a compiler
+	# Using INTEL as a compiler
 	CFLAGS   += ' -O0 -g -traceback -fPIC' if options['DEBUGGING'] else ' -O%s -fPIC' % options['OPTL']
 	CXXFLAGS += ' -O0 -g -traceback -fPIC' if options['DEBUGGING'] else ' -O%s -fPIC' % options['OPTL']
 	FFLAGS   += ' -O0 -g -traceback -fPIC' if options['DEBUGGING'] else ' -O%s -fPIC' % options['OPTL']
