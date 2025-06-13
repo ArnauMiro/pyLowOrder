@@ -6,13 +6,19 @@ from pyLOM.RL.airfoil_solvers import (
     NeuralFoilSolver,
     DummySolver
 )
-from pyLOM.RL.shape_parameterizers import BaseParameterizer, AirfoilCSTParametrizer
+from pyLOM.RL.wing_solvers import (
+    AerosandboxWingSolver,
+    AVLSolver
+)
+from pyLOM.RL.shape_parameterizers import BaseParameterizer, AirfoilCSTParametrizer, WingParameterizer
 from . import shape_optimization_env
 from pyLOM.RL.env_factory import (
     create_env,
     AirfoilOperatingConditions,
     AirfoilParameterizerConfig,
     SolverFactory,
+    WingOperatingConditions,
+    WingParameterizerConfig,
 )
 from pyLOM.RL.evaluations import (
     run_episode,

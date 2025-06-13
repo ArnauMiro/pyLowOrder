@@ -1,8 +1,9 @@
-from dataclasses import dataclass
-from typing import Tuple, Optional
+from dataclasses import dataclass, field
+from typing import Tuple, Optional, List
 
 import gymnasium as gym
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor
+import aerosandbox as asb
 
 from pyLOM.RL.airfoil_solvers import (
     NeuralFoilSolver,
@@ -10,9 +11,19 @@ from pyLOM.RL.airfoil_solvers import (
     DummySolver,
     BaseSolver
 )
+from pyLOM.RL.wing_solvers import (
+    AerosandboxWingSolver,
+    AVLSolver,
+)
 from pyLOM.RL.shape_parameterizers import AirfoilCSTParametrizer
+from pyLOM.RL.shape_parameterizers import WingParameterizer
+from pyLOM.utils import raiseError
 
-
+WING_SOLVER_NAME_TO_CLASS = {
+    "aerosandbox": AerosandboxWingSolver,
+    "avl": AVLSolver,
+    # "dust": DustSolver,
+}
 
 @dataclass
 class AirfoilOperatingConditions:
@@ -32,8 +43,27 @@ class AirfoilOperatingConditions:
 
 
 @dataclass
+class WingOperatingConditions:
+    """
+    Configuration for wing operating conditions
+    
+    Args:
+        velocity (float): Flight velocity in m/s. Default is ``150`` m/s.
+        altitude (float): Altitude in meters. Default is ``500`` m.
+        alpha (float): Angle of attack in degrees. Default is ``2``.
+    """
+    velocity: float = 150  # m/s
+    altitude: float = 500  # m
+    alpha: float = 2  # degrees
+    
+    def __post_init__(self):
+        self.atmosphere = asb.Atmosphere(altitude=self.altitude)
+
+
+@dataclass
 class AirfoilParameterizerConfig:
-    """Configuration for airfoil parameterization.
+    """
+    Configuration for airfoil parameterization.
     
     This class defines the parameters used to create an airfoil shape using the
     Class-Shape Transformation (CST) method. It controls the number of control
@@ -57,7 +87,8 @@ class AirfoilParameterizerConfig:
     lower_edge_bounds: Tuple[float, float] = (-0.75, 1.5)
     
     def create_parameterizer(self):
-        """Creates an AirfoilCSTParametrizer based on this configuration.
+        """
+        Creates an AirfoilCSTParametrizer based on this configuration.
         
         This method instantiates a new AirfoilCSTParametrizer using the 
         current configuration settings. The parameterizer can then be used
@@ -80,6 +111,42 @@ class AirfoilParameterizerConfig:
         )
 
 
+@dataclass
+class WingParameterizerConfig:
+    """
+    Configuration for wing parameterization
+    
+    This class defines the parameters used to create a wing shape, including
+    airfoil type, chord, twist, span, sweep, and dihedral angles. It provides
+    methods to create a WingParameterizer instance based on these settings.
+
+    Args:
+        airfoil_name (str): Name of an airfoil from the UIUC airfoil dataset to use for the wing. If a custom `asb.Airfoil` wants to me used, pleas create the parameterizere directly with `pyLOM.RL.WingParameterizer`. Default is "naca0012".
+        chord_bounds (List[List[float]]): Bounds for the chord length. Default is [[0.75, 0.45], [1.25, 0.75]].
+        twist_bounds (List[List[float]]): Bounds for the twist angle in degrees. Default is [[-2, -2], [2, 2]].
+        span_bounds (List[List[float]]): Bounds for the span length. Default is [[1.5], [2]].
+        sweep_bounds (List[List[float]]): Bounds for the sweep angle in degrees. Default is [[-5], [15]].
+        dihedral_bounds (List[List[float]]): Bounds for the dihedral angle in degrees. Default is [[-2], [7]].
+    """
+    airfoil_name: str = "naca0012"
+    chord_bounds: List[List[float]] = field(default_factory=lambda: [[0.75, 0.45], [1.25, 0.75]])
+    twist_bounds: List[List[float]] = field(default_factory=lambda: [[-2, -2], [2, 2]])
+    span_bounds: List[List[float]] = field(default_factory=lambda: [[1.5], [2]])
+    sweep_bounds: List[List[float]] = field(default_factory=lambda: [[-5], [15]])
+    dihedral_bounds: List[List[float]] = field(default_factory=lambda: [[-2], [7]])
+    
+    def create_parameterizer(self):
+        """Creates a WingParameterizer based on this configuration"""
+        return WingParameterizer(
+            airfoil=asb.Airfoil(self.airfoil_name),
+            chord_bounds=self.chord_bounds,
+            twist_bounds=self.twist_bounds,
+            span_bounds=self.span_bounds,
+            sweep_bounds=self.sweep_bounds,
+            dihedral_bounds=self.dihedral_bounds,
+        )
+
+
 class SolverRegistry:
     """Registry of available solvers.
     
@@ -88,6 +155,7 @@ class SolverRegistry:
     given solver name is valid.
     """
     _airfoil_solvers = {'neuralfoil', 'xfoil', 'dummy'}
+    _wing_solvers = {'avl', 'aerosandbox'}
     
     @classmethod
     def register_airfoil_solver(cls, name: str) -> None:
@@ -114,6 +182,19 @@ class SolverRegistry:
             bool: True if the solver is registered, False otherwise.
         """
         return name.lower() in cls._airfoil_solvers
+    
+    @classmethod
+    def is_wing_solver(cls, name: str) -> bool:
+        """Check if a solver is a wing solver
+        
+        This method verifies if the given solver name exists in the registry
+        of wing solvers.
+        Args:
+            name (str): The name of the solver to check.
+        
+        Returns:
+            bool: True if the solver is registered as a wing solver, False otherwise."""
+        return name.lower() in cls._wing_solvers
 
     @classmethod
     def get_all_solvers(cls) -> set:
@@ -157,6 +238,8 @@ class SolverFactory:
         
         if SolverRegistry.is_airfoil_solver(solver_name):
             return SolverFactory.create_airfoil_solver(solver_name, conditions)
+        elif SolverRegistry.is_wing_solver(solver_name):
+            return SolverFactory.create_wing_solver(solver_name, conditions)
         else:
             raise ValueError(
                 f"Solver {solver_name} not recognized. Available solvers: {SolverRegistry.get_all_solvers()}"
@@ -198,7 +281,25 @@ class SolverFactory:
         elif solver_name == "dummy":
             return DummySolver()
         else:
-            raise ValueError(f"Solver {solver_name} not recognized")
+            raise raiseError(f"Solver {solver_name} not recognized")
+    
+    @staticmethod
+    def create_wing_solver(solver_name: str, conditions: Optional[WingOperatingConditions] = None):
+        """Create a wing solver"""
+        if conditions is None:
+            conditions = WingOperatingConditions()
+            
+        solver_name = solver_name.lower()
+        
+        if solver_name in WING_SOLVER_NAME_TO_CLASS:
+            solver_class = WING_SOLVER_NAME_TO_CLASS[solver_name]
+            return solver_class(
+                velocity=conditions.velocity,
+                alpha=conditions.alpha,
+                atmosphere=conditions.atmosphere,
+            )
+        else:
+            raise raiseError(f"Solver {solver_name} not recognized")
 
 
 def create_env(
@@ -250,6 +351,8 @@ def create_env(
     if parameterizer is None:
         if SolverRegistry.is_airfoil_solver(solver_name):
             parameterizer = AirfoilParameterizerConfig().create_parameterizer()
+        elif SolverRegistry.is_wing_solver(solver_name):
+            parameterizer = WingParameterizerConfig().create_parameterizer()
         else:
             raise ValueError(f"Solver {solver_name} not recognized")
     
