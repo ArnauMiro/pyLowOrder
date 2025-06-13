@@ -2,9 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 import aerosandbox.tools.pretty_plots as p
-import aerosandbox as asb
 
-from typing import List, Optional
 
 def create_airfoil_optimization_progress_plot(airfoils, rewards, airfoil_name='Airfoil Shape', save_path=None):
     """
@@ -273,3 +271,139 @@ def AirfoilEvolutionAnimation(*args, **kwargs):
             self.wait()
     
     return _AirfoilEvolutionAnimation(*args, **kwargs)
+
+def WingEvolutionAnimation(*args, **kwargs):
+    """Factory function that creates WingEvolution instances.
+    Manim is required to run this animation, and it is recommended to install it with `conda install -c conda-forge manim`.
+
+    Properties:
+        - `wings`: List of wing objects representing the evolution.
+        - `rewards`: List of lift-to-drag ratios corresponding to each airplane.
+        - `run_time_per_update`: Duration of each update in seconds. Default: ``0.25``.
+    
+    Examples:
+        To use in a notebook:
+
+        >>> import manim
+        >>> from pyLOM.RL import WingEvolutionAnimation
+
+        on a separete cell, define the wings and rewards:
+
+        >>> %%manim -qm -v WARNING AirfoilEvolution 
+        >>> WingEvolutionAnimation.wings = wings
+        >>> WingEvolutionAnimation.rewards = rewards
+        >>> WingEvolutionAnimation.run_time_per_update = 0.1
+    """
+    try:
+        from manim import ThreeDScene
+    except ImportError as e:
+        raise ImportError(
+            "AirfoilEvolution requires manim to be installed."
+            "Please, install with: conda install -c conda-forge manim"
+        ) from e
+    
+    class _WingEvolution(ThreeDScene):
+        rewards = WingEvolutionAnimation.rewards
+        wings = WingEvolutionAnimation.wings
+        run_time_per_update = WingEvolutionAnimation.run_time_per_update if hasattr(WingEvolutionAnimation, "run_time_per_update") else 0.25
+
+        def get_mesh_from_airplane(self, airplane):
+            """Constructs a VGroup of polygons from an airplane's mesh data."""
+            import manim
+            points, faces = airplane.mesh_body(method='tri')
+            # scale the points so that y is normalized to [-1, 1] and the aspect ratio is maintained
+            points = np.array(points)
+            y_min = points[:, 1].min()
+            y_max = points[:, 1].max()
+            # Calculate the center of the y-span
+            y_center = (y_max + y_min) / 2.0
+
+            # Calculate the scaling factor
+            scale_factor = 2.0 / (y_max - y_min)
+
+            # Center the y-axis coordinates around 0
+            points[:, 1] = points[:, 1] - y_center
+            points *= scale_factor
+
+            mesh_polys = manim.VGroup()
+            for face in faces:
+                # Get the vertices for this face.
+                # the 5 is hardcoded, but it should look fine independently the size of the wing
+                triangle_vertices = [points[idx] * 5 for idx in face]
+                # Create the polygon.
+                triangle = manim.Polygon(
+                    *triangle_vertices,
+                    fill_color=manim.BLUE,
+                    fill_opacity=0.5,
+                    stroke_color=manim.WHITE,
+                    stroke_width=0.1,
+                )
+                mesh_polys.add(triangle)
+            return mesh_polys
+        
+        def construct(self):
+            import manim
+
+            manim.config.renderer = "cairo"  # Use Cairo renderer instead of LaTeX
+            # Set up 3D camera
+            self.set_camera_orientation(phi=75 * manim.DEGREES, theta=210 * manim.DEGREES)
+            x_step = len(self.rewards) // 10 if len(self.rewards) > 10 else 1
+            rewards_axes = manim.Axes(
+                x_range=[0, len(self.wings), x_step],
+                y_range=[min(self.rewards), max(self.rewards), int((max(self.rewards) * 1.1 - min(self.rewards) * 0.9) / 5)],
+                x_length=7,
+                y_length=3,
+                axis_config={"include_numbers": True},
+                tips=False
+                
+            ).scale(0.85)
+            labels_airfoil = rewards_axes.get_axis_labels(x_label=manim.Text("Iteration", font_size=16), y_label=manim.Text("CL/CD", font_size=16))
+            # Position the axes at the bottom of the screen
+            rewards_group = manim.VGroup(rewards_axes, labels_airfoil)
+            rewards_group.to_corner(manim.DOWN + manim.LEFT, buff=0.5)
+            
+            # Create the rewards plot line
+            rewards_points = [rewards_axes.coords_to_point(i, reward) 
+                            for i, reward in enumerate(self.rewards)]
+            rewards_line = manim.VMobject()
+            rewards_line.set_points_smoothly(rewards_points[:1])
+            
+            # Add the 3D mesh first
+            current_mesh = self.get_mesh_from_airplane(self.wings[0]).move_to([0, 0, 1])
+            
+            self.add(current_mesh)
+            
+            # Add the 2D elements as fixed in frame
+            self.add_fixed_in_frame_mobjects(rewards_group, rewards_line)
+            
+            self.wait(1)
+            
+            # Animate through each airplane and update rewards plot
+            for i, (airplane, reward) in enumerate(zip(self.wings[1:], self.rewards[1:]), 1):
+                new_mesh = self.get_mesh_from_airplane(airplane).move_to([0, 0, 1])
+                
+                # Create the next segment of the rewards line
+                new_line = manim.VMobject()
+                new_line.set_points_smoothly(rewards_points[:i+1])
+                new_line.set_color(manim.BLUE)  # Match the wing color
+                
+                # Add the new line as fixed in frame
+                self.remove(rewards_line)
+                self.add_fixed_in_frame_mobjects(new_line)
+                
+                # Animate both the mesh transformation and the rewards line update
+                self.play(
+                    manim.ReplacementTransform(current_mesh, new_mesh),
+                    manim.ReplacementTransform(rewards_line, new_line),
+                    run_time=self.run_time_per_update,
+                )
+                
+                current_mesh = new_mesh
+                rewards_line = new_line
+            
+            self.wait(1)
+            
+            # Camera rotation (only affects the 3D part)
+            self.move_camera(theta=(2 + 7/6) * manim.PI, run_time=7, rate_func=manim.linear)
+            self.wait(1)
+    return _WingEvolution(*args, **kwargs)

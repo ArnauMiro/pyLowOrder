@@ -196,7 +196,7 @@ class WingParameterizer(BaseParameterizer):
         
         Args:
             airfoil (asb.Airfoil): The airfoil to be used for the wing sections.
-            The bounds for the chord, twist, span, sweep, and dihedral parameters are tuples with two lists, the first list is the lower bound and the second list is the upper bound. If the upper and lower bounds are the same, the parameter will not be considered for optimization. A section of the wing is created for each chord and twist pair, and a region of the wing is created for each span, sweep, and dihedral triplet, the number of sections should be one more than the number of regions.
+            The bounds for the chord, twist, span, sweep, and dihedral parameters are tuples with two lists, the first list is the lower bound and the second list is the upper bound. If the upper and lower bounds are the same, the parameter will not be considered for optimization. A section of the wing is created for each chord and twist pair, and a region of the wing is created for each span, sweep, and dihedral triplet, the number of sections should be one more than the number of regions. The angles need to be in degrees.
         """
         self.lower_bounds = np.array(
             chord_bounds[0] + twist_bounds[0] + span_bounds[0] + sweep_bounds[0] + dihedral_bounds[0]
