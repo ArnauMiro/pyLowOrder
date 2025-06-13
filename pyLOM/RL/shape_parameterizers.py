@@ -180,3 +180,103 @@ class AirfoilCSTParametrizer(BaseParameterizer):
             self.upper_surface_bounds[0] + self.lower_surface_bounds[0] + [self.leading_edge_weight_bounds[0], self.TE_thickness_bounds[0]],
             self.upper_surface_bounds[1] + self.lower_surface_bounds[1] + [self.leading_edge_weight_bounds[1], self.TE_thickness_bounds[1]],
         )
+
+class WingParameterizer(BaseParameterizer):
+    def __init__(
+        self,
+        airfoil: asb.Airfoil,
+        chord_bounds: Tuple[List],
+        twist_bounds: Tuple[List],
+        span_bounds: Tuple[List],
+        sweep_bounds: Tuple[List],
+        dihedral_bounds: Tuple[List],
+    ):
+        """
+        Initialize the WingParametrizerDust class.
+        
+        Args:
+            airfoil (asb.Airfoil): The airfoil to be used for the wing sections.
+            The bounds for the chord, twist, span, sweep, and dihedral parameters are tuples with two lists, the first list is the lower bound and the second list is the upper bound. If the upper and lower bounds are the same, the parameter will not be considered for optimization. A section of the wing is created for each chord and twist pair, and a region of the wing is created for each span, sweep, and dihedral triplet, the number of sections should be one more than the number of regions.
+        """
+        self.lower_bounds = np.array(
+            chord_bounds[0] + twist_bounds[0] + span_bounds[0] + sweep_bounds[0] + dihedral_bounds[0]
+        )
+        self.upper_bounds = np.array(
+            chord_bounds[1] + twist_bounds[1] + span_bounds[1] + sweep_bounds[1] + dihedral_bounds[1]
+        )
+        self.non_optimizable_params_mask = (self.lower_bounds == self.upper_bounds)
+        self.airfoil = airfoil
+        assert len(chord_bounds[0]) == len(twist_bounds[0]), "Chord and twist bounds must have the same length"
+        assert len(span_bounds[0]) == len(sweep_bounds[0]) and len(span_bounds[0]) == len(dihedral_bounds[0]), "Span, sweep and dihedral bounds must have the same length"
+        self.num_sections = len(chord_bounds[0])
+        self.num_regions = len(span_bounds[0])
+        assert self.num_sections == self.num_regions + 1, "There should be one more chord section than span section"
+
+
+    def get_shape_from_params(self, params):
+        if len(params) != len(self.lower_bounds):   
+            competed_params = self._complete_params(params)
+        else:
+            competed_params = params
+        chords = competed_params[:self.num_sections]
+        twists = competed_params[self.num_sections:2*self.num_sections]
+        spans = competed_params[2*self.num_sections:2*self.num_sections + self.num_regions]
+        sweeps = competed_params[2*self.num_sections + self.num_regions:2*self.num_sections + 2*self.num_regions]
+        diheds = competed_params[2*self.num_sections + 2*self.num_regions:]
+        coordinates = [np.array([0, 0, 0])]
+        for i in range(self.num_regions):
+            new_coordinates = np.array([0, 0, 0], dtype=float)
+            new_coordinates[0] = coordinates[-1][0] + np.tan(np.radians(sweeps[i])) * spans[i]
+            new_coordinates[1] = coordinates[-1][1] + spans[i]
+            new_coordinates[2] = coordinates[-1][2] + np.tan(np.radians(diheds[i])) * spans[i]
+            coordinates.append(new_coordinates)
+
+        wing = asb.Wing(
+            name="Main Wing",
+            symmetric=True,  # Should this wing be mirrored across the XZ plane?
+            xsecs=[  # The wing's cross ("X") sections
+                asb.WingXSec(  # Root
+                    xyz_le=coords,  # Coordinates of the XSec's leading edge, relative to the wing's leading edge.
+                    chord=chord,
+                    twist=twist,  # degrees
+                    airfoil=self.airfoil,  # Airfoils are blended between a given XSec and the next one.
+                ) for chord, twist, coords in zip(chords, twists, coordinates) 
+            ])
+        return wing
+
+
+    def _complete_params(self, params):
+        competed_params = np.zeros_like(self.lower_bounds)
+        competed_params[~self.non_optimizable_params_mask] = params
+        competed_params[self.non_optimizable_params_mask] = self.lower_bounds[self.non_optimizable_params_mask]
+        return competed_params
+
+    def get_params_from_shape(self, wing):
+        chords = [section.chord for section in wing.xsecs]
+        twists = [section.twist for section in wing.xsecs]
+        coordinates = [wing._compute_xyz_le_of_WingXSec(i).tolist() for i in range(len(wing.xsecs))]
+        spans, sweeps, diheds = [], [], []
+
+        for i in range(1, len(coordinates)):
+            first_coord = coordinates[i-1]
+            second_coord = coordinates[i]
+            span = second_coord[1] - first_coord[1]
+            sweep = np.degrees(np.arctan((second_coord[0] - first_coord[0]) / span))
+            dihed = np.degrees(np.arctan((second_coord[2] - first_coord[2]) / span))
+            spans.append(span)
+            sweeps.append(sweep)
+            diheds.append(dihed)
+
+        params = np.array(chords + twists + spans + sweeps + diheds, dtype=np.float32)
+        return params[~self.non_optimizable_params_mask]   
+
+    def generate_random_params(self, seed=None):
+        if seed is not None:
+            np.random.seed(seed)
+        new_params = np.random.uniform(self.lower_bounds, self.upper_bounds)
+        # keep only the optimizable parameters
+        new_params = new_params[~self.non_optimizable_params_mask]
+        return new_params
+    
+    def get_optimizable_bounds(self):
+        return self.lower_bounds[~self.non_optimizable_params_mask], self.upper_bounds[~self.non_optimizable_params_mask]
