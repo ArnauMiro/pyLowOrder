@@ -148,10 +148,12 @@ class XFoil(XFoilOld):
             keystrokes += ["pacc", "", "quit"]  # End polar accumulation
 
             # Remove an old output file, if one exists:
-            try:
+            # try:
+            #     os.remove()
+            # except FileNotFoundError:
+            #     pass
+            if os.path.exists(directory / output_filename):
                 os.remove(directory / output_filename)
-            except FileNotFoundError:
-                pass
             # print(self.xfoil_command, keystrokes)
             ### Execute
             try:
@@ -207,10 +209,10 @@ class XFoil(XFoilOld):
                     raise e
 
             ### Parse the polar
-            try:
+            if os.path.exists(directory / output_filename):
                 with open(directory / output_filename) as f:
                     lines = f.readlines()
-            except FileNotFoundError:
+            else:
                 raise self.XFoilError(
                     "It appears XFoil didn't produce an output file, probably because it crashed.\n"
                     "To troubleshoot, try some combination of the following:\n"
@@ -311,97 +313,97 @@ class XFoil(XFoilOld):
 
             output = {k: np.array(v, dtype=float) for k, v in output.items()}
 
-            # Read the BL data
-            if read_bl_data_from is not None:
-                import pandas as pd
+            # # Read the BL data
+            # if read_bl_data_from is not None:
+            #     import pandas as pd
 
-                bl_datas: List[pd.DataFrame] = []
+            #     bl_datas: List[pd.DataFrame] = []
 
-                if read_bl_data_from == "alpha":
-                    alpha_to_dump_mapping = {
-                        float(dump_filename.stem.split("_")[-1]): dump_filename
-                        for dump_filename in directory.glob("dump_a_*.txt")
-                    }
+            #     if read_bl_data_from == "alpha":
+            #         alpha_to_dump_mapping = {
+            #             float(dump_filename.stem.split("_")[-1]): dump_filename
+            #             for dump_filename in directory.glob("dump_a_*.txt")
+            #         }
 
-                    for alpha in output["alpha"]:
-                        dump_filename = alpha_to_dump_mapping[
-                            min(
-                                alpha_to_dump_mapping.keys(),
-                                key=lambda x: abs(x - alpha),
-                            )
-                        ]
+            #         for alpha in output["alpha"]:
+            #             dump_filename = alpha_to_dump_mapping[
+            #                 min(
+            #                     alpha_to_dump_mapping.keys(),
+            #                     key=lambda x: abs(x - alpha),
+            #                 )
+            #             ]
 
-                        bl_datas.append(
-                            pd.read_csv(
-                                dump_filename,
-                                sep=r"\s+",
-                                names=[
-                                    "s",
-                                    "x",
-                                    "y",
-                                    "ue/vinf",
-                                    "dstar",
-                                    "theta",
-                                    "cf",
-                                    "H",
-                                ],
-                                skiprows=1,
-                            )
-                        )
+            #             bl_datas.append(
+            #                 pd.read_csv(
+            #                     dump_filename,
+            #                     sep=r"\s+",
+            #                     names=[
+            #                         "s",
+            #                         "x",
+            #                         "y",
+            #                         "ue/vinf",
+            #                         "dstar",
+            #                         "theta",
+            #                         "cf",
+            #                         "H",
+            #                     ],
+            #                     skiprows=1,
+            #                 )
+            #             )
 
-                elif read_bl_data_from == "cl":
-                    cl_to_dump_mapping = {
-                        float(dump_filename.stem.split("_")[-1]): dump_filename
-                        for dump_filename in directory.glob("dump_cl_*.txt")
-                    }
+            #     elif read_bl_data_from == "cl":
+            #         cl_to_dump_mapping = {
+            #             float(dump_filename.stem.split("_")[-1]): dump_filename
+            #             for dump_filename in directory.glob("dump_cl_*.txt")
+            #         }
 
-                    for cl in output["CL"]:
-                        dump_filename = cl_to_dump_mapping[
-                            min(cl_to_dump_mapping.keys(), key=lambda x: abs(x - cl))
-                        ]
+            #         for cl in output["CL"]:
+            #             dump_filename = cl_to_dump_mapping[
+            #                 min(cl_to_dump_mapping.keys(), key=lambda x: abs(x - cl))
+            #             ]
 
-                        bl_datas.append(
-                            pd.read_csv(
-                                dump_filename,
-                                sep=r"\s+",
-                                names=[
-                                    "s",
-                                    "x",
-                                    "y",
-                                    "ue/vinf",
-                                    "dstar",
-                                    "theta",
-                                    "cf",
-                                    "H",
-                                ],
-                                skiprows=1,
-                            )
-                        )
+            #             bl_datas.append(
+            #                 pd.read_csv(
+            #                     dump_filename,
+            #                     sep=r"\s+",
+            #                     names=[
+            #                         "s",
+            #                         "x",
+            #                         "y",
+            #                         "ue/vinf",
+            #                         "dstar",
+            #                         "theta",
+            #                         "cf",
+            #                         "H",
+            #                     ],
+            #                     skiprows=1,
+            #                 )
+            #             )
 
-                else:
-                    raise ValueError(
-                        "The `read_bl_data_from` parameter must be 'alpha', 'cl', or None."
-                    )
+            #     else:
+            #         raise ValueError(
+            #             "The `read_bl_data_from` parameter must be 'alpha', 'cl', or None."
+            #         )
 
                 # Augment the output data for each BL
-                for bl_data in bl_datas:
-                    # Get Cp via Karman-Tsien compressibility correction, same as XFoil
-                    Cp_0 = 1 - bl_data["ue/vinf"] ** 2
-                    bl_data["Cp"] = Cp_0 / (
-                        np.sqrt(1 - self.mach**2)
-                        + (
-                            (self.mach**2)
-                            / (1 + np.sqrt(1 - self.mach**2))
-                            * (Cp_0 / 2)
-                        )
-                    )
+                # for bl_data in bl_datas:
+                #     # Get Cp via Karman-Tsien compressibility correction, same as XFoil
+                #     Cp_0 = 1 - bl_data["ue/vinf"] ** 2
+                #     bl_data["Cp"] = Cp_0 / (
+                #         np.sqrt(1 - self.mach**2)
+                #         + (
+                #             (self.mach**2)
+                #             / (1 + np.sqrt(1 - self.mach**2))
+                #             * (Cp_0 / 2)
+                #         )
+                #     )
 
-                    # Get Re_theta
-                    bl_data["Re_theta"] = (
-                        np.abs(bl_data["ue/vinf"]) * bl_data["theta"] * self.Re
-                    )
+                #     # Get Re_theta
+                #     bl_data["Re_theta"] = (
+                #         np.abs(bl_data["ue/vinf"]) * bl_data["theta"] * self.Re
+                #     )
 
-                output["bl_data"] = np.fromiter(bl_datas, dtype="O")
+                # output["bl_data"] = np.fromiter(bl_datas, dtype="O")
 
             return output
 
