@@ -158,10 +158,10 @@ optionals = [
 ]
 # Dependencies for teh RL module
 rl = [
-  "AeroSandbox==4.2.8",
+  "AeroSandbox",
   "gymnasium==1.1.1",
-  "stable_baselines3==2.6.0",
-  "neuralFoil-torch==0.3.2",
+  "stable_baselines3",
+  "neuralFoil-torch",
 ]
 
 # List URLs that are relevant to your project
