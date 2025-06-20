@@ -4,11 +4,11 @@ import random
 import aerosandbox as asb
 import numpy as np
 from aerosandbox import _asb_root
-from tqdm import tqdm
-from mpi4py import MPI
 
 from pyLOM.utils import pprint
 from pyLOM.RL import NON_CONVERGED_REWARD
+import pyLOM
+from mpi4py import MPI
 
 airfoil_database_root = _asb_root / "geometry" / "airfoil" / "airfoil_database"
 
@@ -74,8 +74,7 @@ def evaluate_airfoil_agent(agent, env, num_episodes=200, save_path=None):
     airfoil_list = random.sample(os.listdir(airfoil_database_root), num_episodes)
     if "utils" in airfoil_list:
         airfoil_list.remove("utils")
-    pbar = tqdm(airfoil_list, desc="Evaluating airfoils", unit="airfoil")
-    for airfoil_name in pbar:
+    for airfoil_name in airfoil_list:
         try:
             initial_airfoil = asb.Airfoil(airfoil_name)
         except:  # noqa: E722
@@ -118,7 +117,7 @@ def evaluate_airfoil_agent_whole_uiuc_mpi(agent, env, save_results_path):
         env: The environment in which to run the episodes.
         save_results_path: If provided, saves the results to a CSV file at this path.
     """
-    comm = MPI.COMM_WORLD
+    comm = pyLOM.utils.mpi.MPI_COMM
     rank = comm.Get_rank()
     size = comm.Get_size()
 
@@ -126,34 +125,31 @@ def evaluate_airfoil_agent_whole_uiuc_mpi(agent, env, save_results_path):
 
     if rank == 0:
         # Master process
-        airfoil_names = os.listdir(airfoil_database_root)
+        airfoil_names = os.listdir(airfoil_database_root)[:40]
         if "utils" in airfoil_names:
             airfoil_names.remove("utils")
-        airfoil_count = len(airfoil_names)
         results = []
 
         # Send initial work to each worker
         for i in range(1, size):
             if airfoil_names:
                 airfoil_name = airfoil_names.pop()
-                comm.send(airfoil_name, dest=i, tag=1)
+                pyLOM.utils.mpi.mpi_send(airfoil_name, dest=i, tag=1)
 
         # Receive results and distribute remaining work
-        with tqdm(total=airfoil_count, desc="Evaluating airfoils", unit="airfoil") as pbar:
-            while active_workers > 0: #i < airfoil_count:
-                status = MPI.Status()
-                result = comm.recv(source=MPI.ANY_SOURCE, tag=2, status=status)
-                worker_rank = status.source
-                if result[0] is not None and result[1] is not None:
-                    results.append(result[:2])
+        while active_workers > 0: #i < airfoil_count:
+            status = MPI.Status()
+            result = pyLOM.utils.mpi.mpi_recv(source=MPI.ANY_SOURCE, tag=2, status=status)
+            worker_rank = status.source
+            if result[0] is not None and result[1] is not None:
+                results.append(result[:2])
 
-                pbar.update(1)
-                if airfoil_names:
-                    airfoil_name = airfoil_names.pop()
-                    comm.send(airfoil_name, dest=worker_rank, tag=1)
-                else:
-                    comm.send(None, dest=worker_rank, tag=0)  # Signal no more work
-                    active_workers -= 1
+            if airfoil_names:
+                airfoil_name = airfoil_names.pop()
+                pyLOM.utils.mpi.mpi_send(airfoil_name, dest=worker_rank, tag=1)
+            else:
+                pyLOM.utils.mpi.mpi_send(None, dest=worker_rank, tag=0)  # Signal no more work
+                active_workers -= 1
 
         # Finalize results
         rewards = [res[0] for res in results]
@@ -166,16 +162,16 @@ def evaluate_airfoil_agent_whole_uiuc_mpi(agent, env, save_results_path):
     else:
         # Worker process
         while True:
-            airfoil_name = comm.recv(source=0, tag=MPI.ANY_TAG, status=MPI.Status())
+            airfoil_name = pyLOM.utils.mpi.mpi_recv(source=0, tag=MPI.ANY_TAG, status=MPI.Status())
             if airfoil_name is None:  # No more work
                 break
             try:
                 initial_airfoil = asb.Airfoil(airfoil_name)
                 rewards, airfoils = run_episode(agent, env, initial_shape=initial_airfoil)
-                comm.send((rewards, airfoils, airfoil_name), dest=0, tag=2)
+                pyLOM.utils.mpi.mpi_send((rewards, airfoils, airfoil_name), dest=0, tag=2)
             except Exception as e:
                 pprint(rank, f"Error processing airfoil {airfoil_name}: {e}")
-                comm.send((None, None, None), dest=0, tag=2)
+                pyLOM.utils.mpi.mpi_send((None, None, None), dest=0, tag=2)
 
 
 def extract_metrics(rewards, states):
