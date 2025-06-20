@@ -1,5 +1,4 @@
 import pyLOM.RL
-from stable_baselines3 import PPO
 import torch
 
 # Set pytorch num threads to 1 for faster training. This is because torch parallelize the network (in both, neuralfoil and PPO networks) inference with all available cpus,
@@ -27,7 +26,7 @@ if __name__ == "__main__":
         "verbose": 1,
         "policy_kwargs": {"net_arch": dict(pi=[256, 256], vf=[256, 256])},
     }
-    initial_model = PPO(
+    initial_model = pyLOM.RL.SB3_PPO(
         "MlpPolicy", first_env, **neuralfoil_hyperparameters
     )
     initial_model.learn(total_timesteps=NEURALFOIL_ITERATIONS)
@@ -47,7 +46,7 @@ if __name__ == "__main__":
         "verbose": 1,
         "policy_kwargs": {"net_arch": dict(pi=[256, 256], vf=[256, 256])},
     }
-    fine_tuned_model = PPO(
+    fine_tuned_model = pyLOM.RL.SB3_PPO(
         "MlpPolicy", second_env, device='cpu', **xfoil_hyperparameters
     )
     # load the weights of the initial policy

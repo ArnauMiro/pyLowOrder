@@ -27,3 +27,5 @@ from pyLOM.RL.evaluations import (
     evaluate_airfoil_agent_whole_uiuc_mpi,
 )
 from pyLOM.RL.plotting import create_airfoil_optimization_progress_plot, AirfoilEvolutionAnimation, WingEvolutionAnimation
+
+from stable_baselines3 import PPO as SB3_PPO

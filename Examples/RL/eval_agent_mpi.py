@@ -8,8 +8,6 @@
 
 import pyLOM.RL
 
-from stable_baselines3 import PPO
-
 
 # Create the environment. The environment must be created with the same parameters as the one used to train the agent, except for the solver name.
 env = pyLOM.RL.create_env(
@@ -21,6 +19,6 @@ env = pyLOM.RL.create_env(
     thickness_penalization_factor=0.0,
 )
 # Load the agent that was already trained
-agent = PPO.load("airfoil_agent", env=env, device="cpu")
+agent = pyLOM.RL.SB3_PPO.load("airfoil_agent", env=env, device="cpu")
 # Evaluate the agent on the UIUC airfoil dataset. This will print a summary of the results and save them to a CSV file.
 pyLOM.RL.evaluate_airfoil_agent_whole_uiuc_mpi(agent, env, save_results_path="results.csv")

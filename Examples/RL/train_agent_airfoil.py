@@ -3,7 +3,6 @@
 # and the space state bounds used are the default ones.
 
 import pyLOM.RL
-from stable_baselines3 import PPO
 import torch
 
 # Set pytorch num threads to 1 for faster training. This is because torch parallelize the network inference (in both, neuralfoil and PPO networks) with all available cpus,
@@ -42,8 +41,9 @@ if __name__ == "__main__":
         thickness_penalization_factor=0.0
     )
 
-    # Instantiate and train the model
-    model = PPO("MlpPolicy", env, **ppo_params)
+    # Instantiate and train the model. Here, PPO from Stable Baselines3 is used,
+    # but you can use any other RL algorithm from Stable Baselines3 or any other library compatible with Gymmasyum.
+    model = pyLOM.RL.SB3_PPO("MlpPolicy", env, **ppo_params)
     model.learn(total_timesteps=N_TIMESTEPS)
 
     # Save the model

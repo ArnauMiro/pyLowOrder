@@ -19,7 +19,6 @@ import optuna
 import torch
 import torch.nn as nn
 import pyLOM.RL 
-from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import EvalCallback
 
 # Set pytorch num threads to 1 for faster training. This is because torch parallelize the network (in both, neuralfoil and PPO networks) inference with all available cpus,
@@ -149,7 +148,7 @@ def objective(trial) -> float:
         eval_freq=EVAL_FREQ,
     )
     # Create the RL model
-    model = PPO(**kwargs)
+    model = pyLOM.RL.SB3_PPO(**kwargs)
 
     nan_encountered = False
     try:

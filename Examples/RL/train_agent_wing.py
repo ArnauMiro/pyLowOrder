@@ -4,7 +4,6 @@
 # This example is very similar to the airfoil training example, 
 # only a few lines are different. That's one of the strengths of pyLOM.
 import pyLOM.RL
-from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 import torch
 
@@ -44,8 +43,9 @@ if __name__ == "__main__":
         thickness_penalization_factor=0.0
     )
 
-    # Instantiate and train the model
-    model = PPO("MlpPolicy", env, **ppo_params)
+    # Instantiate and train the model. Here, PPO from Stable Baselines3 is used,
+    # but you can use any other RL algorithm from Stable Baselines3 or any other library compatible with Gymmasyum.
+    model = pyLOM.RL.SB3_PPO("MlpPolicy", env, **ppo_params)
     model.learn(total_timesteps=N_TIMESTEPS)
 
     # Save the model
