@@ -67,7 +67,7 @@ class XFoilSolver(BaseSolver):
         }
         base_params.update(self.xfoil_params)
         xfoil = XFoil(
-            airfoil=airfoil.repanel(n_points_per_side=255 if "xfoil_repanel_n_points" not in base_params else base_params["xfoil_repanel_n_points"]),
+            airfoil=airfoil.repanel(n_points_per_side=100 if "xfoil_repanel_n_points" not in base_params else base_params["xfoil_repanel_n_points"]),
             **base_params
         )
         try:
