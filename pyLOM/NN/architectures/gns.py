@@ -20,6 +20,8 @@ from torch_geometric.data import Data, Batch
 # from torch_geometric.loader import DataLoader
 from torch_geometric.utils import k_hop_subgraph
 
+from . import inp_out as io
+from .utils import cr_nvtx as cr, raiseError
 
 from pyLOM import Mesh
 from pyLOM.vmmath.geometric import edge_to_cells, wall_normals
@@ -129,197 +131,6 @@ class ScalerProtocol(Protocol):
     def fit_transform(self, X: np.ndarray, y=None) -> np.ndarray:
         r""" Adjust the scaler to the data and transform it. """
         ...
-
-
-class Graph(Data):
-    r'''
-    Custom class derived from torch.geometric.Data to handle graphs for GNN.
-    
-    Custom features:
-        - from_pyLOM_mesh: Create a torch_geometric Data object from a pyLOM Mesh object.
-        - filter: Filter graph by eliminating nodes not in node_mask.
-    '''
-
-    @classmethod
-    def from_pyLOM_mesh(cls,
-                        mesh: Mesh,
-                        y: Optional[np.ndarray] = None,
-                        scaler: Optional[ScalerProtocol] = None,
-                        name: Optional[str] = None,
-                        device: Optional[Union[str, torch.device]] = DEVICE,
-                                ) -> "Graph":
-        r"""
-        Create a torch_geometric Data object from a pyLOM Mesh object.
-
-        Args:
-            mesh (pyLOM.Mesh): The input mesh.
-            y (Optional[np.ndarray]): Optional node target values. Must have dimension (n_nodes, :).
-            scaler (Optional[ScalerProtocol]): Optional scaler to normalize node and edge features. Must include:
-                - fit: Fit the scaler to the data.
-                - transform: Transform the data using the fitted scaler.
-                - fit_transform: Fit the scaler to the data and transform it.
-
-        Returns:
-            Graph: An instance of the Graph class which can be directly used to train a GNS.
-        """
-        node_attr = cls._node_attr(mesh)  # Get the node attributes
-        edge_index, edge_attr = cls._edge_index_and_attr(mesh)  # Get the edge attributes
-
-        # Scale node and edge features if scaler is provided
-        if scaler is not None:
-            node_attr = scaler.fit_transform(node_attr)
-            edge_attr = scaler.fit_transform(edge_attr)
-
-        y = torch.tensor(y, dtype=torch.float32) if y is not None else None
-        edge_index = torch.tensor(edge_index, dtype=torch.long)
-        node_attr = torch.tensor(node_attr, dtype=torch.float32)
-        edge_attr = torch.tensor(edge_attr, dtype=torch.float32)
-
-        # Return the class instance with the necessary attributes. Leave x as None as the final edge attributes need to be computed dynamically during training.
-        graph = cls(
-            x=node_attr,
-            model_inputs=None, # To be calculated on-the-fly during training
-            y=y,
-            edge_index=edge_index,
-            edge_attr=edge_attr
-            )
-
-        # Set the graph name
-        if name is not None:
-            graph.name = name
-        
-        # Set the device
-        if device is not None:
-            if isinstance(device, str):
-                device = torch.device(device)
-            graph.to(device)
-
-        return graph
-    
-
-    def filter(self,
-        node_mask: Optional[Union[list, torch.Tensor, np.ndarray]]=None,
-        node_indices: Optional[Union[list, torch.Tensor, np.ndarray]]=None
-    ):
-        r'''
-        Filter graph by providing either a boolean mask or a list of node indices to keep.
-
-        Args:
-            node_mask: Boolean mask to filter nodes.
-            node_indices: List of node indices to keep.
-        '''
-        
-
-        if node_mask is None and node_indices is None:
-            raise ValueError("Either node_mask or node_indices must be provided.")
-        elif node_mask is not None and node_indices is not None:
-            raise ValueError("Only one of node_mask or node_indices must be provided.")
-        elif node_mask is not None:
-            node_mask = torch.tensor(node_mask, dtype=torch.bool)
-        elif node_indices is not None:
-            node_mask = torch.zeros(self.x.shape[0], dtype=torch.bool)
-            node_mask[node_indices] = True
-
-        for attr in self.node_attrs():
-            if getattr(self, attr) is not None:
-                setattr(self, attr, getattr(self, attr)[node_mask])
-
-        self.y = self.y[node_mask] if self.y is not None else None
-
-
-        self.edge_attr = self.edge_attr[torch.logical_and(node_mask[self.edge_index[0]], node_mask[self.edge_index[1]])]
-        self.edge_index = self.edge_index[:, torch.logical_and(node_mask[self.edge_index[0]], node_mask[self.edge_index[1]])]
-        self.edge_index -= torch.min(self.edge_index)
-     
-
-    @staticmethod
-    def _node_attr(mesh: Mesh) -> np.ndarray:
-        r'''Computes the node attributes of Graph as described in
-            Hines, D., & Bekemeyer, P. (2023). Graph neural networks for the prediction of aircraft surface pressure distributions.
-            Aerospace Science and Technology, 137, 108268.
-            https://doi.org/10.1016/j.ast.2023.108268
-
-        Args:
-            mesh (Mesh): A RANS mesh in pyLOM format.
-        Returns:
-            np.ndarray: Node attributes of the graph.
-        '''
-        # Get the cell centers
-        xyzc = mesh.xyzc
-        # Get the surface normals
-        surface_normals = mesh.normal
-        
-        return np.concatenate((xyzc, surface_normals), axis=1)
-
-
-    @staticmethod
-    def _edge_index_and_attr(mesh: Mesh) -> Tuple[np.ndarray, np.ndarray]:
-        r'''Computes the edge index and attributes of Graph as described in
-            Hines, D., & Bekemeyer, P. (2023). Graph neural networks for the prediction of aircraft surface pressure distributions.
-            Aerospace Science and Technology, 137, 108268.
-            https://doi.org/10.1016/j.ast.2023.108268
-        Args:
-            mesh (Mesh): A RANS mesh in pyLOM format.
-        Returns:
-            Tuple[np.ndarray, np.ndarray]: Edge index and attributes of the graph.
-        '''
-        # Check whether the cells are 2D
-        if not np.all(np.isin(mesh.eltype, [2, 3, 4, 5])):
-            raise ValueError("The mesh must contain only 2D cells in order to compute the wall normals.")
-        
-
-        # Dictionary that maps each edge to the cells that share it
-        edge_dict = edge_to_cells(mesh.connectivity)
-        # List storying directed edges in the dual graph
-        edge_list = []
-        # List to store the wall normals.
-        wall_normals_list = []
-
-        # Iterate over each cell
-        for i, cell_id in enumerate(range(mesh.ncells)):
-            cell_normal = mesh.normal[cell_id]
-            cell_nodes = mesh.connectivity[cell_id]
-            nodes_xyz = mesh.xyz[cell_nodes]  # Get the nodes of the cell
-
-            cell_edges, cell_wall_normals = wall_normals(cell_nodes, nodes_xyz, cell_normal)  # Compute the edge normals of the cell
-            
-            # Directed dual edges: tuples of the form (cell_id, neighbor_id)
-            dual_edges = [
-                (cell_id, (edge_dict[edge] - {cell_id}).pop()) if len(edge_dict[edge]) == 2 else None # If the edge is not a boundary edge, get the neighbor cell
-                for edge in cell_edges
-            ]
-
-            edge_list.extend(dual_edges)
-            wall_normals_list.extend(cell_wall_normals)
-
-            if i%1e5 == 0:
-                print(f"Processing mesh. {i} cells out of {mesh.ncells} processed.")
-
-        # Remove the wall normals and dual edges at the boundary walls
-        edge_list, wall_normals_list = zip(*[
-                (x, y) for x, y in zip(edge_list, wall_normals_list) if x is not None
-            ])
-
-        edge_index = np.array(edge_list, dtype=np.int32).T  # Convert to numpy array and transpose
-        wall_normals = np.array(wall_normals_list, dtype=np.float64)  # Convert to numpy array
-
-        # Compute the rest of the edge_attributes
-        # Get the cell centers
-        xyzc = mesh.xyzc
-        # Get the edge coordinates
-        c_i = xyzc[edge_index[0, :]]
-        c_j = xyzc[edge_index[1, :]]
-        d_ij = c_j - c_i
-        # Transform to spherical coordinates
-        r = np.linalg.norm(d_ij, axis=1)
-        theta = np.arccos(d_ij[:, 2] / r)
-        phi = np.arctan2(d_ij[:, 1], d_ij[:, 0])
-
-        edge_attr = np.concatenate((r[:, None], theta[:, None], phi[:, None], wall_normals), axis=1)  # Ensure correct shape
-
-        return edge_index, edge_attr
-    
-
 
 
 
@@ -501,11 +312,11 @@ class GNS(nn.Module):
                 raise ValueError(f"Input parameters must have shape [B, {self.input_dim}]. Got {op_params.shape} instead.")
             
             # Prepend the operational parameters to the node features
-            graph.model_inputs[:, :self.input_dim] = op_params
+            x = graph.x.clone()  # Clone the node features to avoid modifying the original graph
+            x[:, :self.input_dim] = op_params
         
 
-        # Get node and edge features
-        x = graph.model_inputs
+        # Get node (+ op parameters) and edge features
         edge_index = graph.edge_index
         edge_attr = graph.edge_attr
 
@@ -552,15 +363,15 @@ class GNS(nn.Module):
         graph = graph.to(self.device)
 
         # Allocate the node features used as inputs to the model
-        graph.model_inputs = torch.cat(
+        graph.x = torch.cat(
             [
                 torch.zeros((graph.num_nodes, self.input_dim), dtype=torch.float32, device=self.device),
-                graph.x
+                graph.node_attr
             ],
             dim=1
         )
 
-        self.encoder_input_dim = graph.model_inputs.shape[1] # Update node features dimension
+        self.encoder_input_dim = graph.x.shape[1] # Update node features dimension
         self._edge_dim = graph.edge_attr.shape[1] # Update edge features dimension
 
         self._graph = graph
@@ -593,7 +404,7 @@ class GNS(nn.Module):
                 subset, edge_index, mapping, edge_mask = k_hop_subgraph(seed_nodes, num_hops=self.num_msg_passing_layers, edge_index=self.graph.edge_index, relabel_nodes=True)
 
                 # Complete the subgraph data and append it to a subgraphs batch
-                x_subg = self.graph.model_inputs[subset]
+                x_subg = self.graph.x[subset]
                 y_batch_subg = y_batch[:, subset]
                 edge_attr_subg = self.graph.edge_attr[edge_mask]
 
@@ -1119,4 +930,289 @@ class GNS(nn.Module):
         for t in tensors:
             del t
         torch.cuda.empty_cache()
+
+
+
+class Graph(Data):
+    def __init__(
+        self,
+        edge_index: torch.Tensor,
+        node_attrs: Dict[str, torch.Tensor],
+        edge_attrs: Dict[str, torch.Tensor],
+        device: Union[str, torch.device] = None,
+        **kwargs
+    ):
+        r'''
+        Initialize the Graph object. Node and edge attributes are stacked separately along dimension 1 for use in GNNs.
+
+        Args:
+            edge_index (torch.Tensor): COO format edge index (shape [2, num_edges]).
+            node_attrs (Dict[str, torch.Tensor]): Dict of node attributes [num_nodes, attr_dim].
+            edge_attrs (Dict[str, torch.Tensor]): Dict of edge attributes [num_edges, attr_dim].
+            device (Union[str, torch.device], optional): Torch device. Defaults to CUDA if available.
+            **kwargs: Optional additional named tensors or metadata.
+        '''
+        if device is None:
+            device = torch.device(DEVICE)  # Default to global DEVICE constant
+        elif isinstance(device, str):
+            device = torch.device(device)
+        if device.type == 'cuda' and DEVICE != 'cuda':
+            warnings.warn("CUDA not available. Falling back to CPU.")
+            device = torch.device('cpu')
+
+        # Ensure everything is on the correct device
+        edge_index = edge_index.to(device)
+        node_attrs = {k: v.to(device) for k, v in node_attrs.items()}
+        edge_attrs = {k: v.to(device) for k, v in edge_attrs.items()}
+        custom_attrs = {k: (v.to(device) if isinstance(v, torch.Tensor) else v) for k, v in custom_attrs.items()}
+
+        # Concatenate node/edge attributes
+        x = torch.cat(list(node_attrs.values()), dim=1)
+        edge_attr = torch.cat(list(edge_attrs.values()), dim=1)
+
+        # Build kwargs for Data
+        data_kwargs = {
+            'edge_index': edge_index,
+            'x': x,
+            'edge_attr': edge_attr,
+            **custom_attrs
+        }
+
+        super().__init__(**data_kwargs)
+
+        # store raw attribute dicts (for i/o operations)
+        self.node_attrs_dict = node_attrs
+        self.edge_attrs_dict = edge_attrs
+
+    @classmethod
+    def from_pyLOM_mesh(cls,
+                        mesh: Mesh,
+                        scaler: Optional[ScalerProtocol] = None,
+                        name: Optional[str] = None,
+                        device: Optional[Union[str, torch.device]] = DEVICE,
+                                ) -> "Graph":
+        r"""
+        Create a torch_geometric Data object from a pyLOM Mesh object.
+
+        Args:
+            mesh (pyLOM.Mesh): The input mesh.
+            y (Optional[np.ndarray]): Optional node target values. Must have dimension (n_nodes, :).
+            scaler (Optional[ScalerProtocol]): Optional scaler to normalize node and edge features. Must include:
+                - fit: Fit the scaler to the data.
+                - transform: Transform the data using the fitted scaler.
+                - fit_transform: Fit the scaler to the data and transform it.
+
+        Returns:
+            Graph: An instance of the Graph class which can be directly used to train a GNS.
+        """
+        node_attr = cls._node_attr(mesh)  # Get the node attributes
+        edge_index, edge_attr = cls._edge_index_and_attr(mesh)  # Get the edge attributes
+
+        # Scale node and edge features if scaler is provided
+        if scaler is not None:
+            node_attr = scaler.fit_transform(node_attr)
+            edge_attr = scaler.fit_transform(edge_attr)
+
+        y = torch.tensor(y, dtype=torch.float32) if y is not None else None
+        edge_index = torch.tensor(edge_index, dtype=torch.long)
+        node_attr = torch.tensor(node_attr, dtype=torch.float32)
+        edge_attr = torch.tensor(edge_attr, dtype=torch.float32)
+
+        # Return the class instance with the necessary attributes. Leave x as None as the final edge attributes need to be computed dynamically during training.
+        graph = cls(
+            node_attr=node_attr,
+            edge_index=edge_index,
+            edge_attr=edge_attr,
+            )
+
+        # Set the graph name
+        if name is not None:
+            graph.name = name
+        
+        # Set the device
+        if device is not None:
+            if isinstance(device, str):
+                device = torch.device(device)
+            graph.to(device)
+
+        return graph
+    
+
+    def filter(self,
+        node_mask: Optional[Union[list, torch.Tensor, np.ndarray]]=None,
+        node_indices: Optional[Union[list, torch.Tensor, np.ndarray]]=None
+    ):
+        r'''
+        Filter graph by providing either a boolean mask or a list of node indices to keep.
+
+        Args:
+            node_mask: Boolean mask to filter nodes.
+            node_indices: List of node indices to keep.
+        '''
+        
+
+        if node_mask is None and node_indices is None:
+            raise ValueError("Either node_mask or node_indices must be provided.")
+        elif node_mask is not None and node_indices is not None:
+            raise ValueError("Only one of node_mask or node_indices must be provided.")
+        elif node_mask is not None:
+            node_mask = torch.tensor(node_mask, dtype=torch.bool)
+        elif node_indices is not None:
+            node_mask = torch.zeros(self.x.shape[0], dtype=torch.bool)
+            node_mask[node_indices] = True
+
+        for attr in self.node_attrs():
+            if getattr(self, attr) is not None:
+                setattr(self, attr, getattr(self, attr)[node_mask])
+
+        self.edge_attr = self.edge_attr[torch.logical_and(node_mask[self.edge_index[0]], node_mask[self.edge_index[1]])]
+        self.edge_index = self.edge_index[:, torch.logical_and(node_mask[self.edge_index[0]], node_mask[self.edge_index[1]])]
+        self.edge_index -= torch.min(self.edge_index)
+
+    @cr('Graph.save')
+    def save(self,fname,**kwargs) -> None:
+        '''
+        Store the graph in a h5 file, pyLOM style.
+        '''
+        # Set default parameters
+        if not 'mode' in kwargs.keys():        kwargs['mode']        = 'w' if not os.path.exists(fname) else 'a'
+        # Append or save
+        node_attr_dict = self._node_attr_dict()
+        edge_attr_dict = self._edge_attr_dict()
+        if not kwargs.pop('append',False):
+            io.h5_save_graph_serial(fname,self.edge_index,node_attr_dict,edge_attr_dict,**kwargs)
+        else:
+            io.h5_append_graph_serial(fname,self.edge_index,node_attr_dict,edge_attr_dict,**kwargs)
+
+    @classmethod
+    def load(cls, fname) -> "Graph":
+        r'''
+        Load a graph from a h5 file, pyLOM style.
+        '''
+        node_attr_dict, edge_attr_dict = io.h5_load_graph_serial(fname)
+
+        if not 'edge_index' in edge_attr_dict:
+            raise ValueError("Trying to load a graph without the edge_index attribute. Edge index must be present in the edge attributes dictionary.")
+        
+        graph_attrs = {key: value['value'] for key, value in {**node_attr_dict, **edge_attr_dict}.items()}
+
+        return cls(**graph_attrs, device=DEVICE)
+
+    def _node_attr_dict(self) -> Dict[str, Dict[str, Union[int, np.ndarray]]]:
+        r'''
+        Builds the variable dictionary of the node attributes ready to save to a h5 file, pyLOM style.
+        '''
+        node_attr_dict = {}
+        for key in self.node_attrs():
+            if hasattr(self, key):
+                node_attr_dict[key] = {
+                    'dim': getattr(self, key).shape[1] if len(getattr(self, key).shape) > 1 else 1,
+                    'value': getattr(self, key).cpu().numpy() if isinstance(getattr(self, key), torch.Tensor) else np.array(getattr(self, key))
+                }
+            else:
+                raise ValueError(f"Node attribute {key} not found in the graph.")
+            
+    def _edge_attr_dict(self) -> Dict[str, Dict[str, Union[int, np.ndarray]]]:
+        r'''
+        Builds the variable dictionary of the edge attributes ready to save to a h5 file, pyLOM style.
+        '''
+        edge_attr_dict = {}
+        for key in self.edge_attrs():
+            if key is not 'edge_index' and hasattr(self, key):
+                edge_attr_dict[key] = {
+                    'dim': getattr(self, key).shape[1] if len(getattr(self, key).shape) > 1 else 1,
+                    'value': getattr(self, key).cpu().numpy() if isinstance(getattr(self, key), torch.Tensor) else np.array(getattr(self, key))
+                }
+            else:
+                raise ValueError(f"Edge attribute {key} not found in the graph.")
+        
+        return edge_attr_dict
+     
+
+    @staticmethod
+    def _node_attr(mesh: Mesh) -> np.ndarray:
+        r'''Computes the node attributes of Graph as described in
+            Hines, D., & Bekemeyer, P. (2023). Graph neural networks for the prediction of aircraft surface pressure distributions.
+            Aerospace Science and Technology, 137, 108268.
+            https://doi.org/10.1016/j.ast.2023.108268
+
+        Args:
+            mesh (Mesh): A RANS mesh in pyLOM format.
+        Returns:
+            np.ndarray: Node attributes of the graph.
+        '''
+        # Get the cell centers
+        xyzc = mesh.xyzc
+        # Get the surface normals
+        surface_normals = mesh.normal
+        
+        return np.concatenate((xyzc, surface_normals), axis=1)
+
+
+    @staticmethod
+    def _edge_index_and_attr(mesh: Mesh) -> Tuple[np.ndarray, np.ndarray]:
+        r'''Computes the edge index and attributes of Graph as described in
+            Hines, D., & Bekemeyer, P. (2023). Graph neural networks for the prediction of aircraft surface pressure distributions.
+            Aerospace Science and Technology, 137, 108268.
+            https://doi.org/10.1016/j.ast.2023.108268
+        Args:
+            mesh (Mesh): A RANS mesh in pyLOM format.
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: Edge index and attributes of the graph.
+        '''
+        # Check whether the cells are 2D
+        if not np.all(np.isin(mesh.eltype, [2, 3, 4, 5])):
+            raise ValueError("The mesh must contain only 2D cells in order to compute the wall normals.")
+        
+
+        # Dictionary that maps each edge to the cells that share it
+        edge_dict = edge_to_cells(mesh.connectivity)
+        # List storying directed edges in the dual graph
+        edge_list = []
+        # List to store the wall normals.
+        wall_normals_list = []
+
+        # Iterate over each cell
+        for i, cell_id in enumerate(range(mesh.ncells)):
+            cell_normal = mesh.normal[cell_id]
+            cell_nodes = mesh.connectivity[cell_id]
+            nodes_xyz = mesh.xyz[cell_nodes]  # Get the nodes of the cell
+
+            cell_edges, cell_wall_normals = wall_normals(cell_nodes, nodes_xyz, cell_normal)  # Compute the edge normals of the cell
+            
+            # Directed dual edges: tuples of the form (cell_id, neighbor_id)
+            dual_edges = [
+                (cell_id, (edge_dict[edge] - {cell_id}).pop()) if len(edge_dict[edge]) == 2 else None # If the edge is not a boundary edge, get the neighbor cell
+                for edge in cell_edges
+            ]
+
+            edge_list.extend(dual_edges)
+            wall_normals_list.extend(cell_wall_normals)
+
+            if i%1e5 == 0:
+                print(f"Processing mesh. {i} cells out of {mesh.ncells} processed.")
+
+        # Remove the wall normals and dual edges at the boundary walls
+        edge_list, wall_normals_list = zip(*[
+                (x, y) for x, y in zip(edge_list, wall_normals_list) if x is not None
+            ])
+
+        edge_index = np.array(edge_list, dtype=np.int32).T  # Convert to numpy array and transpose
+        wall_normals = np.array(wall_normals_list, dtype=np.float64)  # Convert to numpy array
+
+        # Compute the rest of the edge_attributes
+        # Get the cell centers
+        xyzc = mesh.xyzc
+        # Get the edge coordinates
+        c_i = xyzc[edge_index[0, :]]
+        c_j = xyzc[edge_index[1, :]]
+        d_ij = c_j - c_i
+        # Transform to spherical coordinates
+        r = np.linalg.norm(d_ij, axis=1)
+        theta = np.arccos(d_ij[:, 2] / r)
+        phi = np.arctan2(d_ij[:, 1], d_ij[:, 0])
+
+        edge_attr = np.concatenate((r[:, None], theta[:, None], phi[:, None], wall_normals), axis=1)  # Ensure correct shape
+
+        return edge_index, edge_attr
 
