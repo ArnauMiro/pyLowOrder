@@ -11,6 +11,7 @@ import os
 import json
 
 import torch
+from torch import Tensor
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.nn import ELU
@@ -23,7 +24,7 @@ from .. import DEVICE, set_seed
 from ... import pprint, cr
 from ..optimizer import OptunaOptimizer, TrialPruned
 
-from typing import Protocol, Dict, Tuple, Union
+from typing import Protocol, Dict, Tuple, Union, Optional
 
 class MLP(torch.nn.Module):
     r'''Simple MLP with dropout and activation function
@@ -101,8 +102,6 @@ class MessagePassingLayer(MessagePassing):
     @property
     def trainable_params(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
-
-
 
 
 
@@ -275,59 +274,86 @@ class GNS(nn.Module):
         self.groupnorm = nn.GroupNorm(2, self.latent_dim).to(self.device)
 
 
-    def forward(self,
-                op_params: torch.Tensor = None,
-                graph: Union[Data, Graph] = None) -> torch.Tensor:
+    def forward(
+        self,
+        op_params: Optional[Tensor] = None,
+        graph: Optional[Union[Graph, Data]] = None
+    ) -> Tensor:
         r"""
-        Forward pass of the model.
+        Perform a forward pass through the network.
+
+        During training, a pre-batched graph (e.g., via DataLoader) is passed directly.
+        During inference, a tensor of operational parameters is provided and used along with
+        the stored full graph (`self.graph`).
 
         Args:
-            op_params (torch.Tensor, optional): The operational parameters. Shape should be [B, input_dim]. If not provided, the model will compute a forward pass with the provided graph as-is.
-            graph (Union[Data, Graph], optional): The graph object. If not provided, the graph set in the model will be used.
+            op_params (torch.Tensor, optional): Operational parameters of shape [B, input_dim].
+                Required for inference.
+            graph (torch_geometric.data.Data, optional): Input graph with node/edge features.
+                Required for training.
 
         Returns:
-            torch.Tensor: The predicted target values.
+            torch.Tensor: Predicted values for the nodes or batch of nodes.
         """
-        if op_params is None and graph is None:
-            raise ValueError("Either op_params or graph must be provided.")
-        
-        # Set the model to evaluation mode
-        self.eval()
-        # Set the graph to the provided graph if not None
-        if graph is None:
-            # Check if the graph is set
-            if self.graph is None:
-                raise ValueError("Graph not set. Please set the graph before training.")
-            graph = self.graph
+        if graph is not None:
+            return self._forward_from_graph(graph)
+        elif op_params is not None:
+            return self._forward_from_tensor(op_params)
+        else:
+            raise ValueError("Either `graph` or `op_params` must be provided.")
 
-        if op_params is not None:
-            # Check if the input parameters are of the correct shape
-            if len(op_params.squeeze()) != self.input_dim:
-                raise ValueError(f"Input parameters must have shape [B, {self.input_dim}]. Got {op_params.shape} instead.")
-            
-            # Prepend the operational parameters to the node features
-            x = graph.x.clone()  # Clone the node features to avoid modifying the original graph
-            x[:, :self.input_dim] = op_params
-        
+    def _forward_from_graph(self, graph: Union[Graph, Data]) -> Tensor:
+        """Forward pass given a graph with operational parameters already embedded."""
+        x, edge_index, edge_attr = graph.x, graph.edge_index, graph.edge_attr
 
-        # Get node (+ op parameters) and edge features
-        edge_index = graph.edge_index
-        edge_attr = graph.edge_attr
-
-        # 1. Encode node features
-        h = self.encoder(x)
-        h = self.activation(h)
-
-        # 2. Message-passing layers
+        h = self.activation(self.encoder(x))
         for conv in self.conv_layers_list:
-            h = conv(h, edge_index, edge_attr)
-            h = self.activation(h)
-            h = self.groupnorm(h)
-
-        # 3. Decode node features
+            h = self.groupnorm(self.activation(conv(h, edge_index, edge_attr)))
         y_hat = self.decoder(h)
-
         return y_hat
+
+    def _forward_from_tensor(self, op_params: Tensor) -> Tensor:
+        """
+        Vectorized forward pass over the full graph for a batch of operational parameters.
+        
+        Args:
+            op_params (Tensor): Tensor of shape [B, input_dim] representing B operational conditions.
+            
+        Returns:
+            Tensor: Predicted outputs of shape [B, N, output_dim], where N is the number of nodes.
+            
+        Note:
+            This method assumes a stored full graph (`self.graph`) and performs inference over the entire mesh.
+            It is not used for subgraph-based training.
+        """
+        if self.graph is None:
+            raise ValueError("Stored graph (`self.graph`) is required for inference.")
+        
+        if op_params.size(1) != self.input_dim:
+            raise ValueError(f"Expected op_params of shape [B, {self.input_dim}], got {op_params.shape}")
+
+        x = self.graph.x.clone()
+        if op_params.dim() == 1:
+            op_params = op_params.unsqueeze(0)  # Shape [1, D]
+
+        B = op_params.size(0)
+        N = self.graph.x.size(0)
+
+        op_repeated = op_params.repeat_interleave(N, dim=0)
+        x_repeated = self.graph.x.repeat(B, 1)
+        x_repeated[:, :self.input_dim] = op_repeated
+
+        edge_index = torch.cat([
+            self.graph.edge_index + i * N for i in range(B)
+        ], dim=1)
+        edge_attr = self.graph.edge_attr.repeat(B, 1)
+
+        h = self.activation(self.encoder(x_repeated))
+        for conv in self.conv_layers_list:
+            h = self.groupnorm(self.activation(conv(h, edge_index, edge_attr)))
+        y_hat = self.decoder(h)
+        return y_hat.reshape(B, N, -1)
+
     
     @property
     def trainable_params(self) -> int:
@@ -349,10 +375,6 @@ class GNS(nn.Module):
             raise ValueError("Graph must have edge_index attribute.")
         if getattr(graph, "edge_attr", None) is None:
             raise ValueError("Graph must have edge_attr attribute.")
-        if getattr(graph, "pos", None) is None:
-            raise ValueError("Graph must have pos attribute.")
-        if getattr(graph, "surf_norms", None) is None:
-            raise ValueError("Graph must have surf_norms attribute.")   
         
         graph = graph.to(self.device)
 
