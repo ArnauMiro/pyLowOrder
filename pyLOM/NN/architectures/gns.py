@@ -19,7 +19,7 @@ from torch_geometric.nn import MessagePassing
 from torch_geometric.data import Data, Batch
 from torch_geometric.utils import k_hop_subgraph
 
-from ..utils import Graph
+from ..utils import Graph, VectorizedBatcher, ListBasedBatcher
 from .. import DEVICE, set_seed
 from ... import pprint, cr
 from ..optimizer import OptunaOptimizer, TrialPruned
@@ -219,6 +219,13 @@ class GNS(nn.Module):
             "seed": seed
         }
 
+        self.batcher = ListBasedBatcher(
+            graph=self.graph,
+            num_hops=self.num_msg_passing_layers,
+            input_dim=self.input_dim,
+            device=self.device,
+        )
+
         # Encoder: from graph node features to latent space
         self.encoder = MLP(
             input_size=self.encoder_input_dim,
@@ -392,49 +399,29 @@ class GNS(nn.Module):
         total_loss = 0
 
         for params_batch, y_batch in op_dataloader:
-            params_batch = params_batch.to(self.device) # [B, 3]
-            y_batch = y_batch.to(self.device) # [B, N]
+            params_batch = params_batch.to(self.device)
+            y_batch = y_batch.to(self.device)
+
             for seed_nodes in node_dataloader:
-                # Compute the k-hop subgraph
-                subset, edge_index, mapping, edge_mask = k_hop_subgraph(seed_nodes, num_hops=self.num_msg_passing_layers, edge_index=self.graph.edge_index, relabel_nodes=True)
+                seed_nodes = seed_nodes.to(self.device)
 
-                # Complete the subgraph data and append it to a subgraphs batch
-                x_subg = self.graph.x[subset]
-                y_batch_subg = y_batch[:, subset]
-                edge_attr_subg = self.graph.edge_attr[edge_mask]
+                G_batch = self.batcher.create_batch(params_batch, y_batch, seed_nodes)
 
-                # Create a boolean mask for the seed nodes (original tensor is not useful bc of the relabeling)
-                seed_nodes = torch.zeros(subset.shape[0], dtype=torch.bool, device=self.device)
-                seed_nodes[mapping] = True # Store this mapping as we only care about the seed nodes for the loss
-                G_list = []
-                for p, y_subg in zip(params_batch, y_batch_subg):
-                    x = x_subg.clone()
-                    y = y_subg.clone()
-                    # Prepend the operational parameters to node features
-                    x[:, :self.input_dim] = p
-                    y = y.reshape(-1,1)
-                    G = Data(x=x, y=y, seed_nodes=seed_nodes, edge_index=edge_index, edge_attr=edge_attr_subg)
-                    G_list.append(G)
-
-                G_batch = Batch.from_data_list(G_list)
-                G_batch = G_batch.to(self.device)
-                
                 self.optimizer.zero_grad()
-                # Forward pass: only look at the seed nodes for the loss
                 output = self(graph=G_batch)[G_batch.seed_nodes]
                 targets = G_batch.y[G_batch.seed_nodes]
                 loss = loss_fn(output, targets)
                 loss.backward()
                 self.optimizer.step()
+
                 total_loss += loss.item()
-
-                self.cleanup(G_list, G_batch, output, targets, loss)
-
+                self.cleanup(G_batch, output, targets, loss)
 
             if self.scheduler is not None:
                 self.scheduler.step()
 
         return total_loss / (len(op_dataloader) * len(node_dataloader))
+
 
     @cr('GNS._eval')
     def _eval(self, eval_dataloader, loss_fn) -> float:
