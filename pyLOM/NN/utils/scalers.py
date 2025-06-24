@@ -9,7 +9,7 @@
 # Built-in modules
 import os
 import json
-from typing import List, Union
+from typing import List, Union, Protocol
 
 # Third-party libraries
 import numpy as np
@@ -21,6 +21,24 @@ from ...utils.errors import raiseError
 
 
 
+class ScalerProtocol(Protocol):
+    r'''
+    Abstract protocol for scalers. Must include:
+        - fit: Fit the scaler to the data.
+        - transform: Transform the data using the fitted scaler.
+        - fit_transform: Fit the scaler to the data and transform it.
+    '''
+    def fit(self, X: np.ndarray, y=None) -> "ScalerProtocol":
+        r""" Fit the scaler to the data. """
+        ...
+
+    def transform(self, X: np.ndarray) -> np.ndarray:
+        r""" Transform the data using the fitted scaler. """
+        ...
+
+    def fit_transform(self, X: np.ndarray, y=None) -> np.ndarray:
+        r""" Adjust the scaler to the data and transform it. """
+        ...
 
 
 class MinMaxScaler:

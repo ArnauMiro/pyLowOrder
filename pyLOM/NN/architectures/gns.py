@@ -24,7 +24,7 @@ from .. import DEVICE, set_seed
 from ... import pprint, cr
 from ..optimizer import OptunaOptimizer, TrialPruned
 
-from typing import Protocol, Dict, Tuple, Union, Optional
+from typing import Dict, Tuple, Union, Optional
 
 class MLP(torch.nn.Module):
     r'''Simple MLP with dropout and activation function
@@ -103,27 +103,6 @@ class MessagePassingLayer(MessagePassing):
     def trainable_params(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
-
-
-
-class ScalerProtocol(Protocol):
-    r'''
-    Abstract protocol for scalers. Must include:
-        - fit: Fit the scaler to the data.
-        - transform: Transform the data using the fitted scaler.
-        - fit_transform: Fit the scaler to the data and transform it.
-    '''
-    def fit(self, X: np.ndarray, y=None) -> "ScalerProtocol":
-        r""" Fit the scaler to the data. """
-        ...
-
-    def transform(self, X: np.ndarray) -> np.ndarray:
-        r""" Transform the data using the fitted scaler. """
-        ...
-
-    def fit_transform(self, X: np.ndarray, y=None) -> np.ndarray:
-        r""" Adjust the scaler to the data and transform it. """
-        ...
 
 
 
