@@ -19,6 +19,7 @@ from .. import DEVICE
 from .scalers import MinMaxScaler
 from .dataset import Dataset
 from .graph import Graph
+from .batchers import VectorizedBatcher, ListBasedBatcher
 from .schedulers import betaLinearScheduler
 
 

@@ -1,11 +1,13 @@
-from typing import Optional
+from typing import Optional, Union
 import torch
 from torch import Tensor
 from torch_geometric.data import Data, Batch
 from torch_geometric.utils import k_hop_subgraph
 
+from . import Graph
+
 class VectorizedBatcher:
-    def __init__(self, graph: Data, num_hops: int, input_dim: int, device: torch.device):
+    def __init__(self, graph: Union[Graph, Data], num_hops: int, input_dim: int, device: torch.device):
         self.graph = graph
         self.num_hops = num_hops
         self.input_dim = input_dim
@@ -64,7 +66,7 @@ class VectorizedBatcher:
 
 
 class ListBasedBatcher:
-    def __init__(self, graph: Data, num_hops: int, input_dim: int, device: torch.device):
+    def __init__(self, graph: Union[Graph, Data], num_hops: int, input_dim: int, device: torch.device):
         self.graph = graph
         self.num_hops = num_hops
         self.input_dim = input_dim
