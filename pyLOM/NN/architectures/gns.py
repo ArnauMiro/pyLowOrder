@@ -131,79 +131,77 @@ class GNS(nn.Module):
     """
 
     def __init__(self,
-                 input_dim: int,
-                 latent_dim: int,
-                 output_dim: int,
-                 hidden_size: int,
-                 num_msg_passing_layers: int,
-                 encoder_hidden_layers: int,
-                 decoder_hidden_layers: int,
-                 message_hidden_layers: int,
-                 update_hidden_layers: int,
-                 **kwargs
-                 ) -> None:
-        
+                input_dim: int,
+                latent_dim: int,
+                output_dim: int,
+                hidden_size: int,
+                num_msg_passing_layers: int,
+                encoder_hidden_layers: int,
+                decoder_hidden_layers: int,
+                message_hidden_layers: int,
+                update_hidden_layers: int,
+                **kwargs) -> None:
+
         super().__init__()
 
+        # --- Parse kwargs ---
         graph = kwargs.get("graph")
-        p_dropouts = kwargs.get("p_dropouts")
-        activation = kwargs.get("activation")
-        device = kwargs.get("device")
-        seed = kwargs.get("seed")
-        if graph is None:
-            raise Warning("Graph not provided. A graph object must be set with cls.graph setter before training.")
-        if p_dropouts is None:
-            p_dropouts = 0.0
-        if activation is None:
-            activation = 'ELU'
-        if device is None:
-            device = torch.device(DEVICE)
+        p_dropouts = kwargs.get("p_dropouts", 0.0)
+        activation = kwargs.get("activation", 'ELU')
+        device = kwargs.get("device", DEVICE)
+        seed = kwargs.get("seed", None)
+
+        # --- Device setup ---
         if isinstance(device, str):
             device = torch.device(device)
         if device.type == "cuda":
             if not torch.cuda.is_available():
                 raise ValueError("CUDA is not available. Please use CPU instead.")
             torch.cuda.set_device(0)
+
+        self.device = device
+        self.seed = seed
         if seed is not None:
             set_seed(seed)
+        print(f"Using device: {self.device}", flush=True)
 
-        print(f"Using device: {device}", flush=True)
-
-        # Save the model parameters
-        self._graph = None  # Placeholder for the graph object.
-        self._edge_dim = None # To be determined from self.graph
+        # --- Save config ---
         self.input_dim = input_dim
         self.latent_dim = latent_dim
         self.output_dim = output_dim
-        self.encoder_input_dim = None # To be determined from self.graph
         self.hidden_size = hidden_size
         self.num_msg_passing_layers = num_msg_passing_layers
         self.encoder_hidden_layers = encoder_hidden_layers
         self.decoder_hidden_layers = decoder_hidden_layers
         self.message_hidden_layers = message_hidden_layers
         self.update_hidden_layers = update_hidden_layers
-        self.activation = None
         self.p_dropouts = p_dropouts
-        self.device = device
-        self.seed = seed
-        self.state = {} # Save the state of the optimizer, scheduler and epoch list
-        self.checkpoint = None # Placeholder for the checkpoint object.
+
+        # Will be filled when graph is set
+        self.encoder_input_dim = None
+        self._edge_dim = None
+        self._graph = None
+
+        # Optimizer state
+        self.state = {}
         self.optimizer = None
         self.scheduler = None
+        self.checkpoint = None
 
-        if graph is not None:
-            self.graph = graph  # Set the graph object
-
-        # Activation function
+        # Activation
         if isinstance(activation, str):
-            if hasattr(nn, activation):  
-                self.activation = getattr(nn, activation)()
-            else:
-                raise ValueError(f"Activation function {activation} not found in torch.nn")
+            if not hasattr(nn, activation):
+                raise ValueError(f"Activation function '{activation}' not found in torch.nn")
+            self.activation = getattr(nn, activation)()
         else:
             self.activation = activation
 
-        # Save a dictionary with the model parameters
+        # Set graph (also sets encoder_input_dim and _edge_dim)
+        if graph is None:
+            raise Warning("Graph not provided. A graph object must be set with cls.graph setter before training.")
+        self.graph = graph
+
+        # Save config dictionary
         self.model_dict = {
             "input_dim": input_dim,
             "latent_dim": latent_dim,
@@ -219,6 +217,7 @@ class GNS(nn.Module):
             "seed": seed
         }
 
+        # --- Network Components ---
         self.batcher = ListBasedBatcher(
             graph=self.graph,
             num_hops=self.num_msg_passing_layers,
@@ -226,7 +225,6 @@ class GNS(nn.Module):
             device=self.device,
         )
 
-        # Encoder: from graph node features to latent space
         self.encoder = MLP(
             input_size=self.encoder_input_dim,
             output_size=self.latent_dim,
@@ -235,7 +233,6 @@ class GNS(nn.Module):
             drop_p=self.p_dropouts
         ).to(self.device)
 
-        # Decoder: from latent space to output features
         self.decoder = MLP(
             input_size=self.latent_dim,
             output_size=self.output_dim,
@@ -244,7 +241,6 @@ class GNS(nn.Module):
             drop_p=self.p_dropouts
         ).to(self.device)
 
-        # Message-passing layers
         self.conv_layers_list = nn.ModuleList([
             MessagePassingLayer(
                 in_channels=2 * self.latent_dim + self._edge_dim,
@@ -252,12 +248,49 @@ class GNS(nn.Module):
                 hiddim=self.hidden_size,
                 activation=self.activation,
                 drop_p=self.p_dropouts,
-            )
-            for _ in range(self.num_msg_passing_layers)
+            ) for _ in range(self.num_msg_passing_layers)
         ]).to(self.device)
 
-        # Normalization layer
         self.groupnorm = nn.GroupNorm(2, self.latent_dim).to(self.device)
+
+
+    @property
+    def graph(self) -> Graph:
+        r'''Graph property to get the graph object.'''
+        return self._graph
+    
+    @graph.setter
+    def graph(self, graph: Graph) -> None:
+        r'''Graph property to set the graph object.'''
+        if self._graph is not None:
+            raise Warning("Graph is already set! Graph name is: {}".format(self._graph.name))
+        if not isinstance(graph, Graph):
+            if not isinstance(graph, Data):
+                raise TypeError("Graph must be of type torch_geometric.data.Data or Graph.")
+        if getattr(graph, "edge_index", None) is None:
+            raise ValueError("Graph must have edge_index attribute.")
+        if getattr(graph, "edge_attr", None) is None:
+            raise ValueError("Graph must have edge_attr attribute.")
+        
+        graph = graph.to(self.device)
+
+        # Allocate the node features used as inputs to the model
+        graph.x = torch.cat(
+            [
+                torch.zeros((graph.num_nodes, self.input_dim), dtype=torch.float32, device=self.device),
+                graph.node_attr
+            ],
+            dim=1
+        )
+
+        self.encoder_input_dim = graph.x.shape[1] # Update node features dimension
+        self._edge_dim = graph.edge_attr.shape[1] # Update edge features dimension
+
+        self._graph = graph
+
+    @property
+    def trainable_params(self) -> int:
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
 
     def forward(
@@ -340,45 +373,6 @@ class GNS(nn.Module):
         y_hat = self.decoder(h)
         return y_hat.reshape(B, N, -1)
 
-    
-    @property
-    def trainable_params(self) -> int:
-        return sum(p.numel() for p in self.parameters() if p.requires_grad)
-    @property
-    def graph(self) -> Graph:
-        r'''Graph property to get the graph object.'''
-        return self._graph
-    
-    @graph.setter
-    def graph(self, graph: Graph) -> None:
-        r'''Graph property to set the graph object.'''
-        if self._graph is not None:
-            raise Warning("Graph is already set! Graph name is: {}".format(self._graph.name))
-        if not isinstance(graph, Graph):
-            if not isinstance(graph, Data):
-                raise TypeError("Graph must be of type torch_geometric.data.Data or Graph.")
-        if getattr(graph, "edge_index", None) is None:
-            raise ValueError("Graph must have edge_index attribute.")
-        if getattr(graph, "edge_attr", None) is None:
-            raise ValueError("Graph must have edge_attr attribute.")
-        
-        graph = graph.to(self.device)
-
-        # Allocate the node features used as inputs to the model
-        graph.x = torch.cat(
-            [
-                torch.zeros((graph.num_nodes, self.input_dim), dtype=torch.float32, device=self.device),
-                graph.node_attr
-            ],
-            dim=1
-        )
-
-        self.encoder_input_dim = graph.x.shape[1] # Update node features dimension
-        self._edge_dim = graph.edge_attr.shape[1] # Update edge features dimension
-
-        self._graph = graph
-
-
 
     @cr('GNS._train')
     def _train(self, op_dataloader, node_dataloader, loss_fn) -> float:
@@ -415,7 +409,7 @@ class GNS(nn.Module):
                 self.optimizer.step()
 
                 total_loss += loss.item()
-                self.cleanup(G_batch, output, targets, loss)
+                self._cleanup(G_batch, output, targets, loss)
 
             if self.scheduler is not None:
                 self.scheduler.step()
@@ -458,8 +452,6 @@ class GNS(nn.Module):
         # print("rmse:", (total_loss / eval_dataloader.dataset.__len__())**0.5, flush=True)
 
         return total_loss / eval_dataloader.dataset.__len__()
-
-
 
 
     @cr('GNS.fit')
@@ -643,7 +635,6 @@ class GNS(nn.Module):
 
 
 
-
     def save(self, path: str) -> None:
         r"""
         Save the model to a checkpoint file.
@@ -663,6 +654,8 @@ class GNS(nn.Module):
             filename = "/trained_model_{:06d}".format(len(self.state[2])) + ".pth"
             path = path + filename
         torch.save(checkpoint, path)
+
+
 
     @classmethod
     def load(cls,
@@ -902,7 +895,7 @@ class GNS(nn.Module):
         raise TypeError(f"Type {type(obj)} not serializable")  # Raise an error if the object is not serializable
 
     @staticmethod
-    def cleanup(*tensors) -> None:
+    def _cleanup(*tensors) -> None:
         r"""
         Cleanup the GPU memory by deleting the tensors and emptying the cache.
         Args:
