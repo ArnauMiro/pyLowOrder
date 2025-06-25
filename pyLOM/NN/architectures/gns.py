@@ -374,87 +374,6 @@ class GNS(nn.Module):
         return y_hat.reshape(B, N, -1)
 
 
-    @cr('GNS._train')
-    def _train(self, op_dataloader, node_dataloader, loss_fn) -> float:
-        r'''Train for 1 epoch. Used in the fit method inside a loop with ``epochs`` iterations.
-        Args:
-            op_dataloader (DataLoader): The DataLoader for the operational parameters. Should contain also target values.
-            node_dataloader (DataLoader): The DataLoader for the nodes.
-            loss_fn (torch.nn.Module): The loss function to use.
-        Returns:
-            float: The average loss for the epoch.
-        '''
-
-        # Set the model to training mode
-        if self.seed is not None: 
-            set_seed(self.seed)
-
-        self.train()
-        total_loss = 0
-
-        for params_batch, y_batch in op_dataloader:
-            params_batch = params_batch.to(self.device)
-            y_batch = y_batch.to(self.device)
-
-            for seed_nodes in node_dataloader:
-                seed_nodes = seed_nodes.to(self.device)
-
-                G_batch = self.batcher.create_batch(params_batch, y_batch, seed_nodes)
-
-                self.optimizer.zero_grad()
-                output = self(graph=G_batch)[G_batch.seed_nodes]
-                targets = G_batch.y[G_batch.seed_nodes]
-                loss = loss_fn(output, targets)
-                loss.backward()
-                self.optimizer.step()
-
-                total_loss += loss.item()
-                self._cleanup(G_batch, output, targets, loss)
-
-            if self.scheduler is not None:
-                self.scheduler.step()
-
-        return total_loss / (len(op_dataloader) * len(node_dataloader))
-
-
-    @cr('GNS._eval')
-    def _eval(self, eval_dataloader, loss_fn) -> float:
-        r'''Evaluate the model on a validation set. Used in the fit method inside a loop with ``epochs`` iterations.
-        Args:
-            eval_dataloader (DataLoader): The DataLoader for the evaluation set.
-            loss_fn (torch.nn.Module): The loss function to use.
-        Returns:
-            float: The average loss for the evaluation set.
-        '''
-        
-        self.eval()
-        total_loss = 0
-
-        with torch.no_grad():
-            for params_batch, y_batch in eval_dataloader:
-                params_batch = params_batch.to(self.device)
-                y_batch = y_batch.to(self.device)
-
-                for (params, y) in zip(params_batch, y_batch):
-                    targets = y.reshape(-1, self.output_dim)
-                    output = self(params)
-                    # print("targets:", targets[:5], flush=True)
-                    # print("output:", output[:5], flush=True)
-                    loss = loss_fn(output, targets)
-                    # print(f"Loss**1/2: {loss.item()**0.5:.4f}", flush=True)
-                    # print(f"rmse: {torch.sqrt(torch.mean((output - targets)**2)):.4f}", flush=True)
-                    total_loss += loss.item()
-
-
-        # print("total_loss:", total_loss, flush=True)
-        # print("Dividing loss by:", eval_dataloader.dataset.__len__(), flush=True)
-        # print("total_loss/len:", total_loss / eval_dataloader.dataset.__len__(), flush=True)
-        # print("rmse:", (total_loss / eval_dataloader.dataset.__len__())**0.5, flush=True)
-
-        return total_loss / eval_dataloader.dataset.__len__()
-
-
-    @cr('GNS.fit')
     def fit(self,
             train_dataset,
             eval_dataset=None,
@@ -462,23 +381,6 @@ class GNS(nn.Module):
             ) -> Dict:
         r"""
         Fit the model to the training data.
-
-        Args:
-            train_dataset (Dataset): The training dataset.
-            eval_dataset (Dataset, optional): The evaluation dataset. Default is None.
-            kwargs (dict, optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):
-                - epochs (int): Number of epochs to train the model. Default is 100.
-                - lr (float): Learning rate. Default is 1e-4.
-                - lr_gamma (float): Learning rate decay factor. Default is 0.1.
-                - lr_scheduler_step (int): Learning rate scheduler step size. Default is 1.
-                - loss_fn (torch.nn.Module): Loss function. Default is nn.MSELoss(reduction='mean').
-                - optimizer (torch.optim.Optimizer): Optimizer class. Default is torch.optim.Adam.
-                - scheduler (torch.optim.lr_scheduler._LRScheduler): Learning rate scheduler class. Default is torch.optim.lr_scheduler.StepLR.
-                - print_rate_batch (int): Print rate for batch loss. Default is 0.
-                - print_rate_epoch (int): Print rate for epoch loss. Default is 1.
-
-        Returns:
-            Dict[str, List[float]]: A dictionary with the training and validation losses for each epoch.
         """
 
         epochs = kwargs.get("epochs", 100)
@@ -490,29 +392,10 @@ class GNS(nn.Module):
         scheduler = kwargs.get("scheduler", torch.optim.lr_scheduler.StepLR)
         print_rate_epoch = kwargs.get("print_rate_epoch", 1)
 
-
-        op_dataloader_params = {
-            "batch_size": kwargs.get("batch_size", 15),
-            "shuffle": kwargs.get("shuffle", True),
-            "num_workers": kwargs.get("num_workers", 0),
-            "pin_memory": kwargs.get("pin_memory", True)
-        }
-
-        node_dataloader_params = {
-            "batch_size": kwargs.get("node_batch_size", 256),
-            "shuffle": kwargs.get("shuffle", True),
-            "num_workers": kwargs.get("num_workers", 0),
-            "pin_memory": kwargs.get("pin_memory", True)
-        }
-
-        # Create the DataLoader for the operational parameters
-        op_dataloader = DataLoader(train_dataset, **op_dataloader_params)
-        # Create the DataLoader for the nodes
-        node_indices = np.arange(self.graph.num_nodes)
-        node_indices = torch.tensor(node_indices, dtype=torch.long)
-        node_dataloader = DataLoader(node_indices, **node_dataloader_params)
-
-        eval_dataloader = DataLoader(eval_dataset, **op_dataloader_params) if eval_dataset is not None else None
+        op_dataloader = self._init_dataloader(train_dataset, is_node=False, **kwargs)
+        node_indices = torch.arange(self.graph.num_nodes, dtype=torch.long)
+        node_dataloader = self._init_dataloader(node_indices, is_node=True, **kwargs)
+        eval_dataloader = self._init_dataloader(eval_dataset, is_node=False, **kwargs) if eval_dataset is not None else None
 
         if self.optimizer is None:
             self.optimizer = optimizer(self.parameters(), lr=lr)
@@ -533,25 +416,23 @@ class GNS(nn.Module):
             train_loss_list = []
             test_loss_list = []
 
-
         total_epochs = len(epoch_list) + epochs
-        for epoch in range(1+len(epoch_list), 1+total_epochs):
-            
+        for epoch in range(1 + len(epoch_list), 1 + total_epochs):
+
             train_loss = self._train(op_dataloader, node_dataloader, loss_fn)
             train_loss_list.append(train_loss)
-            
+
             if eval_dataloader is not None:
                 test_loss = self._eval(eval_dataloader, loss_fn)
                 test_loss_list.append(test_loss)
-            
-            if print_rate_epoch != 0 and (epoch % print_rate_epoch) == 0:
-                test_log = f" | Test loss:{test_loss:.4e}" if eval_dataloader is not None else ""
-                pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss: {train_loss:.4e} {test_log}", flush=True)
+
+            if print_rate_epoch and epoch % print_rate_epoch == 0:
+                test_log = f" | Test loss:{test_loss:.4e}" if eval_dataloader else ""
+                pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss: {train_loss:.4e}{test_log}", flush=True)
                 if self.device.type == "cuda":
-                    allocated = torch.cuda.memory_allocated(self.device) / 1024**2
-                    reserved = torch.cuda.memory_reserved(self.device) / 1024**2
+                    allocated = torch.cuda.memory_allocated(self.device) / 1024 ** 2
+                    reserved = torch.cuda.memory_reserved(self.device) / 1024 ** 2
                     pprint(0, f"[GPU] Allocated: {allocated:.2f} MB | Reserved: {reserved:.2f} MB", flush=True)
-        
 
             epoch_list.append(epoch)
             self.state = (
@@ -560,131 +441,138 @@ class GNS(nn.Module):
                 epoch_list,
                 train_loss_list,
                 test_loss_list,
-                )
-                
+            )
 
-            
         return {"train_loss": train_loss_list, "test_loss": test_loss_list}
 
-        
-
-    def predict(self, 
-        X, 
-        return_targets: bool = False,
-        **kwargs,
-    ) -> Tuple[np.ndarray, ...]:
-        r"""
-        Predict the target values for the input data. The dataset is loaded to a DataLoader with the provided keyword arguments. 
-        The model is set to evaluation mode and the predictions are made using the input data. 
-        To make a prediction from a torch tensor, use the `__call__` method directly.
-
-        Args:
-            X: The dataset whose target values are to be predicted using the input data.
-            rescale_output (bool): Whether to rescale the output with the scaler of the dataset (default: ``True``).
-            kwargs (dict, optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):
-                - batch_size (int, optional): Batch size (default: ``256``).
-                - shuffle (bool, optional): Shuffle the data (default: ``False``).
-                - num_workers (int, optional): Number of workers to use (default: ``0``).
-                - pin_memory (bool, optional): Pin memory (default: ``True``).
- 
-        Returns:
-            np.ndarray: The predicted target values if return_targets is False.
-            Tuple[np.ndarray, np.ndarray]: The predicted target values and the target values from the dataset if return_targets is True.
-        """
-        dataloader_params = {
-            "batch_size": 15,
-            "shuffle": False,
-            "num_workers": 0,
-            "pin_memory": True,
-        }
-        
-        for key in dataloader_params.keys():
-            if key in kwargs:
-                dataloader_params[key] = kwargs[key]
-
-        predict_dataloader = DataLoader(X, **dataloader_params)
-
-        num_rows = len(predict_dataloader.dataset)
+    def predict(self, X, return_targets: bool = False, **kwargs) -> Tuple[np.ndarray, ...]:
+        dataloader = self._init_dataloader(X, is_node=False, **kwargs)
+        num_rows = len(dataloader.dataset)
         num_columns = self.graph.num_nodes * self.output_dim
         all_predictions = np.zeros((num_rows, num_columns))
         all_targets = np.zeros((num_rows, num_columns))
 
-
         with torch.no_grad():
             self.eval()
             i = 0
-            for params_batch, y_batch in predict_dataloader:
-                # print(f"params_bartch:\n {params_batch}", flush=True)
-                # print(f"y_batch:\n {y_batch}", flush=True)
-                params_batch = params_batch.to(self.device)
-                y_batch = y_batch.to(self.device)
-
+            for params_batch, y_batch in dataloader:
+                params_batch, y_batch = self._to_device(params_batch, y_batch)
                 for params, y in zip(params_batch, y_batch):
-                    print(f"params:\n {params}", flush=True)
                     targets = y.reshape(-1, self.output_dim)
                     output = self(params)
-                    # print(f"RMSE of input {i}: {torch.sqrt(torch.mean((output - targets)**2))}", flush=True)
                     all_predictions[i] = output.cpu().numpy().reshape(-1)
                     all_targets[i] = targets.cpu().numpy().reshape(-1)
                     i += 1
 
-        if return_targets:
-            return all_predictions, all_targets
-        else:
-            return all_predictions
+        return (all_predictions, all_targets) if return_targets else all_predictions
 
+    def _train(self, op_dataloader, node_dataloader, loss_fn) -> float:
+        if self.seed is not None:
+            set_seed(self.seed)
+
+        self.train()
+        total_loss = 0.0
+
+        for params_batch, y_batch in op_dataloader:
+            params_batch, y_batch = self._to_device(params_batch, y_batch)
+
+            for seed_nodes in node_dataloader:
+                seed_nodes, = self._to_device(seed_nodes)
+
+                G_batch = self.batcher.create_batch(params_batch, y_batch, seed_nodes)
+
+                self.optimizer.zero_grad()
+                output = self(graph=G_batch)[G_batch.seed_nodes]
+                targets = G_batch.y[G_batch.seed_nodes]
+                loss = loss_fn(output, targets)
+                loss.backward()
+                self.optimizer.step()
+
+                total_loss += loss.item()
+                self._cleanup(G_batch, output, targets, loss)
+
+            if self.scheduler is not None:
+                self.scheduler.step()
+
+        return total_loss / float(len(op_dataloader) * len(node_dataloader))
+
+    def _eval(self, eval_dataloader, loss_fn) -> float:
+        self.eval()
+        total_loss = 0.0
+
+        with torch.no_grad():
+            for params_batch, y_batch in eval_dataloader:
+                params_batch, y_batch = self._to_device(params_batch, y_batch)
+                for params, y in zip(params_batch, y_batch):
+                    targets = y.reshape(-1, self.output_dim)
+                    output = self(params)
+                    loss = loss_fn(output, targets)
+                    total_loss += loss.item()
+
+        return total_loss / float(len(eval_dataloader.dataset))
+
+    def _to_device(self, *tensors):
+        return [t.to(self.device) for t in tensors]
+
+    def _init_dataloader(self, dataset, is_node=False, **kwargs):
+        key_prefix = "node_" if is_node else ""
+        return DataLoader(
+            dataset,
+            batch_size=kwargs.get(f"{key_prefix}batch_size", 256 if is_node else 15),
+            shuffle=kwargs.get("shuffle", True),
+            num_workers=kwargs.get("num_workers", 0),
+            pin_memory=kwargs.get("pin_memory", True),
+        )
 
 
     def save(self, path: str) -> None:
-        r"""
+        """
         Save the model to a checkpoint file.
 
+        If the given path is a directory, appends a filename with the number of trained epochs.
+
         Args:
-            path (str): Path to save the model. It can be either a path to a directory or a file name. 
-            If it is a directory, the model will be saved with a filename that includes the number of epochs trained.
+            path (str): Directory or full file path to save the model.
         """
         checkpoint = {
             **self.model_dict,
             "state_dict": self.state_dict(),
             "state": self.state,
-            'graph': self.graph,
+            "graph": self.graph,
         }
-        
+
         if os.path.isdir(path):
-            filename = "/trained_model_{:06d}".format(len(self.state[2])) + ".pth"
+            filename = f"/trained_model_{len(self.state[2]):06d}.pth"
             path = path + filename
+
         torch.save(checkpoint, path)
 
 
-
     @classmethod
-    def load(cls,
-             path: str,
-             device: Union[str, torch.device] = DEVICE,
-             ) -> "GNS":
-        r"""
-        Load a model from a file.
+    def load(cls, path: str, device: Union[str, torch.device] = DEVICE) -> "GNS":
+        """
+        Load a model from a checkpoint file.
 
         Args:
-            path (str): The path to load the model from.
+            path (str): Path to the `.pth` checkpoint file.
+            device (Union[str, torch.device]): Target device for model (default: inferred).
 
         Returns:
-            Model (GNS): The loaded model.
+            GNS: Loaded model instance.
         """
         if not os.path.isfile(path):
-            raise FileNotFoundError(f"Model file {path} not found.")
+            raise FileNotFoundError(f"Model file '{path}' not found.")
         if not path.endswith(".pth"):
-            raise ValueError(f"Model file {path} must be a .pth file.")
-        if device is None:
-            device = DEVICE
-        if isinstance(device, str):
-            device = torch.device(device)
+            raise ValueError("Model file must have a '.pth' extension.")
+
+        device = torch.device(device or DEVICE)
         if device.type == "cuda":
             if not torch.cuda.is_available():
-                raise ValueError("CUDA is not available. Please use CPU instead.")
+                raise RuntimeError("CUDA not available. Use CPU instead.")
             torch.cuda.set_device(0)
-        
+
         checkpoint = torch.load(path, map_location='cpu')
+        
         model = cls(
             graph=checkpoint["graph"],
             input_dim=checkpoint["input_dim"],
@@ -699,13 +587,15 @@ class GNS(nn.Module):
             p_dropouts=checkpoint.get("p_dropouts"),
             activation=checkpoint.get("activation"),
             seed=checkpoint.get("seed"),
-            device=device
+            device=device,
         )
+
         model.load_state_dict(checkpoint["state_dict"])
         model.state = checkpoint["state"]
         model.eval()
-        
+
         return model
+
     
 
     @classmethod
