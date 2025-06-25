@@ -9,38 +9,37 @@
 from __future__ import print_function, division
 
 import os,glob,numpy as np, netCDF4 as NC4
+
+import torch
+
 import pyLOM
+from pyLOM.NN import Graph
 
 #%%
-def process_edge_attr(edge_index: np.ndarray, xyz: np.ndarray, facenormals: np.ndarray) -> np.ndarray:
+def process_edge_vectors(edge_index: np.ndarray, xyz: np.ndarray) -> np.ndarray:
     """
-    Process the edge attributes based on the edge index and mesh data.
-    Parameters
+    Process edge vectors from Cartesian to polar coordinates.
     ----------
     edge_index : torch.Tensor
         Edge index tensor.
     xyz : np.ndarray
         Node coordinates.
-    facenormals : np.ndarray
-        Face normals.
+    
+    Returns
     -------
-    -------
-    edge_attr : np.ndarray
-        Edge attributes.
-    -------
-    -------
+    edge_vecs : np.ndarray
+        Processed edge vectors in polar coordinates.
     """
-    for p, edge in enumerate(edge_index.T):
+    edge_vecs = np.zeros((edge_index.shape[1], 2), dtype=np.float64)  # Initialize array for edge vectors
+    for edge in edge_index.T:
         c_i = xyz[edge[0]]
         c_j = xyz[edge[1]]
         d_ij = c_j - c_i
-        f_ij = facenormals[p]
-
         # Transform to polar coordinates
         d_ij = np.array([np.linalg.norm(d_ij), np.arctan2(d_ij[1], d_ij[0])])
-        f_ij = np.array([np.linalg.norm(f_ij), np.arctan2(f_ij[1], f_ij[0])])
+        edge_vecs[edge[0], :] = d_ij
 
-    return d_ij
+    return edge_vecs
 
 #%%
 if __name__ == "__main__":
@@ -93,10 +92,10 @@ if __name__ == "__main__":
         print(d)
         d.save(f'{DATAPATH+dset.upper()}_converter.h5', append=False) # Store dataset
 
-    #%%
+    
     # Create a pyLOM Graph and append it to the datasets (used by GNS)
     ncfile = NC4.Dataset(os.path.join(DATAPATH,'train','Snap_Case0000_M0.52500_AoA-0.33333'))
-    xyz = np.zeros()
+    xyz = np.zeros((597,2), np.double)  # Assuming 597 points as per documentation
     xyz[:,0] = ncfile.variables['x'][:597]
     xyz[:,1] = ncfile.variables['z'][:597]
 
@@ -112,44 +111,23 @@ if __name__ == "__main__":
     edges_coo = np.load(DATAPATH+"edgesCOO.npz")["edgesCOO"]
     print("edges COO:", edges_coo.shape)
 
+    edge_index = torch.tensor(edges_coo, dtype=torch.long)  # Convert to torch tensor
+    node_attrs = {
+        'xyz': torch.tensor(xyz, dtype=torch.float),
+        'normals': torch.tensor(normals, dtype=torch.float),
+    }
 
-    # Compute the node and edge attributes
-    node_attr = np.stack((xyz, normals), axis=1)
-    print("node_attr: ", node_attr.shape)
+    edge_vecs = process_edge_vectors(edge_index, xyz)
+    edge_attrs = {
+        'edge_vecs': torch.tensor(edge_vecs, dtype=torch.float),
+        'wall_normals': torch.tensor(wall_normals, dtype=torch.float),
+    }
 
-    edge_attr = process_edge_attr(edge_index=edges_coo, xyz=xyz, facenormals=normals)
-    print("edge_attr: ", edge_attr.shape)
+    g = Graph(edge_index=edge_index, node_attrs=node_attrs, edge_attrs=edge_attrs)
+    print(g)
 
-    g = pyLOM.Graph(node_attr=node_attr, edge_index=edges_coo.T, edge_attr=edge_attr)
-
-    # Append the graph to the dataset
+    # Append the graph to the h5 files
     for dset in DATASETS:
-        pass
-
-#%%
-import torch
-import torch_geometric as pyg
-
-pos = torch.rand(3, 2)  # Random positions for 3 nodesy
-z = torch.rand(3, 1)  # Random z-coordinates for 3 nodes
-edge_index = torch.tensor([[0, 1, 2, 0], [1, 2, 0, 0]], dtype=torch.long)
-edge_attr = torch.tensor([[1, 0.5, 0.2, 0.1], [1, 0.5, 0.2, 0.1], [1, 0.5, 0.2, 0.1]], dtype=torch.float)
-q = torch.rand(4,2,2)
-
-g = pyg.data.Data(pos=pos, z=z, edge_index=edge_index, edge_attr=edge_attr, name='test_graph', q=q)
-
-# print(g.is_directed())
-
-g.generate_ids()
-
-print(g.node_attrs())
-print(g.edge_attrs())
-
-print(g.keys())
-
-print(g.n_id)
-print(g.e_id)
-print(g.num_edges)
-
-
-# %%
+        path = f'{DATAPATH+dset.upper()}_converter.h5'
+        print(f"Appending graph to {path}")
+        g.save(path, append=True)
