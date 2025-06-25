@@ -1,11 +1,9 @@
-#%%
 #!/bin/env python
 #
 # Conversion from NLR7301 dataset to 
 # pyLOM v3.0 format
 #
 # 27/09/2024
-#%%
 from __future__ import print_function, division
 
 import os,glob,numpy as np, netCDF4 as NC4
@@ -15,7 +13,7 @@ import torch
 import pyLOM
 from pyLOM.NN import Graph
 
-#%%
+
 def process_edge_vectors(edge_index: np.ndarray, xyz: np.ndarray) -> np.ndarray:
     """
     Process edge vectors from Cartesian to polar coordinates.
@@ -41,7 +39,7 @@ def process_edge_vectors(edge_index: np.ndarray, xyz: np.ndarray) -> np.ndarray:
 
     return edge_vecs
 
-#%%
+
 if __name__ == "__main__":
     DATAPATH = "/home/p.yeste/CETACEO_DATA/nlr7301/"
 
@@ -55,7 +53,7 @@ if __name__ == "__main__":
     ptable = pyLOM.PartitionTable.new(1,NPOINTS,NPOINTS)
     print(ptable)
 
-    #%%
+    
     ## Loop on the datasets
     for dset in DATASETS:
         print(dset)
@@ -130,4 +128,4 @@ if __name__ == "__main__":
     for dset in DATASETS:
         path = f'{DATAPATH+dset.upper()}_converter.h5'
         print(f"Appending graph to {path}")
-        g.save(path, append=True)
+        g.save(path, mode='a')  # Append the graph to the existing dataset

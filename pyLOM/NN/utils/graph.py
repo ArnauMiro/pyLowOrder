@@ -138,13 +138,13 @@ class Graph(Data):
         # Set default parameters
         if not 'mode' in kwargs.keys():        kwargs['mode']        = 'w' if not os.path.exists(fname) else 'a'
         # Append or save
+        num_nodes = self.num_nodes
+        num_edges = self.num_edges
         edge_index = self.edge_index.cpu().numpy()
         node_save_dict = self._to_pyLOM_format(self.node_attrs_dict)
         edge_save_dict = self._to_pyLOM_format(self.edge_attrs_dict)
-        if not kwargs.pop('append',False):
-            io.h5_save_graph_serial(fname,edge_index,node_save_dict,edge_save_dict,**kwargs)
-        else:
-            io.h5_append_graph_serial(fname,edge_index,node_save_dict,edge_save_dict,**kwargs)
+        
+        io.h5_save_graph_serial(fname,num_nodes,num_edges,edge_index,node_save_dict,edge_save_dict,**kwargs)
 
     @classmethod
     def load(
@@ -160,7 +160,12 @@ class Graph(Data):
         if not fname.endswith('.h5'):
             raise ValueError(f"Graph file {fname} must be a .h5 file.")
 
-        edge_index,node_attrs_dict,edge_attrs_dict = io.h5_load_graph_serial(fname)
+        num_nodes,num_edges,edge_index,node_attrs_dict,edge_attrs_dict = io.h5_load_graph_serial(fname)
+
+        if num_nodes != node_attrs[next(iter(node_attrs))]['value'].shape[0]:
+            raise ValueError(f"Number of nodes {num_nodes} does not match node attributes shape {node_attrs[next(iter(node_attrs))].shape[0]}.")
+        if num_edges != edge_index.shape[1]:
+            raise ValueError(f"Number of edges {num_edges} does not match edge index shape {edge_index.shape[1]}.")
 
         edge_index = torch.tensor(edge_index, dtype=torch.int64)
         node_attrs = {key: torch.tensor(value['value'], dtype=torch.float32) for key, value in node_attrs_dict.items()}
