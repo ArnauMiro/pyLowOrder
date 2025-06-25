@@ -32,18 +32,18 @@ class Graph(Data):
     def __init__(
         self,
         edge_index: torch.Tensor,
-        node_attrs: Dict[str, torch.Tensor],
-        edge_attrs: Dict[str, torch.Tensor],
+        node_attr_dict: Dict[str, torch.Tensor],
+        edge_attr_dict: Dict[str, torch.Tensor],
         device: Union[str, torch.device] = None,
-        # **custom_attrs: Any # Not yet implemented.
+        # **custom_attr_dict: Any # Not yet implemented.
     ):
         r'''
         Initialize the Graph object. Node and edge attributes are stacked separately along dimension 1 for use in GNNs.
 
         Args:
             edge_index (torch.Tensor): COO format edge index (shape [2, num_edges]).
-            node_attrs (Dict[str, torch.Tensor]): Dict of node attributes [num_nodes, attr_dim].
-            edge_attrs (Dict[str, torch.Tensor]): Dict of edge attributes [num_edges, attr_dim].
+            node_attr_dict (Dict[str, torch.Tensor]): Dict of node attributes [num_nodes, attr_dim].
+            edge_attr_dict (Dict[str, torch.Tensor]): Dict of edge attributes [num_edges, attr_dim].
             device (Union[str, torch.device], optional): Torch device. Defaults to CUDA if available.
         '''
         if device is None:
@@ -56,29 +56,36 @@ class Graph(Data):
 
         # Ensure everything is on the correct device
         edge_index = edge_index.to(device)
-        node_attrs = {k: v.to(device) for k, v in node_attrs.items()}
-        edge_attrs = {k: v.to(device) for k, v in edge_attrs.items()}
-        # custom_attrs = {k: (v.to(device) if isinstance(v, torch.Tensor) else v) for k, v in custom_attrs.items()} # Not yet implemented.
+        node_attr_dict = {k: v.to(device) for k, v in node_attr_dict.items()}
+        edge_attr_dict = {k: v.to(device) for k, v in edge_attr_dict.items()}
+        # custom_attr_dict = {k: (v.to(device) if isinstance(v, torch.Tensor) else v) for k, v in custom_attr_dict.items()} # Not yet implemented.
 
         # Concatenate node/edge attributes
-        x = torch.cat(list(node_attrs.values()), dim=1) if node_attrs else None
-        edge_attr = torch.cat(list(edge_attrs.values()), dim=1) if edge_attrs else None
+        x = torch.cat(list(node_attr_dict.values()), dim=1) if node_attr_dict else None
+        edge_attr = torch.cat(list(edge_attr_dict.values()), dim=1) if edge_attr_dict else None
 
         # Build kwargs for Data
         data_kwargs = {
             'edge_index': edge_index,
             'x': x,
             'edge_attr': edge_attr,
-            'num_nodes': next(iter(node_attrs.values())).shape[0] if node_attrs else None
-            # **custom_attrs,
+            'num_nodes': next(iter(node_attr_dict.values())).shape[0] if node_attr_dict else None
+            # **custom_attr_dict,
         }
 
         super().__init__(**data_kwargs)
 
+
+        # Register individual attributes for user-friendly access
+        for k, v in node_attr_dict.items():
+            setattr(self, k, v)
+        for k, v in edge_attr_dict.items():
+            setattr(self, k, v)
+
         # store raw attribute dicts (for i/o operations)
-        self.node_attrs_dict = node_attrs
-        self.edge_attrs_dict = edge_attrs
-        # self.custom_attrs = custom_attrs # Not yet implemented.
+        self.node_attr_dict = node_attr_dict
+        self.edge_attr_dict = edge_attr_dict
+        # self.custom_attr_dict = custom_attr_dict # Not yet implemented.
 
         self.validate()
 
@@ -86,21 +93,21 @@ class Graph(Data):
         assert self.edge_index.shape[0] == 2
         assert self.edge_index.dtype == torch.long
 
-        for k, v in self.node_attrs_dict.items():
+        for k, v in self.node_attr_dict.items():
             assert v.shape[0] == self.num_nodes, f"Node attribute '{k}' has inconsistent length: {v.shape[0]} vs expected {self.num_nodes}"
-        for k, v in self.edge_attrs_dict.items():
+        for k, v in self.edge_attr_dict.items():
             assert v.shape[0] == self.edge_index.shape[1], f"Edge attribute '{k}' has inconsistent length: {v.shape[0]} vs expected {self.edge_index.shape[1]}"
         
         if self.edge_attr is not None:
-            expected_dim = sum(v.shape[1] if v.ndim > 1 else 1 for v in self.edge_attrs_dict.values())
+            expected_dim = sum(v.shape[1] if v.ndim > 1 else 1 for v in self.edge_attr_dict.values())
             assert self.edge_attr.shape[1] == expected_dim
         
-        assert all(isinstance(k, str) and k.strip() for k in self.node_attrs_dict), "All node attribute keys must be non-empty strings."
-        assert all(isinstance(k, str) and k.strip() for k in self.edge_attrs_dict), "All edge attribute keys must be non-empty strings."
+        assert all(isinstance(k, str) and k.strip() for k in self.node_attr_dict), "All node attribute keys must be non-empty strings."
+        assert all(isinstance(k, str) and k.strip() for k in self.edge_attr_dict), "All edge attribute keys must be non-empty strings."
         
-        for name, tensor in self.node_attrs_dict.items():
+        for name, tensor in self.node_attr_dict.items():
             assert torch.isfinite(tensor).all(), f"Node attribute '{name}' contains NaN or inf."
-        for name, tensor in self.edge_attrs_dict.items():
+        for name, tensor in self.edge_attr_dict.items():
             assert torch.isfinite(tensor).all(), f"Edge attribute '{name}' contains NaN or inf."
 
 
@@ -108,7 +115,7 @@ class Graph(Data):
     def from_pyLOM_mesh(cls,
                         mesh: Mesh,
                         device: Optional[Union[str, torch.device]] = None,
-                        # **custom_attrs: Dict[str, Any]  # Not yet implemented.
+                        # **custom_attr_dict: Dict[str, Any]  # Not yet implemented.
                         ) -> "Graph":
         r"""
         Create a Graph object from a pyLOM Mesh object. This method computes the node attributes and edge index/attributes from the mesh.
@@ -118,15 +125,15 @@ class Graph(Data):
         Returns:
             Graph: A Graph object with the computed node attributes and edge index/attributes.
         """
-        node_attrs_dict = cls._compute_node_attrs(mesh)  # Get the node attributes
-        edge_index, edge_attrs_dict = cls._compute_edge_index_and_attrs(mesh)  # Get the edge attributes
+        node_attr_dict = cls._compute_node_attr_dict(mesh)  # Get the node attributes
+        edge_index, edge_attr_dict = cls._compute_edge_index_and_attr_dict(mesh)  # Get the edge attributes
 
         graph = cls(
             edge_index=edge_index,
-            node_attrs = node_attrs_dict,
-            edge_attrs=edge_attrs_dict,
+            node_attr_dict = node_attr_dict,
+            edge_attr_dict=edge_attr_dict,
             device=device,
-            # **custom_attrs # Not yet implemented.
+            # **custom_attr_dict # Not yet implemented.
             )
 
         return graph
@@ -142,8 +149,8 @@ class Graph(Data):
         num_nodes = self.num_nodes
         num_edges = self.num_edges
         edge_index = self.edge_index.cpu().numpy()
-        node_save_dict = self._to_pyLOM_format(self.node_attrs_dict)
-        edge_save_dict = self._to_pyLOM_format(self.edge_attrs_dict)
+        node_save_dict = self._to_pyLOM_format(self.node_attr_dict)
+        edge_save_dict = self._to_pyLOM_format(self.edge_attr_dict)
         
         io.h5_save_graph_serial(fname,num_nodes,num_edges,edge_index,node_save_dict,edge_save_dict,**kwargs)
 
@@ -161,20 +168,20 @@ class Graph(Data):
         if not fname.endswith('.h5'):
             raise ValueError(f"Graph file {fname} must be a .h5 file.")
 
-        num_nodes,num_edges,edge_index,node_attrs_dict,edge_attrs_dict = io.h5_load_graph_serial(fname)
+        num_nodes,num_edges,edge_index,node_attr_dict,edge_attr_dict = io.h5_load_graph_serial(fname)
 
-        if num_nodes != node_attrs[next(iter(node_attrs))]['value'].shape[0]:
-            raise ValueError(f"Number of nodes {num_nodes} does not match node attributes shape {node_attrs[next(iter(node_attrs))].shape[0]}.")
+        if num_nodes != node_attr_dict[next(iter(node_attr_dict))]['value'].shape[0]:
+            raise ValueError(f"Number of nodes {num_nodes} does not match node attributes shape {node_attr_dict[next(iter(node_attr_dict))].shape[0]}.")
         if num_edges != edge_index.shape[1]:
             raise ValueError(f"Number of edges {num_edges} does not match edge index shape {edge_index.shape[1]}.")
 
         edge_index = torch.tensor(edge_index, dtype=torch.int64)
-        node_attrs = {key: torch.tensor(value['value'], dtype=torch.float32) for key, value in node_attrs_dict.items()}
-        edge_attrs = {key: torch.tensor(value['value'], dtype=torch.float32) for key, value in edge_attrs_dict.items()}  
+        node_attr_dict = {key: torch.tensor(value['value'], dtype=torch.float32) for key, value in node_attr_dict.items()}
+        edge_attr_dict = {key: torch.tensor(value['value'], dtype=torch.float32) for key, value in edge_attr_dict.items()}  
 
         return cls(edge_index=edge_index,
-                   node_attrs=node_attrs,
-                   edge_attrs=edge_attrs,
+                   node_attr_dict=node_attr_dict,
+                   edge_attr_dict=edge_attr_dict,
                    device=device,
                    )
 
@@ -212,13 +219,13 @@ class Graph(Data):
 
 
     @staticmethod
-    def _to_pyLOM_format(attrs_dict: Dict[str, torch.Tensor]) -> Dict[str, Dict[str, Union[int, np.ndarray]]]:
+    def _to_pyLOM_format(attr_dict: Dict[str, torch.Tensor]) -> Dict[str, Dict[str, Union[int, np.ndarray]]]:
         r'''
         Converts a dictionary of numpy arrays to a dictionary of dictionaries with the shape and value keys.
         This is used to save the node and edge attributes in pyLOM format.
         '''
         save_dict = {}
-        for key, value in attrs_dict.items():
+        for key, value in attr_dict.items():
             save_dict[key] = {
                 'ndim': value.shape[1] if len(value.shape) > 1 else 1,
                 'value': value.cpu().numpy()
@@ -226,7 +233,7 @@ class Graph(Data):
         return save_dict
 
     @staticmethod
-    def _compute_node_attrs(mesh: Mesh) -> Dict[str, torch.Tensor]:
+    def _compute_node_attr_dict(mesh: Mesh) -> Dict[str, torch.Tensor]:
         r'''Computes the node attributes of Graph as described in
             Hines, D., & Bekemeyer, P. (2023). Graph neural networks for the prediction of aircraft surface pressure distributions.
             Aerospace Science and Technology, 137, 108268.
@@ -242,13 +249,13 @@ class Graph(Data):
         # Get the surface normals
         surface_normals = mesh.normal
         
-        node_attrs_dict = {'xyz': torch.tensor(xyzc, dtype=torch.float32), 'normals': torch.tensor(surface_normals, dtype=torch.float32)}
+        node_attr_dict = {'xyz': torch.tensor(xyzc, dtype=torch.float32), 'normals': torch.tensor(surface_normals, dtype=torch.float32)}
 
-        return node_attrs_dict
+        return node_attr_dict
 
 
     @staticmethod
-    def _compute_edge_index_and_attrs(mesh: Mesh) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+    def _compute_edge_index_and_attr_dict(mesh: Mesh) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
         r'''Computes the edge index and attributes of Graph as described in
             Hines, D., & Bekemeyer, P. (2023). Graph neural networks for the prediction of aircraft surface pressure distributions.
             Aerospace Science and Technology, 137, 108268.
@@ -315,10 +322,10 @@ class Graph(Data):
         phi = torch.from_numpy(phi).float()
         
         edge_index = torch.tensor(edge_index_np, dtype=torch.int64)
-        edge_attrs_dict = {'edges_spherical': torch.stack((r, theta, phi), dim=1),
+        edge_attr_dict = {'edges_spherical': torch.stack((r, theta, phi), dim=1),
                            'wall_normals': wall_normals_tensor}
 
-        return edge_index, edge_attrs_dict
+        return edge_index, edge_attr_dict
 
     # def filter(self,
     #     node_mask: Optional[Union[list, torch.Tensor, np.ndarray]]=None,
@@ -343,7 +350,7 @@ class Graph(Data):
     #         node_mask = torch.zeros(self.x.shape[0], dtype=torch.bool)
     #         node_mask[node_indices] = True
 
-    #     for attr in self.node_attrs():
+    #     for attr in self.node_attr_dict():
     #         if getattr(self, attr) is not None:
     #             setattr(self, attr, getattr(self, attr)[node_mask])
 
