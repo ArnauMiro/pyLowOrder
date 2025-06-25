@@ -897,7 +897,7 @@ def h5_load_SPOD(fname,vars,nmod,ptable=None):
 	return varList
 
 
-def h5_save_graph_serial(fname,mode,edge_index,nodeAttrDict,edgeAttrDict):
+def h5_save_graph_serial(fname,edge_index,nodeAttrDict,edgeAttrDict,mode='w'):
 	'''
 	Save a Graph in HDF5 in serial mode
 	'''
@@ -911,11 +911,11 @@ def h5_save_graph_serial(fname,mode,edge_index,nodeAttrDict,edgeAttrDict):
 		# Store the edge index
 		graph_group.create_dataset('edgeIndex',data=edge_index,dtype='i4')
 		# Store node-level attributes
-		h5_fill_field_datasets(h5_create_field_datasets(node_group,nodeAttrDict),nodeAttrDict)
+		h5_fill_graph_datasets(h5_create_field_datasets(node_group,nodeAttrDict),nodeAttrDict)
 		# Store edge-level attributes
-		h5_fill_field_datasets(h5_create_field_datasets(edge_group,edgeAttrDict),edgeAttrDict)
+		h5_fill_graph_datasets(h5_create_field_datasets(edge_group,edgeAttrDict),edgeAttrDict)
 
-def h5_append_graph_serial(fname,mode,edgeIndex,nodeAttrDict,edgeAttrDict):
+def h5_append_graph_serial(fname,edgeIndex,nodeAttrDict,edgeAttrDict,mode='a'):
 	'''
 	Save a Graph in HDF5 in serial mode
 	'''
@@ -926,6 +926,9 @@ def h5_append_graph_serial(fname,mode,edgeIndex,nodeAttrDict,edgeAttrDict):
 			file.attrs['Version'] = PYLOM_H5_VERSION
 			# Create graph group
 			graph_group = file.create_group('GRAPH')
+		else:
+			# Open the graph group
+			graph_group = file['GRAPH']
 		# Check the file version
 		version = tuple(file.attrs['Version'])
 		if not version == PYLOM_H5_VERSION:
@@ -936,9 +939,9 @@ def h5_append_graph_serial(fname,mode,edgeIndex,nodeAttrDict,edgeAttrDict):
 		if 'edgeIndex' not in graph_group.keys():
 			graph_group.create_dataset('edgeIndex',data=edgeIndex,dtype='i4')
 		# Store node-level attributes
-		h5_fill_field_datasets(h5_create_graph_datasets(node_group,nodeAttrDict),nodeAttrDict)
+		h5_fill_graph_datasets(h5_create_graph_datasets(node_group,nodeAttrDict),nodeAttrDict)
 		# Store edge-level attributes
-		h5_fill_field_datasets(h5_create_graph_datasets(edge_group,edgeAttrDict),edgeAttrDict)
+		h5_fill_graph_datasets(h5_create_graph_datasets(edge_group,edgeAttrDict),edgeAttrDict)
 
 def h5_load_graph_serial(fname):
 	'''

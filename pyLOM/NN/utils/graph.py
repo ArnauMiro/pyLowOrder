@@ -214,7 +214,7 @@ class Graph(Data):
         save_dict = {}
         for key, value in attrs_dict.items():
             save_dict[key] = {
-                'dim': value.shape[1] if len(value.shape) > 1 else 1,
+                'ndim': value.shape[1] if len(value.shape) > 1 else 1,
                 'value': value.cpu().numpy()
             }
         return save_dict
