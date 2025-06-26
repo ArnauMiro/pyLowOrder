@@ -1,3 +1,4 @@
+# --- batchers used by gns.py ---
 from typing import Optional, Union
 import torch
 from torch import Tensor
@@ -6,17 +7,83 @@ from torch_geometric.utils import k_hop_subgraph
 
 from . import Graph
 
+
+class GraphPreparer:
+    """
+    Prepares a full graph for inference by injecting operational input parameters
+    into node features and replicating the graph structure over the batch dimension.
+
+    This class is used to generate inference-ready graphs from a base graph
+    and a batch of operational inputs.
+
+    Args:
+        input_dim (int): Dimensionality of the operational parameters.
+        device (Union[str, torch.device]): Target device for computation.
+    """
+
+    def __init__(self, input_dim: int, device: Union[str, torch.device]) -> None:
+        self.input_dim = input_dim
+        self.device = torch.device(device)
+
+    def __call__(
+        self,
+        inputs: Tensor,
+        graph: Data,
+        seed_mask: Optional[Tensor] = None,
+        targets: Optional[Tensor] = None
+    ) -> Data:
+        """
+        Prepare a batched graph for inference or training using a base graph and a batch of operational parameters.
+
+        Args:
+            inputs (Tensor): A tensor of shape [B, D] representing B sets of operational parameters.
+            graph (Data): A full graph with node_features, edge_index, edge_features.
+            seed_mask (Tensor, optional): Boolean mask of seed nodes in the graph. Default is None.
+            targets (Tensor, optional): Optional tensor of shape [B * N, output_dim] representing node targets.
+
+        Returns:
+            Data: A new graph containing B replicated graphs with injected input parameters.
+        """
+        if inputs.dim() == 1:
+            inputs = inputs.unsqueeze(0)  # [1, D]
+
+        B = inputs.size(0)
+        N = graph.node_features.size(0)
+
+        nf_repeated = graph.node_features.repeat(B, 1)               # [B*N, F]
+        inputs_repeated = inputs.repeat_interleave(N, dim=0)         # [B*N, D]
+        all_node_features = torch.cat([inputs_repeated, nf_repeated], dim=1) # [B*N, F+D]
+
+        edge_index = torch.cat([
+            graph.edge_index + i * N for i in range(B)
+        ], dim=1)                                                    # [2, B*E]
+        edge_features = graph.edge_features.repeat(B, 1)             # [B*E, A]
+
+        data_kwargs = dict(
+            node_features=all_node_features,
+            edge_index=edge_index,
+            edge_features=edge_features,
+        )
+        if seed_mask is not None:
+            data_kwargs["seed_nodes"] = seed_mask
+        if targets is not None:
+            data_kwargs["node_labels"] = targets
+
+        return Data(**data_kwargs).to(self.device)
+
+
 class VectorizedBatcher:
-    def __init__(self, graph: Union[Graph, Data], num_hops: int, input_dim: int, device: torch.device):
+    def __init__(self, graph: Union[Graph, Data], num_hops: int, input_dim: int, device: torch.device) -> None:
         self.graph = graph
         self.num_hops = num_hops
         self.input_dim = input_dim
         self.device = device
+        self.preparer = GraphPreparer(input_dim, device)
 
     def __call__(
         self,
-        op_params: Tensor,             # [B, D]
-        y_batch: Tensor,               # [B, N, output_dim]
+        inputs: Tensor,             # [B, D]
+        y_batch: Tensor,            # [B, N, output_dim]
         seed_nodes: Optional[Tensor] = None
     ) -> Data:
         if seed_nodes is not None:
@@ -29,40 +96,24 @@ class VectorizedBatcher:
             edge_mask = slice(None)
             mapping = torch.arange(self.graph.num_nodes, device=self.device)
 
-        # Subgraph data
-        x_subg = self.graph.x[subset]                            # [N_sub, F]
-        edge_attr_subg = self.graph.edge_attr[edge_mask]         # [E_sub, A]
-        y_batch_subg = y_batch[:, subset, :]                     # [B, N_sub, output_dim]
+        nf_subg = self.graph.node_features[subset]               # [N_subg, F]
+        ef_subg = self.graph.edge_features[edge_mask]            # [E_subg, A]
+        y_subg = y_batch[:, subset, :]                           # [B, N_subg, output_dim]
 
-        B = op_params.size(0)
-        N_sub = x_subg.size(0)
-
-        # Expand node features
-        x_repeated = x_subg.repeat(B, 1)                         # [B * N_sub, F]
-        op_repeated = op_params.repeat_interleave(N_sub, dim=0) # [B * N_sub, D]
-        x_repeated[:, :self.input_dim] = op_repeated            # in-place overwrite
-
-        # Expand edges
-        edge_index_repeated = torch.cat([
-            edge_index + i * N_sub for i in range(B)
-        ], dim=1)                                                # [2, B * E_sub]
-        edge_attr_repeated = edge_attr_subg.repeat(B, 1)         # [B * E_sub, A]
-
-        # Expand targets
-        y_expanded = y_batch_subg.reshape(-1, y_batch.size(-1))  # [B * N_sub, output_dim]
-
-        # Create seed mask
-        seed_mask = torch.zeros(B * N_sub, dtype=torch.bool, device=self.device)
+        B = inputs.size(0)
+        N_subg = nf_subg.size(0)
+        seed_mask = torch.zeros(B * N_subg, dtype=torch.bool, device=self.device)
         for i in range(B):
-            seed_mask[i * N_sub + mapping] = True
+            seed_mask[i * N_subg + mapping] = True
 
-        return Data(
-            x=x_repeated,
-            edge_index=edge_index_repeated,
-            edge_attr=edge_attr_repeated,
-            y=y_expanded,
-            seed_nodes=seed_mask,
-        ).to(self.device)
+        y_flat = y_subg.reshape(-1, y_subg.shape[-1])            # [B*N_subg, output_dim]
+
+        subgraph = Data(
+            node_features=nf_subg,
+            edge_index=edge_index,
+            edge_features=ef_subg
+        )
+        return self.preparer(subgraph, inputs, seed_mask=seed_mask, targets=y_flat)
 
 
 class ListBasedBatcher:
@@ -71,33 +122,34 @@ class ListBasedBatcher:
         self.num_hops = num_hops
         self.input_dim = input_dim
         self.device = device
+        self.preparer = GraphPreparer(input_dim, device)
 
     def __call__(
         self,
-        op_params: Tensor,               # [B, D]
-        y_batch: Tensor,                 # [B, N, output_dim]
-        seed_nodes: Tensor               # [S]
+        inputs: Tensor,               # [B, D]
+        y_batch: Tensor,             # [B, N, output_dim]
+        seed_nodes: Optional[Tensor] = None
     ) -> Batch:
         subset, edge_index, mapping, edge_mask = k_hop_subgraph(
             seed_nodes, self.num_hops, self.graph.edge_index, relabel_nodes=True
         )
-        x_subg = self.graph.x[subset]
-        edge_attr_subg = self.graph.edge_attr[edge_mask]
-        B, _, output_dim = y_batch.shape
-        y_batch_subg = y_batch[:, subset, :]
 
-        G_list = []
+        nf_subg = self.graph.node_features[subset]
+        ef_subg = self.graph.edge_features[edge_mask]
+        B = inputs.size(0)
+        y_subg = y_batch[:, subset, :]    # [B, N_subg, output_dim]
+
+        graphs = []
         for i in range(B):
-            x = x_subg.clone()
-            x[:, :self.input_dim] = op_params[i]
-            y = y_batch_subg[i]  # [N_sub, output_dim]
-            seed_mask = torch.zeros(x.size(0), dtype=torch.bool, device=self.device)
+            seed_mask = torch.zeros(nf_subg.size(0), dtype=torch.bool, device=self.device)
             seed_mask[mapping] = True
 
             data = Data(
-                x=x, y=y, seed_nodes=seed_mask,
-                edge_index=edge_index, edge_attr=edge_attr_subg
+                node_features=nf_subg,
+                edge_index=edge_index,
+                edge_features=ef_subg
             )
-            G_list.append(data)
+            graph = self.preparer(data, inputs[i], seed_mask=seed_mask, targets=y_subg[i])
+            graphs.append(graph)
 
-        return Batch.from_data_list(G_list).to(self.device)
+        return Batch.from_data_list(graphs).to(self.device)
