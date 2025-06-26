@@ -61,14 +61,14 @@ class Graph(Data):
         # custom_attr_dict = {k: (v.to(device) if isinstance(v, torch.Tensor) else v) for k, v in custom_attr_dict.items()} # Not yet implemented.
 
         # Concatenate node/edge attributes
-        x = torch.cat(list(node_attr_dict.values()), dim=1) if node_attr_dict else None
-        edge_attr = torch.cat(list(edge_attr_dict.values()), dim=1) if edge_attr_dict else None
+        node_features = torch.cat(list(node_attr_dict.values()), dim=1) if node_attr_dict else None
+        edge_features = torch.cat(list(edge_attr_dict.values()), dim=1) if edge_attr_dict else None
 
         # Build kwargs for Data
         data_kwargs = {
             'edge_index': edge_index,
-            'x': x,
-            'edge_attr': edge_attr,
+            'node_features': node_features,
+            'edge_features': edge_features,
             'num_nodes': next(iter(node_attr_dict.values())).shape[0] if node_attr_dict else None
             # **custom_attr_dict,
         }
@@ -98,9 +98,9 @@ class Graph(Data):
         for k, v in self.edge_attr_dict.items():
             assert v.shape[0] == self.edge_index.shape[1], f"Edge attribute '{k}' has inconsistent length: {v.shape[0]} vs expected {self.edge_index.shape[1]}"
         
-        if self.edge_attr is not None:
+        if self.edge_features is not None:
             expected_dim = sum(v.shape[1] if v.ndim > 1 else 1 for v in self.edge_attr_dict.values())
-            assert self.edge_attr.shape[1] == expected_dim
+            assert self.edge_features.shape[1] == expected_dim
         
         assert all(isinstance(k, str) and k.strip() for k in self.node_attr_dict), "All node attribute keys must be non-empty strings."
         assert all(isinstance(k, str) and k.strip() for k in self.edge_attr_dict), "All edge attribute keys must be non-empty strings."
@@ -327,6 +327,15 @@ class Graph(Data):
 
         return edge_index, edge_attr_dict
 
+    def node_attr(self):
+        warnings.warn("`node_attr()` is not supported. Use `g.node_features` or `g.node_attr_dict`.", stacklevel=2)
+        return None
+
+    def edge_attr(self):
+        warnings.warn("`edge_attr()` is not supported. Use `g.node_attr` or `g.edge_attr_dict`.", stacklevel=2)
+        return None
+
+
     # def filter(self,
     #     node_mask: Optional[Union[list, torch.Tensor, np.ndarray]]=None,
     #     node_indices: Optional[Union[list, torch.Tensor, np.ndarray]]=None
@@ -347,13 +356,13 @@ class Graph(Data):
     #     elif node_mask is not None:
     #         node_mask = torch.tensor(node_mask, dtype=torch.bool)
     #     elif node_indices is not None:
-    #         node_mask = torch.zeros(self.x.shape[0], dtype=torch.bool)
+    #         node_mask = torch.zeros(self.node_features.shape[0], dtype=torch.bool)
     #         node_mask[node_indices] = True
 
     #     for attr in self.node_attr_dict():
     #         if getattr(self, attr) is not None:
     #             setattr(self, attr, getattr(self, attr)[node_mask])
 
-    #     self.edge_attr = self.edge_attr[torch.logical_and(node_mask[self.edge_index[0]], node_mask[self.edge_index[1]])]
+    #     self.edge_features = self.edge_features[torch.logical_and(node_mask[self.edge_index[0]], node_mask[self.edge_index[1]])]
     #     self.edge_index = self.edge_index[:, torch.logical_and(node_mask[self.edge_index[0]], node_mask[self.edge_index[1]])]
     #     self.edge_index -= torch.min(self.edge_index)

@@ -77,16 +77,16 @@ class MessagePassingLayer(MessagePassing):
         self.gamma = MLP(2*out_channels, out_channels, 1*[hiddim], drop_p=0, activation=activation)
 
 
-    def forward(self, x, edge_index, edge_attr):
+    def forward(self, x, edge_index, edge_features):
         # Start propagating messages.
-        return self.propagate(edge_index, x=x, edge_attr=edge_attr)
+        return self.propagate(edge_index, x=x, edge_features=edge_features)
 
-    def message(self, x_i, x_j, edge_attr):
+    def message(self, x_i, x_j, edge_features):
         # x_i defines the features of central nodes as shape [num_edges, in_channels-6]
         # x_j defines the features of neighboring nodes as shape [num_edges, in_channels-6]
-        # edge_attr defines the attributes of intersecting edges as shape [num_edges, 6]
+        # edge_features defines the attributes of intersecting edges as shape [num_edges, 6]
 
-        input = torch.cat([x_i, x_j, edge_attr], dim=1)
+        input = torch.cat([x_i, x_j, edge_features], dim=1)
 
         return self.phi(input)  # Apply MLP phi
     
@@ -269,22 +269,13 @@ class GNS(nn.Module):
                 raise TypeError("Graph must be of type torch_geometric.data.Data or Graph.")
         if getattr(graph, "edge_index", None) is None:
             raise ValueError("Graph must have edge_index attribute.")
-        if getattr(graph, "edge_attr", None) is None:
-            raise ValueError("Graph must have edge_attr attribute.")
+        if getattr(graph, "edge_features", None) is None:
+            raise ValueError("Graph must have edge_features attribute.")
         
         graph = graph.to(self.device)
 
-        # Allocate the node features used as inputs to the model
-        graph.x = torch.cat(
-            [
-                torch.zeros((graph.num_nodes, self.input_dim), dtype=torch.float32, device=self.device),
-                graph.node_attr
-            ],
-            dim=1
-        )
-
-        self.encoder_input_dim = graph.x.shape[1] # Update node features dimension
-        self._edge_dim = graph.edge_attr.shape[1] # Update edge features dimension
+        self.encoder_input_dim = graph.node_features.shape[1] # Update node features dimension
+        self._edge_dim = graph.edge_features.shape[1] # Update edge features dimension
 
         self._graph = graph
 
@@ -295,7 +286,7 @@ class GNS(nn.Module):
 
     def forward(
         self,
-        op_params: Optional[Tensor] = None,
+        inputs: Optional[Tensor] = None,
         graph: Optional[Union[Graph, Data]] = None
     ) -> Tensor:
         r"""
@@ -306,7 +297,7 @@ class GNS(nn.Module):
         the stored full graph (`self.graph`).
 
         Args:
-            op_params (torch.Tensor, optional): Operational parameters of shape [B, input_dim].
+            inputs (torch.Tensor, optional): Operational parameters of shape [B, input_dim].
                 Required for inference.
             graph (torch_geometric.data.Data, optional): Input graph with node/edge features.
                 Required for training.
@@ -316,27 +307,27 @@ class GNS(nn.Module):
         """
         if graph is not None:
             return self._forward_from_graph(graph)
-        elif op_params is not None:
-            return self._forward_from_tensor(op_params)
+        elif inputs is not None:
+            return self._forward_from_tensor(inputs)
         else:
-            raise ValueError("Either `graph` or `op_params` must be provided.")
+            raise ValueError("Either `graph` or `inputs` must be provided.")
 
     def _forward_from_graph(self, graph: Union[Graph, Data]) -> Tensor:
         """Forward pass given a graph with operational parameters already embedded."""
-        x, edge_index, edge_attr = graph.x, graph.edge_index, graph.edge_attr
+        x, edge_index, edge_features = graph.node_features, graph.edge_index, graph.edge_features
 
         h = self.activation(self.encoder(x))
         for conv in self.conv_layers_list:
-            h = self.groupnorm(self.activation(conv(h, edge_index, edge_attr)))
+            h = self.groupnorm(self.activation(conv(h, edge_index, edge_features)))
         y_hat = self.decoder(h)
         return y_hat
 
-    def _forward_from_tensor(self, op_params: Tensor) -> Tensor:
+    def _forward_from_tensor(self, inputs: Tensor) -> Tensor:
         """
         Vectorized forward pass over the full graph for a batch of operational parameters.
         
         Args:
-            op_params (Tensor): Tensor of shape [B, input_dim] representing B operational conditions.
+            inputs (Tensor): Tensor of shape [B, input_dim] representing B operational conditions.
             
         Returns:
             Tensor: Predicted outputs of shape [B, N, output_dim], where N is the number of nodes.
@@ -348,28 +339,28 @@ class GNS(nn.Module):
         if self.graph is None:
             raise ValueError("Stored graph (`self.graph`) is required for inference.")
         
-        if op_params.size(1) != self.input_dim:
-            raise ValueError(f"Expected op_params of shape [B, {self.input_dim}], got {op_params.shape}")
+        if inputs.size(1) != self.input_dim:
+            raise ValueError(f"Expected inputs of shape [B, {self.input_dim}], got {inputs.shape}")
 
-        x = self.graph.x.clone()
-        if op_params.dim() == 1:
-            op_params = op_params.unsqueeze(0)  # Shape [1, D]
+        node_features = self.graph.node_features
+        if inputs.dim() == 1:
+            inputs = inputs.unsqueeze(0)  # Shape [1, D]
 
-        B = op_params.size(0)
-        N = self.graph.x.size(0)
+        B = inputs.size(0)
+        N = self.graph.node_features.size(0)
 
-        op_repeated = op_params.repeat_interleave(N, dim=0)
-        x_repeated = self.graph.x.repeat(B, 1)
+        op_repeated = inputs.repeat_interleave(N, dim=0)
+        x_repeated = self.graph.node_features.repeat(B, 1)
         x_repeated[:, :self.input_dim] = op_repeated
 
         edge_index = torch.cat([
             self.graph.edge_index + i * N for i in range(B)
         ], dim=1)
-        edge_attr = self.graph.edge_attr.repeat(B, 1)
+        edge_features = self.graph.edge_features.repeat(B, 1)
 
         h = self.activation(self.encoder(x_repeated))
         for conv in self.conv_layers_list:
-            h = self.groupnorm(self.activation(conv(h, edge_index, edge_attr)))
+            h = self.groupnorm(self.activation(conv(h, edge_index, edge_features)))
         y_hat = self.decoder(h)
         return y_hat.reshape(B, N, -1)
 
