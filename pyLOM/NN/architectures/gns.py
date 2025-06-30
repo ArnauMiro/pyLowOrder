@@ -53,6 +53,7 @@ class GNSMLP(nn.Module):
         self.activation = activation
         self.dropout = nn.Dropout(p=drop_p)
 
+    @cr('GNSMLP.forward')
     def forward(self, x):
         for layer in self.layers[:-1]:
             x = self.activation(layer(x))
@@ -109,12 +110,15 @@ class MessagePassingLayer(MessagePassing):
             activation=activation,
         )
 
+    @cr('MessagePassingLayer.forward')
     def forward(self, x: Tensor, edge_index: Tensor, edge_features: Tensor) -> Tensor:
         return self.propagate(edge_index=edge_index, x=x, edge_features=edge_features)
 
+    @cr('MessagePassingLayer.message')
     def message(self, x_i: Tensor, x_j: Tensor, edge_features: Tensor) -> Tensor:
         return self.phi(torch.cat([x_i, x_j, edge_features], dim=1))
 
+    @cr('MessagePassingLayer.update')
     def update(self, aggr_out: Tensor, x: Tensor) -> Tensor:
         return self.gamma(torch.cat([x, aggr_out], dim=1))
 
@@ -308,7 +312,7 @@ class GNS(nn.Module):
     def trainable_params(self) -> int:
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
-
+    @cr('GNS.forward')
     def forward(self, graph: Union[Data, Graph]) -> Tensor:
         """
         Perform a forward pass through the network.
@@ -327,7 +331,7 @@ class GNS(nn.Module):
         y_hat = self.decoder(h)
         return y_hat
     
-
+    @cr('GNS.predict')
     def predict(
         self,
         X: Union[Tensor, torch.utils.data.Dataset],
@@ -379,7 +383,7 @@ class GNS(nn.Module):
             return self._run_batch_loop(input_dataloader, node_dataloader, return_loss=False)
 
 
-
+    @cr('GNS.fit')
     def fit(self, train_dataset, eval_dataset=None, **kwargs) -> Dict:
         """
         Train the model using subgraph batching over both the training inputs and the node space.
@@ -466,6 +470,7 @@ class GNS(nn.Module):
 
         return {"train_loss": train_loss_list, "test_loss": test_loss_list}
 
+    @cr('GNS._run_batch_loop')
     def _run_batch_loop(self, input_dataloader, node_dataloader, return_loss: bool = False, loss_fn=None, is_train: bool = False) -> Union[float, Tensor]:
         """
         Core routine for both training and inference, handling subgraph batching and device transfer.
@@ -543,7 +548,7 @@ class GNS(nn.Module):
         else:
             return torch.cat(outputs, dim=0)
 
-
+    @cr('GNS._init_dataloader')
     def _init_dataloader(self, dataset, is_node=False, **kwargs):
         key_prefix = "node_" if is_node else ""
         default_pin = self.device.type == "cuda" and torch.cuda.is_available()
@@ -555,6 +560,7 @@ class GNS(nn.Module):
             pin_memory = kwargs.get("pin_memory", default_pin),
         )
     
+    @cr('GNS._cleanup')
     @staticmethod
     def _cleanup(tensors: Union[Tensor, Dict, None, Tuple, List]) -> None:
         if isinstance(tensors, (tuple, list)):
@@ -642,7 +648,7 @@ class GNS(nn.Module):
 
         return model
 
-
+    @cr('GNS.create_optimized_model')
     @classmethod
     def create_optimized_model(
     cls,
@@ -716,7 +722,8 @@ class GNS(nn.Module):
         TRAINING_KWARGS = {
             'batch_size', 'node_batch_size', 'num_workers', 'pin_memory'
         }
-
+        
+        @cr('GNS.optimization_function')
         def optimization_function(trial) -> float:
             hyperparams = {
                 key: cls._get_optimizing_value(key, val, trial)
@@ -802,7 +809,7 @@ class GNS(nn.Module):
 
         return final_model, optimization_params
 
-
+    @cr('GNS._get_optimizing_value')
     @staticmethod
     def _get_optimizing_value(name, value, trial) -> Union[int, float, str]:
         """

@@ -18,7 +18,7 @@ from torch_geometric.data import Data
 
 # Local modules
 from .. import DEVICE
-from ... import io
+from ... import io, cr
 from ...mesh import Mesh
 from ...vmmath.geometric import edge_to_cells, wall_normals
 
@@ -137,7 +137,7 @@ class Graph(Data):
         assert self.edge_index.max() < self.num_nodes, "edge_index contains invalid node indices"
         assert not torch.isnan(self.edge_index).any(), "edge_index contains NaNs"
 
-
+    @cr('Graph.from_pyLOM_mesh')
     @classmethod
     def from_pyLOM_mesh(cls,
                         mesh: Mesh,
@@ -255,6 +255,7 @@ class Graph(Data):
             "edge_features_dict": {k: torch.tensor(v['value']) for k, v in edgeAttrDict.items()},
         }
 
+    @cr('Graph._compute_node_features_dict')
     @staticmethod
     def _compute_node_features_dict(mesh: Mesh) -> Dict[str, torch.Tensor]:
         r'''Computes the node attributes of Graph as described in
@@ -276,7 +277,7 @@ class Graph(Data):
 
         return node_features_dict
 
-
+    @cr('Graph._compute_edge_index_and_attr_dict')
     @staticmethod
     def _compute_edge_index_and_attr_dict(mesh: Mesh) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
         r'''Computes the edge index and attributes of Graph as described in
@@ -395,7 +396,7 @@ class Graph(Data):
         return self.edge_features_dict
 
 
-
+    @cr('Graph.filter')
     def filter(
         self,
         node_mask: Optional[Union[list, torch.Tensor, np.ndarray]] = None,

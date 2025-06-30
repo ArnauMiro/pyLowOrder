@@ -6,6 +6,7 @@ from torch_geometric.data import Data, Batch
 from torch_geometric.utils import k_hop_subgraph
 
 from . import Graph
+from ... import cr
 
 
 class GraphPreparer:
@@ -25,6 +26,7 @@ class GraphPreparer:
         self.input_dim = input_dim
         self.device = torch.device(device)
 
+    @cr('GraphPreparer.__call__')
     def __call__(
         self,
         inputs: Tensor,
@@ -80,6 +82,7 @@ class SubgraphBatcher:
         self.device = device
         self.preparer = GraphPreparer(input_dim, device)
 
+    @cr('SubgraphBatcher.__call__')
     def __call__(
         self,
         inputs_batch: Tensor,             # [B, D]
@@ -126,6 +129,7 @@ class ListBasedSubgraphBatcher:
         self.device = device
         self.preparer = GraphPreparer(input_dim, device)
 
+    @cr('ListBasedSubgraphBatcher.__call__')
     def __call__(
         self,
         inputs_batch: Tensor,               # [B, D]
