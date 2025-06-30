@@ -6,11 +6,11 @@ import tempfile
 import warnings
 import os
 import re
-from aerosandbox import XFoil as XFoilOld
+from aerosandbox import XFoil as XFoilAero
 
 # this class is an adatpation of aerosandbox.XFoil to make it work 
 # the installation of xfoil tested is https://github.com/RobotLocomotion/xfoil/
-class XFoil(XFoilOld):
+class XFoil(XFoilAero):
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
