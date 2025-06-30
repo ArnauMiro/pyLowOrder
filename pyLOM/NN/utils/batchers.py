@@ -65,14 +65,14 @@ class GraphPreparer:
             edge_features=edge_features,
         )
         if seed_mask is not None:
-            data_kwargs["seed_nodes"] = seed_mask
+            data_kwargs["seed_mask"] = seed_mask
         if targets is not None:
             data_kwargs["node_labels"] = targets
 
         return Data(**data_kwargs).to(self.device)
 
 
-class VectorizedBatcher:
+class SubgraphBatcher:
     def __init__(self, graph: Union[Graph, Data], num_hops: int, input_dim: int, device: torch.device) -> None:
         self.graph = graph
         self.num_hops = num_hops
@@ -118,7 +118,7 @@ class VectorizedBatcher:
         return self.preparer(subgraph, inputs, seed_mask=seed_mask, targets=y_flat)
 
 
-class ListBasedBatcher:
+class ListBasedSubgraphBatcher:
     def __init__(self, graph: Union[Graph, Data], num_hops: int, input_dim: int, device: torch.device):
         self.graph = graph
         self.num_hops = num_hops
