@@ -20,7 +20,6 @@ from torch_geometric.data import Data
 from .. import DEVICE
 from ... import io
 from ...mesh import Mesh
-from ...utils.cr import cr
 from ...vmmath.geometric import edge_to_cells, wall_normals
 
 
@@ -32,8 +31,8 @@ class Graph(Data):
     def __init__(
         self,
         edge_index: torch.Tensor,
-        node_attr_dict: Dict[str, torch.Tensor],
-        edge_attr_dict: Dict[str, torch.Tensor],
+        node_features_dict: Dict[str, torch.Tensor],
+        edge_features_dict: Dict[str, torch.Tensor],
         device: Union[str, torch.device] = None,
         # **custom_attr_dict: Any # Not yet implemented.
     ):
@@ -41,10 +40,10 @@ class Graph(Data):
         Initialize the Graph object. Node and edge attributes are stacked separately along dimension 1 for use in GNNs.
 
         Args:
-            edge_index (torch.Tensor): COO format edge index (shape [2, num_edges]).
-            node_attr_dict (Dict[str, torch.Tensor]): Dict of node attributes [num_nodes, attr_dim].
-            edge_attr_dict (Dict[str, torch.Tensor]): Dict of edge attributes [num_edges, attr_dim].
-            device (Union[str, torch.device], optional): Torch device. Defaults to CUDA if available.
+            edge_index (torch.Tensor): Edge connectivity in COO format [2, num_edges].
+            node_features_dict (Dict[str, torch.Tensor]): Dict of node features with shape [num_nodes, feature_dim] per entry.
+            edge_features_dict (Dict[str, torch.Tensor]): Dict of edge features with shape [num_edges, feature_dim] per entry.
+            device (Union[str, torch.device], optional): Computation device. Defaults to global DEVICE.
         '''
         if device is None:
             device = torch.device(DEVICE)  # Default to global DEVICE constant
@@ -56,20 +55,20 @@ class Graph(Data):
 
         # Ensure everything is on the correct device
         edge_index = edge_index.to(device)
-        node_attr_dict = {k: v.to(device) for k, v in node_attr_dict.items()}
-        edge_attr_dict = {k: v.to(device) for k, v in edge_attr_dict.items()}
+        node_features_dict = {k: v.to(device) for k, v in node_features_dict.items()}
+        edge_features_dict = {k: v.to(device) for k, v in edge_features_dict.items()}
         # custom_attr_dict = {k: (v.to(device) if isinstance(v, torch.Tensor) else v) for k, v in custom_attr_dict.items()} # Not yet implemented.
 
         # Concatenate node/edge attributes
-        node_features = torch.cat(list(node_attr_dict.values()), dim=1) if node_attr_dict else None
-        edge_features = torch.cat(list(edge_attr_dict.values()), dim=1) if edge_attr_dict else None
+        node_features = torch.cat(list(node_features_dict.values()), dim=1) if node_features_dict else None
+        edge_features = torch.cat(list(edge_features_dict.values()), dim=1) if edge_features_dict else None
 
         # Build kwargs for Data
         data_kwargs = {
             'edge_index': edge_index,
             'node_features': node_features,
             'edge_features': edge_features,
-            'num_nodes': next(iter(node_attr_dict.values())).shape[0] if node_attr_dict else None
+            'num_nodes': next(iter(node_features_dict.values())).shape[0] if node_features_dict else None
             # **custom_attr_dict,
         }
 
@@ -77,38 +76,66 @@ class Graph(Data):
 
 
         # Register individual attributes for user-friendly access
-        for k, v in node_attr_dict.items():
+        for k, v in node_features_dict.items():
             setattr(self, k, v)
-        for k, v in edge_attr_dict.items():
+        for k, v in edge_features_dict.items():
             setattr(self, k, v)
 
         # store raw attribute dicts (for i/o operations)
-        self.node_attr_dict = node_attr_dict
-        self.edge_attr_dict = edge_attr_dict
+        self.node_features_dict = node_features_dict
+        self.edge_features_dict = edge_features_dict
         # self.custom_attr_dict = custom_attr_dict # Not yet implemented.
 
         self.validate()
 
-    def validate(self) -> None:
-        assert self.edge_index.shape[0] == 2
-        assert self.edge_index.dtype == torch.long
+    def validate(self) -> "Graph":
+        """
+        Validate the internal consistency of the graph structure and features.
 
-        for k, v in self.node_attr_dict.items():
-            assert v.shape[0] == self.num_nodes, f"Node attribute '{k}' has inconsistent length: {v.shape[0]} vs expected {self.num_nodes}"
-        for k, v in self.edge_attr_dict.items():
-            assert v.shape[0] == self.edge_index.shape[1], f"Edge attribute '{k}' has inconsistent length: {v.shape[0]} vs expected {self.edge_index.shape[1]}"
+        Returns:
+            Graph: Self, for chaining.
+        Raises:
+            AssertionError: If any inconsistency is found.
+        """
+        self._validate_node_features()
+        self._validate_edge_features()
+        self._validate_edge_index()
+        return self
+
+    def _validate_node_features(self):
+        assert isinstance(self.node_features_dict, dict), "node_features_dict must be a dictionary"
+        assert len(set(self.node_features_dict)) == len(self.node_features_dict), "Duplicate keys in node_features_dict"
         
-        if self.edge_features is not None:
-            expected_dim = sum(v.shape[1] if v.ndim > 1 else 1 for v in self.edge_attr_dict.values())
-            assert self.edge_features.shape[1] == expected_dim
+        # Check shapes
+        for k, v in self.node_features_dict.items():
+            assert isinstance(v, torch.Tensor), f"Node attribute '{k}' must be a tensor"
+            assert v.shape[0] == self.num_nodes, f"Node attribute '{k}' has wrong number of nodes: expected {self.num_nodes}, got {v.shape[0]}"
+            assert not torch.isnan(v).any(), f"Node attribute '{k}' contains NaNs"
+
+        # Validate concatenation
+        nf_cat = torch.cat(list(self.node_features_dict.values()), dim=-1)
+        assert self.node_features.shape == nf_cat.shape, "node_features shape mismatch with concatenated node_features_dict"
+        assert torch.allclose(self.node_features, nf_cat, atol=1e-6), "node_features do not match concatenated node_features_dict"
+
+    def _validate_edge_features(self):
+        assert isinstance(self.edge_features_dict, dict), "edge_features_dict must be a dictionary"
+        assert len(set(self.edge_features_dict)) == len(self.edge_features_dict), "Duplicate keys in edge_features_dict"
         
-        assert all(isinstance(k, str) and k.strip() for k in self.node_attr_dict), "All node attribute keys must be non-empty strings."
-        assert all(isinstance(k, str) and k.strip() for k in self.edge_attr_dict), "All edge attribute keys must be non-empty strings."
-        
-        for name, tensor in self.node_attr_dict.items():
-            assert torch.isfinite(tensor).all(), f"Node attribute '{name}' contains NaN or inf."
-        for name, tensor in self.edge_attr_dict.items():
-            assert torch.isfinite(tensor).all(), f"Edge attribute '{name}' contains NaN or inf."
+        for k, v in self.edge_features_dict.items():
+            assert isinstance(v, torch.Tensor), f"Edge attribute '{k}' must be a tensor"
+            assert v.shape[0] == self.num_edges, f"Edge attribute '{k}' has wrong number of edges: expected {self.num_edges}, got {v.shape[0]}"
+            assert not torch.isnan(v).any(), f"Edge attribute '{k}' contains NaNs"
+
+        ef_cat = torch.cat(list(self.edge_features_dict.values()), dim=-1)
+        assert self.edge_features.shape == ef_cat.shape, "edge_features shape mismatch with concatenated edge_features_dict"
+        assert torch.allclose(self.edge_features, ef_cat, atol=1e-6), "edge_features do not match concatenated edge_features_dict"
+
+    def _validate_edge_index(self):
+        assert isinstance(self.edge_index, torch.Tensor), "edge_index must be a tensor"
+        assert self.edge_index.shape[0] == 2, "edge_index must have shape [2, num_edges]"
+        assert self.edge_index.shape[1] == self.num_edges, "edge_index second dimension must match number of edges"
+        assert self.edge_index.max() < self.num_nodes, "edge_index contains invalid node indices"
+        assert not torch.isnan(self.edge_index).any(), "edge_index contains NaNs"
 
 
     @classmethod
@@ -125,115 +152,111 @@ class Graph(Data):
         Returns:
             Graph: A Graph object with the computed node attributes and edge index/attributes.
         """
-        node_attr_dict = cls._compute_node_attr_dict(mesh)  # Get the node attributes
-        edge_index, edge_attr_dict = cls._compute_edge_index_and_attr_dict(mesh)  # Get the edge attributes
+        node_features_dict = cls._compute_node_features_dict(mesh)  # Get the node attributes
+        edge_index, edge_features_dict = cls._compute_edge_index_and_attr_dict(mesh)  # Get the edge attributes
 
         graph = cls(
             edge_index=edge_index,
-            node_attr_dict = node_attr_dict,
-            edge_attr_dict=edge_attr_dict,
+            node_features_dict = node_features_dict,
+            edge_features_dict=edge_features_dict,
             device=device,
             # **custom_attr_dict # Not yet implemented.
             )
 
         return graph
 
-    @cr('Graph.save')
-    def save(self,fname,**kwargs) -> None:
-        '''
-        Store the graph in a h5 file, pyLOM style.
-        '''
-        # Set default parameters
-        if not 'mode' in kwargs.keys():        kwargs['mode']        = 'w' if not os.path.exists(fname) else 'a'
-        # Append or save
-        num_nodes = self.num_nodes
-        num_edges = self.num_edges
-        edge_index = self.edge_index.cpu().numpy()
-        node_save_dict = self._to_pyLOM_format(self.node_attr_dict)
-        edge_save_dict = self._to_pyLOM_format(self.edge_attr_dict)
-        
-        io.h5_save_graph_serial(fname,num_nodes,num_edges,edge_index,node_save_dict,edge_save_dict,**kwargs)
+    def save(self, fname: str, **kwargs):
+        """
+        Save the graph to disk. Supports .h5, .pt, .pkl.
+
+        Args:
+            fname (str): Output file path.
+        """
+        fmt = os.path.splitext(fname)[1][1:].lower()
+
+        if fmt == 'h5':
+            node_dict = self._to_pyLOM_format(self.node_features_dict)
+            edge_dict = self._to_pyLOM_format(self.edge_features_dict)
+            io.h5_save_graph_serial(
+                fname,
+                num_nodes=self.num_nodes,
+                num_edges=self.num_edges,
+                edge_index=self.edge_index.cpu().numpy(),
+                nodeAttrDict=node_dict,
+                edgeAttrDict=edge_dict,
+                **kwargs
+            )
+        elif fmt in ['pt', 'pkl']:
+            torch.save(self, fname)
+        else:
+            raise ValueError(f"Unsupported file format: {fmt}")
 
     @classmethod
-    def load(
-        cls,
-        fname: str,
-        device: Optional[Union[str, torch.device]] = None,
-    ) -> "Graph":
-        r'''
-        Load a graph from a h5 file, pyLOM style.
-        '''
-        if not os.path.isfile(fname):
-            raise FileNotFoundError(f"Graph file {fname} not found.")
-        if not fname.endswith('.h5'):
-            raise ValueError(f"Graph file {fname} must be a .h5 file.")
+    def load(cls, fname: str, **kwargs) -> "Graph":
+        """
+        Load a graph from disk. Supports .h5, .pt, .pkl.
 
-        num_nodes,num_edges,edge_index,node_attr_dict,edge_attr_dict = io.h5_load_graph_serial(fname)
-
-        if num_nodes != node_attr_dict[next(iter(node_attr_dict))]['value'].shape[0]:
-            raise ValueError(f"Number of nodes {num_nodes} does not match node attributes shape {node_attr_dict[next(iter(node_attr_dict))].shape[0]}.")
-        if num_edges != edge_index.shape[1]:
-            raise ValueError(f"Number of edges {num_edges} does not match edge index shape {edge_index.shape[1]}.")
-
-        edge_index = torch.tensor(edge_index, dtype=torch.int64)
-        node_attr_dict = {key: torch.tensor(value['value'], dtype=torch.float32) for key, value in node_attr_dict.items()}
-        edge_attr_dict = {key: torch.tensor(value['value'], dtype=torch.float32) for key, value in edge_attr_dict.items()}  
-
-        return cls(edge_index=edge_index,
-                   node_attr_dict=node_attr_dict,
-                   edge_attr_dict=edge_attr_dict,
-                   device=device,
-                   )
-
-    def save_pt(self, fname: str) -> None:
-        r'''
-        Save the graph to a PyTorch .pt file.
         Args:
-            fname (str): The filename to save the graph to.
-        '''
-        if not fname.endswith('.pt'):
-            raise ValueError(f"Graph file {fname} must be a .pt file.")
-        outdir = os.path.dirname(fname)
-        if outdir:
-            os.makedirs(outdir, exist_ok=True)
-        torch.save(self, fname)
+            fname (str): File path to load from.
 
-    @classmethod
-    def load_pt(cls, fname: str, device: Union[str, torch.device]) -> "Graph":
-        r'''
-        Load a graph from a PyTorch .pt file.
-        Args:
-            fname (str): The filename to load the graph from.
         Returns:
-            Graph: The loaded graph object.
-        '''
-        if not fname.endswith('.pt'):
-            raise ValueError(f"Graph file {fname} must be a .pt file.")
-        if not os.path.isfile(fname):
-            raise FileNotFoundError(f"Graph file {fname} not found.")
-        if isinstance(device, str):
-            device = torch.device(device)
-        if device.type == 'cuda' and not torch.cuda.is_available():
-            raise ValueError("CUDA is not available. Please use CPU instead.")
-        return torch.load(fname, map_location=str(device))
+            Graph: Loaded graph object.
+        """
+        fmt = os.path.splitext(fname)[1][1:].lower()
 
+        if fmt == 'h5':
+            num_nodes, num_edges, edge_index, nodeAttrDict, edgeAttrDict = io.h5_load_graph_serial(fname)
+            init_kwargs = cls._from_pyLOM_format(num_nodes, edge_index, nodeAttrDict, edgeAttrDict)
+            return cls(**init_kwargs)
+
+        elif fmt in ['pt', 'pkl']:
+            return torch.load(fname)
+
+        else:
+            raise ValueError(f"Unsupported file format: {fmt}")
 
     @staticmethod
     def _to_pyLOM_format(attr_dict: Dict[str, torch.Tensor]) -> Dict[str, Dict[str, Union[int, np.ndarray]]]:
-        r'''
-        Converts a dictionary of numpy arrays to a dictionary of dictionaries with the shape and value keys.
-        This is used to save the node and edge attributes in pyLOM format.
-        '''
-        save_dict = {}
-        for key, value in attr_dict.items():
-            save_dict[key] = {
-                'ndim': value.shape[1] if len(value.shape) > 1 else 1,
+        """
+        Convert tensor dictionary to pyLOM HDF5-compatible format.
+
+        Args:
+            attr_dict (Dict[str, torch.Tensor]): Dictionary of tensor attributes.
+
+        Returns:
+            Dict[str, Dict]: pyLOM format dictionary.
+        """
+        return {
+            key: {
+                'ndim': value.shape[1] if value.ndim > 1 else 1,
                 'value': value.cpu().numpy()
             }
-        return save_dict
+            for key, value in attr_dict.items()
+        }
+
 
     @staticmethod
-    def _compute_node_attr_dict(mesh: Mesh) -> Dict[str, torch.Tensor]:
+    def _from_pyLOM_format(
+        num_nodes: int,
+        edge_index: np.ndarray,
+        nodeAttrDict: Dict[str, Dict[str, np.ndarray]],
+        edgeAttrDict: Dict[str, Dict[str, np.ndarray]]
+    ) -> Dict:
+        """
+        Convert pyLOM HDF5 format back to constructor arguments.
+
+        Returns:
+            Dict: Keyword arguments for cls.__init__
+        """
+        return {
+            "num_nodes": num_nodes,
+            "edge_index": torch.tensor(edge_index, dtype=torch.long),
+            "node_features_dict": {k: torch.tensor(v['value']) for k, v in nodeAttrDict.items()},
+            "edge_features_dict": {k: torch.tensor(v['value']) for k, v in edgeAttrDict.items()},
+        }
+
+    @staticmethod
+    def _compute_node_features_dict(mesh: Mesh) -> Dict[str, torch.Tensor]:
         r'''Computes the node attributes of Graph as described in
             Hines, D., & Bekemeyer, P. (2023). Graph neural networks for the prediction of aircraft surface pressure distributions.
             Aerospace Science and Technology, 137, 108268.
@@ -249,9 +272,9 @@ class Graph(Data):
         # Get the surface normals
         surface_normals = mesh.normal
         
-        node_attr_dict = {'xyz': torch.tensor(xyzc, dtype=torch.float32), 'normals': torch.tensor(surface_normals, dtype=torch.float32)}
+        node_features_dict = {'xyz': torch.tensor(xyzc, dtype=torch.float32), 'normals': torch.tensor(surface_normals, dtype=torch.float32)}
 
-        return node_attr_dict
+        return node_features_dict
 
 
     @staticmethod
@@ -313,56 +336,127 @@ class Graph(Data):
         c_j = xyzc[edge_index_np[1, :]]
         d_ij = c_j - c_i
         # Transform to spherical coordinates
-        r = np.linalg.norm(d_ij, axis=1)
-        theta = np.arccos(d_ij[:, 2] / r)
-        phi = np.arctan2(d_ij[:, 1], d_ij[:, 0])
+        r = np.linalg.norm(d_ij, axis=1)           # Distance ||x_i - x_j||  
+        theta = np.arccos(d_ij[:, 2] / r)          # Angle from z-axis
+        phi = np.arctan2(d_ij[:, 1], d_ij[:, 0])   # Azimuthal angle in xy-plane
 
         r = torch.from_numpy(r).float()
         theta = torch.from_numpy(theta).float()
         phi = torch.from_numpy(phi).float()
         
         edge_index = torch.tensor(edge_index_np, dtype=torch.int64)
-        edge_attr_dict = {'edges_spherical': torch.stack((r, theta, phi), dim=1),
+        edge_features_dict = {'edges_spherical': torch.stack((r, theta, phi), dim=1),
                            'wall_normals': wall_normals_tensor}
 
-        return edge_index, edge_attr_dict
+        return edge_index, edge_features_dict
 
     def node_attr(self):
-        warnings.warn("`node_attr()` is not supported. Use `g.node_features` or `g.node_attr_dict`.", stacklevel=2)
-        return None
+        """
+        [DEPRECATED] Use `node_features_dict` instead.
+
+        This method is retained for backward compatibility. It returns the dictionary of node attributes,
+        where each entry corresponds to a named tensor of shape [num_nodes, feature_dim].
+
+        Note:
+            This method will be removed in a future version. Please use `graph.node_features_dict` instead.
+
+        Example:
+            >>> g.node_attr()  # Deprecated
+            >>> g.node_features_dict['xyz']  # Preferred
+        """
+        warnings.warn(
+            "`node_attr()` is deprecated. Use `graph.node_features_dict` instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return self.node_features_dict
+
+
 
     def edge_attr(self):
-        warnings.warn("`edge_attr()` is not supported. Use `g.node_attr` or `g.edge_attr_dict`.", stacklevel=2)
-        return None
+        """
+        [DEPRECATED] Use `edge_features_dict` instead.
+
+        This method is retained for backward compatibility. It returns the dictionary of edge attributes,
+        where each entry corresponds to a named tensor of shape [num_edges, feature_dim].
+
+        Note:
+            This method will be removed in a future version. Please use `graph.edge_features_dict` instead.
+
+        Example:
+            >>> g.edge_attr()  # Deprecated
+            >>> g.edge_features_dict['wall_normals']  # Preferred
+        """
+        warnings.warn(
+            "`edge_attr()` is deprecated. Use `graph.edge_features_dict` instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return self.edge_features_dict
 
 
-    # def filter(self,
-    #     node_mask: Optional[Union[list, torch.Tensor, np.ndarray]]=None,
-    #     node_indices: Optional[Union[list, torch.Tensor, np.ndarray]]=None
-    # ):
-    #     r'''
-    #     Filter graph by providing either a boolean mask or a list of node indices to keep.
 
-    #     Args:
-    #         node_mask: Boolean mask to filter nodes.
-    #         node_indices: List of node indices to keep.
-    #     '''
-        
+    def filter(
+        self,
+        node_mask: Optional[Union[list, torch.Tensor, np.ndarray]] = None,
+        node_indices: Optional[Union[list, torch.Tensor, np.ndarray]] = None
+    ) -> "Graph":
+        """
+        ⚠️ Experimental: This method is still under development and has not been thoroughly tested.
+        Use with caution and validate outputs manually.
 
-    #     if node_mask is None and node_indices is None:
-    #         raise ValueError("Either node_mask or node_indices must be provided.")
-    #     elif node_mask is not None and node_indices is not None:
-    #         raise ValueError("Only one of node_mask or node_indices must be provided.")
-    #     elif node_mask is not None:
-    #         node_mask = torch.tensor(node_mask, dtype=torch.bool)
-    #     elif node_indices is not None:
-    #         node_mask = torch.zeros(self.node_features.shape[0], dtype=torch.bool)
-    #         node_mask[node_indices] = True
+        Return a filtered copy of the graph, keeping only the specified nodes
+        and their corresponding edges.
 
-    #     for attr in self.node_attr_dict():
-    #         if getattr(self, attr) is not None:
-    #             setattr(self, attr, getattr(self, attr)[node_mask])
+        You can specify either:
+            - `node_mask`: a boolean mask of shape [num_nodes]
+            - `node_indices`: a list or tensor of node indices to keep
 
-    #     self.edge_features = self.edge_features[torch.logical_and(node_mask[self.edge_index[0]], node_mask[self.edge_index[1]])]
-    #     self.edge_index = self.edge_index[:, torch.logical_and(node_mask[self.edge_index[0]], node_mask[self.edge_index[1]])]
-    #     self.edge_index -= torch.min(self.edge_index)
+        Args:
+            node_mask (Union[list, torch.Tensor, np.ndarray], optional):
+                Boolean mask indicating which nodes to keep.
+            node_indices (Union[list, torch.Tensor, np.ndarray], optional):
+                List of node indices to keep.
+
+        Returns:
+            Graph: A new Graph instance containing only the selected nodes and edges.
+
+        Raises:
+            ValueError: If neither or both of `node_mask` and `node_indices` are provided.
+        """
+        if node_mask is None and node_indices is None:
+            raise ValueError("Either node_mask or node_indices must be provided.")
+        if node_mask is not None and node_indices is not None:
+            raise ValueError("Only one of node_mask or node_indices must be provided.")
+
+        if node_indices is not None:
+            node_mask = torch.zeros(self.num_nodes, dtype=torch.bool)
+            node_mask[node_indices] = True
+        else:
+            node_mask = torch.as_tensor(node_mask, dtype=torch.bool)
+
+        # Mapping from old node index to new index
+        idx_map = torch.full((self.num_nodes,), -1, dtype=torch.long)
+        idx_map[node_mask] = torch.arange(node_mask.sum())
+
+        # Filter node features
+        new_node_features_dict = {
+            k: v[node_mask] for k, v in self.node_features_dict.items()
+        }
+
+        # Identify edges where both source and target nodes are kept
+        src, dst = self.edge_index
+        edge_mask = node_mask[src] & node_mask[dst]
+        new_edge_index = idx_map[self.edge_index[:, edge_mask]]
+
+        # Filter edge features
+        new_edge_features_dict = {
+            k: v[edge_mask] for k, v in self.edge_features_dict.items()
+        }
+
+        return Graph(
+            edge_index=new_edge_index,
+            node_features_dict=new_node_features_dict,
+            edge_features_dict=new_edge_features_dict,
+            device=self.edge_index.device
+        )
