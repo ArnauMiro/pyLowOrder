@@ -897,7 +897,7 @@ def h5_load_SPOD(fname,vars,nmod,ptable=None):
 	return varList
 
 
-def h5_save_graph_serial(fname,num_nodes,num_edges,edge_index,nodeAttrDict,edgeAttrDict,mode='w'):
+def h5_save_graph_serial(fname,num_nodes,num_edges,edge_index,nodeFeatrDict,edgeFeatrDict,mode='w'):
 	'''
 	Save a Graph in HDF5 in serial mode
 	'''
@@ -906,17 +906,17 @@ def h5_save_graph_serial(fname,num_nodes,num_edges,edge_index,nodeAttrDict,edgeA
 		file.attrs['Version'] = PYLOM_H5_VERSION
 		# Create dataset group
 		graph_group = file.create_group('GRAPH')
-		node_group = graph_group.create_group('NODEATTRS')
-		edge_group = graph_group.create_group('EDGEATTRS')
+		node_group = graph_group.create_group('NODEFEATRS')
+		edge_group = graph_group.create_group('EDGEFEATRS')
 		# Store the number of nodes and edges
 		graph_group.create_dataset('numNodes',(1,),dtype='i4',data=num_nodes)
 		graph_group.create_dataset('numEdges',(1,),dtype='i4',data=num_edges)
 		# Store the edge index
 		graph_group.create_dataset('edgeIndex',data=edge_index,dtype='i4')
 		# Store node-level attributes
-		h5_fill_graph_datasets(h5_create_graph_datasets(node_group,nodeAttrDict),nodeAttrDict)
+		h5_fill_graph_datasets(h5_create_graph_datasets(node_group,nodeFeatrDict),nodeFeatrDict)
 		# Store edge-level attributes
-		h5_fill_graph_datasets(h5_create_graph_datasets(edge_group,edgeAttrDict),edgeAttrDict)
+		h5_fill_graph_datasets(h5_create_graph_datasets(edge_group,edgeFeatrDict),edgeFeatrDict)
 
 def h5_load_graph_serial(fname):
 	'''
@@ -929,8 +929,8 @@ def h5_load_graph_serial(fname):
 		if not version == PYLOM_H5_VERSION:
 			raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
 		# Open the dataset group
-		node_group  = file['GRAPH']['NODEATTRS']
-		edge_group  = file['GRAPH']['EDGEATTRS']
+		node_group  = file['GRAPH']['NODEFEATRS']
+		edge_group  = file['GRAPH']['EDGEFEATRS']
 		# Read the number of nodes and edges
 		numNodes = int(file['GRAPH']['numNodes'][0])
 		numEdges = int(file['GRAPH']['numEdges'][0])
@@ -939,9 +939,9 @@ def h5_load_graph_serial(fname):
 			raiseError('Edge index not found in the graph file!')
 		edgeIndex = np.array(file['GRAPH']['edgeIndex'])
 		# Read the node attributes
-		nodeAttrDict   = h5_load_graph_variables(node_group)
-		edgeAttrDict = h5_load_graph_variables(edge_group)
-	return numNodes, numEdges, edgeIndex, nodeAttrDict, edgeAttrDict
+		nodeFeatrDict   = h5_load_graph_variables(node_group)
+		edgeFeatrDict = h5_load_graph_variables(edge_group)
+	return numNodes, numEdges, edgeIndex, nodeFeatrDict, edgeFeatrDict
 
 def h5_create_graph_datasets(group,varDict):
 	'''

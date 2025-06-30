@@ -182,8 +182,8 @@ class Graph(Data):
                 num_nodes=self.num_nodes,
                 num_edges=self.num_edges,
                 edge_index=self.edge_index.cpu().numpy(),
-                nodeAttrDict=node_dict,
-                edgeAttrDict=edge_dict,
+                nodeFeatrDict=node_dict,
+                edgeFeatrDict=edge_dict,
                 **kwargs
             )
         elif fmt in ['pt', 'pkl']:
@@ -205,8 +205,8 @@ class Graph(Data):
         fmt = os.path.splitext(fname)[1][1:].lower()
 
         if fmt == 'h5':
-            num_nodes, num_edges, edge_index, nodeAttrDict, edgeAttrDict = io.h5_load_graph_serial(fname)
-            init_kwargs = cls._from_pyLOM_format(num_nodes, edge_index, nodeAttrDict, edgeAttrDict)
+            num_nodes, num_edges, edge_index, nodeFeatrDict, edgeFeatrDict = io.h5_load_graph_serial(fname)
+            init_kwargs = cls._from_pyLOM_format(num_nodes, edge_index, nodeFeatrDict, edgeFeatrDict)
             return cls(**init_kwargs)
 
         elif fmt in ['pt', 'pkl']:
@@ -239,8 +239,8 @@ class Graph(Data):
     def _from_pyLOM_format(
         num_nodes: int,
         edge_index: np.ndarray,
-        nodeAttrDict: Dict[str, Dict[str, np.ndarray]],
-        edgeAttrDict: Dict[str, Dict[str, np.ndarray]]
+        nodeFeatrDict: Dict[str, Dict[str, np.ndarray]],
+        edgeFeatrDict: Dict[str, Dict[str, np.ndarray]]
     ) -> Dict:
         """
         Convert pyLOM HDF5 format back to constructor arguments.
@@ -251,8 +251,8 @@ class Graph(Data):
         return {
             "num_nodes": num_nodes,
             "edge_index": torch.tensor(edge_index, dtype=torch.long),
-            "node_features_dict": {k: torch.tensor(v['value']) for k, v in nodeAttrDict.items()},
-            "edge_features_dict": {k: torch.tensor(v['value']) for k, v in edgeAttrDict.items()},
+            "node_features_dict": {k: torch.tensor(v['value']) for k, v in nodeFeatrDict.items()},
+            "edge_features_dict": {k: torch.tensor(v['value']) for k, v in edgeFeatrDict.items()},
         }
 
     @cr('Graph._compute_node_features_dict')

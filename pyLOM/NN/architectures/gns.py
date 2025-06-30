@@ -146,7 +146,7 @@ class GNS(nn.Module):
         decoder_hidden_layers (int): The number of hidden layers in the decoder.
         message_hidden_layers (int): The number of hidden layers in the message MLP.
         update_hidden_layers (int): The number of hidden layers in the update MLP.
-        graph (Union[torch_geometric.data.Data, Graph]): The graph object with node and edge attributes.
+        graph (Union[torch_geometric.data.Data, Graph]): The graph object with node and edge features.
         p_dropouts (float, optional): The dropout probability. Default is ``0``.
         checkpoint_file (str, optional): The path to the checkpoint file. Default is ``None``.
         activation (Union[str, nn.Module]): The activation function to use.
