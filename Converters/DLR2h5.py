@@ -76,21 +76,21 @@ def create_graph(datapath: str, npoints: int) -> Graph:
     wall_normals = np.load(os.path.join(datapath, "faceNormals.npz"))['faceNormals']
     edge_index = torch.tensor(np.load(os.path.join(datapath, "edgesCOO.npz"))['edgesCOO'], dtype=torch.long)
 
-    node_attr_dict = {
+    node_features_dict = {
         'xyz': torch.tensor(xyz, dtype=torch.float),
         'normals': torch.tensor(normals, dtype=torch.float),
     }
     edge_vecs = process_edge_vectors(edge_index.numpy(), xyz)
-    edge_attr_dict = {
+    edge_features_dict = {
         'edge_vecs': torch.tensor(edge_vecs, dtype=torch.float),
         'wall_normals': torch.tensor(wall_normals, dtype=torch.float),
     }
 
-    g = Graph(edge_index=edge_index, node_attr_dict=node_attr_dict, edge_attr_dict=edge_attr_dict)
+    g = Graph(edge_index=edge_index, node_features_dict=node_features_dict, edge_features_dict=edge_features_dict)
     print("Graph created.")
     return g
 
-def plot_graph_cp(x: np.ndarray, z: np.ndarray, normals: np.ndarray, cp: np.ndarray, mach: float, aoa: float) -> None:
+def plot_graph_cp(x: np.ndarray, z: np.ndarray, normals: np.ndarray, cp: np.ndarray, mach: float, aoa: float, savepath: os.path) -> None:
     """ Plot the NLR7301 airfoil, along with surface normals and CP distribution for a given Mach and AoA.
     Args:
         x (np.ndarray): X-coordinates of the airfoil.
@@ -100,7 +100,7 @@ def plot_graph_cp(x: np.ndarray, z: np.ndarray, normals: np.ndarray, cp: np.ndar
         mach (float): Mach number for the case.
         aoa (float): Angle of attack for the case.
     """
-    plt.style.use('seaborn-darkgrid')
+    plt.style.use('seaborn-v0_8-darkgrid')
     plt.rcParams.update({'font.size': 14})
     plt.figure(figsize=(10, 6))
     plt.scatter(x, z, s=10)
@@ -111,7 +111,8 @@ def plot_graph_cp(x: np.ndarray, z: np.ndarray, normals: np.ndarray, cp: np.ndar
     plt.ylabel('Z')
     plt.legend()
     plt.grid()
-    plt.show()
+    plt.savefig(os.path.join(savepath,f"cp_plot_mach{mach}_aoa{aoa}.png"), dpi=300, bbox_inches='tight')
+    plt.show(block=True)
 
 
 def main():
@@ -132,16 +133,14 @@ def main():
     # Select a snapshot from the dataset and plot the airfoil with CP distribution
     i_case = 0  # First case for demonstration 
     xyz = g.xyz
-    print(xyz)
     x = xyz[:, 0]
     z = xyz[:, 1]
     normals = g.normals
-    print(normals)
     cp = saved_dset.fields['CP']['value'][:, i_case].flatten()
     mach = saved_dset.get_variable('Mach')[i_case]
     aoa = saved_dset.get_variable('AoA')[i_case]
 
-    plot_graph_cp(x, z, normals, cp, mach, aoa)
+    plot_graph_cp(x, z, normals, cp, mach, aoa, savepath=datapath)
 
 
 
