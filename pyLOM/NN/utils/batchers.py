@@ -82,8 +82,8 @@ class SubgraphBatcher:
 
     def __call__(
         self,
-        inputs: Tensor,             # [B, D]
-        y_batch: Tensor,            # [B, N, output_dim]
+        inputs_batch: Tensor,             # [B, D]
+        targets_batch: Tensor,            # [B, N, output_dim]
         seed_nodes: Optional[Tensor] = None
     ) -> Data:
         if seed_nodes is not None:
@@ -98,9 +98,9 @@ class SubgraphBatcher:
 
         nf_subg = self.graph.node_features[subset]               # [N_subg, F]
         ef_subg = self.graph.edge_features[edge_mask]            # [E_subg, A]
-        y_subg = y_batch[:, subset, :]                           # [B, N_subg, output_dim]
+        targets_batch_subg = targets_batch[:, subset, :]               # [B, N_subg, output_dim]
 
-        B = inputs.size(0)
+        B = inputs_batch.size(0)
         N_subg = nf_subg.size(0)
         seed_mask = torch.zeros(B * N_subg, dtype=torch.bool, device=self.device)
         offsets = torch.arange(B, device=self.device).unsqueeze(1) * N_subg
@@ -108,14 +108,14 @@ class SubgraphBatcher:
         seed_mask[indices.view(-1)] = True
 
 
-        y_flat = y_subg.reshape(-1, y_subg.shape[-1])            # [B*N_subg, output_dim]
+        targets_flat = targets_batch_subg.reshape(-1, targets_batch_subg.shape[-1])            # [B*N_subg, output_dim]
 
         subgraph = Data(
             node_features=nf_subg,
             edge_index=edge_index,
             edge_features=ef_subg
         )
-        return self.preparer(subgraph, inputs, seed_mask=seed_mask, targets=y_flat)
+        return self.preparer(subgraph, inputs_batch, seed_mask=seed_mask, targets=targets_flat)
 
 
 class ListBasedSubgraphBatcher:
@@ -128,8 +128,8 @@ class ListBasedSubgraphBatcher:
 
     def __call__(
         self,
-        inputs: Tensor,               # [B, D]
-        y_batch: Tensor,             # [B, N, output_dim]
+        inputs_batch: Tensor,               # [B, D]
+        targets_batch: Tensor,             # [B, N, output_dim]
         seed_nodes: Optional[Tensor] = None
     ) -> Batch:
         subset, edge_index, mapping, edge_mask = k_hop_subgraph(
@@ -138,8 +138,8 @@ class ListBasedSubgraphBatcher:
 
         nf_subg = self.graph.node_features[subset]
         ef_subg = self.graph.edge_features[edge_mask]
-        B = inputs.size(0)
-        y_subg = y_batch[:, subset, :]    # [B, N_subg, output_dim]
+        B = inputs_batch.size(0)
+        targets_batch_subg = targets_batch[:, subset, :]    # [B, N_subg, output_dim]
 
         graphs = []
         for i in range(B):
@@ -151,7 +151,7 @@ class ListBasedSubgraphBatcher:
                 edge_index=edge_index,
                 edge_features=ef_subg
             )
-            graph = self.preparer(data, inputs[i], seed_mask=seed_mask, targets=y_subg[i])
+            graph = self.preparer(data, inputs_batch[i], seed_mask=seed_mask, targets=targets_batch_subg[i])
             graphs.append(graph)
 
         return Batch.from_data_list(graphs).to(self.device)

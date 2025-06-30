@@ -9,6 +9,7 @@
 import numpy as np
 import os
 import json
+import warnings
 
 import torch
 from torch import Tensor
@@ -16,92 +17,111 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.nn import ELU
 from torch_geometric.nn import MessagePassing
-from torch_geometric.data import Data, Batch
-from torch_geometric.utils import k_hop_subgraph
+from torch_geometric.data import Data
 
-from ..utils import Graph, VectorizedBatcher, ListBasedBatcher
+from ..utils import Graph, GraphPreparer, ListBasedSubgraphBatcher, SubgraphBatcher
 from .. import DEVICE, set_seed
 from ... import pprint, cr
 from ..optimizer import OptunaOptimizer, TrialPruned
 
-from typing import Dict, Tuple, Union, Optional
+from typing import Dict, Tuple, Union, List
 
-class MLP(torch.nn.Module):
-    r'''Simple MLP with dropout and activation function
+
+
+
+class GNSMLP(nn.Module):
+    r"""
+    Simple feedforward MLP with activation and dropout, designed for internal use in GNS.
+
     Args:
         input_size (int): Input size.
         output_size (int): Output size.
-        hidden_sizes (list): List of hidden sizes.
+        hidden_size (int): Number of units in each hidden layer.
+        num_hidden_layers (int): Number of hidden layers.
         drop_p (float): Dropout probability.
-        activation (torch.nn.Module): Activation function.
-    '''
-    def __init__(self, input_size, output_size, hidden_sizes, drop_p=0.5, activation=ELU()):
+        activation (nn.Module): Activation function.
+    """
+    def __init__(self, input_size, output_size, hidden_size, num_hidden_layers=1, drop_p=0.5, activation=ELU()):
         super().__init__()
-        self.layers = torch.nn.ModuleList()
-        self.layers.append(torch.nn.Linear(input_size, hidden_sizes[0]))
-        for i in range(len(hidden_sizes)-1):
-            self.layers.append(torch.nn.Linear(hidden_sizes[i], hidden_sizes[i+1]))
-        self.layers.append(torch.nn.Linear(hidden_sizes[-1], output_size))
+        self.layers = nn.ModuleList()
+
+        self.layers.append(nn.Linear(input_size, hidden_size))
+        for _ in range(num_hidden_layers - 1):
+            self.layers.append(nn.Linear(hidden_size, hidden_size))
+        self.layers.append(nn.Linear(hidden_size, output_size))
+
         self.activation = activation
-        self.dropout = torch.nn.Dropout(p=drop_p)
+        self.dropout = nn.Dropout(p=drop_p)
 
     def forward(self, x):
         for layer in self.layers[:-1]:
             x = self.activation(layer(x))
             x = self.dropout(x)
-        x = self.layers[-1](x)
-        return x
-    
+        return self.layers[-1](x)
+
     @property
     def trainable_params(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
+
 
 
 class MessagePassingLayer(MessagePassing):
-    r'''Message passing layer for the GNN. Uses mean aggregation and MLPs for message and update functions.
+    r"""
+    Message passing layer using mean aggregation and MLPs for message and update functions.
+
     Args:
-        in_channels (int): Input channels.
-        out_channels (int): Output channels.
-        hiddim (int): Hidden dimension.
+        in_channels (int): Input feature size for messages.
+        out_channels (int): Output feature size after message passing.
+        hidden_size (int): Hidden size for internal MLPs.
+        message_hidden_layers (int): Number of hidden layers in the message MLP.
+        update_hidden_layers (int): Number of hidden layers in the update MLP.
+        activation (nn.Module): Activation function (e.g., nn.ELU()).
         drop_p (float): Dropout probability.
-    '''
-    def __init__(self, in_channels, out_channels, hiddim, activation=ELU(), drop_p=0.):
-        # Message passing with "mean" aggregation.
+    """
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        hidden_size: int,
+        message_hidden_layers: int = 1,
+        update_hidden_layers: int = 1,
+        activation: nn.Module = ELU(),
+        drop_p: float = 0.0,
+    ):
         super().__init__(aggr='mean')
-        self.dropout = torch.nn.Dropout(p=drop_p)
+        self.dropout = nn.Dropout(p=drop_p)
 
-        # MLP for the message function
-        self.phi = MLP(in_channels, out_channels, 1*[hiddim], drop_p=0, activation=activation)
-        
-        # MLP for the update function
-        self.gamma = MLP(2*out_channels, out_channels, 1*[hiddim], drop_p=0, activation=activation)
+        self.phi = GNSMLP(
+            input_size=in_channels,
+            output_size=out_channels,
+            hidden_size=hidden_size,
+            num_hidden_layers=message_hidden_layers,
+            drop_p=drop_p,
+            activation=activation,
+        )
 
+        self.gamma = GNSMLP(
+            input_size=2 * out_channels,
+            output_size=out_channels,
+            hidden_size=hidden_size,
+            num_hidden_layers=update_hidden_layers,
+            drop_p=drop_p,
+            activation=activation,
+        )
 
-    def forward(self, x, edge_index, edge_features):
-        # Start propagating messages.
-        return self.propagate(edge_index, x=x, edge_features=edge_features)
+    def forward(self, x: Tensor, edge_index: Tensor, edge_features: Tensor) -> Tensor:
+        return self.propagate(edge_index=edge_index, x=x, edge_features=edge_features)
 
-    def message(self, x_i, x_j, edge_features):
-        # x_i defines the features of central nodes as shape [num_edges, in_channels-6]
-        # x_j defines the features of neighboring nodes as shape [num_edges, in_channels-6]
-        # edge_features defines the attributes of intersecting edges as shape [num_edges, 6]
+    def message(self, x_i: Tensor, x_j: Tensor, edge_features: Tensor) -> Tensor:
+        return self.phi(torch.cat([x_i, x_j, edge_features], dim=1))
 
-        input = torch.cat([x_i, x_j, edge_features], dim=1)
+    def update(self, aggr_out: Tensor, x: Tensor) -> Tensor:
+        return self.gamma(torch.cat([x, aggr_out], dim=1))
 
-        return self.phi(input)  # Apply MLP phi
-    
-    def update(self, aggr_out, x):
-        # aggr_out has shape [N, out_channels]
-        # x has shape [N, in_channels]
-
-        input = torch.cat([x, aggr_out], dim=1)
-
-        # Apply MLP gamma
-        return self.gamma(input)
-    
     @property
-    def trainable_params(self):
+    def trainable_params(self) -> int:
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
+
 
 
 
@@ -131,6 +151,7 @@ class GNS(nn.Module):
     """
 
     def __init__(self,
+                graph: Graph,
                 input_dim: int,
                 latent_dim: int,
                 output_dim: int,
@@ -141,29 +162,32 @@ class GNS(nn.Module):
                 message_hidden_layers: int,
                 update_hidden_layers: int,
                 **kwargs) -> None:
-
         super().__init__()
 
         # --- Parse kwargs ---
-        graph = kwargs.get("graph")
-        p_dropouts = kwargs.get("p_dropouts", 0.0)
+        self.device = torch.device(kwargs.get("device", DEVICE))
+        self.seed = kwargs.get("seed", None)
+        self.p_dropouts = kwargs.get("p_dropouts", 0.0)
         activation = kwargs.get("activation", 'ELU')
-        device = kwargs.get("device", DEVICE)
-        seed = kwargs.get("seed", None)
 
         # --- Device setup ---
-        if isinstance(device, str):
-            device = torch.device(device)
-        if device.type == "cuda":
+        if self.device.type == "cuda":
             if not torch.cuda.is_available():
                 raise ValueError("CUDA is not available. Please use CPU instead.")
             torch.cuda.set_device(0)
+        pprint(0, f"Using device: {self.device}", flush=True)
 
-        self.device = device
-        self.seed = seed
-        if seed is not None:
-            set_seed(seed)
-        print(f"Using device: {self.device}", flush=True)
+        # --- Seed ---
+        if self.seed is not None:
+            set_seed(self.seed)
+
+        # --- Activation setup ---
+        if isinstance(activation, str):
+            if not hasattr(nn, activation):
+                raise ValueError(f"Activation function '{activation}' not found in torch.nn")
+            self.activation = getattr(nn, activation)()
+        else:
+            self.activation = activation
 
         # --- Save config ---
         self.input_dim = input_dim
@@ -175,33 +199,7 @@ class GNS(nn.Module):
         self.decoder_hidden_layers = decoder_hidden_layers
         self.message_hidden_layers = message_hidden_layers
         self.update_hidden_layers = update_hidden_layers
-        self.p_dropouts = p_dropouts
 
-        # Will be filled when graph is set
-        self.encoder_input_dim = None
-        self._edge_dim = None
-        self._graph = None
-
-        # Optimizer state
-        self.state = {}
-        self.optimizer = None
-        self.scheduler = None
-        self.checkpoint = None
-
-        # Activation
-        if isinstance(activation, str):
-            if not hasattr(nn, activation):
-                raise ValueError(f"Activation function '{activation}' not found in torch.nn")
-            self.activation = getattr(nn, activation)()
-        else:
-            self.activation = activation
-
-        # Set graph (also sets encoder_input_dim and _edge_dim)
-        if graph is None:
-            raise Warning("Graph not provided. A graph object must be set with cls.graph setter before training.")
-        self.graph = graph
-
-        # Save config dictionary
         self.model_dict = {
             "input_dim": input_dim,
             "latent_dim": latent_dim,
@@ -212,108 +210,115 @@ class GNS(nn.Module):
             "decoder_hidden_layers": decoder_hidden_layers,
             "message_hidden_layers": message_hidden_layers,
             "update_hidden_layers": update_hidden_layers,
-            "p_dropouts": p_dropouts,
-            "activation": activation,
-            "seed": seed
+            "p_dropouts": self.p_dropouts,
+            "activation": activation.__class__.__name__ if isinstance(activation, nn.Module) else activation,
+            "seed": self.seed,
         }
 
-        # --- Network Components ---
-        self.batcher = ListBasedBatcher(
+        # --- Graph setup ---
+        self._graph = None
+        self._encoder_input_dim = None
+        self._edge_dim = None
+        self._graph_preparer = None
+        self.graph = graph  # sets _encoder_input_dim and _edge_dim
+
+        # --- Optimizer and training state ---
+        self.state = {}
+        self.optimizer = None
+        self.scheduler = None
+        self.checkpoint = None
+
+        # --- Build modules ---
+        self._build_batcher()
+        self._build_encoder()
+        self._build_message_passing_layers()
+        self._build_decoder()
+        self.groupnorm = nn.GroupNorm(num_groups=min(2, self.latent_dim), num_channels=self.latent_dim)
+
+    def _build_batcher(self):
+        self.batcher = ListBasedSubgraphBatcher(
             graph=self.graph,
             num_hops=self.num_msg_passing_layers,
             input_dim=self.input_dim,
             device=self.device,
         )
 
-        self.encoder = MLP(
-            input_size=self.encoder_input_dim,
+    def _build_encoder(self):
+        self.encoder = GNSMLP(
+            input_size=self._encoder_input_dim,
             output_size=self.latent_dim,
-            hidden_sizes=[self.hidden_size] * self.encoder_hidden_layers,
+            hidden_size=self.hidden_size,
             activation=self.activation,
             drop_p=self.p_dropouts
         ).to(self.device)
 
-        self.decoder = MLP(
+    def _build_decoder(self):
+        self.decoder = GNSMLP(
             input_size=self.latent_dim,
             output_size=self.output_dim,
-            hidden_sizes=[self.hidden_size] * self.decoder_hidden_layers,
+            hidden_size=self.hidden_size,
             activation=self.activation,
             drop_p=self.p_dropouts
         ).to(self.device)
 
+    def _build_message_passing_layers(self):
         self.conv_layers_list = nn.ModuleList([
             MessagePassingLayer(
                 in_channels=2 * self.latent_dim + self._edge_dim,
                 out_channels=self.latent_dim,
-                hiddim=self.hidden_size,
+                hidden_size=self.hidden_size,
+                message_hidden_layers=self.message_hidden_layers,
+                update_hidden_layers=self.update_hidden_layers,
                 activation=self.activation,
                 drop_p=self.p_dropouts,
             ) for _ in range(self.num_msg_passing_layers)
         ]).to(self.device)
 
-        self.groupnorm = nn.GroupNorm(2, self.latent_dim).to(self.device)
-
 
     @property
     def graph(self) -> Graph:
-        r'''Graph property to get the graph object.'''
+        r"""Graph property to get the graph object."""
         return self._graph
     
     @graph.setter
     def graph(self, graph: Graph) -> None:
-        r'''Graph property to set the graph object.'''
+        r"""Graph property to set the graph object."""
         if self._graph is not None:
-            raise Warning("Graph is already set! Graph name is: {}".format(self._graph.name))
-        if not isinstance(graph, Graph):
+            warnings.warn(f"Graph is already set!")
             if not isinstance(graph, Data):
                 raise TypeError("Graph must be of type torch_geometric.data.Data or Graph.")
         if getattr(graph, "edge_index", None) is None:
             raise ValueError("Graph must have edge_index attribute.")
         if getattr(graph, "edge_features", None) is None:
             raise ValueError("Graph must have edge_features attribute.")
+        if getattr(graph, "node_features", None) is None:
+            raise ValueError("Graph must have node_features attribute.")
         
-        graph = graph.to(self.device)
+        if graph.device != self.device:
+            graph = graph.to(self.device)
 
-        self.encoder_input_dim = graph.node_features.shape[1] # Update node features dimension
+
+        self._encoder_input_dim = graph.node_features.shape[1] # Update node features dimension
         self._edge_dim = graph.edge_features.shape[1] # Update edge features dimension
 
         self._graph = graph
+        self._graph_preparer = GraphPreparer(input_dim=self.input_dim, device=self.device)
 
     @property
     def trainable_params(self) -> int:
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
 
-    def forward(
-        self,
-        inputs: Optional[Tensor] = None,
-        graph: Optional[Union[Graph, Data]] = None
-    ) -> Tensor:
-        r"""
+    def forward(self, graph: Union[Data, Graph]) -> Tensor:
+        """
         Perform a forward pass through the network.
 
-        During training, a pre-batched graph (e.g., via DataLoader) is passed directly.
-        During inference, a tensor of operational parameters is provided and used along with
-        the stored full graph (`self.graph`).
-
         Args:
-            inputs (torch.Tensor, optional): Operational parameters of shape [B, input_dim].
-                Required for inference.
-            graph (torch_geometric.data.Data, optional): Input graph with node/edge features.
-                Required for training.
+            graph (Data or Graph): Prepared input graph with operational parameters embedded, useful for internal calls or external debugging.
 
         Returns:
-            torch.Tensor: Predicted values for the nodes or batch of nodes.
+            Tensor: Predicted values for all nodes in the graph.
         """
-        if graph is not None:
-            return self._forward_from_graph(graph)
-        elif inputs is not None:
-            return self._forward_from_tensor(inputs)
-        else:
-            raise ValueError("Either `graph` or `inputs` must be provided.")
-
-    def _forward_from_graph(self, graph: Union[Graph, Data]) -> Tensor:
-        """Forward pass given a graph with operational parameters already embedded."""
         x, edge_index, edge_features = graph.node_features, graph.edge_index, graph.edge_features
 
         h = self.activation(self.encoder(x))
@@ -321,69 +326,94 @@ class GNS(nn.Module):
             h = self.groupnorm(self.activation(conv(h, edge_index, edge_features)))
         y_hat = self.decoder(h)
         return y_hat
+    
 
-    def _forward_from_tensor(self, inputs: Tensor) -> Tensor:
+    def predict(
+        self,
+        X: Union[Tensor, torch.utils.data.Dataset],
+        batch_size: int = 1,
+        **kwargs
+    ) -> torch.Tensor:
         """
-        Vectorized forward pass over the full graph for a batch of operational parameters.
-        
+        Run inference on the model.
+
         Args:
-            inputs (Tensor): Tensor of shape [B, input_dim] representing B operational conditions.
-            
+            X (Tensor or Dataset):
+                - Tensor: shape [D] (1 input) or [B, D] (multiple inputs). B should be <= 16.
+                - Dataset: yields (input, target) or input tensors.
+            batch_size (int): Used only if X is a Dataset. Ignored if X is a Tensor (batch size is set to B).
+
         Returns:
-            Tensor: Predicted outputs of shape [B, N, output_dim], where N is the number of nodes.
-            
-        Note:
-            This method assumes a stored full graph (`self.graph`) and performs inference over the entire mesh.
-            It is not used for subgraph-based training.
+            Tensor: Predictions for all nodes in each graph.
         """
-        if self.graph is None:
-            raise ValueError("Stored graph (`self.graph`) is required for inference.")
-        
-        if inputs.size(1) != self.input_dim:
-            raise ValueError(f"Expected inputs of shape [B, {self.input_dim}], got {inputs.shape}")
+        self.eval()
 
-        node_features = self.graph.node_features
-        if inputs.dim() == 1:
-            inputs = inputs.unsqueeze(0)  # Shape [1, D]
+        MAX_TENSOR_BATCH = 16  # Reasonable cap
 
-        B = inputs.size(0)
-        N = self.graph.node_features.size(0)
+        with torch.no_grad():
+            if isinstance(X, Tensor):
+                if X.dim() == 1:
+                    X = X.unsqueeze(0)
+                elif X.dim() != 2:
+                    raise ValueError("Input tensor must be of shape [D] or [B, D]")
 
-        op_repeated = inputs.repeat_interleave(N, dim=0)
-        x_repeated = self.graph.node_features.repeat(B, 1)
-        x_repeated[:, :self.input_dim] = op_repeated
+                B = X.shape[0]
+                if B > MAX_TENSOR_BATCH:
+                    raise ValueError(
+                        f"Tensor input too large (B={B}). Use a Dataset instead."
+                    )
 
-        edge_index = torch.cat([
-            self.graph.edge_index + i * N for i in range(B)
-        ], dim=1)
-        edge_features = self.graph.edge_features.repeat(B, 1)
+                dataset = torch.utils.data.TensorDataset(X)
+                input_dataloader = torch.utils.data.DataLoader(dataset, batch_size=B)
 
-        h = self.activation(self.encoder(x_repeated))
-        for conv in self.conv_layers_list:
-            h = self.groupnorm(self.activation(conv(h, edge_index, edge_features)))
-        y_hat = self.decoder(h)
-        return y_hat.reshape(B, N, -1)
+            elif isinstance(X, torch.utils.data.Dataset):
+                input_dataloader = torch.utils.data.DataLoader(X, batch_size=batch_size)
+
+            else:
+                raise TypeError("Input must be a Tensor or Dataset")
+
+            # Create a full node dataloader (i.e., all nodes at once)
+            node_indices = torch.arange(self.graph.num_nodes)
+            node_dataloader = self._init_dataloader(node_indices, is_node=True)
+
+            return self._run_batch_loop(input_dataloader, node_dataloader, return_loss=False)
 
 
-    def fit(self,
-            train_dataset,
-            eval_dataset=None,
-            **kwargs
-            ) -> Dict:
-        r"""
-        Fit the model to the training data.
+
+    def fit(self, train_dataset, eval_dataset=None, **kwargs) -> Dict:
+        """
+        Train the model using subgraph batching over both the training inputs and the node space.
+
+        Supports evaluation on a separate dataset and configurable training parameters.
+
+        Args:
+            train_dataset: Dataset of input parameters and labels.
+            eval_dataset: Optional dataset for evaluation.
+            **kwargs: Training hyperparameters such as:
+                - epochs (int)
+                - lr (float)
+                - lr_gamma (float)
+                - lr_scheduler_step (int)
+                - loss_fn (callable)
+                - optimizer (class)
+                - scheduler (class)
+                - batch_size (int)
+                - node_batch_size (int)
+
+        Returns:
+            Dict: Dictionary with keys `"train_loss"` and `"test_loss"` listing per-epoch values.
         """
 
         epochs = kwargs.get("epochs", 100)
         lr = kwargs.get("lr", 1e-4)
         lr_gamma = kwargs.get("lr_gamma", 0.1)
         lr_scheduler_step = kwargs.get("lr_scheduler_step", 1)
-        loss_fn = kwargs.get("loss_fn", nn.MSELoss(reduction='mean'))
+        loss_fn = kwargs.get("loss_fn", torch.nn.MSELoss(reduction='mean'))
         optimizer = kwargs.get("optimizer", torch.optim.Adam)
         scheduler = kwargs.get("scheduler", torch.optim.lr_scheduler.StepLR)
         print_rate_epoch = kwargs.get("print_rate_epoch", 1)
 
-        op_dataloader = self._init_dataloader(train_dataset, is_node=False, **kwargs)
+        input_dataloader = self._init_dataloader(train_dataset, is_node=False, **kwargs)
         node_indices = torch.arange(self.graph.num_nodes, dtype=torch.long)
         node_dataloader = self._init_dataloader(node_indices, is_node=True, **kwargs)
         eval_dataloader = self._init_dataloader(eval_dataset, is_node=False, **kwargs) if eval_dataset is not None else None
@@ -410,15 +440,15 @@ class GNS(nn.Module):
         total_epochs = len(epoch_list) + epochs
         for epoch in range(1 + len(epoch_list), 1 + total_epochs):
 
-            train_loss = self._train(op_dataloader, node_dataloader, loss_fn)
+            train_loss = self._run_batch_loop(input_dataloader, node_dataloader, return_loss=True, loss_fn=loss_fn, is_train=True)
             train_loss_list.append(train_loss)
 
             if eval_dataloader is not None:
-                test_loss = self._eval(eval_dataloader, loss_fn)
+                test_loss = self._run_batch_loop(eval_dataloader, node_dataloader, return_loss=True, loss_fn=loss_fn, is_train=False)
                 test_loss_list.append(test_loss)
 
             if print_rate_epoch and epoch % print_rate_epoch == 0:
-                test_log = f" | Test loss:{test_loss:.4e}" if eval_dataloader else ""
+                test_log = f" | Eval loss:{test_loss:.4e}" if eval_dataloader else ""
                 pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss: {train_loss:.4e}{test_log}", flush=True)
                 if self.device.type == "cuda":
                     allocated = torch.cuda.memory_allocated(self.device) / 1024 ** 2
@@ -436,84 +466,104 @@ class GNS(nn.Module):
 
         return {"train_loss": train_loss_list, "test_loss": test_loss_list}
 
-    def predict(self, X, return_targets: bool = False, **kwargs) -> Tuple[np.ndarray, ...]:
-        dataloader = self._init_dataloader(X, is_node=False, **kwargs)
-        num_rows = len(dataloader.dataset)
-        num_columns = self.graph.num_nodes * self.output_dim
-        all_predictions = np.zeros((num_rows, num_columns))
-        all_targets = np.zeros((num_rows, num_columns))
+    def _run_batch_loop(self, input_dataloader, node_dataloader, return_loss: bool = False, loss_fn=None, is_train: bool = False) -> Union[float, Tensor]:
+        """
+        Core routine for both training and inference, handling subgraph batching and device transfer.
 
-        with torch.no_grad():
-            self.eval()
-            i = 0
-            for params_batch, y_batch in dataloader:
-                params_batch, y_batch = self._to_device(params_batch, y_batch)
-                for params, y in zip(params_batch, y_batch):
-                    targets = y.reshape(-1, self.output_dim)
-                    output = self(params)
-                    all_predictions[i] = output.cpu().numpy().reshape(-1)
-                    all_targets[i] = targets.cpu().numpy().reshape(-1)
-                    i += 1
+        Args:
+            input_dataloader: Dataloader yielding input parameter batches.
+            node_dataloader: Dataloader yielding seed node indices for subgraph batching.
+            return_loss (bool): Whether to compute and return loss instead of predictions.
+            loss_fn (callable, optional): Loss function to apply if return_loss is True.
+            is_train (bool): Whether to run in training mode (with gradient updates).
 
-        return (all_predictions, all_targets) if return_targets else all_predictions
+        Returns:
+            float or Tensor:
+                - If return_loss: Average loss over the full dataset.
+                - Else: Concatenated predictions over all batches.
+        """
 
-    def _train(self, op_dataloader, node_dataloader, loss_fn) -> float:
-        if self.seed is not None:
+        if self.seed is not None and is_train:
             set_seed(self.seed)
 
-        self.train()
+        self.train() if is_train else self.eval()
+        outputs = []
         total_loss = 0.0
+        context = torch.enable_grad() if is_train else torch.no_grad()
 
-        for params_batch, y_batch in op_dataloader:
-            params_batch, y_batch = self._to_device(params_batch, y_batch)
+        last_graph = None
+        last_output = None
+        last_targets = None
+        last_loss = None
 
-            for seed_nodes in node_dataloader:
-                seed_nodes, = self._to_device(seed_nodes)
+        with context:
+            num_batches = 0
+            for batch in input_dataloader:
+                if isinstance(batch, (list, tuple)):
+                    inputs_batch = batch[0]
+                    targets_batch = batch[1] if len(batch) > 1 else None
+                inputs_batch = inputs_batch.to(self.device)
 
-                G_batch = self.batcher.create_batch(params_batch, y_batch, seed_nodes)
+                for seed_nodes in node_dataloader:
+                    seed_nodes = seed_nodes.to(self.device)
 
-                self.optimizer.zero_grad()
-                output = self(graph=G_batch)[G_batch.seed_nodes]
-                targets = G_batch.y[G_batch.seed_nodes]
-                loss = loss_fn(output, targets)
-                loss.backward()
-                self.optimizer.step()
+                    G_batch_prepared = self.batcher(inputs_batch, targets_batch, seed_nodes)
 
-                total_loss += loss.item()
-                self._cleanup(G_batch, output, targets, loss)
+                    if is_train:
+                        self.optimizer.zero_grad()
 
-            if self.scheduler is not None:
+                    output = self.forward(G_batch_prepared)[G_batch_prepared.seed_mask]
+
+                    if return_loss:
+                        targets = G_batch_prepared.node_labels[G_batch_prepared.seed_mask]
+                        loss = loss_fn(output, targets)
+                        if is_train:
+                            loss.backward()
+                            self.optimizer.step()
+                        total_loss += loss.item()
+                        num_batches += 1
+                        last_graph = G_batch_prepared
+                        last_output = output
+                        last_targets = targets
+                        last_loss = loss
+                    else:
+                        outputs.append(output)
+
+            if is_train and self.scheduler is not None:
                 self.scheduler.step()
 
-        return total_loss / float(len(op_dataloader) * len(node_dataloader))
+        if return_loss:
+            self._cleanup({
+                "graph": last_graph,
+                "output": last_output,
+                "targets": last_targets,
+                "loss": last_loss,
+            })
+            return total_loss / num_batches
+        else:
+            return torch.cat(outputs, dim=0)
 
-    def _eval(self, eval_dataloader, loss_fn) -> float:
-        self.eval()
-        total_loss = 0.0
-
-        with torch.no_grad():
-            for params_batch, y_batch in eval_dataloader:
-                params_batch, y_batch = self._to_device(params_batch, y_batch)
-                for params, y in zip(params_batch, y_batch):
-                    targets = y.reshape(-1, self.output_dim)
-                    output = self(params)
-                    loss = loss_fn(output, targets)
-                    total_loss += loss.item()
-
-        return total_loss / float(len(eval_dataloader.dataset))
-
-    def _to_device(self, *tensors):
-        return [t.to(self.device) for t in tensors]
 
     def _init_dataloader(self, dataset, is_node=False, **kwargs):
         key_prefix = "node_" if is_node else ""
+        default_pin = self.device.type == "cuda" and torch.cuda.is_available()
         return DataLoader(
             dataset,
             batch_size=kwargs.get(f"{key_prefix}batch_size", 256 if is_node else 15),
             shuffle=kwargs.get("shuffle", True),
             num_workers=kwargs.get("num_workers", 0),
-            pin_memory=kwargs.get("pin_memory", True),
+            pin_memory = kwargs.get("pin_memory", default_pin),
         )
+    
+    @staticmethod
+    def _cleanup(tensors: Union[Tensor, Dict, None, Tuple, List]) -> None:
+        if isinstance(tensors, (tuple, list)):
+            for t in tensors:
+                del t
+        else:
+            del tensors
+        torch.cuda.empty_cache()
+
 
 
     def save(self, path: str) -> None:
@@ -534,7 +584,7 @@ class GNS(nn.Module):
 
         if os.path.isdir(path):
             filename = f"/trained_model_{len(self.state[2]):06d}.pth"
-            path = path + filename
+            path = os.path.join(path, filename)
 
         torch.save(checkpoint, path)
 
@@ -563,6 +613,11 @@ class GNS(nn.Module):
             torch.cuda.set_device(0)
 
         checkpoint = torch.load(path, map_location='cpu')
+
+        required_keys = ["graph", "state_dict"]
+        for key in required_keys:
+            if key not in checkpoint:
+                raise KeyError(f"Missing key '{key}' in checkpoint.")
         
         model = cls(
             graph=checkpoint["graph"],
@@ -587,21 +642,19 @@ class GNS(nn.Module):
 
         return model
 
-    
 
     @classmethod
-    @cr('MLP.create_optimized_model')
     def create_optimized_model(
-        cls,
-        train_dataset, 
-        eval_dataset, 
-        optuna_optimizer: OptunaOptimizer,
-        ) -> Tuple[nn.Module, Dict]:
+    cls,
+    train_dataset: torch.utils.data.Dataset,
+    eval_dataset: torch.utils.data.Dataset,
+    optuna_optimizer: OptunaOptimizer,
+) -> Tuple["GNS", Dict]:
+
         r"""
         Create an optimized model using Optuna. The model is trained on the training dataset and evaluated on the validation dataset.
         
         Args:
-            graph (Graph): The graph object used to train the GNN.
             train_dataset (Dataset): The training dataset.
             eval_dataset (Dataset): The evaluation dataset.
             optuna_optimizer (OptunaOptimizer): The Optuna optimizer object.
@@ -649,22 +702,32 @@ class GNS(nn.Module):
             >>> )
             >>>
             >>> # Create the optimized model
-            >>> model, optimization_params = MLP.create_optimized_model(train_dataset, eval_dataset, optimizer)
+            >>> model, optimization_params = GNS.create_optimized_model(train_dataset, eval_dataset, optimizer)
             >>> 
             >>> # Fit the model
             >>> model.fit(train_dataset, eval_dataset, **optimization_params)
         """
         optimization_params = optuna_optimizer.optimization_params
+        seed_base = optimization_params.get("seed", 42)
+
+        MODEL_KWARGS = {
+            'activation', 'p_dropouts', 'device'
+        }
+        TRAINING_KWARGS = {
+            'batch_size', 'node_batch_size', 'num_workers', 'pin_memory'
+        }
+
         def optimization_function(trial) -> float:
-            hyperparams = {}       
-            for key, params in optimization_params.items():
-                hyperparams[key] = cls._get_optimizing_value(key, params, trial)
+            hyperparams = {
+                key: cls._get_optimizing_value(key, val, trial)
+                for key, val in optimization_params.items()
+            }
 
-            model_kwargs = {key: value for (key, value) in hyperparams.items() if key in ['graph', 'activation', 'p_dropouts', 'device', 'seed']}
-            training_kwargs = {key: value for (key, value) in hyperparams.items() if key in ['batch_size', 'node_batch_size', 'num_workers', 'pin_memory']}
+            model_kwargs = {k: v for k, v in hyperparams.items() if k in MODEL_KWARGS}
+            training_kwargs = {k: v for k, v in hyperparams.items() if k in TRAINING_KWARGS}
 
-            
             model = cls(
+                graph=hyperparams["graph"],
                 input_dim=hyperparams["input_dim"],
                 latent_dim=hyperparams["latent_dim"],
                 output_dim=hyperparams["output_dim"],
@@ -674,92 +737,101 @@ class GNS(nn.Module):
                 decoder_hidden_layers=hyperparams["decoder_hidden_layers"],
                 message_hidden_layers=hyperparams["message_hidden_layers"],
                 update_hidden_layers=hyperparams["update_hidden_layers"],
+                seed=seed_base + trial.number,
                 **model_kwargs
             )
 
-            print(f"\n\n\nTrial {trial._trial_id +1}/{optuna_optimizer.num_trials}. Training with hyperparams:\n",
-                  json.dumps(hyperparams, indent=4, default = cls._hyperparams_serializer), flush=True)
-            if optuna_optimizer.pruner is not None:
-                # prune epoch-wise
-                epochs = hyperparams["epochs"]
-                hyperparams["epochs"] = 1
-                for epoch in range(epochs):
-                    losses = model.fit(train_dataset, eval_dataset, **hyperparams)
-                    loss_val = losses["test_loss"][-1]
-                    # Report the loss to Optuna
-                    trial.report(loss_val, epoch)
-                    print("Epoch {}/{}".format(epoch+1, epochs), flush=True)
-                    if trial.should_prune():
-                        print("\nTrial pruned at epoch {}".format(epoch+1), flush=True)
-                        raise TrialPruned()
-            else:
-                losses = model.fit(
-                    train_dataset,
-                    epochs = hyperparams.get("epochs"),
-                    lr = hyperparams.get("lr"),
-                    lr_gamma = hyperparams.get("lr_gamma"),
-                    lr_scheduler_step = hyperparams.get("lr_scheduler_step"),
-                    loss_fn = hyperparams.get("loss_fn"),
-                    optimizer = hyperparams.get("optimizer"),
-                    scheduler = hyperparams.get("scheduler"),
-                    print_rate_batch = hyperparams.get("print_rate_batch"),
-                    print_rate_epoch = hyperparams.get("print_rate_epoch"),
-                    **training_kwargs
+            pprint(0, f"\nTrial {trial.number + 1}/{optuna_optimizer.num_trials}. Training with hyperparams:\n",
+                json.dumps(hyperparams, indent=4, default=cls._hyperparams_serializer), flush=True)
+
+            try:
+                if optuna_optimizer.pruner is not None:
+                    original_epochs = hyperparams["epochs"]
+                    for epoch in range(original_epochs):
+                        losses = model.fit(train_dataset, eval_dataset, epochs=1, **training_kwargs, **hyperparams)
+                        loss_val = losses["test_loss"][-1]
+                        trial.report(loss_val, epoch)
+                        pprint(0, f"Epoch {epoch + 1}/{original_epochs}", flush=True)
+                        if trial.should_prune():
+                            model._cleanup()
+                            del model
+                            pprint(0, f"\nTrial pruned at epoch {epoch + 1}", flush=True)
+                            raise TrialPruned()
+                else:
+                    losses = model.fit(
+                        train_dataset,
+                        eval_dataset,
+                        epochs=hyperparams.get("epochs"),
+                        lr=hyperparams.get("lr"),
+                        lr_gamma=hyperparams.get("lr_gamma"),
+                        lr_scheduler_step=hyperparams.get("lr_scheduler_step"),
+                        loss_fn=hyperparams.get("loss_fn"),
+                        optimizer=hyperparams.get("optimizer"),
+                        scheduler=hyperparams.get("scheduler"),
+                        print_rate_batch=hyperparams.get("print_rate_batch"),
+                        print_rate_epoch=hyperparams.get("print_rate_epoch"),
+                        **training_kwargs
                     )
-                loss_val = losses["test_loss"][-1]
-                # Report the loss to Optuna
-                trial.report(loss_val, 0)
-            
+                    loss_val = losses["test_loss"][-1]
+                    trial.report(loss_val, 0)
+
+            except RuntimeError as e:
+                model._cleanup()
+                del model
+                raise e
+
+            model._cleanup()
+            del model
             return loss_val
-        
+
         best_params = optuna_optimizer.optimize(objective_function=optimization_function)
+        optimization_params.update(best_params)
 
-        best_model_kwargs = {key: value for key, value in optimization_params.items() if key in ['graph', 'activation', 'p_dropouts', 'device', 'seed']}
+        final_model = cls(
+            input_dim=best_params["input_dim"],
+            latent_dim=best_params["latent_dim"],
+            output_dim=best_params["output_dim"],
+            hidden_size=best_params["hidden_size"],
+            num_msg_passing_layers=best_params["num_msg_passing_layers"],
+            encoder_hidden_layers=best_params["encoder_hidden_layers"],
+            decoder_hidden_layers=best_params["decoder_hidden_layers"],
+            message_hidden_layers=best_params["message_hidden_layers"],
+            update_hidden_layers=best_params["update_hidden_layers"],
+            **{k: best_params[k] for k in MODEL_KWARGS if k in best_params}
+        )
 
-        # Update params with best ones
-        for param in best_params.keys():
-            if param in optimization_params:
-                optimization_params[param] = best_params[param]
-            if param in best_model_kwargs:
-                best_model_kwargs[param] = best_params[param]
+        return final_model, optimization_params
 
-        
-        return cls(
-            input_dim=optimization_params["input_dim"],
-            latent_dim=optimization_params["latent_dim"],
-            output_dim=optimization_params["output_dim"],
-            hidden_size=optimization_params["hidden_size"],
-            num_msg_passing_layers=optimization_params["num_msg_passing_layers"],
-            encoder_hidden_layers=optimization_params["encoder_hidden_layers"],
-            decoder_hidden_layers=optimization_params["decoder_hidden_layers"],
-            message_hidden_layers=optimization_params["message_hidden_layers"],
-            update_hidden_layers=optimization_params["update_hidden_layers"],
-            **best_model_kwargs
-        ), optimization_params
 
     @staticmethod
     def _get_optimizing_value(name, value, trial) -> Union[int, float, str]:
-        r"""
-        Function used to get the optimizing value for a given hyperparameter.
-        Args:
-            name (str): The name of the hyperparameter.
-            value (Any): The value of the hyperparameter.
-            trial (optuna.Trial): The Optuna trial object.
-        Returns:
-            Any: The optimizing value for the hyperparameter.
         """
+        Suggest a value for a given hyperparameter depending on its type and content.
 
-        if isinstance(value, tuple) or isinstance(value, list):
-            use_log = value[1] / (value[0] + 0.1) >= 1000
-            if isinstance(value[0], int):
-                if name == 'latent_dim':
-                    return trial.suggest_int(name, value[0]+value[0]%2, value[1]+value[1]%2, step=2)
-                else:
+        Args:
+            name (str): Hyperparameter name.
+            value (Any): Either a fixed value, a range, or a list of options.
+            trial (optuna.Trial): Optuna trial object.
+
+        Returns:
+            Union[int, float, str]: Suggested value.
+        """
+        if isinstance(value, (tuple, list)):
+            if all(isinstance(v, (int, float)) for v in value):
+                use_log = np.abs(value[1]) / (np.abs(value[0]) + 1e-8) >= 1000
+                if isinstance(value[0], int):
+                    if name == "latent_dim":
+                        return trial.suggest_int(name, value[0] + value[0] % 2, value[1] + value[1] % 2, step=2)
                     return trial.suggest_int(name, value[0], value[1], log=use_log)
-            elif isinstance(value[0], float):
-                return trial.suggest_float(name, value[0], value[1], log=use_log)
+                elif isinstance(value[0], float):
+                    return trial.suggest_float(name, value[0], value[1], log=use_log)
+            elif all(isinstance(v, str) for v in value):
+                return trial.suggest_categorical(name, value)
+            else:
+                raise ValueError(f"Unsupported value list for {name}: {value}")
         else:
             return value
+
 
     @staticmethod
     def _hyperparams_serializer(obj) -> str:
@@ -775,14 +847,13 @@ class GNS(nn.Module):
             return obj.__class__.__name__  # Return the class name
         raise TypeError(f"Type {type(obj)} not serializable")  # Raise an error if the object is not serializable
 
-    @staticmethod
-    def _cleanup(*tensors) -> None:
-        r"""
-        Cleanup the GPU memory by deleting the tensors and emptying the cache.
-        Args:
-            tensors (tuple): The tensors to delete.
-        """
 
-        for t in tensors:
-            del t
-        torch.cuda.empty_cache()
+    def __repr__(self):
+        return (
+            f"<GNSModel: {self.input_dim} → {self.latent_dim} → {self.output_dim}>\n"
+            f" Layers: encoder({self.encoder_hidden_layers}), message({self.num_msg_passing_layers}), decoder({self.decoder_hidden_layers})\n"
+            f" MLPs: message({self.message_hidden_layers}), update({self.update_hidden_layers})\n"
+            f" Activation: {self.activation.__class__.__name__}, Dropout: {self.p_dropouts}, Device: {self.device}\n"
+            f" Graph: {repr(self.graph)}\n"
+            f" Params: {self.trainable_params:,} trainable\n>"
+        )
