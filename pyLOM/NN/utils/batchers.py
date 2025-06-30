@@ -103,8 +103,10 @@ class VectorizedBatcher:
         B = inputs.size(0)
         N_subg = nf_subg.size(0)
         seed_mask = torch.zeros(B * N_subg, dtype=torch.bool, device=self.device)
-        for i in range(B):
-            seed_mask[i * N_subg + mapping] = True
+        offsets = torch.arange(B, device=self.device).unsqueeze(1) * N_subg
+        indices = offsets + mapping.unsqueeze(0)  # [B, num_seed_nodes]
+        seed_mask[indices.view(-1)] = True
+
 
         y_flat = y_subg.reshape(-1, y_subg.shape[-1])            # [B*N_subg, output_dim]
 
