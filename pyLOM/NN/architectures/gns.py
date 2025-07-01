@@ -14,12 +14,14 @@ import warnings
 import torch
 from torch import Tensor
 import torch.nn as nn
+from torch.utils.data import TensorDataset as TorchDataset
 from torch.utils.data import DataLoader
 from torch.nn import ELU
 from torch_geometric.nn import MessagePassing
 from torch_geometric.data import Data
 
-from ..utils import Graph, GraphPreparer, ListBasedSubgraphBatcher, SubgraphBatcher
+from ..utils import Dataset as NNDataset
+from ..utils import TargetShapeWrapper, Graph, GraphPreparer, ListBasedSubgraphBatcher, SubgraphBatcher
 from .. import DEVICE, set_seed
 from ... import pprint, cr
 from ..optimizer import OptunaOptimizer, TrialPruned
@@ -329,7 +331,7 @@ class GNS(nn.Module):
     @cr('GNS.predict')
     def predict(
         self,
-        X: Union[Tensor, torch.utils.data.Dataset],
+        X: Union[Tensor, TorchDataset],
         batch_size: int = 1,
         **kwargs
     ) -> torch.Tensor:
@@ -362,24 +364,25 @@ class GNS(nn.Module):
                         f"Tensor input too large (B={B}). Use a Dataset instead."
                     )
 
-                dataset = torch.utils.data.TensorDataset(X)
-                input_dataloader = torch.utils.data.DataLoader(dataset, batch_size=B)
+                dataset = TorchDataset(X)
+                input_dataloader = self._init_dataloader(dataset, is_node=False, batch_size=B)
 
-            elif isinstance(X, torch.utils.data.Dataset):
-                input_dataloader = torch.utils.data.DataLoader(X, batch_size=batch_size)
+            elif isinstance(X, TorchDataset):
+                input_dataloader = self._init_dataloader(X, is_node=False, batch_size=batch_size)
 
             else:
                 raise TypeError("Input must be a Tensor or Dataset")
 
             # Create a full node dataloader (i.e., all nodes at once)
             node_indices = torch.arange(self.graph.num_nodes)
+            node_indices = TorchDataset(node_indices)
             node_dataloader = self._init_dataloader(node_indices, is_node=True)
 
             return self._run_batch_loop(input_dataloader, node_dataloader, return_loss=False)
 
 
     @cr('GNS.fit')
-    def fit(self, train_dataset, eval_dataset=None, **kwargs) -> Dict:
+    def fit(self, train_dataset:Union[TorchDataset, NNDataset], eval_dataset: Union[TorchDataset, NNDataset]=None, **kwargs) -> Dict:
         """
         Train the model using subgraph batching over both the training inputs and the node space.
 
@@ -414,6 +417,7 @@ class GNS(nn.Module):
 
         input_dataloader = self._init_dataloader(train_dataset, is_node=False, **kwargs)
         node_indices = torch.arange(self.graph.num_nodes, dtype=torch.long)
+        node_indices = TorchDataset(node_indices)
         node_dataloader = self._init_dataloader(node_indices, is_node=True, **kwargs)
         eval_dataloader = self._init_dataloader(eval_dataset, is_node=False, **kwargs) if eval_dataset is not None else None
 
@@ -544,7 +548,19 @@ class GNS(nn.Module):
             return torch.cat(outputs, dim=0)
 
     @cr('GNS._init_dataloader')
-    def _init_dataloader(self, dataset, is_node=False, **kwargs):
+    def _init_dataloader(self, dataset:Union[TorchDataset, NNDataset], is_node=False, **kwargs):
+        """ Initialize a DataLoader for the given dataset.
+        Args:
+            dataset (Dataset): The dataset to load.
+            is_node (bool): Whether the dataset contains node indices (default: False).
+            **kwargs: Additional arguments for DataLoader.
+        Returns:
+            DataLoader: Configured DataLoader instance.
+        """
+        # Wrap dataset to ensure correct dimensions
+        if not is_node:
+            dataset = TargetShapeWrapper(dataset, num_nodes=self.graph.num_nodes)
+
         key_prefix = "node_" if is_node else ""
         default_pin = self.device.type == "cuda" and torch.cuda.is_available()
         return DataLoader(
@@ -643,7 +659,6 @@ class GNS(nn.Module):
 
         return model
 
-    @cr('GNS.create_optimized_model')
     @classmethod
     def create_optimized_model(
     cls,
@@ -715,7 +730,10 @@ class GNS(nn.Module):
             'activation', 'p_dropouts', 'device'
         }
         TRAINING_KWARGS = {
-            'batch_size', 'node_batch_size', 'num_workers', 'pin_memory'
+            'batch_size', 'node_batch_size', 'num_workers', 'pin_memory',
+            'epochs', 'lr', 'lr_gamma', 'lr_scheduler_step',
+            'loss_fn', 'optimizer', 'scheduler',
+            'print_rate_epoch', 'print_rate_batch'
         }
         
         @cr('GNS.optimization_function')
@@ -726,7 +744,7 @@ class GNS(nn.Module):
             }
 
             model_kwargs = {k: v for k, v in hyperparams.items() if k in MODEL_KWARGS}
-            training_kwargs = {k: v for k, v in hyperparams.items() if k in TRAINING_KWARGS}
+            fit_kwargs = {k: v for k, v in hyperparams.items() if k in TRAINING_KWARGS}
 
             model = cls(
                 graph=hyperparams["graph"],
@@ -748,9 +766,12 @@ class GNS(nn.Module):
 
             try:
                 if optuna_optimizer.pruner is not None:
-                    original_epochs = hyperparams["epochs"]
+                    original_epochs = fit_kwargs.get("epochs", 100)
+                    fit_kwargs_loop = dict(fit_kwargs)
+                    fit_kwargs_loop.pop("epochs", None)
+
                     for epoch in range(original_epochs):
-                        losses = model.fit(train_dataset, eval_dataset, epochs=1, **training_kwargs, **hyperparams)
+                        losses = model.fit(train_dataset, eval_dataset, epochs=1, **fit_kwargs_loop)
                         loss_val = losses["test_loss"][-1]
                         trial.report(loss_val, epoch)
                         pprint(0, f"Epoch {epoch + 1}/{original_epochs}", flush=True)
@@ -760,22 +781,10 @@ class GNS(nn.Module):
                             pprint(0, f"\nTrial pruned at epoch {epoch + 1}", flush=True)
                             raise TrialPruned()
                 else:
-                    losses = model.fit(
-                        train_dataset,
-                        eval_dataset,
-                        epochs=hyperparams.get("epochs"),
-                        lr=hyperparams.get("lr"),
-                        lr_gamma=hyperparams.get("lr_gamma"),
-                        lr_scheduler_step=hyperparams.get("lr_scheduler_step"),
-                        loss_fn=hyperparams.get("loss_fn"),
-                        optimizer=hyperparams.get("optimizer"),
-                        scheduler=hyperparams.get("scheduler"),
-                        print_rate_batch=hyperparams.get("print_rate_batch"),
-                        print_rate_epoch=hyperparams.get("print_rate_epoch"),
-                        **training_kwargs
-                    )
+                    losses = model.fit(train_dataset, eval_dataset, **fit_kwargs)
                     loss_val = losses["test_loss"][-1]
                     trial.report(loss_val, 0)
+
 
             except RuntimeError as e:
                 model._cleanup()
@@ -821,18 +830,24 @@ class GNS(nn.Module):
         if isinstance(value, (tuple, list)):
             if all(isinstance(v, (int, float)) for v in value):
                 use_log = np.abs(value[1]) / (np.abs(value[0]) + 1e-8) >= 1000
-                if isinstance(value[0], int):
+                low, high = value
+
+                if isinstance(low, int):
                     if name == "latent_dim":
-                        return trial.suggest_int(name, value[0] + value[0] % 2, value[1] + value[1] % 2, step=2)
-                    return trial.suggest_int(name, value[0], value[1], log=use_log)
-                elif isinstance(value[0], float):
-                    return trial.suggest_float(name, value[0], value[1], log=use_log)
+                        return trial.suggest_int(name, low + low % 2, high + high % 2, step=2)
+                    return trial.suggest_int(name, low, high, log=use_log)
+
+                elif isinstance(low, float):
+                    if use_log and low <= 0:
+                        use_log = False  # fallback to linear scale
+                    return trial.suggest_float(name, low, high, log=use_log)
             elif all(isinstance(v, str) for v in value):
                 return trial.suggest_categorical(name, value)
             else:
                 raise ValueError(f"Unsupported value list for {name}: {value}")
         else:
             return value
+
 
 
     @staticmethod

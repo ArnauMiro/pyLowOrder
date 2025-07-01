@@ -52,6 +52,7 @@ class Graph(Data):
         if device.type == 'cuda' and not torch.cuda.is_available():
             warnings.warn("CUDA not available. Falling back to CPU.")
             device = torch.device('cpu')
+            
 
         # Ensure everything is on the correct device
         edge_index = edge_index.to(device)
@@ -74,7 +75,9 @@ class Graph(Data):
 
         super().__init__(**data_kwargs)
 
-
+        # Set device
+        self.device = device
+        
         # Register individual attributes for user-friendly access
         for k, v in node_features_dict.items():
             setattr(self, k, v)

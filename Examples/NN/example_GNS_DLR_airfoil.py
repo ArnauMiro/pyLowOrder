@@ -4,6 +4,7 @@
 #
 # Last revision: 6/04/2025
 
+#%%
 import numpy as np
 import os
 import matplotlib.pyplot as plt
@@ -14,6 +15,7 @@ import optuna
 import pyLOM
 from pyLOM.NN import GNS, Graph, MinMaxScaler, OptunaOptimizer, Pipeline
 
+#%%
 def load_dataset(fname,inputs_scaler,outputs_scaler):
     '''
     Auxiliary function to load a dataset into a pyLOM
@@ -78,7 +80,7 @@ def plot_train_test_loss(train_loss, test_loss, path):
     plt.savefig(path, dpi=300)
 
 
-
+#%%
 def main():
     ## Set device
     device_name = "cuda" if torch.cuda.is_available() else "cpu"
@@ -96,15 +98,19 @@ def main():
     td_test  = load_dataset(os.path.join(BASEDIR,'TEST_converter.h5'),input_scaler,output_scaler)
     td_val   = load_dataset(os.path.join(BASEDIR,'VAL_converter.h5'),input_scaler,output_scaler)
 
-    print_dset_stats("Train", td_train)
-    print_dset_stats("Test", td_test)
-    print_dset_stats("Val", td_val)
+    # print(td_train)
+    # print(td_train[0])
+    # print(td_train[1])
+
+    # print_dset_stats("Train", td_train)
+    # print_dset_stats("Test", td_test)
+    # print_dset_stats("Val", td_val)
 
     ## Create the graph
     g = Graph.load(os.path.join(BASEDIR, "TRAIN_converter.h5"), device=device)
     print(g)
 
-    
+#%%  
     ## Create and run a pipeline for optimizing a GNS model
     optimization_params = {
         # Model parameters
@@ -265,5 +271,14 @@ def main():
     pyLOM.cr_info()
     plt.show()
 
+#%%
 if __name__ == "__main__":
     main()
+
+# %%
+
+t = torch.tensor([[0,1],[2,3]])
+ds = pyLOM.NN.Dataset(variables_in=t)
+
+print(ds)
+# %%

@@ -26,6 +26,9 @@ cell_conec = m.cell_connectivity
 edge_dict = pyLOM.vmmath.edge_to_cells(cell_conec)
 surf_norms = pyLOM.vmmath.fix_normals_coherence(surf_norms, edge_dict, cell_conec, m.ncells)
 
+# Create a dummy variable to test saving
+dummy_var = np.zeros((2*m.ncells,3),np.double)
+
 pyLOM.pprint(0,"surf_norms: ", surf_norms.shape)
 pyLOM.pprint(0,"edge_norms: ", edge_norms.shape)
 pyLOM.pprint(0,"cell_connectivity: ", cell_conec.shape)
@@ -43,8 +46,14 @@ d = pyLOM.Dataset(xyz=xyz_center, ptable=m.partition_table, order=m.cellOrder, p
 	EDGE_NORM_3 = {'ndim': 3,'value':edge_norms[:,6:9].flatten()},
 	EDGE_NORM_4 = {'ndim': 3,'value':edge_norms[:,9:12].flatten()},
 	CELL_CONEC = {'ndim':cell_conec.shape[1],'value':cell_conec.flatten()},
+	# Add the dummy variable
+	# DUMMYVAR = {'ndim':dummy_var.shape[1],'value':dummy_var.flatten()},
 )
+d.save()
 pyLOM.io.pv_writer(m,d,'mesh',basedir='./',instants=[0],times=[0.],vars=['SURF_NORMS','EDGE_NORM_1', 'EDGE_NORM_2', 'EDGE_NORM_3', 'EDGE_NORM_4','CELL_CONEC'],fmt='vtkh5')
+
+d_load = pyLOM.Dataset.load('./mesh-00000000-vtk.hdf')
+print(d_load)
 
 
 pyLOM.cr_info()
