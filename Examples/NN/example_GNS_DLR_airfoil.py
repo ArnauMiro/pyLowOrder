@@ -166,6 +166,7 @@ def main():
     # check saving and loading the model
     pipeline.model.save(os.path.join(RESUDIR,"NLR7301_optuna_test.pth"))
     model = GNS.load(RESUDIR + "NLR7301_optuna_test.pth")
+    print(model)
 
     # check saving and loading the scalers
     if input_scaler is not None:
@@ -232,6 +233,7 @@ def main():
 
     # Instantiate a model with the DLR parameters
     dlr_model = GNS(**dlr_params)
+    print(dlr_model)
 
     # Create a new pipeline for training with DLR parameters (no optimization)
     pipeline = Pipeline(
