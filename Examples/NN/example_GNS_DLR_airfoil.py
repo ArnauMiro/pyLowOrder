@@ -4,9 +4,7 @@
 #
 # Last revision: 6/04/2025
 
-#%%
 import numpy as np
-import h5py
 import os
 import matplotlib.pyplot as plt
 
@@ -14,89 +12,33 @@ import torch
 import optuna
 
 import pyLOM
-from pyLOM.NN import GNS, Dataset, Graph, MinMaxScaler, OptunaOptimizer, Pipeline
+from pyLOM.NN import GNS, Graph, MinMaxScaler, OptunaOptimizer, Pipeline
 
-#%%
-def load_graph_data(file_list):
-    """
-    Load the graph data from the specified files.
+def load_dataset(fname,inputs_scaler,outputs_scaler):
+    '''
+    Auxiliary function to load a dataset into a pyLOM
+    NN dataset
+    '''
+    return pyLOM.NN.Dataset.load(
+        fname,
+        field_names=["CP"],
+        add_variables=True,
+        add_mesh_coordinates=False,
+        variables_names=["AoA", "Mach"],
+        inputs_scaler=inputs_scaler,
+        outputs_scaler=outputs_scaler,
+    )
 
-    Parameters
-    ----------
-    file_list : list
-        List of files to load data from.
-    Returns
-    -------
-    -------
-    op : dict
-        Dictionary containing operational parameters (features).
-    y : dict
-        Dictionary containing target values (Cp).
-    mesh_data : dict
-        Dictionary containing mesh data (edgesCOO, xyz, normals, facenormals).
-    -------
-    ------- 
-    """
-
-    op = {} # Operational parameters (features)
-    y = {} # Target values (Cp)
-    for file in file_list:
-        op[file] = None
-        y[file] = None
-        with h5py.File(BASEDIR + file + '.h5', 'r') as f:
-            for feature in f['features']:
-                if feature != 'cp': # Only parse the operational parameters
-                    if op[file] is None:
-                        op[file] = np.array(f['features'][feature])
-                    else:
-                        op[file] = np.concatenate((op[file], f['features'][feature]), axis=1)
-                else:
-                    # Save the rows of the Cp values
-                    y[file] = np.array(f['features'][feature]).T
-    else:
-        with h5py.File(BASEDIR + file + '.h5', 'r') as f:
-            mesh_data = {}
-            for data in f['mesh']:
-                if data == 'edgesCOO':
-                    mesh_data[data] = torch.tensor(f['mesh'][data], dtype=torch.long).transpose(0, 1)
-                else:
-                    mesh_data[data] = np.array(f['mesh'][data])
-
-    return op, y, mesh_data
-
-
-def process_edge_attr(edge_index, xyz, facenormals):
-    """
-    Process the edge attributes based on the edge index and mesh data.
-    Parameters
-    ----------
-    edge_index : torch.Tensor
-        Edge index tensor.
-    xyz : np.ndarray
-        Node coordinates.
-    facenormals : np.ndarray
-        Face normals.
-    -------
-    -------
-    edge_attr : np.ndarray
-        Edge attributes.
-    -------
-    -------
-    """
-    edge_attr = np.zeros((edge_index.shape[1], 4))
-    for p, edge in enumerate(edge_index.T):
-        c_i = xyz[edge[0]]
-        c_j = xyz[edge[1]]
-        d_ij = c_j - c_i
-        f_ij = facenormals[p]
-
-        # Transform to polar coordinates
-        d_ij = np.array([np.linalg.norm(d_ij), np.arctan2(d_ij[1], d_ij[0])])
-        f_ij = np.array([np.linalg.norm(f_ij), np.arctan2(f_ij[1], f_ij[0])])
-        
-        edge_attr[p,:] = np.concatenate((d_ij, f_ij))
-
-    return edge_attr
+def print_dset_stats(name, td):
+    '''
+    Auxiliary function to print the statistics of a NN dataset
+    '''
+    x, y = next(iter(torch.utils.data.DataLoader(td, batch_size=len(td))))
+    x_min, x_max = x.min(dim=0)[0], x.max(dim=0)[0]
+    y_min, y_max = y.min(dim=0)[0], y.max(dim=0)[0]
+    pyLOM.pprint(0, f"{name} ({len(td)} samples):")
+    pyLOM.pprint(0, f"  x: {x.shape}, range = [{x_min.tolist()}, {x_max.tolist()}]")
+    pyLOM.pprint(0, f"  y: {y.shape}, range = [{y_min.tolist()}, {y_max.tolist()}]")
 
 
 def true_vs_pred_plot(y_true, y_pred, path):
@@ -108,6 +50,7 @@ def true_vs_pred_plot(y_true, y_pred, path):
     for j in range(num_plots):
         plt.subplot(num_plots, 1, j + 1)
         plt.scatter(y_true[:, j], y_pred[:, j], s=1, c="b", alpha=0.5)
+        plt.plot([y_true[:, j].min(), y_true[:, j].max()], [y_true[:, j].min(), y_true[:, j].max()], 'r--')
         plt.xlabel("True values")
         plt.ylabel("Predicted values")
         plt.title(f"Scatterplot for Component {j+1}")
@@ -134,119 +77,37 @@ def plot_train_test_loss(train_loss, test_loss, path):
     plt.grid()
     plt.savefig(path, dpi=300)
 
-def plot_cp_snapshots(params, predictions, targets, inputs_scaler, x_vector):
-    """
-    Plot Cp snapshots for different parameter values.
-    """
-
-    print("params shape", params.shape)
-    print("predictions shape", predictions.shape)
-    print("targets shape", targets.shape)
-
-    indexes = [5, 14, 31, 36]
-    fig, ax = plt.subplots(2, 2, figsize=(10, 10))
-
-    index = 0
-    subfig = 0
-    for (params, predictions, targets) in zip(params, predictions, targets):
-        if index in indexes:
-
-            params = params.cpu().numpy()
-            # targets = targets.cpu().numpy()
-
-            print("params:", params.shape)
-            print("predictions:", predictions.shape)
-            print("targets:", targets.shape)
-            print("x_vector:", x_vector.shape)
-
-            # params_snap = params[index]
-            # predictions_snap = predictions[index]
-            # targets_snap = targets[index]
-
-            # Undo params scaling
-            params = inputs_scaler.inverse_transform(params.reshape(1, -1)).squeeze()   
-
-            ax[subfig // 2, subfig % 2].plot(x_vector, predictions, label='Predicted')
-            ax[subfig // 2, subfig % 2].plot(x_vector, targets, label='True')
-            ax[subfig // 2, subfig % 2].set_xlabel('x/c')
-            ax[subfig // 2, subfig % 2].set_ylabel('Cp')
-            ax[subfig // 2, subfig % 2].set_title(f'Alfa = {params[0]:1.3f}\nMach = {params[1]:.4f}')
-            ax[subfig // 2, subfig % 2].legend()
-            subfig+=1
-        index += 1
-
-    plt.tight_layout()
-    plt.show()
 
 
-#%%
-if __name__ == "__main__":
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+def main():
+    ## Set device
+    device_name = "cuda" if torch.cuda.is_available() else "cpu"
+    device = pyLOM.NN.select_device(device_name)
 
+    ## Load datasets and set up the results output
     BASEDIR = '/home/p.yeste/CETACEO_DATA/nlr7301/'
     RESUDIR = '/home/p.yeste/CETACEO_RESULTS/nlr7301/'
+    pyLOM.NN.create_results_folder(RESUDIR)
 
-    # Build the graph object
+    input_scaler  = pyLOM.NN.MinMaxScaler()
+    # output_scaler = pyLOM.NN.MinMaxScaler()
+    output_scaler = None # No output scaling in this example
+    td_train = load_dataset(os.path.join(BASEDIR,'TRAIN_converter.h5'),input_scaler,output_scaler)
+    td_test  = load_dataset(os.path.join(BASEDIR,'TEST_converter.h5'),input_scaler,output_scaler)
+    td_val   = load_dataset(os.path.join(BASEDIR,'VAL_converter.h5'),input_scaler,output_scaler)
 
-    # Load the necessary data
-    files = ['train', 'val', 'test']
+    print_dset_stats("Train", td_train)
+    print_dset_stats("Test", td_test)
+    print_dset_stats("Val", td_val)
+
+    ## Create the graph
+    g = Graph.load(os.path.join(BASEDIR, "TRAIN_converter.h5"), device=device)
+    print(g)
+
     
-    op_params, y, mesh_data = load_graph_data(files)
-    
-    # Delete y coordinate as it is not used
-    mesh_data['facenormals'] = mesh_data['facenormals'][:, [0, 2]]
-    mesh_data['normals'] = mesh_data['normals'][:, [0, 2]]
-    mesh_data['xyz'] = mesh_data['xyz'][:, [0, 2]]
-    
-
-    # Create the graph object
-    edge_attr = process_edge_attr(mesh_data['edgesCOO'], mesh_data['xyz'], mesh_data['facenormals'])
-
-    scaler = MinMaxScaler()
-    scaler.fit(np.concatenate((op_params['train'], op_params['val'], op_params['test']), axis=0))
-    edge_attr = scaler.fit_transform(edge_attr)
-    xyz = scaler.fit_transform(mesh_data['xyz'])
-    unit_norms = mesh_data['normals'] / np.linalg.norm(mesh_data['normals'], axis=1).reshape(-1,1)
-
-    xyz = torch.tensor(xyz, dtype=torch.float32)
-    unit_norms = torch.tensor(unit_norms, dtype=torch.float32)
-    edge_attr = torch.tensor(edge_attr, dtype=torch.float32)
-
-    # Create the graph object
-    g = Graph(
-        pos = xyz,
-        surf_norms = unit_norms,
-        edge_attr = edge_attr,
-        edge_index = mesh_data['edgesCOO']
-    )
-
-    scaler.fit(np.concatenate((op_params['train'], op_params['val'], op_params['test']), axis=0))
-
-    # Create the datasets
-    train_dataset = Dataset(
-        variables_in = op_params['train'],
-        variables_out = y['train'],
-        inputs_scaler = scaler,
-        outputs_scaler = None
-    )
-
-    test_dataset = Dataset(
-        variables_in = op_params['test'],
-        variables_out = y['test'],
-        inputs_scaler = scaler,
-        outputs_scaler = None
-    )
-
-    eval_dataset = Dataset(
-        variables_in = op_params['val'],
-        variables_out = y['val'],
-        inputs_scaler = scaler,
-        outputs_scaler = None
-    )
-
-#%%
-    # Create a dict with training parameters to be optimized
+    ## Create and run a pipeline for optimizing a GNS model
     optimization_params = {
+        # Model parameters
         'graph': g,
         'input_dim': 2,
         'output_dim': 1,
@@ -261,7 +122,8 @@ if __name__ == "__main__":
         'p_dropouts': (0.0, 0.5),
         'device': device,
 
-        'epochs': 300,
+        # Training parameters
+        'epochs': 3,
         'lr': (1e-5, 1e-2),
         'lr_gamma': (0.99, 0.999),
         'lr_scheduler_step': 1,
@@ -279,61 +141,66 @@ if __name__ == "__main__":
     # Define the optimizer
     optimizer = OptunaOptimizer(
         optimization_params = optimization_params,
-        n_trials = 100,
+        n_trials = 2,
         direction = 'minimize',
         pruner = optuna.pruners.MedianPruner(
-            n_startup_trials = 10,
-            n_warmup_steps = 10,
+            n_startup_trials = 1,
+            n_warmup_steps = 1,
             interval_steps = 1
         ),
         save_dir = RESUDIR
     )
 
+    # Create the pipeline
     pipeline = Pipeline(
-    train_dataset=train_dataset,
-    test_dataset=test_dataset,
-    valid_dataset=eval_dataset,
-    optimizer=optimizer,
-    model_class=GNS
+        train_dataset=td_train,
+        test_dataset=td_test,
+        valid_dataset=td_val,
+        optimizer=optimizer,
+        model_class=GNS
     )
 
-    print("Starting optimization...")
     # Run the optimization
     training_logs = pipeline.run()
 
     # check saving and loading the model
-    pipeline.model.save(os.path.join(RESUDIR,"NLR7301_optuna.pth"))
-    model = GNS.load(RESUDIR + "NLR7301_optuna.pth")
+    pipeline.model.save(os.path.join(RESUDIR,"NLR7301_optuna_test.pth"))
+    model = GNS.load(RESUDIR + "NLR7301_optuna_test.pth")
 
     # check saving and loading the scalers
-    scaler.save(os.path.join(RESUDIR,"input_scaler.json"))
-    input_scaler = MinMaxScaler.load(os.path.join(RESUDIR,"input_scaler.json"))
+    if input_scaler is not None:
+        input_scaler.save(os.path.join(RESUDIR,"input_scaler_test.json"))
+        input_scaler = MinMaxScaler.load(os.path.join(RESUDIR,"input_scaler_test.json"))
+    if output_scaler is not None:
+        output_scaler.save(os.path.join(RESUDIR,"output_scaler_test.json"))
+        output_scaler = MinMaxScaler.load(os.path.join(RESUDIR,"output_scaler_test.json"))
 
     # to predict from a dataset
-    preds = model.predict(test_dataset)
-    y = test_dataset[:][1]
+    preds_train = model.predict(td_test)
+    labels_train = td_test[:][1]
 
     # to predict from a tensor
-    # preds = model(torch.tensor(dataset_test[:][0], device=model.device)).cpu().detach().numpy()
+    inputs_tensor, labels_tensor = next(iter(td_test))
+    preds_tensor = model.predict(inputs_tensor)
 
     # check that the scaling is correct
-    pyLOM.pprint(0,y.min(), y.max())
+    if output_scaler is not None:
+        pyLOM.pprint(0,labels_train.min(), labels_train.max())
 
     evaluator = pyLOM.NN.RegressionEvaluator()
-    evaluator(y, preds)
+    evaluator(labels_train, preds_train)
     evaluator.print_metrics()
 
-    true_vs_pred_plot(y, preds, RESUDIR + 'true_vs_pred.png')
-    plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss.png')
+    true_vs_pred_plot(labels_train, preds_train, RESUDIR + 'true_vs_pred_test.png')
+    plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss_test.png')
 
     pyLOM.cr_info()
     plt.show()
 
-#%%
-    # Compare against dlr results
 
-    # DLR hyperparameters
+    ## Create a new pipeline to train a GNS model with the best parameters found by the DLR institute in the original GNS paper
     dlr_params = {
+        # Model parameters
         'graph': g,
         'input_dim': 2,
         'output_dim': 1,
@@ -348,7 +215,8 @@ if __name__ == "__main__":
         'p_dropouts': 0.0,
         'device': device,
 
-        'epochs': 100,
+        # Training parameters
+        'epochs': 1000,
         'lr': 6.50e-4,
         'lr_gamma': 0.9954,
         'lr_scheduler_step': 1,
@@ -362,94 +230,38 @@ if __name__ == "__main__":
         'pin_memory': True
     }
 
+    # Instantiate a model with the DLR parameters
     dlr_model = GNS(**dlr_params)
 
+    # Create a new pipeline for training with DLR parameters (no optimization)
     pipeline = Pipeline(
-        train_dataset=train_dataset,
-        test_dataset=test_dataset,
-        valid_dataset=eval_dataset,
+        train_dataset=td_train,
+        test_dataset=td_test,
+        valid_dataset=td_val,
         model=dlr_model,
         training_params=dlr_params
     )
-    training_logs = pipeline.run()
-    # check saving and loading the model
-    pipeline.model.save(os.path.join(RESUDIR,"NLR7301_DLR.pth"))
 
-#%%
-    model = GNS.load(RESUDIR + "NLR7301_DLR.pth")
+    # Run the training
+    training_logs = pipeline.run()
+
+    # check saving and loading the model
+    pipeline.model.save(os.path.join(RESUDIR,"NLR7301_DLR_test.pth"))
+    model = GNS.load(RESUDIR + "NLR7301_DLR_test.pth")
 
     # to predict from a dataset
-    params = test_dataset[:][0]
-    preds, y = model.predict(test_dataset, return_targets=True)
-    # y = test_dataset[:][1]
-    # Check whether y is the same as the one in the dataset
-    print("y shape", y.shape)
-    print("test_dataset[:][0].shape", test_dataset[:][0].shape)
-    print(y)
-    print()
-    print(test_dataset[:][1])
+    preds = model.predict(td_test)
+    labels = td_test[:][1]
 
     evaluator = pyLOM.NN.RegressionEvaluator()
-    evaluator(y, preds)
+    evaluator(labels, preds)
     evaluator.print_metrics()
 
-    # true_vs_pred_plot(y, preds, RESUDIR + 'true_vs_pred_DLR.png')
-    # plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss_DLR.png')
-
-
-#%%
-    # Plot Cp snapshots
-    profile_x = mesh_data['xyz'][:, 0]
-
-    print("preds shape", preds.shape)
-    print("y shape", y.shape)
-
-    plot_cp_snapshots(
-        params = test_dataset[:][0],
-        predictions = preds,
-        targets = y,
-        inputs_scaler = scaler,
-        x_vector = profile_x
-    )
-#%%
-    profile_x = mesh_data['xyz'][:, 0]
-
-    indexes = [5, 14, 31, 36]
-    op_params = test_dataset[:][0][indexes]
-    targets = test_dataset[:][1][indexes]
-    print(op_params)
-
-    predictions = []
-    for params in op_params:
-        predictions.append(model(params))
-
-    predictions = torch.stack(predictions).squeeze()
-    predictions = predictions.cpu().detach().numpy()
-    
-    fig, ax = plt.subplots(2, 2, figsize=(10, 10))
-    index = 0
-    subfig = 0
-    for (params, predictions, targets) in zip(op_params, predictions, targets):
-        params = params.cpu().numpy()
-        targets = targets.cpu().numpy()
-
-        # Undo params scaling
-        params = scaler.inverse_transform(params.reshape(1, -1)).squeeze()   
-
-        ax[subfig // 2, subfig % 2].plot(profile_x, predictions, label='Predicted')
-        ax[subfig // 2, subfig % 2].plot(profile_x, targets, label='True')
-        ax[subfig // 2, subfig % 2].set_xlabel('x/c')
-        ax[subfig // 2, subfig % 2].set_ylabel('Cp')
-        ax[subfig // 2, subfig % 2].set_title(f'Alfa = {params[0]:1.3f}\nMach = {params[1]:.4f}')
-        ax[subfig // 2, subfig % 2].legend()
-        subfig+=1
-    plt.tight_layout()
-    # plt.savefig(RESUDIR + 'cp_snapshots.png', dpi=300)
-
-
+    true_vs_pred_plot(labels, preds, RESUDIR + 'true_vs_pred_DLR_test.png')
+    plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss_DLR_test.png')
 
     pyLOM.cr_info()
     plt.show()
 
-
-# %%
+if __name__ == "__main__":
+    main()
