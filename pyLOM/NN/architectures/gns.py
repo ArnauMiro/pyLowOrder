@@ -278,7 +278,6 @@ class GNS(nn.Module):
             ) for _ in range(self.num_msg_passing_layers)
         ]).to(self.device)
 
-
     @property
     def graph(self) -> Graph:
         r"""Graph property to get the graph object."""
@@ -289,14 +288,10 @@ class GNS(nn.Module):
         r"""Graph property to set the graph object."""
         if self._graph is not None:
             warnings.warn(f"Graph is already set!")
-            if not isinstance(graph, Data):
-                raise TypeError("Graph must be of type torch_geometric.data.Data or Graph.")
-        if getattr(graph, "edge_index", None) is None:
-            raise ValueError("Graph must have edge_index attribute.")
-        if getattr(graph, "edge_features", None) is None:
-            raise ValueError("Graph must have edge_features attribute.")
-        if getattr(graph, "node_features", None) is None:
-            raise ValueError("Graph must have node_features attribute.")
+            if not isinstance(graph, Graph):
+                raise TypeError("Graph must be of type Graph.")
+        
+        graph.validate()
         
         if graph.device != self.device:
             graph = graph.to(self.device)
