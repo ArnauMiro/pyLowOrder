@@ -452,6 +452,7 @@ class Dataset(torch.utils.data.Dataset):
         file_path,
         field_names: List[str],
         variables_names: List[str] = ['all'],
+        add_variables: bool = False,
         add_mesh_coordinates: bool = True,
         **kwargs,
     ):
@@ -461,7 +462,7 @@ class Dataset(torch.utils.data.Dataset):
         Args:
             file_path (str): Path to the HDF5 file.
             variables_out_names (List[str]): Names of the fields to be used as output. E.g. ``["CP"]``.
-            add_variables (bool): Whether to add the variables as input variables. Default is ``True``.
+            add_variables (bool): Whether to add the variables as input variables. Default is ``False``.
             variables_names (List[str]): Names of the variables from pyLOM.Dataset.varnames to be used as input. If ``["all"]`` is passed, all variables will be used. Default is ``["all"]``.
             kwargs: Additional arguments to be passed to the pyLOM.NN.Dataset constructor.
 
@@ -472,13 +473,12 @@ class Dataset(torch.utils.data.Dataset):
             >>> dataset = pyLOM.NN.Dataset.load(
             ...     file_path,
             ...     field_names=["CP"],
-            ...     add_variables=True,
+            ...     add_variables=False,
             ...     add_mesh_coordinates=True,
             ...     inputs_scaler=inputs_scaler,
             ...     outputs_scaler=outputs_scaler,
             ... )
         """
-        
         original_dataset = pyLOMDataset.load(file_path)
         if (len(variables_names) >= 0 and "combine_parameters_with_cartesian_prod" in kwargs):
             raiseWarning(
@@ -493,14 +493,33 @@ class Dataset(torch.utils.data.Dataset):
                 raiseError("No variabele found in the dataset")
             variables_names = original_dataset.varnames
 
-        parameters = [original_dataset.get_variable(var_name) for var_name in variables_names]
+        variables_in = None
+        parameters = None
+        if add_variables:
+            # print("adding variables")
+            variables_in = [original_dataset.get_variable(var_name) for var_name in variables_names]
+            # print("stacking")
+            variables_in = np.stack(variables_in, axis=1) if len(variables_in) > 0 else None
+            if add_mesh_coordinates:
+                variables_in.append(original_dataset.xyz)
+        else:
+            parameters = [original_dataset.get_variable(var_name) for var_name in variables_names]
+            parameters = parameters if len(parameters) > 0 else None
+            if add_mesh_coordinates:
+                variables_in = original_dataset.xyz
+            else:
+                variables_in = None
+        
+        variables_out = tuple(
+            [original_dataset[var_name] for var_name in field_names]
+        )
+        if add_variables:
+            variables_out = np.stack(variables_out, axis=1) if len(variables_out) > 0 else None
 
         return cls(
-            variables_out=tuple(
-                [original_dataset[var_name] for var_name in field_names]
-            ),
-            parameters=parameters if len(parameters) > 0 else None,
-            variables_in=original_dataset.xyz if add_mesh_coordinates else None,
+            variables_out=variables_out,
+            parameters=parameters,
+            variables_in=variables_in,
             **kwargs,
         )
     
