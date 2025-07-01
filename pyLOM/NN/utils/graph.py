@@ -206,14 +206,26 @@ class Graph(Data):
 
         if fmt == 'h5':
             num_nodes, num_edges, edge_index, nodeFeatrDict, edgeFeatrDict = io.h5_load_graph_serial(fname)
-            init_kwargs = cls._from_pyLOM_format(num_nodes, edge_index, nodeFeatrDict, edgeFeatrDict)
-            return cls(**init_kwargs)
+            init_kwargs = cls._from_pyLOM_format(edge_index, nodeFeatrDict, edgeFeatrDict)
+
+            # Set device
+            device = kwargs.get('device', DEVICE)
+            init_kwargs['device'] = torch.device(device) if isinstance(device, str) else device
+
+            # Construct graph
+            graph = cls(**init_kwargs)
+
+            # Validate structural consistency
+            assert graph.num_nodes == num_nodes, f"Mismatch: loaded num_nodes={graph.num_nodes}, file={num_nodes}"
+            assert graph.num_edges == num_edges, f"Mismatch: loaded num_edges={graph.num_edges}, file={num_edges}"
+            return graph
 
         elif fmt in ['pt', 'pkl']:
             return torch.load(fname)
 
         else:
             raise ValueError(f"Unsupported file format: {fmt}")
+
 
     @staticmethod
     def _to_pyLOM_format(attr_dict: Dict[str, torch.Tensor]) -> Dict[str, Dict[str, Union[int, np.ndarray]]]:
@@ -237,7 +249,6 @@ class Graph(Data):
 
     @staticmethod
     def _from_pyLOM_format(
-        num_nodes: int,
         edge_index: np.ndarray,
         nodeFeatrDict: Dict[str, Dict[str, np.ndarray]],
         edgeFeatrDict: Dict[str, Dict[str, np.ndarray]]
@@ -249,7 +260,6 @@ class Graph(Data):
             Dict: Keyword arguments for cls.__init__
         """
         return {
-            "num_nodes": num_nodes,
             "edge_index": torch.tensor(edge_index, dtype=torch.long),
             "node_features_dict": {k: torch.tensor(v['value']) for k, v in nodeFeatrDict.items()},
             "edge_features_dict": {k: torch.tensor(v['value']) for k, v in edgeFeatrDict.items()},
