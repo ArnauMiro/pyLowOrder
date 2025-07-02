@@ -64,10 +64,12 @@ class Interpolator():
         """
         targets = penalty_func(field_mod, **penalty_args)
         penalty = 0.0
-        ref0 = ref_values[target_names[0]]
+        epsilon = 1e-8
+        ref0 = abs(ref_values[target_names[0]].detach()) + epsilon
         for i, name in enumerate(target_names):
+            ref_val = abs(ref_values[name].detach()) + epsilon
+            factor = ref0 / ref_val
             diff = (targets[i] - ref_values[name])**2
-            factor = ref0/ref_values[name]
             penalty += diff * factor
         return penalty
 
@@ -91,7 +93,7 @@ class Interpolator():
         mapping = kwargs.get('opt_param_config', {})
 
         ref_values = {}
-        penalty_args = {}
+        penalty_args = kwargs.get('penalty_args', {})
 
         for original_name, (source_type, func_arg_name) in mapping.items():
             if source_type == 'get_variable':
