@@ -19,7 +19,7 @@ def global_coeff(
     alpha: torch.Tensor = 0,
     coordinates: torch.Tensor = None,
     normals: torch.Tensor = None,
-) -> tuple[float, float, float]:
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     r"""
     Calculate lift, drag and moment coefficients from pressure coefficient and skin friction coefficient.
 
@@ -34,7 +34,7 @@ def global_coeff(
         normals (torch.Tensor): Tensor of shape (n,3) with the normal vectors of the surface.
         
     Returns:
-        Tuple[float, float]: Lift and drag coefficients.
+        tuple[torch.Tensor, torch.Tensor, torch.Tensor]: Coefficients of lift (CL), drag (CD) and moment (CM) respectively.
     """
     if normals.ndimension() == 1 or normals.shape[1] == 1:
         normals = normals.view(-1, 3)
