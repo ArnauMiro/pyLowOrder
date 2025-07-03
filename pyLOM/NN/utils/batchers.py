@@ -11,7 +11,7 @@ from ... import cr
 
 class GraphPreparer:
     """
-    Prepares a full graph for inference by injecting operational input parameters
+    Prepares a graph or subgraph for inference by injecting operational input parameters
     into node features and replicating the graph structure over the batch dimension.
 
     This class is used to generate inference-ready graphs from a base graph
@@ -32,7 +32,7 @@ class GraphPreparer:
         inputs: Tensor,
         graph: Data,
         seed_mask: Optional[Tensor] = None,
-        targets: Optional[Tensor] = None
+        node_labels: Optional[Tensor] = None
     ) -> Data:
         """
         Prepare a batched graph for inference or training using a base graph and a batch of operational parameters.
@@ -68,8 +68,8 @@ class GraphPreparer:
         )
         if seed_mask is not None:
             data_kwargs["seed_mask"] = seed_mask
-        if targets is not None:
-            data_kwargs["node_labels"] = targets
+        if node_labels is not None:
+            data_kwargs["node_labels"] = node_labels
 
         return Data(**data_kwargs).to(self.device)
 
@@ -101,7 +101,7 @@ class SubgraphBatcher:
 
         nf_subg = self.graph.node_features[subset]               # [N_subg, F]
         ef_subg = self.graph.edge_features[edge_mask]            # [E_subg, A]
-        targets_batch_subg = targets_batch[:, subset, :]               # [B, N_subg, output_dim]
+        targets_batch_subg = targets_batch[:, subset, :]         # [B, N_subg, output_dim]
 
         B = inputs_batch.size(0)
         N_subg = nf_subg.size(0)
@@ -118,7 +118,7 @@ class SubgraphBatcher:
             edge_index=edge_index,
             edge_features=ef_subg
         )
-        return self.preparer(subgraph, inputs_batch, seed_mask=seed_mask, targets=targets_flat)
+        return self.preparer(subgraph, inputs_batch, seed_mask=seed_mask, node_labels=targets_flat)
 
 
 class ListBasedSubgraphBatcher:
@@ -155,7 +155,7 @@ class ListBasedSubgraphBatcher:
                 edge_index=edge_index,
                 edge_features=ef_subg
             )
-            graph = self.preparer(data, inputs_batch[i], seed_mask=seed_mask, targets=targets_batch_subg[i])
+            graph = self.preparer(data, inputs_batch[i], seed_mask=seed_mask, node_labels=targets_batch_subg[i])
             graphs.append(graph)
 
         return Batch.from_data_list(graphs).to(self.device)
