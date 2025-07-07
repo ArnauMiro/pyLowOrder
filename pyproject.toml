@@ -159,7 +159,7 @@ optionals = [
 # Dependencies for teh RL module
 rl = [
   "AeroSandbox",
-  "gymnasium==1.1.1",
+  "gymnasium>1.1.1",
   "stable_baselines3",
   "neuralFoil-torch",
 ]
