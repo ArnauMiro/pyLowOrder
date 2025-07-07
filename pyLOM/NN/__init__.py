@@ -14,7 +14,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 from ..utils.plots  import plotSnapshot, plotModalErrorBars, plotTimeSeries
 
 from .pipeline      import Pipeline
-from .utils         import Dataset, MinMaxScaler, TargetShapeWrapper, select_device, betaLinearScheduler, create_results_folder, set_seed
+from .utils         import Dataset, MinMaxScaler, Graph, select_device, betaLinearScheduler, create_results_folder, set_seed
 
 from .optimizer     import OptunaOptimizer
 
@@ -23,7 +23,7 @@ from .callbacks     import EarlyStopper
 
 from .architectures.mlp               import MLP
 from .architectures.kan               import KAN, ChebyshevLayer, JacobiLayer
-from .architectures.gns               import GNS, Graph
+from .architectures.gns               import GNS
 from .architectures.autoencoders      import Autoencoder, VariationalAutoencoder
 from .architectures.encoders_decoders import Encoder2D, Decoder2D, Encoder3D, Decoder3D, ShallowDecoder
 from .architectures.pinn              import PINN, BurgersPINN, Euler2DPINN, NavierStokesIncompressible2DPINN, BoundaryCondition
