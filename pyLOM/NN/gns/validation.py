@@ -26,10 +26,10 @@ class ShapeValidator:
 
         Args:
             X (Tensor or TorchDataset): Input to validate. Either:
-                - Tensor of shape [B, D]
+                - Tensor of shape [D]
                 - Dataset yielding (x, y) pairs with shapes:
                     - x: [D]
-                    - y: [B, N, F] if `output_dim` is specified
+                    - y: [N, F] if `output_dim` is specified
 
         Raises:
             ValueError or TypeError if the input is malformed.
@@ -42,9 +42,9 @@ class ShapeValidator:
             raise TypeError("Input must be a Tensor or a TorchDataset")
 
     def _validate_tensor(self, x: Tensor) -> None:
-        if x.ndim != 2:
+        if x.ndim != 1:
             raise ValueError(f"Expected input Tensor of shape [B, D], got {x.shape}")
-        if x.shape[1] != self.input_dim:
+        if x.shape[0] != self.input_dim:
             raise ValueError(f"Input feature dimension mismatch: expected {self.input_dim}, got {x.shape[1]}")
 
     def _validate_dataset(self, dataset: TorchDataset) -> None:
@@ -54,13 +54,13 @@ class ShapeValidator:
         else:
             x_sample, y_sample = sample, None
 
-        if x_sample.ndim != 2:
-            raise ValueError(f"Expected input sample of shape [B, D], got {x_sample.shape}")
-        if x_sample.shape[1] != self.input_dim:
-            raise ValueError(f"Input sample dimension mismatch: expected {self.input_dim}, got {x_sample.shape[1]}")
+        if x_sample.ndim != 1:
+            raise ValueError(f"Expected input sample of shape [D], got {x_sample.shape}")
+        if x_sample.shape[0] != self.input_dim:
+            raise ValueError(f"Input sample dimension mismatch: expected {self.input_dim}, got {x_sample.shape[0]}")
 
         if y_sample is not None and self.output_dim is not None:
-            if y_sample.ndim != 3:
-                raise ValueError(f"Expected target sample of shape [B, N, F], got {y_sample.shape}")
+            if y_sample.ndim != 2:
+                raise ValueError(f"Expected target sample of shape [N, F], got {y_sample.shape}")
             if y_sample.shape[-1] != self.output_dim:
                 raise ValueError(f"Target output dim mismatch: expected {self.output_dim}, got {y_sample.shape[-1]}")

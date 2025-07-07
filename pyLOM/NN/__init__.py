@@ -14,13 +14,11 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 from ..utils.plots  import plotSnapshot, plotModalErrorBars, plotTimeSeries
 
 from .pipeline      import Pipeline
-from .utils         import Dataset, MinMaxScaler, select_device, betaLinearScheduler, create_results_folder, set_seed
+from .dataset       import Dataset
+from .utils         import RegressionEvaluator, EarlyStopper, MinMaxScaler, select_device, betaLinearScheduler, create_results_folder, set_seed
 from .gns           import Graph
 
 from .optimizer     import OptunaOptimizer
-
-from .stats         import RegressionEvaluator
-from .callbacks     import EarlyStopper
 
 from .architectures.mlp               import MLP
 from .architectures.kan               import KAN, ChebyshevLayer, JacobiLayer

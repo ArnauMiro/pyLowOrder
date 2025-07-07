@@ -29,6 +29,7 @@ def load_dataset(fname,inputs_scaler,outputs_scaler):
         variables_names=["AoA", "Mach"],
         inputs_scaler=inputs_scaler,
         outputs_scaler=outputs_scaler,
+        squeeze_last_dim=False,  # Keep the last dimension for outputs
     )
 
 def print_dset_stats(name, td):
@@ -105,6 +106,11 @@ def main():
     # print_dset_stats("Train", td_train)
     # print_dset_stats("Test", td_test)
     # print_dset_stats("Val", td_val)
+
+    for x, y in td_train:
+        print(f"x: {x.shape}, y: {y.shape}")
+        print(f"x: {x}, y: {y}")
+        break
 
     ## Create the graph
     g = Graph.load(os.path.join(BASEDIR, "TRAIN_converter.h5"), device=device)

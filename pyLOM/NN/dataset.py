@@ -19,9 +19,9 @@ from torch import Generator, randperm, default_generator
 
 # Local modules
 
-from ...dataset import Dataset as pyLOMDataset
-from ...utils.cr import cr
-from ...utils.errors import raiseWarning, raiseError
+from ..dataset import Dataset as pyLOMDataset
+from ..utils.cr import cr
+from ..utils.errors import raiseWarning, raiseError
 
 
 
@@ -68,7 +68,8 @@ class Dataset(torch.utils.data.Dataset):
         combine_parameters_with_cartesian_prod: bool = False,
         inputs_scaler=None,
         outputs_scaler=None,
-        snapshots_by_column=True, 
+        snapshots_by_column=True,
+        squeeze_last_dim: bool = True, 
     ):
         self.parameters = parameters
         self.num_channels = len(variables_out)
@@ -79,7 +80,7 @@ class Dataset(torch.utils.data.Dataset):
             if not outputs_scaler.is_fitted:
                 outputs_scaler.fit(variables_out)
             variables_out = outputs_scaler.transform(variables_out)
-        self.variables_out = self._process_variables_out(variables_out)
+        self.variables_out = self._process_variables_out(variables_out, squeeze_last_dim)
         if variables_in is not None:
             self.parameters = self._process_parameters(parameters, combine_parameters_with_cartesian_prod)
             self.variables_in = torch.tensor(variables_in, dtype=torch.float32)
@@ -98,7 +99,7 @@ class Dataset(torch.utils.data.Dataset):
                 raiseWarning("Parameters were passed but no input variables were passed. Parameters will be ignored.")
             self.parameters = None
 
-    def _process_variables_out(self, variables_out):
+    def _process_variables_out(self, variables_out, squeeze_last_dim=True):
         variables_out_stacked = []
         for variable in variables_out:
             variable = torch.tensor(variable)
@@ -106,8 +107,9 @@ class Dataset(torch.utils.data.Dataset):
             variables_out_stacked.append(variable)
         variables_out_stacked = torch.stack(variables_out_stacked, dim=1)
 
-        if variables_out_stacked.shape[-1] == 1:  # (N, C, 1) -> (N, C)
-            variables_out_stacked = variables_out_stacked.squeeze(-1)
+        if squeeze_last_dim:  # If the last dimension is 1, squeeze it
+            if variables_out_stacked.shape[-1] == 1:  # (N, C, 1) -> (N, C)
+                variables_out_stacked = variables_out_stacked.squeeze(-1)
         return variables_out_stacked.float()
 
     def _process_parameters(self, parameters, combine_parameters_with_cartesian_prod):

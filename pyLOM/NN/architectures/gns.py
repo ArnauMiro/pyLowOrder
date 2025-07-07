@@ -21,8 +21,8 @@ from torch_geometric.nn import MessagePassing
 from torch_geometric.data import Data
 
 from ..utils import count_trainable_params
-from ..utils import Dataset as NNDataset
 from ..gns import Graph, InputsInjector, ManualNeighborLoader, ShapeValidator
+from .. import Dataset as NNDataset
 from .. import DEVICE, set_seed
 from ... import pprint, cr
 from ..optimizer import OptunaOptimizer, TrialPruned
@@ -167,10 +167,15 @@ class GNS(nn.Module):
         self.device = torch.device(kwargs.get("device", DEVICE))
         self.seed = kwargs.get("seed", None)
         self.p_dropouts = kwargs.get("p_dropouts", 0.0)
+        
+        # --- Activation setup ---
+        activation = kwargs.get("activation", ELU())
         if isinstance(activation, str):
-            activation = getattr(nn, activation)()
-        self.activation = activation
-
+            if not hasattr(nn, activation):
+                raise ValueError(f"Activation function '{activation}' not found in torch.nn")
+            self.activation = getattr(nn, activation)()
+        else:
+            self.activation = activation
 
         # --- Device setup ---
         if self.device.type == "cuda":
@@ -182,14 +187,6 @@ class GNS(nn.Module):
         # --- Seed ---
         if self.seed is not None:
             set_seed(self.seed)
-
-        # --- Activation setup ---
-        if isinstance(activation, str):
-            if not hasattr(nn, activation):
-                raise ValueError(f"Activation function '{activation}' not found in torch.nn")
-            self.activation = getattr(nn, activation)()
-        else:
-            self.activation = activation
 
         # --- Save config ---
         self.input_dim = input_dim
@@ -218,7 +215,7 @@ class GNS(nn.Module):
         }
 
         # --- Validator setup ---
-        self._validator = ShapeValidator(self.input_dim, self.output_dim)
+        self.validator = ShapeValidator(self.input_dim, self.output_dim)
 
         # --- Graph setup ---
         self._graph = None
@@ -239,7 +236,7 @@ class GNS(nn.Module):
         self._build_encoder()
         self._build_message_passing_layers()
         self._build_decoder()
-        self.groupnorm = nn.GroupNorm(num_groups=min(2, self.latent_dim), num_channels=self.latent_dim)
+        self.groupnorm = nn.GroupNorm(num_groups=min(2, self.latent_dim), num_channels=self.latent_dim).to(self.device)
 
     def _build_encoder(self):
         self.encoder = GNSMLP(
@@ -291,7 +288,7 @@ class GNS(nn.Module):
             graph = graph.to(self.device)
 
 
-        self._encoder_input_dim = graph.x.shape[1] # Update node features dimension
+        self._encoder_input_dim = graph.x.shape[1] + self.input_dim # Update node features dimension
         self._edge_dim = graph.edge_attr.shape[1] # Update edge features dimension
 
         self._graph = graph

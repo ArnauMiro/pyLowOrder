@@ -17,8 +17,10 @@ import torch
 # Local modules
 from .. import DEVICE
 from .scalers import MinMaxScaler
-from .dataset import Dataset
 from .schedulers import betaLinearScheduler
+
+from .stats         import RegressionEvaluator
+from .callbacks     import EarlyStopper
 
 
 

@@ -116,9 +116,9 @@ class Graph(Data):
             assert not torch.isnan(v).any(), f"Node attribute '{k}' contains NaNs"
 
         # Validate concatenation
-        nf_cat = torch.cat(list(self.x_dict.values()), dim=-1)
-        assert self.x.shape == nf_cat.shape, "x shape mismatch with concatenated x_dict"
-        assert torch.allclose(self.x, nf_cat, atol=1e-6), "x do not match concatenated x_dict"
+        x_cat = torch.cat(list(self.x_dict.values()), dim=-1)
+        assert self.x.shape == x_cat.shape, "x shape mismatch with concatenated x_dict"
+        assert torch.allclose(self.x, x_cat, atol=1e-6), "x do not match concatenated x_dict"
 
     def _validate_edge_attr(self):
         assert isinstance(self.edge_attr_dict, dict), "edge_attr_dict must be a dictionary"
@@ -129,9 +129,9 @@ class Graph(Data):
             assert v.shape[0] == self.num_edges, f"Edge attribute '{k}' has wrong number of edges: expected {self.num_edges}, got {v.shape[0]}"
             assert not torch.isnan(v).any(), f"Edge attribute '{k}' contains NaNs"
 
-        ef_cat = torch.cat(list(self.edge_attr_dict.values()), dim=-1)
-        assert self.edge_attr.shape == ef_cat.shape, "edge_attr shape mismatch with concatenated edge_attr_dict"
-        assert torch.allclose(self.edge_attr, ef_cat, atol=1e-6), "edge_attr do not match concatenated edge_attr_dict"
+        edge_attr_cat = torch.cat(list(self.edge_attr_dict.values()), dim=-1)
+        assert self.edge_attr.shape == edge_attr_cat.shape, "edge_attr shape mismatch with concatenated edge_attr_dict"
+        assert torch.allclose(self.edge_attr, edge_attr_cat, atol=1e-6), "edge_attr do not match concatenated edge_attr_dict"
 
     def _validate_edge_index(self):
         assert isinstance(self.edge_index, torch.Tensor), "edge_index must be a tensor"
@@ -387,26 +387,26 @@ class Graph(Data):
 
 
 
-    def edge_attr(self):
-        """
-        [DEPRECATED] Use `edge_attr_dict` instead.
+    # def edge_attr(self):
+    #     """
+    #     [DEPRECATED] Use `edge_attr_dict` instead.
 
-        This method is retained for backward compatibility. It returns the dictionary of edge attributes,
-        where each entry corresponds to a named tensor of shape [num_edges, feature_dim].
+    #     This method is retained for backward compatibility. It returns the dictionary of edge attributes,
+    #     where each entry corresponds to a named tensor of shape [num_edges, feature_dim].
 
-        Note:
-            This method will be removed in a future version. Please use `graph.edge_attr_dict` instead.
+    #     Note:
+    #         This method will be removed in a future version. Please use `graph.edge_attr_dict` instead.
 
-        Example:
-            >>> g.edge_attr()  # Deprecated
-            >>> g.edge_attr_dict['wall_normals']  # Preferred
-        """
-        warnings.warn(
-            "`edge_attr()` is deprecated. Use `graph.edge_attr_dict` instead.",
-            DeprecationWarning,
-            stacklevel=2
-        )
-        return self.edge_attr_dict
+    #     Example:
+    #         >>> g.edge_attr()  # Deprecated
+    #         >>> g.edge_attr_dict['wall_normals']  # Preferred
+    #     """
+    #     warnings.warn(
+    #         "`edge_attr()` is deprecated. Use `graph.edge_attr_dict` instead.",
+    #         DeprecationWarning,
+    #         stacklevel=2
+    #     )
+    #     return self.edge_attr_dict
 
 
     @cr('Graph.filter')
