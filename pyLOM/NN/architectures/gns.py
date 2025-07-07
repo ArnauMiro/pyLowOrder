@@ -21,7 +21,7 @@ from torch_geometric.nn import MessagePassing
 from torch_geometric.data import Data
 
 from ..utils import Dataset as NNDataset
-from ..utils import TargetShapeWrapper, Graph, GraphPreparer, ListBasedSubgraphBatcher, SubgraphBatcher
+from ..utils import Graph, GraphPreparer, SubgraphBatcher, ManualNeighborLoader
 from .. import DEVICE, set_seed
 from ... import pprint, cr
 from ..optimizer import OptunaOptimizer, TrialPruned
@@ -217,7 +217,7 @@ class GNS(nn.Module):
             "message_hidden_layers": message_hidden_layers,
             "update_hidden_layers": update_hidden_layers,
             "p_dropouts": self.p_dropouts,
-            "activation": activation.__class__.__name__ if isinstance(activation, nn.Module) else activation,
+            "activation": activation.__class__.__name__,
             "seed": self.seed,
         }
 
@@ -225,7 +225,6 @@ class GNS(nn.Module):
         self._graph = None
         self._encoder_input_dim = None
         self._edge_dim = None
-        self._graph_preparer = None
         self.graph = graph  # sets _encoder_input_dim and _edge_dim
 
         # --- Optimizer and training state ---
@@ -242,12 +241,16 @@ class GNS(nn.Module):
         self.groupnorm = nn.GroupNorm(num_groups=min(2, self.latent_dim), num_channels=self.latent_dim)
 
     def _build_batcher(self):
-        self.batcher = ListBasedSubgraphBatcher(
-            graph=self.graph,
-            num_hops=self.num_msg_passing_layers,
-            input_dim=self.input_dim,
+        self.subgraph_loader = ManualNeighborLoader(
             device=self.device,
+            base_graph=self.graph,
+            num_hops=self.num_msg_passing_layers,
+            input_nodes=None,  # or a specific mask if needed
+            batch_size=256,    # optional default, can be overridden during fit()
+            shuffle=True
         )
+        self.preparer = GraphPreparer(device=self.device)
+        self.subgraph_batcher = SubgraphBatcher(self.subgraph_loader, self.preparer)
 
     def _build_encoder(self):
         self.encoder = GNSMLP(
@@ -288,10 +291,10 @@ class GNS(nn.Module):
     @graph.setter
     def graph(self, graph: Graph) -> None:
         r"""Graph property to set the graph object."""
+        if not isinstance(graph, Graph):
+            raise TypeError("Graph must be of type Graph.")
         if self._graph is not None:
-            warnings.warn(f"Graph is already set!")
-            if not isinstance(graph, Graph):
-                raise TypeError("Graph must be of type Graph.")
+            warnings.warn("Graph is already set. Overwriting.")
         
         graph.validate()
         
@@ -303,7 +306,6 @@ class GNS(nn.Module):
         self._edge_dim = graph.edge_features.shape[1] # Update edge features dimension
 
         self._graph = graph
-        self._graph_preparer = GraphPreparer(input_dim=self.input_dim, device=self.device)
 
     @property
     def trainable_params(self) -> int:
@@ -340,31 +342,25 @@ class GNS(nn.Module):
 
         Args:
             X (Tensor or Dataset):
-                - Tensor: shape [D] (1 input) or [B, D] (multiple inputs). B should be <= 16.
-                - Dataset: yields (input, target) or input tensors.
+                - Tensor: shape [B, D] where B=batch_size and D=input_dim.
+                - Dataset: yields (input, target) or input tensors with shapes [B, D] and [B, N, F] respectively where B=batch_size, N=num_nodes and F=output_dim.
             batch_size (int): Used only if X is a Dataset. Ignored if X is a Tensor (batch size is set to B).
 
         Returns:
-            Tensor: Predictions for all nodes in each graph.
+            Tensor: Predictions for all nodes in each graph. Shape [B * N, F] where B=batch_size, N=num_nodes and F=output_dim.
         """
         self.eval()
 
-        MAX_TENSOR_BATCH = 16  # Reasonable cap
+        MAX_TENSOR_BATCH = 64  # Reasonable cap
 
         with torch.no_grad():
             if isinstance(X, Tensor):
-                if X.dim() == 1:
-                    X = X.unsqueeze(0)
-                elif X.dim() != 2:
-                    raise ValueError("Input tensor must be of shape [D] or [B, D]")
-
-                B = X.shape[0]
-                if B > MAX_TENSOR_BATCH:
-                    raise ValueError(
-                        f"Tensor input too large (B={B}). Use a Dataset instead."
-                    )
-
+                if X.ndim != 2:
+                    raise ValueError(f"Input Tensor must have shape [B, D] where B is the batch size and D is the input dimension. Got shape: {X.shape}. Missing the batch dimension?")
                 dataset = TorchDataset(X)
+                B = len(dataset)
+                if B > MAX_TENSOR_BATCH:
+                    warnings.warn(f"Input Tensor has batch size {B}, which may exceed memory limits. Consider using a Dataset and smaller batch_size.")
                 input_dataloader = self._init_dataloader(dataset, is_node=False, batch_size=B)
 
             elif isinstance(X, TorchDataset):
@@ -378,7 +374,7 @@ class GNS(nn.Module):
             node_indices = TorchDataset(node_indices)
             node_dataloader = self._init_dataloader(node_indices, is_node=True)
 
-            return self._run_batch_loop(input_dataloader, node_dataloader, return_loss=False)
+            return self._run_epoch(input_dataloader, node_dataloader, return_loss=False)
 
 
     @cr('GNS.fit')
@@ -389,8 +385,10 @@ class GNS(nn.Module):
         Supports evaluation on a separate dataset and configurable training parameters.
 
         Args:
-            train_dataset: Dataset of input parameters and labels.
-            eval_dataset: Optional dataset for evaluation.
+            train_dataset: Dataset of input parameters and labels. At each iteration, it yields:
+                - inputs (Tensor): Shape [B, D] where B=batch_size and D=input_dim.
+                - targets (Tensor): Shape [B, N, F] where B=batch_size, N=num_nodes and F=output_dim.
+            eval_dataset: Optional dataset for evaluation. Same format as `train_dataset`.
             **kwargs: Training hyperparameters such as:
                 - epochs (int)
                 - lr (float)
@@ -443,11 +441,11 @@ class GNS(nn.Module):
         total_epochs = len(epoch_list) + epochs
         for epoch in range(1 + len(epoch_list), 1 + total_epochs):
 
-            train_loss = self._run_batch_loop(input_dataloader, node_dataloader, return_loss=True, loss_fn=loss_fn, is_train=True)
+            train_loss = self._run_epoch(input_dataloader, node_dataloader, return_loss=True, loss_fn=loss_fn, is_train=True)
             train_loss_list.append(train_loss)
 
             if eval_dataloader is not None:
-                test_loss = self._run_batch_loop(eval_dataloader, node_dataloader, return_loss=True, loss_fn=loss_fn, is_train=False)
+                test_loss = self._run_epoch(eval_dataloader, node_dataloader, return_loss=True, loss_fn=loss_fn, is_train=False)
                 test_loss_list.append(test_loss)
 
             if print_rate_epoch and epoch % print_rate_epoch == 0:
@@ -469,8 +467,8 @@ class GNS(nn.Module):
 
         return {"train_loss": train_loss_list, "test_loss": test_loss_list}
 
-    @cr('GNS._run_batch_loop')
-    def _run_batch_loop(self, input_dataloader, node_dataloader, return_loss: bool = False, loss_fn=None, is_train: bool = False) -> Union[float, Tensor]:
+    @cr('GNS._run_epoch')
+    def _run_epoch(self, input_dataloader, node_dataloader, return_loss: bool = False, loss_fn=None, is_train: bool = False) -> Union[float, Tensor]:
         """
         Core routine for both training and inference, handling subgraph batching and device transfer.
 
@@ -516,7 +514,7 @@ class GNS(nn.Module):
                     if is_train:
                         self.optimizer.zero_grad()
 
-                    output = self.forward(G_batch_prepared)[G_batch_prepared.seed_mask]
+                    output = self.forward(G_batch_prepared)[G_batch_prepared.seed_mask] # [B * N, F]
 
                     if return_loss:
                         targets = G_batch_prepared.node_labels[G_batch_prepared.seed_mask]
@@ -557,10 +555,6 @@ class GNS(nn.Module):
         Returns:
             DataLoader: Configured DataLoader instance.
         """
-        # Wrap dataset to ensure correct dimensions
-        if not is_node:
-            dataset = TargetShapeWrapper(dataset, num_nodes=self.graph.num_nodes)
-
         key_prefix = "node_" if is_node else ""
         default_pin = self.device.type == "cuda" and torch.cuda.is_available()
         return DataLoader(

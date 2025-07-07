@@ -17,9 +17,9 @@ import torch
 # Local modules
 from .. import DEVICE
 from .scalers import MinMaxScaler
-from .dataset import Dataset, TargetShapeWrapper
+from .dataset import Dataset
 from .graph import Graph
-from .batchers import GraphPreparer, SubgraphBatcher, ListBasedSubgraphBatcher
+from .gns_batchers import GraphPreparer, SubgraphBatcher, ManualNeighborLoader
 from .schedulers import betaLinearScheduler
 
 
