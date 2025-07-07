@@ -130,7 +130,7 @@ class InputsInjector:
     def __init__(self, device: torch.device) -> None:
         self.device = device
 
-    @cr('GraphPreparer.inject_replicate')
+    @cr('InputsInjector.inject_replicate')
     def inject_replicate(
         self,
         graph: Data,
@@ -197,87 +197,3 @@ class InputsInjector:
             data_kwargs["node_labels"] = targets_flat
 
         return Data(**data_kwargs).to(self.device)
-
-
-class SubgraphBatcher:
-    """
-    Combines a subgraph sampler and a batch preparer into a single callable.
-    
-    Used to generate inference-ready batched graphs for GNN training and evaluation.
-
-    Args:
-        sampler (ManualNeighborLoader): Subgraph extractor.
-        preparer (GraphPreparer): Batch preparer for injecting inputs and replicating structure.
-    """
-    def __init__(self, sampler: ManualNeighborLoader, preparer: GraphPreparer) -> None:
-        self.sampler = sampler
-        self.preparer = preparer
-
-    @cr('SubgraphBatcher.__call__')
-    def __call__(
-        self,
-        inputs_batch: Tensor,
-        targets_batch: Optional[Tensor] = None,
-    ) -> Data:
-        """
-        Prepares a batched subgraph from input parameters and seed nodes.
-
-        Args:
-            inputs_batch (Tensor): Shape [B, D], global input conditions.
-            targets_batch (Tensor, optional): Shape [B, N, O] with target node labels.
-
-        Returns:
-            Data: Batched PyG graph ready for model input.
-        """
-        if seed_nodes is not None:
-            subgraph = self.sampler.sample(seed_nodes)
-        else:
-            # Full-graph inference mode: treat all nodes as seed nodes
-            subgraph = self.sampler.base_graph
-            subgraph.seed_mask = torch.ones(subgraph.num_nodes, dtype=torch.bool, device=self.preparer.device)
-
-        return self.preparer.prepare_batch(subgraph, inputs_batch, targets_batch)
-
-##################################################################################################################
-##################################################################################################################
-##################################################################################################################
-
-
-# class ListBasedSubgraphBatcher:
-#     def __init__(self, graph: Union[Graph, Data], num_hops: int, input_dim: int, device: torch.device):
-#         self.graph = graph
-#         self.num_hops = num_hops
-#         self.input_dim = input_dim
-#         self.device = device
-#         self.preparer = GraphPreparer(input_dim, device)
-
-#     @cr('ListBasedSubgraphBatcher.__call__')
-#     def __call__(
-#         self,
-#         inputs_batch: Tensor,               # [B, D]
-#         targets_batch: Tensor,             # [B, N, output_dim]
-#         seed_nodes: Optional[Tensor] = None
-#     ) -> Batch:
-#         subset, edge_index, mapping, edge_mask = k_hop_subgraph(
-#             seed_nodes, self.num_hops, self.graph.edge_index, relabel_nodes=True
-#         )
-
-#         nf_subg = self.graph.node_features[subset]
-#         ef_subg = self.graph.edge_features[edge_mask]
-#         B = inputs_batch.size(0)
-#         targets_batch_subg = targets_batch[:, subset, :]    # [B, N_subg, output_dim]
-
-#         graphs = []
-#         for i in range(B):
-#             seed_mask = torch.zeros(nf_subg.size(0), dtype=torch.bool, device=self.device)
-#             seed_mask[mapping] = True
-
-#             data = Data(
-#                 node_features=nf_subg,
-#                 edge_index=edge_index,
-#                 edge_features=ef_subg
-#             )
-#             graph = self.preparer(data, inputs_batch[i], seed_mask=seed_mask, node_labels=targets_batch_subg[i])
-#             graphs.append(graph)
-
-#         return Batch.from_data_list(graphs).to(self.device)

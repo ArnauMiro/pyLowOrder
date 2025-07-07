@@ -20,8 +20,9 @@ from torch.nn import ELU
 from torch_geometric.nn import MessagePassing
 from torch_geometric.data import Data
 
+from ..utils import count_trainable_params
 from ..utils import Dataset as NNDataset
-from ..gns import Graph, GraphPreparer, InputsInjector, ManualNeighborLoader, ShapeValidator
+from ..gns import Graph, InputsInjector, ManualNeighborLoader, ShapeValidator
 from .. import DEVICE, set_seed
 from ... import pprint, cr
 from ..optimizer import OptunaOptimizer, TrialPruned
@@ -61,10 +62,6 @@ class GNSMLP(nn.Module):
             x = self.activation(layer(x))
             x = self.dropout(x)
         return self.layers[-1](x)
-
-    @property
-    def trainable_params(self):
-        return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
 
 
@@ -124,10 +121,6 @@ class MessagePassingLayer(MessagePassing):
     def update(self, aggr_out: Tensor, x: Tensor) -> Tensor:
         return self.gamma(torch.cat([x, aggr_out], dim=1))
 
-    @property
-    def trainable_params(self) -> int:
-        return sum(p.numel() for p in self.parameters() if p.requires_grad)
-
 
 
 
@@ -174,7 +167,10 @@ class GNS(nn.Module):
         self.device = torch.device(kwargs.get("device", DEVICE))
         self.seed = kwargs.get("seed", None)
         self.p_dropouts = kwargs.get("p_dropouts", 0.0)
-        activation = kwargs.get("activation", 'ELU')
+        if isinstance(activation, str):
+            activation = getattr(nn, activation)()
+        self.activation = activation
+
 
         # --- Device setup ---
         if self.device.type == "cuda":
@@ -300,10 +296,6 @@ class GNS(nn.Module):
 
         self._graph = graph
 
-    @property
-    def trainable_params(self) -> int:
-        return sum(p.numel() for p in self.parameters() if p.requires_grad)
-
     @cr('GNS.forward')
     def forward(self, graph: Union[Data, Graph]) -> Tensor:
         """
@@ -343,7 +335,7 @@ class GNS(nn.Module):
         Returns:
             Tensor: Predictions for all nodes in each graph. Shape [B * N, F] where B=batch_size, N=num_nodes and F=output_dim.
         """
-        self.validator.validate(X)
+        self._validate_shapes(X)
         self.eval()
 
         with torch.no_grad():
@@ -391,9 +383,9 @@ class GNS(nn.Module):
             Dict: Dictionary with keys `"train_loss"` and `"test_loss"` listing per-epoch values.
         """
         # --- Validate inputs ---
-        self.validator.validate(train_dataset)
+        self._validate_shapes(train_dataset)
         if eval_dataset is not None:
-            self.validator.validate(eval_dataset)
+            self._validate_shapes(eval_dataset)
         
         # --- Parse kwargs ---
         epochs = kwargs.get("epochs", 100)
@@ -481,9 +473,6 @@ class GNS(nn.Module):
                 - If return_loss: Average loss over the full dataset.
                 - Else: Concatenated predictions over all batches.
         """
-
-        if self.seed is not None and is_train:
-            set_seed(self.seed)
 
         self.train() if is_train else self.eval()
         outputs = []
@@ -578,6 +567,12 @@ class GNS(nn.Module):
             batch_size=batch_size,
             shuffle=True
         )
+
+    def _validate_shapes(self, X):
+        try:
+            self.validator.validate(X)
+        except Exception as e:
+            raise ValueError(f"Invalid dataset for {self.__class__.__name__}: {e}") from e
     
     @cr('GNS._cleanup')
     @staticmethod
@@ -880,5 +875,5 @@ class GNS(nn.Module):
             f" MLPs: message({self.message_hidden_layers}), update({self.update_hidden_layers})\n"
             f" Activation: {self.activation.__class__.__name__}, Dropout: {self.p_dropouts}, Device: {self.device}\n"
             f" Graph: {repr(self.graph)}\n"
-            f" Params: {self.trainable_params:,} trainable\n>"
+            f" Params: {count_trainable_params(self):,} trainable\n>"
         )
