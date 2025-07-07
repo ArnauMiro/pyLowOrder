@@ -7,6 +7,7 @@ from aerosandbox import _asb_root
 
 from pyLOM.utils import pprint
 from pyLOM.RL import NON_CONVERGED_REWARD
+from pyLOM.utils.mpi import MPI_RANK, MPI_SIZE, MPI_Status, MPI_ANY_TAG, MPI_ANY_SOURCE, mpi_send, mpi_recv
 import pyLOM
 
 airfoil_database_root = _asb_root / "geometry" / "airfoil" / "airfoil_database"
@@ -116,9 +117,8 @@ def evaluate_airfoil_agent_whole_uiuc_mpi(agent, env, save_results_path):
         env: The environment in which to run the episodes.
         save_results_path: If provided, saves the results to a CSV file at this path.
     """
-    comm = pyLOM.utils.mpi.MPI_COMM
-    rank = comm.Get_rank()
-    size = comm.Get_size()
+    rank = MPI_RANK
+    size = MPI_SIZE
 
     active_workers = size - 1  # Number of workers currently active
 
@@ -133,21 +133,21 @@ def evaluate_airfoil_agent_whole_uiuc_mpi(agent, env, save_results_path):
         for i in range(1, size):
             if airfoil_names:
                 airfoil_name = airfoil_names.pop()
-                pyLOM.utils.mpi.mpi_send(airfoil_name, dest=i, tag=1)
+                mpi_send(airfoil_name, dest=i, tag=1)
 
         # Receive results and distribute remaining work
         while active_workers > 0: #i < airfoil_count:
-            status = pyLOM.utils.mpi.MPI_Status()
-            result = pyLOM.utils.mpi.mpi_recv(source=pyLOM.utils.mpi.MPI_ANY_SOURCE, tag=2, status=status)
+            status = MPI_Status()
+            result = mpi_recv(source=MPI_ANY_SOURCE, tag=2, status=status)
             worker_rank = status.source
             if result[0] is not None and result[1] is not None:
                 results.append(result[:2])
 
             if airfoil_names:
                 airfoil_name = airfoil_names.pop()
-                pyLOM.utils.mpi.mpi_send(airfoil_name, dest=worker_rank, tag=1)
+                mpi_send(airfoil_name, dest=worker_rank, tag=1)
             else:
-                pyLOM.utils.mpi.mpi_send(None, dest=worker_rank, tag=0)  # Signal no more work
+                mpi_send(None, dest=worker_rank, tag=0)  # Signal no more work
                 active_workers -= 1
 
         # Finalize results
@@ -161,16 +161,17 @@ def evaluate_airfoil_agent_whole_uiuc_mpi(agent, env, save_results_path):
     else:
         # Worker process
         while True:
-            airfoil_name = pyLOM.utils.mpi.mpi_recv(source=0, tag=pyLOM.utils.mpi.MPI_ANY_TAG, status=pyLOM.utils.mpi.MPI_Status())
+            airfoil_name = mpi_recv(source=0, tag=MPI_ANY_TAG, status=MPI_Status())
             if airfoil_name is None:  # No more work
                 break
             try:
                 initial_airfoil = asb.Airfoil(airfoil_name)
                 rewards, airfoils = run_episode(agent, env, initial_shape=initial_airfoil)
-                pyLOM.utils.mpi.mpi_send((rewards, airfoils, airfoil_name), dest=0, tag=2)
+                data = (rewards, airfoils, airfoil_name)
             except Exception as e:
                 pprint(rank, f"Error processing airfoil {airfoil_name}: {e}")
-                pyLOM.utils.mpi.mpi_send((None, None, None), dest=0, tag=2)
+                data = (None, None, airfoil_name)  # Send None for rewards and airfoils if there's an error
+            mpi_send(data, dest=0, tag=2)  # Send results back to master
 
 
 def extract_metrics(rewards, states):
