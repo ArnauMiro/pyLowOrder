@@ -17,9 +17,9 @@ class ManualNeighborLoader:
     Args:
         device (torch.device): Target device for output subgraphs.
         base_graph (Graph): Input graph with:
-            - node_features: Tensor [N, F]
+            - x: Tensor [N, F]
             - edge_index: LongTensor [2, E]
-            - edge_features: Tensor [E, A]
+            - edge_attr: Tensor [E, A]
         num_hops (int): Number of message-passing layers (L).
         batch_size (int): Number of seed nodes per subgraph batch (S).
         input_nodes (Union[Tensor, Sequence[int]], optional): Nodes to sample from.
@@ -32,9 +32,9 @@ class ManualNeighborLoader:
 
     Yields:
         Data: Subgraph with:
-            - node_features: Tensor [N', F]
+            - x: Tensor [N', F]
             - edge_index: LongTensor [2, E']
-            - edge_features: Tensor [E', A]
+            - edge_attr: Tensor [E', A]
             - seed_mask: BoolTensor [N'], where True identifies seed nodes
     """
 
@@ -91,9 +91,9 @@ class ManualNeighborLoader:
 
         Returns:
             Data: Subgraph with:
-                - node_features: Tensor [N', F]
+                - x: Tensor [N', F]
                 - edge_index: LongTensor [2, E']
-                - edge_features: Tensor [E', A]
+                - edge_attr: Tensor [E', A]
                 - seed_mask: BoolTensor [N'], where True identifies seed nodes
         """
         subset, edge_index, mapping, edge_mask = k_hop_subgraph(
@@ -103,16 +103,16 @@ class ManualNeighborLoader:
             relabel_nodes=True
         )
 
-        node_features = self.base_graph.node_features[subset]
-        edge_features = self.base_graph.edge_features[edge_mask]
+        x = self.base_graph.x[subset]
+        edge_attr = self.base_graph.edge_attr[edge_mask]
 
-        seed_mask = torch.zeros(node_features.size(0), dtype=torch.bool, device=self.device)
+        seed_mask = torch.zeros(x.size(0), dtype=torch.bool, device=self.device)
         seed_mask[mapping] = True
 
         return Data(
-            node_features=node_features,
+            x=x,
             edge_index=edge_index,
-            edge_features=edge_features,
+            edge_attr=edge_attr,
             seed_mask=seed_mask
         ).to(self.device)
 
@@ -142,28 +142,28 @@ class InputsInjector:
         and injecting those into the node features.
 
         Args:
-            graph (Data): A graph with `node_features`, `edge_index`, `edge_features`, and `seed_mask`.
+            graph (Data): A graph with `x`, `edge_index`, `edge_attr`, and `seed_mask`.
             inputs_batch (Tensor): Tensor of shape [B, D] representing B input conditions.
             targets_batch (Optional[Tensor]): Optional tensor of shape [B, N, O] with target node labels.
 
         Returns:
             Data: A single `torch_geometric.data.Data` object with:
-                - node_features: shape [B * N, F + D]
+                - x: shape [B * N, F + D]
                 - edge_index: shape [2, B * E]
-                - edge_features: shape [B * E, A]
+                - edge_attr: shape [B * E, A]
                 - seed_mask: shape [B * N]
-                - node_labels (optional): shape [B * N, O]
+                - y (optional): shape [B * N, O]
         """
         B = inputs_batch.size(0)
         N = graph.num_nodes
 
         # 1. Node features with injected global inputs
-        nf_repeated = graph.node_features.repeat(B, 1)                       # [B*N, F]
+        nf_repeated = graph.x.repeat(B, 1)                       # [B*N, F]
         inputs_repeated = inputs_batch.repeat_interleave(N, dim=0)          # [B*N, D]
-        all_node_features = torch.cat([inputs_repeated, nf_repeated], dim=1)# [B*N, F+D]
+        all_x = torch.cat([inputs_repeated, nf_repeated], dim=1)# [B*N, F+D]
 
         # 2. Edge features
-        edge_features_repeated = graph.edge_features.repeat(B, 1)           # [B*E, A]
+        edge_attr_repeated = graph.edge_attr.repeat(B, 1)           # [B*E, A]
 
         # 3. Edge index with offsets
         edge_index_expanded = graph.edge_index.unsqueeze(0).expand(B, -1, -1)       # [B, 2, E]
@@ -187,13 +187,13 @@ class InputsInjector:
             targets_flat = targets_batch.reshape(-1, targets_batch.shape[-1])  # [B*N, O]
 
         data_kwargs = dict(
-            node_features=all_node_features,
+            x_injected=all_x,
             edge_index=edge_index_batch,
-            edge_features=edge_features_repeated,
+            edge_attr=edge_attr_repeated,
             seed_mask=seed_mask,
         )
 
         if targets_flat is not None:
-            data_kwargs["node_labels"] = targets_flat
+            data_kwargs["y"] = targets_flat
 
         return Data(**data_kwargs).to(self.device)

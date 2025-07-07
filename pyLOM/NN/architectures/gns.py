@@ -110,12 +110,12 @@ class MessagePassingLayer(MessagePassing):
         )
 
     @cr('MessagePassingLayer.forward')
-    def forward(self, x: Tensor, edge_index: Tensor, edge_features: Tensor) -> Tensor:
-        return self.propagate(edge_index=edge_index, x=x, edge_features=edge_features)
+    def forward(self, x: Tensor, edge_index: Tensor, edge_attr: Tensor) -> Tensor:
+        return self.propagate(edge_index=edge_index, x=x, edge_attr=edge_attr)
 
     @cr('MessagePassingLayer.message')
-    def message(self, x_i: Tensor, x_j: Tensor, edge_features: Tensor) -> Tensor:
-        return self.phi(torch.cat([x_i, x_j, edge_features], dim=1))
+    def message(self, x_i: Tensor, x_j: Tensor, edge_attr: Tensor) -> Tensor:
+        return self.phi(torch.cat([x_i, x_j, edge_attr], dim=1))
 
     @cr('MessagePassingLayer.update')
     def update(self, aggr_out: Tensor, x: Tensor) -> Tensor:
@@ -291,8 +291,8 @@ class GNS(nn.Module):
             graph = graph.to(self.device)
 
 
-        self._encoder_input_dim = graph.node_features.shape[1] # Update node features dimension
-        self._edge_dim = graph.edge_features.shape[1] # Update edge features dimension
+        self._encoder_input_dim = graph.x.shape[1] # Update node features dimension
+        self._edge_dim = graph.edge_attr.shape[1] # Update edge features dimension
 
         self._graph = graph
 
@@ -307,11 +307,11 @@ class GNS(nn.Module):
         Returns:
             Tensor: Predicted values for all nodes in the graph.
         """
-        x, edge_index, edge_features = graph.node_features, graph.edge_index, graph.edge_features
+        x, edge_index, edge_attr = graph.x_injected, graph.edge_index, graph.edge_attr
 
         h = self.activation(self.encoder(x))
         for conv in self.conv_layers_list:
-            h = self.groupnorm(self.activation(conv(h, edge_index, edge_features)))
+            h = self.groupnorm(self.activation(conv(h, edge_index, edge_attr)))
         y_hat = self.decoder(h)
         return y_hat
     
@@ -503,7 +503,7 @@ class GNS(nn.Module):
                     output = self.forward(G_batch_prepared)[G_batch_prepared.seed_mask] # [B * N, F]
 
                     if return_loss:
-                        targets = G_batch_prepared.node_labels[G_batch_prepared.seed_mask]
+                        targets = G_batch_prepared.y[G_batch_prepared.seed_mask]
                         loss = loss_fn(output, targets)
                         if is_train:
                             loss.backward()

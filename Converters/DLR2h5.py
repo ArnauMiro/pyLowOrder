@@ -76,17 +76,17 @@ def create_graph(datapath: str, npoints: int) -> Graph:
     wall_normals = np.load(os.path.join(datapath, "faceNormals.npz"))['faceNormals']
     edge_index = torch.tensor(np.load(os.path.join(datapath, "edgesCOO.npz"))['edgesCOO'], dtype=torch.long)
 
-    node_features_dict = {
+    x_dict = {
         'xyz': torch.tensor(xyz, dtype=torch.float),
         'normals': torch.tensor(normals, dtype=torch.float),
     }
     edge_vecs = process_edge_vectors(edge_index.numpy(), xyz)
-    edge_features_dict = {
+    edge_attr_dict = {
         'edge_vecs': torch.tensor(edge_vecs, dtype=torch.float),
         'wall_normals': torch.tensor(wall_normals, dtype=torch.float),
     }
 
-    g = Graph(edge_index=edge_index, node_features_dict=node_features_dict, edge_features_dict=edge_features_dict)
+    g = Graph(edge_index=edge_index, x_dict=x_dict, edge_attr_dict=edge_attr_dict)
     print("Graph created.")
     return g
 
