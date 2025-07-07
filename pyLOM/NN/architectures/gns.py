@@ -21,7 +21,7 @@ from torch_geometric.nn import MessagePassing
 from torch_geometric.data import Data
 
 from ..utils import Dataset as NNDataset
-from ..utils import Graph, GraphPreparer, SubgraphBatcher, ManualNeighborLoader
+from ..gns import Graph, GraphPreparer, InputsInjector, ManualNeighborLoader, ShapeValidator
 from .. import DEVICE, set_seed
 from ... import pprint, cr
 from ..optimizer import OptunaOptimizer, TrialPruned
@@ -221,11 +221,17 @@ class GNS(nn.Module):
             "seed": self.seed,
         }
 
+        # --- Validator setup ---
+        self._validator = ShapeValidator(self.input_dim, self.output_dim)
+
         # --- Graph setup ---
         self._graph = None
         self._encoder_input_dim = None
         self._edge_dim = None
         self.graph = graph  # sets _encoder_input_dim and _edge_dim
+
+        # --- Inputs injector (prepares subgraphs for forward pass) ---
+        self.injector = InputsInjector(device=self.device)
 
         # --- Optimizer and training state ---
         self.state = {}
@@ -234,23 +240,10 @@ class GNS(nn.Module):
         self.checkpoint = None
 
         # --- Build modules ---
-        self._build_batcher()
         self._build_encoder()
         self._build_message_passing_layers()
         self._build_decoder()
         self.groupnorm = nn.GroupNorm(num_groups=min(2, self.latent_dim), num_channels=self.latent_dim)
-
-    def _build_batcher(self):
-        self.subgraph_loader = ManualNeighborLoader(
-            device=self.device,
-            base_graph=self.graph,
-            num_hops=self.num_msg_passing_layers,
-            input_nodes=None,  # or a specific mask if needed
-            batch_size=256,    # optional default, can be overridden during fit()
-            shuffle=True
-        )
-        self.preparer = GraphPreparer(device=self.device)
-        self.subgraph_batcher = SubgraphBatcher(self.subgraph_loader, self.preparer)
 
     def _build_encoder(self):
         self.encoder = GNSMLP(
@@ -335,6 +328,7 @@ class GNS(nn.Module):
         self,
         X: Union[Tensor, TorchDataset],
         batch_size: int = 1,
+        node_batch_size: int = 256,
         **kwargs
     ) -> torch.Tensor:
         """
@@ -349,32 +343,24 @@ class GNS(nn.Module):
         Returns:
             Tensor: Predictions for all nodes in each graph. Shape [B * N, F] where B=batch_size, N=num_nodes and F=output_dim.
         """
+        self.validator.validate(X)
         self.eval()
-
-        MAX_TENSOR_BATCH = 64  # Reasonable cap
 
         with torch.no_grad():
             if isinstance(X, Tensor):
-                if X.ndim != 2:
-                    raise ValueError(f"Input Tensor must have shape [B, D] where B is the batch size and D is the input dimension. Got shape: {X.shape}. Missing the batch dimension?")
                 dataset = TorchDataset(X)
                 B = len(dataset)
-                if B > MAX_TENSOR_BATCH:
-                    warnings.warn(f"Input Tensor has batch size {B}, which may exceed memory limits. Consider using a Dataset and smaller batch_size.")
-                input_dataloader = self._init_dataloader(dataset, is_node=False, batch_size=B)
+                input_dataloader = self._init_dataloader(dataset, batch_size=B)
 
             elif isinstance(X, TorchDataset):
-                input_dataloader = self._init_dataloader(X, is_node=False, batch_size=batch_size)
+                input_dataloader = self._init_dataloader(X, batch_size=batch_size)
 
-            else:
-                raise TypeError("Input must be a Tensor or Dataset")
+            subgraph_loader = self._init_subgraph_loader(
+                batch_size=node_batch_size,
+                input_nodes=kwargs.get("input_nodes", None)
+            )
 
-            # Create a full node dataloader (i.e., all nodes at once)
-            node_indices = torch.arange(self.graph.num_nodes)
-            node_indices = TorchDataset(node_indices)
-            node_dataloader = self._init_dataloader(node_indices, is_node=True)
-
-            return self._run_epoch(input_dataloader, node_dataloader, return_loss=False)
+            return self._run_epoch(input_dataloader, subgraph_loader, is_train=False, return_loss=False)
 
 
     @cr('GNS.fit')
@@ -399,11 +385,17 @@ class GNS(nn.Module):
                 - scheduler (class)
                 - batch_size (int)
                 - node_batch_size (int)
+                - input_nodes (Tensor or None)
 
         Returns:
             Dict: Dictionary with keys `"train_loss"` and `"test_loss"` listing per-epoch values.
         """
-
+        # --- Validate inputs ---
+        self.validator.validate(train_dataset)
+        if eval_dataset is not None:
+            self.validator.validate(eval_dataset)
+        
+        # --- Parse kwargs ---
         epochs = kwargs.get("epochs", 100)
         lr = kwargs.get("lr", 1e-4)
         lr_gamma = kwargs.get("lr_gamma", 0.1)
@@ -413,17 +405,21 @@ class GNS(nn.Module):
         scheduler = kwargs.get("scheduler", torch.optim.lr_scheduler.StepLR)
         print_rate_epoch = kwargs.get("print_rate_epoch", 1)
 
-        input_dataloader = self._init_dataloader(train_dataset, is_node=False, **kwargs)
-        node_indices = torch.arange(self.graph.num_nodes, dtype=torch.long)
-        node_indices = TorchDataset(node_indices)
-        node_dataloader = self._init_dataloader(node_indices, is_node=True, **kwargs)
-        eval_dataloader = self._init_dataloader(eval_dataset, is_node=False, **kwargs) if eval_dataset is not None else None
+        # --- Instantiate dataloaders ---        
+        input_dataloader = self._init_dataloader(train_dataset, **kwargs)
+        eval_dataloader = self._init_dataloader(eval_dataset, **kwargs) if eval_dataset is not None else None
+        subgraph_loader = self._init_subgraph_loader(
+            batch_size=kwargs.get("node_batch_size", 256),
+            input_nodes=kwargs.get("input_nodes", None)
+        )
 
+        # --- Set optimizer and scheduler ---
         if self.optimizer is None:
             self.optimizer = optimizer(self.parameters(), lr=lr)
         if self.scheduler is None:
             self.scheduler = scheduler(self.optimizer, step_size=lr_scheduler_step, gamma=lr_gamma) if scheduler is not None else None
 
+        # --- Initialize state ---
         if self.checkpoint is not None:
             self.optimizer.load_state_dict(self.checkpoint["state"][0])
             if self.scheduler is not None and len(self.checkpoint["state"][1]) > 0:
@@ -438,14 +434,15 @@ class GNS(nn.Module):
             train_loss_list = []
             test_loss_list = []
 
+        # --- Start training loop ---
         total_epochs = len(epoch_list) + epochs
         for epoch in range(1 + len(epoch_list), 1 + total_epochs):
 
-            train_loss = self._run_epoch(input_dataloader, node_dataloader, return_loss=True, loss_fn=loss_fn, is_train=True)
+            train_loss = self._run_epoch(input_dataloader, subgraph_loader, return_loss=True, loss_fn=loss_fn, is_train=True)
             train_loss_list.append(train_loss)
 
             if eval_dataloader is not None:
-                test_loss = self._run_epoch(eval_dataloader, node_dataloader, return_loss=True, loss_fn=loss_fn, is_train=False)
+                test_loss = self._run_epoch(eval_dataloader, subgraph_loader, return_loss=True, loss_fn=loss_fn, is_train=False)
                 test_loss_list.append(test_loss)
 
             if print_rate_epoch and epoch % print_rate_epoch == 0:
@@ -468,7 +465,7 @@ class GNS(nn.Module):
         return {"train_loss": train_loss_list, "test_loss": test_loss_list}
 
     @cr('GNS._run_epoch')
-    def _run_epoch(self, input_dataloader, node_dataloader, return_loss: bool = False, loss_fn=None, is_train: bool = False) -> Union[float, Tensor]:
+    def _run_epoch(self, input_dataloader, subgraph_loader, return_loss: bool = False, loss_fn=None, is_train: bool = False) -> Union[float, Tensor]:
         """
         Core routine for both training and inference, handling subgraph batching and device transfer.
 
@@ -506,10 +503,10 @@ class GNS(nn.Module):
                     targets_batch = batch[1] if len(batch) > 1 else None
                 inputs_batch = inputs_batch.to(self.device)
 
-                for seed_nodes in node_dataloader:
-                    seed_nodes = seed_nodes.to(self.device)
+                for subgraph in subgraph_loader:
 
-                    G_batch_prepared = self.batcher(inputs_batch, targets_batch, seed_nodes)
+                    G_batch_prepared = self.injector.inject_replicate(subgraph, inputs_batch, 
+                                                                     targets_batch=targets_batch)
 
                     if is_train:
                         self.optimizer.zero_grad()
@@ -545,8 +542,7 @@ class GNS(nn.Module):
         else:
             return torch.cat(outputs, dim=0)
 
-    @cr('GNS._init_dataloader')
-    def _init_dataloader(self, dataset:Union[TorchDataset, NNDataset], is_node=False, **kwargs):
+    def _init_dataloader(self, dataset:Union[TorchDataset, NNDataset], **kwargs):
         """ Initialize a DataLoader for the given dataset.
         Args:
             dataset (Dataset): The dataset to load.
@@ -555,14 +551,32 @@ class GNS(nn.Module):
         Returns:
             DataLoader: Configured DataLoader instance.
         """
-        key_prefix = "node_" if is_node else ""
         default_pin = self.device.type == "cuda" and torch.cuda.is_available()
         return DataLoader(
             dataset,
-            batch_size=kwargs.get(f"{key_prefix}batch_size", 256 if is_node else 15),
+            batch_size=kwargs.get(f"batch_size", 15),
             shuffle=kwargs.get("shuffle", True),
             num_workers=kwargs.get("num_workers", 0),
             pin_memory = kwargs.get("pin_memory", default_pin),
+        )
+
+    def _init_subgraph_loader(self, batch_size: int = 256, input_nodes=None) -> ManualNeighborLoader:
+        """
+        Initialize the subgraph loader for batching.
+
+        Args:
+            batch_size (int): Size of each subgraph batch.
+
+        Returns:
+            ManualNeighborLoader: Configured subgraph loader.
+        """
+        return ManualNeighborLoader(
+            device=self.device,
+            base_graph=self.graph,
+            num_hops=self.num_msg_passing_layers,
+            input_nodes=input_nodes,  # or a specific mask if needed
+            batch_size=batch_size,
+            shuffle=True
         )
     
     @cr('GNS._cleanup')
