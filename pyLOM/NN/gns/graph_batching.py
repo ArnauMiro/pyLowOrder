@@ -5,7 +5,7 @@ from torch import Tensor
 from torch_geometric.data import Data
 from torch_geometric.utils import k_hop_subgraph
 
-from . import Graph
+from ..utils import Graph
 from ... import cr
 
 class ManualNeighborLoader:
@@ -41,7 +41,7 @@ class ManualNeighborLoader:
     def __init__(
         self,
         device: torch.device,
-        base_graph: Data,
+        base_graph: Graph,
         num_hops: int,
         batch_size: int = 256,
         input_nodes: Optional[Union[Tensor, Sequence[int]]] = None,
@@ -118,7 +118,7 @@ class ManualNeighborLoader:
 
 
 
-class GraphPreparer:
+class InputsInjector:
     """
     Prepares (sub)graphs for batched inference or training by injecting global input parameters
     into node features and replicating the graph structure.
@@ -130,8 +130,8 @@ class GraphPreparer:
     def __init__(self, device: torch.device) -> None:
         self.device = device
 
-    @cr('GraphPreparer.prepare_batch')
-    def prepare_batch(
+    @cr('GraphPreparer.inject_replicate')
+    def inject_replicate(
         self,
         graph: Data,
         inputs_batch: Tensor,
@@ -172,7 +172,14 @@ class GraphPreparer:
         edge_index_batch = edge_index_batch.permute(1, 0, 2).reshape(2, -1)          # [2, B*E]
 
         # 4. Seed mask
-        seed_mask = graph.seed_mask.repeat(B)                                # [B*N]
+        seed_mask = getattr(graph, 'seed_mask', None)
+        if seed_mask is not None:
+            # Repeat seed mask for each batch
+            seed_mask = seed_mask.repeat(B)
+        else:
+            # If no seed mask exists, create a default one
+            # This assumes all nodes are seeds in the full graph inference mode
+            seed_mask = torch.ones(N * B, dtype=torch.bool, device=self.device)
 
         # 5. Targets
         targets_flat = None
@@ -211,7 +218,6 @@ class SubgraphBatcher:
         self,
         inputs_batch: Tensor,
         targets_batch: Optional[Tensor] = None,
-        seed_nodes: Optional[Tensor] = None,
     ) -> Data:
         """
         Prepares a batched subgraph from input parameters and seed nodes.
@@ -219,7 +225,6 @@ class SubgraphBatcher:
         Args:
             inputs_batch (Tensor): Shape [B, D], global input conditions.
             targets_batch (Tensor, optional): Shape [B, N, O] with target node labels.
-            seed_nodes (Tensor, optional): Seed node indices for subgraph extraction.
 
         Returns:
             Data: Batched PyG graph ready for model input.
