@@ -24,7 +24,13 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx_design',
     'nbsphinx',
+    'myst-parser',
 ]
+
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'markdown',
+}
 
 # Set the default syntax highlighter
 highlight_language = 'python'
