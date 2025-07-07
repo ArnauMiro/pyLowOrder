@@ -282,3 +282,97 @@ ds = pyLOM.NN.Dataset(variables_in=t)
 
 print(ds)
 # %%
+import numpy as np
+import torch
+from torch.utils.data import TensorDataset, DataLoader
+
+x = torch.tensor(np.random.rand(100, 2), dtype=torch.float32)
+y = torch.tensor(np.random.rand(100, 5, 1), dtype=torch.float32)
+
+x1 = torch.tensor(np.random.rand(2,), dtype=torch.float32)
+print(x1)
+
+ds1 = TensorDataset(x1)
+dl1 = DataLoader(ds1, batch_size=1, shuffle=True)
+print(f"len(ds1): {len(ds1)}")
+
+ds = TensorDataset(x, y)
+dl = DataLoader(ds, batch_size=1, shuffle=True)
+print(f"len(ds): {len(ds)}")
+
+
+for batch in dl:
+    x_batch, y_batch = batch
+    print(f"x: {x_batch.shape}, y: {y_batch.shape}")
+    print(f"x: {x_batch}, y: {y_batch}")
+    break  # Just to show the first batch
+for batch in dl1:
+    x_batch1 = batch[0]
+    print(f"x1: {x_batch1.shape}")
+    print(f"x1: {x_batch1}")
+    break  # Just to show the first batch
+
+
+
+# %%
+import numpy as np
+import torch
+from torch.utils.data import TensorDataset, DataLoader
+
+import pyLOM
+
+datapath = '/home/p.yeste/CETACEO_DATA/'
+
+npoints = 100
+ptable = pyLOM.PartitionTable.new(1, npoints, npoints)
+
+xyz = np.random.rand(npoints, 2).astype(np.float32)
+
+var1 = np.random.rand(50,).astype(np.float32)
+var2 = np.random.rand(50,).astype(np.float32)
+outputs_1 = np.random.rand(npoints, 50, 1).astype(np.float32)
+outputs_2 = np.random.rand(npoints, 50, 2).astype(np.float32)
+outputs_3 = np.random.rand(npoints, 50).astype(np.float32)
+outputs_4 = np.random.rand(npoints, 50).astype(np.float32)
+
+d = pyLOM.Dataset(
+    xyz=xyz,
+    ptable=ptable,
+    order=np.arange(npoints),
+    point=True,
+    vars={
+        'Var1': {'idim': 0, 'value': var1},
+        'Var2': {'idim': 0, 'value': var2},
+    },
+    OPT1={'ndim': 1, 'value': outputs_1},
+    OPT2={'ndim': 2, 'value': outputs_2},
+    OPT3={'ndim': 1, 'value': outputs_3},
+    OPT4={'ndim': 1, 'value': outputs_4},
+)
+
+print(d)
+
+out_path = os.path.join(datapath, "test_dataset.h5")
+d.save(out_path, append=False)
+print(f"Dataset saved to {out_path}")
+
+#%%
+nnd = pyLOM.NN.Dataset.load(
+    out_path,
+    field_names=["OPT1", "OPT2", "OPT3", "OPT4"],
+    add_variables=True,
+    add_mesh_coordinates=False,
+    variables_names=["Var1", "Var2"],
+    inputs_scaler=None,
+    outputs_scaler=None,
+)
+print(nnd)
+
+for i in range(len(nnd)):
+    x, y = nnd[i]
+    print(f"x: {x.shape}, y: {y.shape}")
+    print(f"x: {x}, y: {y}")
+    if i == 0:
+        break  # Just to show the first sample
+
+# %%
