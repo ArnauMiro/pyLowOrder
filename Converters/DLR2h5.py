@@ -29,7 +29,7 @@ def process_edge_vectors(edge_index: np.ndarray, xyz: np.ndarray) -> np.ndarray:
     return edge_vecs
 
 
-def convert_dataset(dset: str, datapath: str, npoints: int, ptable) -> None:
+def convert_dataset(dset: str, datapath: str, npoints: int, ptable: pyLOM.PartitionTable) -> None:
     print(f"[{dset.upper()}] Processing dataset")
     folder = os.path.join(datapath, dset)
     filelist = glob.glob(os.path.join(folder, '*'))
