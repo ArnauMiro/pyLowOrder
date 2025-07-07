@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 import aerosandbox.tools.pretty_plots as p
+from ..utils import raiseWarning
 
 
 def create_airfoil_optimization_progress_plot(airfoils, rewards, airfoil_name='Airfoil Shape', save_path=None):
@@ -78,56 +79,49 @@ def create_airfoil_optimization_progress_plot(airfoils, rewards, airfoil_name='A
     plt.tight_layout()
     plt.show()
 
-def AirfoilEvolutionAnimation(*args, **kwargs):
-    """
-    Factory function that creates AirfoilEvolution instances.
-    Manim is required to run this animation, and it is recommended to install it with `conda install -c conda-forge manim`.
+try: 
+    import manim
+    class AirfoilEvolutionAnimation(manim.Scene):
+        """
+        Generate an animation showing the evolution of airfoils and their corresponding lift-to-drag ratios.
+        Manim is required to run this animation, and it is recommended to install it with `conda install -c conda-forge manim`.
 
-    Properties:
-        - `airfoils`: List of airfoil objects representing the evolution.
-        - `rewards`: List of lift-to-drag ratios corresponding to each airfoil.
-        - `run_time`: Duration of the animation in seconds. Default: ``5``.
-        - `title`: Title of the animation. Default: ``"Airfoil evolution"``.
+        Properties:
+            - `airfoils`: List of airfoil objects representing the evolution.
+            - `rewards`: List of lift-to-drag ratios corresponding to each airfoil.
+            - `run_time`: Duration of the animation in seconds. Default: ``5``.
+            - `title`: Title of the animation. Default: ``"Airfoil evolution"``.
 
-    Examples:
-        To use in a notebook:
+        Examples:
+            To use in a notebook:
 
-        >>> import manim
-        >>> from pyLOM.RL import AirfoilEvolutionAnimation
+            >>> import manim
+            >>> from pyLOM.RL import AirfoilEvolutionAnimation
 
-        >>> %%manim -qm -v WARNING AirfoilEvolution
-        >>> AirfoilEvolutionAnimation.airfoils = airfoils
-        >>> AirfoilEvolutionAnimation.rewards = rewards
-        >>> AirfoilEvolutionAnimation.title = "NACA0012 Evolution"
+            >>> %%manim -qm -v WARNING AirfoilEvolution
+            >>> AirfoilEvolutionAnimation.airfoils = airfoils
+            >>> AirfoilEvolutionAnimation.rewards = rewards
+            >>> AirfoilEvolutionAnimation.title = "NACA0012 Evolution"
 
-        To use it in a script:
+            To use it in a script:
 
-        >>> from pyLOM.RL import AirfoilEvolutionAnimation
-        >>> from manim import *
-        >>> from main import config
-        >>> # config.format = "gif"  # Change output format to GIF
-        >>> config.output_file = "airfoil_evolution.mp4"  # Change output file name
-        >>> config.quality = "production_quality"  # Set quality to maximum (Full HD)
-        >>> animation = AirfoilEvolutionAnimation()
-        >>> animation.airfoils = airfoils
-        >>> animation.rewards = rewards
-        >>> animation.title = "Airfoil Evolution"
-        >>> animation.render()
-    """
-    try:
-        from manim import Scene
-    except ImportError as e:
-        raise ImportError(
-            "AirfoilEvolution requires manim to be installed."
-            "Please, install with: conda install -c conda-forge manim"
-        ) from e
+            >>> from pyLOM.RL import AirfoilEvolutionAnimation
+            >>> from manim import *
+            >>> from main import config
+            >>> # config.format = "gif"  # Change output format to GIF
+            >>> config.output_file = "airfoil_evolution.mp4"  # Change output file name
+            >>> config.quality = "production_quality"  # Set quality to maximum (Full HD)
+            >>> animation = AirfoilEvolutionAnimation()
+            >>> animation.airfoils = airfoils
+            >>> animation.rewards = rewards
+            >>> animation.title = "Airfoil Evolution"
+            >>> animation.render()
+        """
+        airfoils = None
+        rewards = None
+        run_time = 5
+        title = "Airfoil evolution"
     
-    class _AirfoilEvolutionAnimation(Scene):
-        airfoils = AirfoilEvolutionAnimation.airfoils
-        rewards = AirfoilEvolutionAnimation.rewards
-        run_time = AirfoilEvolutionAnimation.run_time if hasattr(AirfoilEvolutionAnimation, "run_time") else 5
-        title = AirfoilEvolutionAnimation.title if hasattr(AirfoilEvolutionAnimation, "title") else "Airfoil evolution"
-        
         def get_airfoil_coordinates(self, airfoil, axes):
             """
             Get airfoil coordinates and map them to Axes coordinates.
@@ -270,42 +264,32 @@ def AirfoilEvolutionAnimation(*args, **kwargs):
             reward_line.remove_updater(update_reward_line)
             self.wait()
     
-    return _AirfoilEvolutionAnimation(*args, **kwargs)
+    class WingEvolutionAnimation(manim.ThreeDScene):
+        """
+        Generate an animation showing the evolution of wings and their corresponding lift-to-drag ratios.
+        Manim is required to run this animation, and it is recommended to install it with `conda install -c conda-forge manim`.
 
-def WingEvolutionAnimation(*args, **kwargs):
-    """Factory function that creates WingEvolution instances.
-    Manim is required to run this animation, and it is recommended to install it with `conda install -c conda-forge manim`.
+        Properties:
+            - `wings`: List of wing objects representing the evolution.
+            - `rewards`: List of lift-to-drag ratios corresponding to each airplane.
+            - `run_time_per_update`: Duration of each update in seconds. Default: ``0.25``.
+        
+        Examples:
+            To use in a notebook:
 
-    Properties:
-        - `wings`: List of wing objects representing the evolution.
-        - `rewards`: List of lift-to-drag ratios corresponding to each airplane.
-        - `run_time_per_update`: Duration of each update in seconds. Default: ``0.25``.
-    
-    Examples:
-        To use in a notebook:
+            >>> import manim
+            >>> from pyLOM.RL import WingEvolutionAnimation
 
-        >>> import manim
-        >>> from pyLOM.RL import WingEvolutionAnimation
+            on a separete cell, define the wings and rewards:
 
-        on a separete cell, define the wings and rewards:
-
-        >>> %%manim -qm -v WARNING AirfoilEvolution 
-        >>> WingEvolutionAnimation.wings = wings
-        >>> WingEvolutionAnimation.rewards = rewards
-        >>> WingEvolutionAnimation.run_time_per_update = 0.1
-    """
-    try:
-        from manim import ThreeDScene
-    except ImportError as e:
-        raise ImportError(
-            "AirfoilEvolution requires manim to be installed."
-            "Please, install with: conda install -c conda-forge manim"
-        ) from e
-    
-    class _WingEvolution(ThreeDScene):
-        rewards = WingEvolutionAnimation.rewards
-        wings = WingEvolutionAnimation.wings
-        run_time_per_update = WingEvolutionAnimation.run_time_per_update if hasattr(WingEvolutionAnimation, "run_time_per_update") else 0.25
+            >>> %%manim -qm -v WARNING AirfoilEvolution 
+            >>> WingEvolutionAnimation.wings = wings
+            >>> WingEvolutionAnimation.rewards = rewards
+            >>> WingEvolutionAnimation.run_time_per_update = 0.1
+        """
+        rewards = None
+        wings = None
+        run_time_per_update = 0.25
 
         def get_mesh_from_airplane(self, airplane):
             """Constructs a VGroup of polygons from an airplane's mesh data."""
@@ -406,4 +390,77 @@ def WingEvolutionAnimation(*args, **kwargs):
             # Camera rotation (only affects the 3D part)
             self.move_camera(theta=(2 + 7/6) * manim.PI, run_time=7, rate_func=manim.linear)
             self.wait(1)
-    return _WingEvolution(*args, **kwargs)
+    
+except:
+    class AirfoilEvolutionAnimation:
+        """
+        Generate an animation showing the evolution of airfoils and their corresponding lift-to-drag ratios.
+        Manim is required to run this animation, and it is recommended to install it with `conda install -c conda-forge manim`.
+
+        Properties:
+            - `airfoils`: List of airfoil objects representing the evolution.
+            - `rewards`: List of lift-to-drag ratios corresponding to each airfoil.
+            - `run_time`: Duration of the animation in seconds. Default: ``5``.
+            - `title`: Title of the animation. Default: ``"Airfoil evolution"``.
+
+        Examples:
+            To use in a notebook:
+
+            >>> import manim
+            >>> from pyLOM.RL import AirfoilEvolutionAnimation
+
+            >>> %%manim -qm -v WARNING AirfoilEvolution
+            >>> AirfoilEvolutionAnimation.airfoils = airfoils
+            >>> AirfoilEvolutionAnimation.rewards = rewards
+            >>> AirfoilEvolutionAnimation.title = "NACA0012 Evolution"
+
+            To use it in a script:
+
+            >>> from pyLOM.RL import AirfoilEvolutionAnimation
+            >>> from manim import *
+            >>> from main import config
+            >>> # config.format = "gif"  # Change output format to GIF
+            >>> config.output_file = "airfoil_evolution.mp4"  # Change output file name
+            >>> config.quality = "production_quality"  # Set quality to maximum (Full HD)
+            >>> animation = AirfoilEvolutionAnimation()
+            >>> animation.airfoils = airfoils
+            >>> animation.rewards = rewards
+            >>> animation.title = "Airfoil Evolution"
+            >>> animation.render()
+        """
+        def __init__(self, *args, **kwargs):
+            raiseWarning(
+                "AirfoilEvolutionAnimation requires manim to be installed."
+                "Please, install with: conda install -c conda-forge manim",
+                False
+            )
+
+    class WingEvolutionAnimation:
+        """
+        Generate an animation showing the evolution of wings and their corresponding lift-to-drag ratios.
+        Manim is required to run this animation, and it is recommended to install it with `conda install -c conda-forge manim`.
+
+        Properties:
+            - `wings`: List of wing objects representing the evolution.
+            - `rewards`: List of lift-to-drag ratios corresponding to each airplane.
+            - `run_time_per_update`: Duration of each update in seconds. Default: ``0.25``.
+
+        Examples:
+            To use in a notebook:
+
+            >>> import manim
+            >>> from pyLOM.RL import WingEvolutionAnimation
+
+            on a separete cell, define the wings and rewards:
+
+            >>> %%manim -qm -v WARNING AirfoilEvolution 
+            >>> WingEvolutionAnimation.wings = wings
+            >>> WingEvolutionAnimation.rewards = rewards
+            >>> WingEvolutionAnimation.run_time_per_update = 0.1
+        """
+        def __init__(self, *args, **kwargs):
+            raiseWarning(
+                "WingEvolutionAnimation requires manim to be installed."
+                "Please, install with: conda install -c conda-forge manim",
+                False
+            )
