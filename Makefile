@@ -206,7 +206,10 @@ requirements_optional: requirements_optional.txt
 requirements_GPR: requirements_GPR.txt
 	@${PIP} install -r $<
 
-requirements_full: requirements requirements_cupy requirements_NN requirements_optional
+requirements_rl: requirements_rl.txt
+	@${PIP} install -r $<
+
+requirements_full: requirements requirements_cupy requirements_NN requirements_optional requirements_rl
 
 
 install: requirements python
