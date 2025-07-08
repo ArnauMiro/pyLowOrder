@@ -188,6 +188,8 @@ def main():
     print("Predicting from the test dataset...")
     preds_train = model.predict(td_test)
     labels_train = td_test[:][1]
+    preds_train = preds_train.cpu()
+    labels_train = labels_train.cpu()
 
     # to predict from a tensor
     print("Predicting from a tensor...")

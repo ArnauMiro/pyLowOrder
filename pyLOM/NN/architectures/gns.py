@@ -30,7 +30,7 @@ from ... import pprint, cr
 
 
 
-class GNS(nn.Module):
+class GNS(torch.nn.Module):
     r"""
     Graph Neural Solver class for predicting aerodynamic variables on RANS meshes.
     The model uses a message-passing architecture with MLPs for the message and update functions.
@@ -75,9 +75,9 @@ class GNS(nn.Module):
         # --- Activation setup ---
         activation = kwargs.get("activation", ELU())
         if isinstance(activation, str):
-            if not hasattr(nn, activation):
+            if not hasattr(torch.nn, activation):
                 raise ValueError(f"Activation function '{activation}' not found in torch.nn")
-            self.activation = getattr(nn, activation)()
+            self.activation = getattr(torch.nn, activation)()
         else:
             self.activation = activation
 
@@ -147,7 +147,7 @@ class GNS(nn.Module):
         self._build_encoder()
         self._build_message_passing_layers()
         self._build_decoder()
-        self.groupnorm = nn.GroupNorm(num_groups=min(2, self.latent_dim), num_channels=self.latent_dim).to(self.device)
+        self.groupnorm = torch.nn.GroupNorm(num_groups=min(2, self.latent_dim), num_channels=self.latent_dim).to(self.device)
 
     def _build_encoder(self):
         self.encoder = GNSMLP(
@@ -168,7 +168,7 @@ class GNS(nn.Module):
         ).to(self.device)
 
     def _build_message_passing_layers(self):
-        self.conv_layers_list = nn.ModuleList([
+        self.conv_layers_list = torch.nn.ModuleList([
             MessagePassingLayer(
                 in_channels=2 * self.latent_dim + self._edge_dim,
                 out_channels=self.latent_dim,
@@ -245,7 +245,7 @@ class GNS(nn.Module):
         self.eval()
 
         with torch.no_grad():
-            input_dataloader = self._helpers.init_dataloader(X, batch_size)
+            input_dataloader = self._helpers.init_dataloader(X, batch_size=batch_size)
             subgraph_loader = self._helpers.init_subgraph_loader(
                 batch_size=node_batch_size,
                 input_nodes=kwargs.get("input_nodes", None)
@@ -400,6 +400,7 @@ class GNS(nn.Module):
 
                     if return_loss:
                         targets = G_batch_prepared.y[G_batch_prepared.seed_mask]
+                        assert output.shape == targets.shape, f"output shape is {output.shape}. targets.shape is {targets.shape}"
                         loss = loss_fn(output, targets)
                         if is_train:
                             loss.backward()
@@ -425,7 +426,7 @@ class GNS(nn.Module):
             })
             return total_loss / num_batches
         else:
-            return torch.cat(outputs, dim=0)
+            return torch.cat(outputs, dim=0).reshape(-1, self.graph.num_nodes, self.output_dim) # [-1, N, F]
     
     def _validate_shapes(self, X):
         try:

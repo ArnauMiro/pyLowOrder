@@ -1,8 +1,10 @@
+import torch
 from torch import Tensor
 import torch.nn as nn
+from torch.nn import ELU
 from torch_geometric.nn import MessagePassing
 
-from .. import relu
+from ... import cr
 
 class GNSMLP(nn.Module):
     r"""

@@ -2,6 +2,9 @@
 from typing import Optional, Union, Sequence
 import torch
 from torch import Tensor
+from torch.utils.data import Dataset as TorchDataset
+from torch.utils.data import TensorDataset
+from torch.utils.data import DataLoader
 from torch_geometric.data import Data
 from torch_geometric.utils import k_hop_subgraph
 
