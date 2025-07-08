@@ -104,13 +104,8 @@ def main():
     # print(td_train[1])
 
     # print_dset_stats("Train", td_train)
-    # print_dset_stats("Test", td_test)
+    # print_dset_stats("Test", td_test)return_loss (bool): Whether to compute and return loss instead of predictions.
     # print_dset_stats("Val", td_val)
-
-    for x, y in td_train:
-        print(f"x: {x.shape}, y: {y.shape}")
-        print(f"x: {x}, y: {y}")
-        break
 
     ## Create the graph
     g = Graph.load(os.path.join(BASEDIR, "TRAIN_converter.h5"), device=device)
@@ -119,7 +114,7 @@ def main():
 #%%  
     ## Create and run a pipeline for optimizing a GNS model
     optimization_params = {
-        # Model parameters
+        # --- Model parameters ---
         'graph': g,
         'input_dim': 2,
         'output_dim': 1,
@@ -134,7 +129,7 @@ def main():
         'p_dropouts': (0.0, 0.5),
         'device': device,
 
-        # Training parameters
+        # --- Training parameters ---
         'epochs': 3,
         'lr': (1e-5, 1e-2),
         'lr_gamma': (0.99, 0.999),
@@ -143,6 +138,7 @@ def main():
         'optimizer': torch.optim.Adam,
         'scheduler': torch.optim.lr_scheduler.StepLR,
 
+        # --- Loader parameters ---
         'batch_size': (1, 32),
         'node_batch_size': (g.num_nodes//100, g.num_nodes//1),
         'num_workers': 1,
@@ -189,12 +185,16 @@ def main():
         output_scaler = MinMaxScaler.load(os.path.join(RESUDIR,"output_scaler_test.json"))
 
     # to predict from a dataset
+    print("Predicting from the test dataset...")
     preds_train = model.predict(td_test)
     labels_train = td_test[:][1]
 
     # to predict from a tensor
-    inputs_tensor, labels_tensor = next(iter(td_test))
+    print("Predicting from a tensor...")
+    # Example input tensor. Shape must be [B, D] where B is the batch size and D is the input dimension
+    inputs_tensor = torch.tensor([[0.4, 0.7]], dtype=torch.float32) 
     preds_tensor = model.predict(inputs_tensor)
+    print(f"Inputs tensor: {inputs_tensor.shape}, Predictions tensor: {preds_tensor.shape}")
 
     # check that the scaling is correct
     if output_scaler is not None:

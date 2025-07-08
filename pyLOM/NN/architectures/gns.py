@@ -6,121 +6,25 @@
 #
 # Last rev: 30/03/2025
 
-import numpy as np
+from typing import Dict, Tuple, Union, Any
 import os
 import json
 import warnings
+import gc
 
 import torch
 from torch import Tensor
-import torch.nn as nn
-from torch.utils.data import TensorDataset as TorchDataset
-from torch.utils.data import DataLoader
 from torch.nn import ELU
-from torch_geometric.nn import MessagePassing
+from torch.utils.data import Dataset as TorchDataset
+from torch.utils.data import TensorDataset, DataLoader
 from torch_geometric.data import Data
 
-from ..utils import count_trainable_params
-from ..gns import Graph, InputsInjector, ManualNeighborLoader, ShapeValidator
 from .. import Dataset as NNDataset
 from .. import DEVICE, set_seed
-from ... import pprint, cr
+from ..utils import count_trainable_params, cleanup_tensors, get_optimizing_value, hyperparams_serializer
+from ..gns import GNSMLP, MessagePassingLayer, Graph, InputsInjector, ManualNeighborLoader, _ShapeValidator, _GNSHelpers
 from ..optimizer import OptunaOptimizer, TrialPruned
-
-from typing import Dict, Tuple, Union, List
-
-
-
-
-class GNSMLP(nn.Module):
-    r"""
-    Simple feedforward MLP with activation and dropout, designed for internal use in GNS.
-
-    Args:
-        input_size (int): Input size.
-        output_size (int): Output size.
-        hidden_size (int): Number of units in each hidden layer.
-        num_hidden_layers (int): Number of hidden layers.
-        drop_p (float): Dropout probability.
-        activation (nn.Module): Activation function.
-    """
-    def __init__(self, input_size, output_size, hidden_size, num_hidden_layers=1, drop_p=0.5, activation=ELU()):
-        super().__init__()
-        self.layers = nn.ModuleList()
-
-        self.layers.append(nn.Linear(input_size, hidden_size))
-        for _ in range(num_hidden_layers - 1):
-            self.layers.append(nn.Linear(hidden_size, hidden_size))
-        self.layers.append(nn.Linear(hidden_size, output_size))
-
-        self.activation = activation
-        self.dropout = nn.Dropout(p=drop_p)
-
-    @cr('GNSMLP.forward')
-    def forward(self, x):
-        for layer in self.layers[:-1]:
-            x = self.activation(layer(x))
-            x = self.dropout(x)
-        return self.layers[-1](x)
-
-
-
-class MessagePassingLayer(MessagePassing):
-    r"""
-    Message passing layer using mean aggregation and MLPs for message and update functions.
-
-    Args:
-        in_channels (int): Input feature size for messages.
-        out_channels (int): Output feature size after message passing.
-        hidden_size (int): Hidden size for internal MLPs.
-        message_hidden_layers (int): Number of hidden layers in the message MLP.
-        update_hidden_layers (int): Number of hidden layers in the update MLP.
-        activation (nn.Module): Activation function (e.g., nn.ELU()).
-        drop_p (float): Dropout probability.
-    """
-    def __init__(
-        self,
-        in_channels: int,
-        out_channels: int,
-        hidden_size: int,
-        message_hidden_layers: int = 1,
-        update_hidden_layers: int = 1,
-        activation: nn.Module = ELU(),
-        drop_p: float = 0.0,
-    ):
-        super().__init__(aggr='mean')
-        self.dropout = nn.Dropout(p=drop_p)
-
-        self.phi = GNSMLP(
-            input_size=in_channels,
-            output_size=out_channels,
-            hidden_size=hidden_size,
-            num_hidden_layers=message_hidden_layers,
-            drop_p=drop_p,
-            activation=activation,
-        )
-
-        self.gamma = GNSMLP(
-            input_size=2 * out_channels,
-            output_size=out_channels,
-            hidden_size=hidden_size,
-            num_hidden_layers=update_hidden_layers,
-            drop_p=drop_p,
-            activation=activation,
-        )
-
-    @cr('MessagePassingLayer.forward')
-    def forward(self, x: Tensor, edge_index: Tensor, edge_attr: Tensor) -> Tensor:
-        return self.propagate(edge_index=edge_index, x=x, edge_attr=edge_attr)
-
-    @cr('MessagePassingLayer.message')
-    def message(self, x_i: Tensor, x_j: Tensor, edge_attr: Tensor) -> Tensor:
-        return self.phi(torch.cat([x_i, x_j, edge_attr], dim=1))
-
-    @cr('MessagePassingLayer.update')
-    def update(self, aggr_out: Tensor, x: Tensor) -> Tensor:
-        return self.gamma(torch.cat([x, aggr_out], dim=1))
-
+from ... import pprint, cr
 
 
 
@@ -214,9 +118,6 @@ class GNS(nn.Module):
             "seed": self.seed,
         }
 
-        # --- Validator setup ---
-        self.validator = ShapeValidator(self.input_dim, self.output_dim)
-
         # --- Graph setup ---
         self._graph = None
         self._encoder_input_dim = None
@@ -231,6 +132,16 @@ class GNS(nn.Module):
         self.optimizer = None
         self.scheduler = None
         self.checkpoint = None
+
+        # --- Validator setup ---
+        self.validator = _ShapeValidator(self.input_dim, self.output_dim, self.graph.num_nodes)
+
+        # --- Helper setup ---
+        self._helpers = _GNSHelpers(
+            device=self.device,
+            graph=self.graph,
+            num_msg_passing_layers=self.num_msg_passing_layers
+        )
 
         # --- Build modules ---
         self._build_encoder()
@@ -304,14 +215,14 @@ class GNS(nn.Module):
         Returns:
             Tensor: Predicted values for all nodes in the graph.
         """
-        x, edge_index, edge_attr = graph.x_injected, graph.edge_index, graph.edge_attr
+        x, edge_index, edge_attr = graph.x, graph.edge_index, graph.edge_attr
 
         h = self.activation(self.encoder(x))
         for conv in self.conv_layers_list:
             h = self.groupnorm(self.activation(conv(h, edge_index, edge_attr)))
         y_hat = self.decoder(h)
         return y_hat
-    
+
     @cr('GNS.predict')
     def predict(
         self,
@@ -324,36 +235,25 @@ class GNS(nn.Module):
         Run inference on the model.
 
         Args:
-            X (Tensor or Dataset):
-                - Tensor: shape [B, D] where B=batch_size and D=input_dim.
-                - Dataset: yields (input, target) or input tensors with shapes [B, D] and [B, N, F] respectively where B=batch_size, N=num_nodes and F=output_dim.
-            batch_size (int): Used only if X is a Dataset. Ignored if X is a Tensor (batch size is set to B).
-
+            X (Tensor or Dataset): Operational inputs. If Tensor, shape [B, D].
+            batch_size (int): Used only if X is a Dataset.
+            node_batch_size (int): Number of seed nodes per subgraph batch.
         Returns:
-            Tensor: Predictions for all nodes in each graph. Shape [B * N, F] where B=batch_size, N=num_nodes and F=output_dim.
+            Tensor: Predictions of shape [B * N, F].
         """
         self._validate_shapes(X)
         self.eval()
 
         with torch.no_grad():
-            if isinstance(X, Tensor):
-                dataset = TorchDataset(X)
-                B = len(dataset)
-                input_dataloader = self._init_dataloader(dataset, batch_size=B)
-
-            elif isinstance(X, TorchDataset):
-                input_dataloader = self._init_dataloader(X, batch_size=batch_size)
-
-            subgraph_loader = self._init_subgraph_loader(
+            input_dataloader = self._helpers.init_dataloader(X, batch_size)
+            subgraph_loader = self._helpers.init_subgraph_loader(
                 batch_size=node_batch_size,
                 input_nodes=kwargs.get("input_nodes", None)
             )
-
             return self._run_epoch(input_dataloader, subgraph_loader, is_train=False, return_loss=False)
 
-
     @cr('GNS.fit')
-    def fit(self, train_dataset:Union[TorchDataset, NNDataset], eval_dataset: Union[TorchDataset, NNDataset]=None, **kwargs) -> Dict:
+    def fit(self, train_dataset:Union[TensorDataset, NNDataset], eval_dataset: Union[TensorDataset, NNDataset]=None, **kwargs) -> Dict:
         """
         Train the model using subgraph batching over both the training inputs and the node space.
 
@@ -395,9 +295,9 @@ class GNS(nn.Module):
         print_rate_epoch = kwargs.get("print_rate_epoch", 1)
 
         # --- Instantiate dataloaders ---        
-        input_dataloader = self._init_dataloader(train_dataset, **kwargs)
-        eval_dataloader = self._init_dataloader(eval_dataset, **kwargs) if eval_dataset is not None else None
-        subgraph_loader = self._init_subgraph_loader(
+        input_dataloader = self._helpers.init_dataloader(train_dataset, **kwargs)
+        eval_dataloader = self._helpers.init_dataloader(eval_dataset, **kwargs) if eval_dataset is not None else None
+        subgraph_loader = self._helpers.init_subgraph_loader(
             batch_size=kwargs.get("node_batch_size", 256),
             input_nodes=kwargs.get("input_nodes", None)
         )
@@ -454,15 +354,15 @@ class GNS(nn.Module):
         return {"train_loss": train_loss_list, "test_loss": test_loss_list}
 
     @cr('GNS._run_epoch')
-    def _run_epoch(self, input_dataloader, subgraph_loader, return_loss: bool = False, loss_fn=None, is_train: bool = False) -> Union[float, Tensor]:
+    def _run_epoch(self, input_dataloader, subgraph_loader, loss_fn=None, return_loss: bool = False, is_train: bool = False) -> Union[float, Tensor]:
         """
         Core routine for both training and inference, handling subgraph batching and device transfer.
 
         Args:
             input_dataloader: Dataloader yielding input parameter batches.
             node_dataloader: Dataloader yielding seed node indices for subgraph batching.
-            return_loss (bool): Whether to compute and return loss instead of predictions.
             loss_fn (callable, optional): Loss function to apply if return_loss is True.
+            return_loss (bool): Whether to compute and return loss instead of predictions.
             is_train (bool): Whether to run in training mode (with gradient updates).
 
         Returns:
@@ -484,20 +384,19 @@ class GNS(nn.Module):
         with context:
             num_batches = 0
             for batch in input_dataloader:
-                if isinstance(batch, (list, tuple)):
-                    inputs_batch = batch[0]
-                    targets_batch = batch[1] if len(batch) > 1 else None
-                inputs_batch = inputs_batch.to(self.device)
+                inputs_batch = batch[0].to(self.device)  # Input parameters
+                try:
+                    targets_batch = batch[1].to(self.device)  # Target values
+                except IndexError:
+                    targets_batch = None
 
                 for subgraph in subgraph_loader:
-
-                    G_batch_prepared = self.injector.inject_replicate(subgraph, inputs_batch, 
-                                                                     targets_batch=targets_batch)
+                    G_batch_prepared = self.injector.replicate_inject(subgraph, inputs_batch, targets_batch)
 
                     if is_train:
                         self.optimizer.zero_grad()
 
-                    output = self.forward(G_batch_prepared)[G_batch_prepared.seed_mask] # [B * N, F]
+                    output = self.forward(G_batch_prepared)[G_batch_prepared.seed_mask] # We only want the seed nodes to compute the loss.
 
                     if return_loss:
                         targets = G_batch_prepared.y[G_batch_prepared.seed_mask]
@@ -518,7 +417,7 @@ class GNS(nn.Module):
                 self.scheduler.step()
 
         if return_loss:
-            self._cleanup({
+            cleanup_tensors({
                 "graph": last_graph,
                 "output": last_output,
                 "targets": last_targets,
@@ -527,60 +426,12 @@ class GNS(nn.Module):
             return total_loss / num_batches
         else:
             return torch.cat(outputs, dim=0)
-
-    def _init_dataloader(self, dataset:Union[TorchDataset, NNDataset], **kwargs):
-        """ Initialize a DataLoader for the given dataset.
-        Args:
-            dataset (Dataset): The dataset to load.
-            is_node (bool): Whether the dataset contains node indices (default: False).
-            **kwargs: Additional arguments for DataLoader.
-        Returns:
-            DataLoader: Configured DataLoader instance.
-        """
-        default_pin = self.device.type == "cuda" and torch.cuda.is_available()
-        return DataLoader(
-            dataset,
-            batch_size=kwargs.get(f"batch_size", 15),
-            shuffle=kwargs.get("shuffle", True),
-            num_workers=kwargs.get("num_workers", 0),
-            pin_memory = kwargs.get("pin_memory", default_pin),
-        )
-
-    def _init_subgraph_loader(self, batch_size: int = 256, input_nodes=None) -> ManualNeighborLoader:
-        """
-        Initialize the subgraph loader for batching.
-
-        Args:
-            batch_size (int): Size of each subgraph batch.
-
-        Returns:
-            ManualNeighborLoader: Configured subgraph loader.
-        """
-        return ManualNeighborLoader(
-            device=self.device,
-            base_graph=self.graph,
-            num_hops=self.num_msg_passing_layers,
-            input_nodes=input_nodes,  # or a specific mask if needed
-            batch_size=batch_size,
-            shuffle=True
-        )
-
+    
     def _validate_shapes(self, X):
         try:
             self.validator.validate(X)
         except Exception as e:
             raise ValueError(f"Invalid dataset for {self.__class__.__name__}: {e}") from e
-    
-    @cr('GNS._cleanup')
-    @staticmethod
-    def _cleanup(tensors: Union[Tensor, Dict, None, Tuple, List]) -> None:
-        if isinstance(tensors, (tuple, list)):
-            for t in tensors:
-                del t
-        else:
-            del tensors
-        torch.cuda.empty_cache()
-
 
 
     def save(self, path: str) -> None:
@@ -661,11 +512,11 @@ class GNS(nn.Module):
 
     @classmethod
     def create_optimized_model(
-    cls,
-    train_dataset: torch.utils.data.Dataset,
-    eval_dataset: torch.utils.data.Dataset,
-    optuna_optimizer: OptunaOptimizer,
-) -> Tuple["GNS", Dict]:
+        cls,
+        train_dataset: torch.utils.data.Dataset,
+        eval_dataset: torch.utils.data.Dataset,
+        optuna_optimizer: OptunaOptimizer,
+    ) -> Tuple["GNS", Dict]:
 
         r"""
         Create an optimized model using Optuna. The model is trained on the training dataset and evaluated on the validation dataset.
@@ -727,7 +578,11 @@ class GNS(nn.Module):
         seed_base = optimization_params.get("seed", 42)
 
         MODEL_KWARGS = {
-            'activation', 'p_dropouts', 'device'
+            'graph', 'input_dim', 'latent_dim', 'output_dim',
+            'hidden_size', 'num_msg_passing_layers',
+            'encoder_hidden_layers', 'decoder_hidden_layers',
+            'message_hidden_layers', 'update_hidden_layers',
+            'seed', 'activation', 'p_dropouts', 'device'
         }
         TRAINING_KWARGS = {
             'batch_size', 'node_batch_size', 'num_workers', 'pin_memory',
@@ -739,7 +594,7 @@ class GNS(nn.Module):
         @cr('GNS.optimization_function')
         def optimization_function(trial) -> float:
             hyperparams = {
-                key: cls._get_optimizing_value(key, val, trial)
+                key: get_optimizing_value(key, val, trial)
                 for key, val in optimization_params.items()
             }
 
@@ -747,123 +602,58 @@ class GNS(nn.Module):
             fit_kwargs = {k: v for k, v in hyperparams.items() if k in TRAINING_KWARGS}
 
             model = cls(
-                graph=hyperparams["graph"],
-                input_dim=hyperparams["input_dim"],
-                latent_dim=hyperparams["latent_dim"],
-                output_dim=hyperparams["output_dim"],
-                hidden_size=hyperparams["hidden_size"],
-                num_msg_passing_layers=hyperparams["num_msg_passing_layers"],
-                encoder_hidden_layers=hyperparams["encoder_hidden_layers"],
-                decoder_hidden_layers=hyperparams["decoder_hidden_layers"],
-                message_hidden_layers=hyperparams["message_hidden_layers"],
-                update_hidden_layers=hyperparams["update_hidden_layers"],
-                seed=seed_base + trial.number,
                 **model_kwargs
             )
 
             pprint(0, f"\nTrial {trial.number + 1}/{optuna_optimizer.num_trials}. Training with hyperparams:\n",
-                json.dumps(hyperparams, indent=4, default=cls._hyperparams_serializer), flush=True)
+                json.dumps(hyperparams, indent=4, default=hyperparams_serializer), flush=True)
 
             try:
                 if optuna_optimizer.pruner is not None:
                     original_epochs = fit_kwargs.get("epochs", 100)
-                    fit_kwargs_loop = dict(fit_kwargs)
-                    fit_kwargs_loop.pop("epochs", None)
+                    fit_kwargs_epoch = dict(fit_kwargs)
+                    fit_kwargs_epoch.pop("epochs", None)
 
                     for epoch in range(original_epochs):
-                        losses = model.fit(train_dataset, eval_dataset, epochs=1, **fit_kwargs_loop)
+                        losses = model.fit(train_dataset, eval_dataset, epochs=1, **fit_kwargs_epoch)
                         loss_val = losses["test_loss"][-1]
                         trial.report(loss_val, epoch)
                         pprint(0, f"Epoch {epoch + 1}/{original_epochs}", flush=True)
                         if trial.should_prune():
-                            model._cleanup()
+                            pprint(0, f"Trial pruned at epoch {epoch + 1}. Calling torch.cuda.empty_cache()", flush=True)
+                            torch.cuda.empty_cache()  # Clear GPU memory before pruning
+                            pprint(0, f"calling del model", flush=True)
                             del model
                             pprint(0, f"\nTrial pruned at epoch {epoch + 1}", flush=True)
                             raise TrialPruned()
                 else:
                     losses = model.fit(train_dataset, eval_dataset, **fit_kwargs)
                     loss_val = losses["test_loss"][-1]
-                    trial.report(loss_val, 0)
+                    trial.report(loss_val, step=9999)
 
 
             except RuntimeError as e:
-                model._cleanup()
+                pprint(0, f"RuntimeError during trial {trial.number + 1}: {e}. Calling torch.cuda.empty_cache()", flush=True)
+                torch.cuda.empty_cache()  # Clear GPU memory before raising
+                pprint(0, f"calling del model", flush=True)
                 del model
                 raise e
 
-            model._cleanup()
+            pprint(0, f"\nTrial {trial.number + 1} completed. Calling torch.cuda.empty_cache()", flush=True)
+            torch.cuda.empty_cache()  # Clear GPU memory after each trial
+            pprint(0, f"calling del model", flush=True)
             del model
             return loss_val
 
         best_params = optuna_optimizer.optimize(objective_function=optimization_function)
+        pprint(0, f"\nBest hyperparameters found: {json.dumps(best_params, indent=4, default=hyperparams_serializer)}\n", flush=True)
         optimization_params.update(best_params)
 
-        final_model = cls(
-            input_dim=best_params["input_dim"],
-            latent_dim=best_params["latent_dim"],
-            output_dim=best_params["output_dim"],
-            hidden_size=best_params["hidden_size"],
-            num_msg_passing_layers=best_params["num_msg_passing_layers"],
-            encoder_hidden_layers=best_params["encoder_hidden_layers"],
-            decoder_hidden_layers=best_params["decoder_hidden_layers"],
-            message_hidden_layers=best_params["message_hidden_layers"],
-            update_hidden_layers=best_params["update_hidden_layers"],
-            **{k: best_params[k] for k in MODEL_KWARGS if k in best_params}
-        )
+        final_model = cls(**{
+            k: v for k, v in optimization_params.items() if k in MODEL_KWARGS
+        })
 
         return final_model, optimization_params
-
-    @cr('GNS._get_optimizing_value')
-    @staticmethod
-    def _get_optimizing_value(name, value, trial) -> Union[int, float, str]:
-        """
-        Suggest a value for a given hyperparameter depending on its type and content.
-
-        Args:
-            name (str): Hyperparameter name.
-            value (Any): Either a fixed value, a range, or a list of options.
-            trial (optuna.Trial): Optuna trial object.
-
-        Returns:
-            Union[int, float, str]: Suggested value.
-        """
-        if isinstance(value, (tuple, list)):
-            if all(isinstance(v, (int, float)) for v in value):
-                use_log = np.abs(value[1]) / (np.abs(value[0]) + 1e-8) >= 1000
-                low, high = value
-
-                if isinstance(low, int):
-                    if name == "latent_dim":
-                        return trial.suggest_int(name, low + low % 2, high + high % 2, step=2)
-                    return trial.suggest_int(name, low, high, log=use_log)
-
-                elif isinstance(low, float):
-                    if use_log and low <= 0:
-                        use_log = False  # fallback to linear scale
-                    return trial.suggest_float(name, low, high, log=use_log)
-            elif all(isinstance(v, str) for v in value):
-                return trial.suggest_categorical(name, value)
-            else:
-                raise ValueError(f"Unsupported value list for {name}: {value}")
-        else:
-            return value
-
-
-
-    @staticmethod
-    def _hyperparams_serializer(obj) -> str:
-        r"""
-        Function used to print hyperparams in JSON format.
-        Args:
-            obj (Any): The object to serialize.
-        Returns:
-            str: The serialized object.
-        """
-
-        if hasattr(obj, "__class__"):  # Verify whether the object has a class
-            return obj.__class__.__name__  # Return the class name
-        raise TypeError(f"Type {type(obj)} not serializable")  # Raise an error if the object is not serializable
-
 
     def __repr__(self):
         return (

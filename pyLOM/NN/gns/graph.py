@@ -386,29 +386,6 @@ class Graph(Data):
         return self.x_dict
 
 
-
-    # def edge_attr(self):
-    #     """
-    #     [DEPRECATED] Use `edge_attr_dict` instead.
-
-    #     This method is retained for backward compatibility. It returns the dictionary of edge attributes,
-    #     where each entry corresponds to a named tensor of shape [num_edges, feature_dim].
-
-    #     Note:
-    #         This method will be removed in a future version. Please use `graph.edge_attr_dict` instead.
-
-    #     Example:
-    #         >>> g.edge_attr()  # Deprecated
-    #         >>> g.edge_attr_dict['wall_normals']  # Preferred
-    #     """
-    #     warnings.warn(
-    #         "`edge_attr()` is deprecated. Use `graph.edge_attr_dict` instead.",
-    #         DeprecationWarning,
-    #         stacklevel=2
-    #     )
-    #     return self.edge_attr_dict
-
-
     @cr('Graph.filter')
     def filter(
         self,
