@@ -224,7 +224,7 @@ class MLP(nn.Module):
 
         Args:
             X (torch.utils.data.Dataset): The dataset whose target values are to be predicted using the input data.
-            rescale_output (bool): Whether to rescale the output with the scaler of the dataset (default: ``True``).
+            return_targets (bool, optional): If ``True``, the true target values will be returned along with the predictions (default: ``False``).
             kwargs (dict, optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):
                 
                 - batch_size (int, optional): Batch size (default: ``256``).
