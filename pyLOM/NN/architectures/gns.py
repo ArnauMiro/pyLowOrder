@@ -10,16 +10,13 @@ import os
 import json
 import warnings
 from dataclasses import asdict
-from typing import Dict, Tuple, Union
+from typing import Dict, Tuple, Union, Optional
 
 import torch
 from torch import Tensor
-from torch.nn import ELU
 from torch.utils.data import Dataset as TorchDataset
-from torch.utils.data import TensorDataset
 from torch_geometric.data import Data
 
-from .. import Dataset as NNDataset
 from .. import DEVICE, set_seed
 from ..utils import count_trainable_params, cleanup_tensors, get_optimizing_value, hyperparams_serializer
 from ..gns import GNSMLP, MessagePassingLayer, Graph, InputsInjector, _ShapeValidator, _GNSHelpers, GNSConfig, TrainingConfig
@@ -142,10 +139,6 @@ class GNS(torch.nn.Module):
             num_channels=self.latent_dim
         ).to(self.device)
 
-    @property
-    def model_dict(self) -> Dict:
-        return asdict(self.config)
-
     def _build_encoder(self):
         self.encoder = GNSMLP(
             input_size=self._encoder_input_dim,
@@ -253,7 +246,7 @@ class GNS(torch.nn.Module):
     def fit(
         self,
         train_dataset: TorchDataset,
-        eval_dataset: TorchDataset = None,
+        eval_dataset: Optional[TorchDataset] = None,
         config: TrainingConfig = TrainingConfig()
     ) -> Dict[str, list]:
         """
@@ -382,8 +375,8 @@ class GNS(torch.nn.Module):
 
         Returns:
             Union[float, Tensor]:
-                - If return_loss is True: average loss over all batches.
-                - If return_loss is False: predictions of shape [B * N, F].
+                - If `return_loss` is True: average loss (float) over all batches (used in training/eval).
+                - If `return_loss` is False: tensor of predictions with shape [B, N, F] (used in prediction mode).
         """
         self.train() if is_train else self.eval()
         outputs = []
@@ -486,7 +479,7 @@ class GNS(torch.nn.Module):
         inputs_batch: Tensor,
         targets_batch: Union[Tensor, None],
         loss_fn: torch.nn.Module = None
-    ) -> float | Data | Tensor:
+    ) -> Union[Tuple[float, Data, Tensor, Tensor, Tensor], Tensor]:
         """
         Perform a single evaluation (validation or prediction) step.
 
@@ -497,10 +490,9 @@ class GNS(torch.nn.Module):
             loss_fn (callable, optional): If provided, computes loss against targets.
 
         Returns:
-            - If loss_fn is provided:
-                Tuple[float, Data, Tensor, Tensor, Tensor]: (loss value, graph, output, targets, loss tensor)
-            - Else:
-                Tensor: Predictions on seed nodes.
+            Union[Tuple[float, Data, Tensor, Tensor, Tensor], Tensor]:
+                - If `loss_fn` is provided: a tuple (loss_value, graph, output, targets, loss_tensor) for evaluation.
+                - If `loss_fn` is None: predictions on seed nodes as a Tensor of shape [S, F], where S is number of seed nodes.
         """
         G = self.injector.replicate_inject(subgraph, inputs_batch, targets_batch)
         output = self.forward(G)[G.seed_mask]
@@ -653,6 +645,7 @@ class GNS(torch.nn.Module):
                         loss_val = losses["test_loss"][-1]
                         trial.report(loss_val, epoch)
                         if trial.should_prune():
+                            # Explicitly delete model and free memory in case of large graphs and multiple trials
                             torch.cuda.empty_cache()
                             del model
                             raise TrialPruned()
@@ -662,6 +655,7 @@ class GNS(torch.nn.Module):
                     trial.report(loss_val, step=9999)
 
             except RuntimeError as e:
+                # Free memory to avoid fragmentation on CUDA OOM errors
                 torch.cuda.empty_cache()
                 del model
                 raise e
