@@ -99,14 +99,6 @@ def main():
     td_test  = load_dataset(os.path.join(BASEDIR,'TEST_converter.h5'),input_scaler,output_scaler)
     td_val   = load_dataset(os.path.join(BASEDIR,'VAL_converter.h5'),input_scaler,output_scaler)
 
-    # print(td_train)
-    # print(td_train[0])
-    # print(td_train[1])
-
-    # print_dset_stats("Train", td_train)
-    # print_dset_stats("Test", td_test)return_loss (bool): Whether to compute and return loss instead of predictions.
-    # print_dset_stats("Val", td_val)
-
     ## Create the graph
     g = Graph.load(os.path.join(BASEDIR, "TRAIN_converter.h5"), device=device)
     print(g)
@@ -120,7 +112,7 @@ def main():
         'output_dim': 1,
         'latent_dim': (1, 32),
         'hidden_size': (64, 512),
-        'num_msg_passing_layers': (1, 4),
+        'num_msg_passing_layers': (1, 8),
         'encoder_hidden_layers': (1, 8),
         'decoder_hidden_layers': (1, 8),
         'message_hidden_layers': (1, 8),
@@ -130,7 +122,7 @@ def main():
         'device': device,
 
         # --- Training parameters ---
-        'epochs': 3,
+        'epochs': 1000,
         'lr': (1e-5, 1e-2),
         'lr_gamma': (0.99, 0.999),
         'lr_scheduler_step': 1,
@@ -172,17 +164,17 @@ def main():
     training_logs = pipeline.run()
 
     # check saving and loading the model
-    pipeline.model.save(os.path.join(RESUDIR,"NLR7301_optuna_test.pth"))
-    model = GNS.load(RESUDIR + "NLR7301_optuna_test.pth")
+    pipeline.model.save(os.path.join(RESUDIR,"NLR7301_optuna.pth"))
+    model = GNS.load(RESUDIR + "NLR7301_optuna.pth")
     print(model)
 
     # check saving and loading the scalers
     if input_scaler is not None:
-        input_scaler.save(os.path.join(RESUDIR,"input_scaler_test.json"))
-        input_scaler = MinMaxScaler.load(os.path.join(RESUDIR,"input_scaler_test.json"))
+        input_scaler.save(os.path.join(RESUDIR,"input_scaler.json"))
+        input_scaler = MinMaxScaler.load(os.path.join(RESUDIR,"input_scaler.json"))
     if output_scaler is not None:
         output_scaler.save(os.path.join(RESUDIR,"output_scaler_test.json"))
-        output_scaler = MinMaxScaler.load(os.path.join(RESUDIR,"output_scaler_test.json"))
+        output_scaler = MinMaxScaler.load(os.path.join(RESUDIR,"output_scaler.json"))
 
     # to predict from a dataset
     print("Predicting from the test dataset...")
@@ -206,8 +198,8 @@ def main():
     evaluator(labels_train, preds_train)
     evaluator.print_metrics()
 
-    true_vs_pred_plot(labels_train, preds_train, RESUDIR + 'true_vs_pred_test.png')
-    plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss_test.png')
+    true_vs_pred_plot(labels_train, preds_train, RESUDIR + 'true_vs_pred.png')
+    plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss.png')
 
     pyLOM.cr_info()
     plt.show()
@@ -262,8 +254,8 @@ def main():
     training_logs = pipeline.run()
 
     # check saving and loading the model
-    pipeline.model.save(os.path.join(RESUDIR,"NLR7301_DLR_test.pth"))
-    model = GNS.load(RESUDIR + "NLR7301_DLR_test.pth")
+    pipeline.model.save(os.path.join(RESUDIR,"NLR7301_DLR.pth"))
+    model = GNS.load(RESUDIR + "NLR7301_DLR.pth")
 
     # to predict from a dataset
     preds = model.predict(td_test)
@@ -275,8 +267,8 @@ def main():
     evaluator(labels, preds)
     evaluator.print_metrics()
 
-    true_vs_pred_plot(labels, preds, RESUDIR + 'true_vs_pred_DLR_test.png')
-    plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss_DLR_test.png')
+    true_vs_pred_plot(labels, preds, RESUDIR + 'true_vs_pred_DLR.png')
+    plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss_DLR.png')
 
     pyLOM.cr_info()
     plt.show()
