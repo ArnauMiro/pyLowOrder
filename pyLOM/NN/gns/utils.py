@@ -9,7 +9,7 @@ from torch_geometric.data import Data
 from torch_geometric.utils import k_hop_subgraph
 
 from . import Graph
-from ... import cr, pprint
+from ... import cr
 
 class ManualNeighborLoader:
     """
