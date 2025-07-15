@@ -1,0 +1,24 @@
+# run_config.yaml
+# High-level configuration for executing a training or Optuna optimization run.
+
+run_config:
+
+  basedir: "./data/NLR7301"           # Directory containing TRAIN_converter.h5, etc.
+  resudir: "./results/exp_01"         # Directory to store all outputs (models, plots, logs, etc.)
+
+  optuna_optimize: false              # If true → use optuna_config. If false → use train_config.
+
+  train_config: "./configs/train_config.yaml"   # Used only if optuna_optimize: false
+  # optuna_config: "./configs/optuna_config.yaml"  # Used only if optuna_optimize: true
+
+  evaluation:
+    plot_true_vs_pred: true           
+    plot_train_test_loss: true        
+    save_model: true                  
+    save_metrics: true
+    model_path: "gns_model.pth"       
+    metrics_path: "metrics.json"
+
+  logging:
+    level: INFO                       # Logging level: DEBUG, INFO, WARNING, ERROR
+    logfile: null                     # Set to a filename to log to file (e.g., "training.log")

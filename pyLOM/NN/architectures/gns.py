@@ -10,6 +10,8 @@ import os
 import json
 import warnings
 from dataclasses import asdict
+import yaml
+from pathlib import Path
 from typing import Dict, Tuple, Union, Optional
 
 import torch
@@ -575,6 +577,53 @@ class GNS(torch.nn.Module):
         return model
 
     @classmethod
+    def from_yaml(
+        cls,
+        yaml_path: Union[str, Path],
+        with_training_config: bool = False
+    ) -> Union["GNS", Tuple["GNS", TrainingConfig]]:
+        """
+        Construct a GNS model from a YAML configuration file.
+
+        The YAML must contain a 'model' section and optionally a 'training' section.
+        The 'model' section must include a 'graph_path' to load the graph.
+
+        Args:
+            yaml_path (str or Path): Path to the YAML config file.
+            with_training_config (bool): Whether to return the TrainingConfig as well.
+
+        Returns:
+            GNS or (GNS, TrainingConfig): Model, and optionally training config.
+        """
+        yaml_path = Path(yaml_path)
+        if not yaml_path.is_file():
+            raise FileNotFoundError(f"YAML file '{yaml_path}' not found.")
+
+        with open(yaml_path, "r") as f:
+            config_data = yaml.safe_load(f)
+
+        if "model" not in config_data:
+            raise KeyError("Missing 'model' section in YAML.")
+
+        model_dict = dict(config_data["model"])  # avoid mutating original
+        if "graph_path" not in model_dict:
+            raise KeyError("Missing 'graph_path' in model config.")
+
+        graph_path = model_dict.pop("graph_path")
+        graph = Graph.load(graph_path)  # assumes Graph.load(path: str)
+
+        model_config = GNSConfig(**model_dict)
+        model = cls(graph=graph, config=model_config)
+
+        if with_training_config:
+            training_dict = config_data.get("training", {})
+            training_config = TrainingConfig(**training_dict)
+            return model, training_config
+
+        return model
+
+
+    @classmethod
     def create_optimized_model(
         cls,
         train_dataset: torch.utils.data.Dataset,
@@ -600,20 +649,6 @@ class GNS(torch.nn.Module):
         """
 
         optimization_params = optuna_optimizer.optimization_params
-
-        MODEL_KWARGS = {
-            'graph', 'input_dim', 'latent_dim', 'output_dim',
-            'hidden_size', 'num_msg_passing_layers',
-            'encoder_hidden_layers', 'decoder_hidden_layers',
-            'message_hidden_layers', 'update_hidden_layers',
-            'p_dropouts', 'activation', 'seed', 'device',
-        }
-        TRAINING_KWARGS = {
-            'epochs', 'lr', 'lr_gamma', 'lr_scheduler_step',
-            'loss_fn', 'optimizer', 'scheduler',
-            'batch_size', 'node_batch_size', 'num_workers',
-            'input_nodes', 'verbose'
-        }
         
         @cr('GNS.optimization_function')
         def optimization_function(trial) -> float:
@@ -624,8 +659,15 @@ class GNS(torch.nn.Module):
             }
 
             # Construct model config and training config
-            model_config = GNSConfig(**{k: v for k, v in hyperparams.items() if k in MODEL_KWARGS})
-            training_config = TrainingConfig(**{k: v for k, v in hyperparams.items() if k in TRAINING_KWARGS})
+            model_config = GNSConfig(**{
+                k: v for k, v in hyperparams.items()
+                if k in GNSConfig.__annotations__
+            })
+            training_config = TrainingConfig(**{
+                k: v for k, v in hyperparams.items()
+                if k in TrainingConfig.__annotations__
+            })
+
 
             # Create model
             model = cls(
@@ -668,7 +710,11 @@ class GNS(torch.nn.Module):
         pprint(0, f"\nBest hyperparameters found: {json.dumps(best_params, indent=4, default=hyperparams_serializer)}\n", flush=True)
 
         # Rebuild final model using best config
-        model_config = GNSConfig(**{k: v for k, v in best_params.items() if k in MODEL_KWARGS})
+        model_config = GNSConfig(**{
+            k: v for k, v in best_params.items()
+            if k in GNSConfig.__annotations__
+        })
+
         final_model = cls(
             graph=optimization_params["graph"],
             config=model_config

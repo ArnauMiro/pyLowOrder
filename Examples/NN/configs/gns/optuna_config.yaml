@@ -1,0 +1,41 @@
+# Configuration for the GNS model architecture, training, and Optuna optimization.
+optuna:
+  study:
+    study_name: "gns_optuna_search"
+    direction: minimize
+    save_path: "./results/optuna/"
+    storage: null                # Example: "sqlite:///optuna_studies.db"
+    load_if_exists: true
+    timeout: 3600                # Max total time in seconds
+    n_trials: 50
+
+    pruner:
+      type: MedianPruner
+      n_startup_trials: 5
+      n_warmup_steps: 10
+      interval_steps: 1
+
+    sampler:
+      type: TPESampler
+      seed: 42
+      multivariate: true
+      group: true
+
+  search_space:
+    model:
+      latent_dim: [8, 64]
+      hidden_size: [64, 512]
+      num_msg_passing_layers: [1, 6]
+      encoder_hidden_layers: [1, 4]
+      decoder_hidden_layers: [1, 4]
+      message_hidden_layers: [1, 4]
+      update_hidden_layers: [1, 4]
+      activation: ELU
+      p_dropouts: [0.0, 0.3]
+      device: cuda
+
+    training:
+      lr: [1e-5, 1e-2]
+      lr_gamma: [0.95, 0.999]
+      batch_size: [4, 32]
+      node_batch_size: [128, 2048]
