@@ -1,3 +1,13 @@
+experiment:
+  name: gns_experiment
+  description: Training configuration for GNS model
+  version: 1.0
+  tags: [baseline, nlr7301]
+  seed: 123  # Global seed (used also in training unless overridden)
+
+resources:
+  graph_path: /home/p.yeste/CETACEO_DATA/nlr7301/TRAIN_converter.h5
+
 model:
   input_dim: 2
   output_dim: 1
@@ -8,21 +18,20 @@ model:
   decoder_hidden_layers: 1
   message_hidden_layers: 2
   update_hidden_layers: 2
-  activation: ELU                # Can be resolved to torch.nn.ELU()
+  activation: ELU
   p_dropouts: 0.1
-  device: cuda                   # or "cpu"
+  device: cuda
 
 training:
   epochs: 1000
   lr: 6e-4
   lr_gamma: 0.995
   lr_scheduler_step: 1
-  loss_fn: MSELoss               # Can be resolved to torch.nn.MSELoss
-  optimizer: Adam                # Can be resolved to torch.optim.Adam
-  scheduler: StepLR              # Can be resolved to torch.optim.lr_scheduler.StepLR
+  loss_fn: MSELoss
+  optimizer: Adam
+  scheduler: StepLR
   batch_size: 16
   node_batch_size: 256
   num_workers: 1
   pin_memory: true
-  seed: 123
   verbose: 50

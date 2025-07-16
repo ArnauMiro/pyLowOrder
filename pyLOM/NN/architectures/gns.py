@@ -59,42 +59,45 @@ class GNS(torch.nn.Module):
         >>> model = GNS(graph, config)
     """
 
-    def __init__(self, graph: Graph, config: GNSConfig) -> None:
+    def __init__(self, config: GNSConfig) -> None:
         """
-        Initialize the GNS model.
+        Initialize the GNS model from a configuration object. If a graph_path is provided in the config,
+        the graph will be loaded automatically. Otherwise, the graph must be manually assigned via
+        `model.graph = ...` before calling `fit()`, `predict()`, or `forward()`.
 
         Args:
-            graph (Graph): The graph containing node and edge features.
-            config (GNSConfig): The configuration dataclass containing all model hyperparameters.
+            config (GNSConfig): Configuration dataclass with all model hyperparameters.
         """
         super().__init__()
 
-        # --- Store config and extract common parameters ---
+        # --- Configuration ---
         self.config = config
         self.device = torch.device(config.device)
         self.seed = config.seed
         self.p_dropouts = config.p_dropouts
 
-        # --- Activation function ---
-        if isinstance(config.activation, str):
-            if not hasattr(torch.nn, config.activation):
-                raise ValueError(f"Activation function '{config.activation}' not found in torch.nn")
-            self.activation = getattr(torch.nn, config.activation)()
-        else:
-            self.activation = config.activation
-
         # --- Device setup ---
         if self.device.type == "cuda":
             if not torch.cuda.is_available():
-                raise ValueError("CUDA is not available. Please use CPU instead.")
-            torch.cuda.set_device(self.device)  # Safer than hardcoding device index
+                raise RuntimeError("CUDA is not available. Please use CPU instead.")
+            torch.cuda.set_device(self.device)
+
         pprint(0, f"Using device: {self.device}", flush=True)
 
         # --- Reproducibility ---
         if self.seed is not None:
             set_seed(self.seed)
 
-        # --- Optional convenience aliases ---
+        # --- Activation ---
+        if isinstance(config.activation, str):
+            try:
+                self.activation = getattr(torch.nn, config.activation)()
+            except AttributeError:
+                raise ValueError(f"Invalid activation function: {config.activation}")
+        else:
+            self.activation = config.activation
+
+        # --- Architecture parameters (convenience aliases) ---
         self.input_dim = config.input_dim
         self.latent_dim = config.latent_dim
         self.output_dim = config.output_dim
@@ -105,25 +108,59 @@ class GNS(torch.nn.Module):
         self.message_hidden_layers = config.message_hidden_layers
         self.update_hidden_layers = config.update_hidden_layers
 
-        # --- Graph setup ---
+        # --- Graph (optional) ---
         self._graph = None
         self._encoder_input_dim = None
         self._edge_dim = None
-        self.graph = graph  # Triggers setter logic: sets _encoder_input_dim and _edge_dim
 
-        # --- Inputs injector (subgraph preparation) ---
+        if config.graph_path:
+            self.graph = Graph.load(config.graph_path).to(self.device)
+        else:
+            warnings.warn(
+                "GNS initialized without a graph. You must set `model.graph = ...` "
+                "before using `fit()`, `predict()`, or `forward()`.",
+                category=UserWarning
+            )
+
+        # --- Subgraph injector and training state ---
         self.injector = InputsInjector(device=self.device)
-
-        # --- Training state (can be loaded from checkpoint) ---
         self.state = {}
         self.optimizer = None
         self.scheduler = None
         self.checkpoint = None
 
-        # --- Shape validation helper ---
-        self.validator = _ShapeValidator(self.input_dim, self.output_dim, self.graph.num_nodes)
+        # --- To be initialized once the graph is available ---
+        self.validator = None
+        self._helpers = None
+        self.encoder = None
+        self.decoder = None
+        self.conv_layers_list = None
+        self.groupnorm = None
 
-        # --- Subgraph batching and utility helpers ---
+        # --- Build architecture if graph is already set ---
+        if self.graph is not None:
+            self._post_graph_init()
+
+    def _post_graph_init(self) -> None:
+        """
+        Initialize all components that depend on the presence of a valid graph.
+        This method should be called after setting `self.graph`.
+        """
+        if self.graph is None:
+            raise RuntimeError("Cannot initialize GNS internals: graph is not set.")
+
+        # --- Compute input dimensions ---
+        self._encoder_input_dim = self.graph.x.shape[1] + self.input_dim
+        self._edge_dim = self.graph.edge_attr.shape[1]
+
+        # --- Shape validator ---
+        self.validator = _ShapeValidator(
+            input_dim=self.input_dim,
+            output_dim=self.output_dim,
+            num_nodes=self.graph.num_nodes
+        )
+
+        # --- Subgraph batching helpers ---
         self._helpers = _GNSHelpers(
             device=self.device,
             graph=self.graph,
@@ -131,11 +168,34 @@ class GNS(torch.nn.Module):
         )
 
         # --- Model components ---
-        self._build_encoder()
-        self._build_message_passing_layers()
-        self._build_decoder()
+        self.encoder = GNSMLP(
+            input_size=self._encoder_input_dim,
+            output_size=self.latent_dim,
+            hidden_size=self.hidden_size,
+            activation=self.activation,
+            drop_p=self.p_dropouts
+        ).to(self.device)
 
-        # --- Normalization layer ---
+        self.decoder = GNSMLP(
+            input_size=self.latent_dim,
+            output_size=self.output_dim,
+            hidden_size=self.hidden_size,
+            activation=self.activation,
+            drop_p=self.p_dropouts
+        ).to(self.device)
+
+        self.conv_layers_list = torch.nn.ModuleList([
+            MessagePassingLayer(
+                in_channels=2 * self.latent_dim + self._edge_dim,
+                out_channels=self.latent_dim,
+                hidden_size=self.hidden_size,
+                message_hidden_layers=self.message_hidden_layers,
+                update_hidden_layers=self.update_hidden_layers,
+                activation=self.activation,
+                drop_p=self.p_dropouts
+            ) for _ in range(self.num_msg_passing_layers)
+        ]).to(self.device)
+
         self.groupnorm = torch.nn.GroupNorm(
             num_groups=min(2, self.latent_dim),
             num_channels=self.latent_dim
@@ -174,27 +234,37 @@ class GNS(torch.nn.Module):
 
     @property
     def graph(self) -> Graph:
-        r"""Graph property to get the graph object."""
+        """Return the current graph."""
         return self._graph
-    
+
     @graph.setter
     def graph(self, graph: Graph) -> None:
-        r"""Graph property to set the graph object."""
+        """
+        Assign a graph to the model. Triggers initialization of all dependent components.
+
+        Args:
+            graph (Graph): The input graph object.
+
+        Raises:
+            TypeError: If graph is not a Graph instance.
+            RuntimeError: If graph is None.
+        """
+        if graph is None:
+            raise RuntimeError("Graph cannot be None. Use a valid Graph object.")
+
         if not isinstance(graph, Graph):
-            raise TypeError("Graph must be of type Graph.")
+            raise TypeError("Assigned object must be of type Graph.")
+
         if self._graph is not None:
-            warnings.warn("Graph is already set. Overwriting.")
-        
+            warnings.warn("Overwriting an existing graph.", category=UserWarning)
+
         graph.validate()
-        
+
         if graph.device != self.device:
             graph = graph.to(self.device)
 
-
-        self._encoder_input_dim = graph.x.shape[1] + self.input_dim # Update node features dimension
-        self._edge_dim = graph.edge_attr.shape[1] # Update edge features dimension
-
         self._graph = graph
+        self._post_graph_init()
 
     @cr('GNS.forward')
     def forward(self, graph: Union[Data, Graph]) -> Tensor:
@@ -233,9 +303,13 @@ class GNS(torch.nn.Module):
         Returns:
             Tensor: Predictions of shape [B * N, F].
         """
+        # --- Check if graph is set ---
+        if self.graph is None:
+            raise RuntimeError("Model graph is not set. Please assign it with `model.graph = ...` before calling this method.")
+        # --- Validate input shapes ---
         self._validate_shapes(X)
+        
         self.eval()
-
         with torch.no_grad():
             input_dataloader = self._helpers.init_dataloader(X, batch_size=batch_size)
             subgraph_loader = self._helpers.init_subgraph_loader(
@@ -264,6 +338,10 @@ class GNS(torch.nn.Module):
         Returns:
             Dict: Dictionary containing lists of per-epoch `"train_loss"` and `"test_loss"`.
         """
+        # --- Check if graph is set ---
+        if self.graph is None:
+            raise RuntimeError("Model graph is not set. Please assign it with `model.graph = ...` before calling this method.")
+
         # --- Validate dataset shapes ---
         self._validate_shapes(train_dataset)
         if eval_dataset is not None:
@@ -519,81 +597,118 @@ class GNS(torch.nn.Module):
         """
         Save the model to a checkpoint file.
 
-        If the given path is a directory, appends a filename with the number of trained epochs.
+        This stores the model config, training state, and model weights. The graph is NOT saved.
+        The config must include a valid `graph_path`, otherwise saving is not allowed.
 
         Args:
             path (str): Directory or full file path to save the model.
         """
+        if not self.config.graph_path:
+            raise RuntimeError(
+                "Cannot save model: 'graph_path' is not set in the config. "
+                "Please set a valid graph path before saving."
+            )
+
         checkpoint = {
             "config": asdict(self.config),
             "state_dict": self.state_dict(),
             "state": self.state,
-            "graph": self.graph,
         }
 
         if os.path.isdir(path):
-            filename = f"/trained_model_{len(self.state[2]):06d}.pth"
+            filename = f"trained_model_{len(self.state[2]):06d}.pth"
             path = os.path.join(path, filename)
 
         torch.save(checkpoint, path)
 
 
+
     @classmethod
     def load(cls, path: str, device: Union[str, torch.device] = DEVICE) -> "GNS":
         """
-        Load a model from a checkpoint file.
+        Load a GNS model from a checkpoint file.
+
+        The checkpoint must include:
+            - The model's configuration (`config`) as a dictionary.
+            - The model weights (`state_dict`).
+            - Optionally, the training state (`state`) to resume training.
+
+        The config must include a valid `graph_path`, which will be used to reload the graph from disk.
+        The graph itself is not stored in the checkpoint.
 
         Args:
             path (str): Path to the `.pth` checkpoint file.
-            device (Union[str, torch.device]): Target device for model (default: inferred).
+            device (Union[str, torch.device]): Device to map the model to (e.g., "cpu" or "cuda:0").
 
         Returns:
-            GNS: Loaded model instance.
+            GNS: The reconstructed model instance, ready for inference or further training.
+
+        Raises:
+            FileNotFoundError: If the checkpoint file is missing.
+            ValueError: If the file extension is not `.pth`.
+            KeyError: If required keys are missing from the checkpoint.
+            RuntimeError: If `graph_path` is not present in the saved config.
         """
         if not os.path.isfile(path):
             raise FileNotFoundError(f"Model file '{path}' not found.")
         if not path.endswith(".pth"):
-            raise ValueError("Model file must have a '.pth' extension.")
+            raise ValueError("Checkpoint file must have a '.pth' extension.")
 
         device = torch.device(device or DEVICE)
         if device.type == "cuda":
             if not torch.cuda.is_available():
-                raise RuntimeError("CUDA not available. Use CPU instead.")
-            torch.cuda.set_device(0)
+                raise RuntimeError("CUDA is not available. Use CPU instead.")
+            torch.cuda.set_device(device)
 
-        checkpoint = torch.load(path, map_location='cpu')
+        checkpoint = torch.load(path, map_location="cpu")
 
-        required_keys = ["graph", "state_dict"]
-        for key in required_keys:
-            if key not in checkpoint:
-                raise KeyError(f"Missing key '{key}' in checkpoint.")
-        
+        if "config" not in checkpoint or "state_dict" not in checkpoint:
+            raise KeyError("Checkpoint must contain 'config' and 'state_dict' keys.")
+
         config = GNSConfig(**checkpoint["config"])
-        model = cls(graph=checkpoint["graph"], config=config)
+        if not config.graph_path:
+            raise RuntimeError(
+                "Cannot load model: 'graph_path' is missing in saved config. "
+                "The graph must be saved separately and graph_path must be present in the config."
+            )
+
+        model = cls(config=config)
+        model.graph = Graph.load(config.graph_path).to(device)
         model.load_state_dict(checkpoint["state_dict"])
-        model.state = checkpoint["state"]
+        model.state = checkpoint.get("state", {})
         model.eval()
 
         return model
 
+
     @classmethod
-    def from_yaml(
+    def from_config_yaml(
         cls,
         yaml_path: Union[str, Path],
-        with_training_config: bool = False
+        return_training_config: bool = False
     ) -> Union["GNS", Tuple["GNS", TrainingConfig]]:
         """
-        Construct a GNS model from a YAML configuration file.
+        Create a new, untrained GNS model from a YAML configuration file.
 
-        The YAML must contain a 'model' section and optionally a 'training' section.
-        The 'model' section must include a 'graph_path' to load the graph.
+        This method is intended for initializing a model from a saved experiment config.
+        It builds the model from the `model` section of the YAML, and optionally returns the `training` section
+        as a `TrainingConfig`.
+
+        This does *not* load any trained weights. For loading a pretrained model from a checkpoint,
+        use `GNS.load()` instead.
+
+        The `model` section must include `graph_path` to locate and load the graph from disk.
 
         Args:
-            yaml_path (str or Path): Path to the YAML config file.
-            with_training_config (bool): Whether to return the TrainingConfig as well.
+            yaml_path (str or Path): Path to the YAML configuration file.
+            return_training_config (bool): If True, also return a TrainingConfig instance parsed from the YAML.
 
         Returns:
-            GNS or (GNS, TrainingConfig): Model, and optionally training config.
+            GNS or Tuple[GNS, TrainingConfig]: A new model instance (untrained), and optionally the training config.
+
+        Raises:
+            FileNotFoundError: If the YAML file does not exist.
+            KeyError: If the 'model' section or required keys like 'graph_path' are missing.
         """
         yaml_path = Path(yaml_path)
         if not yaml_path.is_file():
@@ -605,23 +720,23 @@ class GNS(torch.nn.Module):
         if "model" not in config_data:
             raise KeyError("Missing 'model' section in YAML.")
 
-        model_dict = dict(config_data["model"])  # avoid mutating original
+        model_dict = dict(config_data["model"])  # Avoid mutating original dict
         if "graph_path" not in model_dict:
             raise KeyError("Missing 'graph_path' in model config.")
 
         graph_path = model_dict.pop("graph_path")
-        graph = Graph.load(graph_path)  # assumes Graph.load(path: str)
+        graph = Graph.load(graph_path)
 
-        model_config = GNSConfig(**model_dict)
-        model = cls(graph=graph, config=model_config)
+        model_config = GNSConfig(graph_path=graph_path, **model_dict)
+        model = cls(config=model_config)
+        model.graph = graph
 
-        if with_training_config:
+        if return_training_config:
             training_dict = config_data.get("training", {})
             training_config = TrainingConfig(**training_dict)
             return model, training_config
 
         return model
-
 
     @classmethod
     def create_optimized_model(
@@ -715,10 +830,8 @@ class GNS(torch.nn.Module):
             if k in GNSConfig.__annotations__
         })
 
-        final_model = cls(
-            graph=optimization_params["graph"],
-            config=model_config
-        )
+        final_model = cls(config=model_config)
+        final_model.graph = optimization_params["graph"]
 
         return final_model, best_params
 

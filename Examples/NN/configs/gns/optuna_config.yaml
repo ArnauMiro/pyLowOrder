@@ -1,12 +1,21 @@
-# Configuration for the GNS model architecture, training, and Optuna optimization.
+experiment:
+  name: gns_optuna
+  description: Optimization configuration for GNS model
+  version: 1.0
+  tags: [optuna, nlr7301]
+  seed: 42  # Global seed for reproducibility
+
+resources:
+  graph_path: /home/p.yeste/CETACEO_DATA/nlr7301/TRAIN_converter.h5
+
 optuna:
   study:
     study_name: "gns_optuna_search"
     direction: minimize
     save_path: "./results/optuna/"
-    storage: null                # Example: "sqlite:///optuna_studies.db"
+    storage: null
     load_if_exists: true
-    timeout: 3600                # Max total time in seconds
+    timeout: 3600
     n_trials: 50
 
     pruner:
@@ -17,9 +26,9 @@ optuna:
 
     sampler:
       type: TPESampler
-      seed: 42
       multivariate: true
       group: true
+      seed: 42  # Optionally override experiment.seed
 
   search_space:
     model:

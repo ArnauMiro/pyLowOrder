@@ -1,0 +1,97 @@
+execution:
+  mode: train                     # Options: train, optuna
+  resume: false
+  basedir: "./data/NLR7301"
+  results_dir: "./results/exp_01"
+
+experiment:
+  name: gns_experiment
+  description: "Training configuration for GNS model"
+  version: 1.0
+  tags: [baseline, nlr7301]
+  seed: 123                       # Global seed for reproducibility
+
+resources:
+  graph_path: "./data/NLR7301/TRAIN_converter.h5"
+  train_ds: "/home/p.yeste/CETACEO_DATA/nlr7301/TRAIN_converter.h5"
+  val_ds: "/home/p.yeste/CETACEO_DATA/nlr7301/VAL_converter.h5"
+  test_ds: "/home/p.yeste/CETACEO_DATA/nlr7301/TEST_converter.h5"
+
+model:
+  input_dim: 2
+  output_dim: 1
+  latent_dim: 16
+  hidden_size: 256
+  num_msg_passing_layers: 3
+  encoder_hidden_layers: 2
+  decoder_hidden_layers: 1
+  message_hidden_layers: 2
+  update_hidden_layers: 2
+  activation: ELU
+  p_dropouts: 0.1
+  device: cuda
+
+training:
+  epochs: 1000
+  lr: 6e-4
+  lr_gamma: 0.995
+  lr_scheduler_step: 1
+  loss_fn: MSELoss
+  optimizer: Adam
+  scheduler: StepLR
+  batch_size: 16
+  node_batch_size: 256
+  num_workers: 1
+  pin_memory: true
+  verbose: 50
+
+optuna:
+  enabled: false   # <-- this is optional if you use execution.mode
+  study:
+    study_name: "gns_optuna_search"
+    direction: minimize
+    save_path: "./results/optuna/"
+    storage: null
+    load_if_exists: true
+    timeout: 3600
+    n_trials: 50
+    pruner:
+      type: MedianPruner
+      n_startup_trials: 5
+      n_warmup_steps: 10
+      interval_steps: 1
+    sampler:
+      type: TPESampler
+      multivariate: true
+      group: true
+
+  search_space:
+    model:
+      latent_dim: [8, 64]
+      hidden_size: [64, 512]
+      num_msg_passing_layers: [1, 6]
+      encoder_hidden_layers: [1, 4]
+      decoder_hidden_layers: [1, 4]
+      message_hidden_layers: [1, 4]
+      update_hidden_layers: [1, 4]
+      activation: ELU
+      p_dropouts: [0.0, 0.3]
+      device: cuda
+
+    training:
+      lr: [1e-5, 1e-2]
+      lr_gamma: [0.95, 0.999]
+      batch_size: [4, 32]
+      node_batch_size: [128, 2048]
+
+evaluation:
+  plot_true_vs_pred: true
+  plot_train_test_loss: true
+  save_model: true
+  save_metrics: true
+  model_path: "gns_model.pth"
+  metrics_path: "metrics.json"
+
+logging:
+  level: INFO
+  logfile: null
