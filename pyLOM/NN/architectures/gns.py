@@ -680,64 +680,6 @@ class GNS(torch.nn.Module):
 
         return model
 
-
-    @classmethod
-    def from_config_yaml(
-        cls,
-        yaml_path: Union[str, Path],
-        return_training_config: bool = False
-    ) -> Union["GNS", Tuple["GNS", TrainingConfig]]:
-        """
-        Create a new, untrained GNS model from a YAML configuration file.
-
-        This method is intended for initializing a model from a saved experiment config.
-        It builds the model from the `model` section of the YAML, and optionally returns the `training` section
-        as a `TrainingConfig`.
-
-        This does *not* load any trained weights. For loading a pretrained model from a checkpoint,
-        use `GNS.load()` instead.
-
-        The `model` section must include `graph_path` to locate and load the graph from disk.
-
-        Args:
-            yaml_path (str or Path): Path to the YAML configuration file.
-            return_training_config (bool): If True, also return a TrainingConfig instance parsed from the YAML.
-
-        Returns:
-            GNS or Tuple[GNS, TrainingConfig]: A new model instance (untrained), and optionally the training config.
-
-        Raises:
-            FileNotFoundError: If the YAML file does not exist.
-            KeyError: If the 'model' section or required keys like 'graph_path' are missing.
-        """
-        yaml_path = Path(yaml_path)
-        if not yaml_path.is_file():
-            raise FileNotFoundError(f"YAML file '{yaml_path}' not found.")
-
-        with open(yaml_path, "r") as f:
-            config_data = yaml.safe_load(f)
-
-        if "model" not in config_data:
-            raise KeyError("Missing 'model' section in YAML.")
-
-        model_dict = dict(config_data["model"])  # Avoid mutating original dict
-        if "graph_path" not in model_dict:
-            raise KeyError("Missing 'graph_path' in model config.")
-
-        graph_path = model_dict.pop("graph_path")
-        graph = Graph.load(graph_path)
-
-        model_config = GNSConfig(graph_path=graph_path, **model_dict)
-        model = cls(config=model_config)
-        model.graph = graph
-
-        if return_training_config:
-            training_dict = config_data.get("training", {})
-            training_config = TrainingConfig(**training_dict)
-            return model, training_config
-
-        return model
-
     @classmethod
     def create_optimized_model(
         cls,
