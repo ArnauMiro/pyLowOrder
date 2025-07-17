@@ -16,7 +16,7 @@ from ..utils       import gpu_to_cpu
 
 def plotMode(V:np.ndarray,t:np.ndarray,modes:np.ndarray=np.array([1],np.int32),fftfun:object=fft,scale_freq:np.double=1.,fig:plt.figure=[],ax:plt.axes=[]):
 	r'''
-	Plot the temporal coefficient and its frequency spectrom of a set of modes
+	Plot the temporal coefficient and its frequency spectrum of a set of modes
 
 	Args:
 		V (np.ndarray): array containing the temporal coefficients from the POD modes
@@ -51,4 +51,30 @@ def plotMode(V:np.ndarray,t:np.ndarray,modes:np.ndarray=np.array([1],np.int32),f
 		ax[imode][1].set_title('Power Spectrum')
 		ax[imode][1].set_xlabel('St')
 		ax[imode][1].set_xlim([0,1])
+	return fig, ax
+
+def plotEnergy(S,fig=None,ax=None):
+	r'''
+	Plot the cummulative energy of a set of modes
+
+	Args:
+		S (np.ndarray): array containing the singular values from the POD modes
+		fig (plt.figure, optional): figure object in which the plot will be done (default: ``[]``)
+		axs (plt.axes, optional): axes object in which the plot will be done (default: ``[]``)
+
+	Returns:
+		[plt.figure, plt.axes]: figure and axes objects of the plot
+	'''
+	S = gpu_to_cpu(S)
+	# Build figure and axes
+	if fig is None:
+		fig = plt.figure(figsize=(8,6),dpi=100)
+	if ax is None:
+		ax = fig.add_subplot(1,1,1)
+	# Plot accumulated residual
+	ax.plot(np.arange(1,S.shape[0]+1),np.cumsum(S**2)/np.sum(S**2),'bo')
+	# Set labels
+	ax.set_ylabel(r'Energy')
+	ax.set_xlabel(r'Modes')
+	# Return
 	return fig, ax

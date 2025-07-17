@@ -11,7 +11,7 @@ import numpy as np
 
 from ..utils.gpu import cp
 from ..          import inp_out as io, PartitionTable
-from ..utils.cr  import cr_nvtx as cr
+from ..utils     import cr_nvtx as cr, gpu_to_cpu
 
 @cr('SPOD.extract_modes')
 def extract_modes(L:np.ndarray,P:np.ndarray,ivar:int,npoints:int,iblock:int=1,modes:list=[],reshape:bool=True):
@@ -61,10 +61,7 @@ def save(fname:str,L:np.ndarray,P:np.ndarray,f:np.ndarray,ptable:PartitionTable,
 		mode (str, optional): mode in which the HDF5 file is opened, 'w' stands for write mode and 'a' stands for append mode. Write mode will overwrite the file and append mode will add the informaiton at the end of the current file, choose with great care what to do in your case (default ``w``).
 
 	'''
-	if type(L) is cp.ndarray:
-		io.h5_save_SPOD(fname,L.get(),P.get(),f.get(),ptable,nvars=nvars,pointData=pointData,mode=mode)
-	else:
-		io.h5_save_SPOD(fname,L,P,f,ptable,nvars=nvars,pointData=pointData,mode=mode)
+	io.h5_save_SPOD(fname,gpu_to_cpu(L),gpu_to_cpu(P),gpu_to_cpu(f),ptable,nvars=nvars,pointData=pointData,mode=mode)
 
 
 @cr('SPOD.load')
