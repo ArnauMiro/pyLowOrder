@@ -1,0 +1,1427 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>pyLOM.RL &#8212; pyLOM  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=de90da8b" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/pyLOM.RL';</script>
+    <link rel="icon" href="../_static/favicon_tmp.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="pyLOM.SPOD" href="pyLOM.SPOD.html" />
+    <link rel="prev" title="pyLOM.POD" href="pyLOM.POD.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="3.1.0" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/logo_tmp.webp" class="logo__image only-light" alt="pyLOM"/>
+    <img src="../_static/logo_tmp.webp" class="logo__image only-dark pst-js-only" alt="pyLOM"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../install.html">
+    Installation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../install.html">
+    Installation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="pyLOM.html">pyLOM</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.DMD.html">pyLOM.DMD</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.GPOD.html">pyLOM.GPOD</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.GPR.html">pyLOM.GPR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.MANIFOLD.html">pyLOM.MANIFOLD</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="pyLOM.NN.html">pyLOM.NN</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.architectures.html">pyLOM.NN.architectures</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.PCA.html">pyLOM.PCA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.POD.html">pyLOM.POD</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">pyLOM.RL</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.SPOD.html">pyLOM.SPOD</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.io.html">pyLOM.io</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.utils.html">pyLOM.utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.math.html">pyLOM.math</a></li>
+</ul>
+</details></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="modules.html" class="nav-link">pyLOM</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="pyLOM.html" class="nav-link">pyLOM</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">pyLOM.RL</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="pylom-rl">
+<h1>pyLOM.RL<a class="headerlink" href="#pylom-rl" title="Link to this heading">#</a></h1>
+<section id="module-pyLOM.RL">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-pyLOM.RL" title="Link to this heading">#</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyLOM.RL.BaseSolver">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">BaseSolver</span></span><a class="reference internal" href="../_modules/pyLOM/RL/airfoil_solvers.html#BaseSolver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.BaseSolver" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></a></p>
+<p>Base class for all solvers. It defines the interface for the solvers.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.RL.BaseSolver.__call__">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/airfoil_solvers.html#BaseSolver.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.BaseSolver.__call__" title="Link to this definition">#</a></dt>
+<dd><p>Compute the reward for the given shape.
+:param shape: Shape to compute the reward for.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Reward for the shape.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyLOM.RL.XFoilSolver">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">XFoilSolver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mach</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">Reynolds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_selfintersection</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xfoil_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><span class="pre">dict</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/airfoil_solvers.html#XFoilSolver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.XFoilSolver" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyLOM.RL.BaseSolver" title="pyLOM.RL.airfoil_solvers.BaseSolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseSolver</span></code></a></p>
+<p>XFoil solver for airfoil analysis. It uses the XFoil library to compute the lift and drag coefficients. Under the hood, it uses the XFoil class from aerosandbox.
+Requires XFoil to be on installed your machine; XFoil is available here: <a class="github reference external" href="https://github.com/RobotLocomotion/xfoil/">RobotLocomotion/xfoil</a>
+And xfoil to be in your PATH. You can check this by running <cite>which xfoil</cite> in your terminal.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Angle of attack in degrees.</p></li>
+<li><p><strong>mach</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Mach number.</p></li>
+<li><p><strong>Reynolds</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><em>optional</em>) – Reynolds number. If not provided, inviscid mode is used. Default is <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><strong>check_selfintersection</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, check for self-intersection of the airfoil when computing lift/drag. If the airfoil self-intersects, XFoil will return NON_CONVERGED_REWARD. Default is <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>xfoil_params</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><em>optional</em>) – Additional parameters that are passed to the XFoil class. For example, you can set <cite>xfoil_params={“xfoil_repanel”: True}</cite> to repanel the airfoil. Default is <code class="docutils literal notranslate"><span class="pre">{}</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyLOM.RL.NeuralFoilSolver">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">NeuralFoilSolver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">Reynolds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'xxxlarge'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/airfoil_solvers.html#NeuralFoilSolver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.NeuralFoilSolver" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyLOM.RL.BaseSolver" title="pyLOM.RL.airfoil_solvers.BaseSolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseSolver</span></code></a></p>
+<p>NeuralFoil solver for airfoil analysis. It uses the NeuralFoil library to compute the lift and drag coefficients.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Angle of attack in degrees.</p></li>
+<li><p><strong>Reynolds</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Reynolds number.</p></li>
+<li><p><strong>model_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Size of the model. Default is “xxxlarge”. Other options are “xxsmall”, “xsmall”, “small”, “medium”, “large”, “xlarge”, “xxlarge”, “xxxlarge”.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyLOM.RL.DummySolver">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">DummySolver</span></span><a class="reference internal" href="../_modules/pyLOM/RL/airfoil_solvers.html#DummySolver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.DummySolver" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyLOM.RL.BaseSolver" title="pyLOM.RL.airfoil_solvers.BaseSolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseSolver</span></code></a></p>
+<p>Dummy solver for airfoil analysis. It returns a constant reward for all airfoils.
+This is useful for testing purposes.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyLOM.RL.AerosandboxWingSolver">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">AerosandboxWingSolver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">velocity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atmosphere</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'xxxlarge'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/wing_solvers.html#AerosandboxWingSolver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.AerosandboxWingSolver" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyLOM.RL.BaseSolver" title="pyLOM.RL.airfoil_solvers.BaseSolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseSolver</span></code></a></p>
+<p>Aerosandbox solver for wing analysis. It uses the AeroBuildup component from the Aerosandbox library to compute the lift and drag coefficients. For more details, see <a class="reference external" href="https://aerosandbox.readthedocs.io/en/master/autoapi/aerosandbox/index.html#aerosandbox.AeroBuildup">https://aerosandbox.readthedocs.io/en/master/autoapi/aerosandbox/index.html#aerosandbox.AeroBuildup</a>
+:param velocity: The flight velocity, expressed as a true airspeed. [m/s]
+:type velocity: float
+:param alpha: Angle of attack in degrees.
+:type alpha: float
+:param atmosphere: The atmosphere model to use.
+:type atmosphere: asb.Atmosphere
+:param model_size: Size of the model. Default is <code class="docutils literal notranslate"><span class="pre">xxxlarge</span></code>. Other options are “xxsmall”, “xsmall”, “small”, “medium”, “large”, “xlarge”, “xxlarge”.
+:type model_size: str, optional</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyLOM.RL.AVLSolver">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">AVLSolver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">velocity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atmosphere</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/wing_solvers.html#AVLSolver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.AVLSolver" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyLOM.RL.BaseSolver" title="pyLOM.RL.airfoil_solvers.BaseSolver"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseSolver</span></code></a></p>
+<p>AVL solver for wing analysis. It uses the AVL (Athena Vortex Lattice) method to compute the lift and drag coefficients. To use this solver, you need to have AVL executable installed and available in your PATH, see <a class="reference external" href="https://web.mit.edu/drela/Public/web/avl/">https://web.mit.edu/drela/Public/web/avl/</a>
+:param velocity: The flight velocity, expressed as a true airspeed. [m/s]
+:type velocity: float
+:param alpha: Angle of attack in degrees.
+:type alpha: float
+:param atmosphere: The atmosphere model to use.
+:type atmosphere: asb.Atmosphere</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyLOM.RL.BaseParameterizer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">BaseParameterizer</span></span><a class="reference internal" href="../_modules/pyLOM/RL/shape_parameterizers.html#BaseParameterizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.BaseParameterizer" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></a></p>
+<p>Base class for all parameterizers. It defines the interface for the parameterizers.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.RL.BaseParameterizer.get_shape_from_params">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_shape_from_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><span class="pre">ndarray</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Airfoil</span></span></span><a class="reference internal" href="../_modules/pyLOM/RL/shape_parameterizers.html#BaseParameterizer.get_shape_from_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.BaseParameterizer.get_shape_from_params" title="Link to this definition">#</a></dt>
+<dd><p>Create a shape from the given parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>params</strong> (<em>np.ndarray</em>) – Parameters to create the shape.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Created shape.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>asb.Airfoil</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.RL.BaseParameterizer.get_optimizable_bounds">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_optimizable_bounds</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/pyLOM/RL/shape_parameterizers.html#BaseParameterizer.get_optimizable_bounds"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.BaseParameterizer.get_optimizable_bounds" title="Link to this definition">#</a></dt>
+<dd><p>Get the bounds of the optimizable parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Lower and upper bounds of the parameters.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple[List, List]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.RL.BaseParameterizer.get_params_from_shape">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_params_from_shape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shapea</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Airfoil</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><span class="pre">ndarray</span></a></span></span><a class="reference internal" href="../_modules/pyLOM/RL/shape_parameterizers.html#BaseParameterizer.get_params_from_shape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.BaseParameterizer.get_params_from_shape" title="Link to this definition">#</a></dt>
+<dd><p>Get the parameters from the given shape.
+:param shape: Shape to get the parameters from.
+:type shape: asb.Airfoil</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Parameters of the shape.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.RL.BaseParameterizer.generate_random_params">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">generate_random_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><span class="pre">ndarray</span></a></span></span><a class="reference internal" href="../_modules/pyLOM/RL/shape_parameterizers.html#BaseParameterizer.generate_random_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.BaseParameterizer.generate_random_params" title="Link to this definition">#</a></dt>
+<dd><p>Generate random parameters within the bounds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – Seed for the random number generator. Default is <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Random parameters within the bounds.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyLOM.RL.AirfoilCSTParametrizer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">AirfoilCSTParametrizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">upper_surface_bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower_surface_bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TE_thickness_bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">leading_edge_weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/shape_parameterizers.html#AirfoilCSTParametrizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.AirfoilCSTParametrizer" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyLOM.RL.BaseParameterizer" title="pyLOM.RL.shape_parameterizers.BaseParameterizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseParameterizer</span></code></a></p>
+<p>CST parameterization of airfoils. The CST method is a way to parameterize airfoils using a set of control points.
+Depending on the number of points in upper and lower surfaces, the number of parameters will be different.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>upper_surface_bounds</strong> (<em>Tuple</em><em>[</em><em>List</em><em>, </em><em>List</em><em>]</em>) – Bounds for the upper surface parameters. The first list has the lower bounds and the second list has the upper bounds.The length of the lists should be equal to the number of parameters for the upper surface.</p></li>
+<li><p><strong>lower_surface_bounds</strong> (<em>Tuple</em><em>[</em><em>List</em><em>, </em><em>List</em><em>]</em>) – Bounds for the lower surface parameters. The first list has the lower bounds and the second list has the upper bounds.The length of the lists should be equal to the number of parameters for the lower surface.</p></li>
+<li><p><strong>TE_thickness_bounds</strong> (<em>Tuple</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>]</em>) – Bounds for the TE thickness. The first value is the lower bound and the second value is the upper bound.</p></li>
+<li><p><strong>leading_edge_weight</strong> (<em>Tuple</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>]</em>) – Bounds for the leading edge weight. The first value is the lower bound and the second value is the upper bound.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyLOM.RL.AirfoilCSTParametrizer.naca_4digit_airfoils">
+<span class="sig-name descname"><span class="pre">naca_4digit_airfoils</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['naca0006',</span> <span class="pre">'naca0009',</span> <span class="pre">'naca0012',</span> <span class="pre">'naca0015',</span> <span class="pre">'naca0018',</span> <span class="pre">'naca1408',</span> <span class="pre">'naca1410',</span> <span class="pre">'naca1412',</span> <span class="pre">'naca2412',</span> <span class="pre">'naca2415',</span> <span class="pre">'naca4412',</span> <span class="pre">'naca4415',</span> <span class="pre">'naca4420',</span> <span class="pre">'naca6412',</span> <span class="pre">'naca6415',</span> <span class="pre">'naca7421',</span> <span class="pre">'naca8409',</span> <span class="pre">'naca8412',</span> <span class="pre">'naca8415',</span> <span class="pre">'naca9421']</span></em><a class="headerlink" href="#pyLOM.RL.AirfoilCSTParametrizer.naca_4digit_airfoils" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.RL.AirfoilCSTParametrizer.get_shape_from_params">
+<span class="sig-name descname"><span class="pre">get_shape_from_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/shape_parameterizers.html#AirfoilCSTParametrizer.get_shape_from_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.AirfoilCSTParametrizer.get_shape_from_params" title="Link to this definition">#</a></dt>
+<dd><p>Create a shape from the given parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>params</strong> (<em>np.ndarray</em>) – Parameters to create the shape.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Created shape.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>asb.Airfoil</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.RL.AirfoilCSTParametrizer.get_params_from_shape">
+<span class="sig-name descname"><span class="pre">get_params_from_shape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">airfoil</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Airfoil</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><span class="pre">ndarray</span></a></span></span><a class="reference internal" href="../_modules/pyLOM/RL/shape_parameterizers.html#AirfoilCSTParametrizer.get_params_from_shape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.AirfoilCSTParametrizer.get_params_from_shape" title="Link to this definition">#</a></dt>
+<dd><p>Get the parameters from the given shape.
+:param shape: Shape to get the parameters from.
+:type shape: asb.Airfoil</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Parameters of the shape.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.RL.AirfoilCSTParametrizer.generate_random_params">
+<span class="sig-name descname"><span class="pre">generate_random_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'naca'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><span class="pre">ndarray</span></a></span></span><a class="reference internal" href="../_modules/pyLOM/RL/shape_parameterizers.html#AirfoilCSTParametrizer.generate_random_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.AirfoilCSTParametrizer.generate_random_params" title="Link to this definition">#</a></dt>
+<dd><p>Generate random parameters within the bounds.</p>
+<p>If source is “naca”, generate a random NACA 4-digit airfoil.
+If source is “uiuc”, generate random airfoil from the UIUC dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Source of the airfoil. Can be “naca” or “uiuc”. Default is “naca”.</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – Seed for the random number generator. Default is <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Random parameters for an airfoil.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.RL.AirfoilCSTParametrizer.get_optimizable_bounds">
+<span class="sig-name descname"><span class="pre">get_optimizable_bounds</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/pyLOM/RL/shape_parameterizers.html#AirfoilCSTParametrizer.get_optimizable_bounds"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.AirfoilCSTParametrizer.get_optimizable_bounds" title="Link to this definition">#</a></dt>
+<dd><p>Get the bounds of the parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Lower and upper bounds of the parameters. The first list has the lower bounds and the second list has the upper bounds.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple[List, List]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyLOM.RL.WingParameterizer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">WingParameterizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">airfoil</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Airfoil</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chord_bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">twist_bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">span_bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sweep_bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dihedral_bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/shape_parameterizers.html#WingParameterizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.WingParameterizer" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyLOM.RL.BaseParameterizer" title="pyLOM.RL.shape_parameterizers.BaseParameterizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseParameterizer</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.RL.WingParameterizer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">airfoil</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Airfoil</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chord_bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">twist_bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">span_bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sweep_bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dihedral_bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/shape_parameterizers.html#WingParameterizer.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.WingParameterizer.__init__" title="Link to this definition">#</a></dt>
+<dd><p>Initialize the WingParametrizerDust class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>airfoil</strong> (<em>asb.Airfoil</em>) – The airfoil to be used for the wing sections.</p></li>
+<li><p><strong>chord</strong> (<em>The bounds for the</em>)</p></li>
+<li><p><strong>twist</strong></p></li>
+<li><p><strong>span</strong> (<em>and a region</em><em> of </em><em>the wing is created for each</em>)</p></li>
+<li><p><strong>sweep</strong></p></li>
+<li><p><strong>lists</strong> (<em>and dihedral parameters are tuples with two</em>)</p></li>
+<li><p><strong>same</strong> (<em>the first list is the lower bound and the second list is the upper bound. If the upper and lower bounds are the</em>)</p></li>
+<li><p><strong>pair</strong> (<em>the parameter will not be considered for optimization. A section</em><em> of </em><em>the wing is created for each chord and twist</em>)</p></li>
+<li><p><strong>span</strong></p></li>
+<li><p><strong>sweep</strong></p></li>
+<li><p><strong>triplet</strong> (<em>and dihedral</em>)</p></li>
+<li><p><strong>degrees.</strong> (<em>the number</em><em> of </em><em>sections should be one more than the number</em><em> of </em><em>regions. The angles need to be in</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.RL.WingParameterizer.get_shape_from_params">
+<span class="sig-name descname"><span class="pre">get_shape_from_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/shape_parameterizers.html#WingParameterizer.get_shape_from_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.WingParameterizer.get_shape_from_params" title="Link to this definition">#</a></dt>
+<dd><p>Create a shape from the given parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>params</strong> (<em>np.ndarray</em>) – Parameters to create the shape.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Created shape.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>asb.Airfoil</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.RL.WingParameterizer.get_params_from_shape">
+<span class="sig-name descname"><span class="pre">get_params_from_shape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wing</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/shape_parameterizers.html#WingParameterizer.get_params_from_shape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.WingParameterizer.get_params_from_shape" title="Link to this definition">#</a></dt>
+<dd><p>Get the parameters from the given shape.
+:param shape: Shape to get the parameters from.
+:type shape: asb.Airfoil</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Parameters of the shape.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.RL.WingParameterizer.generate_random_params">
+<span class="sig-name descname"><span class="pre">generate_random_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/shape_parameterizers.html#WingParameterizer.generate_random_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.WingParameterizer.generate_random_params" title="Link to this definition">#</a></dt>
+<dd><p>Generate random parameters within the bounds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – Seed for the random number generator. Default is <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Random parameters within the bounds.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.RL.WingParameterizer.get_optimizable_bounds">
+<span class="sig-name descname"><span class="pre">get_optimizable_bounds</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/shape_parameterizers.html#WingParameterizer.get_optimizable_bounds"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.WingParameterizer.get_optimizable_bounds" title="Link to this definition">#</a></dt>
+<dd><p>Get the bounds of the optimizable parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Lower and upper bounds of the parameters.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple[List, List]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.RL.create_env">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">create_env</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solver_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameterizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">operating_conditions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_envs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">episode_max_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thickness_penalization_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/env_factory.html#create_env"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.create_env" title="Link to this definition">#</a></dt>
+<dd><p>Create a reinforcement learning environment for shape optimization. Using these environments, the RL agents have been trained in <a class="reference external" href="https://arxiv.org/pdf/2505.02634">https://arxiv.org/pdf/2505.02634</a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>solver_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of the solver to use.</p></li>
+<li><p><strong>parameterizer</strong> – Parameterizer object that defines the shape to optimize (if None, a default will be used)</p></li>
+<li><p><strong>num_envs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Number of parallel environments to create. If greater than 1, you need to wrap the code in <code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">__name__</span> <span class="pre">==</span> <span class="pre">&quot;__main__&quot;:</span></code> to avoid issues with multiprocessing. Ref: <a class="reference external" href="https://stable-baselines3.readthedocs.io/en/master/guide/vec_envs.html">https://stable-baselines3.readthedocs.io/en/master/guide/vec_envs.html</a>. Default is <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p></li>
+<li><p><strong>episode_max_length</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Maximum episode length. Default is <code class="docutils literal notranslate"><span class="pre">64</span></code>.</p></li>
+<li><p><strong>operating_conditions</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="#pyLOM.RL.AirfoilOperatingConditions" title="pyLOM.RL.AirfoilOperatingConditions"><em>AirfoilOperatingConditions</em></a><em>]</em>) – Operating conditions for the solver. Default is <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><strong>thickness_penalization_factor</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Penalty factor for thickness changes. Default is <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p></li>
+<li><p><strong>initial_seed</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>]</em>) – Initial random seed. Default is <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The created environment</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>gym.Env</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyLOM.RL.AirfoilOperatingConditions">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">AirfoilOperatingConditions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Reynolds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mach</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/env_factory.html#AirfoilOperatingConditions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.AirfoilOperatingConditions" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Configuration for airfoil operating conditions.</p>
+<p>This class encapsulates the physical parameters used in airfoil simulations,
+including angle of attack, Reynolds number, and Mach number.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Angle of attack in degrees. Default is <code class="docutils literal notranslate"><span class="pre">2</span></code> degrees.</p></li>
+<li><p><strong>reynolds</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Reynolds number for the simulation. Default is <code class="docutils literal notranslate"><span class="pre">1e6</span></code>.</p></li>
+<li><p><strong>mach</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Mach number for the simulation. Default is <code class="docutils literal notranslate"><span class="pre">0.5</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyLOM.RL.AirfoilOperatingConditions.alpha">
+<span class="sig-name descname"><span class="pre">alpha</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#pyLOM.RL.AirfoilOperatingConditions.alpha" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyLOM.RL.AirfoilOperatingConditions.Reynolds">
+<span class="sig-name descname"><span class="pre">Reynolds</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1000000.0</span></em><a class="headerlink" href="#pyLOM.RL.AirfoilOperatingConditions.Reynolds" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyLOM.RL.AirfoilOperatingConditions.mach">
+<span class="sig-name descname"><span class="pre">mach</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.5</span></em><a class="headerlink" href="#pyLOM.RL.AirfoilOperatingConditions.mach" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyLOM.RL.AirfoilParameterizerConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">AirfoilParameterizerConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_weights_per_side</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">leading_edge_weight_bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">(-0.05,</span> <span class="pre">0.75)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">te_thickness_bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">(0.0005,</span> <span class="pre">0.01)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper_edge_bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">(-1.5,</span> <span class="pre">1.25)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower_edge_bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">(-0.75,</span> <span class="pre">1.5)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/env_factory.html#AirfoilParameterizerConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.AirfoilParameterizerConfig" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Configuration for airfoil parameterization.</p>
+<p>This class defines the parameters used to create an airfoil shape using the
+Class-Shape Transformation (CST) method. It controls the number of control
+points and their bounds for both upper and lower surfaces.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_weights_per_side</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Number of control points per surface side. Default is <code class="docutils literal notranslate"><span class="pre">8</span></code>.</p></li>
+<li><p><strong>leading_edge_weight_bounds</strong> (<em>Tuple</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>]</em>) – Min and max values for
+the leading edge weight parameter. Default is <code class="docutils literal notranslate"><span class="pre">(-0.05,</span> <span class="pre">0.75)</span></code>.</p></li>
+<li><p><strong>te_thickness_bounds</strong> (<em>Tuple</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>]</em>) – Min and max values for
+trailing edge thickness. Default is <code class="docutils literal notranslate"><span class="pre">(0.0005,</span> <span class="pre">0.01)</span></code>.</p></li>
+<li><p><strong>upper_edge_bounds</strong> (<em>Tuple</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>]</em>) – Min and max values for
+upper surface control points. Default is <code class="docutils literal notranslate"><span class="pre">(-1.5,</span> <span class="pre">1.25)</span></code>.</p></li>
+<li><p><strong>lower_edge_bounds</strong> (<em>Tuple</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>]</em>) – Min and max values for
+lower surface control points. Default is <code class="docutils literal notranslate"><span class="pre">(-0.75,</span> <span class="pre">1.5)</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyLOM.RL.AirfoilParameterizerConfig.n_weights_per_side">
+<span class="sig-name descname"><span class="pre">n_weights_per_side</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></em><a class="headerlink" href="#pyLOM.RL.AirfoilParameterizerConfig.n_weights_per_side" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyLOM.RL.AirfoilParameterizerConfig.leading_edge_weight_bounds">
+<span class="sig-name descname"><span class="pre">leading_edge_weight_bounds</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(-0.05,</span> <span class="pre">0.75)</span></em><a class="headerlink" href="#pyLOM.RL.AirfoilParameterizerConfig.leading_edge_weight_bounds" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyLOM.RL.AirfoilParameterizerConfig.te_thickness_bounds">
+<span class="sig-name descname"><span class="pre">te_thickness_bounds</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(0.0005,</span> <span class="pre">0.01)</span></em><a class="headerlink" href="#pyLOM.RL.AirfoilParameterizerConfig.te_thickness_bounds" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyLOM.RL.AirfoilParameterizerConfig.upper_edge_bounds">
+<span class="sig-name descname"><span class="pre">upper_edge_bounds</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(-1.5,</span> <span class="pre">1.25)</span></em><a class="headerlink" href="#pyLOM.RL.AirfoilParameterizerConfig.upper_edge_bounds" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyLOM.RL.AirfoilParameterizerConfig.lower_edge_bounds">
+<span class="sig-name descname"><span class="pre">lower_edge_bounds</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(-0.75,</span> <span class="pre">1.5)</span></em><a class="headerlink" href="#pyLOM.RL.AirfoilParameterizerConfig.lower_edge_bounds" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.RL.AirfoilParameterizerConfig.create_parameterizer">
+<span class="sig-name descname"><span class="pre">create_parameterizer</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/env_factory.html#AirfoilParameterizerConfig.create_parameterizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.AirfoilParameterizerConfig.create_parameterizer" title="Link to this definition">#</a></dt>
+<dd><p>Creates an AirfoilCSTParametrizer based on this configuration.</p>
+<p>This method instantiates a new AirfoilCSTParametrizer using the
+current configuration settings. The parameterizer can then be used
+to generate airfoil shapes for optimization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A configured airfoil parameterizer instance.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pyLOM.RL.AirfoilCSTParametrizer" title="pyLOM.RL.AirfoilCSTParametrizer">AirfoilCSTParametrizer</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyLOM.RL.SolverFactory">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">SolverFactory</span></span><a class="reference internal" href="../_modules/pyLOM/RL/env_factory.html#SolverFactory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.SolverFactory" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Factory for creating solver instances.</p>
+<p>This class provides methods to create appropriate solver instances
+based on their name and configuration parameters. It acts as a factory
+that abstracts the details of solver instantiation.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.RL.SolverFactory.create_solver">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_solver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solver_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pyLOM.RL.AirfoilOperatingConditions" title="pyLOM.RL.env_factory.AirfoilOperatingConditions"><span class="pre">AirfoilOperatingConditions</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pyLOM.RL.BaseSolver" title="pyLOM.RL.airfoil_solvers.BaseSolver"><span class="pre">BaseSolver</span></a></span></span><a class="reference internal" href="../_modules/pyLOM/RL/env_factory.html#SolverFactory.create_solver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.SolverFactory.create_solver" title="Link to this definition">#</a></dt>
+<dd><p>Create a solver by name.</p>
+<p>This method determines the type of solver (airfoil or wing) based on the name
+and delegates creation to the appropriate specialized factory method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>solver_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – The name of the solver to create.</p></li>
+<li><p><strong>conditions</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="#pyLOM.RL.AirfoilOperatingConditions" title="pyLOM.RL.AirfoilOperatingConditions"><em>AirfoilOperatingConditions</em></a><em>]</em>) – Configuration parameters
+for the solver. If None, default values will be used.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The created solver instance.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#pyLOM.RL.BaseSolver" title="pyLOM.RL.BaseSolver">BaseSolver</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the solver name is not recognized.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.RL.SolverFactory.create_airfoil_solver">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_airfoil_solver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solver_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pyLOM.RL.AirfoilOperatingConditions" title="pyLOM.RL.env_factory.AirfoilOperatingConditions"><span class="pre">AirfoilOperatingConditions</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pyLOM.RL.BaseSolver" title="pyLOM.RL.airfoil_solvers.BaseSolver"><span class="pre">BaseSolver</span></a></span></span><a class="reference internal" href="../_modules/pyLOM/RL/env_factory.html#SolverFactory.create_airfoil_solver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.SolverFactory.create_airfoil_solver" title="Link to this definition">#</a></dt>
+<dd><p>Create an airfoil solver instance.</p>
+<p>This method creates and returns an airfoil solver instance based on the
+specified name and configured with the given conditions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>solver_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – The name of the airfoil solver to create.</p></li>
+<li><p><strong>conditions</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="#pyLOM.RL.AirfoilOperatingConditions" title="pyLOM.RL.AirfoilOperatingConditions"><em>AirfoilOperatingConditions</em></a><em>]</em>) – Configuration parameters
+for the solver. If None, default values will be used.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The created airfoil solver instance.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#pyLOM.RL.BaseSolver" title="pyLOM.RL.BaseSolver">BaseSolver</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the solver name is not recognized as a valid airfoil solver.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.RL.SolverFactory.create_wing_solver">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_wing_solver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solver_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pyLOM.RL.WingOperatingConditions" title="pyLOM.RL.env_factory.WingOperatingConditions"><span class="pre">WingOperatingConditions</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/env_factory.html#SolverFactory.create_wing_solver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.SolverFactory.create_wing_solver" title="Link to this definition">#</a></dt>
+<dd><p>Create a wing solver</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyLOM.RL.WingOperatingConditions">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">WingOperatingConditions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">velocity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">150</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">altitude</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/env_factory.html#WingOperatingConditions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.WingOperatingConditions" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Configuration for wing operating conditions</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>velocity</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Flight velocity in m/s. Default is <code class="docutils literal notranslate"><span class="pre">150</span></code> m/s.</p></li>
+<li><p><strong>altitude</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Altitude in meters. Default is <code class="docutils literal notranslate"><span class="pre">500</span></code> m.</p></li>
+<li><p><strong>alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Angle of attack in degrees. Default is <code class="docutils literal notranslate"><span class="pre">2</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyLOM.RL.WingOperatingConditions.velocity">
+<span class="sig-name descname"><span class="pre">velocity</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">150</span></em><a class="headerlink" href="#pyLOM.RL.WingOperatingConditions.velocity" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyLOM.RL.WingOperatingConditions.altitude">
+<span class="sig-name descname"><span class="pre">altitude</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">500</span></em><a class="headerlink" href="#pyLOM.RL.WingOperatingConditions.altitude" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyLOM.RL.WingOperatingConditions.alpha">
+<span class="sig-name descname"><span class="pre">alpha</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#pyLOM.RL.WingOperatingConditions.alpha" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyLOM.RL.WingParameterizerConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">WingParameterizerConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">airfoil_name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'naca0012'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chord_bounds:</span> <span class="pre">~typing.List[~typing.List[float]]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">twist_bounds:</span> <span class="pre">~typing.List[~typing.List[float]]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">span_bounds:</span> <span class="pre">~typing.List[~typing.List[float]]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sweep_bounds:</span> <span class="pre">~typing.List[~typing.List[float]]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dihedral_bounds:</span> <span class="pre">~typing.List[~typing.List[float]]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/env_factory.html#WingParameterizerConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.WingParameterizerConfig" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Configuration for wing parameterization</p>
+<p>This class defines the parameters used to create a wing shape, including
+airfoil type, chord, twist, span, sweep, and dihedral angles. It provides
+methods to create a WingParameterizer instance based on these settings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>airfoil_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of an airfoil from the UIUC airfoil dataset to use for the wing. If a custom <cite>asb.Airfoil</cite> wants to me used, pleas create the parameterizere directly with <cite>pyLOM.RL.WingParameterizer</cite>. Default is “naca0012”.</p></li>
+<li><p><strong>chord_bounds</strong> (<em>List</em><em>[</em><em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>]</em><em>]</em>) – Bounds for the chord length. Default is [[0.75, 0.45], [1.25, 0.75]].</p></li>
+<li><p><strong>twist_bounds</strong> (<em>List</em><em>[</em><em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>]</em><em>]</em>) – Bounds for the twist angle in degrees. Default is [[-2, -2], [2, 2]].</p></li>
+<li><p><strong>span_bounds</strong> (<em>List</em><em>[</em><em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>]</em><em>]</em>) – Bounds for the span length. Default is [[1.5], [2]].</p></li>
+<li><p><strong>sweep_bounds</strong> (<em>List</em><em>[</em><em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>]</em><em>]</em>) – Bounds for the sweep angle in degrees. Default is [[-5], [15]].</p></li>
+<li><p><strong>dihedral_bounds</strong> (<em>List</em><em>[</em><em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>]</em><em>]</em>) – Bounds for the dihedral angle in degrees. Default is [[-2], [7]].</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyLOM.RL.WingParameterizerConfig.airfoil_name">
+<span class="sig-name descname"><span class="pre">airfoil_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'naca0012'</span></em><a class="headerlink" href="#pyLOM.RL.WingParameterizerConfig.airfoil_name" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyLOM.RL.WingParameterizerConfig.chord_bounds">
+<span class="sig-name descname"><span class="pre">chord_bounds</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pyLOM.RL.WingParameterizerConfig.chord_bounds" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyLOM.RL.WingParameterizerConfig.twist_bounds">
+<span class="sig-name descname"><span class="pre">twist_bounds</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pyLOM.RL.WingParameterizerConfig.twist_bounds" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyLOM.RL.WingParameterizerConfig.span_bounds">
+<span class="sig-name descname"><span class="pre">span_bounds</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pyLOM.RL.WingParameterizerConfig.span_bounds" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyLOM.RL.WingParameterizerConfig.sweep_bounds">
+<span class="sig-name descname"><span class="pre">sweep_bounds</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pyLOM.RL.WingParameterizerConfig.sweep_bounds" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyLOM.RL.WingParameterizerConfig.dihedral_bounds">
+<span class="sig-name descname"><span class="pre">dihedral_bounds</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#pyLOM.RL.WingParameterizerConfig.dihedral_bounds" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.RL.WingParameterizerConfig.create_parameterizer">
+<span class="sig-name descname"><span class="pre">create_parameterizer</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/env_factory.html#WingParameterizerConfig.create_parameterizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.WingParameterizerConfig.create_parameterizer" title="Link to this definition">#</a></dt>
+<dd><p>Creates a WingParameterizer based on this configuration</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.RL.run_episode">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">run_episode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rl_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_unconverged</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/evaluations.html#run_episode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.run_episode" title="Link to this definition">#</a></dt>
+<dd><p>Runs a single episode of the RL agent in the given environment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rl_model</strong> – The RL model to evaluate.</p></li>
+<li><p><strong>env</strong> – The environment in which to run the episode.</p></li>
+<li><p><strong>initial_shape</strong> – An initial airfoil shape to start the episode with. Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>, which means a random shape will be generated.</p></li>
+<li><p><strong>seed</strong> – A seed for reproducibility. Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><strong>keep_unconverged</strong> – If True, keeps the last state and reward even if the episode was truncated. Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of cumulative rewards at each step.
+states: A list of airfoil shapes at each step.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>rewards</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.RL.evaluate_airfoil_agent">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">evaluate_airfoil_agent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_episodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/evaluations.html#evaluate_airfoil_agent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.evaluate_airfoil_agent" title="Link to this definition">#</a></dt>
+<dd><p>Evaluates an RL agent on a set of airfoils from the UIUC airfoil database and prints a summary of the results.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>agent</strong> – The RL agent to evaluate.</p></li>
+<li><p><strong>env</strong> – The environment in which to run the episodes.</p></li>
+<li><p><strong>num_episodes</strong> – The number of airfoils to evaluate. Default: 200.</p></li>
+<li><p><strong>save_path</strong> – If provided, saves the results to a CSV file at this path. Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list with the lists of cumulative rewards for each airfoil optimization.
+states: A list with lists of airfoil shapes for each step of the optimization of each airfoil.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>all_rewards</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.RL.evaluate_airfoil_agent_whole_uiuc">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">evaluate_airfoil_agent_whole_uiuc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/evaluations.html#evaluate_airfoil_agent_whole_uiuc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.evaluate_airfoil_agent_whole_uiuc" title="Link to this definition">#</a></dt>
+<dd><p>Evaluates an RL agent on all airfoils in the UIUC airfoil database and prints a summary of the results.
+:param agent: The RL agent to evaluate.
+:param env: The environment in which to run the episodes.
+:param save_path: If provided, saves the results to a CSV file at this path. Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list with the lists of cumulative rewards for each airfoil optimization.
+states: A list with lists of airfoil shapes for each step of the optimization of each airfoil.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>all_rewards</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.RL.evaluate_airfoil_agent_whole_uiuc_mpi">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">evaluate_airfoil_agent_whole_uiuc_mpi</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_results_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/evaluations.html#evaluate_airfoil_agent_whole_uiuc_mpi"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.evaluate_airfoil_agent_whole_uiuc_mpi" title="Link to this definition">#</a></dt>
+<dd><p>Evaluates an RL agent on all airfoils in the UIUC airfoil database using MPI for parallel processing and saves the results to a CSV file.
+If this function is used on a script, it should be run with <cite>mpiexec -n &lt;num_processes&gt; python &lt;script_name&gt;.py</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>agent</strong> – The RL agent to evaluate.</p></li>
+<li><p><strong>env</strong> – The environment in which to run the episodes.</p></li>
+<li><p><strong>save_results_path</strong> – If provided, saves the results to a CSV file at this path.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.RL.create_airfoil_optimization_progress_plot">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">create_airfoil_optimization_progress_plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">airfoils</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rewards</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">airfoil_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Airfoil</span> <span class="pre">Shape'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/plotting.html#create_airfoil_optimization_progress_plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.create_airfoil_optimization_progress_plot" title="Link to this definition">#</a></dt>
+<dd><p>Create a plot showing the evolution of airfoil shapes and their corresponding lift-to-drag ratios.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>airfoils</strong> (<em>List</em><em>[</em><em>asb.Airfoil</em><em>]</em>) – List of airfoil objects representing the evolution.</p></li>
+<li><p><strong>rewards</strong> (<em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>]</em>) – List of lift-to-drag ratios corresponding to each airfoil.</p></li>
+<li><p><strong>airfoil_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of the airfoil for the plot title. Default: <code class="docutils literal notranslate"><span class="pre">'Airfoil</span> <span class="pre">Shape'</span></code>.</p></li>
+<li><p><strong>save_path</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em>) – Path to save the plot. If None, the plot will not be saved. Default: <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyLOM.RL.AirfoilEvolutionAnimation">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">AirfoilEvolutionAnimation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/plotting.html#AirfoilEvolutionAnimation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.AirfoilEvolutionAnimation" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Generate an animation showing the evolution of airfoils and their corresponding lift-to-drag ratios.
+Manim is required to run this animation, and it is recommended to install it with <cite>conda install -c conda-forge manim</cite>.</p>
+<dl class="simple">
+<dt>Properties:</dt><dd><ul class="simple">
+<li><p><cite>airfoils</cite>: List of airfoil objects representing the evolution.</p></li>
+<li><p><cite>rewards</cite>: List of lift-to-drag ratios corresponding to each airfoil.</p></li>
+<li><p><cite>run_time</cite>: Duration of the animation in seconds. Default: <code class="docutils literal notranslate"><span class="pre">5</span></code>.</p></li>
+<li><p><cite>title</cite>: Title of the animation. Default: <code class="docutils literal notranslate"><span class="pre">&quot;Airfoil</span> <span class="pre">evolution&quot;</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition-examples admonition">
+<p class="admonition-title">Examples</p>
+<p>To use in a notebook:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">manim</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">pyLOM.RL</span> <span class="kn">import</span> <span class="n">AirfoilEvolutionAnimation</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="o">%%</span><span class="n">manim</span> <span class="o">-</span><span class="n">qm</span> <span class="o">-</span><span class="n">v</span> <span class="n">WARNING</span> <span class="n">AirfoilEvolution</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">AirfoilEvolutionAnimation</span><span class="o">.</span><span class="n">airfoils</span> <span class="o">=</span> <span class="n">airfoils</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">AirfoilEvolutionAnimation</span><span class="o">.</span><span class="n">rewards</span> <span class="o">=</span> <span class="n">rewards</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">AirfoilEvolutionAnimation</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="s2">&quot;NACA0012 Evolution&quot;</span>
+</pre></div>
+</div>
+<p>To use it in a script:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">pyLOM.RL</span> <span class="kn">import</span> <span class="n">AirfoilEvolutionAnimation</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">manim</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">main</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># config.format = &quot;gif&quot;  # Change output format to GIF</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span><span class="o">.</span><span class="n">output_file</span> <span class="o">=</span> <span class="s2">&quot;airfoil_evolution.mp4&quot;</span>  <span class="c1"># Change output file name</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">config</span><span class="o">.</span><span class="n">quality</span> <span class="o">=</span> <span class="s2">&quot;production_quality&quot;</span>  <span class="c1"># Set quality to maximum (Full HD)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">animation</span> <span class="o">=</span> <span class="n">AirfoilEvolutionAnimation</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">animation</span><span class="o">.</span><span class="n">airfoils</span> <span class="o">=</span> <span class="n">airfoils</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">animation</span><span class="o">.</span><span class="n">rewards</span> <span class="o">=</span> <span class="n">rewards</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">animation</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="s2">&quot;Airfoil Evolution&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">animation</span><span class="o">.</span><span class="n">render</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyLOM.RL.WingEvolutionAnimation">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">WingEvolutionAnimation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/RL/plotting.html#WingEvolutionAnimation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.RL.WingEvolutionAnimation" title="Link to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Generate an animation showing the evolution of wings and their corresponding lift-to-drag ratios.
+Manim is required to run this animation, and it is recommended to install it with <cite>conda install -c conda-forge manim</cite>.</p>
+<dl class="simple">
+<dt>Properties:</dt><dd><ul class="simple">
+<li><p><cite>wings</cite>: List of wing objects representing the evolution.</p></li>
+<li><p><cite>rewards</cite>: List of lift-to-drag ratios corresponding to each airplane.</p></li>
+<li><p><cite>run_time_per_update</cite>: Duration of each update in seconds. Default: <code class="docutils literal notranslate"><span class="pre">0.25</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition-examples admonition">
+<p class="admonition-title">Examples</p>
+<p>To use in a notebook:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">manim</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">pyLOM.RL</span> <span class="kn">import</span> <span class="n">WingEvolutionAnimation</span>
+</pre></div>
+</div>
+<p>on a separete cell, define the wings and rewards:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="o">%%</span><span class="n">manim</span> <span class="o">-</span><span class="n">qm</span> <span class="o">-</span><span class="n">v</span> <span class="n">WARNING</span> <span class="n">AirfoilEvolution</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">WingEvolutionAnimation</span><span class="o">.</span><span class="n">wings</span> <span class="o">=</span> <span class="n">wings</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">WingEvolutionAnimation</span><span class="o">.</span><span class="n">rewards</span> <span class="o">=</span> <span class="n">rewards</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">WingEvolutionAnimation</span><span class="o">.</span><span class="n">run_time_per_update</span> <span class="o">=</span> <span class="mf">0.1</span>
+</pre></div>
+</div>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyLOM.RL.SB3_PPO">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.RL.</span></span><span class="sig-name descname"><span class="pre">SB3_PPO</span></span><a class="headerlink" href="#pyLOM.RL.SB3_PPO" title="Link to this definition">#</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">PPO</span></code></p>
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="pyLOM.POD.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">pyLOM.POD</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="pyLOM.SPOD.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">pyLOM.SPOD</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-pyLOM.RL">Module contents</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.BaseSolver"><code class="docutils literal notranslate"><span class="pre">BaseSolver</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.BaseSolver.__call__"><code class="docutils literal notranslate"><span class="pre">BaseSolver.__call__()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.XFoilSolver"><code class="docutils literal notranslate"><span class="pre">XFoilSolver</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.NeuralFoilSolver"><code class="docutils literal notranslate"><span class="pre">NeuralFoilSolver</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.DummySolver"><code class="docutils literal notranslate"><span class="pre">DummySolver</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.AerosandboxWingSolver"><code class="docutils literal notranslate"><span class="pre">AerosandboxWingSolver</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.AVLSolver"><code class="docutils literal notranslate"><span class="pre">AVLSolver</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.BaseParameterizer"><code class="docutils literal notranslate"><span class="pre">BaseParameterizer</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.BaseParameterizer.get_shape_from_params"><code class="docutils literal notranslate"><span class="pre">BaseParameterizer.get_shape_from_params()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.BaseParameterizer.get_optimizable_bounds"><code class="docutils literal notranslate"><span class="pre">BaseParameterizer.get_optimizable_bounds()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.BaseParameterizer.get_params_from_shape"><code class="docutils literal notranslate"><span class="pre">BaseParameterizer.get_params_from_shape()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.BaseParameterizer.generate_random_params"><code class="docutils literal notranslate"><span class="pre">BaseParameterizer.generate_random_params()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.AirfoilCSTParametrizer"><code class="docutils literal notranslate"><span class="pre">AirfoilCSTParametrizer</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.AirfoilCSTParametrizer.naca_4digit_airfoils"><code class="docutils literal notranslate"><span class="pre">AirfoilCSTParametrizer.naca_4digit_airfoils</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.AirfoilCSTParametrizer.get_shape_from_params"><code class="docutils literal notranslate"><span class="pre">AirfoilCSTParametrizer.get_shape_from_params()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.AirfoilCSTParametrizer.get_params_from_shape"><code class="docutils literal notranslate"><span class="pre">AirfoilCSTParametrizer.get_params_from_shape()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.AirfoilCSTParametrizer.generate_random_params"><code class="docutils literal notranslate"><span class="pre">AirfoilCSTParametrizer.generate_random_params()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.AirfoilCSTParametrizer.get_optimizable_bounds"><code class="docutils literal notranslate"><span class="pre">AirfoilCSTParametrizer.get_optimizable_bounds()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.WingParameterizer"><code class="docutils literal notranslate"><span class="pre">WingParameterizer</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.WingParameterizer.__init__"><code class="docutils literal notranslate"><span class="pre">WingParameterizer.__init__()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.WingParameterizer.get_shape_from_params"><code class="docutils literal notranslate"><span class="pre">WingParameterizer.get_shape_from_params()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.WingParameterizer.get_params_from_shape"><code class="docutils literal notranslate"><span class="pre">WingParameterizer.get_params_from_shape()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.WingParameterizer.generate_random_params"><code class="docutils literal notranslate"><span class="pre">WingParameterizer.generate_random_params()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.WingParameterizer.get_optimizable_bounds"><code class="docutils literal notranslate"><span class="pre">WingParameterizer.get_optimizable_bounds()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.create_env"><code class="docutils literal notranslate"><span class="pre">create_env()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.AirfoilOperatingConditions"><code class="docutils literal notranslate"><span class="pre">AirfoilOperatingConditions</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.AirfoilOperatingConditions.alpha"><code class="docutils literal notranslate"><span class="pre">AirfoilOperatingConditions.alpha</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.AirfoilOperatingConditions.Reynolds"><code class="docutils literal notranslate"><span class="pre">AirfoilOperatingConditions.Reynolds</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.AirfoilOperatingConditions.mach"><code class="docutils literal notranslate"><span class="pre">AirfoilOperatingConditions.mach</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.AirfoilParameterizerConfig"><code class="docutils literal notranslate"><span class="pre">AirfoilParameterizerConfig</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.AirfoilParameterizerConfig.n_weights_per_side"><code class="docutils literal notranslate"><span class="pre">AirfoilParameterizerConfig.n_weights_per_side</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.AirfoilParameterizerConfig.leading_edge_weight_bounds"><code class="docutils literal notranslate"><span class="pre">AirfoilParameterizerConfig.leading_edge_weight_bounds</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.AirfoilParameterizerConfig.te_thickness_bounds"><code class="docutils literal notranslate"><span class="pre">AirfoilParameterizerConfig.te_thickness_bounds</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.AirfoilParameterizerConfig.upper_edge_bounds"><code class="docutils literal notranslate"><span class="pre">AirfoilParameterizerConfig.upper_edge_bounds</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.AirfoilParameterizerConfig.lower_edge_bounds"><code class="docutils literal notranslate"><span class="pre">AirfoilParameterizerConfig.lower_edge_bounds</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.AirfoilParameterizerConfig.create_parameterizer"><code class="docutils literal notranslate"><span class="pre">AirfoilParameterizerConfig.create_parameterizer()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.SolverFactory"><code class="docutils literal notranslate"><span class="pre">SolverFactory</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.SolverFactory.create_solver"><code class="docutils literal notranslate"><span class="pre">SolverFactory.create_solver()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.SolverFactory.create_airfoil_solver"><code class="docutils literal notranslate"><span class="pre">SolverFactory.create_airfoil_solver()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.SolverFactory.create_wing_solver"><code class="docutils literal notranslate"><span class="pre">SolverFactory.create_wing_solver()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.WingOperatingConditions"><code class="docutils literal notranslate"><span class="pre">WingOperatingConditions</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.WingOperatingConditions.velocity"><code class="docutils literal notranslate"><span class="pre">WingOperatingConditions.velocity</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.WingOperatingConditions.altitude"><code class="docutils literal notranslate"><span class="pre">WingOperatingConditions.altitude</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.WingOperatingConditions.alpha"><code class="docutils literal notranslate"><span class="pre">WingOperatingConditions.alpha</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.WingParameterizerConfig"><code class="docutils literal notranslate"><span class="pre">WingParameterizerConfig</span></code></a><ul class="nav section-nav flex-column">
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.WingParameterizerConfig.airfoil_name"><code class="docutils literal notranslate"><span class="pre">WingParameterizerConfig.airfoil_name</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.WingParameterizerConfig.chord_bounds"><code class="docutils literal notranslate"><span class="pre">WingParameterizerConfig.chord_bounds</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.WingParameterizerConfig.twist_bounds"><code class="docutils literal notranslate"><span class="pre">WingParameterizerConfig.twist_bounds</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.WingParameterizerConfig.span_bounds"><code class="docutils literal notranslate"><span class="pre">WingParameterizerConfig.span_bounds</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.WingParameterizerConfig.sweep_bounds"><code class="docutils literal notranslate"><span class="pre">WingParameterizerConfig.sweep_bounds</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.WingParameterizerConfig.dihedral_bounds"><code class="docutils literal notranslate"><span class="pre">WingParameterizerConfig.dihedral_bounds</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.WingParameterizerConfig.create_parameterizer"><code class="docutils literal notranslate"><span class="pre">WingParameterizerConfig.create_parameterizer()</span></code></a></li>
+</ul>
+</li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.run_episode"><code class="docutils literal notranslate"><span class="pre">run_episode()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.evaluate_airfoil_agent"><code class="docutils literal notranslate"><span class="pre">evaluate_airfoil_agent()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.evaluate_airfoil_agent_whole_uiuc"><code class="docutils literal notranslate"><span class="pre">evaluate_airfoil_agent_whole_uiuc()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.evaluate_airfoil_agent_whole_uiuc_mpi"><code class="docutils literal notranslate"><span class="pre">evaluate_airfoil_agent_whole_uiuc_mpi()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.create_airfoil_optimization_progress_plot"><code class="docutils literal notranslate"><span class="pre">create_airfoil_optimization_progress_plot()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.AirfoilEvolutionAnimation"><code class="docutils literal notranslate"><span class="pre">AirfoilEvolutionAnimation</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.WingEvolutionAnimation"><code class="docutils literal notranslate"><span class="pre">WingEvolutionAnimation</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.RL.SB3_PPO"><code class="docutils literal notranslate"><span class="pre">SB3_PPO</span></code></a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  
+  <div class="tocsection editthispage">
+    <a href="https://github.com/ArnauMiro/pyLowOrder/edit/master/docs/source/api/pyLOM.RL.rst">
+      <i class="fa-solid fa-pencil"></i>
+      
+      
+        
+          Edit on GitHub
+        
+      
+    </a>
+  </div>
+</div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/pyLOM.RL.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2023-2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

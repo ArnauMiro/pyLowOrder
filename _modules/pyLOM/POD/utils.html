@@ -370,6 +370,8 @@
 <span class="kn">from</span> <span class="nn">..utils.gpu</span> <span class="kn">import</span> <span class="n">cp</span>
 <span class="kn">from</span> <span class="nn">..</span>          <span class="kn">import</span> <span class="n">inp_out</span> <span class="k">as</span> <span class="n">io</span><span class="p">,</span> <span class="n">PartitionTable</span>
 <span class="kn">from</span> <span class="nn">..utils</span>     <span class="kn">import</span> <span class="n">cr_nvtx</span> <span class="k">as</span> <span class="n">cr</span><span class="p">,</span> <span class="n">gpu_to_cpu</span>
+<span class="kn">from</span> <span class="nn">..PCA</span>       <span class="kn">import</span> <span class="n">run</span> <span class="k">as</span> <span class="n">pcarun</span><span class="p">,</span> <span class="n">T2score</span>
+<span class="kn">from</span> <span class="nn">..vmmath</span>    <span class="kn">import</span> <span class="n">fft</span>
 
 <div class="viewcode-block" id="extract_modes">
 <a class="viewcode-back" href="../../../api/pyLOM.POD.html#pyLOM.POD.extract_modes">[docs]</a>
@@ -441,6 +443,42 @@
 <span class="sd">		ptable (PartitionTable, optional): partition table to use when loading the data (default ``None``).</span>
 <span class="sd">	&#39;&#39;&#39;</span>
 	<span class="k">return</span> <span class="n">io</span><span class="o">.</span><span class="n">h5_load_POD</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="nb">vars</span><span class="p">,</span><span class="n">nmod</span><span class="p">,</span><span class="n">ptable</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="coherent_modes">
+<a class="viewcode-back" href="../../../api/pyLOM.POD.html#pyLOM.POD.coherent_modes">[docs]</a>
+<span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;POD.cluster&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">coherent_modes</span><span class="p">(</span><span class="n">V</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">time</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">divide_variance</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ncomp</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">confidence</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="mf">0.8</span><span class="p">):</span>
+<span class="w">	</span><span class="sa">r</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Cluster the modes according to the coherence of their temporal coefficient. Methodology fully described in:</span>
+
+<span class="sd">	Eiximeno, B., Sanchís-Agudo, M., Miró, A., Rodríguez, I., Vinuesa, R., &amp; Lehmkuhl, O. (2024). </span>
+<span class="sd">	On Deep-Learning-Based Closures for Algebraic Surrogate Models of Turbulent Flows. arXiv preprint arXiv:2412.04239.  	</span>
+<span class="sd">	https://doi.org/10.48550/arXiv.2412.04239</span>
+
+<span class="sd">	Args:</span>
+<span class="sd">		V (np.ndarray): temporal coefficients of the POD modes</span>
+<span class="sd">		time (np.ndarray): instants where the coefficients are computed</span>
+<span class="sd">		divide_variance (bool, optional): whether to normalize the power spectral density with its variance when doing PCA (default ```False```)</span>
+<span class="sd">		ncomp (int, optional): number of components to summarize the scores from PCA analysis when computing T2 (default: ``1``)</span>
+<span class="sd">		confidence (float, optional): threshold confidence interval for clustering according to the T2 statistic. It is computed as in a F probability distribution (default: ``0.8``).</span>
+
+<span class="sd">	Returns:</span>
+<span class="sd">		[np.ndarray, float, np.ndarray, np.ndarray]: T2 scores, limit between the coherent and non-coherent modes and the arrays containing the coherent and non-coherent modes, respectively.</span>
+<span class="sd">	</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+
+	<span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">V</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+		<span class="n">Vnmean</span>  <span class="o">=</span> <span class="n">V</span><span class="p">[</span><span class="n">ii</span><span class="p">,:]</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">V</span><span class="p">[</span><span class="n">ii</span><span class="p">,:])</span>
+		<span class="n">f1</span><span class="p">,</span> <span class="n">ps1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">fft</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">),</span> <span class="n">Vnmean</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">),</span> <span class="n">equispaced</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+		<span class="k">if</span> <span class="n">ii</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+			<span class="n">power</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">V</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">f1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+		<span class="n">power</span><span class="p">[</span><span class="n">ii</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">ps1</span>
+	<span class="n">T</span><span class="p">,</span><span class="n">P</span> <span class="o">=</span> <span class="n">pcarun</span><span class="p">(</span><span class="n">power</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">divide_variance</span><span class="o">=</span><span class="n">divide_variance</span><span class="p">)</span>
+	<span class="n">T2</span><span class="p">,</span> <span class="n">T2_limit</span> <span class="o">=</span> <span class="n">T2score</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">ncomp</span><span class="o">=</span><span class="n">ncomp</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="n">confidence</span><span class="p">)</span>	
+	<span class="n">imodes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">T2</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+	<span class="k">return</span> <span class="n">T2</span><span class="p">,</span> <span class="n">T2_limit</span><span class="p">,</span> <span class="n">imodes</span><span class="p">[</span><span class="n">T2</span><span class="o">&gt;</span><span class="n">T2_limit</span><span class="p">],</span> <span class="n">imodes</span><span class="p">[</span><span class="n">T2</span><span class="o">&lt;</span><span class="n">T2_limit</span><span class="p">]</span></div>
 
 </pre></div>
 

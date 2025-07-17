@@ -322,7 +322,9 @@
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.architectures.html">pyLOM.NN.architectures</a></li>
 </ul>
 </details></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.PCA.html">pyLOM.PCA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyLOM.POD.html">pyLOM.POD</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.RL.html">pyLOM.RL</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyLOM.SPOD.html">pyLOM.SPOD</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyLOM.io.html">pyLOM.io</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyLOM.utils.html">pyLOM.utils</a></li>
@@ -512,6 +514,14 @@
 <li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.EarlyStopper.early_stop"><code class="docutils literal notranslate"><span class="pre">EarlyStopper.early_stop()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Interpolator"><code class="docutils literal notranslate"><span class="pre">Interpolator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Interpolator.objective_mse"><code class="docutils literal notranslate"><span class="pre">Interpolator.objective_mse()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Interpolator.multitarget_equality_penalty"><code class="docutils literal notranslate"><span class="pre">Interpolator.multitarget_equality_penalty()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Interpolator.get_opt_params_for_case"><code class="docutils literal notranslate"><span class="pre">Interpolator.get_opt_params_for_case()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Interpolator.adjust_field"><code class="docutils literal notranslate"><span class="pre">Interpolator.adjust_field()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.global_coeff"><code class="docutils literal notranslate"><span class="pre">global_coeff()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.MLP"><code class="docutils literal notranslate"><span class="pre">MLP</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.MLP.forward"><code class="docutils literal notranslate"><span class="pre">MLP.forward()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.MLP.fit"><code class="docutils literal notranslate"><span class="pre">MLP.fit()</span></code></a></li>
@@ -530,12 +540,18 @@
 <li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.KAN.create_optimized_model"><code class="docutils literal notranslate"><span class="pre">KAN.create_optimized_model()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.KAN_SIN"><code class="docutils literal notranslate"><span class="pre">KAN_SIN</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.ChebyshevLayer"><code class="docutils literal notranslate"><span class="pre">ChebyshevLayer</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.ChebyshevLayer.forward"><code class="docutils literal notranslate"><span class="pre">ChebyshevLayer.forward()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.JacobiLayer"><code class="docutils literal notranslate"><span class="pre">JacobiLayer</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.JacobiLayer.forward"><code class="docutils literal notranslate"><span class="pre">JacobiLayer.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.SineLayer"><code class="docutils literal notranslate"><span class="pre">SineLayer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.SineLayer.init_weights"><code class="docutils literal notranslate"><span class="pre">SineLayer.init_weights()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.SineLayer.forward"><code class="docutils literal notranslate"><span class="pre">SineLayer.forward()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Autoencoder"><code class="docutils literal notranslate"><span class="pre">Autoencoder</span></code></a><ul>
@@ -626,6 +642,14 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="pyLOM.PCA.html">pyLOM.PCA</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.PCA.html#module-pyLOM.PCA">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.PCA.html#pyLOM.PCA.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.PCA.html#pyLOM.PCA.T2score"><code class="docutils literal notranslate"><span class="pre">T2score()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="pyLOM.POD.html">pyLOM.POD</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="pyLOM.POD.html#module-pyLOM.POD">Module contents</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.POD.html#pyLOM.POD.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
@@ -634,9 +658,95 @@
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.POD.html#pyLOM.POD.extract_modes"><code class="docutils literal notranslate"><span class="pre">extract_modes()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.POD.html#pyLOM.POD.save"><code class="docutils literal notranslate"><span class="pre">save()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.POD.html#pyLOM.POD.load"><code class="docutils literal notranslate"><span class="pre">load()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.POD.html#pyLOM.POD.coherent_modes"><code class="docutils literal notranslate"><span class="pre">coherent_modes()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.POD.html#pyLOM.POD.plotMode"><code class="docutils literal notranslate"><span class="pre">plotMode()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.POD.html#pyLOM.POD.plotEnergy"><code class="docutils literal notranslate"><span class="pre">plotEnergy()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.POD.html#pyLOM.POD.plotResidual"><code class="docutils literal notranslate"><span class="pre">plotResidual()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.POD.html#pyLOM.POD.plotSnapshot"><code class="docutils literal notranslate"><span class="pre">plotSnapshot()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pyLOM.RL.html">pyLOM.RL</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.RL.html#module-pyLOM.RL">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.BaseSolver"><code class="docutils literal notranslate"><span class="pre">BaseSolver</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.BaseSolver.__call__"><code class="docutils literal notranslate"><span class="pre">BaseSolver.__call__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.XFoilSolver"><code class="docutils literal notranslate"><span class="pre">XFoilSolver</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.NeuralFoilSolver"><code class="docutils literal notranslate"><span class="pre">NeuralFoilSolver</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.DummySolver"><code class="docutils literal notranslate"><span class="pre">DummySolver</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.AerosandboxWingSolver"><code class="docutils literal notranslate"><span class="pre">AerosandboxWingSolver</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.AVLSolver"><code class="docutils literal notranslate"><span class="pre">AVLSolver</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.BaseParameterizer"><code class="docutils literal notranslate"><span class="pre">BaseParameterizer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.BaseParameterizer.get_shape_from_params"><code class="docutils literal notranslate"><span class="pre">BaseParameterizer.get_shape_from_params()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.BaseParameterizer.get_optimizable_bounds"><code class="docutils literal notranslate"><span class="pre">BaseParameterizer.get_optimizable_bounds()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.BaseParameterizer.get_params_from_shape"><code class="docutils literal notranslate"><span class="pre">BaseParameterizer.get_params_from_shape()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.BaseParameterizer.generate_random_params"><code class="docutils literal notranslate"><span class="pre">BaseParameterizer.generate_random_params()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.AirfoilCSTParametrizer"><code class="docutils literal notranslate"><span class="pre">AirfoilCSTParametrizer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.AirfoilCSTParametrizer.naca_4digit_airfoils"><code class="docutils literal notranslate"><span class="pre">AirfoilCSTParametrizer.naca_4digit_airfoils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.AirfoilCSTParametrizer.get_shape_from_params"><code class="docutils literal notranslate"><span class="pre">AirfoilCSTParametrizer.get_shape_from_params()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.AirfoilCSTParametrizer.get_params_from_shape"><code class="docutils literal notranslate"><span class="pre">AirfoilCSTParametrizer.get_params_from_shape()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.AirfoilCSTParametrizer.generate_random_params"><code class="docutils literal notranslate"><span class="pre">AirfoilCSTParametrizer.generate_random_params()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.AirfoilCSTParametrizer.get_optimizable_bounds"><code class="docutils literal notranslate"><span class="pre">AirfoilCSTParametrizer.get_optimizable_bounds()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.WingParameterizer"><code class="docutils literal notranslate"><span class="pre">WingParameterizer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.WingParameterizer.__init__"><code class="docutils literal notranslate"><span class="pre">WingParameterizer.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.WingParameterizer.get_shape_from_params"><code class="docutils literal notranslate"><span class="pre">WingParameterizer.get_shape_from_params()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.WingParameterizer.get_params_from_shape"><code class="docutils literal notranslate"><span class="pre">WingParameterizer.get_params_from_shape()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.WingParameterizer.generate_random_params"><code class="docutils literal notranslate"><span class="pre">WingParameterizer.generate_random_params()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.WingParameterizer.get_optimizable_bounds"><code class="docutils literal notranslate"><span class="pre">WingParameterizer.get_optimizable_bounds()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.create_env"><code class="docutils literal notranslate"><span class="pre">create_env()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.AirfoilOperatingConditions"><code class="docutils literal notranslate"><span class="pre">AirfoilOperatingConditions</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.AirfoilOperatingConditions.alpha"><code class="docutils literal notranslate"><span class="pre">AirfoilOperatingConditions.alpha</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.AirfoilOperatingConditions.Reynolds"><code class="docutils literal notranslate"><span class="pre">AirfoilOperatingConditions.Reynolds</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.AirfoilOperatingConditions.mach"><code class="docutils literal notranslate"><span class="pre">AirfoilOperatingConditions.mach</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.AirfoilParameterizerConfig"><code class="docutils literal notranslate"><span class="pre">AirfoilParameterizerConfig</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.AirfoilParameterizerConfig.n_weights_per_side"><code class="docutils literal notranslate"><span class="pre">AirfoilParameterizerConfig.n_weights_per_side</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.AirfoilParameterizerConfig.leading_edge_weight_bounds"><code class="docutils literal notranslate"><span class="pre">AirfoilParameterizerConfig.leading_edge_weight_bounds</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.AirfoilParameterizerConfig.te_thickness_bounds"><code class="docutils literal notranslate"><span class="pre">AirfoilParameterizerConfig.te_thickness_bounds</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.AirfoilParameterizerConfig.upper_edge_bounds"><code class="docutils literal notranslate"><span class="pre">AirfoilParameterizerConfig.upper_edge_bounds</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.AirfoilParameterizerConfig.lower_edge_bounds"><code class="docutils literal notranslate"><span class="pre">AirfoilParameterizerConfig.lower_edge_bounds</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.AirfoilParameterizerConfig.create_parameterizer"><code class="docutils literal notranslate"><span class="pre">AirfoilParameterizerConfig.create_parameterizer()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.SolverFactory"><code class="docutils literal notranslate"><span class="pre">SolverFactory</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.SolverFactory.create_solver"><code class="docutils literal notranslate"><span class="pre">SolverFactory.create_solver()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.SolverFactory.create_airfoil_solver"><code class="docutils literal notranslate"><span class="pre">SolverFactory.create_airfoil_solver()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.SolverFactory.create_wing_solver"><code class="docutils literal notranslate"><span class="pre">SolverFactory.create_wing_solver()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.WingOperatingConditions"><code class="docutils literal notranslate"><span class="pre">WingOperatingConditions</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.WingOperatingConditions.velocity"><code class="docutils literal notranslate"><span class="pre">WingOperatingConditions.velocity</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.WingOperatingConditions.altitude"><code class="docutils literal notranslate"><span class="pre">WingOperatingConditions.altitude</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.WingOperatingConditions.alpha"><code class="docutils literal notranslate"><span class="pre">WingOperatingConditions.alpha</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.WingParameterizerConfig"><code class="docutils literal notranslate"><span class="pre">WingParameterizerConfig</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.WingParameterizerConfig.airfoil_name"><code class="docutils literal notranslate"><span class="pre">WingParameterizerConfig.airfoil_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.WingParameterizerConfig.chord_bounds"><code class="docutils literal notranslate"><span class="pre">WingParameterizerConfig.chord_bounds</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.WingParameterizerConfig.twist_bounds"><code class="docutils literal notranslate"><span class="pre">WingParameterizerConfig.twist_bounds</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.WingParameterizerConfig.span_bounds"><code class="docutils literal notranslate"><span class="pre">WingParameterizerConfig.span_bounds</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.WingParameterizerConfig.sweep_bounds"><code class="docutils literal notranslate"><span class="pre">WingParameterizerConfig.sweep_bounds</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.WingParameterizerConfig.dihedral_bounds"><code class="docutils literal notranslate"><span class="pre">WingParameterizerConfig.dihedral_bounds</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.WingParameterizerConfig.create_parameterizer"><code class="docutils literal notranslate"><span class="pre">WingParameterizerConfig.create_parameterizer()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.run_episode"><code class="docutils literal notranslate"><span class="pre">run_episode()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.evaluate_airfoil_agent"><code class="docutils literal notranslate"><span class="pre">evaluate_airfoil_agent()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.evaluate_airfoil_agent_whole_uiuc"><code class="docutils literal notranslate"><span class="pre">evaluate_airfoil_agent_whole_uiuc()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.evaluate_airfoil_agent_whole_uiuc_mpi"><code class="docutils literal notranslate"><span class="pre">evaluate_airfoil_agent_whole_uiuc_mpi()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.create_airfoil_optimization_progress_plot"><code class="docutils literal notranslate"><span class="pre">create_airfoil_optimization_progress_plot()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.AirfoilEvolutionAnimation"><code class="docutils literal notranslate"><span class="pre">AirfoilEvolutionAnimation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.WingEvolutionAnimation"><code class="docutils literal notranslate"><span class="pre">WingEvolutionAnimation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.RL.html#pyLOM.RL.SB3_PPO"><code class="docutils literal notranslate"><span class="pre">SB3_PPO</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -658,11 +768,13 @@
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_append_dset"><code class="docutils literal notranslate"><span class="pre">h5_append_dset()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_load_DMD"><code class="docutils literal notranslate"><span class="pre">h5_load_DMD()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_load_POD"><code class="docutils literal notranslate"><span class="pre">h5_load_POD()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_load_QR"><code class="docutils literal notranslate"><span class="pre">h5_load_QR()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_load_SPOD"><code class="docutils literal notranslate"><span class="pre">h5_load_SPOD()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_load_dset"><code class="docutils literal notranslate"><span class="pre">h5_load_dset()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_load_mesh"><code class="docutils literal notranslate"><span class="pre">h5_load_mesh()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_save_DMD"><code class="docutils literal notranslate"><span class="pre">h5_save_DMD()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_save_POD"><code class="docutils literal notranslate"><span class="pre">h5_save_POD()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_save_QR"><code class="docutils literal notranslate"><span class="pre">h5_save_QR()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_save_SPOD"><code class="docutils literal notranslate"><span class="pre">h5_save_SPOD()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_save_VAE"><code class="docutils literal notranslate"><span class="pre">h5_save_VAE()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.io.html#pyLOM.io.h5_save_dset"><code class="docutils literal notranslate"><span class="pre">h5_save_dset()</span></code></a></li>
@@ -719,16 +831,19 @@
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.RMSE"><code class="docutils literal notranslate"><span class="pre">RMSE()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.argsort"><code class="docutils literal notranslate"><span class="pre">argsort()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.cellCenters"><code class="docutils literal notranslate"><span class="pre">cellCenters()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.cell_adjacency"><code class="docutils literal notranslate"><span class="pre">cell_adjacency()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.cholesky"><code class="docutils literal notranslate"><span class="pre">cholesky()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.compute_truncation_residual"><code class="docutils literal notranslate"><span class="pre">compute_truncation_residual()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.conj"><code class="docutils literal notranslate"><span class="pre">conj()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.data_splitting"><code class="docutils literal notranslate"><span class="pre">data_splitting()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.diag"><code class="docutils literal notranslate"><span class="pre">diag()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.edge_to_cells"><code class="docutils literal notranslate"><span class="pre">edge_to_cells()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.eigen"><code class="docutils literal notranslate"><span class="pre">eigen()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.energy"><code class="docutils literal notranslate"><span class="pre">energy()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.euclidean_d"><code class="docutils literal notranslate"><span class="pre">euclidean_d()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.fft"><code class="docutils literal notranslate"><span class="pre">fft()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.find_random_sensors"><code class="docutils literal notranslate"><span class="pre">find_random_sensors()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.fix_normals_coherence"><code class="docutils literal notranslate"><span class="pre">fix_normals_coherence()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.flip"><code class="docutils literal notranslate"><span class="pre">flip()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.hammwin"><code class="docutils literal notranslate"><span class="pre">hammwin()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.init_qr_streaming"><code class="docutils literal notranslate"><span class="pre">init_qr_streaming()</span></code></a></li>
@@ -736,6 +851,7 @@
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.least_squares"><code class="docutils literal notranslate"><span class="pre">least_squares()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.matmul"><code class="docutils literal notranslate"><span class="pre">matmul()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.matmulp"><code class="docutils literal notranslate"><span class="pre">matmulp()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.norm_variance"><code class="docutils literal notranslate"><span class="pre">norm_variance()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.normals"><code class="docutils literal notranslate"><span class="pre">normals()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.polar"><code class="docutils literal notranslate"><span class="pre">polar()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.qr"><code class="docutils literal notranslate"><span class="pre">qr()</span></code></a></li>
@@ -746,6 +862,7 @@
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.subtract_mean"><code class="docutils literal notranslate"><span class="pre">subtract_mean()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.svd"><code class="docutils literal notranslate"><span class="pre">svd()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.temporal_mean"><code class="docutils literal notranslate"><span class="pre">temporal_mean()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.temporal_variance"><code class="docutils literal notranslate"><span class="pre">temporal_variance()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.time_delay_embedding"><code class="docutils literal notranslate"><span class="pre">time_delay_embedding()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.transpose"><code class="docutils literal notranslate"><span class="pre">transpose()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.tsqr"><code class="docutils literal notranslate"><span class="pre">tsqr()</span></code></a></li>
@@ -757,6 +874,7 @@
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.vector_mean"><code class="docutils literal notranslate"><span class="pre">vector_mean()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.vector_norm"><code class="docutils literal notranslate"><span class="pre">vector_norm()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.vector_sum"><code class="docutils literal notranslate"><span class="pre">vector_sum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.math.html#pyLOM.math.wall_normals"><code class="docutils literal notranslate"><span class="pre">wall_normals()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -1151,6 +1269,21 @@ from pyQvarsi</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="pyLOM.Mesh.wall_normals">
+<span class="sig-name descname"><span class="pre">wall_normals</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.3)"><span class="pre">ndarray</span></a></span></span><a class="reference internal" href="../_modules/pyLOM/mesh.html#Mesh.wall_normals"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Mesh.wall_normals" title="Link to this definition">#</a></dt>
+<dd><p>Computes the normalized wall normals of the cells in the mesh.
+Wall normals are the vectors normal to the edges and tangent to the cell.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>wall_normals</strong> – Array with the edge normals of each cell concatenated along axis 1.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="pyLOM.Mesh.reshape_var">
 <span class="sig-name descname"><span class="pre">reshape_var</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><span class="pre">dict</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/mesh.html#Mesh.reshape_var"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.Mesh.reshape_var" title="Link to this definition">#</a></dt>
 <dd><p>Reshape a variable according to the mesh</p>
@@ -1260,8 +1393,18 @@ from pyQvarsi</p>
 <dd></dd></dl>
 
 <dl class="py property">
+<dt class="sig sig-object py" id="pyLOM.Mesh.wall_normal">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">wall_normal</span></span><a class="headerlink" href="#pyLOM.Mesh.wall_normal" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="pyLOM.Mesh.connectivity">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">connectivity</span></span><a class="headerlink" href="#pyLOM.Mesh.connectivity" title="Link to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pyLOM.Mesh.cell_connectivity">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">cell_connectivity</span></span><a class="headerlink" href="#pyLOM.Mesh.cell_connectivity" title="Link to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py property">
@@ -1485,6 +1628,7 @@ rank that should print.</p>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Mesh.find_point_in_cell"><code class="docutils literal notranslate"><span class="pre">Mesh.find_point_in_cell()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Mesh.size"><code class="docutils literal notranslate"><span class="pre">Mesh.size()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Mesh.cellcenters"><code class="docutils literal notranslate"><span class="pre">Mesh.cellcenters()</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Mesh.wall_normals"><code class="docutils literal notranslate"><span class="pre">Mesh.wall_normals()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Mesh.reshape_var"><code class="docutils literal notranslate"><span class="pre">Mesh.reshape_var()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Mesh.save"><code class="docutils literal notranslate"><span class="pre">Mesh.save()</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Mesh.load"><code class="docutils literal notranslate"><span class="pre">Mesh.load()</span></code></a></li>
@@ -1506,7 +1650,9 @@ rank that should print.</p>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Mesh.z"><code class="docutils literal notranslate"><span class="pre">Mesh.z</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Mesh.xyzc"><code class="docutils literal notranslate"><span class="pre">Mesh.xyzc</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Mesh.normal"><code class="docutils literal notranslate"><span class="pre">Mesh.normal</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Mesh.wall_normal"><code class="docutils literal notranslate"><span class="pre">Mesh.wall_normal</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Mesh.connectivity"><code class="docutils literal notranslate"><span class="pre">Mesh.connectivity</span></code></a></li>
+<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Mesh.cell_connectivity"><code class="docutils literal notranslate"><span class="pre">Mesh.cell_connectivity</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Mesh.cellOrder"><code class="docutils literal notranslate"><span class="pre">Mesh.cellOrder</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Mesh.pointOrder"><code class="docutils literal notranslate"><span class="pre">Mesh.pointOrder</span></code></a></li>
 <li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.Mesh.partition_table"><code class="docutils literal notranslate"><span class="pre">Mesh.partition_table</span></code></a></li>

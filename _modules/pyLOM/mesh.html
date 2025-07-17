@@ -366,10 +366,12 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
 
 <span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
 
 <span class="kn">from</span> <span class="nn">.</span>       <span class="kn">import</span> <span class="n">inp_out</span> <span class="k">as</span> <span class="n">io</span>
-<span class="kn">from</span> <span class="nn">.vmmath</span> <span class="kn">import</span> <span class="n">cellCenters</span><span class="p">,</span> <span class="n">normals</span>
+<span class="kn">from</span> <span class="nn">.vmmath</span> <span class="kn">import</span> <span class="n">cellCenters</span><span class="p">,</span> <span class="n">normals</span><span class="p">,</span> <span class="n">cell_adjacency</span><span class="p">,</span> <span class="n">edge_to_cells</span><span class="p">,</span> <span class="n">wall_normals</span>
 <span class="kn">from</span> <span class="nn">.utils</span>  <span class="kn">import</span> <span class="n">cr_nvtx</span> <span class="k">as</span> <span class="n">cr</span><span class="p">,</span> <span class="n">mem</span><span class="p">,</span> <span class="n">raiseError</span><span class="p">,</span> <span class="n">mpi_reduce</span>
+
 
 
 <span class="n">ALYA2ELTYP</span> <span class="o">=</span> <span class="p">{</span>
@@ -435,7 +437,9 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_xyz</span>    <span class="o">=</span> <span class="n">xyz</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_xyzc</span>   <span class="o">=</span> <span class="kc">None</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_normal</span> <span class="o">=</span> <span class="kc">None</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_wall_normal</span> <span class="o">=</span> <span class="kc">None</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_conec</span>  <span class="o">=</span> <span class="n">connectivity</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_cell_conec</span> <span class="o">=</span> <span class="kc">None</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_eltype</span> <span class="o">=</span> <span class="n">eltype</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_cellO</span>  <span class="o">=</span> <span class="n">cellOrder</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_pointO</span> <span class="o">=</span> <span class="n">pointOrder</span>
@@ -528,6 +532,57 @@
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;UNSTRUCT&#39;</span><span class="p">:</span>
 			<span class="n">xyzc</span> <span class="o">=</span> <span class="n">cellCenters</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_xyz</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">_conec</span><span class="p">)</span>
 		<span class="k">return</span> <span class="n">xyzc</span></div>
+
+	
+	<span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;Mesh._compute_cell_connectivity&#39;</span><span class="p">)</span>
+	<span class="k">def</span> <span class="nf">_compute_cell_connectivity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&#39;&#39;&#39;Computes the connectivity between cells that share an edge.</span>
+
+<span class="sd">		Returns</span>
+<span class="sd">		-------</span>
+<span class="sd">		padded_neighbors : list</span>
+<span class="sd">			Connectivity array of neighbors for each cell. Each list is padded with -1s to have a fixed length.</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+		<span class="c1"># Step 1: Create a dictionary to store the edges and their corresponding cells</span>
+		<span class="n">edge_dict</span> <span class="o">=</span> <span class="n">edge_to_cells</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">connectivity</span><span class="p">)</span>  <span class="c1"># Dictionary mapping edges to cells</span>
+
+		<span class="c1"># Neighbors dictionary asigning the neighbors to each cell</span>
+		<span class="n">adjacency_dict</span> <span class="o">=</span> <span class="n">cell_adjacency</span><span class="p">(</span><span class="n">edge_dict</span><span class="p">)</span>
+
+		<span class="c1"># Step 3: Pad the neighbors list with -1s</span>
+		<span class="n">max_len</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">adjacency_dict</span><span class="p">[</span><span class="n">cell</span><span class="p">])</span> <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ncells</span><span class="p">))</span>
+		<span class="n">padded_neighbors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">list</span><span class="p">(</span><span class="n">adjacency_dict</span><span class="p">[</span><span class="n">cell</span><span class="p">])</span> <span class="o">+</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">max_len</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">adjacency_dict</span><span class="p">[</span><span class="n">cell</span><span class="p">]))</span> <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ncells</span><span class="p">)],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+		<span class="k">return</span> <span class="n">padded_neighbors</span>
+
+<div class="viewcode-block" id="Mesh.wall_normals">
+<a class="viewcode-back" href="../../api/pyLOM.html#pyLOM.Mesh.wall_normals">[docs]</a>
+	<span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;Mesh.wall_normals&#39;</span><span class="p">)</span>
+	<span class="k">def</span> <span class="nf">wall_normals</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">		</span><span class="sa">r</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Computes the normalized wall normals of the cells in the mesh.</span>
+<span class="sd">		Wall normals are the vectors normal to the edges and tangent to the cell.</span>
+<span class="sd">			</span>
+<span class="sd">		Returns</span>
+<span class="sd">		-------</span>
+<span class="sd">		wall_normals : np.ndarray</span>
+<span class="sd">			Array with the edge normals of each cell concatenated along axis 1.</span>
+<span class="sd">		&#39;&#39;&#39;</span>
+
+		<span class="c1"># Array to store the edge normals of each cell. Assumes every cell has the same number of edges.</span>
+		<span class="n">wall_normals_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">ncells</span><span class="p">,</span> <span class="mi">3</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">nnodcell</span><span class="p">))</span>
+
+		<span class="c1"># Iterate over each cell</span>
+		<span class="k">for</span> <span class="n">cell_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ncells</span><span class="p">):</span>
+			<span class="n">cell_normal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normal</span><span class="p">[</span><span class="n">cell_id</span><span class="p">]</span>
+			<span class="n">cell_nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">connectivity</span><span class="p">[</span><span class="n">cell_id</span><span class="p">]</span>
+			<span class="n">nodes_xyz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyz</span><span class="p">[</span><span class="n">cell_nodes</span><span class="p">]</span>  <span class="c1"># Get the nodes of the cell</span>
+
+			<span class="n">_</span><span class="p">,</span> <span class="n">cell_normals_list</span> <span class="o">=</span> <span class="n">wall_normals</span><span class="p">(</span><span class="n">cell_nodes</span><span class="p">,</span> <span class="n">nodes_xyz</span><span class="p">,</span> <span class="n">cell_normal</span><span class="p">)</span>  <span class="c1"># Compute the edge normals of the cell</span>
+
+			<span class="n">wall_normals_arr</span><span class="p">[</span><span class="n">cell_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">cell_normals_list</span><span class="p">)</span>  <span class="c1"># Store the edge normals of the cell</span>
+
+		<span class="k">return</span> <span class="n">wall_normals_arr</span></div>
 
 
 <div class="viewcode-block" id="Mesh.reshape_var">
@@ -655,11 +710,7 @@
 		<span class="k">return</span> <span class="n">mpi_reduce</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ncells</span><span class="p">,</span><span class="n">op</span><span class="o">=</span><span class="s1">&#39;sum&#39;</span><span class="p">,</span><span class="nb">all</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 	<span class="nd">@property</span>
 	<span class="k">def</span> <span class="nf">ncellsG2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cellOrder</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-			<span class="n">ncells</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cellOrder</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
-		<span class="k">else</span><span class="p">:</span>
-			<span class="n">ncells</span> <span class="o">=</span> <span class="mi">0</span>
-		<span class="k">return</span> <span class="n">mpi_reduce</span><span class="p">(</span><span class="n">ncells</span><span class="p">,</span><span class="n">op</span><span class="o">=</span><span class="s1">&#39;max&#39;</span><span class="p">,</span><span class="nb">all</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+		<span class="k">return</span> <span class="n">mpi_reduce</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cellOrder</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cellOrder</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span><span class="n">op</span><span class="o">=</span><span class="s1">&#39;max&#39;</span><span class="p">,</span><span class="nb">all</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
 	<span class="nd">@property</span>
 	<span class="k">def</span> <span class="nf">nnodcell</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conec</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
@@ -684,10 +735,19 @@
 	<span class="k">def</span> <span class="nf">normal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normal</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normal</span> <span class="o">=</span> <span class="n">normals</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_xyz</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">_conec</span><span class="p">)</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normal</span>
+	<span class="nd">@property</span>
+	<span class="k">def</span> <span class="nf">wall_normal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wall_normal</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wall_normal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wall_normals</span><span class="p">()</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wall_normal</span>
 
 	<span class="nd">@property</span>
 	<span class="k">def</span> <span class="nf">connectivity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_conec</span>
+	<span class="nd">@property</span>
+	<span class="k">def</span> <span class="nf">cell_connectivity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cell_conec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_cell_conec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_cell_connectivity</span><span class="p">()</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cell_conec</span>
 	<span class="nd">@property</span>
 	<span class="k">def</span> <span class="nf">cellOrder</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cellO</span>

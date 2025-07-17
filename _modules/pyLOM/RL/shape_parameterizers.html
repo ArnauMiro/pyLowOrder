@@ -1,0 +1,762 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pyLOM.RL.shape_parameterizers &#8212; pyLOM  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=de90da8b" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/pyLOM/RL/shape_parameterizers';</script>
+    <link rel="icon" href="../../../_static/favicon_tmp.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="3.1.0" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/logo_tmp.webp" class="logo__image only-light" alt="pyLOM"/>
+    <img src="../../../_static/logo_tmp.webp" class="logo__image only-dark pst-js-only" alt="pyLOM"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api/modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../install.html">
+    Installation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../api/modules.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../examples.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../install.html">
+    Installation
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ArnauMiro/pyLowOrder" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">pyLOM.RL.shape_parameterizers</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for pyLOM.RL.shape_parameterizers</h1><div class="highlight"><pre>
+<span></span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span> <span class="nn">aerosandbox</span> <span class="k">as</span> <span class="nn">asb</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">aerosandbox</span> <span class="kn">import</span> <span class="n">_asb_root</span>
+
+<span class="kn">from</span> <span class="nn">pyLOM.utils</span> <span class="kn">import</span> <span class="n">raiseError</span>
+
+<span class="n">airfoil_database_root</span> <span class="o">=</span> <span class="n">_asb_root</span> <span class="o">/</span> <span class="s2">&quot;geometry&quot;</span> <span class="o">/</span> <span class="s2">&quot;airfoil&quot;</span> <span class="o">/</span> <span class="s2">&quot;airfoil_database&quot;</span>
+
+
+<div class="viewcode-block" id="BaseParameterizer">
+<a class="viewcode-back" href="../../../api/pyLOM.RL.html#pyLOM.RL.BaseParameterizer">[docs]</a>
+<span class="k">class</span> <span class="nc">BaseParameterizer</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for all parameterizers. It defines the interface for the parameterizers.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="BaseParameterizer.get_shape_from_params">
+<a class="viewcode-back" href="../../../api/pyLOM.RL.html#pyLOM.RL.BaseParameterizer.get_shape_from_params">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">get_shape_from_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">asb</span><span class="o">.</span><span class="n">Airfoil</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a shape from the given parameters.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            params (np.ndarray): Parameters to create the shape.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            asb.Airfoil: Created shape.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="BaseParameterizer.get_optimizable_bounds">
+<a class="viewcode-back" href="../../../api/pyLOM.RL.html#pyLOM.RL.BaseParameterizer.get_optimizable_bounds">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">get_optimizable_bounds</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">,</span> <span class="n">List</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the bounds of the optimizable parameters.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple[List, List]: Lower and upper bounds of the parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="BaseParameterizer.get_params_from_shape">
+<a class="viewcode-back" href="../../../api/pyLOM.RL.html#pyLOM.RL.BaseParameterizer.get_params_from_shape">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">get_params_from_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shapea</span><span class="p">:</span> <span class="n">asb</span><span class="o">.</span><span class="n">Airfoil</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the parameters from the given shape.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            shape (asb.Airfoil): Shape to get the parameters from.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray: Parameters of the shape.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="BaseParameterizer.generate_random_params">
+<a class="viewcode-back" href="../../../api/pyLOM.RL.html#pyLOM.RL.BaseParameterizer.generate_random_params">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">generate_random_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate random parameters within the bounds.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            seed (int, optional): Seed for the random number generator. Default is ``None``.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray: Random parameters within the bounds.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="AirfoilCSTParametrizer">
+<a class="viewcode-back" href="../../../api/pyLOM.RL.html#pyLOM.RL.AirfoilCSTParametrizer">[docs]</a>
+<span class="k">class</span> <span class="nc">AirfoilCSTParametrizer</span><span class="p">(</span><span class="n">BaseParameterizer</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    CST parameterization of airfoils. The CST method is a way to parameterize airfoils using a set of control points.</span>
+<span class="sd">    Depending on the number of points in upper and lower surfaces, the number of parameters will be different.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        upper_surface_bounds (Tuple[List, List]): Bounds for the upper surface parameters. The first list has the lower bounds and the second list has the upper bounds.The length of the lists should be equal to the number of parameters for the upper surface.</span>
+<span class="sd">        lower_surface_bounds (Tuple[List, List]): Bounds for the lower surface parameters. The first list has the lower bounds and the second list has the upper bounds.The length of the lists should be equal to the number of parameters for the lower surface.</span>
+<span class="sd">        TE_thickness_bounds (Tuple[float, float]): Bounds for the TE thickness. The first value is the lower bound and the second value is the upper bound.</span>
+<span class="sd">        leading_edge_weight (Tuple[float, float]): Bounds for the leading edge weight. The first value is the lower bound and the second value is the upper bound.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">naca_4digit_airfoils</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;naca0006&quot;</span><span class="p">,</span> <span class="s2">&quot;naca0009&quot;</span><span class="p">,</span> <span class="s2">&quot;naca0012&quot;</span><span class="p">,</span> <span class="s2">&quot;naca0015&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;naca0018&quot;</span><span class="p">,</span> <span class="s2">&quot;naca1408&quot;</span><span class="p">,</span> <span class="s2">&quot;naca1410&quot;</span><span class="p">,</span> <span class="s2">&quot;naca1412&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;naca2412&quot;</span><span class="p">,</span> <span class="s2">&quot;naca2415&quot;</span><span class="p">,</span> <span class="s2">&quot;naca4412&quot;</span><span class="p">,</span> <span class="s2">&quot;naca4415&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;naca4420&quot;</span><span class="p">,</span> <span class="s2">&quot;naca6412&quot;</span><span class="p">,</span> <span class="s2">&quot;naca6415&quot;</span><span class="p">,</span> <span class="s2">&quot;naca7421&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;naca8409&quot;</span><span class="p">,</span> <span class="s2">&quot;naca8412&quot;</span><span class="p">,</span> <span class="s2">&quot;naca8415&quot;</span><span class="p">,</span> <span class="s2">&quot;naca9421&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">upper_surface_bounds</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">,</span> <span class="n">List</span><span class="p">],</span>
+        <span class="n">lower_surface_bounds</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">,</span> <span class="n">List</span><span class="p">],</span>
+        <span class="n">TE_thickness_bounds</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">,</span> <span class="n">List</span><span class="p">],</span>
+        <span class="n">leading_edge_weight</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">,</span> <span class="n">List</span><span class="p">],</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">upper_surface_bounds</span> <span class="o">=</span> <span class="n">upper_surface_bounds</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lower_surface_bounds</span> <span class="o">=</span> <span class="n">lower_surface_bounds</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">leading_edge_weight_bounds</span> <span class="o">=</span> <span class="n">leading_edge_weight</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">TE_thickness_bounds</span> <span class="o">=</span> <span class="n">TE_thickness_bounds</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_upper_surface_params</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">upper_surface_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_lower_surface_params</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">lower_surface_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+
+<div class="viewcode-block" id="AirfoilCSTParametrizer.get_shape_from_params">
+<a class="viewcode-back" href="../../../api/pyLOM.RL.html#pyLOM.RL.AirfoilCSTParametrizer.get_shape_from_params">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_shape_from_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="c1"># Check if the params are within the bounds</span>
+        <span class="n">upper_surface_params</span><span class="p">,</span> <span class="n">lower_surface_params</span><span class="p">,</span> <span class="n">leading_edge_weight</span><span class="p">,</span> <span class="n">TE_thickness</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_deserialize_params</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+        <span class="n">airfoil</span> <span class="o">=</span> <span class="n">asb</span><span class="o">.</span><span class="n">KulfanAirfoil</span><span class="p">(</span>
+            <span class="n">upper_weights</span><span class="o">=</span><span class="n">upper_surface_params</span><span class="p">,</span>
+            <span class="n">lower_weights</span><span class="o">=</span><span class="n">lower_surface_params</span><span class="p">,</span>
+            <span class="n">leading_edge_weight</span><span class="o">=</span><span class="n">leading_edge_weight</span><span class="p">,</span>
+            <span class="n">TE_thickness</span><span class="o">=</span><span class="n">TE_thickness</span><span class="p">,</span>
+        <span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">airfoil</span></div>
+
+    
+<div class="viewcode-block" id="AirfoilCSTParametrizer.get_params_from_shape">
+<a class="viewcode-back" href="../../../api/pyLOM.RL.html#pyLOM.RL.AirfoilCSTParametrizer.get_params_from_shape">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_params_from_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">airfoil</span><span class="p">:</span> <span class="n">asb</span><span class="o">.</span><span class="n">Airfoil</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">airfoil</span><span class="p">,</span> <span class="n">asb</span><span class="o">.</span><span class="n">KulfanAirfoil</span><span class="p">):</span>
+            <span class="n">airfoil</span> <span class="o">=</span> <span class="n">airfoil</span><span class="o">.</span><span class="n">to_kulfan_airfoil</span><span class="p">(</span><span class="n">n_weights_per_side</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_upper_surface_params</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="n">airfoil</span><span class="o">.</span><span class="n">upper_weights</span><span class="p">,</span>
+                <span class="n">airfoil</span><span class="o">.</span><span class="n">lower_weights</span><span class="p">,</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">((</span><span class="n">airfoil</span><span class="o">.</span><span class="n">leading_edge_weight</span><span class="p">,</span> <span class="n">airfoil</span><span class="o">.</span><span class="n">TE_thickness</span><span class="p">)),</span>
+            <span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AirfoilCSTParametrizer.generate_random_params">
+<a class="viewcode-back" href="../../../api/pyLOM.RL.html#pyLOM.RL.AirfoilCSTParametrizer.generate_random_params">[docs]</a>
+    <span class="k">def</span> <span class="nf">generate_random_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s2">&quot;naca&quot;</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate random parameters within the bounds.</span>
+
+<span class="sd">        If source is &quot;naca&quot;, generate a random NACA 4-digit airfoil.</span>
+<span class="sd">        If source is &quot;uiuc&quot;, generate random airfoil from the UIUC dataset.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            source (str): Source of the airfoil. Can be &quot;naca&quot; or &quot;uiuc&quot;. Default is &quot;naca&quot;.</span>
+<span class="sd">            seed (int, optional): Seed for the random number generator. Default is ``None``.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray: Random parameters for an airfoil.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+        <span class="n">source</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="s2">&quot;naca&quot;</span><span class="p">:</span>
+            <span class="n">random_idx</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">naca_4digit_airfoils</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">random_airfoil</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">naca_4digit_airfoils</span><span class="p">[</span><span class="n">random_idx</span><span class="p">]</span>
+            <span class="n">airfoil</span> <span class="o">=</span> <span class="n">asb</span><span class="o">.</span><span class="n">Airfoil</span><span class="p">(</span><span class="n">random_airfoil</span><span class="p">)</span><span class="o">.</span><span class="n">to_kulfan_airfoil</span><span class="p">(</span><span class="n">n_weights_per_side</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_upper_surface_params</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">source</span> <span class="o">==</span> <span class="s2">&quot;uiuc&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;uiuc_airfoil_names&quot;</span><span class="p">):</span>
+                <span class="c1"># Load the UIUC airfoil dataset</span>
+                <span class="n">uiuc_airfoil_names</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">airfoil_database_root</span><span class="p">)</span>
+                <span class="n">uiuc_airfoil_names</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;utils&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">uiuc_airfoil_names</span> <span class="o">=</span> <span class="n">uiuc_airfoil_names</span>
+            <span class="n">random_idx</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uiuc_airfoil_names</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">random_airfoil</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">uiuc_airfoil_names</span><span class="p">[</span><span class="n">random_idx</span><span class="p">]</span>
+            <span class="n">airfoil</span> <span class="o">=</span> <span class="n">asb</span><span class="o">.</span><span class="n">Airfoil</span><span class="p">(</span><span class="n">random_airfoil</span><span class="p">)</span><span class="o">.</span><span class="n">to_kulfan_airfoil</span><span class="p">(</span><span class="n">n_weights_per_side</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_upper_surface_params</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  
+            <span class="k">raise</span> <span class="n">raiseError</span><span class="p">(</span><span class="s2">&quot;Invalid source. Choose &#39;naca&#39; or &#39;uiuc&#39;.&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_params_from_shape</span><span class="p">(</span><span class="n">airfoil</span><span class="p">)</span></div>
+
+    
+    <span class="k">def</span> <span class="nf">_deserialize_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="n">upper_surface_params</span> <span class="o">=</span> <span class="n">params</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">num_upper_surface_params</span><span class="p">]</span>
+        <span class="n">lower_surface_params</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">num_upper_surface_params</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">num_upper_surface_params</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_lower_surface_params</span><span class="p">]</span>
+        <span class="n">leading_edge_weight</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">num_upper_surface_params</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_lower_surface_params</span><span class="p">]</span> 
+        <span class="n">TE_thickness</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">num_upper_surface_params</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_lower_surface_params</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+    
+        <span class="k">return</span> <span class="n">upper_surface_params</span><span class="p">,</span> <span class="n">lower_surface_params</span><span class="p">,</span> <span class="n">leading_edge_weight</span><span class="p">,</span> <span class="n">TE_thickness</span>
+    
+<div class="viewcode-block" id="AirfoilCSTParametrizer.get_optimizable_bounds">
+<a class="viewcode-back" href="../../../api/pyLOM.RL.html#pyLOM.RL.AirfoilCSTParametrizer.get_optimizable_bounds">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_optimizable_bounds</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">,</span> <span class="n">List</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the bounds of the parameters.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple[List, List]: Lower and upper bounds of the parameters. The first list has the lower bounds and the second list has the upper bounds.</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">upper_surface_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">lower_surface_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">leading_edge_weight_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">TE_thickness_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">upper_surface_bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">lower_surface_bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">leading_edge_weight_bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">TE_thickness_bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
+        <span class="p">)</span></div>
+</div>
+
+
+<div class="viewcode-block" id="WingParameterizer">
+<a class="viewcode-back" href="../../../api/pyLOM.RL.html#pyLOM.RL.WingParameterizer">[docs]</a>
+<span class="k">class</span> <span class="nc">WingParameterizer</span><span class="p">(</span><span class="n">BaseParameterizer</span><span class="p">):</span>
+<div class="viewcode-block" id="WingParameterizer.__init__">
+<a class="viewcode-back" href="../../../api/pyLOM.RL.html#pyLOM.RL.WingParameterizer.__init__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">airfoil</span><span class="p">:</span> <span class="n">asb</span><span class="o">.</span><span class="n">Airfoil</span><span class="p">,</span>
+        <span class="n">chord_bounds</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">],</span>
+        <span class="n">twist_bounds</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">],</span>
+        <span class="n">span_bounds</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">],</span>
+        <span class="n">sweep_bounds</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">],</span>
+        <span class="n">dihedral_bounds</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">],</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the WingParametrizerDust class.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            airfoil (asb.Airfoil): The airfoil to be used for the wing sections.</span>
+<span class="sd">            The bounds for the chord, twist, span, sweep, and dihedral parameters are tuples with two lists, the first list is the lower bound and the second list is the upper bound. If the upper and lower bounds are the same, the parameter will not be considered for optimization. A section of the wing is created for each chord and twist pair, and a region of the wing is created for each span, sweep, and dihedral triplet, the number of sections should be one more than the number of regions. The angles need to be in degrees.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lower_bounds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="n">chord_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">twist_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">span_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">sweep_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">dihedral_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">upper_bounds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="n">chord_bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">twist_bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">span_bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">sweep_bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">dihedral_bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">non_optimizable_params_mask</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lower_bounds</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">upper_bounds</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">airfoil</span> <span class="o">=</span> <span class="n">airfoil</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">chord_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">twist_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="s2">&quot;Chord and twist bounds must have the same length&quot;</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">span_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">sweep_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">span_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">dihedral_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="s2">&quot;Span, sweep and dihedral bounds must have the same length&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_sections</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">chord_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_regions</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">span_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_sections</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_regions</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;There should be one more chord section than span section&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="WingParameterizer.get_shape_from_params">
+<a class="viewcode-back" href="../../../api/pyLOM.RL.html#pyLOM.RL.WingParameterizer.get_shape_from_params">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_shape_from_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lower_bounds</span><span class="p">):</span>   
+            <span class="n">competed_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_complete_params</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">competed_params</span> <span class="o">=</span> <span class="n">params</span>
+        <span class="n">chords</span> <span class="o">=</span> <span class="n">competed_params</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">num_sections</span><span class="p">]</span>
+        <span class="n">twists</span> <span class="o">=</span> <span class="n">competed_params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">num_sections</span><span class="p">:</span><span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">num_sections</span><span class="p">]</span>
+        <span class="n">spans</span> <span class="o">=</span> <span class="n">competed_params</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">num_sections</span><span class="p">:</span><span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">num_sections</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_regions</span><span class="p">]</span>
+        <span class="n">sweeps</span> <span class="o">=</span> <span class="n">competed_params</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">num_sections</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_regions</span><span class="p">:</span><span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">num_sections</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">num_regions</span><span class="p">]</span>
+        <span class="n">diheds</span> <span class="o">=</span> <span class="n">competed_params</span><span class="p">[</span><span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">num_sections</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">num_regions</span><span class="p">:]</span>
+        <span class="n">coordinates</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_regions</span><span class="p">):</span>
+            <span class="n">new_coordinates</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="n">new_coordinates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">coordinates</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">tan</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">sweeps</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span> <span class="o">*</span> <span class="n">spans</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">new_coordinates</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">coordinates</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">spans</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">new_coordinates</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">coordinates</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">tan</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">diheds</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span> <span class="o">*</span> <span class="n">spans</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">coordinates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_coordinates</span><span class="p">)</span>
+
+        <span class="n">wing</span> <span class="o">=</span> <span class="n">asb</span><span class="o">.</span><span class="n">Wing</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Main Wing&quot;</span><span class="p">,</span>
+            <span class="n">symmetric</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># Should this wing be mirrored across the XZ plane?</span>
+            <span class="n">xsecs</span><span class="o">=</span><span class="p">[</span>  <span class="c1"># The wing&#39;s cross (&quot;X&quot;) sections</span>
+                <span class="n">asb</span><span class="o">.</span><span class="n">WingXSec</span><span class="p">(</span>  <span class="c1"># Root</span>
+                    <span class="n">xyz_le</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span>  <span class="c1"># Coordinates of the XSec&#39;s leading edge, relative to the wing&#39;s leading edge.</span>
+                    <span class="n">chord</span><span class="o">=</span><span class="n">chord</span><span class="p">,</span>
+                    <span class="n">twist</span><span class="o">=</span><span class="n">twist</span><span class="p">,</span>  <span class="c1"># degrees</span>
+                    <span class="n">airfoil</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">airfoil</span><span class="p">,</span>  <span class="c1"># Airfoils are blended between a given XSec and the next one.</span>
+                <span class="p">)</span> <span class="k">for</span> <span class="n">chord</span><span class="p">,</span> <span class="n">twist</span><span class="p">,</span> <span class="n">coords</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">chords</span><span class="p">,</span> <span class="n">twists</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">)</span> 
+            <span class="p">])</span>
+        <span class="k">return</span> <span class="n">wing</span></div>
+
+
+
+    <span class="k">def</span> <span class="nf">_complete_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="n">competed_params</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lower_bounds</span><span class="p">)</span>
+        <span class="n">competed_params</span><span class="p">[</span><span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">non_optimizable_params_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span>
+        <span class="n">competed_params</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">non_optimizable_params_mask</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lower_bounds</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">non_optimizable_params_mask</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">competed_params</span>
+
+<div class="viewcode-block" id="WingParameterizer.get_params_from_shape">
+<a class="viewcode-back" href="../../../api/pyLOM.RL.html#pyLOM.RL.WingParameterizer.get_params_from_shape">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_params_from_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wing</span><span class="p">):</span>
+        <span class="n">chords</span> <span class="o">=</span> <span class="p">[</span><span class="n">section</span><span class="o">.</span><span class="n">chord</span> <span class="k">for</span> <span class="n">section</span> <span class="ow">in</span> <span class="n">wing</span><span class="o">.</span><span class="n">xsecs</span><span class="p">]</span>
+        <span class="n">twists</span> <span class="o">=</span> <span class="p">[</span><span class="n">section</span><span class="o">.</span><span class="n">twist</span> <span class="k">for</span> <span class="n">section</span> <span class="ow">in</span> <span class="n">wing</span><span class="o">.</span><span class="n">xsecs</span><span class="p">]</span>
+        <span class="n">coordinates</span> <span class="o">=</span> <span class="p">[</span><span class="n">wing</span><span class="o">.</span><span class="n">_compute_xyz_le_of_WingXSec</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">wing</span><span class="o">.</span><span class="n">xsecs</span><span class="p">))]</span>
+        <span class="n">spans</span><span class="p">,</span> <span class="n">sweeps</span><span class="p">,</span> <span class="n">diheds</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">coordinates</span><span class="p">)):</span>
+            <span class="n">first_coord</span> <span class="o">=</span> <span class="n">coordinates</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">second_coord</span> <span class="o">=</span> <span class="n">coordinates</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">span</span> <span class="o">=</span> <span class="n">second_coord</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">first_coord</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">sweep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">((</span><span class="n">second_coord</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">first_coord</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">span</span><span class="p">))</span>
+            <span class="n">dihed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">((</span><span class="n">second_coord</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">first_coord</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">/</span> <span class="n">span</span><span class="p">))</span>
+            <span class="n">spans</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">span</span><span class="p">)</span>
+            <span class="n">sweeps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sweep</span><span class="p">)</span>
+            <span class="n">diheds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dihed</span><span class="p">)</span>
+
+        <span class="n">params</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">chords</span> <span class="o">+</span> <span class="n">twists</span> <span class="o">+</span> <span class="n">spans</span> <span class="o">+</span> <span class="n">sweeps</span> <span class="o">+</span> <span class="n">diheds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">params</span><span class="p">[</span><span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">non_optimizable_params_mask</span><span class="p">]</span>   </div>
+
+
+<div class="viewcode-block" id="WingParameterizer.generate_random_params">
+<a class="viewcode-back" href="../../../api/pyLOM.RL.html#pyLOM.RL.WingParameterizer.generate_random_params">[docs]</a>
+    <span class="k">def</span> <span class="nf">generate_random_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="n">new_params</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lower_bounds</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">upper_bounds</span><span class="p">)</span>
+        <span class="c1"># keep only the optimizable parameters</span>
+        <span class="n">new_params</span> <span class="o">=</span> <span class="n">new_params</span><span class="p">[</span><span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">non_optimizable_params_mask</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">new_params</span></div>
+
+    
+<div class="viewcode-block" id="WingParameterizer.get_optimizable_bounds">
+<a class="viewcode-back" href="../../../api/pyLOM.RL.html#pyLOM.RL.WingParameterizer.get_optimizable_bounds">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_optimizable_bounds</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lower_bounds</span><span class="p">[</span><span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">non_optimizable_params_mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">upper_bounds</span><span class="p">[</span><span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">non_optimizable_params_mask</span><span class="p">]</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2023-2025.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

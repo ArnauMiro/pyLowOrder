@@ -369,7 +369,7 @@
 
 <span class="kn">from</span> <span class="nn">..utils.gpu</span> <span class="kn">import</span> <span class="n">cp</span>
 <span class="kn">from</span> <span class="nn">..</span>          <span class="kn">import</span> <span class="n">inp_out</span> <span class="k">as</span> <span class="n">io</span><span class="p">,</span> <span class="n">PartitionTable</span>
-<span class="kn">from</span> <span class="nn">..utils.cr</span>  <span class="kn">import</span> <span class="n">cr_nvtx</span> <span class="k">as</span> <span class="n">cr</span>
+<span class="kn">from</span> <span class="nn">..utils</span>     <span class="kn">import</span> <span class="n">cr_nvtx</span> <span class="k">as</span> <span class="n">cr</span><span class="p">,</span> <span class="n">gpu_to_cpu</span>
 
 <div class="viewcode-block" id="extract_modes">
 <a class="viewcode-back" href="../../../api/pyLOM.SPOD.html#pyLOM.SPOD.extract_modes">[docs]</a>
@@ -424,10 +424,7 @@
 <span class="sd">		mode (str, optional): mode in which the HDF5 file is opened, &#39;w&#39; stands for write mode and &#39;a&#39; stands for append mode. Write mode will overwrite the file and append mode will add the informaiton at the end of the current file, choose with great care what to do in your case (default ``w``).</span>
 
 <span class="sd">	&#39;&#39;&#39;</span>
-	<span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">L</span><span class="p">)</span> <span class="ow">is</span> <span class="n">cp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-		<span class="n">io</span><span class="o">.</span><span class="n">h5_save_SPOD</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="n">L</span><span class="o">.</span><span class="n">get</span><span class="p">(),</span><span class="n">P</span><span class="o">.</span><span class="n">get</span><span class="p">(),</span><span class="n">f</span><span class="o">.</span><span class="n">get</span><span class="p">(),</span><span class="n">ptable</span><span class="p">,</span><span class="n">nvars</span><span class="o">=</span><span class="n">nvars</span><span class="p">,</span><span class="n">pointData</span><span class="o">=</span><span class="n">pointData</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span>
-	<span class="k">else</span><span class="p">:</span>
-		<span class="n">io</span><span class="o">.</span><span class="n">h5_save_SPOD</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="n">L</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">f</span><span class="p">,</span><span class="n">ptable</span><span class="p">,</span><span class="n">nvars</span><span class="o">=</span><span class="n">nvars</span><span class="p">,</span><span class="n">pointData</span><span class="o">=</span><span class="n">pointData</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span></div>
+	<span class="n">io</span><span class="o">.</span><span class="n">h5_save_SPOD</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="n">gpu_to_cpu</span><span class="p">(</span><span class="n">L</span><span class="p">),</span><span class="n">gpu_to_cpu</span><span class="p">(</span><span class="n">P</span><span class="p">),</span><span class="n">gpu_to_cpu</span><span class="p">(</span><span class="n">f</span><span class="p">),</span><span class="n">ptable</span><span class="p">,</span><span class="n">nvars</span><span class="o">=</span><span class="n">nvars</span><span class="p">,</span><span class="n">pointData</span><span class="o">=</span><span class="n">pointData</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span></div>
 
 
 

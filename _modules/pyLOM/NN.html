@@ -379,8 +379,11 @@
 <span class="kn">from</span> <span class="nn">.stats</span>         <span class="kn">import</span> <span class="n">RegressionEvaluator</span>
 <span class="kn">from</span> <span class="nn">.callbacks</span>     <span class="kn">import</span> <span class="n">EarlyStopper</span>
 
+<span class="kn">from</span> <span class="nn">.interpolator</span> <span class="kn">import</span> <span class="n">Interpolator</span>
+<span class="kn">from</span> <span class="nn">.aerodynamics</span> <span class="kn">import</span> <span class="n">global_coeff</span>
+
 <span class="kn">from</span> <span class="nn">.architectures.mlp</span>               <span class="kn">import</span> <span class="n">MLP</span>
-<span class="kn">from</span> <span class="nn">.architectures.kan</span>               <span class="kn">import</span> <span class="n">KAN</span><span class="p">,</span> <span class="n">ChebyshevLayer</span><span class="p">,</span> <span class="n">JacobiLayer</span>
+<span class="kn">from</span> <span class="nn">.architectures.kan</span>               <span class="kn">import</span> <span class="n">KAN</span><span class="p">,</span> <span class="n">KAN_SIN</span><span class="p">,</span> <span class="n">ChebyshevLayer</span><span class="p">,</span> <span class="n">JacobiLayer</span><span class="p">,</span> <span class="n">SineLayer</span>
 <span class="kn">from</span> <span class="nn">.architectures.autoencoders</span>      <span class="kn">import</span> <span class="n">Autoencoder</span><span class="p">,</span> <span class="n">VariationalAutoencoder</span>
 <span class="kn">from</span> <span class="nn">.architectures.encoders_decoders</span> <span class="kn">import</span> <span class="n">Encoder2D</span><span class="p">,</span> <span class="n">Decoder2D</span><span class="p">,</span> <span class="n">Encoder3D</span><span class="p">,</span> <span class="n">Decoder3D</span><span class="p">,</span> <span class="n">ShallowDecoder</span>
 <span class="kn">from</span> <span class="nn">.architectures.pinn</span>              <span class="kn">import</span> <span class="n">PINN</span><span class="p">,</span> <span class="n">BurgersPINN</span><span class="p">,</span> <span class="n">Euler2DPINN</span><span class="p">,</span> <span class="n">NavierStokesIncompressible2DPINN</span><span class="p">,</span> <span class="n">BoundaryCondition</span>

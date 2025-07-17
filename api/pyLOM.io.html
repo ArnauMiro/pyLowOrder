@@ -320,7 +320,9 @@
 <li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.architectures.html">pyLOM.NN.architectures</a></li>
 </ul>
 </details></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.PCA.html">pyLOM.PCA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyLOM.POD.html">pyLOM.POD</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.RL.html">pyLOM.RL</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyLOM.SPOD.html">pyLOM.SPOD</a></li>
 <li class="toctree-l2 current active"><a class="current reference internal" href="#">pyLOM.io</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pyLOM.utils.html">pyLOM.utils</a></li>
@@ -413,6 +415,27 @@
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.io.h5_load_QR">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.io.</span></span><span class="sig-name descname"><span class="pre">h5_load_QR</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vars</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.io.h5_load_QR" title="Link to this definition">#</a></dt>
+<dd><p>Load QR variables from an HDF5 file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fname</strong> (<em>string</em>) – file name</p></li>
+<li><p><strong>vars</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – variables to load, it must be any of Q, B, Y.</p></li>
+<li><p><strong>ptable</strong> (<a class="reference internal" href="pyLOM.html#pyLOM.PartitionTable" title="pyLOM.PartitionTable"><em>PartitionTable</em></a><em>, </em><em>optional</em>) – partition table used to load the data (default, None)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of the np.ndarray requested to load.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="pyLOM.io.h5_load_SPOD">
 <span class="sig-prename descclassname"><span class="pre">pyLOM.io.</span></span><span class="sig-name descname"><span class="pre">h5_load_SPOD</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vars</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmod</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.io.h5_load_SPOD" title="Link to this definition">#</a></dt>
 <dd><p>Load SPOD variables from an HDF5 file.</p>
@@ -444,6 +467,26 @@ mode to ‘a’. Then no partition table will be saved.</p>
 <dd><p>Store POD variables into an HDF5 file.
 Can be appended to another HDF by setting the
 mode to ‘a’. Then no partition table will be saved.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.io.h5_save_QR">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.io.</span></span><span class="sig-name descname"><span class="pre">h5_save_QR</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ptable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nvars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pointData</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'w'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyLOM.io.h5_save_QR" title="Link to this definition">#</a></dt>
+<dd><p>Store QR variables into an HDF5 file. Can be appended to another HDF by setting the mode to ‘a’. Then no partition table will be saved.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fname</strong> (<em>string</em>) – file name</p></li>
+<li><p><strong>Q</strong> (<em>np.ndarray</em>) – Q matrix</p></li>
+<li><p><strong>Y</strong> (<em>np.ndarray</em>) – Randomized matrix before QR</p></li>
+<li><p><strong>B</strong> (<em>np.ndarray</em>) – R upper triangular matrix or B in case of doing randomized QR</p></li>
+<li><p><strong>ptable</strong> (<a class="reference internal" href="pyLOM.html#pyLOM.PartitionTable" title="pyLOM.PartitionTable"><em>PartitionTable</em></a>) – partition table</p></li>
+<li><p><strong>nvars</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – number of variables analyzed jointly (default=1)</p></li>
+<li><p><strong>pointData</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – whether is point data or cell data (default=True)</p></li>
+<li><p><strong>mode</strong> (<em>Writing</em>) – the h5 will be written again or appended.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -564,11 +607,13 @@ to recover the field, write only outputs the data.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.io.h5_append_dset"><code class="docutils literal notranslate"><span class="pre">h5_append_dset()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.io.h5_load_DMD"><code class="docutils literal notranslate"><span class="pre">h5_load_DMD()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.io.h5_load_POD"><code class="docutils literal notranslate"><span class="pre">h5_load_POD()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.io.h5_load_QR"><code class="docutils literal notranslate"><span class="pre">h5_load_QR()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.io.h5_load_SPOD"><code class="docutils literal notranslate"><span class="pre">h5_load_SPOD()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.io.h5_load_dset"><code class="docutils literal notranslate"><span class="pre">h5_load_dset()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.io.h5_load_mesh"><code class="docutils literal notranslate"><span class="pre">h5_load_mesh()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.io.h5_save_DMD"><code class="docutils literal notranslate"><span class="pre">h5_save_DMD()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.io.h5_save_POD"><code class="docutils literal notranslate"><span class="pre">h5_save_POD()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.io.h5_save_QR"><code class="docutils literal notranslate"><span class="pre">h5_save_QR()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.io.h5_save_SPOD"><code class="docutils literal notranslate"><span class="pre">h5_save_SPOD()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.io.h5_save_VAE"><code class="docutils literal notranslate"><span class="pre">h5_save_VAE()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.io.h5_save_dset"><code class="docutils literal notranslate"><span class="pre">h5_save_dset()</span></code></a></li>

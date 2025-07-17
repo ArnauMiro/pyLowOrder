@@ -12,7 +12,9 @@ Subpackages
    pyLOM.GPR
    pyLOM.MANIFOLD
    pyLOM.NN
+   pyLOM.PCA
    pyLOM.POD
+   pyLOM.RL
    pyLOM.SPOD
    pyLOM.io
    pyLOM.utils

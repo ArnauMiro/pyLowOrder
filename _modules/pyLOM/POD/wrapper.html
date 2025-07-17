@@ -366,7 +366,7 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span> <span class="c1">## Only for documentation</span>
 
-<span class="kn">from</span> <span class="nn">..vmmath</span>       <span class="kn">import</span> <span class="n">vecmat</span><span class="p">,</span> <span class="n">matmul</span><span class="p">,</span> <span class="n">temporal_mean</span><span class="p">,</span> <span class="n">subtract_mean</span><span class="p">,</span> <span class="n">tsqr_svd</span><span class="p">,</span> <span class="n">randomized_svd</span><span class="p">,</span> <span class="n">compute_truncation_residual</span>
+<span class="kn">from</span> <span class="nn">..vmmath</span>       <span class="kn">import</span> <span class="n">vecmat</span><span class="p">,</span> <span class="n">matmul</span><span class="p">,</span> <span class="n">temporal_mean</span><span class="p">,</span> <span class="n">subtract_mean</span><span class="p">,</span> <span class="n">temporal_variance</span><span class="p">,</span> <span class="n">norm_variance</span><span class="p">,</span> <span class="n">tsqr_svd</span><span class="p">,</span> <span class="n">randomized_svd</span><span class="p">,</span> <span class="n">compute_truncation_residual</span>
 <span class="kn">from</span> <span class="nn">..utils.cr</span>     <span class="kn">import</span> <span class="n">cr_nvtx</span> <span class="k">as</span> <span class="n">cr</span><span class="p">,</span> <span class="n">cr_start</span><span class="p">,</span> <span class="n">cr_stop</span>
 
 
@@ -374,13 +374,14 @@
 <div class="viewcode-block" id="run">
 <a class="viewcode-back" href="../../../api/pyLOM.POD.html#pyLOM.POD.run">[docs]</a>
 <span class="nd">@cr</span><span class="p">(</span><span class="s1">&#39;POD.run&#39;</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="n">X</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span><span class="n">remove_mean</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">randomized</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">r</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span><span class="nb">int</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="n">X</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">remove_mean</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">divide_variance</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">randomized</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">r</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span><span class="nb">int</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
 <span class="w">	</span><span class="sa">r</span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">	Run POD analysis of a matrix.</span>
 
 <span class="sd">	Args:</span>
 <span class="sd">		X (np.ndarray): data matrix of size [ndims*nmesh,n_temp_snapshots].</span>
 <span class="sd">		remove_mean (bool, optional): whether or not to remove the mean flow (default: ``True``).</span>
+<span class="sd">		divide_variance (bool, optional): whether or not to normalize the data with the variance. It is only effective when removing the mean (default: ``False``).</span>
 <span class="sd">		randomized (bool, optional): whether to perform randomized POD or not (default: ``False``).</span>
 <span class="sd">		r (int, optional): in case of performing randomized POD, how many modes do we want to recover. This option has no effect when randomized=False (default: ``1``).</span>
 <span class="sd">		q (int, optional): in case of performing randomized POD, how many power iterations are performed. This option has no effect when randomized=False (default: ``3``).</span>
@@ -394,7 +395,11 @@
 		<span class="c1"># Compute temporal mean</span>
 		<span class="n">X_mean</span> <span class="o">=</span> <span class="n">temporal_mean</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
 		<span class="c1"># Compute substract temporal mean</span>
-		<span class="n">Y</span> <span class="o">=</span> <span class="n">subtract_mean</span><span class="p">(</span><span class="n">X</span><span class="p">,</span><span class="n">X_mean</span><span class="p">)</span>
+		<span class="k">if</span> <span class="n">divide_variance</span><span class="p">:</span>
+			<span class="n">X_var</span> <span class="o">=</span> <span class="n">temporal_variance</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">X_mean</span><span class="p">)</span>
+			<span class="n">Y</span>     <span class="o">=</span> <span class="n">norm_variance</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">X_mean</span><span class="p">,</span> <span class="n">X_var</span><span class="p">)</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">Y</span> <span class="o">=</span> <span class="n">subtract_mean</span><span class="p">(</span><span class="n">X</span><span class="p">,</span><span class="n">X_mean</span><span class="p">)</span>
 		<span class="n">cr_stop</span><span class="p">(</span><span class="s1">&#39;POD.temporal_mean&#39;</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
 	<span class="k">else</span><span class="p">:</span>
 		<span class="n">Y</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>

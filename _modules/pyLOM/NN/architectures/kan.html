@@ -404,7 +404,7 @@
         <span class="n">p_dropouts</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">DEVICE</span><span class="p">,</span>
         <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">layer_kwargs</span><span class="p">,</span>
+        <span class="n">degree</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">input_size</span> <span class="o">=</span> <span class="n">input_size</span>
@@ -415,18 +415,19 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="o">=</span> <span class="n">model_name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">p_dropouts</span> <span class="o">=</span> <span class="n">p_dropouts</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">degree</span> <span class="o">=</span> <span class="n">degree</span>
 
         <span class="c1"># Hidden layers with dropout</span>
         <span class="n">hidden_layers</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_layers</span><span class="p">):</span>
-            <span class="n">hidden_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer_type</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="o">**</span><span class="n">layer_kwargs</span><span class="p">))</span>
+            <span class="n">hidden_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer_type</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="n">degree</span><span class="p">))</span>
             <span class="n">hidden_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">p_dropouts</span><span class="p">))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">kan_layers</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span><span class="n">hidden_layers</span><span class="p">)</span>
 
         <span class="c1"># Input and output layers</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">layer_type</span><span class="p">(</span><span class="n">input_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="o">**</span><span class="n">layer_kwargs</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">layer_type</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">,</span> <span class="o">**</span><span class="n">layer_kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">layer_type</span><span class="p">(</span><span class="n">input_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="n">degree</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">layer_type</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">,</span> <span class="n">degree</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
@@ -554,6 +555,7 @@
         <span class="n">loss_iterations_test</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer_class</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span> <span class="o">**</span><span class="n">opti_kwargs</span><span class="p">)</span>
         <span class="n">current_lr_vec</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">grad_norms</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="k">if</span> <span class="n">scheduler_type</span> <span class="o">==</span> <span class="s2">&quot;StepLR&quot;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">StepLR</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="p">,</span> <span class="o">**</span><span class="n">lr_kwargs</span><span class="p">)</span>
@@ -601,6 +603,10 @@
                     <span class="n">targets</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
                 <span class="p">)</span>
                 <span class="n">train_loss</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">closure</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                <span class="n">total_norm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">norm</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">()</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">])</span>
+                <span class="p">)</span>
+                <span class="n">grad_norms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">total_norm</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
                 <span class="k">if</span> <span class="n">scheduler_type</span> <span class="o">!=</span> <span class="s2">&quot;ReduceLROnPlateau&quot;</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
                     <span class="n">current_lr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;lr&quot;</span><span class="p">]</span>
@@ -653,51 +659,45 @@
                         <span class="sa">f</span><span class="s2">&quot;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">epochs</span><span class="si">}</span><span class="s2">, Train Loss: </span><span class="si">{</span><span class="n">train_loss</span><span class="si">:</span><span class="s2">.4e</span><span class="si">}</span><span class="s2">, Test Loss: </span><span class="si">{</span><span class="n">test_loss</span><span class="si">:</span><span class="s2">.4e</span><span class="si">}</span><span class="s2">, &quot;</span>
                         <span class="sa">f</span><span class="s2">&quot;LR: </span><span class="si">{</span><span class="n">current_lr</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}{</span><span class="n">memory_usage_str</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
                     <span class="p">)</span>
+                <span class="c1"># check if the loss is NaN and stop training</span>
+                <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">test_loss</span><span class="p">)):</span>
+                    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                        <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Stopping training at epoch </span><span class="si">{</span><span class="n">epoch</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> due to NaN in test loss.&quot;</span><span class="p">)</span>
+                    <span class="k">break</span>
 
+        <span class="n">results</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;train_loss&quot;</span><span class="p">:</span> <span class="n">train_losses</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
+            <span class="s2">&quot;test_loss&quot;</span><span class="p">:</span> <span class="n">test_losses</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
+            <span class="s2">&quot;lr&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">current_lr_vec</span><span class="p">),</span>
+            <span class="s2">&quot;loss_iterations_train&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">loss_iterations_train</span><span class="p">),</span>
+            <span class="s2">&quot;loss_iterations_test&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">loss_iterations_test</span><span class="p">),</span>
+            <span class="s2">&quot;grad_norms&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">grad_norms</span><span class="p">),</span>
+            <span class="s2">&quot;check&quot;</span><span class="p">:</span> <span class="p">[</span><span class="kc">True</span><span class="p">],</span>
+        <span class="p">}</span>
         <span class="k">if</span> <span class="n">save_logs_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">save_logs_path</span><span class="p">):</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">save_logs_path</span><span class="p">)</span>
-            <span class="n">train_losses_np</span> <span class="o">=</span> <span class="n">train_losses</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-            <span class="n">test_losses_np</span> <span class="o">=</span> <span class="n">test_losses</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-            <span class="n">current_lr_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">current_lr_vec</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">save_logs_path</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">save_logs_path</span><span class="p">):</span>
+                <span class="n">save_logs_path</span> <span class="o">=</span> <span class="s1">&#39;.&#39;</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Printing losses on path </span><span class="si">{</span><span class="n">save_logs_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">save_logs_path</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;training_results_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="si">}</span><span class="s2">.npy&quot;</span><span class="p">):</span>
+                <span class="n">results_old</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">save_logs_path</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;training_results_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="si">}</span><span class="s2">.npy&quot;</span><span class="p">,</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s1">&#39;check&#39;</span><span class="p">:</span>
+                        <span class="n">results</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">results</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">results_old</span><span class="p">[</span><span class="n">key</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">results</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">results_old</span><span class="p">[</span><span class="n">key</span><span class="p">][:])</span>
                 <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-                    <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Printing losses on path </span><span class="si">{</span><span class="n">save_logs_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-                    <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Path not found. Printing losses on local folder (.)&quot;</span><span class="p">)</span>
-                <span class="n">save_logs_path</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span>
+                    <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Updating previous data in file&quot;</span> <span class="o">+</span> <span class="n">save_logs_path</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;training_results_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="si">}</span><span class="s2">.npy&quot;</span><span class="p">)</span>
 
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span>
-                <span class="n">save_logs_path</span> <span class="o">+</span> <span class="s2">&quot;/train_losses_&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span>
-                <span class="n">train_losses_np</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span>
-                <span class="n">save_logs_path</span> <span class="o">+</span> <span class="s2">&quot;/test_losses_&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span>
-                <span class="n">test_losses_np</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span>
-                <span class="n">save_logs_path</span> <span class="o">+</span> <span class="s2">&quot;/current_lr_&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span>
-                <span class="n">current_lr_np</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span>
-                <span class="n">save_logs_path</span> <span class="o">+</span> <span class="s2">&quot;/losses_iterations_train_&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span>
-                <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">loss_iterations_train</span><span class="p">),</span>
-            <span class="p">)</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span>
-                <span class="n">save_logs_path</span> <span class="o">+</span> <span class="s2">&quot;/losses_iterations_test_&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span>
-                <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">loss_iterations_test</span><span class="p">),</span>
-            <span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">save_logs_path</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;training_results_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="si">}</span><span class="s2">.npy&quot;</span><span class="p">,</span> <span class="n">results</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Training results saved at </span><span class="si">{</span><span class="n">save_logs_path</span><span class="si">}</span><span class="s2">training_results_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="si">}</span><span class="s2">.npy&quot;</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;train_loss&quot;</span><span class="p">:</span> <span class="n">train_losses</span><span class="p">,</span>
-            <span class="s2">&quot;test_loss&quot;</span><span class="p">:</span> <span class="n">test_losses</span><span class="p">,</span>
-            <span class="s2">&quot;lr&quot;</span><span class="p">:</span> <span class="n">current_lr_vec</span><span class="p">,</span>
-            <span class="s2">&quot;loss_iterations_train&quot;</span><span class="p">:</span> <span class="n">loss_iterations_train</span><span class="p">,</span>
-            <span class="s2">&quot;loss_iterations_test&quot;</span><span class="p">:</span> <span class="n">loss_iterations_test</span><span class="p">,</span>
-        <span class="p">}</span></div>
+        <span class="k">return</span> <span class="n">results</span></div>
 
-
+            
 <div class="viewcode-block" id="KAN.predict">
 <a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.KAN.predict">[docs]</a>
     <span class="nd">@cr</span><span class="p">(</span><span class="s2">&quot;KAN.predict&quot;</span><span class="p">)</span>
@@ -760,7 +760,22 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">all_predictions</span></div>
 
+        
+    <span class="k">def</span> <span class="nf">_define_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">checkpoint</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;input_size&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_size</span><span class="p">,</span>
+            <span class="s2">&quot;output_size&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">,</span>
+            <span class="s2">&quot;n_layers&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span><span class="p">,</span>
+            <span class="s2">&quot;hidden_size&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span>
+            <span class="s2">&quot;layer_type&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_type</span><span class="p">,</span>
+            <span class="s2">&quot;model_name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="p">,</span>
+            <span class="s2">&quot;p_dropouts&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">p_dropouts</span><span class="p">,</span>
+            <span class="s2">&quot;degree&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span>
+            <span class="s2">&quot;state_dict&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span>
+        <span class="p">}</span>
 
+        <span class="k">return</span> <span class="n">checkpoint</span>
+    
 <div class="viewcode-block" id="KAN.save">
 <a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.KAN.save">[docs]</a>
     <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">save_only_model</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
@@ -772,18 +787,7 @@
 <span class="sd">            If it is a directory, the model will be saved with a filename that includes the number of epochs trained.</span>
 <span class="sd">            save_only_model (bool, Optional): Whether to only save the model, or also the optimizer and scheduler. Note that when this is true, you won&#39;t be able to resume training from checkpoint.(default: ``False``).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">checkpoint</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;input_size&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_size</span><span class="p">,</span>
-            <span class="s2">&quot;output_size&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">,</span>
-            <span class="s2">&quot;n_layers&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span><span class="p">,</span>
-            <span class="s2">&quot;hidden_size&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span>
-            <span class="s2">&quot;layer_type&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_type</span><span class="p">,</span>
-            <span class="s2">&quot;model_name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="p">,</span>
-            <span class="s2">&quot;p_dropouts&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">p_dropouts</span><span class="p">,</span>
-            <span class="s2">&quot;state_dict&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span>
-        <span class="p">}</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="s2">&quot;degree&quot;</span><span class="p">):</span>
-            <span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;degree&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">degree</span>
+        <span class="n">checkpoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_define_checkpoint</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">save_only_model</span><span class="p">:</span>
             <span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;optimizer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
@@ -814,28 +818,19 @@
         <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Loading model...&quot;</span><span class="p">)</span>
         <span class="n">checkpoint</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">weights_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="n">raiseWarning</span><span class="p">(</span><span class="s2">&quot;The model has been loaded with weights_only set to False. According with torch documentation, this is not recommended if you do not trust the source of your saved model, as it could lead to arbitrary code execution.&quot;</span><span class="p">)</span>
+        <span class="n">state_dict</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="p">[</span><span class="s1">&#39;state_dict&#39;</span><span class="p">]</span>
+        <span class="n">optimizer_state</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;optimizer&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">scheduler_state</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;scheduler&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">checkpoint</span><span class="p">[</span><span class="s1">&#39;state_dict&#39;</span><span class="p">]</span>
+        <span class="k">del</span> <span class="n">checkpoint</span><span class="p">[</span><span class="s1">&#39;optimizer&#39;</span><span class="p">]</span>
+        <span class="k">del</span> <span class="n">checkpoint</span><span class="p">[</span><span class="s1">&#39;scheduler&#39;</span><span class="p">]</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="o">**</span><span class="n">checkpoint</span><span class="p">)</span>
 
-        <span class="n">degree</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;degree&quot;</span><span class="p">]</span>
-        <span class="n">layer_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;degree&quot;</span><span class="p">:</span> <span class="n">degree</span><span class="p">}</span>
-
-        <span class="n">model</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
-            <span class="n">input_size</span><span class="o">=</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;input_size&quot;</span><span class="p">],</span>
-            <span class="n">output_size</span><span class="o">=</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;output_size&quot;</span><span class="p">],</span>
-            <span class="n">n_layers</span><span class="o">=</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;n_layers&quot;</span><span class="p">],</span>
-            <span class="n">hidden_size</span><span class="o">=</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
-            <span class="n">layer_type</span><span class="o">=</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;layer_type&quot;</span><span class="p">],</span>
-            <span class="n">model_name</span><span class="o">=</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;model_name&quot;</span><span class="p">],</span>
-            <span class="n">p_dropouts</span><span class="o">=</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;p_dropouts&quot;</span><span class="p">],</span>
-            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">layer_kwargs</span><span class="p">,</span>  <span class="c1"># Pass the specific layer arguments</span>
-        <span class="p">)</span>
-
-        <span class="k">if</span> <span class="s2">&quot;optimizer&quot;</span> <span class="ow">in</span> <span class="n">checkpoint</span><span class="p">:</span>
-            <span class="n">model</span><span class="o">.</span><span class="n">optimizer_state_dict</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;optimizer&quot;</span><span class="p">]</span>
-        <span class="k">if</span> <span class="s2">&quot;scheduler&quot;</span> <span class="ow">in</span> <span class="n">checkpoint</span><span class="p">:</span>
-            <span class="n">model</span><span class="o">.</span><span class="n">scheduler_state_dict</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;scheduler&quot;</span><span class="p">]</span>
-
-        <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;state_dict&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">optimizer_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">optimizer_state_dict</span> <span class="o">=</span> <span class="n">optimizer_state</span>
+        <span class="k">if</span> <span class="n">scheduler_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">scheduler_state_dict</span> <span class="o">=</span> <span class="n">scheduler_state</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">state_dict</span><span class="p">)</span>
         <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Loaded KAN model: </span><span class="si">{</span><span class="n">checkpoint</span><span class="p">[</span><span class="s1">&#39;model_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">keys_print</span> <span class="o">=</span> <span class="p">[</span>
             <span class="s2">&quot;input_size&quot;</span><span class="p">,</span>
@@ -844,6 +839,7 @@
             <span class="s2">&quot;hidden_size&quot;</span><span class="p">,</span>
             <span class="s2">&quot;layer_type&quot;</span><span class="p">,</span>
             <span class="s2">&quot;p_dropouts&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;degree&quot;</span>
         <span class="p">]</span>
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys_print</span><span class="p">:</span>
             <span class="n">pprint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">checkpoint</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -1094,6 +1090,51 @@
 
 
 
+<div class="viewcode-block" id="KAN_SIN">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.KAN_SIN">[docs]</a>
+<span class="k">class</span> <span class="nc">KAN_SIN</span><span class="p">(</span><span class="n">KAN</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    KAN model with a sine layer at the beginning. This model adds a sin layer at the beggining of a KAN model.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        nneuron_sin (int): The number of neurons in the sine layer.</span>
+<span class="sd">        sigma (float): The sigma (standard deviation of the weights) parameter for the sine layer. Default is ``1.0``.</span>
+<span class="sd">        *args: Additional positional arguments to pass to the KAN class.</span>
+<span class="sd">        **kwargs: Additional keyword arguments to pass to the KAN class.</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">nneuron_sin</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">sigma</span><span class="p">:</span><span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nneuron_sin</span> <span class="o">=</span> <span class="n">nneuron_sin</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">SineLayer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ninput</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nneuron_sin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">kan_layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nneuron_sin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_neur</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">degree</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">intro</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Adding sin layer at the beginning:&#39;</span><span class="p">)</span>
+            <span class="n">keys_print</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;nneuron_sin&#39;</span><span class="p">,</span> <span class="s1">&#39;sigma&#39;</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys_print</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                
+    <span class="k">def</span> <span class="nf">_define_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">checkpoint</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">define_checkpoint</span><span class="p">()</span>
+        <span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;sigma&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span>
+        <span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;nneuron_sin&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nneuron_sin</span>
+        <span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;state_dict&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">checkpoint</span></div>
+
+
 <div class="viewcode-block" id="ChebyshevLayer">
 <a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.ChebyshevLayer">[docs]</a>
 <span class="k">class</span> <span class="nc">ChebyshevLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
@@ -1202,6 +1243,37 @@
         <span class="p">)</span>  <span class="c1"># shape = (batch_size, outdim)</span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">outdim</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">y</span></div>
+</div>
+
+
+<div class="viewcode-block" id="SineLayer">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.SineLayer">[docs]</a>
+<span class="k">class</span> <span class="nc">SineLayer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sine layer for KAN model.</span>
+<span class="sd">    Args:</span>
+<span class="sd">        input_size (int): The number of input features.</span>
+<span class="sd">        output_size (int): The number of output features.</span>
+<span class="sd">        sigma (float, Optional): The standard deviation of the weights (default: ``1.0``).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SineLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">linear</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">input_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_weights</span><span class="p">()</span>
+ 
+<div class="viewcode-block" id="SineLayer.init_weights">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.SineLayer.init_weights">[docs]</a>
+    <span class="k">def</span> <span class="nf">init_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="p">)</span>
+        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">zeros_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span></div>
+
+ 
+<div class="viewcode-block" id="SineLayer.forward">
+<a class="viewcode-back" href="../../../../api/pyLOM.NN.html#pyLOM.NN.SineLayer.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">x</span><span class="p">))</span></div>
 </div>
 
 </pre></div>
