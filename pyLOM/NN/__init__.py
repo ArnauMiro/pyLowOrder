@@ -19,6 +19,8 @@ from .utils         import RegressionEvaluator, EarlyStopper, MinMaxScaler, sele
 from .gns           import Graph
 
 from .optimizer     import OptunaOptimizer
+from .interpolator  import Interpolator
+from .aerodynamics  import global_coeff
 
 from .architectures.mlp               import MLP
 from .architectures.kan               import KAN, ChebyshevLayer, JacobiLayer

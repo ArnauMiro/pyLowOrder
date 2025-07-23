@@ -4,7 +4,7 @@ import numpy as np
 import torch.nn as nn
 
 from torch.utils.data import DataLoader
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Callable
 from ..optimizer import OptunaOptimizer, TrialPruned
 from .. import DEVICE, set_seed  # pyLOM/NN/__init__.py
 from ... import pprint, cr  # pyLOM/__init__.py
@@ -37,6 +37,8 @@ class MLP(nn.Module):
         p_dropouts: float = 0.0,
         activation: torch.nn.Module = torch.nn.functional.relu,
         device: torch.device = DEVICE,
+        initialization: Callable = torch.nn.init.xavier_uniform_,
+        initialization_kwargs: Dict = {},
         seed: int = None,
         **kwargs: Dict,
     ):
@@ -47,10 +49,13 @@ class MLP(nn.Module):
         self.p_dropouts = p_dropouts
         self.activation = activation
         self.device = device
+        self.initialization = initialization
+        self.initialization_kwargs = initialization_kwargs
 
         super().__init__()
         if seed is not None:
             set_seed(seed)
+        
         self.layers = nn.ModuleList()
         for i in range(n_layers):
             in_size = input_size if i == 0 else hidden_size
@@ -61,10 +66,10 @@ class MLP(nn.Module):
         self.oupt = nn.Linear(hidden_size, output_size)
 
         for layer in self.layers:
-            if (isinstance(layer, nn.Linear) and i % 2 == 0): # Initialize only non-dropout linear layers
-                nn.init.xavier_uniform_(layer.weight)
+            if isinstance(layer, nn.Linear):
+                self.initialization(layer.weight, **self.initialization_kwargs)
                 nn.init.zeros_(layer.bias)
-        nn.init.xavier_uniform_(self.oupt.weight)
+        self.initialization(self.oupt.weight, **self.initialization_kwargs)
         nn.init.zeros_(self.oupt.bias)
 
         self.to(self.device)
@@ -128,9 +133,13 @@ class MLP(nn.Module):
             for key in dataloader_params.keys():
                 if key in kwargs:
                     dataloader_params[key] = kwargs[key]
-            train_dataloader = DataLoader(train_dataset, **dataloader_params)
+            self.train_dataloader = DataLoader(train_dataset, **dataloader_params)
         
-        eval_dataloader = DataLoader(eval_dataset, **dataloader_params) if eval_dataset is not None else None 
+        if not hasattr(self, "eval_dataloader") and eval_dataset is not None:
+            for key in dataloader_params.keys():
+                if key in kwargs:
+                    dataloader_params[key] = kwargs[key]
+            self.eval_dataloader = DataLoader(eval_dataset, **dataloader_params)
 
         if not hasattr(self, "optimizer"):
             self.optimizer = optimizer_class(self.parameters(), lr=lr)
@@ -155,7 +164,7 @@ class MLP(nn.Module):
         for epoch in range(1+len(epoch_list), 1+total_epochs):
             train_loss = 0.0
             self.train()
-            for b_idx, batch in enumerate(train_dataloader):
+            for b_idx, batch in enumerate(self.train_dataloader):
                 x_train, y_train = batch[0].to(self.device), batch[1].to(self.device)
                 self.optimizer.zero_grad()
                 oupt = self(x_train)
@@ -166,7 +175,7 @@ class MLP(nn.Module):
                 train_loss_list.append(loss_val_item)
                 train_loss += loss_val_item
                 if print_rate_batch != 0 and (b_idx % print_rate_batch) == 0:
-                    pprint(0, "Batch %4d/%4d | Train loss (x1e5) %0.4f" % (b_idx, len(train_dataloader), loss_val_item * 1e5), flush=True)
+                    pprint(0, "Batch %4d/%4d | Train loss (x1e5) %0.4f" % (b_idx, len(self.train_dataloader), loss_val_item * 1e5), flush=True)
                    
             train_loss = train_loss / (b_idx + 1)
             
@@ -174,10 +183,10 @@ class MLP(nn.Module):
                 self.scheduler.step()
             
             test_loss = 0.0
-            if eval_dataloader is not None:
+            if eval_dataset is not None:
                 self.eval()
                 with torch.no_grad():
-                    for n_idx, sample in enumerate(eval_dataloader):
+                    for n_idx, sample in enumerate(self.eval_dataloader):
                         x_test, y_test = sample[0].to(self.device), sample[1].to(self.device)
                         test_output = self(x_test)
                         loss_val = loss_fn(test_output, y_test)
@@ -187,7 +196,7 @@ class MLP(nn.Module):
                 test_loss_list.append(test_loss)
             
             if print_rate_epoch != 0 and (epoch % print_rate_epoch) == 0:
-                test_log = f" | Test loss (x1e5) {test_loss * 1e5:.4f}" if eval_dataloader is not None else ""
+                test_log = f" | Test loss (x1e5) {test_loss * 1e5:.4f}" if eval_dataset is not None else ""
                 pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss (x1e5) {train_loss * 1e5:.4f} {test_log}", flush=True)
 
             epoch_list.append(epoch)
@@ -215,7 +224,7 @@ class MLP(nn.Module):
 
         Args:
             X (torch.utils.data.Dataset): The dataset whose target values are to be predicted using the input data.
-            rescale_output (bool): Whether to rescale the output with the scaler of the dataset (default: ``True``).
+            return_targets (bool, optional): If ``True``, the true target values will be returned along with the predictions (default: ``False``).
             kwargs (dict, optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):
                 
                 - batch_size (int, optional): Batch size (default: ``256``).

@@ -17,8 +17,7 @@ include options.cfg
 #
 # Automatically detect if the intel compilers are installed and use
 # them, otherwise default to the GNU compilers
-ifeq ($(FORCE_GCC),ON)
-	# Forcing the use of GCC
+ifeq (,$(shell which mpiicc))
 	# C Compiler
 	CC  = mpicc
 	# C++ Compiler
@@ -26,60 +25,100 @@ ifeq ($(FORCE_GCC),ON)
 	# Fortran Compiler
 	FC  = mpif90
 else
-	ifeq (,$(shell which mpiicc))
-		# C Compiler
-		CC  = mpicc
-		# C++ Compiler
-		CXX = mpicxx
-		# Fortran Compiler
-		FC  = mpif90
-	else
-		# C Compiler
-		CC  = mpiicc
-		# C++ Compiler
-		CXX = mpiicpc
-		# Fortran Compiler
-		FC  = mpiifort
-	endif
+	# C Compiler
+	CC  = mpiicc
+	# C++ Compiler
+	CXX = mpiicpc
+	# Fortran Compiler
+	FC  = mpiifort
+endif
+# Force use GCC compilers
+ifeq ($(USE_GCC),ON)
+	# Forcing the use of GCC
+	# C Compiler
+	CC  = mpicc
+	# C++ Compiler
+	CXX = mpicxx
+	# Fortran Compiler
+	FC  = mpif90
+endif
+# Force use NVHPC compilers
+ifeq ($(USE_NVHPC),ON)
+	# Forcing the use of GCC
+	# C Compiler
+	CC  = mpicc
+	# C++ Compiler
+	CXX = mpicxx
+	# Fortran Compiler
+	FC  = mpif90
 endif
 
 
 # Compiler flags
 #
+CFLAGS   += -fPIC
+CXXFLAGS += -fPIC
+FFLAGS   += -fPIC
 ifeq ($(CC),mpicc)
 	# Using GCC as a compiler
-	ifeq ($(DEBUGGING),ON)
-		# Debugging flags
-		CFLAGS   += -O0 -g -rdynamic -fPIC
-		CXXFLAGS += -O0 -g -rdynamic -fPIC
-		FFLAGS   += -O0 -g -rdynamic -fPIC
-	else
-		CFLAGS   += -O$(OPTL) -ffast-math -fPIC
-		CXXFLAGS += -O$(OPTL) -ffast-math -fPIC
-		FFLAGS   += -O$(OPTL) -ffast-math -fPIC
-	endif
-	# Vectorization flags
-	ifeq ($(VECTORIZATION),ON)
-		CFLAGS   += -march=native -ftree-vectorize
-		CXXFLAGS += -march=native -ftree-vectorize
-		FFLAGS   += -march=native -ftree-vectorize
-	endif
-	# OpenMP flag
-	ifeq ($(OPENMP_PARALL),ON)
-		CFLAGS   += -fopenmp -DUSE_OMP
-		CXXFLAGS += -fopenmp -DUSE_OMP
+	ifeq ($(USE_GCC),ON)
+		ifeq ($(DEBUGGING),ON)
+			# Debugging flags
+			CFLAGS   += -O0 -g -rdynamic
+			CXXFLAGS += -O0 -g -rdynamic
+			FFLAGS   += -O0 -g -rdynamic
+		else
+			CFLAGS   += -O$(OPTL) -ffast-math
+			CXXFLAGS += -O$(OPTL) -ffast-math
+			FFLAGS   += -O$(OPTL) -ffast-math
+		endif
+		# Vectorization flags
+		ifeq ($(VECTORIZATION),ON)
+			CFLAGS   += -march=native -ftree-vectorize
+			CXXFLAGS += -march=native -ftree-vectorize
+			FFLAGS   += -march=native -ftree-vectorize
+		endif
+		# OpenMP flag
+		ifeq ($(OPENMP_PARALL),ON)
+			CFLAGS   += -fopenmp -DUSE_OMP
+			CXXFLAGS += -fopenmp -DUSE_OMP
+		endif		
+	endif		
+	# NVHPC specific flags
+	ifeq ($(USE_NVHPC),ON)
+		ifeq ($(DEBUGGING),ON)
+			# Debugging flags
+			CFLAGS   += -O0 -g
+			CXXFLAGS += -O0 -g
+			FFLAGS   += -O0 -g
+		else
+			CFLAGS   += -O$(OPTL)
+			CXXFLAGS += -O$(OPTL)
+			FFLAGS   += -O$(OPTL)
+		endif
+		# Vectorization flags
+		ifeq ($(VECTORIZATION),ON)
+			CFLAGS   += -tp=$(TUNE) -fast
+			CXXFLAGS += -tp=$(TUNE) -fast
+			FFLAGS   += -tp=$(TUNE) -fast
+		endif
+		# OpenMP flag
+		ifeq ($(OPENMP_PARALL),ON)
+			CFLAGS   += -mp -DUSE_OMP
+			CXXFLAGS += -mp -DUSE_OMP
+		endif
 	endif
 else
 	# Using INTEL as a compiler
 	ifeq ($(DEBUGGING),ON)
 		# Debugging flags
-		CFLAGS   += -O0 -g -traceback -fPIC
-		CXXFLAGS += -O0 -g -traceback -fPIC
-		FFLAGS   += -O0 -g -traceback -fPIC
+		CFLAGS   += -O0 -g -traceback
+		CXXFLAGS += -O0 -g -traceback
+		FFLAGS   += -O0 -g -traceback
 	else
-		CFLAGS   += -O$(OPTL) -fPIC
-		CXXFLAGS += -O$(OPTL) -fPIC
-		FFLAGS   += -O$(OPTL) -fPIC
+		CFLAGS   += -O$(OPTL)
+		CXXFLAGS += -O$(OPTL)
+		FFLAGS   += -O$(OPTL)
 	endif
 	# Vectorization flags
 	ifeq ($(VECTORIZATION),ON)
@@ -167,7 +206,10 @@ requirements_optional: requirements_optional.txt
 requirements_GPR: requirements_GPR.txt
 	@${PIP} install -r $<
 
-requirements_full: requirements requirements_cupy requirements_NN requirements_optional
+requirements_rl: requirements_rl.txt
+	@${PIP} install -r $<
+
+requirements_full: requirements requirements_cupy requirements_NN requirements_optional requirements_rl
 
 
 install: requirements python
