@@ -1,8 +1,8 @@
 execution:
   mode: train                     # Options: train, optuna
   resume: false
-  basedir: "./data/NLR7301"
-  results_dir: "./results/exp_01"
+  basedir: "/home/p.yeste/CETACEO_DATA/nlr7301/"
+  resudir: "./results/exp_01"
 
 experiment:
   name: gns_experiment
@@ -10,9 +10,9 @@ experiment:
   version: 1.0
   tags: [baseline, nlr7301]
   seed: 123                       # Global seed for reproducibility
+  device: cpu                  # Options: cpu, cuda, cuda:0, cuda:1, etc.
 
-resources:
-  graph_path: "./data/NLR7301/TRAIN_converter.h5"
+datasets:
   train_ds: "/home/p.yeste/CETACEO_DATA/nlr7301/TRAIN_converter.h5"
   val_ds: "/home/p.yeste/CETACEO_DATA/nlr7301/VAL_converter.h5"
   test_ds: "/home/p.yeste/CETACEO_DATA/nlr7301/TEST_converter.h5"
@@ -29,10 +29,10 @@ model:
   update_hidden_layers: 2
   activation: ELU
   p_dropouts: 0.1
-  device: cuda
+  graph_path: "./data/NLR7301/TRAIN_converter.h5"  # Path to the graph data
 
 training:
-  epochs: 1000
+  epochs: 3
   lr: 6e-4
   lr_gamma: 0.995
   lr_scheduler_step: 1
@@ -76,7 +76,7 @@ optuna:
       update_hidden_layers: [1, 4]
       activation: ELU
       p_dropouts: [0.0, 0.3]
-      device: cuda
+      graph_path: "./data/NLR7301/TRAIN_converter.h5"
 
     training:
       lr: [1e-5, 1e-2]

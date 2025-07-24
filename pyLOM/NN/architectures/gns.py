@@ -73,7 +73,6 @@ class GNS(torch.nn.Module):
         # --- Configuration ---
         self.config = config
         self.device = torch.device(config.device)
-        self.seed = config.seed
         self.p_dropouts = config.p_dropouts
 
         # --- Device setup ---
@@ -83,10 +82,6 @@ class GNS(torch.nn.Module):
             torch.cuda.set_device(self.device)
 
         pprint(0, f"Using device: {self.device}", flush=True)
-
-        # --- Reproducibility ---
-        if self.seed is not None:
-            set_seed(self.seed)
 
         # --- Activation ---
         if isinstance(config.activation, str):
@@ -648,6 +643,9 @@ class GNS(torch.nn.Module):
             ValueError: If the file extension is not `.pth`.
             KeyError: If required keys are missing from the checkpoint.
             RuntimeError: If `graph_path` is not present in the saved config.
+
+        Notes:
+            - The model's seed is automatically applied via `set_seed(...)` during loading, ensuring reproducibility.
         """
         if not os.path.isfile(path):
             raise FileNotFoundError(f"Model file '{path}' not found.")
@@ -671,6 +669,10 @@ class GNS(torch.nn.Module):
                 "Cannot load model: 'graph_path' is missing in saved config. "
                 "The graph must be saved separately and graph_path must be present in the config."
             )
+
+        seed = config.seed
+        if seed is not None:
+            set_seed(seed)
 
         model = cls(config=config)
         model.graph = Graph.load(config.graph_path).to(device)
@@ -703,6 +705,8 @@ class GNS(torch.nn.Module):
             with `GNSConfig` and `TrainingConfig`, such as:
                 - For GNSConfig: input_dim, latent_dim, ...
                 - For TrainingConfig: epochs, lr, batch_size, ...
+                - The model's seed is automatically applied via `set_seed(...)` during loading or optimization,
+                ensuring reproducibility without requiring external calls.
         """
 
         optimization_params = optuna_optimizer.optimization_params
@@ -714,6 +718,10 @@ class GNS(torch.nn.Module):
                 key: get_optimizing_value(key, val, trial)
                 for key, val in optimization_params.items()
             }
+
+            trial_seed = hyperparams.get("seed", None)
+            if trial_seed is not None:
+                set_seed(trial_seed)
 
             # Construct model config and training config
             model_config = GNSConfig(**{

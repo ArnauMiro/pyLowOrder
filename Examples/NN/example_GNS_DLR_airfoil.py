@@ -26,15 +26,17 @@ from pathlib import Path
 from typing import Union, Optional, Dict, Callable, Any
 
 import pyLOM
+from pyLOM.utils import cr_info
+from pyLOM.NN import set_seed
 from pyLOM.NN import GNS, Graph, MinMaxScaler, OptunaOptimizer, Pipeline
 from pyLOM.NN.utils import RegressionEvaluator
+from pyLOM.NN.gns import GNSConfig, TrainingConfig
 
 
 def load_yaml(path: Union[str, Path]) -> dict:
     """Load a YAML file into a Python dictionary."""
     with open(path, 'r') as f:
         return yaml.safe_load(f)
-
 
 def load_dataset(path: Union[str, Path], input_scaler: Any, output_scaler: Any) -> pyLOM.NN.Dataset:
     """
@@ -199,11 +201,30 @@ def save_full_experiment(
         }
     )
 
+def get_device_and_seed(config: dict) -> tuple:
+    device = config.get("experiment", {}).get("device", "cuda")
+    seed = config.get("experiment", {}).get("seed", None)
+
+    if seed is not None:
+        set_seed(seed)  # Use pyLOM's set_seed for reproducibility
+
+    return device, seed
+
+
+def build_model_config(config: dict) -> GNSConfig:
+    model_dict = config["model"].copy()
+    model_dict["graph_path"] = config["resources"]["graph_path"]
+    model_dict["device"] = config["experiment"].get("device", "cuda")
+    model_dict["seed"] = config["experiment"].get("seed", None)
+    return GNSConfig(**model_dict)
 
 def run_training(config: dict) -> None:
     """Run full training pipeline using a YAML config."""
-    resudir = config["execution"]["results_dir"]
+    resudir = config["execution"]["resudir"]
     os.makedirs(resudir, exist_ok=True)
+
+    device, seed = get_device_and_seed(config)
+    config["model"]["device"] = device
 
     input_scaler = MinMaxScaler()
     output_scaler = None
@@ -212,8 +233,8 @@ def run_training(config: dict) -> None:
     td_val   = load_dataset(config["resources"]["val_ds"], input_scaler, output_scaler)
     td_test  = load_dataset(config["resources"]["test_ds"], input_scaler, output_scaler)
 
-    model = GNS(config["model"])
-    model.graph = Graph.load(config["resources"]["graph_path"])
+    model_config = build_model_config(config)
+    model = GNS(model_config)
 
     pipeline = Pipeline(
         train_dataset=td_train,
@@ -235,9 +256,14 @@ def run_training(config: dict) -> None:
 
 def run_optuna(config: dict) -> None:
     """Run hyperparameter optimization using Optuna and save best model and results."""
-    resudir = config["execution"]["results_dir"]
-    os.makedirs(resudir, exist_ok=True)
+    resudir = config["execution"]["resudir"]
+    device, seed = get_device_and_seed(config)
+    config["optuna"]["search_space"]["graph"] = Graph.load(config["resources"]["graph_path"], device=device)
+    if seed is not None:
+        config["optuna"]["search_space"]["model"]["seed"] = seed
+    config["optuna"]["search_space"]["model"]["device"] = device
 
+    # Load and scale datasets
     input_scaler = MinMaxScaler()
     output_scaler = None
 
@@ -245,10 +271,16 @@ def run_optuna(config: dict) -> None:
     td_val   = load_dataset(config["resources"]["val_ds"], input_scaler, output_scaler)
     td_test  = load_dataset(config["resources"]["test_ds"], input_scaler, output_scaler)
 
+    # Load graph
     graph = Graph.load(config["resources"]["graph_path"])
+
+    # Update Optuna search space to include the graph and optional seed
     search_space = config["optuna"]["search_space"]
     search_space["graph"] = graph
+    if seed is not None:
+        search_space["model"]["seed"] = seed
 
+    # Configure Optuna optimizer
     optimizer = OptunaOptimizer(
         optimization_params=search_space,
         n_trials=config["optuna"]["study"]["n_trials"],
@@ -261,6 +293,7 @@ def run_optuna(config: dict) -> None:
         save_dir=resudir
     )
 
+    # Create pipeline for optimization
     pipeline = Pipeline(
         train_dataset=td_train,
         valid_dataset=td_val,
@@ -269,33 +302,25 @@ def run_optuna(config: dict) -> None:
         model_class=GNS
     )
 
+    # Run optimization and evaluate best model
     logs = pipeline.run()
     model = pipeline.model
     targets, preds, metrics = evaluate_model(model, td_test)
     logs["metrics"] = metrics
 
-    save_full_experiment(model, logs, targets, preds, model.state[5],
-                         input_scaler, output_scaler, resudir)
+    # Save everything
+    save_full_experiment(
+        model=model,
+        logs=logs,
+        targets=targets,
+        preds=preds,
+        config=model.config,  # <- dataclass already
+        input_scaler=input_scaler,
+        output_scaler=output_scaler,
+        resudir=resudir
+    )
 
     pyLOM.cr_info()
-
-
-def demo_inference(resudir: Union[str, Path], input_tensor: Any) -> Any:
-    """
-    Load a saved model and run an inference example.
-
-    Args:
-        resudir: Path to the experiment directory.
-        input_tensor: Input tensor for inference.
-
-    Returns:
-        The model prediction tensor.
-    """
-    model = GNS.load(Path(resudir) / "model.pth")
-    model.eval()
-    output = model.predict(input_tensor)
-    print(f"\n>>> Inference output shape: {output.shape}")
-    return output
 
 
 def main() -> None:
@@ -322,12 +347,14 @@ def main() -> None:
 
     # Step 1: Load the trained model from disk
     model_path = Path(config["execution"]["results_dir"]) / "model.pth"
-    model = GNS.load(model_path)
+    device, _ = get_device_and_seed(config)
+    model = GNS.load(model_path, device=device)
+
     model.eval()  # Set to evaluation mode
 
     # Step 2: Prepare input for inference (AoA=4.0, Mach=0.7)
     dummy_input = np.array([[4.0, 0.7]])  # Shape: (1, 2)
-    input_tensor = torch.tensor(dummy_input, dtype=torch.float32)
+    input_tensor = torch.tensor(dummy_input, dtype=torch.float32, device=device)
 
     # Step 3: Run prediction
     prediction = model.predict(input_tensor)

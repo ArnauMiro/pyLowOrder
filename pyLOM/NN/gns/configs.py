@@ -4,6 +4,7 @@ import torch
 
 @dataclass
 class GNSConfig:
+    graph_path: str
     input_dim: int
     latent_dim: int
     output_dim: int
