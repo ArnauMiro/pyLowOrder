@@ -1,8 +1,9 @@
 execution:
-  mode: train                     # Options: train, optuna
-  resume: false
-  basedir: "/home/p.yeste/CETACEO_DATA/nlr7301/"
-  resudir: "./results/exp_01"
+  mode: train                     # Options: 'train' or 'optuna'
+  resume: false                   # If True, resumes from the last checkpoint
+  basedir: "/home/.../"          # Base directory for input data
+  resudir: "./results/exp_01"    # Directory to save results
+  # results_dir: "./results/..." # (Optional) used for inference reloads
 
 experiment:
   name: gns_experiment
@@ -10,15 +11,15 @@ experiment:
   version: 1.0
   tags: [baseline, nlr7301]
   seed: 123                       # Global seed for reproducibility
-  device: cpu                  # Options: cpu, cuda, cuda:0, cuda:1, etc.
+  device: cpu                     # 'cpu', 'cuda', 'cuda:0', etc.
 
 datasets:
-  train_ds: "/home/p.yeste/CETACEO_DATA/nlr7301/TRAIN_converter.h5"
-  val_ds: "/home/p.yeste/CETACEO_DATA/nlr7301/VAL_converter.h5"
-  test_ds: "/home/p.yeste/CETACEO_DATA/nlr7301/TEST_converter.h5"
+  train_ds: ".../TRAIN_converter.h5"
+  val_ds: ".../VAL_converter.h5"
+  test_ds: ".../TEST_converter.h5"
 
 model:
-  graph_path: "./data/NLR7301/TRAIN_converter.h5"  # Path to the graph data
+  graph_path: "./data/...h5"     # Path to the graph used during training
   input_dim: 2
   output_dim: 1
   latent_dim: 16
@@ -46,7 +47,8 @@ training:
   verbose: 50
 
 optuna:
-  enabled: false   # <-- this is optional if you use execution.mode
+  graph_path: ".../TRAIN_converter.h5"  # Used only to load the graph once for all trials
+
   study:
     study_name: "gns_optuna_search"
     direction: minimize
@@ -55,19 +57,20 @@ optuna:
     load_if_exists: true
     timeout: 3600
     n_trials: 50
+
     pruner:
       type: MedianPruner
       n_startup_trials: 5
       n_warmup_steps: 10
       interval_steps: 1
+
     sampler:
       type: TPESampler
       multivariate: true
       group: true
 
   search_space:
-    model:
-      graph_path: "./data/NLR7301/TRAIN_converter.h5"
+    model:                         # Parameters to optimize from model
       latent_dim: [8, 64]
       hidden_size: [64, 512]
       num_msg_passing_layers: [1, 6]
@@ -75,10 +78,10 @@ optuna:
       decoder_hidden_layers: [1, 4]
       message_hidden_layers: [1, 4]
       update_hidden_layers: [1, 4]
-      activation: ELU
+      activation: ELU             # Constant: not optimized
       p_dropouts: [0.0, 0.3]
 
-    training:
+    training:                      # Parameters to optimize from training config
       lr: [1e-5, 1e-2]
       lr_gamma: [0.95, 0.999]
       batch_size: [4, 32]

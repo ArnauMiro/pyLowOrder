@@ -213,7 +213,6 @@ def get_device_and_seed(config: dict) -> tuple:
 
 def build_model_config(config: dict) -> GNSConfig:
     model_dict = config["model"].copy()
-    model_dict["graph_path"] = config["resources"]["graph_path"]
     model_dict["device"] = config["experiment"].get("device", "cuda")
     model_dict["seed"] = config["experiment"].get("seed", None)
     return GNSConfig(**model_dict)
@@ -229,9 +228,9 @@ def run_training(config: dict) -> None:
     input_scaler = MinMaxScaler()
     output_scaler = None
 
-    td_train = load_dataset(config["resources"]["train_ds"], input_scaler, output_scaler)
-    td_val   = load_dataset(config["resources"]["val_ds"], input_scaler, output_scaler)
-    td_test  = load_dataset(config["resources"]["test_ds"], input_scaler, output_scaler)
+    td_train = load_dataset(config["datasets"]["train_ds"], input_scaler, output_scaler)
+    td_val   = load_dataset(config["datasets"]["val_ds"], input_scaler, output_scaler)
+    td_test  = load_dataset(config["datasets"]["test_ds"], input_scaler, output_scaler)
 
     model_config = build_model_config(config)
     model = GNS(model_config)
@@ -258,31 +257,29 @@ def run_optuna(config: dict) -> None:
     """Run hyperparameter optimization using Optuna and save best model and results."""
     resudir = config["execution"]["resudir"]
     device, seed = get_device_and_seed(config)
-    config["optuna"]["search_space"]["graph"] = Graph.load(config["resources"]["graph_path"], device=device)
-    if seed is not None:
-        config["optuna"]["search_space"]["model"]["seed"] = seed
-    config["optuna"]["search_space"]["model"]["device"] = device
 
     # Load and scale datasets
     input_scaler = MinMaxScaler()
     output_scaler = None
 
-    td_train = load_dataset(config["resources"]["train_ds"], input_scaler, output_scaler)
-    td_val   = load_dataset(config["resources"]["val_ds"], input_scaler, output_scaler)
-    td_test  = load_dataset(config["resources"]["test_ds"], input_scaler, output_scaler)
+    td_train = load_dataset(config["datasets"]["train_ds"], input_scaler, output_scaler)
+    td_val   = load_dataset(config["datasets"]["val_ds"], input_scaler, output_scaler)
+    td_test  = load_dataset(config["datasets"]["test_ds"], input_scaler, output_scaler)
 
-    # Load graph
-    graph = Graph.load(config["resources"]["graph_path"])
+    # Prepare Optuna optimization parameters
+    optimization_params = {
+        "graph_path": config["optuna"]["graph_path"],  # required for shared graph
+        "search_space": config["optuna"]["search_space"]
+    }
 
-    # Update Optuna search space to include the graph and optional seed
-    search_space = config["optuna"]["search_space"]
-    search_space["graph"] = graph
+    # Inject device and seed if needed
     if seed is not None:
-        search_space["model"]["seed"] = seed
+        optimization_params["search_space"]["model"]["seed"] = seed
+    optimization_params["search_space"]["model"]["device"] = device
 
-    # Configure Optuna optimizer
+    # Create Optuna optimizer
     optimizer = OptunaOptimizer(
-        optimization_params=search_space,
+        optimization_params=optimization_params,
         n_trials=config["optuna"]["study"]["n_trials"],
         direction=config["optuna"]["study"]["direction"],
         pruner=optuna.pruners.MedianPruner(
@@ -293,7 +290,7 @@ def run_optuna(config: dict) -> None:
         save_dir=resudir
     )
 
-    # Create pipeline for optimization
+    # Create pipeline (will call GNS.create_optimized_model)
     pipeline = Pipeline(
         train_dataset=td_train,
         valid_dataset=td_val,
@@ -302,25 +299,47 @@ def run_optuna(config: dict) -> None:
         model_class=GNS
     )
 
-    # Run optimization and evaluate best model
+    # Run optimization and evaluation
     logs = pipeline.run()
     model = pipeline.model
     targets, preds, metrics = evaluate_model(model, td_test)
     logs["metrics"] = metrics
 
-    # Save everything
+    # Save experiment
     save_full_experiment(
         model=model,
         logs=logs,
         targets=targets,
         preds=preds,
-        config=model.config,  # <- dataclass already
+        config=model.config,  # ← already a dataclass
         input_scaler=input_scaler,
         output_scaler=output_scaler,
         resudir=resudir
     )
 
     pyLOM.cr_info()
+
+def demo_inference(config: dict) -> None:
+    """
+    Load a trained model from disk and run a dummy inference pass.
+
+    Args:
+        config (dict): Full configuration dictionary with execution parameters.
+    """
+    model_path = Path(config["execution"]["resudir"]) / "model.pth"
+    device, _ = get_device_and_seed(config)
+
+    model = GNS.load(model_path, device=device)
+    model.eval()
+
+    # Prepare dummy input for inference (AoA=4.0, Mach=0.7)
+    dummy_input = np.array([[4.0, 0.7]], dtype=np.float32)
+    input_tensor = torch.tensor(dummy_input, device=device)
+
+    prediction = model.predict(input_tensor)
+
+    print(f"\n>>> Inference output shape: {prediction.shape}")
+    print(f">>> Inference output: {prediction.detach().cpu().numpy()}")
 
 
 def main() -> None:
@@ -339,29 +358,8 @@ def main() -> None:
     else:
         raise ValueError(f"Unsupported mode '{mode}'. Use 'train' or 'optuna'.")
 
-    # -------------------------------------------------------------------------
-    # Example: Reload the trained model and run inference on dummy input
-    # Alternatively, you can use a utility function:
-    # demo_inference(config["execution"]["results_dir"], input_tensor)
-    # -------------------------------------------------------------------------
-
-    # Step 1: Load the trained model from disk
-    model_path = Path(config["execution"]["results_dir"]) / "model.pth"
-    device, _ = get_device_and_seed(config)
-    model = GNS.load(model_path, device=device)
-
-    model.eval()  # Set to evaluation mode
-
-    # Step 2: Prepare input for inference (AoA=4.0, Mach=0.7)
-    dummy_input = np.array([[4.0, 0.7]])  # Shape: (1, 2)
-    input_tensor = torch.tensor(dummy_input, dtype=torch.float32, device=device)
-
-    # Step 3: Run prediction
-    prediction = model.predict(input_tensor)
-
-    # Step 4: Show output
-    print(f"\n>>> Inference output shape: {prediction.shape}")
-    print(f">>> Inference output: {prediction.detach().cpu().numpy()}")
+    # Optionally, run inference demo after training or optimization
+    demo_inference(config)
 
 if __name__ == "__main__":
     main()
