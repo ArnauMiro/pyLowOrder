@@ -18,6 +18,7 @@ datasets:
   test_ds: "/home/p.yeste/CETACEO_DATA/nlr7301/TEST_converter.h5"
 
 model:
+  graph_path: "./data/NLR7301/TRAIN_converter.h5"  # Path to the graph data
   input_dim: 2
   output_dim: 1
   latent_dim: 16
@@ -29,7 +30,6 @@ model:
   update_hidden_layers: 2
   activation: ELU
   p_dropouts: 0.1
-  graph_path: "./data/NLR7301/TRAIN_converter.h5"  # Path to the graph data
 
 training:
   epochs: 3
@@ -67,6 +67,7 @@ optuna:
 
   search_space:
     model:
+      graph_path: "./data/NLR7301/TRAIN_converter.h5"
       latent_dim: [8, 64]
       hidden_size: [64, 512]
       num_msg_passing_layers: [1, 6]
@@ -76,7 +77,6 @@ optuna:
       update_hidden_layers: [1, 4]
       activation: ELU
       p_dropouts: [0.0, 0.3]
-      graph_path: "./data/NLR7301/TRAIN_converter.h5"
 
     training:
       lr: [1e-5, 1e-2]
