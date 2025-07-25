@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+#
+# pyLOM, NN
+#
+# Dataclass configurations for NN models.
+#
+# Last rev: 25/07/2025
+
 from dataclasses import dataclass
 from typing import Union, Optional, Any
 import torch
@@ -21,7 +29,7 @@ class GNSConfig:
 
 
 @dataclass
-class TrainingConfig:
+class GNSTrainingConfig:
     epochs: int = 100
     lr: float = 1e-4
     lr_gamma: float = 0.1

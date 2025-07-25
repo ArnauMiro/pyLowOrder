@@ -388,6 +388,11 @@ def h5_load_fields_single(file,npoints,ptable,varDict,point):
 			# Use the partition bounds to recover the array
 			istart, iend = ptable.partition_bounds(MPI_RANK,ndim=ndim,points=False)
 			inods = np.arange(istart,iend,dtype=np.int32)
+		print(f"[DEBUG] field: {v}")
+		print(f"[DEBUG] Dataset shape: {fieldgroup['value'].shape}")
+		print(f"[DEBUG] ndim: {ndim}")
+		print(f"[DEBUG] inods range: {inods.min()} - {inods.max()} (len = {len(inods)})")
+
 		# Read the values
 		value[:] = np.array(fieldgroup['value'][inods])
 		# Generate dictionary

@@ -19,12 +19,14 @@ import torch
 from torch import Tensor
 from torch.utils.data import Dataset as TorchDataset
 from torch_geometric.data import Data
+from optuna import Trial
 
 from .. import DEVICE, set_seed
 from ..utils import count_trainable_params, cleanup_tensors, get_optimizing_value, hyperparams_serializer
 from ..gns import GNSMLP, MessagePassingLayer, Graph, InputsInjector, _ShapeValidator, _GNSHelpers, GNSConfig, TrainingConfig
 from ..optimizer import OptunaOptimizer, TrialPruned
 from ... import pprint, cr
+from ...utils import raiseError
 
 
 
@@ -78,7 +80,7 @@ class GNS(torch.nn.Module):
         # --- Activation function ---
         if isinstance(config.activation, str):
             if not hasattr(torch.nn, config.activation):
-                raise ValueError(f"Activation function '{config.activation}' not found in torch.nn")
+                raiseError(f"Activation function '{config.activation}' not found in torch.nn")
             self.activation = getattr(torch.nn, config.activation)()
         else:
             self.activation = config.activation
@@ -86,7 +88,7 @@ class GNS(torch.nn.Module):
         # --- Device setup ---
         if self.device.type == "cuda":
             if not torch.cuda.is_available():
-                raise ValueError("CUDA is not available. Please use CPU instead.")
+                raiseError("CUDA is not available. Please use CPU instead.")
             torch.cuda.set_device(self.device)
         pprint(0, f"Using device: {self.device}", flush=True)
 
@@ -107,7 +109,7 @@ class GNS(torch.nn.Module):
 
         # --- Graph resolution ---
         if graph is not None and config.graph_path:
-            raise ValueError(
+            raiseError(
                 "Cannot provide both `graph` and `config.graph_path` to GNS(): this is ambiguous.\n"
                 "You must choose one source of truth:\n"
                 "  • If you want GNS to load the graph, pass only config.graph_path.\n"
@@ -120,7 +122,7 @@ class GNS(torch.nn.Module):
         elif config.graph_path:
             self.graph = Graph.load(config.graph_path)
         else:
-            raise ValueError("GNS requires either a `graph` argument or a valid `config.graph_path`.")
+            raiseError("GNS requires either a `graph` argument or a valid `config.graph_path`.")
 
         # --- Inputs injector ---
         self.injector = InputsInjector(device=self.device)
@@ -193,7 +195,7 @@ class GNS(torch.nn.Module):
     def graph(self, graph: Graph) -> None:
         r"""Graph property to set the graph object."""
         if not isinstance(graph, Graph):
-            raise TypeError("Graph must be of type Graph.")
+            raiseError("Graph must be of type Graph.")
         if self._graph is not None:
             warnings.warn("Graph is already set. Overwriting.")
         
@@ -524,7 +526,7 @@ class GNS(torch.nn.Module):
         try:
             self.validator.validate(X)
         except Exception as e:
-            raise ValueError(f"Invalid dataset for {self.__class__.__name__}: {e}") from e
+            raiseError(f"Invalid dataset for {self.__class__.__name__}: {e}")
 
 
     def save(self, path: str) -> None:
@@ -539,10 +541,10 @@ class GNS(torch.nn.Module):
                         or a directory where the file will be saved with a timestamped name.
 
         Raises:
-            ValueError: If config.graph_path is missing.
+            raiseError: If config.graph_path is missing.
         """
         if not self.config.graph_path:
-            raise ValueError(
+            raiseError(
                 "Cannot save model: `config.graph_path` is missing.\n"
                 "To save the model, instantiate GNS with a GNSConfig that includes `graph_path`, "
                 "or reinstantiate the model after saving the graph to disk."
@@ -561,7 +563,7 @@ class GNS(torch.nn.Module):
         if os.path.isdir(path):
             path = os.path.join(path, filename)
         elif not path.endswith(".pth"):
-            raise ValueError("Save path must end with '.pth' or be a directory.")
+            raiseError("Save path must end with '.pth' or be a directory.")
 
         torch.save(checkpoint, path)
 
@@ -580,12 +582,12 @@ class GNS(torch.nn.Module):
 
         Raises:
             FileNotFoundError: If the file doesn't exist.
-            ValueError: If file extension is wrong or required config keys are missing.
+            raiseError: If file extension is wrong or required config keys are missing.
         """
         if not os.path.isfile(path):
             raise FileNotFoundError(f"Model file '{path}' not found.")
         if not path.endswith(".pth"):
-            raise ValueError("Checkpoint file must have a '.pth' extension.")
+            raiseError("Checkpoint file must have a '.pth' extension.")
 
         device = torch.device(device or DEVICE)
         if device.type == "cuda":
@@ -603,7 +605,7 @@ class GNS(torch.nn.Module):
 
         config = GNSConfig(**checkpoint["config"])
         if not config.graph_path:
-            raise ValueError(
+            raiseError(
                 "Checkpoint config is missing 'graph_path'. Cannot reconstruct graph.\n"
                 "If you created this model internally (e.g. via Optuna), make sure to instantiate it "
                 "with a GNSConfig that includes graph_path before saving."
@@ -698,17 +700,17 @@ class GNS(torch.nn.Module):
         # Load the shared graph from the path provided in the config
         graph_path = optimization_params.get("graph_path")
         if not graph_path:
-            raise ValueError("Missing 'graph_path' in optuna_optimizer.optimization_params.")
+            raiseError("Missing 'graph_path' in optuna_optimizer.optimization_params.")
         
         shared_graph = Graph.load(graph_path)
 
         # Access the search space (which should NOT include graph_path)
         search_space = optimization_params.get("search_space", {})
         if not search_space:
-            raise ValueError("Missing 'search_space' in optimization_params.")
+            raiseError("Missing 'search_space' in optimization_params.")
 
         @cr("GNS.optimization_function")
-        def optimization_function(trial: optuna.Trial) -> float:
+        def optimization_function(trial: Trial) -> float:
             """
             Objective function for Optuna hyperparameter optimization.
 

@@ -26,17 +26,11 @@ from pathlib import Path
 from typing import Union, Optional, Dict, Callable, Any
 
 import pyLOM
-from pyLOM.utils import cr_info
+from pyLOM.utils import load_yaml, build_GNS_config
 from pyLOM.NN import set_seed
 from pyLOM.NN import GNS, Graph, MinMaxScaler, OptunaOptimizer, Pipeline
-from pyLOM.NN.utils import RegressionEvaluator
-from pyLOM.NN.gns import GNSConfig, TrainingConfig
+from pyLOM.NN.utils import RegressionEvaluator, GNSConfig, GNSTrainingConfig
 
-
-def load_yaml(path: Union[str, Path]) -> dict:
-    """Load a YAML file into a Python dictionary."""
-    with open(path, 'r') as f:
-        return yaml.safe_load(f)
 
 def load_dataset(path: Union[str, Path], input_scaler: Any, output_scaler: Any) -> pyLOM.NN.Dataset:
     """
@@ -210,13 +204,6 @@ def get_device_and_seed(config: dict) -> tuple:
 
     return device, seed
 
-
-def build_model_config(config: dict) -> GNSConfig:
-    model_dict = config["model"].copy()
-    model_dict["device"] = config["experiment"].get("device", "cuda")
-    model_dict["seed"] = config["experiment"].get("seed", None)
-    return GNSConfig(**model_dict)
-
 def run_training(config: dict) -> None:
     """Run full training pipeline using a YAML config."""
     resudir = config["execution"]["resudir"]
@@ -232,7 +219,7 @@ def run_training(config: dict) -> None:
     td_val   = load_dataset(config["datasets"]["val_ds"], input_scaler, output_scaler)
     td_test  = load_dataset(config["datasets"]["test_ds"], input_scaler, output_scaler)
 
-    model_config = build_model_config(config)
+    model_config = build_GNS_config(config)
     model = GNS(model_config)
 
     pipeline = Pipeline(
