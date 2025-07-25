@@ -7,6 +7,7 @@ from __future__ import print_function, division
 
 import numpy as np
 import pyLOM
+from pyLOM import pprint
 
 
 ## Load cylinder mesh
@@ -49,11 +50,12 @@ d = pyLOM.Dataset(xyz=xyz_center, ptable=m.partition_table, order=m.cellOrder, p
 	# Add the dummy variable
 	# DUMMYVAR = {'ndim':dummy_var.shape[1],'value':dummy_var.flatten()},
 )
-d.save()
+d.save('./example_mesh.h5')
+pprint(0, "Dataset saved to ./example_mesh.h5")
+
+pprint(0, "Loading the dataset back to verify")
+d_load = pyLOM.Dataset.load('./example_mesh.h5')
+pprint(d_load)
 pyLOM.io.pv_writer(m,d,'mesh',basedir='./',instants=[0],times=[0.],vars=['SURF_NORMS','EDGE_NORM_1', 'EDGE_NORM_2', 'EDGE_NORM_3', 'EDGE_NORM_4','CELL_CONEC'],fmt='vtkh5')
-
-d_load = pyLOM.Dataset.load('./mesh-00000000-vtk.hdf')
-print(d_load)
-
-
+pprint(0, "Mesh saved to ./mesh.vtkh5")
 pyLOM.cr_info()
