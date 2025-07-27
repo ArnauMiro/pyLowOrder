@@ -6,13 +6,13 @@ Example: Training a GNS model on DLR airfoil data using pyLOM.
 This script demonstrates the key steps required to:
 1. Load configuration from a YAML file
 2. Initialize scalers and datasets
-3. Build and train a GNS model
+3. Build and train a GNS model or run Optuna optimization
 4. Evaluate the model and visualize results
 5. Save the model and associated artifacts
 6. Perform a dummy inference
 
 Author: Pablo Yeste
-Date: 2025-07-27
+Date: 2025-07-25
 """
 
 # ─────────────────────────────────────────────────────
@@ -30,13 +30,14 @@ import datetime
 
 from pyLOM.utils import load_yaml, build_GNS_config
 from pyLOM.NN import GNS, Pipeline, MinMaxScaler
+from pyLOM.NN.optimizer import OptunaOptimizer
 from pyLOM.NN.utils import RegressionEvaluator
 from pyLOM.NN.datasets import Dataset
 import pyLOM
 
 
 # ─────────────────────────────────────────────────────
-# PLOTTING FUNCTIONS
+# PLOTTING FUNCTIONS (moved up for clarity)
 # ─────────────────────────────────────────────────────
 def plot_train_test_loss(train_loss, test_loss, path):
     plt.figure()
@@ -87,10 +88,6 @@ def save_experiment(
     output_scaler=None,
     extra_files: dict = None
 ):
-    """
-    Save a complete experiment in a reproducible and readable way.
-    Includes model, config, metrics, scalers, and any extra files.
-    """
     base_path = Path(base_path)
     base_path.mkdir(parents=True, exist_ok=True)
 
@@ -174,7 +171,7 @@ td_val   = Dataset.load(config["datasets"]["val_ds"], **kwargs)
 td_test  = Dataset.load(config["datasets"]["test_ds"], **kwargs)
 
 # ─────────────────────────────────────────────────────
-# STEP 4 — Build and Train Model
+# BLOCK A — Train GNS from config
 # ─────────────────────────────────────────────────────
 gns_config = build_GNS_config(config)
 model = GNS(gns_config)
@@ -188,9 +185,27 @@ pipeline = Pipeline(
 logs = pipeline.run()
 
 # ─────────────────────────────────────────────────────
+# BLOCK B — Optimize GNS with Optuna (optional)
+# ─────────────────────────────────────────────────────
+# Uncomment this block to run Optuna hyperparameter search
+# optimizer = OptunaOptimizer(
+#     search_space=config["optuna"]["search_space"],
+#     study_params=config["optuna"]["study"],
+#     graph_path=config["optuna"]["graph_path"]
+# )
+# pipeline = Pipeline(
+#     train_dataset=td_train,
+#     valid_dataset=td_val,
+#     test_dataset=td_test,
+#     optimizer=optimizer,
+#     model_class=GNS,
+# )
+# logs = pipeline.run()
+
+# ─────────────────────────────────────────────────────
 # STEP 5 — Evaluate and Save
 # ─────────────────────────────────────────────────────
-preds = model.predict(td_test)
+preds = pipeline.model.predict(td_test)
 targets = td_test[:][1]
 
 evaluator = RegressionEvaluator()
@@ -200,7 +215,7 @@ logs["metrics"] = evaluator.metrics_dict
 
 save_experiment(
     base_path=resudir,
-    model=model,
+    model=pipeline.model,
     train_config=config["training"],
     metrics_dict=evaluator.metrics_dict,
     input_scaler=input_scaler,
@@ -217,18 +232,22 @@ save_experiment(
 print("\n>>> Reloading model and scaler from disk...")
 model_reloaded = GNS.load(resudir / "model.pth")
 
-with open(resudir / "input_scaler.pkl", "rb") as f:
-    input_scaler_reloaded = pickle.load(f)
+scaler_path = resudir / "input_scaler.pkl"
+if scaler_path.exists():
+    with open(scaler_path, "rb") as f:
+        input_scaler_reloaded = pickle.load(f)
+else:
+    raise FileNotFoundError(f"{scaler_path} not found.")
 
 raw_input = np.array([[4.0, 0.7]])
 scaled_input = input_scaler_reloaded.transform(raw_input)
 input_tensor = torch.tensor(scaled_input, dtype=torch.float32, device=model_reloaded.device)
 
 with torch.no_grad():
-    pred = model_reloaded.predict(input_tensor)
+    pred_dummy = model_reloaded.predict(input_tensor)
 
-print(f">>> Prediction shape: {pred.shape}")
-print(f">>> First 5 values: {pred[0, :5].detach().cpu().numpy()}")
+print(f">>> Prediction shape: {pred_dummy.shape}")
+print(f">>> First 5 values: {pred_dummy[0, :5].detach().cpu().numpy()}")
 
 # ─────────────────────────────────────────────────────
 # STEP 7 — Optional Comparison
@@ -238,7 +257,7 @@ if 'td_test' in globals():
     idx = np.argmin(np.linalg.norm(inputs - raw_input, axis=1))
     reference = targets[idx]
     print(f">>> Comparing with test sample at index {idx}")
-    true_vs_pred_plot(reference, pred[0].cpu().numpy())
+    true_vs_pred_plot(reference, pred_dummy[0].cpu().numpy())
 
 
 # ─────────────────────────────────────────────────────
