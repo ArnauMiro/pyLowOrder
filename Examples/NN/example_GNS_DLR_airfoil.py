@@ -29,10 +29,9 @@ import hashlib
 import datetime
 
 from pyLOM.utils import load_yaml, build_GNS_config
-from pyLOM.NN import GNS, Pipeline, MinMaxScaler
+from pyLOM.NN import Dataset, GNS, Pipeline, MinMaxScaler
 from pyLOM.NN.optimizer import OptunaOptimizer
 from pyLOM.NN.utils import RegressionEvaluator
-from pyLOM.NN.datasets import Dataset
 import pyLOM
 
 
@@ -133,7 +132,7 @@ def save_experiment(
 # ─────────────────────────────────────────────────────
 # STEP 1 — Load YAML Configuration
 # ─────────────────────────────────────────────────────
-yaml_path = "./configs/gns_airfoil_example.yaml"
+yaml_path = "./configs/gns_config.yaml"
 config = load_yaml(yaml_path)
 resudir = Path(config["execution"]["resudir"])
 resudir.mkdir(parents=True, exist_ok=True)
