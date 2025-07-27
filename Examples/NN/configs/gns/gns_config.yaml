@@ -1,25 +1,26 @@
+# config.yaml — Experiment configuration file for pyLOM
+
 execution:
-  mode: train                     # Options: 'train' or 'optuna'
-  resume: false                   # If True, resumes from the last checkpoint
-  basedir: "/home/.../"          # Base directory for input data
-  resudir: "./results/exp_01"    # Directory to save results
-  # results_dir: "./results/..." # (Optional) used for inference reloads
+  mode: train                        # train | optuna
+  resume: false                     # resume from last checkpoint
+  basedir: "./data"                 # base directory for input files
+  resudir: "./results/exp_01"       # where to save outputs
 
 experiment:
-  name: gns_experiment
-  description: "Training configuration for GNS model"
+  name: gns_nlr7301_baseline
+  description: "Baseline GNS model on NLR7301 airfoil data"
   version: 1.0
-  tags: [baseline, nlr7301]
-  seed: 123                       # Global seed for reproducibility
-  device: cpu                     # 'cpu', 'cuda', 'cuda:0', etc.
+  seed: 123
+  device: cuda                      # 'cpu', 'cuda', 'cuda:0', etc.
+  tags: [GNS, airfoil, baseline]
 
 datasets:
-  train_ds: ".../TRAIN_converter.h5"
-  val_ds: ".../VAL_converter.h5"
-  test_ds: ".../TEST_converter.h5"
+  train_ds: "train_data.h5"
+  val_ds: "val_data.h5"
+  test_ds: "test_data.h5"
 
 model:
-  graph_path: "./data/...h5"     # Path to the graph used during training
+  graph_path: "mesh_graph.h5"
   input_dim: 2
   output_dim: 1
   latent_dim: 16
@@ -33,67 +34,40 @@ model:
   p_dropouts: 0.1
 
 training:
-  epochs: 3
-  lr: 6e-4
-  lr_gamma: 0.995
+  epochs: 500
+  lr: 5e-4
+  lr_gamma: 0.98
   lr_scheduler_step: 1
-  loss_fn: MSELoss
   optimizer: Adam
   scheduler: StepLR
+  loss_fn: MSELoss
   batch_size: 16
-  node_batch_size: 256
-  num_workers: 1
+  node_batch_size: 512
+  num_workers: 4
   pin_memory: true
-  verbose: 50
+  verbose: 25
 
 optuna:
-  graph_path: ".../TRAIN_converter.h5"  # Used only to load the graph once for all trials
-
+  graph_path: "mesh_graph.h5"
   study:
-    study_name: "gns_optuna_search"
+    study_name: gns_optuna_study
     direction: minimize
-    save_path: "./results/optuna/"
-    storage: null
-    load_if_exists: true
     timeout: 3600
     n_trials: 50
-
-    pruner:
-      type: MedianPruner
-      n_startup_trials: 5
-      n_warmup_steps: 10
-      interval_steps: 1
-
-    sampler:
-      type: TPESampler
-      multivariate: true
-      group: true
-
   search_space:
-    model:                         # Parameters to optimize from model
+    model:
       latent_dim: [8, 64]
       hidden_size: [64, 512]
-      num_msg_passing_layers: [1, 6]
-      encoder_hidden_layers: [1, 4]
-      decoder_hidden_layers: [1, 4]
-      message_hidden_layers: [1, 4]
-      update_hidden_layers: [1, 4]
-      activation: ELU             # Constant: not optimized
-      p_dropouts: [0.0, 0.3]
-
-    training:                      # Parameters to optimize from training config
+      ...
+    training:
       lr: [1e-5, 1e-2]
-      lr_gamma: [0.95, 0.999]
-      batch_size: [4, 32]
-      node_batch_size: [128, 2048]
+      batch_size: [4, 64]
 
 evaluation:
   plot_true_vs_pred: true
   plot_train_test_loss: true
   save_model: true
   save_metrics: true
-  model_path: "gns_model.pth"
-  metrics_path: "metrics.json"
 
 logging:
   level: INFO

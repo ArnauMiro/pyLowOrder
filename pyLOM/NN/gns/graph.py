@@ -21,6 +21,7 @@ from .. import DEVICE
 from ... import io, cr
 from ...mesh import Mesh
 from ...vmmath.geometric import edge_to_cells, wall_normals
+from ...utils import raiseError
 
 
 
@@ -192,7 +193,7 @@ class Graph(Data):
         elif fmt in ['pt', 'pkl']:
             torch.save(self, fname)
         else:
-            raise ValueError(f"Unsupported file format: {fmt}")
+            raiseError(f"Unsupported file format: {fmt}")
 
     @classmethod
     def load(cls, fname: str, **kwargs) -> "Graph":
@@ -227,7 +228,7 @@ class Graph(Data):
             return torch.load(fname)
 
         else:
-            raise ValueError(f"Unsupported file format: {fmt}")
+            raiseError(f"Unsupported file format: {fmt}")
 
 
     @staticmethod
@@ -304,7 +305,7 @@ class Graph(Data):
         '''
         # Check whether the cells are 2D
         if not np.all(np.isin(mesh.eltype, [2, 3, 4, 5])):
-            raise ValueError("The mesh must contain only 2D cells in order to compute the wall normals.")
+            raiseError("The mesh must contain only 2D cells in order to compute the wall normals.")
         
 
         # Dictionary that maps each edge to the cells that share it
@@ -416,9 +417,9 @@ class Graph(Data):
             ValueError: If neither or both of `node_mask` and `node_indices` are provided.
         """
         if node_mask is None and node_indices is None:
-            raise ValueError("Either node_mask or node_indices must be provided.")
+            raiseError("Either node_mask or node_indices must be provided.")
         if node_mask is not None and node_indices is not None:
-            raise ValueError("Only one of node_mask or node_indices must be provided.")
+            raiseError("Only one of node_mask or node_indices must be provided.")
 
         if node_indices is not None:
             node_mask = torch.zeros(self.num_nodes, dtype=torch.bool)

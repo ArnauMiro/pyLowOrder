@@ -585,14 +585,14 @@ class GNS(torch.nn.Module):
             raiseError: If file extension is wrong or required config keys are missing.
         """
         if not os.path.isfile(path):
-            raise FileNotFoundError(f"Model file '{path}' not found.")
+            raiseError(f"Model file '{path}' not found.")
         if not path.endswith(".pth"):
             raiseError("Checkpoint file must have a '.pth' extension.")
 
         device = torch.device(device or DEVICE)
         if device.type == "cuda":
             if not torch.cuda.is_available():
-                raise RuntimeError("CUDA is not available. Use CPU instead.")
+                raiseError("CUDA is not available. Use CPU instead.")
             torch.cuda.set_device(device)
 
         checkpoint = torch.load(path, map_location=device)
@@ -601,7 +601,7 @@ class GNS(torch.nn.Module):
         required_keys = ["config", "state_dict"]
         for key in required_keys:
             if key not in checkpoint:
-                raise KeyError(f"Checkpoint is missing required key: '{key}'")
+                raiseError(f"Checkpoint is missing required key: '{key}'")
 
         config = GNSConfig(**checkpoint["config"])
         if not config.graph_path:
@@ -648,17 +648,17 @@ class GNS(torch.nn.Module):
         """
         yaml_path = Path(yaml_path)
         if not yaml_path.is_file():
-            raise FileNotFoundError(f"YAML file '{yaml_path}' not found.")
+            raiseError(f"YAML file '{yaml_path}' not found.")
 
         with open(yaml_path, "r") as f:
             config_data = yaml.safe_load(f)
 
         if "model" not in config_data:
-            raise KeyError("Missing 'model' section in YAML.")
+            raiseError("Missing 'model' section in YAML.")
 
         model_dict = dict(config_data["model"])  # avoid mutating original
         if "graph_path" not in model_dict:
-            raise KeyError("Missing 'graph_path' in model config.")
+            raiseError("Missing 'graph_path' in model config.")
 
         graph_path = model_dict.pop("graph_path")
         graph = Graph.load(graph_path)  # assumes Graph.load(path: str)

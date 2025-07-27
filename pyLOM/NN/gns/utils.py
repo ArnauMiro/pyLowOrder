@@ -10,6 +10,7 @@ from torch_geometric.utils import k_hop_subgraph
 
 from . import Graph
 from ... import cr
+from ...utils import raiseError
 
 class ManualNeighborLoader:
     """
@@ -63,14 +64,14 @@ class ManualNeighborLoader:
 
             if input_nodes.dtype == torch.bool:
                 if input_nodes.ndim != 1 or input_nodes.size(0) != base_graph.num_nodes:
-                    raise ValueError("Boolean mask must have shape [N]")
+                    raiseError("Boolean mask must have shape [N]")
                 self.input_nodes = input_nodes.nonzero(as_tuple=False).view(-1)
 
             elif input_nodes.dtype in (torch.int32, torch.int64):
                 self.input_nodes = input_nodes
 
             else:
-                raise TypeError("input_nodes must be LongTensor, BoolTensor, or list of ints.")
+                raiseError("input_nodes must be LongTensor, BoolTensor, or list of ints.")
 
     def __iter__(self):
         indices = self.input_nodes
@@ -256,36 +257,36 @@ class _ShapeValidator:
         elif isinstance(X, TorchDataset):
             self._validate_dataset(X)
         else:
-            raise ValueError(f"Invalid dataset of type {type(X)} for {self.__class__.__name__}: {e}") from e
+            raiseError(f"Invalid dataset of type {type(X)} for {self.__class__.__name__}: {e}")
 
     def _validate_tensor(self, x: Tensor) -> None:
         if x.ndim != 2:
-            raise ValueError(f"Expected input Tensor of shape [B, D], got {x.shape}")
+            raiseError(f"Expected input Tensor of shape [B, D], got {x.shape}")
         if x.shape[1] != self.input_dim:
-            raise ValueError(f"Input feature dimension mismatch: expected {self.input_dim}, got {x.shape[1]}")
+            raiseError(f"Input feature dimension mismatch: expected {self.input_dim}, got {x.shape[1]}")
 
     def _validate_dataset(self, dataset: TorchDataset) -> None:
         try:
             sample = dataset[0]
         except Exception as e:
-            raise ValueError("Failed to access first sample of the dataset for validation.") from e
+            raiseError("Failed to access first sample of the dataset for validation.")
         if isinstance(sample, (tuple, list)):
             x_sample, y_sample = sample
         else:
             x_sample, y_sample = sample, None
 
         if x_sample.ndim != 1:
-            raise ValueError(f"Expected input sample of shape [D], got {x_sample.shape}")
+            raiseError(f"Expected input sample of shape [D], got {x_sample.shape}")
         if x_sample.shape[0] != self.input_dim:
-            raise ValueError(f"Input sample dimension mismatch: expected {self.input_dim}, got {x_sample.shape[0]}")
+            raiseError(f"Input sample dimension mismatch: expected {self.input_dim}, got {x_sample.shape[0]}")
 
         if y_sample is not None:
             if y_sample.ndim != 2:
-                raise ValueError(f"Expected target sample of shape [N, F], got {y_sample.shape}")
+                raiseError(f"Expected target sample of shape [N, F], got {y_sample.shape}")
             if y_sample.shape[0] != self.num_nodes:
-                raise ValueError(f"Target sample node count mismatch: expected {self.num_nodes}, got {y_sample.shape[0]}")
+                raiseError(f"Target sample node count mismatch: expected {self.num_nodes}, got {y_sample.shape[0]}")
             if y_sample.shape[1] != self.output_dim:
-                raise ValueError(f"Target output dim mismatch: expected {self.output_dim}, got {y_sample.shape[-1]}")
+                raiseError(f"Target output dim mismatch: expected {self.output_dim}, got {y_sample.shape[-1]}")
 
 
 class _GNSHelpers:
@@ -328,7 +329,7 @@ class _GNSHelpers:
             )
 
         else:
-            raise TypeError(f"Unsupported input type: {type(X)}")
+            raiseError(f"Unsupported input type: {type(X)}")
 
 
     def init_subgraph_loader(self, batch_size: int = 256, input_nodes=None) -> ManualNeighborLoader:
