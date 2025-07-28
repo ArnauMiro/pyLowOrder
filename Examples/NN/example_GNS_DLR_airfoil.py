@@ -174,6 +174,8 @@ td_test  = Dataset.load(config["datasets"]["test_ds"], **kwargs)
 # ─────────────────────────────────────────────────────
 gns_config = build_GNS_config(config)
 model = GNS(gns_config)
+train_cfg = prepare_training_params(config["training"])
+
 pipeline = Pipeline(
     train_dataset=td_train,
     valid_dataset=td_val,
@@ -187,19 +189,19 @@ logs = pipeline.run()
 # BLOCK B — Optimize GNS with Optuna (optional)
 # ─────────────────────────────────────────────────────
 # Uncomment this block to run Optuna hyperparameter search
-# optimizer = OptunaOptimizer(
-#     search_space=config["optuna"]["search_space"],
-#     study_params=config["optuna"]["study"],
-#     graph_path=config["optuna"]["graph_path"]
-# )
-# pipeline = Pipeline(
-#     train_dataset=td_train,
-#     valid_dataset=td_val,
-#     test_dataset=td_test,
-#     optimizer=optimizer,
-#     model_class=GNS,
-# )
-# logs = pipeline.run()
+optimizer = OptunaOptimizer(
+    search_space=config["optuna"]["search_space"],
+    study_params=config["optuna"]["study"],
+    graph_path=config["optuna"]["graph_path"]
+)
+pipeline = Pipeline(
+    train_dataset=td_train,
+    valid_dataset=td_val,
+    test_dataset=td_test,
+    optimizer=optimizer,
+    model_class=GNS,
+)
+logs = pipeline.run()
 
 # ─────────────────────────────────────────────────────
 # STEP 5 — Evaluate and Save

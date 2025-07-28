@@ -23,10 +23,11 @@ from optuna import Trial
 
 from .. import DEVICE, set_seed
 from ..utils import count_trainable_params, cleanup_tensors, get_optimizing_value, hyperparams_serializer
-from ..gns import GNSMLP, MessagePassingLayer, Graph, InputsInjector, _ShapeValidator, _GNSHelpers, GNSConfig, TrainingConfig
+from ..gns import GNSMLP, MessagePassingLayer, Graph, InputsInjector, _ShapeValidator, _GNSHelpers, GNSConfig, GNSTrainingConfig
 from ..optimizer import OptunaOptimizer, TrialPruned
 from ... import pprint, cr
 from ...utils import raiseError
+from ...utils.config_loader_factory import model_from_config_path, resolve_optuna_trial_params
 
 
 
@@ -62,28 +63,35 @@ class GNS(torch.nn.Module):
         >>> model = GNS(graph, config)
     """
 
-    def __init__(self, config: GNSConfig, graph: Optional[Graph] = None) -> None:
+    def __init__(self, config: Union[GNSConfig, dict], graph: Optional[Graph] = None) -> None:
         """
         Initialize the GNS model.
 
         Args:
-            config (GNSConfig): Configuration dataclass with all model hyperparameters.
-            graph (Graph, optional): Optional graph object. If not provided, will be loaded from config.graph_path.
+            config (GNSConfig or dict): Model configuration. If a dict is provided, it will be resolved via config_loader_factory.
+            graph (Graph, optional): If provided, overrides config.graph_path.
+
+        Raises:
+            RuntimeError: If neither graph nor config.graph_path is provided, or if both are.
         """
         super().__init__()
 
+        if isinstance(config, dict):
+            config = load_gns_configs({"model": config})
+        elif not isinstance(config, GNSConfig):
+            raiseError("Invalid 'config' type passed to GNS(): must be GNSConfig or dict.")
+
+        # --- Validation ---
+        if not isinstance(config.activation, torch.nn.Module):
+            raiseError("GNSConfig 'activation' must be a torch.nn.Module instance.")
+        if not isinstance(config.device, torch.device):
+            raiseError("GNSConfig 'device' must be a torch.device instance.")
+        
         self.config = config
         self.device = torch.device(config.device)
         self.seed = config.seed
         self.p_dropouts = config.p_dropouts
-
-        # --- Activation function ---
-        if isinstance(config.activation, str):
-            if not hasattr(torch.nn, config.activation):
-                raiseError(f"Activation function '{config.activation}' not found in torch.nn")
-            self.activation = getattr(torch.nn, config.activation)()
-        else:
-            self.activation = config.activation
+        self.activation = config.activation
 
         # --- Device setup ---
         if self.device.type == "cuda":
@@ -96,33 +104,20 @@ class GNS(torch.nn.Module):
         if self.seed is not None:
             set_seed(self.seed)
 
-        # --- Optional aliases ---
-        self.input_dim = config.input_dim
-        self.latent_dim = config.latent_dim
-        self.output_dim = config.output_dim
-        self.hidden_size = config.hidden_size
-        self.num_msg_passing_layers = config.num_msg_passing_layers
-        self.encoder_hidden_layers = config.encoder_hidden_layers
-        self.decoder_hidden_layers = config.decoder_hidden_layers
-        self.message_hidden_layers = config.message_hidden_layers
-        self.update_hidden_layers = config.update_hidden_layers
-
-        # --- Graph resolution ---
+        # --- Graph loading logic ---
         if graph is not None and config.graph_path:
             raiseError(
                 "Cannot provide both `graph` and `config.graph_path` to GNS(): this is ambiguous.\n"
-                "You must choose one source of truth:\n"
+                "Choose only one source:\n"
                 "  • If you want GNS to load the graph, pass only config.graph_path.\n"
-                "  • If you already have a loaded graph, pass it as `graph` and leave config.graph_path unset or None.\n"
-                "This ensures the model uses the exact graph you expect and avoids mismatches at save/load time."
+                "  • If you already have the graph loaded, pass it via `graph` and leave config.graph_path = None."
             )
-
         elif graph is not None:
             self.graph = graph
         elif config.graph_path:
             self.graph = Graph.load(config.graph_path)
         else:
-            raiseError("GNS requires either a `graph` argument or a valid `config.graph_path`.")
+            raiseError("GNS requires either a `graph` or a valid `config.graph_path`.")
 
         # --- Inputs injector ---
         self.injector = InputsInjector(device=self.device)
@@ -134,25 +129,38 @@ class GNS(torch.nn.Module):
         self.checkpoint = None
 
         # --- Shape validator ---
-        self.validator = _ShapeValidator(self.input_dim, self.output_dim, self.graph.num_nodes)
+        self.validator = _ShapeValidator(
+            input_dim=config.input_dim,
+            output_dim=config.output_dim,
+            num_nodes=self.graph.num_nodes
+        )
 
-        # --- Subgraph batching and helpers ---
+        # --- Helpers and model components ---
         self._helpers = _GNSHelpers(
             device=self.device,
             graph=self.graph,
-            num_msg_passing_layers=self.num_msg_passing_layers
+            num_msg_passing_layers=config.num_msg_passing_layers
         )
 
-        # --- Model components ---
         self._build_encoder()
         self._build_message_passing_layers()
         self._build_decoder()
 
-        # --- Normalization ---
         self.groupnorm = torch.nn.GroupNorm(
-            num_groups=min(2, self.latent_dim),
-            num_channels=self.latent_dim
+            num_groups=min(2, config.latent_dim),
+            num_channels=config.latent_dim
         ).to(self.device)
+
+        # --- Convenience aliases ---
+        self.input_dim = config.input_dim
+        self.latent_dim = config.latent_dim
+        self.output_dim = config.output_dim
+        self.hidden_size = config.hidden_size
+        self.num_msg_passing_layers = config.num_msg_passing_layers
+        self.encoder_hidden_layers = config.encoder_hidden_layers
+        self.decoder_hidden_layers = config.decoder_hidden_layers
+        self.message_hidden_layers = config.message_hidden_layers
+        self.update_hidden_layers = config.update_hidden_layers
 
 
     def _build_encoder(self):
@@ -263,21 +271,25 @@ class GNS(torch.nn.Module):
         self,
         train_dataset: TorchDataset,
         eval_dataset: Optional[TorchDataset] = None,
-        config: TrainingConfig = TrainingConfig()
+        config: Union[GNSTrainingConfig, dict] = GNSTrainingConfig()
     ) -> Dict[str, list]:
         """
         Train the model using subgraph batching over both the input parameter space and the node space.
 
         Args:
-            train_dataset: Dataset of input parameters and targets. Each batch should yield:
-                - inputs: Tensor of shape [B, D], where D = input_dim
-                - targets: Tensor of shape [B, N, F], where N = num_nodes, F = output_dim
-            eval_dataset: Optional validation dataset with the same format as train_dataset.
-            config: TrainingConfig dataclass that holds all training hyperparameters.
+            train_dataset: Dataset of input parameters and targets.
+            eval_dataset: Optional validation dataset.
+            config (GNSTrainingConfig or dict): Training configuration. If a dict is provided, it will be resolved via config_loader_factory.
 
         Returns:
-            Dict: Dictionary containing lists of per-epoch `"train_loss"` and `"test_loss"`.
+            Dict: Dictionary containing per-epoch train/test losses.
         """
+        if isinstance(config, dict):
+            # Wrap in dummy config for loader to work
+            _, config = load_gns_configs({"training": config}, with_training=True)
+        elif not isinstance(config, GNSTrainingConfig):
+            raiseError("Invalid 'config' passed to fit(): must be GNSTrainingConfig or dict.")
+            
         # --- Validate dataset shapes ---
         self._validate_shapes(train_dataset)
         if eval_dataset is not None:
@@ -624,54 +636,20 @@ class GNS(torch.nn.Module):
 
 
     @classmethod
-    def from_yaml(
-        cls,
-        yaml_path: Union[str, Path],
-        with_training_config: bool = False
-    ) -> Union["GNS", Tuple["GNS", TrainingConfig]]:
+    def from_yaml(cls, yaml_path: Union[str, Path], with_training_config: bool = False):
         """
-        Construct a GNS model from a YAML configuration file.
-
-        The YAML must contain a 'model' section and optionally a 'training' section.
-        The 'model' section must include a 'graph_path' to load the graph.
+        Load a GNS model (and optionally training config) from a YAML configuration file.
 
         Args:
             yaml_path (str or Path): Path to the YAML config file.
-            with_training_config (bool): Whether to return the TrainingConfig as well.
+            with_training_config (bool): If True, also returns the training config.
 
         Returns:
-            GNS or (GNS, TrainingConfig): Model, and optionally training config.
-
-        Note:
-            This method instantiates a fresh GNS model from a YAML config file.
-            It does **not** load a trained model. Use `GNS.load()` for that purpose.
+            GNS or (GNS, GNSTrainingConfig): The model and optionally the training configuration.
         """
-        yaml_path = Path(yaml_path)
-        if not yaml_path.is_file():
-            raiseError(f"YAML file '{yaml_path}' not found.")
+        return model_from_config_path(cls, yaml_path, model_type="gns", with_training=with_training_config)
 
-        with open(yaml_path, "r") as f:
-            config_data = yaml.safe_load(f)
 
-        if "model" not in config_data:
-            raiseError("Missing 'model' section in YAML.")
-
-        model_dict = dict(config_data["model"])  # avoid mutating original
-        if "graph_path" not in model_dict:
-            raiseError("Missing 'graph_path' in model config.")
-
-        graph_path = model_dict.pop("graph_path")
-        graph = Graph.load(graph_path)  # assumes Graph.load(path: str)
-
-        model_config = GNSConfig(**model_dict)
-        model = cls(graph=graph, config=model_config)
-
-        if with_training_config:
-            training_dict = config_data.get("training", {})
-            training_config = TrainingConfig(**training_dict)
-            return model, training_config
-
-        return model
 
 
     @classmethod
@@ -685,7 +663,7 @@ class GNS(torch.nn.Module):
         Create and train an optimized GNS model using Optuna hyperparameter search.
 
         This method is compatible with pyLOM's Pipeline and does not require explicit graph_path as argument.
-        The graph path must be included under `optuna_optimizer.optimization_params['graph_path']`.
+        The graph path must be included under `optuna_optimizer.optimization_params['graph_path']`. Note: 'graph_path' is not part of the search space and must be set externally.
 
         Args:
             train_dataset (Dataset): Training dataset.
@@ -731,13 +709,7 @@ class GNS(torch.nn.Module):
                 for key, val in search_space.get(section, {}).items()
             }
 
-            model_config = GNSConfig(**{
-                k: v for k, v in hyperparams.items() if k in GNSConfig.__annotations__
-            })
-            training_config = TrainingConfig(**{
-                k: v for k, v in hyperparams.items() if k in TrainingConfig.__annotations__
-            })
-
+            model_config, training_config = resolve_optuna_trial_params(hyperparams)
             model = cls(config=model_config, graph=shared_graph)
 
             pprint(0, f"\nTrial {trial.number + 1}/{optuna_optimizer.num_trials}. Training with:\n",
@@ -746,7 +718,7 @@ class GNS(torch.nn.Module):
             try:
                 if optuna_optimizer.pruner is not None:
                     for epoch in range(training_config.epochs):
-                        epoch_cfg = TrainingConfig(**{**asdict(training_config), "epochs": 1})
+                        epoch_cfg = GNSTrainingConfig(**{**asdict(training_config), "epochs": 1})
                         losses = model.fit(train_dataset, eval_dataset, config=epoch_cfg)
                         val_loss = losses["test_loss"][-1]
                         trial.report(val_loss, epoch)

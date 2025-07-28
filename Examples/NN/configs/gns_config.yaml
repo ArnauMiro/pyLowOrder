@@ -2,20 +2,20 @@
 
 experiment:
   name: gns_nlr7301_baseline
-  description: "Baseline GNS model on NLR7301 airfoil data"
+  description: "GNS model on NLR7301 airfoil dataset as described by "
   version: 1.0
   seed: 123
   device: cuda                      # Options: cpu | cuda | cuda:0 | etc.
   tags: [GNS, airfoil, baseline]
-  resudir: "./results/exp_01"
+  resudir: "../../../../CETACEO_RESULTS/nlr7301/"
 
 datasets:
-  train_ds: "./data/train_data.h5"
-  val_ds: "./data/val_data.h5"
-  test_ds: "./data/test_data.h5"
+  train_ds: "../../../../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
+  val_ds: "../../../../CETACEO_DATA/nlr7301/VAL_converter.h5"
+  test_ds: "../../../../CETACEO_DATA/nlr7301/TEST_converter.h5"
 
 model:
-  graph_path: "./data/mesh_graph.h5"
+  graph_path: "../../../../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
   input_dim: 2
   output_dim: 1
   latent_dim: 16
@@ -29,7 +29,7 @@ model:
   p_dropouts: 0.1
 
 training:
-  epochs: 500
+  epochs: 3
   lr: 5e-4
   lr_gamma: 0.98
   lr_scheduler_step: 1
@@ -43,7 +43,7 @@ training:
   verbose: 25
 
 optuna:
-  graph_path: "./data/mesh_graph.h5"
+  graph_path: "../../../../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
   study:
     study_name: gns_optuna_study
     direction: minimize
