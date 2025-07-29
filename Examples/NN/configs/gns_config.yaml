@@ -48,7 +48,7 @@ optuna:
     study_name: gns_optuna_study
     direction: minimize
     timeout: 36000       # In seconds
-    n_trials: 50
+    n_trials: 3
   search_space:
     model:
       latent_dim: [1, 64]
@@ -61,8 +61,15 @@ optuna:
       activation: [ELU, ReLU, LeakyReLU]
       p_dropouts: [0.0, 0.5]
     training:
+      epochs: 3
       lr: [1e-5, 1e-3]
-      lr_gamma: [0.9, 0.99, 0.999]
+      lr_gamma: [0.9, 0.999]
       lr_scheduler_step: [1, 10]
+      optimizer: Adam
+      scheduler: StepLR
+      loss_fn: MSELoss
       batch_size: [8, 64]
       node_batch_size: [128, 597]
+      num_workers: 4
+      pin_memory: true
+      verbose: 25
