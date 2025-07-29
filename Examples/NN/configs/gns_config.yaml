@@ -7,16 +7,16 @@ experiment:
   seed: 123
   device: cuda                      # Options: cpu | cuda | cuda:0 | etc.
   tags: [GNS, airfoil, baseline]
-  resudir: "../../../../CETACEO_RESULTS/nlr7301/"
+  resudir: "../CETACEO_RESULTS/nlr7301/"
   mode: train                 # Options: train | optuna
 
 datasets:
-  train_ds: "../../../../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
-  val_ds: "../../../../CETACEO_DATA/nlr7301/VAL_converter.h5"
-  test_ds: "../../../../CETACEO_DATA/nlr7301/TEST_converter.h5"
+  train_ds: "../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
+  val_ds: "../CETACEO_DATA/nlr7301/VAL_converter.h5"
+  test_ds: "../CETACEO_DATA/nlr7301/TEST_converter.h5"
 
 model:
-  graph_path: "../../../../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
+  graph_path: "../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
   input_dim: 2
   output_dim: 1
   latent_dim: 16
@@ -44,7 +44,7 @@ training:
   verbose: 25
 
 optuna:
-  graph_path: "../../../../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
+  graph_path: "../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
   study:
     study_name: gns_optuna_study
     direction: minimize

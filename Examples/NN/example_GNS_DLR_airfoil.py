@@ -108,10 +108,10 @@ def save_experiment(base_path, model, train_config, metrics_dict,
 # ─────────────────────────────────────────────────────
 # SETUP: Load config, seed, results path
 # ─────────────────────────────────────────────────────
-yaml_path = "./configs/gns_config.yaml"
+yaml_path = Path("../pyLowOrder/Examples/NN/configs/gns_config.yaml").absolute()
 config_dict = load_yaml(yaml_path)
 
-resudir = Path(config_dict["experiment"]["resudir"])
+resudir = Path(config_dict["experiment"]["resudir"]).absolute()
 resudir.mkdir(parents=True, exist_ok=True)
 
 seed = config_dict["experiment"].get("seed", None)
