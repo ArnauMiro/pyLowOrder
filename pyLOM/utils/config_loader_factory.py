@@ -30,20 +30,21 @@ from NN.utils.configs import GNSConfig, GNSTrainingConfig
 
 from . import raiseError
 
+__all__ = [
+    "load_configs",
+    "load_yaml",
+    "_model_from_config_path",
+    "_resolve_optuna_trial_params",
+]
+
 # ─────────────────────────────────────────────────────
 # Mapping dictionaries for common torch components
 # ─────────────────────────────────────────────────────
 
 ACTIVATIONS = {
-    "ELU": ELU,
-    "ReLU": ReLU,
-    "LeakyReLU": LeakyReLU,
-    "Sigmoid": Sigmoid,
-    "Tanh": Tanh,
-    "PReLU": PReLU,
-    "Softplus": Softplus,
-    "GELU": GELU,
-    "SELU": SELU
+    "ELU": ELU, "ReLU": ReLU, "LeakyReLU": LeakyReLU,
+    "Sigmoid": Sigmoid, "Tanh": Tanh, "PReLU": PReLU,
+    "Softplus": Softplus, "GELU": GELU, "SELU": SELU
 }
 
 LOSSES = {
@@ -54,121 +55,95 @@ LOSSES = {
 }
 
 OPTIMIZERS = {
-    "Adam": Adam,
-    "SGD": SGD,
-    "RMSprop": RMSprop,
-    "AdamW": AdamW
+    "Adam": Adam, "SGD": SGD, "RMSprop": RMSprop, "AdamW": AdamW
 }
 
 SCHEDULERS = {
-    "StepLR": StepLR,
-    "ExponentialLR": ExponentialLR,
-    "CosineAnnealingLR": CosineAnnealingLR
+    "StepLR": StepLR, "ExponentialLR": ExponentialLR, "CosineAnnealingLR": CosineAnnealingLR
 }
 
+_ANNOTATIONS_MAP = {
+    "gns": ("GNSConfig", "GNSTrainingConfig"),
+    "mlp": ("MLPConfig", "MLPTrainingConfig"),
+    "kan": ("KANConfig", "KANTrainingConfig"),
+}
 
 # ─────────────────────────────────────────────────────
 # Utility functions
 # ─────────────────────────────────────────────────────
 
 def load_yaml(path: Union[str, Path]) -> dict:
-    """
-    Load a YAML file and return its content as a dictionary.
-
-    Args:
-        path (Union[str, Path]): Path to the YAML file.
-
-    Returns:
-        dict: Parsed YAML content.
-    """
-    with open(path, 'r') as f:
+    with open(path, "r") as f:
         return yaml.safe_load(f)
 
-
 def _resolve_from_dict_or_torch(name: str, mapping: dict, module) -> Union[type, torch.nn.Module]:
-    """
-    Resolve a class from a string, prioritizing local mappings,
-    and falling back to a PyTorch module (e.g. torch.nn or torch.optim).
-
-    Allows extension with user-defined mappings beyond standard PyTorch classes.
-    """
-
     if name in mapping:
         return mapping[name]
     if hasattr(module, name):
         return getattr(module, name)
-    raiseError(f"Unknown name '{name}' not found in mapping or module '{module.__name__}'")
+    raiseError(f"Unknown name '{name}' not found in mapping or module '{module.__name__}'.")
+
+# ─────────────────────────────────────────────────────
+# Generic config resolution helper
+# ─────────────────────────────────────────────────────
+
+def _resolve_model_and_training_configs(
+    model_cfg_raw: dict,
+    train_cfg_raw: dict,
+    exp_cfg: dict,
+    model_cls,
+    training_cls,
+) -> Tuple[object, object]:
+    model_cfg = model_cfg_raw.copy()
+    train_cfg = train_cfg_raw.copy()
+
+    model_cfg["device"] = exp_cfg.get("device", "cuda")
+    model_cfg["seed"] = exp_cfg.get("seed", None)
+    if "activation" in model_cfg:
+        model_cfg["activation"] = _resolve_from_dict_or_torch(model_cfg["activation"], ACTIVATIONS, torch.nn)
+
+    optimizer = train_cfg.pop("optimizer", "Adam")
+    scheduler = train_cfg.pop("scheduler", "StepLR")
+    loss_fn = train_cfg.pop("loss_fn", "MSELoss")
+
+    model_config = model_cls(**model_cfg)
+    training_config = training_cls(
+        **train_cfg,
+        optimizer=_resolve_from_dict_or_torch(optimizer, OPTIMIZERS, torch.optim),
+        scheduler=_resolve_from_dict_or_torch(scheduler, SCHEDULERS, torch.optim.lr_scheduler),
+        loss_fn=_resolve_from_dict_or_torch(loss_fn, LOSSES, torch.nn)(),
+    )
+    return model_config, training_config
 
 # ─────────────────────────────────────────────────────
 # Model specific configuration loaders
 # ─────────────────────────────────────────────────────
 
-def load_gns_configs(config_dict: dict, with_training: bool = False) -> Union[GNSConfig, Tuple[GNSConfig, GNSTrainingConfig]]:
-    """
-    Parse and resolve GNS model configuration.
-
-    Args:
-        config_dict (dict): Parsed YAML configuration dictionary.
-        with_training (bool): Whether to also parse the training configuration.
-
-    Returns:
-        GNSConfig or (GNSConfig, GNSTrainingConfig)
-    """
-    model_cfg = config_dict["model"].copy()
+def load_gns_configs(config_dict: dict, with_training: bool = False):
     exp_cfg = config_dict.get("experiment", {})
-
-    model_cfg["device"] = exp_cfg.get("device", "cuda")
-    model_cfg["seed"] = exp_cfg.get("seed", None)
-
-    act_str = model_cfg.get("activation", "ELU")
-    model_cfg["activation"] = _resolve_from_dict_or_torch(act_str, ACTIVATIONS, torch.nn)
-
-    model_config = GNSConfig(**model_cfg)
-
+    model_cfg = config_dict["model"]
     if not with_training:
-        return model_config
+        model_cfg["device"] = exp_cfg.get("device", "cuda")
+        model_cfg["seed"] = exp_cfg.get("seed", None)
+        model_cfg["activation"] = _resolve_from_dict_or_torch(model_cfg["activation"], ACTIVATIONS, torch.nn)
+        return GNSConfig(**model_cfg)
 
-    train_cfg = config_dict.get("training", {}).copy()
-    optimizer = train_cfg.pop("optimizer", "Adam")
-    scheduler = train_cfg.pop("scheduler", "StepLR")
-    loss_fn = train_cfg.pop("loss_fn", "MSELoss")
-
-    training_config = GNSTrainingConfig(
-        **train_cfg,
-        optimizer=_resolve_from_dict_or_torch(optimizer, OPTIMIZERS, torch.optim),
-        scheduler=_resolve_from_dict_or_torch(scheduler, SCHEDULERS, torch.optim.lr_scheduler),
-        loss_fn=_resolve_from_dict_or_torch(loss_fn, LOSSES, torch.nn)()
+    return _resolve_model_and_training_configs(
+        model_cfg_raw=config_dict["model"],
+        train_cfg_raw=config_dict["training"],
+        exp_cfg=exp_cfg,
+        model_cls=GNSConfig,
+        training_cls=GNSTrainingConfig,
     )
 
-    return model_config, training_config
-
-
 def load_mlp_configs(config_dict: dict):
-    """
-    Placeholder for MLP configuration parsing.
-
-    Args:
-        config_dict (dict): The configuration dictionary.
-
-    Raises:
-        NotImplementedError
-    """
     raiseError("MLP config loader not implemented yet.")
 
 def load_kan_configs(config_dict: dict):
-    """
-    Placeholder for KAN configuration parsing.
-
-    Args:
-        config_dict (dict): The configuration dictionary.
-
-    Raises:
-        NotImplementedError
-    """
     raiseError("KAN config loader not implemented yet.")
 
 # ─────────────────────────────────────────────────────
-# Dispatch map for model configuration loaders
+# Dispatch and interface
 # ─────────────────────────────────────────────────────
 
 _LOADER_MAP = {
@@ -177,36 +152,17 @@ _LOADER_MAP = {
     "kan": load_kan_configs,
 }
 
-# ─────────────────────────────────────────────────────
-# Entry points for external use
-# ─────────────────────────────────────────────────────
-
-
 def load_configs(
     config_path: Union[str, Path],
     model_type: str,
     with_training: bool = False
 ) -> Union[object, Tuple[object, object]]:
-    """
-    Load and resolve a full configuration from YAML, given the model type explicitly.
-
-    Args:
-        config_path (str or Path): Path to YAML file.
-        model_type (str): Type of model to load ("gns", "mlp", "kan").
-        with_training (bool): If True, returns (model_config, training_config). Else only model_config.
-
-    Returns:
-        ModelConfig or (ModelConfig, TrainingConfig)
-    """
     config_dict = load_yaml(config_path)
     model_type = model_type.lower()
-
     loader_fn = _LOADER_MAP.get(model_type)
     if loader_fn is None:
         raiseError(f"Unsupported model_type '{model_type}'. Must be one of {list(_LOADER_MAP)}.")
-
     return loader_fn(config_dict, with_training=with_training)
-
 
 def _model_from_config_path(
     model_class,
@@ -214,88 +170,42 @@ def _model_from_config_path(
     model_type: str,
     with_training: bool = False
 ):
-    """
-    Instantiate a model from a YAML configuration file, given the model type explicitly.
-
-    Args:
-        model_class: Model class to instantiate (must accept config as first arg).
-        yaml_path (str or Path): Path to YAML file.
-        model_type (str): Type of model ("gns", "mlp", "kan").
-        with_training (bool): Whether to return training config as well.
-
-    Returns:
-        model instance or (model, training_config)
-    """
     model_type = model_type.lower()
     loader_fn = _LOADER_MAP.get(model_type)
     if loader_fn is None:
         raiseError(f"Unsupported model_type '{model_type}'. Must be one of {list(_LOADER_MAP)}.")
-
     config_dict = load_yaml(yaml_path)
     configs = loader_fn(config_dict, with_training=with_training)
-
     if with_training:
         model_config, training_config = configs
-        model = model_class(config=model_config)
-        return model, training_config
-    else:
-        model_config = configs
-        model = model_class(config=model_config)
-        return model
+        return model_class(config=model_config), training_config
+    return model_class(config=configs)
 
 def _resolve_optuna_trial_params(
     hyperparams: Dict,
     model_type: str
-) -> Tuple[Union[GNSConfig], Union[GNSTrainingConfig]]:
-    """
-    Given a flat dictionary of sampled hyperparameters, resolve them into a valid
-    model and training config (e.g. GNSConfig, GNSTrainingConfig) based on model type.
+) -> Tuple[object, object]:
+    from NN.utils import configs as config_module
 
-    Args:
-        hyperparams (Dict): Flat dictionary from an Optuna trial.
-        model_type (str): Model type ("gns", "mlp", "kan").
-
-    Returns:
-        Tuple[ModelConfig, TrainingConfig]: Resolved config dataclasses.
-
-    Raises:
-        RuntimeError: If model_type is unsupported.
-    """
     model_type = model_type.lower()
-    loader_fn = _LOADER_MAP.get(model_type)
-    if loader_fn is None:
-        raiseError(f"Unsupported model_type '{model_type}'. Must be one of {list(_LOADER_MAP)}.")
-
-    # Infer available config keys from dataclass annotations
-    # You can extend this when MLPConfig, KANConfig are added
-    if model_type == "gns":
-        from NN.utils.configs import GNSConfig, GNSTrainingConfig
-        model_keys = set(GNSConfig.__annotations__)
-        training_keys = set(GNSTrainingConfig.__annotations__)
-    elif model_type == "kan":
-        from NN.utils.configs import KANConfig, KANTrainingConfig
-        model_keys = set(KANConfig.__annotations__)
-        training_keys = set(KANTrainingConfig.__annotations__)
-    elif model_type == "mlp":
-        from NN.utils.configs import MLPConfig, MLPTrainingConfig
-        model_keys = set(MLPConfig.__annotations__)
-        training_keys = set(MLPTrainingConfig.__annotations__)
-    else:
+    try:
+        model_cls_name, train_cls_name = _ANNOTATIONS_MAP[model_type]
+        model_cls = getattr(config_module, model_cls_name)
+        train_cls = getattr(config_module, train_cls_name)
+    except KeyError:
         raiseError(f"No config annotations found for model_type '{model_type}'.")
+
+    model_keys = set(model_cls.__annotations__)
+    training_keys = set(train_cls.__annotations__)
 
     model_cfg = {k: v for k, v in hyperparams.items() if k in model_keys}
     training_cfg = {k: v for k, v in hyperparams.items() if k in training_keys}
-
     experiment_cfg = {k: v for k in ["seed", "device"] if k in hyperparams}
 
-    config_dict = {
-        "model": model_cfg,
-        "training": training_cfg,
-        "experiment": experiment_cfg
-    }
-
-    return loader_fn(config_dict, with_training=True)
-
-
-
-
+    return _resolve_model_and_training_configs(
+        model_cfg_raw=model_cfg,
+        train_cfg_raw=training_cfg,
+        exp_cfg=experiment_cfg,
+        model_cls=model_cls,
+        training_cls=train_cls
+    )
