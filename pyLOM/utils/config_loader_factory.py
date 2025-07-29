@@ -24,9 +24,9 @@ from torch.nn import ELU, ReLU, LeakyReLU, Sigmoid, Tanh, PReLU, Softplus, GELU,
 from torch.optim import Adam, SGD, RMSprop, AdamW
 from torch.optim.lr_scheduler import StepLR, ExponentialLR, CosineAnnealingLR
 
-from NN.utils.configs import GNSConfig, GNSTrainingConfig
-# from NN.utils.configs import MLPConfig, MLPTrainingConfig
-# from NN.utils.configs import KANConfig, KANTrainingConfig
+from ..NN.utils.configs import GNSConfig, GNSTrainingConfig
+# from ..NN.utils.configs import MLPConfig, MLPTrainingConfig
+# from ..NN.utils.configs import KANConfig, KANTrainingConfig
 
 from . import raiseError
 
