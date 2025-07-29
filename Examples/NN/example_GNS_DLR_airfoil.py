@@ -4,7 +4,7 @@
 Example: Training a GNS model on DLR airfoil data using pyLOM.
 
 Updated to use modern pyLOM API:
-  - load_configs() for config parsing
+  - Direct dict-based GNS instantiation
   - Optuna-compatible Pipeline execution
 
 Author: Pablo Yeste
@@ -24,7 +24,7 @@ import hashlib
 import datetime
 
 from pyLOM.utils import raiseError
-from pyLOM.utils.config_loader_factory import load_configs, load_yaml
+from pyLOM.utils.config_loader_factory import load_yaml
 from pyLOM.NN import Dataset, GNS, Pipeline, MinMaxScaler
 from pyLOM.NN.optimizer import OptunaOptimizer
 from pyLOM.NN.utils import RegressionEvaluator
@@ -159,14 +159,13 @@ if mode == "optuna":
         model_class=GNS,
     )
 elif mode == "train":
-    model_config, train_config = load_configs(yaml_path, model_type="gns", with_training=True)
-    model = GNS(config=model_config)
+    model = GNS(config=config_dict)
     pipeline = Pipeline(
         train_dataset=td_train,
         valid_dataset=td_val,
         test_dataset=td_test,
         model=model,
-        training_params=train_config
+        training_params=config_dict["training"]
     )
 else:
     raiseError(f"Unsupported mode '{mode}'. Use 'train' or 'optuna'.")
