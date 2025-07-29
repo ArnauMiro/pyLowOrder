@@ -23,11 +23,12 @@ import yaml
 import hashlib
 import datetime
 
-from ...pyLOM.utils.config_loader_factory import load_configs, load_yaml
-from ...pyLOM.NN import Dataset, GNS, Pipeline, MinMaxScaler
-from ...pyLOM.NN.optimizer import OptunaOptimizer
-from ...pyLOM.NN.utils import RegressionEvaluator
-from ...pyLOM.NN import DEVICE, set_seed
+from pyLOM.utils import raiseError
+from pyLOM.utils.config_loader_factory import load_configs, load_yaml
+from pyLOM.NN import Dataset, GNS, Pipeline, MinMaxScaler
+from pyLOM.NN.optimizer import OptunaOptimizer
+from pyLOM.NN.utils import RegressionEvaluator
+from pyLOM.NN import DEVICE, set_seed
 import pyLOM
 
 
@@ -36,14 +37,7 @@ import pyLOM
 # ─────────────────────────────────────────────────────
 
 def plot_train_test_loss(train_loss, test_loss, path):
-    """
-    Plot training and validation loss over iterations and save the result.
-
-    Args:
-        train_loss (List[float]): Per-iteration training loss.
-        test_loss (List[float]): Per-epoch validation loss.
-        path (Path): Output file path for the saved plot.
-    """
+    """Plot training and validation loss and save."""
     plt.figure()
     plt.plot(range(1, len(train_loss) + 1), train_loss, label="Training Loss")
     total_epochs = len(test_loss)
@@ -59,14 +53,7 @@ def plot_train_test_loss(train_loss, test_loss, path):
 
 
 def true_vs_pred_plot(y_true, y_pred, path=None):
-    """
-    Plot true vs predicted values for all output components.
-
-    Args:
-        y_true (ndarray): Ground truth targets.
-        y_pred (ndarray): Model predictions.
-        path (Path, optional): If provided, save to file; otherwise display.
-    """
+    """Plot true vs predicted values and optionally save to file."""
     y_true = np.asarray(y_true)
     y_pred = np.asarray(y_pred)
     num_outputs = y_true.shape[1]
@@ -87,18 +74,7 @@ def true_vs_pred_plot(y_true, y_pred, path=None):
 
 def save_experiment(base_path, model, train_config, metrics_dict,
                     input_scaler=None, output_scaler=None, extra_files=None):
-    """
-    Save the complete experiment state to disk.
-
-    Args:
-        base_path (Path): Output directory.
-        model (GNS): Trained model.
-        train_config (dict): Training configuration.
-        metrics_dict (dict): Evaluation metrics.
-        input_scaler (optional): Input scaler object.
-        output_scaler (optional): Output scaler object.
-        extra_files (dict, optional): Dict of file_name → generator(path).
-    """
+    """Save model, configs, metrics and optional scalers and figures."""
     base_path = Path(base_path)
     base_path.mkdir(parents=True, exist_ok=True)
 
@@ -130,17 +106,17 @@ def save_experiment(base_path, model, train_config, metrics_dict,
 
 
 # ─────────────────────────────────────────────────────
-# SETUP: Config, seed, results path
+# SETUP: Load config, seed, results path
 # ─────────────────────────────────────────────────────
 yaml_path = "./configs/gns_config.yaml"
 config_dict = load_yaml(yaml_path)
 
-seed = config_dict.get("experiment", {}).get("seed", None)
-device = config_dict.get("experiment", {}).get("device", DEVICE)
-set_seed(seed, device)
-
 resudir = Path(config_dict["experiment"]["resudir"])
 resudir.mkdir(parents=True, exist_ok=True)
+
+seed = config_dict["experiment"].get("seed", None)
+device = config_dict["experiment"].get("device", DEVICE)
+set_seed(seed, device)
 
 
 # ─────────────────────────────────────────────────────
@@ -167,9 +143,9 @@ td_test  = Dataset.load(config_dict["datasets"]["test_ds"], **dataset_kwargs)
 # ─────────────────────────────────────────────────────
 # TRAIN OR OPTIMIZE MODEL
 # ─────────────────────────────────────────────────────
-USE_OPTUNA = False  # Set to True to enable Optuna-based optimization
+mode = config_dict.get("experiment", {}).get("mode", "train")
 
-if USE_OPTUNA:
+if mode == "optuna":
     optimizer = OptunaOptimizer(
         search_space=config_dict["optuna"]["search_space"],
         study_params=config_dict["optuna"]["study"],
@@ -182,7 +158,7 @@ if USE_OPTUNA:
         optimizer=optimizer,
         model_class=GNS,
     )
-else:
+elif mode == "train":
     model_config, train_config = load_configs(yaml_path, model_type="gns", with_training=True)
     model = GNS(config=model_config)
     pipeline = Pipeline(
@@ -192,6 +168,8 @@ else:
         model=model,
         training_params=train_config
     )
+else:
+    raiseError(f"Unsupported mode '{mode}'. Use 'train' or 'optuna'.")
 
 logs = pipeline.run()
 
@@ -199,11 +177,11 @@ logs = pipeline.run()
 # ─────────────────────────────────────────────────────
 # EVALUATE AND SAVE EXPERIMENT
 # ─────────────────────────────────────────────────────
-preds = pipeline.model.predict(td_test)
-targets = td_test[:][1]
+predictions = pipeline.model.predict(td_test)
+targets_eval = td_test[:][1]
 
 evaluator = RegressionEvaluator()
-evaluator(targets, preds)
+evaluator(targets_eval, predictions)
 evaluator.print_metrics()
 logs["metrics"] = evaluator.metrics_dict
 
@@ -216,7 +194,7 @@ save_experiment(
     output_scaler=output_scaler,
     extra_files={
         "train_test_loss.png": lambda p: plot_train_test_loss(logs["train_loss"], logs["test_loss"], p),
-        "true_vs_pred.png": lambda p: true_vs_pred_plot(targets, preds, p),
+        "true_vs_pred.png": lambda p: true_vs_pred_plot(targets_eval, predictions, p),
     }
 )
 
@@ -228,11 +206,10 @@ print("\n>>> Reloading model and input scaler from disk...")
 model_reloaded = GNS.load(resudir / "model.pth")
 
 scaler_path = resudir / "input_scaler.pkl"
-if scaler_path.exists():
-    with open(scaler_path, "rb") as f:
-        input_scaler_reloaded = pickle.load(f)
-else:
+if not scaler_path.exists():
     raise FileNotFoundError(f"Missing input scaler: {scaler_path}")
+with open(scaler_path, "rb") as f:
+    input_scaler_reloaded = pickle.load(f)
 
 raw_input = np.array([[4.0, 0.7]])  # AoA, Mach
 scaled_input = input_scaler_reloaded.transform(raw_input)
@@ -244,13 +221,12 @@ with torch.no_grad():
 print(f">>> Prediction shape: {pred_dummy.shape}")
 print(f">>> First 5 values: {pred_dummy[0, :5].detach().cpu().numpy()}")
 
-# Optional comparison with nearest sample in test set
-if 'td_test' in globals():
-    inputs, targets = td_test[:]
-    idx = np.argmin(np.linalg.norm(inputs - raw_input, axis=1))
-    reference = targets[idx]
-    print(f">>> Comparing with test sample at index {idx}")
-    true_vs_pred_plot(reference, pred_dummy[0].cpu().numpy())
+# Optional: compare with nearest test sample
+inputs_test, targets_test = td_test[:]
+idx = np.argmin(np.linalg.norm(inputs_test - raw_input, axis=1))
+reference = targets_test[idx]
+print(f">>> Comparing with test sample at index {idx}")
+true_vs_pred_plot(reference, pred_dummy[0].cpu().numpy())
 
 
 # ─────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ experiment:
   device: cuda                      # Options: cpu | cuda | cuda:0 | etc.
   tags: [GNS, airfoil, baseline]
   resudir: "../../../../CETACEO_RESULTS/nlr7301/"
+  mode: train                 # Options: train | optuna
 
 datasets:
   train_ds: "../../../../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
