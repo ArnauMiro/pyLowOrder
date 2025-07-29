@@ -79,7 +79,9 @@ class GNS(torch.nn.Module):
         self._graph = None
 
         if isinstance(config, dict):
+            pprint(0, "Loading GNSConfig from dict...")
             config = load_gns_configs({"model": config})
+            pprint(0, f"Loaded GNSConfig: {asdict(config)}", flush=True)
         elif not isinstance(config, GNSConfig):
             raiseError("Invalid 'config' type passed to GNS(): must be GNSConfig or dict.")
 

@@ -159,7 +159,7 @@ if mode == "optuna":
         model_class=GNS,
     )
 elif mode == "train":
-    model = GNS(config=config_dict)
+    model = GNS(config=config_dict['model'])
     pipeline = Pipeline(
         train_dataset=td_train,
         valid_dataset=td_val,

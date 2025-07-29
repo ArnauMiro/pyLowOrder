@@ -100,7 +100,8 @@ def _resolve_model_and_training_configs(
     model_cfg["device"] = exp_cfg.get("device", "cuda")
     model_cfg["seed"] = exp_cfg.get("seed", None)
     if "activation" in model_cfg:
-        model_cfg["activation"] = _resolve_from_dict_or_torch(model_cfg["activation"], ACTIVATIONS, torch.nn)
+        resolved = _resolve_from_dict_or_torch(model_cfg["activation"], ACTIVATIONS, torch.nn)
+        model_cfg["activation"] = resolved() if isinstance(resolved, type) else resolved
 
     optimizer = train_cfg.pop("optimizer", "Adam")
     scheduler = train_cfg.pop("scheduler", "StepLR")
@@ -125,7 +126,9 @@ def load_gns_configs(config_dict: dict, with_training: bool = False):
     if not with_training:
         model_cfg["device"] = exp_cfg.get("device", "cuda")
         model_cfg["seed"] = exp_cfg.get("seed", None)
-        model_cfg["activation"] = _resolve_from_dict_or_torch(model_cfg["activation"], ACTIVATIONS, torch.nn)
+        if "activation" in model_cfg:
+            resolved = _resolve_from_dict_or_torch(model_cfg["activation"], ACTIVATIONS, torch.nn)
+            model_cfg["activation"] = resolved() if isinstance(resolved, type) else resolved
         return GNSConfig(**model_cfg)
 
     return _resolve_model_and_training_configs(
