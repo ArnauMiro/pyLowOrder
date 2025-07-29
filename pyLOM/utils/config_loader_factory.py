@@ -243,34 +243,59 @@ def _model_from_config_path(
         model = model_class(config=model_config)
         return model
 
-def _resolve_optuna_trial_params(hyperparams: Dict) -> Tuple[GNSConfig, GNSTrainingConfig]:
+def _resolve_optuna_trial_params(
+    hyperparams: Dict,
+    model_type: str
+) -> Tuple[Union[GNSConfig], Union[GNSTrainingConfig]]:
     """
-    Given a flat dictionary of sampled hyperparameters, split and resolve them
-    into valid GNSConfig and GNSTrainingConfig objects using load_gns_configs().
+    Given a flat dictionary of sampled hyperparameters, resolve them into a valid
+    model and training config (e.g. GNSConfig, GNSTrainingConfig) based on model type.
 
     Args:
-        hyperparams (Dict): Flat dictionary containing trial parameters.
+        hyperparams (Dict): Flat dictionary from an Optuna trial.
+        model_type (str): Model type ("gns", "mlp", "kan").
 
     Returns:
-        Tuple[GNSConfig, GNSTrainingConfig]: Parsed and resolved model and training configs.
+        Tuple[ModelConfig, TrainingConfig]: Resolved config dataclasses.
+
+    Raises:
+        RuntimeError: If model_type is unsupported.
     """
-    model_keys = set(GNSConfig.__annotations__)
-    training_keys = set(GNSTrainingConfig.__annotations__)
+    model_type = model_type.lower()
+    loader_fn = _LOADER_MAP.get(model_type)
+    if loader_fn is None:
+        raiseError(f"Unsupported model_type '{model_type}'. Must be one of {list(_LOADER_MAP)}.")
+
+    # Infer available config keys from dataclass annotations
+    # You can extend this when MLPConfig, KANConfig are added
+    if model_type == "gns":
+        from NN.utils.configs import GNSConfig, GNSTrainingConfig
+        model_keys = set(GNSConfig.__annotations__)
+        training_keys = set(GNSTrainingConfig.__annotations__)
+    elif model_type == "kan":
+        from NN.utils.configs import KANConfig, KANTrainingConfig
+        model_keys = set(KANConfig.__annotations__)
+        training_keys = set(KANTrainingConfig.__annotations__)
+    elif model_type == "mlp":
+        from NN.utils.configs import MLPConfig, MLPTrainingConfig
+        model_keys = set(MLPConfig.__annotations__)
+        training_keys = set(MLPTrainingConfig.__annotations__)
+    else:
+        raiseError(f"No config annotations found for model_type '{model_type}'.")
 
     model_cfg = {k: v for k, v in hyperparams.items() if k in model_keys}
     training_cfg = {k: v for k, v in hyperparams.items() if k in training_keys}
 
-    # Optionally extract device/seed if available
-    experiment_cfg = {}
-    for k in ["seed", "device"]:
-        if k in hyperparams:
-            experiment_cfg[k] = hyperparams[k]
+    experiment_cfg = {k: v for k in ["seed", "device"] if k in hyperparams}
 
-    return load_gns_configs({
+    config_dict = {
         "model": model_cfg,
         "training": training_cfg,
         "experiment": experiment_cfg
-    }, with_training=True)
+    }
+
+    return loader_fn(config_dict, with_training=True)
+
 
 
 

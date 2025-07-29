@@ -712,7 +712,7 @@ class GNS(torch.nn.Module):
                 for key, val in search_space.get(section, {}).items()
             }
 
-            model_config, training_config = _resolve_optuna_trial_params(hyperparams)
+            model_config, training_config = _resolve_optuna_trial_params(hyperparams, model_type="gns")
             model = cls(config=model_config, graph=shared_graph)
 
             pprint(0, f"\nTrial {trial.number + 1}/{optuna_optimizer.num_trials}. Training with:\n",
