@@ -24,7 +24,7 @@ import hashlib
 import datetime
 
 from pyLOM.utils import raiseError
-from pyLOM.utils.config_loader_factory import load_yaml
+from pyLOM.NN.utils.config_loader_factory import load_yaml
 from pyLOM.NN import Dataset, GNS, Pipeline, MinMaxScaler
 from pyLOM.NN.optimizer import OptunaOptimizer
 from pyLOM.NN.utils import RegressionEvaluator

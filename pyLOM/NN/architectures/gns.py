@@ -26,7 +26,7 @@ from ..gns import GNSMLP, MessagePassingLayer, Graph, InputsInjector, _ShapeVali
 from ..optimizer import OptunaOptimizer, TrialPruned
 from ... import pprint, cr
 from ...utils import raiseError
-from ...utils.config_loader_factory import _model_from_config_path, load_gns_configs, _resolve_optuna_trial_params
+from ..utils.config_loader_factory import _model_from_config_path, load_gns_configs, _resolve_optuna_trial_params
 
 
 
