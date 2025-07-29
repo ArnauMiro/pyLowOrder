@@ -3,22 +3,17 @@
 """
 Example: Training a GNS model on DLR airfoil data using pyLOM.
 
-This script demonstrates the key steps required to:
-1. Load configuration from a YAML file
-2. Initialize scalers and datasets
-3. Build and train a GNS model or run Optuna optimization
-4. Evaluate the model and visualize results
-5. Save the model and associated artifacts
-6. Perform a dummy inference
+Updated to use modern pyLOM API:
+  - load_configs() for config parsing
+  - Optuna-compatible Pipeline execution
 
 Author: Pablo Yeste
-Date: 2025-07-25
+Date: 2025-07-28
 """
 
 # ─────────────────────────────────────────────────────
 # IMPORTS
 # ─────────────────────────────────────────────────────
-import os
 from pathlib import Path
 import numpy as np
 import torch
@@ -28,17 +23,27 @@ import yaml
 import hashlib
 import datetime
 
-from pyLOM.utils import load_yaml, build_GNS_config
-from pyLOM.NN import Dataset, GNS, Pipeline, MinMaxScaler
-from pyLOM.NN.optimizer import OptunaOptimizer
-from pyLOM.NN.utils import RegressionEvaluator
+from ...pyLOM.utils.config_loader_factory import load_configs, load_yaml
+from ...pyLOM.NN import Dataset, GNS, Pipeline, MinMaxScaler
+from ...pyLOM.NN.optimizer import OptunaOptimizer
+from ...pyLOM.NN.utils import RegressionEvaluator
+from ...pyLOM.NN import DEVICE, set_seed
 import pyLOM
 
 
 # ─────────────────────────────────────────────────────
-# PLOTTING FUNCTIONS (moved up for clarity)
+# UTILITIES: Plotting and Saving
 # ─────────────────────────────────────────────────────
+
 def plot_train_test_loss(train_loss, test_loss, path):
+    """
+    Plot training and validation loss over iterations and save the result.
+
+    Args:
+        train_loss (List[float]): Per-iteration training loss.
+        test_loss (List[float]): Per-epoch validation loss.
+        path (Path): Output file path for the saved plot.
+    """
     plt.figure()
     plt.plot(range(1, len(train_loss) + 1), train_loss, label="Training Loss")
     total_epochs = len(test_loss)
@@ -47,13 +52,21 @@ def plot_train_test_loss(train_loss, test_loss, path):
     plt.yscale("log")
     plt.xlabel("Iterations")
     plt.ylabel("Loss")
-    plt.title("Training Loss vs Epoch")
     plt.grid()
     plt.legend()
     plt.savefig(path, dpi=300)
     plt.close()
 
+
 def true_vs_pred_plot(y_true, y_pred, path=None):
+    """
+    Plot true vs predicted values for all output components.
+
+    Args:
+        y_true (ndarray): Ground truth targets.
+        y_pred (ndarray): Model predictions.
+        path (Path, optional): If provided, save to file; otherwise display.
+    """
     y_true = np.asarray(y_true)
     y_pred = np.asarray(y_pred)
     num_outputs = y_true.shape[1]
@@ -65,97 +78,78 @@ def true_vs_pred_plot(y_true, y_pred, path=None):
                  [y_true[:, i].min(), y_true[:, i].max()], 'r--')
         plt.xlabel("True")
         plt.ylabel("Predicted")
-        plt.title(f"Output component {i+1}")
         plt.grid()
     plt.tight_layout()
     if path:
         plt.savefig(path, dpi=300)
         plt.close()
-    else:
-        plt.show()
 
 
-# ─────────────────────────────────────────────────────
-# SAVE EXPERIMENT FUNCTION (for now kept local)
-# ─────────────────────────────────────────────────────
-def save_experiment(
-    base_path: Path,
-    model,
-    train_config: dict,
-    metrics_dict: dict,
-    input_scaler=None,
-    output_scaler=None,
-    extra_files: dict = None
-):
+def save_experiment(base_path, model, train_config, metrics_dict,
+                    input_scaler=None, output_scaler=None, extra_files=None):
+    """
+    Save the complete experiment state to disk.
+
+    Args:
+        base_path (Path): Output directory.
+        model (GNS): Trained model.
+        train_config (dict): Training configuration.
+        metrics_dict (dict): Evaluation metrics.
+        input_scaler (optional): Input scaler object.
+        output_scaler (optional): Output scaler object.
+        extra_files (dict, optional): Dict of file_name → generator(path).
+    """
     base_path = Path(base_path)
     base_path.mkdir(parents=True, exist_ok=True)
 
-    # Save YAML config from model.config
     config_dict = model.config.asdict() if hasattr(model.config, 'asdict') else vars(model.config)
     yaml_path = base_path / "config.yaml"
     with open(yaml_path, "w") as f:
         yaml.dump({"model": config_dict, "training": train_config}, f)
 
-    # Compute SHA-1 and timestamp
     config_hash = hashlib.sha1(yaml_path.read_bytes()).hexdigest()
     timestamp = datetime.datetime.now().isoformat()
-
-    # Write metadata
     with open(base_path / "meta.yaml", "w") as f:
-        yaml.dump({
-            "config_sha1": config_hash,
-            "saved_at": timestamp
-        }, f)
+        yaml.dump({"config_sha1": config_hash, "saved_at": timestamp}, f)
 
-    # Save model
     model.save(base_path / "model.pth")
 
-    # Save scalers
-    if input_scaler is not None:
+    if input_scaler:
         with open(base_path / "input_scaler.pkl", "wb") as f:
             pickle.dump(input_scaler, f)
-
-    if output_scaler is not None:
+    if output_scaler:
         with open(base_path / "output_scaler.pkl", "wb") as f:
             pickle.dump(output_scaler, f)
 
-    # Save metrics
     with open(base_path / "metrics.yaml", "w") as f:
         yaml.dump(metrics_dict, f)
 
-    # Save extra files
     if extra_files:
-        for name, generator in extra_files.items():
-            generator(base_path / name)
+        for name, gen in extra_files.items():
+            gen(base_path / name)
 
 
 # ─────────────────────────────────────────────────────
-# STEP 1 — Load YAML Configuration
+# SETUP: Config, seed, results path
 # ─────────────────────────────────────────────────────
 yaml_path = "./configs/gns_config.yaml"
-config = load_yaml(yaml_path)
-resudir = Path(config["execution"]["resudir"])
+config_dict = load_yaml(yaml_path)
+
+seed = config_dict.get("experiment", {}).get("seed", None)
+device = config_dict.get("experiment", {}).get("device", DEVICE)
+set_seed(seed, device)
+
+resudir = Path(config_dict["experiment"]["resudir"])
 resudir.mkdir(parents=True, exist_ok=True)
 
-# ─────────────────────────────────────────────────────
-# STEP 2 — Setup Device and Seed
-# ─────────────────────────────────────────────────────
-device = config.get("experiment", {}).get("device", "cuda")
-seed = config.get("experiment", {}).get("seed", None)
-
-if seed is not None:
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    if device == "cuda":
-        torch.cuda.manual_seed_all(seed)
 
 # ─────────────────────────────────────────────────────
-# STEP 3 — Initialize Scalers and Load Datasets
+# LOAD DATASETS AND SCALERS
 # ─────────────────────────────────────────────────────
 input_scaler = MinMaxScaler()
 output_scaler = None
 
-kwargs = dict(
+dataset_kwargs = dict(
     field_names=["CP"],
     add_variables=True,
     add_mesh_coordinates=False,
@@ -165,46 +159,45 @@ kwargs = dict(
     squeeze_last_dim=False
 )
 
-td_train = Dataset.load(config["datasets"]["train_ds"], **kwargs)
-td_val   = Dataset.load(config["datasets"]["val_ds"], **kwargs)
-td_test  = Dataset.load(config["datasets"]["test_ds"], **kwargs)
+td_train = Dataset.load(config_dict["datasets"]["train_ds"], **dataset_kwargs)
+td_val   = Dataset.load(config_dict["datasets"]["val_ds"], **dataset_kwargs)
+td_test  = Dataset.load(config_dict["datasets"]["test_ds"], **dataset_kwargs)
+
 
 # ─────────────────────────────────────────────────────
-# BLOCK A — Train GNS from config
+# TRAIN OR OPTIMIZE MODEL
 # ─────────────────────────────────────────────────────
-gns_config = build_GNS_config(config)
-model = GNS(gns_config)
-train_cfg = prepare_training_params(config["training"])
+USE_OPTUNA = False  # Set to True to enable Optuna-based optimization
 
-pipeline = Pipeline(
-    train_dataset=td_train,
-    valid_dataset=td_val,
-    test_dataset=td_test,
-    model=model,
-    training_params=config["training"]
-)
+if USE_OPTUNA:
+    optimizer = OptunaOptimizer(
+        search_space=config_dict["optuna"]["search_space"],
+        study_params=config_dict["optuna"]["study"],
+        graph_path=config_dict["optuna"]["graph_path"]
+    )
+    pipeline = Pipeline(
+        train_dataset=td_train,
+        valid_dataset=td_val,
+        test_dataset=td_test,
+        optimizer=optimizer,
+        model_class=GNS,
+    )
+else:
+    model_config, train_config = load_configs(yaml_path, model_type="gns", with_training=True)
+    model = GNS(config=model_config)
+    pipeline = Pipeline(
+        train_dataset=td_train,
+        valid_dataset=td_val,
+        test_dataset=td_test,
+        model=model,
+        training_params=train_config
+    )
+
 logs = pipeline.run()
 
-# ─────────────────────────────────────────────────────
-# BLOCK B — Optimize GNS with Optuna (optional)
-# ─────────────────────────────────────────────────────
-# Uncomment this block to run Optuna hyperparameter search
-optimizer = OptunaOptimizer(
-    search_space=config["optuna"]["search_space"],
-    study_params=config["optuna"]["study"],
-    graph_path=config["optuna"]["graph_path"]
-)
-pipeline = Pipeline(
-    train_dataset=td_train,
-    valid_dataset=td_val,
-    test_dataset=td_test,
-    optimizer=optimizer,
-    model_class=GNS,
-)
-logs = pipeline.run()
 
 # ─────────────────────────────────────────────────────
-# STEP 5 — Evaluate and Save
+# EVALUATE AND SAVE EXPERIMENT
 # ─────────────────────────────────────────────────────
 preds = pipeline.model.predict(td_test)
 targets = td_test[:][1]
@@ -217,7 +210,7 @@ logs["metrics"] = evaluator.metrics_dict
 save_experiment(
     base_path=resudir,
     model=pipeline.model,
-    train_config=config["training"],
+    train_config=config_dict["training"],
     metrics_dict=evaluator.metrics_dict,
     input_scaler=input_scaler,
     output_scaler=output_scaler,
@@ -227,10 +220,11 @@ save_experiment(
     }
 )
 
+
 # ─────────────────────────────────────────────────────
-# STEP 6 — Reload and Inference
+# INFERENCE TEST: Reload model and predict new input
 # ─────────────────────────────────────────────────────
-print("\n>>> Reloading model and scaler from disk...")
+print("\n>>> Reloading model and input scaler from disk...")
 model_reloaded = GNS.load(resudir / "model.pth")
 
 scaler_path = resudir / "input_scaler.pkl"
@@ -238,9 +232,9 @@ if scaler_path.exists():
     with open(scaler_path, "rb") as f:
         input_scaler_reloaded = pickle.load(f)
 else:
-    raise FileNotFoundError(f"{scaler_path} not found.")
+    raise FileNotFoundError(f"Missing input scaler: {scaler_path}")
 
-raw_input = np.array([[4.0, 0.7]])
+raw_input = np.array([[4.0, 0.7]])  # AoA, Mach
 scaled_input = input_scaler_reloaded.transform(raw_input)
 input_tensor = torch.tensor(scaled_input, dtype=torch.float32, device=model_reloaded.device)
 
@@ -250,9 +244,7 @@ with torch.no_grad():
 print(f">>> Prediction shape: {pred_dummy.shape}")
 print(f">>> First 5 values: {pred_dummy[0, :5].detach().cpu().numpy()}")
 
-# ─────────────────────────────────────────────────────
-# STEP 7 — Optional Comparison
-# ─────────────────────────────────────────────────────
+# Optional comparison with nearest sample in test set
 if 'td_test' in globals():
     inputs, targets = td_test[:]
     idx = np.argmin(np.linalg.norm(inputs - raw_input, axis=1))
@@ -262,6 +254,6 @@ if 'td_test' in globals():
 
 
 # ─────────────────────────────────────────────────────
-# END
+# DONE
 # ─────────────────────────────────────────────────────
 pyLOM.cr_info()

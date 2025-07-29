@@ -10,7 +10,6 @@ import os
 import json
 import warnings
 from dataclasses import asdict
-import yaml
 from pathlib import Path
 from typing import Dict, Tuple, Union, Optional
 import datetime
@@ -27,7 +26,7 @@ from ..gns import GNSMLP, MessagePassingLayer, Graph, InputsInjector, _ShapeVali
 from ..optimizer import OptunaOptimizer, TrialPruned
 from ... import pprint, cr
 from ...utils import raiseError
-from ...utils.config_loader_factory import model_from_config_path, resolve_optuna_trial_params
+from ...utils.config_loader_factory import _model_from_config_path, load_gns_configs, _resolve_optuna_trial_params
 
 
 
@@ -76,6 +75,9 @@ class GNS(torch.nn.Module):
         """
         super().__init__()
 
+        # --- Fix: Ensure _graph is always defined early ---
+        self._graph = None
+
         if isinstance(config, dict):
             config = load_gns_configs({"model": config})
         elif not isinstance(config, GNSConfig):
@@ -113,9 +115,9 @@ class GNS(torch.nn.Module):
                 "  • If you already have the graph loaded, pass it via `graph` and leave config.graph_path = None."
             )
         elif graph is not None:
-            self.graph = graph
+            self.graph = graph  # Will validate and .to(device)
         elif config.graph_path:
-            self.graph = Graph.load(config.graph_path)
+            self.graph = Graph.load(config.graph_path)  # Setter ensures .validate() and .to(device)
         else:
             raiseError("GNS requires either a `graph` or a valid `config.graph_path`.")
 
@@ -161,6 +163,7 @@ class GNS(torch.nn.Module):
         self.decoder_hidden_layers = config.decoder_hidden_layers
         self.message_hidden_layers = config.message_hidden_layers
         self.update_hidden_layers = config.update_hidden_layers
+
 
 
     def _build_encoder(self):
@@ -647,7 +650,7 @@ class GNS(torch.nn.Module):
         Returns:
             GNS or (GNS, GNSTrainingConfig): The model and optionally the training configuration.
         """
-        return model_from_config_path(cls, yaml_path, model_type="gns", with_training=with_training_config)
+        return _model_from_config_path(cls, yaml_path, model_type="gns", with_training=with_training_config)
 
 
 
@@ -709,7 +712,7 @@ class GNS(torch.nn.Module):
                 for key, val in search_space.get(section, {}).items()
             }
 
-            model_config, training_config = resolve_optuna_trial_params(hyperparams)
+            model_config, training_config = _resolve_optuna_trial_params(hyperparams)
             model = cls(config=model_config, graph=shared_graph)
 
             pprint(0, f"\nTrial {trial.number + 1}/{optuna_optimizer.num_trials}. Training with:\n",

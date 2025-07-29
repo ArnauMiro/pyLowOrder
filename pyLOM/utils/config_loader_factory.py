@@ -16,7 +16,7 @@ Author: Pablo Yeste
 """
 
 from pathlib import Path
-from typing import Union, Tuple
+from typing import Union, Tuple, Dict
 
 import yaml
 import torch
@@ -242,5 +242,35 @@ def _model_from_config_path(
         model_config = configs
         model = model_class(config=model_config)
         return model
+
+def _resolve_optuna_trial_params(hyperparams: Dict) -> Tuple[GNSConfig, GNSTrainingConfig]:
+    """
+    Given a flat dictionary of sampled hyperparameters, split and resolve them
+    into valid GNSConfig and GNSTrainingConfig objects using load_gns_configs().
+
+    Args:
+        hyperparams (Dict): Flat dictionary containing trial parameters.
+
+    Returns:
+        Tuple[GNSConfig, GNSTrainingConfig]: Parsed and resolved model and training configs.
+    """
+    model_keys = set(GNSConfig.__annotations__)
+    training_keys = set(GNSTrainingConfig.__annotations__)
+
+    model_cfg = {k: v for k, v in hyperparams.items() if k in model_keys}
+    training_cfg = {k: v for k, v in hyperparams.items() if k in training_keys}
+
+    # Optionally extract device/seed if available
+    experiment_cfg = {}
+    for k in ["seed", "device"]:
+        if k in hyperparams:
+            experiment_cfg[k] = hyperparams[k]
+
+    return load_gns_configs({
+        "model": model_cfg,
+        "training": training_cfg,
+        "experiment": experiment_cfg
+    }, with_training=True)
+
 
 
