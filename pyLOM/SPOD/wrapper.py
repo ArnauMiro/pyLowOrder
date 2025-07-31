@@ -16,7 +16,8 @@ from ..utils     import cr_nvtx as cr, cr_start, cr_stop
 
 
 def _fft(Xf, winWeight, nDFT, nf):
-	return (winWeight/nDFT)*scipy.fft.fft(Xf)[:nf]
+	fft = cupy.fft.fft2 if type(Xf) is cp.ndarray else scipy.fft.fft2
+	return (winWeight/nDFT)*fft(Xf,axes=-1)[:,:nf]
 
 
 ## SPOD run method
@@ -61,23 +62,22 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 	# Set frequency axis
 	f  = np.arange(np.ceil(nDFT / 2) + 1) / dt / nDFT
 	nf = f.shape[0]
-	qk = np.zeros((M,nf),cdtype)
-	Q  = np.zeros((M*nf,nBlks),cdtype)
+	qk = cnp.zeros((M,nf),cdtype)
+	Q  = cnp.zeros((M*nf,nBlks),cdtype)
 	# Sent to CPU for FFT
-	Y  = gpu_to_cpu(Y) if type(X) is cp.ndarray else Y
+#	Y  = gpu_to_cpu(Y) if type(X) is cp.ndarray else Y
 	cr_start('SPOD.fft',0)
 	for iblk in range(nBlks):
 		# Get time index for present block
 		i0 = iblk*(nDFT - nolap)
 		ix = np.arange(nDFT) + i0
-		for ip in range(M):
-			Xf = Y[ip, ix].copy()*window
-			qk[ip, :] = _fft(Xf, winWeight, nDFT, nf)
+		Xf = Y[:,ix].copy()*window
+		qk[:, :]    = _fft(Xf, winWeight, nDFT, nf)
 		qk[:,1:-1] *= 2
-		Q[:, iblk] = qk.reshape((M*nf), order='F')
+		Q[:, iblk]  = qk.reshape((M*nf), order='F')
 	cr_stop('SPOD.fft',0)
 
-	Q  = cpu_to_gpu(Q) if type(X) is cp.ndarray else Q
+#	Q  = cpu_to_gpu(Q) if type(X) is cp.ndarray else Q
 	L  = cnp.zeros((nf,nBlks),X.dtype)
 	P  = cnp.zeros((M*nBlks,nf),X.dtype)
 	cr_start('SPOD.SVD',0)
