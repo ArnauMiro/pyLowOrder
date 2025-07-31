@@ -10,7 +10,7 @@ from __future__ import print_function
 import numpy as np
 import scipy
 
-from ..utils.gpu import cp
+from ..utils.gpu import cp, gpu_to_cpu, cpu_to_gpu
 from ..vmmath    import temporal_mean, subtract_mean, tsqr_svd, hammwin
 from ..utils     import cr_nvtx as cr, cr_start, cr_stop
 
@@ -64,7 +64,7 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 	qk = np.zeros((M,nf),cdtype)
 	Q  = np.zeros((M*nf,nBlks),cdtype)
 	# Sent to CPU for FFT
-	Y  = cp.asnumpy(Y) if type(X) is cp.ndarray else Y
+	Y  = gpu_to_cpu(Y) if type(X) is cp.ndarray else Y
 	cr_start('SPOD.fft',0)
 	for iblk in range(nBlks):
 		# Get time index for present block
@@ -77,7 +77,7 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 		Q[:, iblk] = qk.reshape((M*nf), order='F')
 	cr_stop('SPOD.fft',0)
 
-	Q  = cp.asarray(Q) if type(X) is cp.ndarray else Q
+	Q  = cpu_to_gpu(Q) if type(X) is cp.ndarray else Q
 	L  = cnp.zeros((nf,nBlks),X.dtype)
 	P  = cnp.zeros((M*nBlks,nf),X.dtype)
 	cr_start('SPOD.SVD',0)
@@ -89,7 +89,7 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 	cr_stop('SPOD.SVD',0)
 
 	cr_start('SPOD.sort',0)
-	f     = cp.asarray(f) if type(X) is cp.ndarray else f
+	f     = cpu_to_gpu(f) if type(X) is cp.ndarray else f
 	order = cnp.argsort(L[:,0])[::-1]
 	P = P[:, order]
 	f = f[order]
