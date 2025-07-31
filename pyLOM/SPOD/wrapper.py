@@ -16,8 +16,8 @@ from ..utils     import cr_nvtx as cr, cr_start, cr_stop
 
 
 def _fft(Xf, winWeight, nDFT, nf):
-	fft = cupy.fft.fft2 if type(Xf) is cp.ndarray else scipy.fft.fft2
-	return (winWeight/nDFT)*fft(Xf,axes=-1)[:,:nf]
+	fft = cp.fft.fft2 if type(Xf) is cp.ndarray else scipy.fft.fft2
+	return (winWeight/nDFT)*fft(Xf,axes=(-1,))[:,:nf]
 
 
 ## SPOD run method
@@ -43,7 +43,7 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 	
 	if nDFT == 0:
 		nDFT = int(np.power(2,np.floor(np.log2(N/10))))
-	window = hammwin(nDFT)
+	window = cpu_to_gpu(hammwin(nDFT))
 	if nolap == 0:
 		nolap = int(np.floor(nDFT/2))
 	nBlks = int(np.floor((N-nolap)/(nDFT-nolap)))
@@ -60,12 +60,10 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 		Y = X.copy()
 
 	# Set frequency axis
-	f  = np.arange(np.ceil(nDFT / 2) + 1) / dt / nDFT
+	f  = cnp.arange(np.ceil(nDFT / 2) + 1) / dt / nDFT
 	nf = f.shape[0]
 	qk = cnp.zeros((M,nf),cdtype)
 	Q  = cnp.zeros((M*nf,nBlks),cdtype)
-	# Sent to CPU for FFT
-#	Y  = gpu_to_cpu(Y) if type(X) is cp.ndarray else Y
 	cr_start('SPOD.fft',0)
 	for iblk in range(nBlks):
 		# Get time index for present block
@@ -77,7 +75,6 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 		Q[:, iblk]  = qk.reshape((M*nf), order='F')
 	cr_stop('SPOD.fft',0)
 
-#	Q  = cpu_to_gpu(Q) if type(X) is cp.ndarray else Q
 	L  = cnp.zeros((nf,nBlks),X.dtype)
 	P  = cnp.zeros((M*nBlks,nf),X.dtype)
 	cr_start('SPOD.SVD',0)
@@ -89,7 +86,6 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 	cr_stop('SPOD.SVD',0)
 
 	cr_start('SPOD.sort',0)
-	f     = cpu_to_gpu(f) if type(X) is cp.ndarray else f
 	order = cnp.argsort(L[:,0])[::-1]
 	P = P[:, order]
 	f = f[order]
