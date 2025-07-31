@@ -124,7 +124,7 @@ def load_gns_configs(config_dict: dict, with_training: bool = False):
     exp_cfg = config_dict.get("experiment", {})
     model_cfg = config_dict["model"]
     if not with_training:
-        model_cfg["device"] = exp_cfg.get("device", "cuda")
+        model_cfg["device"] = torch.device(exp_cfg.get("device", "cuda"))
         model_cfg["seed"] = exp_cfg.get("seed", None)
         if "activation" in model_cfg:
             resolved = _resolve_from_dict_or_torch(model_cfg["activation"], ACTIVATIONS, torch.nn)

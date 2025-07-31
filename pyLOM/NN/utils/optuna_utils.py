@@ -89,35 +89,65 @@ def hyperparams_serializer(obj) -> str:
             return obj.__class__.__name__  # Return the class name
         raise TypeError(f"Type {type(obj)} not serializable")  # Raise an error if the object is not serializable
 
-def get_optimizing_value(name, value, trial) -> Union[int, float, str]:
-        """
-        Suggest a value for a given hyperparameter depending on its type and content.
+def get_optimizing_value(name: str, spec: Union[dict, list, int, float, str], trial) -> Union[int, float, str]:
+    """
+    Suggest a value for a given hyperparameter, supporting both modern dict-style
+    and legacy list-style configuration formats.
 
-        Args:
-            name (str): Hyperparameter name.
-            value (Any): Either a fixed value, a range, or a list of options.
-            trial (optuna.Trial): Optuna trial object.
+    Args:
+        name (str): Hyperparameter name.
+        spec (Any): Can be:
+            - dict with keys like {'type': 'int'/'float'/'categorical', ...}
+            - list of [low, high] or categorical values
+            - fixed value
+        trial (optuna.Trial): Optuna trial object.
 
-        Returns:
-            Union[int, float, str]: Suggested value.
-        """
-        if isinstance(value, (tuple, list)):
-            if all(isinstance(v, (int, float)) for v in value):
-                use_log = np.abs(value[1]) / (np.abs(value[0]) + 1e-8) >= 1000
-                low, high = value
+    Returns:
+        Suggested value (int, float, str)
+    """
+    if isinstance(spec, dict):
+        param_type = spec.get("type")
+        if param_type in {"int", "float"}:
+            if "low" not in spec or "high" not in spec:
+                raise ValueError(f"'low' and 'high' must be specified for '{param_type}' parameter '{name}'")
 
-                if isinstance(low, int):
-                    if name == "latent_dim":
-                        return trial.suggest_int(name, low + low % 2, high + high % 2, step=2)
-                    return trial.suggest_int(name, low, high, log=use_log)
-
-                elif isinstance(low, float):
-                    if use_log and low <= 0:
-                        use_log = False  # fallback to linear scale
-                    return trial.suggest_float(name, low, high, log=use_log)
-            elif all(isinstance(v, str) for v in value):
-                return trial.suggest_categorical(name, value)
-            else:
-                raise ValueError(f"Unsupported value list for {name}: {value}")
+        if param_type == "int":
+            return trial.suggest_int(
+                name,
+                spec["low"],
+                spec["high"],
+                step=spec.get("step", 1),
+                log=spec.get("log", False),
+            )
+        elif param_type == "float":
+            return trial.suggest_float(
+                name,
+                spec["low"],
+                spec["high"],
+                step=spec.get("step"),
+                log=spec.get("log", False),
+            )
+        elif param_type == "categorical":
+            return trial.suggest_categorical(name, spec["choices"])
         else:
-            return value
+            raise ValueError(f"Unsupported param type '{param_type}' in spec for '{name}'.")
+
+    elif isinstance(spec, list):
+        if all(isinstance(v, (int, float)) for v in spec) and len(spec) == 2:
+            low, high = spec
+            use_log = low > 0 and abs(high) / (abs(low) + 1e-8) >= 1000
+            if isinstance(low, int) and isinstance(high, int):
+                return trial.suggest_int(name, low, high, log=use_log)
+            return trial.suggest_float(name, low, high, log=use_log)
+
+        elif all(isinstance(v, str) for v in spec):
+            return trial.suggest_categorical(name, spec)
+
+        else:
+            raise ValueError(
+                f"List-style spec for '{name}' must be [low, high] for numeric or list of categories (str). Got: {spec}"
+            )
+
+    else:
+        return spec  # Fixed value
+

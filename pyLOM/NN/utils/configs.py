@@ -12,7 +12,7 @@ import torch
 
 
 @dataclass
-class GNSConfig:
+class GNSModelConfig:
     """
     Configuration for a GNS model.
 
@@ -53,7 +53,7 @@ class GNSConfig:
 
 
 @dataclass
-class GNSTrainingConfig:
+class GNSFitConfig:
     """
     Training configuration for a GNS model.
 
