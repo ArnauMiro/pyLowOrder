@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Union, Optional, Dict, Type
 from dataclasses import asdict
-import warnings
+
 import yaml
 import torch
 from torch.nn import ELU, ReLU, LeakyReLU, Sigmoid, Tanh, PReLU, Softplus, GELU, SELU
@@ -13,7 +13,7 @@ from ..optimizer import OptunaOptimizer
 from ...utils import raiseError
 
 # ─────────────────────────────────────────────────────
-# Mapping dictionaries for common torch components
+# Torch mappings
 # ─────────────────────────────────────────────────────
 
 _ACTIVATIONS = {
@@ -38,7 +38,7 @@ _SCHEDULERS = {
 }
 
 # ─────────────────────────────────────────────────────
-# Base resolver interface (for extensibility)
+# Config resolver base
 # ─────────────────────────────────────────────────────
 
 class BaseModelConfigResolver:
@@ -56,7 +56,7 @@ class BaseModelConfigResolver:
         raise NotImplementedError
 
 # ─────────────────────────────────────────────────────
-# GNS resolver
+# GNS Config
 # ─────────────────────────────────────────────────────
 
 class GNSConfig(BaseModelConfigResolver):
@@ -77,27 +77,22 @@ class GNSConfig(BaseModelConfigResolver):
         self.optuna: Optional[Dict[str, Union[dict, OptunaOptimizer]]] = None
 
     def resolve(self) -> None:
-        if "model" in self.raw and "fit" in self.raw:
+        if "model" in self.raw:
             self.model = self.resolve_model_config()
+        if "fit" in self.raw:
             self.fit = self.resolve_fit_config()
-
         if "optuna" in self.raw:
             self.optuna = self.resolve_optuna_config()
 
         if not any([self.model, self.fit, self.optuna]):
             raiseError("Invalid configuration: no valid sections found (expected 'model', 'fit' or 'optuna').")
 
-        # ── Check for seed consistency across sections ──
-        _check_seed_consistency(
-            self.experiment.get("seed"),
-            self.raw.get("model", {}).get("seed"),
-            self.raw.get("optuna", {}).get("study", {}).get("seed"),
-        )
-
     def resolve_model_config(self) -> GNSModelConfig:
         model_cfg = self.raw["model"].copy()
-        model_cfg["device"] = self.experiment.get("device", "cuda")
-        model_cfg["seed"] = self.experiment.get("seed", None)
+
+        # Inject experiment seed
+        model_cfg["seed"] = self.experiment.get("seed", 1234)
+        model_cfg["device"] = torch.device(self.experiment.get("device", "cuda"))
 
         if "activation" in model_cfg:
             resolved = self._resolve_from_dict_or_torch(model_cfg["activation"], _ACTIVATIONS, torch.nn)
@@ -119,27 +114,27 @@ class GNSConfig(BaseModelConfigResolver):
             loss_fn=self._resolve_from_dict_or_torch(loss_fn, _LOSSES, torch.nn)(),
         )
 
-    def resolve_optuna_config(self) -> dict:
+    def resolve_optuna_config(self) -> OptunaOptimizer:
         raw = self.raw["optuna"]
-
-        optimization_params = {
-            "seed": self.experiment.get("seed", None),
-            "graph_path": raw.get("graph_path"),
-            "optimization_params": raw.get("optimization_params", {}),
-            **self.experiment,
-        }
-
         study_params = raw.get("study", {})
-        if "seed" not in study_params and "seed" in self.experiment:
-            study_params["seed"] = self.experiment["seed"]
+        optimization_params = raw.get("optimization_params", {}).copy()
+
+        # Inject seed from experiment
+        seed = self.experiment.get("seed", 1234)
+
+        graph_path = raw.get("graph_path")
+        if not graph_path:
+            raiseError("Missing 'graph_path' in 'optuna.graph_path'.")
 
         return {
-            "optimization_params": optimization_params,
-            "study_params": study_params,
-            "optuna_optimizer": OptunaOptimizer(
-                optimization_params=optimization_params,
-                study_params=study_params,
-            ),
+            'optimization_params': optimization_params,
+            'sampler': None,
+            'pruner': study_params.get("pruner"),
+            'direction': study_params.get("direction", "minimize"),
+            'n_trials': study_params.get("n_trials", 100),
+            'save_dir': study_params.get("save_dir"),
+            'seed': seed,
+            'graph_path': graph_path,
         }
 
     def _resolve_from_dict_or_torch(self, name: str, mapping: dict, module) -> Union[type, torch.nn.Module]:
@@ -170,16 +165,3 @@ class GNSConfig(BaseModelConfigResolver):
         version = self.experiment.get("version", "?")
         return f"<GNSConfig: experiment='{name}', version={version}>"
 
-# ─────────────────────────────────────────────────────
-# Seed consistency checker
-# ─────────────────────────────────────────────────────
-
-def _check_seed_consistency(seed_global, seed_model, seed_optuna):
-    """Raise warning if explicit seeds override global one."""
-    if seed_global is not None:
-        for section, value in [("model", seed_model), ("optuna", seed_optuna)]:
-            if value is not None and value != seed_global:
-                warnings.warn(
-                    f"[Seed mismatch] experiment.seed = {seed_global}, but '{section}' section overrides it with seed = {value}. "
-                    f"This may break reproducibility."
-                )

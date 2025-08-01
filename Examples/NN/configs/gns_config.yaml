@@ -4,8 +4,8 @@ experiment:
   name: gns_nlr7301_baseline
   description: "GNS model on NLR7301 airfoil dataset as described by ..."
   version: 1.0
-  seed: 123
   device: cuda                      # Options: cpu | cuda | cuda:0 | etc.
+  seed: 42
   tags: [GNS, airfoil, baseline]
   resudir: "../CETACEO_RESULTS/nlr7301/"
   mode: train                      # Options: train | optuna
@@ -44,6 +44,7 @@ fit:
   verbose: 25
 
 optuna:
+  graph_path: "../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
   study:
     study_name: gns_optuna_study
     direction: minimize

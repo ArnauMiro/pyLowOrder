@@ -8,18 +8,31 @@ from torch import Tensor
 
 from .. import DEVICE
 
-def set_seed(seed: int = 42, deterministic: bool = True):
+def set_seed(seed: int = 42, deterministic: bool = True, verbose: bool = False):
+    """
+    Sets the random seed across Python, NumPy, PyTorch and CUDA for reproducibility.
+
+    Args:
+        seed (int): The seed to use globally.
+        deterministic (bool): Whether to force deterministic CuDNN operations (may affect performance).
+        verbose (bool): Print seed setup info.
+    """
+    os.environ["PYTHONHASHSEED"] = str(seed)
+
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    
+
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
- 
+
     if deterministic:
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
+
+    if verbose:
+        print(f"[set_seed] Seed set to {seed} | Deterministic: {deterministic}")
  
 
 def create_results_folder(RESUDIR: str, verbose: bool=True):

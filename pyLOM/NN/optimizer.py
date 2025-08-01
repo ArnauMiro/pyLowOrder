@@ -8,7 +8,7 @@
 
 import json
 
-from typing         import Callable, Dict
+from typing         import Callable, Dict, Optional
 from ..utils.errors import raiseError
 from ..             import pprint
 
@@ -19,7 +19,7 @@ try:
     from optuna.exceptions import TrialPruned
     from optuna.samplers import TPESampler
 
-    class OptunaOptimizer():
+    class OptunaOptimizer:
         def __init__(
             self,
             optimization_params: Dict,
@@ -27,19 +27,19 @@ try:
             direction: str = 'minimize',
             pruner: optuna.pruners.BasePruner = None,
             sampler: optuna.samplers.BaseSampler = None,
-            save_dir: str = None
+            save_dir: str = None,
+            seed: int = 1234,
+            graph_path: Optional[str] = None,
         ):
             self.num_trials = n_trials
             self.direction = direction
             self.pruner = pruner
             self.save_dir = save_dir
             self._optimization_params = optimization_params
-
-            # Get or set a default seed
-            seed = optimization_params.get("seed", 1234)
-
-            # Use provided sampler, or a TPESampler with fixed seed
             self.sampler = sampler or TPESampler(seed=seed)
+            self.graph_path = graph_path
+
+
 
         @property
         def optimization_params(self) -> Dict:

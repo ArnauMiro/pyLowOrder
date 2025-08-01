@@ -13,35 +13,6 @@ from ... import cr
 from ...utils import raiseError
 
 class ManualNeighborLoader:
-    """
-    Lightweight replacement for PyG's NeighborLoader without requiring torch_sparse or pyg-lib.
-
-    Performs k-hop sampling over a subset of seed nodes and yields mini-batches of subgraphs.
-
-    Args:
-        device (torch.device): Target device for output subgraphs.
-        base_graph (Graph): Input graph with:
-            - x: Tensor [N, F]
-            - edge_index: LongTensor [2, E]
-            - edge_attr: Tensor [E, A]
-        num_hops (int): Number of message-passing layers (L).
-        batch_size (int): Number of seed nodes per subgraph batch (S).
-        input_nodes (Union[Tensor, Sequence[int]], optional): Nodes to sample from.
-            Can be:
-                - LongTensor [K] of indices
-                - BoolTensor [N] as mask
-                - list[int]
-            If None, all nodes are used. Default: None.
-        shuffle (bool): Whether to shuffle input_nodes. Default: True.
-
-    Yields:
-        Data: Subgraph with:
-            - x: Tensor [N', F]
-            - edge_index: LongTensor [2, E']
-            - edge_attr: Tensor [E', A]
-            - seed_mask: BoolTensor [N'], where True identifies seed nodes
-    """
-
     def __init__(
         self,
         device: torch.device,
@@ -50,12 +21,14 @@ class ManualNeighborLoader:
         batch_size: int = 256,
         input_nodes: Optional[Union[Tensor, Sequence[int]]] = None,
         shuffle: bool = True,
+        seed: Optional[int] = None,
     ) -> None:
         self.base_graph = base_graph
         self.num_hops = num_hops
         self.batch_size = batch_size
         self.shuffle = shuffle
         self.device = device
+        self.seed = seed
 
         if input_nodes is None:
             self.input_nodes = torch.arange(base_graph.num_nodes, device=self.device)
@@ -73,33 +46,26 @@ class ManualNeighborLoader:
             else:
                 raiseError("input_nodes must be LongTensor, BoolTensor, or list of ints.")
 
+        self._rng = None
+        if self.shuffle and self.seed is not None:
+            self._rng = torch.Generator(device=self.device).manual_seed(self.seed)
+
     def __iter__(self):
         indices = self.input_nodes
         if self.shuffle:
-            indices = indices[torch.randperm(indices.size(0), device=self.device)]
+            if self._rng is not None:
+                indices = indices[torch.randperm(indices.size(0), generator=self._rng, device=self.device)]
+            else:
+                indices = indices[torch.randperm(indices.size(0), device=self.device)]
 
         for i in range(0, indices.size(0), self.batch_size):
             yield self.sample(indices[i:i + self.batch_size])
 
     def __len__(self) -> int:
-        """Number of subgraph batches per epoch."""
         return (self.input_nodes.size(0) + self.batch_size - 1) // self.batch_size
 
     @cr('ManualNeighborLoader.sample')
     def sample(self, seed_nodes: Tensor) -> Data:
-        """
-        Extracts a subgraph around the given seed nodes using k-hop sampling.
-
-        Args:
-            seed_nodes (Tensor): LongTensor [S] of seed node indices.
-
-        Returns:
-            Data: Subgraph with:
-                - x: Tensor [N', F]
-                - edge_index: LongTensor [2, E']
-                - edge_attr: Tensor [E', A]
-                - seed_mask: BoolTensor [N'], where True identifies seed nodes
-        """
         subset, edge_index, mapping, edge_mask = k_hop_subgraph(
             seed_nodes,
             num_hops=self.num_hops,
@@ -295,44 +261,73 @@ class _GNSHelpers:
         self.graph = graph
         self.num_msg_passing_layers = num_msg_passing_layers
 
-    def init_dataloader(self, X: Union[Tensor, TorchDataset], **kwargs) -> DataLoader:
+    def init_dataloader(
+        self,
+        X: Union[Tensor, TorchDataset],
+        *,
+        batch_size: int = 15,
+        shuffle: bool = True,
+        num_workers: int = 0,
+        pin_memory: Optional[bool] = None,
+        seed: Optional[int] = None
+    ) -> DataLoader:
         """
-        Initialize a DataLoader from a Tensor or Dataset.
+        Initialize a reproducible DataLoader.
+
+        If a seed is provided and shuffle=True, the order of batches will be deterministic.
 
         Args:
-            X (Tensor or Dataset): Input data.
-            batch_size (int): Batch size (defaults to full batch if X is a Tensor).
-            shuffle (bool): Whether to shuffle the data (only for Dataset).
-            num_workers (int): Dataloader workers.
-            pin_memory (bool): Pin memory for CUDA acceleration.
+            X: Input data (Tensor or Dataset).
+            batch_size: Batch size.
+            shuffle: Whether to shuffle the dataset.
+            num_workers: Number of worker threads.
+            pin_memory: Use pinned memory (defaults to True on CUDA).
+            seed: Optional seed for reproducible shuffling.
 
         Returns:
-            DataLoader: Configured dataloader.
+            DataLoader
         """
-        default_pin = self.device.type == "cuda" and torch.cuda.is_available()
-        batch_size = kwargs.get("batch_size", 15)
-        shuffle = kwargs.get("shuffle", True)
-        num_workers = kwargs.get("num_workers", 0)
-        pin_memory = kwargs.get("pin_memory", default_pin)
+        if pin_memory is None:
+            pin_memory = self.device.type == "cuda" and torch.cuda.is_available()
 
         if isinstance(X, Tensor):
             dataset = TensorDataset(X.cpu())
             return DataLoader(dataset, batch_size=len(dataset), shuffle=False)
 
-        elif isinstance(X, (TorchDataset)):
+        elif isinstance(X, TorchDataset):
+            generator = None
+            if shuffle and seed is not None:
+                generator = torch.Generator()
+                generator.manual_seed(seed)
+
             return DataLoader(
                 X,
                 batch_size=batch_size,
                 shuffle=shuffle,
                 num_workers=num_workers,
                 pin_memory=pin_memory,
+                generator=generator,
             )
-
         else:
             raiseError(f"Unsupported input type: {type(X)}")
 
+    def init_subgraph_loader(
+        self,
+        batch_size: int = 256,
+        input_nodes=None,
+        seed: Optional[int] = None
+    ) -> ManualNeighborLoader:
+        """
+        Initialize a reproducible subgraph sampler.
 
-    def init_subgraph_loader(self, batch_size: int = 256, input_nodes=None) -> ManualNeighborLoader:
+        Args:
+            batch_size: Number of seed nodes per subgraph batch.
+            input_nodes: Optional mask or indices for input nodes.
+            seed: Optional seed for reproducible sampling.
+
+        Returns:
+            ManualNeighborLoader
+        """
         return ManualNeighborLoader(
             device=self.device,
             base_graph=self.graph,
@@ -340,4 +335,5 @@ class _GNSHelpers:
             input_nodes=input_nodes,
             batch_size=batch_size,
             shuffle=True,
+            seed=seed
         )

@@ -320,14 +320,29 @@ class GNS(torch.nn.Module):
             self._validate_shapes(eval_dataset)
 
         # --- Instantiate dataloaders ---
-        input_dataloader = self._helpers.init_dataloader(train_dataset, batch_size=config.batch_size)
-        eval_dataloader = (
-            self._helpers.init_dataloader(eval_dataset, batch_size=config.batch_size)
-            if eval_dataset is not None else None
+        input_dataloader = self._helpers.init_dataloader(
+            train_dataset,
+            batch_size=config.batch_size,
+            num_workers=config.num_workers,
+            pin_memory=config.pin_memory,
+            shuffle=True,
+            seed=self.seed,
         )
+
+        eval_dataloader = None
+        if eval_dataset is not None:
+            eval_dataloader = self._helpers.init_dataloader(
+                eval_dataset,
+                batch_size=config.batch_size,
+                num_workers=config.num_workers,
+                pin_memory=config.pin_memory,
+                shuffle=False,  # No se debe barajar el val/test
+            )
+
         subgraph_loader = self._helpers.init_subgraph_loader(
             batch_size=config.node_batch_size,
-            input_nodes=config.input_nodes
+            input_nodes=config.input_nodes,
+            seed=self.seed,
         )
 
         # --- Initialize optimizer and scheduler if not set ---
@@ -395,13 +410,13 @@ class GNS(torch.nn.Module):
 
             # Save state
             epoch_list.append(epoch)
-            self.state = (
-                self.optimizer.state_dict(),
-                self.scheduler.state_dict() if self.scheduler is not None else {},
-                epoch_list,
-                train_loss_list,
-                test_loss_list,
-            )
+            self.state = {
+                "optimizer_state": self.optimizer.state_dict(),
+                "scheduler_state": self.scheduler.state_dict() if self.scheduler is not None else {},
+                "epochs": epoch_list,
+                "train_loss": train_loss_list,
+                "test_loss": test_loss_list,
+            }
 
         return {"train_loss": train_loss_list, "test_loss": test_loss_list}
 
@@ -591,7 +606,7 @@ class GNS(torch.nn.Module):
         }
 
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        n_epochs = len(self.state[2]) if self.state and len(self.state) > 2 else 0
+        n_epochs = len(self.state.get("epochs", [])) if self.state else 0
         filename = f"trained_model_{timestamp}_ep{n_epochs:03d}.pth"
 
         if os.path.isdir(path):
@@ -629,7 +644,7 @@ class GNS(torch.nn.Module):
         checkpoint = torch.load(path, map_location=device)
 
         # Validate checkpoint keys
-        required_keys = ["model", "state_dict"]
+        required_keys = ["config", "state_dict"]
         for key in required_keys:
             if key not in checkpoint:
                 raiseError(f"Checkpoint is missing required key: '{key}'")
@@ -648,6 +663,16 @@ class GNS(torch.nn.Module):
 
         if "state" in checkpoint:
             model.state = checkpoint["state"]
+
+            if "optimizer_state" in model.state:
+                model.optimizer.load_state_dict(model.state["optimizer_state"])
+
+            if model.scheduler and "scheduler_state" in model.state:
+                scheduler_state = model.state["scheduler_state"]
+                if scheduler_state:
+                    model.scheduler.load_state_dict(scheduler_state)
+                    model.scheduler.gamma = model.config.lr_gamma
+                    model.scheduler.step_size = model.config.lr_scheduler_step
 
         model.eval()
         return model
@@ -679,7 +704,7 @@ class GNS(torch.nn.Module):
         optimization_params = optuna_optimizer.optimization_params
 
         # Load shared graph once
-        graph_path = optimization_params.get("graph_path")
+        graph_path = optuna_optimizer.get("graph_path")
         if not graph_path:
             raiseError("Missing 'graph_path' in optuna_optimizer.optimization_params.")
         shared_graph = Graph.load(graph_path)
@@ -698,11 +723,16 @@ class GNS(torch.nn.Module):
                 for key, val in search_space.get(section, {}).items()
             }
 
+            # Construct config dataclasses from sampled hyperparameters
             model_config, training_config = _resolve_optuna_trial_params(hyperparams, model_type="gns")
 
-            # Ensure model_config does NOT include graph_path (enforce semantic correctness)
+            # Explicitly disable graph_path in model_config (enforce semantic correctness)
             model_config.graph_path = None
 
+            # Enforce deterministic behavior for this trial
+            set_seed(model_config.seed)
+
+            # Build model from shared graph
             model = cls.from_graph(config=model_config, graph=shared_graph)
 
             pprint(0, f"\nTrial {trial.number + 1}/{optuna_optimizer.num_trials}. Training with:\n",
@@ -738,7 +768,7 @@ class GNS(torch.nn.Module):
 
         pprint(0, f"\nBest hyperparameters found:\n{json.dumps(best_params, indent=4, default=hyperparams_serializer)}\n", flush=True)
 
-        # Build final config + inject graph_path for reproducible saving
+        # Inject graph path into final config
         best_params["graph_path"] = graph_path
 
         final_model_config = GNSModelConfig(**{
@@ -747,6 +777,7 @@ class GNS(torch.nn.Module):
         final_model = cls.from_config(final_model_config)
 
         return final_model, best_params
+
 
 
     def __repr__(self):

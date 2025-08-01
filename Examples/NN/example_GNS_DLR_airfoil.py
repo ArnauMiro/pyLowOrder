@@ -147,10 +147,13 @@ mode = config_dict.get("experiment", {}).get("mode", "train")
 
 if mode == "optuna":
     optimizer = OptunaOptimizer(
-        search_space=config_dict["optuna"]["search_space"],
-        study_params=config_dict["optuna"]["study"],
-        graph_path=config_dict["optuna"]["graph_path"]
+        optimization_params=config_dict["optuna"]["optimization_params"],
+        n_trials=config_dict["optuna"]["study"].get("n_trials", 100),
+        direction=config_dict["optuna"]["study"].get("direction", "minimize"),
+        pruner=config_dict["optuna"]["study"].get("pruner"),
+        save_dir=config_dict["optuna"]["study"].get("save_dir")
     )
+
     pipeline = Pipeline(
         train_dataset=td_train,
         valid_dataset=td_val,
@@ -165,7 +168,7 @@ elif mode == "train":
         valid_dataset=td_val,
         test_dataset=td_test,
         model=model,
-        training_params=config_dict["training"]
+        training_params=config_dict["fit"]
     )
 else:
     raiseError(f"Unsupported mode '{mode}'. Use 'train' or 'optuna'.")
