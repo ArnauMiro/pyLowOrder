@@ -10,13 +10,14 @@ from __future__ import print_function
 import numpy as np
 import scipy
 
-from ..utils.gpu import cp
+from ..utils.gpu import cp, gpu_to_cpu, cpu_to_gpu
 from ..vmmath    import temporal_mean, subtract_mean, tsqr_svd, hammwin
 from ..utils     import cr_nvtx as cr, cr_start, cr_stop
 
 
 def _fft(Xf, winWeight, nDFT, nf):
-	return (winWeight/nDFT)*scipy.fft.fft(Xf)[:nf]
+	fft = cp.fft.fft2 if type(Xf) is cp.ndarray else scipy.fft.fft2
+	return (winWeight/nDFT)*fft(Xf,axes=(-1,))[:,:nf]
 
 
 ## SPOD run method
@@ -42,7 +43,7 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 	
 	if nDFT == 0:
 		nDFT = int(np.power(2,np.floor(np.log2(N/10))))
-	window = hammwin(nDFT)
+	window = cpu_to_gpu(hammwin(nDFT))
 	if nolap == 0:
 		nolap = int(np.floor(nDFT/2))
 	nBlks = int(np.floor((N-nolap)/(nDFT-nolap)))
@@ -59,25 +60,21 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 		Y = X.copy()
 
 	# Set frequency axis
-	f  = np.arange(np.ceil(nDFT / 2) + 1) / dt / nDFT
+	f  = cnp.arange(np.ceil(nDFT / 2) + 1) / dt / nDFT
 	nf = f.shape[0]
-	qk = np.zeros((M,nf),cdtype)
-	Q  = np.zeros((M*nf,nBlks),cdtype)
-	# Sent to CPU for FFT
-	Y  = cp.asnumpy(Y) if type(X) is cp.ndarray else Y
+	qk = cnp.zeros((M,nf),cdtype)
+	Q  = cnp.zeros((M*nf,nBlks),cdtype)
 	cr_start('SPOD.fft',0)
 	for iblk in range(nBlks):
 		# Get time index for present block
 		i0 = iblk*(nDFT - nolap)
 		ix = np.arange(nDFT) + i0
-		for ip in range(M):
-			Xf = Y[ip, ix].copy()*window
-			qk[ip, :] = _fft(Xf, winWeight, nDFT, nf)
+		Xf = Y[:,ix].copy()*window
+		qk[:, :]    = _fft(Xf, winWeight, nDFT, nf)
 		qk[:,1:-1] *= 2
-		Q[:, iblk] = qk.reshape((M*nf), order='F')
+		Q[:, iblk]  = qk.reshape((M*nf), order='F')
 	cr_stop('SPOD.fft',0)
 
-	Q  = cp.asarray(Q) if type(X) is cp.ndarray else Q
 	L  = cnp.zeros((nf,nBlks),X.dtype)
 	P  = cnp.zeros((M*nBlks,nf),X.dtype)
 	cr_start('SPOD.SVD',0)
@@ -89,7 +86,6 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 	cr_stop('SPOD.SVD',0)
 
 	cr_start('SPOD.sort',0)
-	f     = cp.asarray(f) if type(X) is cp.ndarray else f
 	order = cnp.argsort(L[:,0])[::-1]
 	P = P[:, order]
 	f = f[order]
