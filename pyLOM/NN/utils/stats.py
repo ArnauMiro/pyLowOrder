@@ -1,6 +1,6 @@
 import numpy as np
-from .. import pprint
-from ..utils import raiseError
+from ... import pprint
+from ...utils import raiseError
 
 class RegressionEvaluator():
     r"""

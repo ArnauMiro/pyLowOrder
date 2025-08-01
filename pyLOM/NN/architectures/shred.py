@@ -15,9 +15,9 @@ import torch.nn            as nn
 import torch.nn.functional as F
 
 from   torch.utils.data    import DataLoader
-from   ...utils.cr             import cr
+from   ...utils.cr         import cr
 from   .encoders_decoders  import ShallowDecoder
-from   ..utils             import Dataset
+from   ..                  import Dataset
 
 class SHRED(nn.Module):
 	r'''

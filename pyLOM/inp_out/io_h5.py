@@ -9,6 +9,8 @@ from __future__ import print_function, division
 
 import os, numpy as np, h5py
 
+from typing import Optional, Mapping, Union
+
 from ..partition_table import PartitionTable
 from ..mesh            import MTYPE2ID, ID2MTYPE
 from ..utils           import cr, MPI_COMM, MPI_RANK, MPI_SIZE, worksplit, writesplit, is_rank_or_serial, mpi_reduce, mpi_gather, raiseError
@@ -386,6 +388,7 @@ def h5_load_fields_single(file,npoints,ptable,varDict,point):
 			# Use the partition bounds to recover the array
 			istart, iend = ptable.partition_bounds(MPI_RANK,ndim=ndim,points=False)
 			inods = np.arange(istart,iend,dtype=np.int32)
+
 		# Read the values
 		value[:] = np.array(fieldgroup['value'][inods])
 		# Generate dictionary
@@ -1018,3 +1021,88 @@ def h5_load_SPOD(fname,vars,nmod,ptable=None):
 	# Return
 	file.close()
 	return varList
+
+
+def h5_save_graph_serial(fname,num_nodes,num_edges,edge_index,nodeFeatrDict,edgeFeatrDict,mode='w'):
+	'''
+	Save a Graph in HDF5 in serial mode
+	'''
+	# Open file for writing
+	with h5py.File(fname, mode) as file:
+		file.attrs['Version'] = PYLOM_H5_VERSION
+		# Create dataset group
+		graph_group = file.create_group('GRAPH')
+		node_group = graph_group.create_group('NODEFEATRS')
+		edge_group = graph_group.create_group('EDGEFEATRS')
+		# Store the number of nodes and edges
+		graph_group.create_dataset('numNodes',(1,),dtype='i4',data=num_nodes)
+		graph_group.create_dataset('numEdges',(1,),dtype='i4',data=num_edges)
+		# Store the edge index
+		graph_group.create_dataset('edgeIndex',data=edge_index,dtype='i4')
+		# Store node-level attributes
+		h5_fill_graph_datasets(h5_create_graph_datasets(node_group,nodeFeatrDict),nodeFeatrDict)
+		# Store edge-level attributes
+		h5_fill_graph_datasets(h5_create_graph_datasets(edge_group,edgeFeatrDict),edgeFeatrDict)
+
+def h5_load_graph_serial(fname):
+	'''
+	Load a graph in HDF5 in serial
+	'''
+	# Open file for writing
+	with h5py.File(fname, 'r') as file:
+		# Check the file version
+		version = tuple(file.attrs['Version'])
+		if not version == PYLOM_H5_VERSION:
+			raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
+		# Open the dataset group
+		node_group  = file['GRAPH']['NODEFEATRS']
+		edge_group  = file['GRAPH']['EDGEFEATRS']
+		# Read the number of nodes and edges
+		numNodes = int(file['GRAPH']['numNodes'][0])
+		numEdges = int(file['GRAPH']['numEdges'][0])
+		# Read the edge index
+		if 'edgeIndex' not in file['GRAPH']:
+			raiseError('Edge index not found in the graph file!')
+		edgeIndex = np.array(file['GRAPH']['edgeIndex'])
+		# Read the node attributes
+		nodeFeatrDict   = h5_load_graph_variables(node_group)
+		edgeFeatrDict = h5_load_graph_variables(edge_group)
+	return numNodes, numEdges, edgeIndex, nodeFeatrDict, edgeFeatrDict
+
+def h5_create_graph_datasets(group,varDict):
+	'''
+	Create the variable datasets inside an HDF5 file
+	'''
+	dsetDict = {}
+	for var in varDict.keys():
+		vargroup = group.create_group(var)
+		dims = varDict[var]['value'].shape
+		dsetDict[var] = {
+			'ndim'  : vargroup.create_dataset('ndim' ,(1,),dtype='i4'),
+			'value' : vargroup.create_dataset('value',dims,dtype=varDict[var]['value'].dtype),
+		}
+	return dsetDict
+
+def h5_fill_graph_datasets(dsetDict,varDict):
+	'''
+	Fill in the variable datasets inside an HDF5 file
+	'''
+	for var in dsetDict.keys():
+		# Fill dataset
+		dsetDict[var]['ndim'][:]  = varDict[var]['ndim']
+		# Fill value
+		dsetDict[var]['value'][:] = varDict[var]['value']
+
+def h5_load_graph_variables(group):
+	'''
+	Load the graph variables inside the HDF5 file
+	'''
+	varDict = {}
+	for v in group.keys():
+		vargroup = group[v]
+		varDict[v] = {
+			'ndim'  : int(vargroup['ndim'][0]),
+			'value' : np.array(vargroup['value']),
+		}
+	# Return
+	return varDict
