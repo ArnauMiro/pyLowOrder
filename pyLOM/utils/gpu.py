@@ -22,6 +22,30 @@ try:
 		local_id = int(id%gpu_per_node)
 		cp.cuda.Device(local_id).use()
 
+	def gpu_warmup(X):
+		'''
+		Two small activations of the matmul and QR
+		algorithms allowing to setup the CUDA context
+		'''
+		# matmul
+		A = np.array([
+			[1 , 1, 1],
+			[-5, 2, 4],
+			[1 , 5, 3],
+			[4 , 3, 8],
+			[6 , 4, 2]], 
+		np.float32, order = 'C')
+		B = np.array([
+			[1 , 1, 1, 2],
+			[-5, 2, 4, 5],
+			[1 , 5, 3, 4]], 
+		np.float32, order = 'C')
+		C = cp.matmul(A,B)
+		# SVD and QR
+		A = np.array([[1,2],[3,4],[5,6],[7,8]],dtype=np.float32,order='C')
+		Q,R   = cp.linalg.qr(A)
+		U,S,V = cp.linalg.svd(A)
+
 	def gpu_to_cpu(X):
 		'''
 		Move an array from GPU to CPU
@@ -46,6 +70,13 @@ except:
 		Setup the GPU to be used
 		'''
 		raiseWarning('cupy not available! GPU version deactivated!')
+
+	def gpu_warmup():
+		'''
+		Two small activations of the matmul and QR
+		algorithms allowing to setup the CUDA context
+		'''
+		pass
 
 	def gpu_to_cpu(X):
 		'''
