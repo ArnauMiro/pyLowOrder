@@ -523,6 +523,27 @@ def randomized_qr(real[:,:] A, const int r, const int q, const int seed=-1):
 	else:
 		return _srandomized_qr(A,r,q,seed)
 
+@cr('math.randomized_qr2')
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def randomized_qr2(real[:,:] A, const int r, const int q, const int seed=-1):
+	'''
+	Parallel Single value decomposition (SVD) using Lapack.
+		Q(m,r)   
+		B(n,r)
+
+	For the moment just a wrapper that does the same as
+	randomized_qr
+	'''
+	seed = <int>time(NULL) if seed < 0 else seed
+	if real is double:
+		return _drandomized_qr(A,r,q,seed)
+	else:
+		return _srandomized_qr(A,r,q,seed)
+
 @cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
