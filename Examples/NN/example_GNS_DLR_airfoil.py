@@ -4,11 +4,12 @@
 Example: Training a GNS model on DLR airfoil data using pyLOM.
 
 Updated to use modern pyLOM API:
-  - Direct dict-based GNS instantiation
+  - Dataclass-based GNS instantiation via GNSConfig
   - Optuna-compatible Pipeline execution
+  - Hash-verified configuration saving
 
 Author: Pablo Yeste
-Date: 2025-07-28
+Date: 2025-08-01
 """
 
 # ─────────────────────────────────────────────────────
@@ -22,13 +23,14 @@ import pickle
 import yaml
 import hashlib
 import datetime
+from dataclasses import asdict
 
 from pyLOM.utils import raiseError
-from pyLOM.NN.utils.config_loader_factory import load_yaml
 from pyLOM.NN import Dataset, GNS, Pipeline, MinMaxScaler
 from pyLOM.NN.optimizer import OptunaOptimizer
 from pyLOM.NN.utils import RegressionEvaluator
-from pyLOM.NN import DEVICE, set_seed
+from pyLOM.NN.config_manager import GNSConfig  # <- punto de entrada correcto
+from pyLOM.NN import set_seed
 import pyLOM
 
 
@@ -78,15 +80,18 @@ def save_experiment(base_path, model, train_config, metrics_dict,
     base_path = Path(base_path)
     base_path.mkdir(parents=True, exist_ok=True)
 
-    config_dict = model.config.asdict() if hasattr(model.config, 'asdict') else vars(model.config)
     yaml_path = base_path / "config.yaml"
-    with open(yaml_path, "w") as f:
-        yaml.dump({"model": config_dict, "training": train_config}, f)
+    yaml.safe_dump({
+        "model": asdict(model.config),
+        "fit": asdict(train_config)
+    }, yaml_path.open("w"))
 
     config_hash = hashlib.sha1(yaml_path.read_bytes()).hexdigest()
     timestamp = datetime.datetime.now().isoformat()
-    with open(base_path / "meta.yaml", "w") as f:
-        yaml.dump({"config_sha1": config_hash, "saved_at": timestamp}, f)
+    yaml.safe_dump({
+        "config_sha1": config_hash,
+        "saved_at": timestamp
+    }, (base_path / "meta.yaml").open("w"))
 
     model.save(base_path / "model.pth")
 
@@ -98,7 +103,7 @@ def save_experiment(base_path, model, train_config, metrics_dict,
             pickle.dump(output_scaler, f)
 
     with open(base_path / "metrics.yaml", "w") as f:
-        yaml.dump(metrics_dict, f)
+        yaml.safe_dump(metrics_dict, f)
 
     if extra_files:
         for name, gen in extra_files.items():
@@ -109,14 +114,13 @@ def save_experiment(base_path, model, train_config, metrics_dict,
 # SETUP: Load config, seed, results path
 # ─────────────────────────────────────────────────────
 yaml_path = Path("../pyLowOrder/Examples/NN/configs/gns_config.yaml").absolute()
-config_dict = load_yaml(yaml_path)
+cfg = GNSConfig(yaml_path)
+cfg.resolve()
 
-resudir = Path(config_dict["experiment"]["resudir"]).absolute()
+resudir = Path(cfg.experiment["resudir"]).absolute()
 resudir.mkdir(parents=True, exist_ok=True)
 
-seed = config_dict["experiment"].get("seed", None)
-device = config_dict["experiment"].get("device", DEVICE)
-set_seed(seed, device)
+set_seed(cfg.experiment.get("seed", 42), cfg.model.device)
 
 
 # ─────────────────────────────────────────────────────
@@ -135,24 +139,18 @@ dataset_kwargs = dict(
     squeeze_last_dim=False
 )
 
-td_train = Dataset.load(config_dict["datasets"]["train_ds"], **dataset_kwargs)
-td_val   = Dataset.load(config_dict["datasets"]["val_ds"], **dataset_kwargs)
-td_test  = Dataset.load(config_dict["datasets"]["test_ds"], **dataset_kwargs)
+td_train = Dataset.load(cfg.raw["datasets"]["train_ds"], **dataset_kwargs)
+td_val   = Dataset.load(cfg.raw["datasets"]["val_ds"], **dataset_kwargs)
+td_test  = Dataset.load(cfg.raw["datasets"]["test_ds"], **dataset_kwargs)
 
 
 # ─────────────────────────────────────────────────────
 # TRAIN OR OPTIMIZE MODEL
 # ─────────────────────────────────────────────────────
-mode = config_dict.get("experiment", {}).get("mode", "train")
+mode = cfg.experiment.get("mode", "train")
 
 if mode == "optuna":
-    optimizer = OptunaOptimizer(
-        optimization_params=config_dict["optuna"]["optimization_params"],
-        n_trials=config_dict["optuna"]["study"].get("n_trials", 100),
-        direction=config_dict["optuna"]["study"].get("direction", "minimize"),
-        pruner=config_dict["optuna"]["study"].get("pruner"),
-        save_dir=config_dict["optuna"]["study"].get("save_dir")
-    )
+    optimizer = OptunaOptimizer(**cfg.optuna)
 
     pipeline = Pipeline(
         train_dataset=td_train,
@@ -161,17 +159,17 @@ if mode == "optuna":
         optimizer=optimizer,
         model_class=GNS,
     )
-elif mode == "train":
-    model = GNS(config=config_dict['model'])
+
+else:
+    model = GNS.from_config(cfg.model)
+
     pipeline = Pipeline(
         train_dataset=td_train,
         valid_dataset=td_val,
         test_dataset=td_test,
         model=model,
-        training_params=config_dict["fit"]
+        training_params=cfg.fit  # es una instancia de GNSFitConfig
     )
-else:
-    raiseError(f"Unsupported mode '{mode}'. Use 'train' or 'optuna'.")
 
 logs = pipeline.run()
 
@@ -190,7 +188,7 @@ logs["metrics"] = evaluator.metrics_dict
 save_experiment(
     base_path=resudir,
     model=pipeline.model,
-    train_config=config_dict["training"],
+    train_config=cfg.fit,
     metrics_dict=evaluator.metrics_dict,
     input_scaler=input_scaler,
     output_scaler=output_scaler,
@@ -207,10 +205,7 @@ save_experiment(
 print("\n>>> Reloading model and input scaler from disk...")
 model_reloaded = GNS.load(resudir / "model.pth")
 
-scaler_path = resudir / "input_scaler.pkl"
-if not scaler_path.exists():
-    raise FileNotFoundError(f"Missing input scaler: {scaler_path}")
-with open(scaler_path, "rb") as f:
+with open(resudir / "input_scaler.pkl", "rb") as f:
     input_scaler_reloaded = pickle.load(f)
 
 raw_input = np.array([[4.0, 0.7]])  # AoA, Mach

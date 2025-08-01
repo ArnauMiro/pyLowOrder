@@ -28,7 +28,7 @@ try:
             pruner: optuna.pruners.BasePruner = None,
             sampler: optuna.samplers.BaseSampler = None,
             save_dir: str = None,
-            seed: int = 1234,
+            seed: int = 42,
             graph_path: Optional[str] = None,
         ):
             self.num_trials = n_trials
