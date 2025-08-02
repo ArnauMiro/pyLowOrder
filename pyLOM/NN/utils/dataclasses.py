@@ -30,6 +30,7 @@ class GNSModelParams:
         decoder_hidden_layers (int): Number of hidden layers in the decoder MLP.
         message_hidden_layers (int): Number of hidden layers in the message MLP.
         update_hidden_layers (int): Number of hidden layers in the update MLP.
+        groupnorm_groups (int): Number of groups for GroupNorm.
         p_dropouts (float): Dropout probability used across the model.
         activation (torch.nn.Module): Activation function instance (e.g. nn.ELU()).
         seed (int, optional): Random seed for reproducibility.
@@ -44,6 +45,7 @@ class GNSModelParams:
     decoder_hidden_layers: int
     message_hidden_layers: int
     update_hidden_layers: int
+    groupnorm_groups: int = 2
     p_dropouts: float = 0.0
     activation: torch.nn.Module = torch.nn.ELU()
     seed: Optional[int] = None

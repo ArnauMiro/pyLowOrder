@@ -25,6 +25,7 @@ model:
     decoder_hidden_layers: 1
     message_hidden_layers: 2
     update_hidden_layers: 2
+    groupnorm_groups: 2
     activation: ELU
     p_dropouts: 0.1
     seed: 42
@@ -61,6 +62,8 @@ optuna:
     model:
       graph_path: "../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
       params:
+        input_dim: 2
+        output_dim: 1
         latent_dim: {type: int, low: 8, high: 64}
         hidden_size: {type: int, low: 64, high: 512}
         num_msg_passing_layers: {type: int, low: 1, high: 5}
@@ -68,6 +71,7 @@ optuna:
         decoder_hidden_layers: {type: int, low: 1, high: 4}
         message_hidden_layers: {type: int, low: 1, high: 4}
         update_hidden_layers: {type: int, low: 1, high: 4}
+        groupnorms_groups: 2
         activation: {type: categorical, choices: [ELU, ReLU, LeakyReLU]}
         p_dropouts: {type: float, low: 0.0, high: 0.5}
         seed: 42

@@ -65,61 +65,47 @@ class GNS(torch.nn.Module):
         >>> model = GNS(config=config, graph=graph)
     """
 
+class GNS(torch.nn.Module):
+    r"""
+    Graph Neural Solver class for predicting aerodynamic variables on RANS meshes.
+
+    This model uses a message-passing GNN architecture with MLPs for the message and update functions.
+    It supports subgraph batching and is optimized for training on large RANS meshes.
+
+    Note:
+        This constructor assumes a fully loaded `Graph` object and a validated `GNSModelParams` config.
+        For standard usage, prefer using `GNS.from_graph(...)` or `GNS.from_graph_path(...)`.
+    """
+
     def __init__(self, *, config: GNSModelParams, graph: Graph) -> None:
         """
-        Core constructor for GNS.
+        Internal constructor for GNS. Do not use directly unless you know what you're doing.
 
         Args:
-            config (GNSModelParams): Fully resolved model configuration.
-            graph (Graph): In-memory Graph object.
-
-        Note:
-            Use `GNS.from_config(config)` for reproducible construction from disk.
-            Use `GNS.from_graph(config, graph)` when graph is already loaded and config.graph_path is intentionally unset.
+            config (GNSModelParams): Fully validated model configuration.
+            graph (Graph): In-memory Graph object required by all components of the model.
         """
         super().__init__()
 
-        # --- Validation ---
+        # --- Basic validation ---
         if not isinstance(config, GNSModelParams):
-            raiseError("GNS expects a GNSModelParams object.")
+            raiseError("Expected config to be a GNSModelParams.")
         if not isinstance(graph, Graph):
-            raiseError("GNS expects a Graph instance.")
+            raiseError("Expected graph to be a Graph instance.")
 
-        self._graph = None
-        self.graph_path = None
         self.config = config
         self.device = torch.device(config.device)
         self.seed = config.seed
         self.p_dropouts = config.p_dropouts
         self.activation = config.activation
 
-        # --- Aliases ---
-        self.input_dim = config.input_dim
-        self.latent_dim = config.latent_dim
-        self.output_dim = config.output_dim
-        self.hidden_size = config.hidden_size
-        self.num_msg_passing_layers = config.num_msg_passing_layers
-        self.encoder_hidden_layers = config.encoder_hidden_layers
-        self.decoder_hidden_layers = config.decoder_hidden_layers
-        self.message_hidden_layers = config.message_hidden_layers
-        self.update_hidden_layers = config.update_hidden_layers
-
-        # --- Device setup ---
-        if self.device.type == "cuda" and not torch.cuda.is_available():
-            raiseError("CUDA not available. Use CPU or check device.")
-
-        pprint(0, f"Using device: {self.device}", flush=True)
-
-        if self.seed is not None:
-            set_seed(self.seed)
-
         # --- Graph setup ---
-        self.graph = graph  # uses setter (validates and .to(device))
+        self.graph = graph  # setter handles .to(device)
 
-        # --- Inputs injector ---
-        self.injector = InputsInjector(device=self.device) # Future: allow pluggable injectors
+        # --- Inputs injector (strong dependency) ---
+        self.injector = InputsInjector(device=self.device)
 
-        # --- Training state ---
+        # --- Training state (used by fit) ---
         self.state = {}
         self.optimizer = None
         self.scheduler = None
@@ -143,11 +129,16 @@ class GNS(torch.nn.Module):
         self._build_message_passing_layers()
         self._build_decoder()
 
+        # --- GroupNorm configuration ---
         self.groupnorm = torch.nn.GroupNorm(
-            num_groups=min(2, config.latent_dim),
+            num_groups=self.config.num_groups,
             num_channels=config.latent_dim
         ).to(self.device)
 
+        # --- Seed (optional) ---
+        if self.seed is not None:
+            set_seed(self.seed)
+            
 
     @classmethod
     @accepts_config(GNSModelParams)
