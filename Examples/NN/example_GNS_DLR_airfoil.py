@@ -25,11 +25,10 @@ import hashlib
 import datetime
 from dataclasses import asdict
 
-from pyLOM.utils import raiseError
 from pyLOM.NN import Dataset, GNS, Pipeline, MinMaxScaler
 from pyLOM.NN.optimizer import OptunaOptimizer
 from pyLOM.NN.utils import RegressionEvaluator
-from pyLOM.NN.config_manager import GNSConfig  # <- punto de entrada correcto
+from pyLOM.NN.utils.config_manager import GNSConfig
 from pyLOM.NN import set_seed
 import pyLOM
 
@@ -150,7 +149,16 @@ td_test  = Dataset.load(cfg.raw["datasets"]["test_ds"], **dataset_kwargs)
 mode = cfg.experiment.get("mode", "train")
 
 if mode == "optuna":
-    optimizer = OptunaOptimizer(**cfg.optuna)
+    optimizer = OptunaOptimizer(
+        optimization_params=cfg.optuna.optimization_params,
+        n_trials=cfg.optuna.n_trials,
+        direction=cfg.optuna.direction,
+        pruner=cfg.optuna.pruner,
+        sampler=cfg.optuna.sampler,
+        save_dir=cfg.optuna.save_dir,
+        seed=cfg.optuna.seed,
+        graph_path=cfg.optuna.graph_path,
+        )
 
     pipeline = Pipeline(
         train_dataset=td_train,
@@ -168,7 +176,7 @@ else:
         valid_dataset=td_val,
         test_dataset=td_test,
         model=model,
-        training_params=cfg.fit  # es una instancia de GNSFitConfig
+        training_params = cfg.training_params,
     )
 
 logs = pipeline.run()

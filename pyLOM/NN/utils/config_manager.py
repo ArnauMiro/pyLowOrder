@@ -1,3 +1,5 @@
+# config_manager.py
+
 from pathlib import Path
 from typing import Union, Optional, Dict, Type
 from dataclasses import asdict
@@ -8,8 +10,10 @@ from torch.nn import ELU, ReLU, LeakyReLU, Sigmoid, Tanh, PReLU, Softplus, GELU,
 from torch.optim import Adam, SGD, RMSprop, AdamW
 from torch.optim.lr_scheduler import StepLR, ExponentialLR, CosineAnnealingLR
 
-from .configs import GNSModelConfig, GNSFitConfig
-from ..optimizer import OptunaOptimizer
+from optuna.pruners import MedianPruner, NopPruner, SuccessiveHalvingPruner
+from optuna.samplers import TPESampler, RandomSampler, CmaEsSampler
+
+from .dataclasses import GNSParams, GNSTraining
 from ...utils import raiseError
 
 # ─────────────────────────────────────────────────────
@@ -37,23 +41,34 @@ _SCHEDULERS = {
     "StepLR": StepLR, "ExponentialLR": ExponentialLR, "CosineAnnealingLR": CosineAnnealingLR
 }
 
+_SAMPLERS = {
+    "TPESampler": TPESampler,
+    "RandomSampler": RandomSampler,
+    "CmaEsSampler": CmaEsSampler
+}
+
+_PRUNERS = {
+    "MedianPruner": MedianPruner,
+    "NopPruner": NopPruner,
+    "SuccessiveHalvingPruner": SuccessiveHalvingPruner
+}
+
 # ─────────────────────────────────────────────────────
 # Config resolver base
 # ─────────────────────────────────────────────────────
 
 class BaseModelConfigResolver:
-    def __init__(self, raw: dict, experiment: dict):
+    def __init__(self, raw: dict):
         self.raw = raw
-        self.experiment = experiment
 
     def resolve_model_config(self):
-        raise NotImplementedError
+        ...
 
-    def resolve_fit_config(self):
-        raise NotImplementedError
+    def resolve_training_config(self):
+        ...
 
-    def resolve_optuna_config(self):
-        raise NotImplementedError
+    def resolve_optuna_dict(self):
+        ...
 
 # ─────────────────────────────────────────────────────
 # GNS Config
@@ -69,73 +84,78 @@ class GNSConfig(BaseModelConfigResolver):
             raise TypeError("Expected dict or YAML path as configuration input.")
 
         self.raw = raw
-        self.experiment = raw.get("experiment", {})
-        super().__init__(raw, self.experiment)
+        super().__init__(raw)
 
-        self.model: Optional[GNSModelConfig] = None
-        self.fit: Optional[GNSFitConfig] = None
-        self.optuna: Optional[Dict[str, Union[dict, OptunaOptimizer]]] = None
+        self.graph_path = None
+        self.model_cfg: Optional[GNSParams] = None
+        self.training_cfg: Optional[GNSTraining] = None
+        self.optuna_dict: Optional[Dict] = None
 
     def resolve(self) -> None:
         if "model" in self.raw:
-            self.model = self.resolve_model_config()
-        if "fit" in self.raw:
-            self.fit = self.resolve_fit_config()
+            self.graph_path = self.raw["model"].get("graph_path")
+            model_params = self.raw["model"].get("params")
+            self.model_cfg = self.resolve_model_config(model_params)
+        if "training" in self.raw:
+            training_params = self.raw["training"]
+            self.training_cfg = self.resolve_training_config(training_params)
         if "optuna" in self.raw:
-            self.optuna = self.resolve_optuna_config()
+            optuna_params = self.raw["optuna"]
+            self.optuna_dict = self.resolve_optuna_dict(optuna_params)
 
-        if not any([self.model, self.fit, self.optuna]):
-            raiseError("Invalid configuration: no valid sections found (expected 'model', 'fit' or 'optuna').")
+        if not any([self.model_cfg, self.training_cfg, self.optuna_dict]):
+            raiseError("Invalid configuration: no valid sections found (expected 'model', 'training' or 'optuna').")
 
-    def resolve_model_config(self) -> GNSModelConfig:
-        model_cfg = self.raw["model"].copy()
+    def resolve_model_config(self, model_params: Dict) -> GNSParams:
+        raw_model = model_params.copy()
+        model_params = raw_model.get("params").copy()
 
-        # Inject experiment seed
-        model_cfg["seed"] = self.experiment.get("seed", 1234)
-        model_cfg["device"] = torch.device(self.experiment.get("device", "cuda"))
+        # Resolve activation
+        if "activation" in model_params:
+            resolved = self._resolve_from_dict_or_torch(model_params["activation"], _ACTIVATIONS, torch.nn)
+            model_params["activation"] = resolved() if isinstance(resolved, type) else resolved
 
-        if "activation" in model_cfg:
-            resolved = self._resolve_from_dict_or_torch(model_cfg["activation"], _ACTIVATIONS, torch.nn)
-            model_cfg["activation"] = resolved() if isinstance(resolved, type) else resolved
+        # Resolve device
+        if "device" in model_params:
+            model_params["device"] = torch.device(model_params["device"])
 
-        return GNSModelConfig(**model_cfg)
+        return GNSParams(**model_params)
 
-    def resolve_fit_config(self) -> GNSFitConfig:
-        train_cfg = self.raw["fit"].copy()
-
+    def resolve_training_config(self, training_params: Dict) -> GNSTraining:
+        train_cfg = training_params.copy()
         optimizer = train_cfg.pop("optimizer", "Adam")
         scheduler = train_cfg.pop("scheduler", "StepLR")
         loss_fn = train_cfg.pop("loss_fn", "MSELoss")
 
-        return GNSFitConfig(
+        return GNSTraining(
             **train_cfg,
             optimizer=self._resolve_from_dict_or_torch(optimizer, _OPTIMIZERS, torch.optim),
             scheduler=self._resolve_from_dict_or_torch(scheduler, _SCHEDULERS, torch.optim.lr_scheduler),
             loss_fn=self._resolve_from_dict_or_torch(loss_fn, _LOSSES, torch.nn)(),
         )
 
-    def resolve_optuna_config(self) -> OptunaOptimizer:
-        raw = self.raw["optuna"]
-        study_params = raw.get("study", {})
-        optimization_params = raw.get("optimization_params", {}).copy()
-
-        # Inject seed from experiment
-        seed = self.experiment.get("seed", 1234)
-
-        graph_path = raw.get("graph_path")
-        if not graph_path:
-            raiseError("Missing 'graph_path' in 'optuna.graph_path'.")
+    def resolve_optuna(self, optuna_dict: Dict) -> Dict:
+        raw = optuna_dict.copy()
+        study = raw.get("study")
+        optimization_params = raw.get("optimization_params").copy()
 
         return {
-            'optimization_params': optimization_params,
-            'sampler': None,
-            'pruner': study_params.get("pruner"),
-            'direction': study_params.get("direction", "minimize"),
-            'n_trials': study_params.get("n_trials", 100),
-            'save_dir': study_params.get("save_dir"),
-            'seed': seed,
-            'graph_path': graph_path,
+            "optimization_params": optimization_params,
+            "n_trials": study.get("n_trials", 100),
+            "direction": study.get("direction", "minimize"),
+            "seed": study.get("seed", 42),
+            "pruner": _resolve_pruner(study.get("pruner")),
+            "sampler": _resolve_sampler(study.get("sampler")),
+            "save_dir": study.get("save_dir", None)
         }
+
+    @property
+    def model_params(self) -> dict:
+        return asdict(self.model_cfg) if self.model_cfg else {}
+
+    @property
+    def training_params(self) -> dict:
+        return asdict(self.training_cfg) if self.training_cfg else {}
 
     def _resolve_from_dict_or_torch(self, name: str, mapping: dict, module) -> Union[type, torch.nn.Module]:
         if name in mapping:
@@ -144,24 +164,36 @@ class GNSConfig(BaseModelConfigResolver):
             return getattr(module, name)
         raiseError(f"Unknown name '{name}' not found in mapping or module '{module.__name__}'.")
 
+
     @staticmethod
     def _load_yaml(path: Union[str, Path]) -> dict:
         with open(path, "r") as f:
             return yaml.safe_load(f)
 
-    def to_dict(self) -> dict:
-        return {
-            "model": asdict(self.model) if self.model else None,
-            "fit": asdict(self.fit) if self.fit else None,
-            "experiment": self.experiment,
-            "optuna": {
-                k: v if k != "optuna_optimizer" else None
-                for k, v in self.optuna.items()
-            } if self.optuna else None,
-        }
 
-    def __repr__(self) -> str:
-        name = self.experiment.get("name", "Unnamed")
-        version = self.experiment.get("version", "?")
-        return f"<GNSConfig: experiment='{name}', version={version}>"
 
+def _resolve_sampler(sampler_cfg: Union[str, dict, None]):
+    if sampler_cfg is None:
+        return None
+    if isinstance(sampler_cfg, str):
+        return _SAMPLERS[sampler_cfg]()
+    if isinstance(sampler_cfg, dict):
+        sampler_type = sampler_cfg.pop("type", None)
+        if sampler_type not in _SAMPLERS:
+            raiseError(f"Unknown sampler type '{sampler_type}'")
+        return _SAMPLERS[sampler_type](**sampler_cfg)
+    raiseError("Invalid sampler configuration.")
+
+def _resolve_pruner(pruner_cfg: Union[str, dict, None]):
+    if pruner_cfg is None:
+        return None
+    if isinstance(pruner_cfg, str):
+        return _PRUNERS[pruner_cfg]()
+    if isinstance(pruner_cfg, dict):
+        pruner_type = pruner_cfg.pop("type", None)
+        if pruner_type not in _PRUNERS:
+            raiseError(f"Unknown pruner type '{pruner_type}'")
+        return _PRUNERS[pruner_type](**pruner_cfg)
+    raiseError("Invalid pruner configuration.")
+
+    

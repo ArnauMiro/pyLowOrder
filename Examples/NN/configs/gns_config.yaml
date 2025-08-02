@@ -4,8 +4,6 @@ experiment:
   name: gns_nlr7301_baseline
   description: "GNS model on NLR7301 airfoil dataset as described by ..."
   version: 1.0
-  device: cuda                      # Options: cpu | cuda | cuda:0 | etc.
-  seed: 42
   tags: [GNS, airfoil, baseline]
   resudir: "../CETACEO_RESULTS/nlr7301/"
   mode: train                      # Options: train | optuna
@@ -17,19 +15,22 @@ datasets:
 
 model:
   graph_path: "../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
-  input_dim: 2
-  output_dim: 1
-  latent_dim: 16
-  hidden_size: 256
-  num_msg_passing_layers: 3
-  encoder_hidden_layers: 2
-  decoder_hidden_layers: 1
-  message_hidden_layers: 2
-  update_hidden_layers: 2
-  activation: ELU
-  p_dropouts: 0.1
+  params:
+    input_dim: 2
+    output_dim: 1
+    latent_dim: 16
+    hidden_size: 256
+    num_msg_passing_layers: 3
+    encoder_hidden_layers: 2
+    decoder_hidden_layers: 1
+    message_hidden_layers: 2
+    update_hidden_layers: 2
+    activation: ELU
+    p_dropouts: 0.1
+    seed: 42
+    device: cuda
 
-fit:
+training:
   epochs: 3
   lr: 5e-4
   lr_gamma: 0.98
@@ -44,24 +45,33 @@ fit:
   verbose: 25
 
 optuna:
-  graph_path: "../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
   study:
-    study_name: gns_optuna_study
+    n_trials: 100
     direction: minimize
-    timeout: 36000       # In seconds
-    n_trials: 3
+    pruner:
+      type: MedianPruner
+      n_startup_trials: 10
+      n_warmup_steps: 5
+    sampler:
+      type: TPESampler
+      multivariate: true
+    seed: 42 # Used by sampler
 
   optimization_params:
     model:
-      latent_dim: {type: int, low: 8, high: 64}
-      hidden_size: {type: int, low: 64, high: 512}
-      num_msg_passing_layers: {type: int, low: 1, high: 5}
-      encoder_hidden_layers: {type: int, low: 1, high: 4}
-      decoder_hidden_layers: {type: int, low: 1, high: 4}
-      message_hidden_layers: {type: int, low: 1, high: 4}
-      update_hidden_layers: {type: int, low: 1, high: 4}
-      activation: {type: categorical, choices: [ELU, ReLU, LeakyReLU]}
-      p_dropouts: {type: float, low: 0.0, high: 0.5}
+      graph_path: "../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
+      params:
+        latent_dim: {type: int, low: 8, high: 64}
+        hidden_size: {type: int, low: 64, high: 512}
+        num_msg_passing_layers: {type: int, low: 1, high: 5}
+        encoder_hidden_layers: {type: int, low: 1, high: 4}
+        decoder_hidden_layers: {type: int, low: 1, high: 4}
+        message_hidden_layers: {type: int, low: 1, high: 4}
+        update_hidden_layers: {type: int, low: 1, high: 4}
+        activation: {type: categorical, choices: [ELU, ReLU, LeakyReLU]}
+        p_dropouts: {type: float, low: 0.0, high: 0.5}
+        seed: 42
+        device: cuda
 
     training:
       epochs: 3

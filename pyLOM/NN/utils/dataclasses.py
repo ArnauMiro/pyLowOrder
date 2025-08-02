@@ -12,16 +12,15 @@ import torch
 
 
 @dataclass
-class GNSModelConfig:
+class GNSModelParams:
     """
-    Configuration for a GNS model.
+    Hyperparameters for a GNS model.
 
     All values must be pre-resolved before instantiating this object.
     In particular, `activation` must be a torch.nn.Module instance, and
     `device` must be a torch.device.
 
     Fields:
-        graph_path (str): Path to the saved graph file (used if no Graph is passed directly).
         input_dim (int): Number of external input features.
         latent_dim (int): Latent dimension used throughout the network.
         output_dim (int): Number of output features.
@@ -36,7 +35,6 @@ class GNSModelConfig:
         seed (int, optional): Random seed for reproducibility.
         device (torch.device): Device to use for training and inference.
     """
-    graph_path: str
     input_dim: int
     latent_dim: int
     output_dim: int
@@ -53,7 +51,7 @@ class GNSModelConfig:
 
 
 @dataclass
-class GNSFitConfig:
+class GNSTrainingParams:
     """
     Training configuration for a GNS model.
 
@@ -68,6 +66,7 @@ class GNSFitConfig:
         batch_size (int): Batch size for external inputs.
         node_batch_size (int): Number of seed nodes per subgraph batch.
         num_workers (int): Number of workers for dataloaders.
+        pin_memory (bool): Whether to pin memory for dataloaders.
         input_nodes (Tensor, optional): Seed nodes for subgraph sampling (if any).
         verbose (bool or int): Logging verbosity.
     """
@@ -81,5 +80,6 @@ class GNSFitConfig:
     batch_size: int = 1
     node_batch_size: int = 256
     num_workers: int = 1
+    pin_memory: bool = True
     input_nodes: Optional[torch.Tensor] = None
     verbose: Union[bool, int] = 1  # False = no logging, True = every epoch, or int = log every N epochs
