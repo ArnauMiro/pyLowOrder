@@ -83,7 +83,7 @@ optuna:
       scheduler: StepLR
       epochs: 3
       batch_size: {type: int, low: 8, high: 64}
-      node_batch_size: {type: int, low: 128, high: 102
+      node_batch_size: {type: int, low: 128, high: 102}
       lr: {type: float, low: 1e-5, high: 1e-3, log: true}
       lr_gamma: {type: float, low: 0.9, high: 0.999}
       lr_scheduler_step: {type: int, low: 1, high: 10}
