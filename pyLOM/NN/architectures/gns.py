@@ -12,6 +12,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Dict, Tuple, Union, Optional
 import datetime
+import getpass
 
 import torch
 from torch import Tensor
@@ -26,7 +27,7 @@ from ..utils.wrappers import accepts_config
 from ..utils.config_serialization import serialize_config, deserialize_config
 from ..optimizer import OptunaOptimizer, TrialPruned
 from ... import pprint, cr
-from ...utils import raiseError
+from ...utils import raiseError, get_git_commit
 
 
 
@@ -554,6 +555,12 @@ class GNS(torch.nn.Module):
             "graph_path": self.graph_path,
             "model_config": asdict(self.config),
             "state": self.state,
+            "metadata": {
+                "saved_at": datetime.datetime.now().isoformat(),
+                "torch_version": torch.__version__,
+                "user": getpass.getuser(),
+                "git_commit": get_git_commit(),
+            },
         }
         if self.last_training_config is not None:
             checkpoint["last_training_config"] = serialize_config(asdict(self.last_training_config))

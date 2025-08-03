@@ -28,7 +28,7 @@ from dataclasses import asdict
 from pyLOM.NN import Dataset, GNS, Pipeline, MinMaxScaler
 from pyLOM.NN.optimizer import OptunaOptimizer
 from pyLOM.NN.utils import RegressionEvaluator
-from pyLOM.NN.utils.config_manager import GNSConfig
+from pyLOM.NN.utils.config_serialization import serialize_config, deserialize_config
 from pyLOM.NN import set_seed
 import pyLOM
 
