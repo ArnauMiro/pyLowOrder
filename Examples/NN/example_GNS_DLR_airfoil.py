@@ -16,6 +16,7 @@ Date: 2025-08-01
 # IMPORTS
 # ─────────────────────────────────────────────────────
 from pathlib import Path
+from typing import Any, Dict
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -29,8 +30,7 @@ from pyLOM.NN import Dataset, GNS, Pipeline, MinMaxScaler
 from pyLOM.NN.optimizer import OptunaOptimizer
 from pyLOM.NN.utils import RegressionEvaluator
 from pyLOM.NN.utils.config_serialization import serialize_config, deserialize_config
-from pyLOM.NN import set_seed
-import pyLOM
+from pyLOM import cr_info
 
 
 # ─────────────────────────────────────────────────────
@@ -73,16 +73,20 @@ def true_vs_pred_plot(y_true, y_pred, path=None):
         plt.close()
 
 
-def save_experiment(base_path, model, train_config, metrics_dict,
-                    input_scaler=None, output_scaler=None, extra_files=None):
+def save_experiment(base_path: Path,
+                    model: Any,
+                    metrics_dict: Dict,
+                    input_scaler: Any = None,
+                    output_scaler: Any = None,
+                    extra_files: Dict[str, Any] = None):
     """Save model, configs, metrics and optional scalers and figures."""
     base_path = Path(base_path)
     base_path.mkdir(parents=True, exist_ok=True)
 
     yaml_path = base_path / "config.yaml"
     yaml.safe_dump({
-        "model": asdict(model.config),
-        "fit": asdict(train_config)
+        "model": serialize_config(asdict(model.config)),
+        "fit": serialize_config(asdict(model.last_training_config)),
     }, yaml_path.open("w"))
 
     config_hash = hashlib.sha1(yaml_path.read_bytes()).hexdigest()
@@ -113,14 +117,26 @@ def save_experiment(base_path, model, train_config, metrics_dict,
 # SETUP: Load config, seed, results path
 # ─────────────────────────────────────────────────────
 yaml_path = Path("../pyLowOrder/Examples/NN/configs/gns_config.yaml").absolute()
-cfg = GNSConfig(yaml_path)
-cfg.resolve()
+raw = yaml.safe_load(yaml_path.open("r"))
 
-resudir = Path(cfg.experiment["resudir"]).absolute()
+resudir = raw.get("experiment").get("results_dir")
 resudir.mkdir(parents=True, exist_ok=True)
 
-set_seed(cfg.experiment.get("seed", 42), cfg.model.device)
+dataset_paths = raw.get("datasets")
 
+mode = raw.get("experiment").get("mode", "train")
+
+model_serial = raw.get("model")
+training_serial = raw.get("training")
+optuna_serial = raw.get("optuna")
+
+model_params_serial = model_serial.get("params")
+graph_path = model_serial.get("graph_path")
+
+# Deserialize configurations
+model_params = deserialize_config(model_params_serial)
+training_params = deserialize_config(training_serial)
+optuna_params = deserialize_config(optuna_serial)
 
 # ─────────────────────────────────────────────────────
 # LOAD DATASETS AND SCALERS
@@ -138,26 +154,23 @@ dataset_kwargs = dict(
     squeeze_last_dim=False
 )
 
-td_train = Dataset.load(cfg.raw["datasets"]["train_ds"], **dataset_kwargs)
-td_val   = Dataset.load(cfg.raw["datasets"]["val_ds"], **dataset_kwargs)
-td_test  = Dataset.load(cfg.raw["datasets"]["test_ds"], **dataset_kwargs)
+td_train = Dataset.load(dataset_paths["train_ds"], **dataset_kwargs)
+td_val   = Dataset.load(dataset_paths["val_ds"], **dataset_kwargs)
+td_test  = Dataset.load(dataset_paths["test_ds"], **dataset_kwargs)
 
 
 # ─────────────────────────────────────────────────────
 # TRAIN OR OPTIMIZE MODEL
 # ─────────────────────────────────────────────────────
-mode = cfg.experiment.get("mode", "train")
 
 if mode == "optuna":
     optimizer = OptunaOptimizer(
-        optimization_params=cfg.optuna.optimization_params,
-        n_trials=cfg.optuna.n_trials,
-        direction=cfg.optuna.direction,
-        pruner=cfg.optuna.pruner,
-        sampler=cfg.optuna.sampler,
-        save_dir=cfg.optuna.save_dir,
-        seed=cfg.optuna.seed,
-        graph_path=cfg.optuna.graph_path,
+        optimization_params=optuna_params.get("optimization_params"),
+        n_trials=optuna_params.get("n_trials"),
+        direction=optuna_params.get("direction"),
+        pruner=optuna_params.get("pruner"),
+        sampler=optuna_params.get("sampler"),
+        seed=optuna_params.get("seed", 42),
         )
 
     pipeline = Pipeline(
@@ -169,14 +182,14 @@ if mode == "optuna":
     )
 
 else:
-    model = GNS.from_config(cfg.model)
+    model = GNS.from_graph_path(config=model_params, graph_path=graph_path)
 
     pipeline = Pipeline(
         train_dataset=td_train,
         valid_dataset=td_val,
         test_dataset=td_test,
         model=model,
-        training_params = cfg.training_params,
+        training_params=training_params,
     )
 
 logs = pipeline.run()
@@ -196,7 +209,7 @@ logs["metrics"] = evaluator.metrics_dict
 save_experiment(
     base_path=resudir,
     model=pipeline.model,
-    train_config=cfg.fit,
+    training_params=training_params,
     metrics_dict=evaluator.metrics_dict,
     input_scaler=input_scaler,
     output_scaler=output_scaler,
@@ -237,4 +250,4 @@ true_vs_pred_plot(reference, pred_dummy[0].cpu().numpy())
 # ─────────────────────────────────────────────────────
 # DONE
 # ─────────────────────────────────────────────────────
-pyLOM.cr_info()
+cr_info()

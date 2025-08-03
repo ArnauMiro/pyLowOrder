@@ -5,7 +5,7 @@ experiment:
   description: "GNS model on NLR7301 airfoil dataset as described by ..."
   version: 1.0
   tags: [GNS, airfoil, baseline]
-  resudir: "../CETACEO_RESULTS/nlr7301/"
+  results_dir: "../CETACEO_RESULTS/nlr7301/"
   mode: train                      # Options: train | optuna
 
 datasets:
