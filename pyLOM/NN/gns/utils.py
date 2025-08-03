@@ -334,3 +334,30 @@ class _GNSHelpers:
         else:
             raiseError(f"Unsupported input type: {type(X)}")
 
+    def init_subgraph_loader(
+        self,
+        batch_size: int = 256,
+        input_nodes=None,
+        generator: Optional[torch.Generator] = None,
+    ) -> ManualNeighborLoader:
+        """
+        Initialize a reproducible subgraph sampler.
+
+        Args:
+            batch_size: Number of seed nodes per subgraph batch.
+            input_nodes: Optional mask or indices for input nodes.
+            seed: Optional seed for reproducible sampling.
+
+        Returns:
+            ManualNeighborLoader
+        """
+        return ManualNeighborLoader(
+            device=self.device,
+            base_graph=self.graph,
+            num_hops=self.num_msg_passing_layers,
+            input_nodes=input_nodes,
+            batch_size=batch_size,
+            shuffle=True,
+            generator=generator,
+        )
+
