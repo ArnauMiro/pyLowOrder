@@ -1,4 +1,6 @@
-from typing import Dict
+from typing import Dict, Union
+from pathlib import Path
+import yaml
 
 import torch
 from torch.nn import ELU, ReLU, LeakyReLU, Sigmoid, Tanh, PReLU, Softplus, GELU, SELU
@@ -94,3 +96,14 @@ def deserialize_config(cfg: dict) -> dict:
         else:
             deserialized[key] = value
     return deserialized
+
+
+def load_yaml(path: Union[str, Path]) -> dict:
+    """Load a YAML file and return its contents as a dictionary.
+    Args:
+        path (Union[str, Path]): Path to the YAML file.
+    Returns:
+        dict: Contents of the YAML file.
+    """
+    with open(path, "r") as f:
+        return yaml.safe_load(f)

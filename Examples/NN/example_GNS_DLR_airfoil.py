@@ -30,7 +30,7 @@ from dataclasses import asdict
 from pyLOM.NN import Dataset, GNS, Pipeline, MinMaxScaler
 from pyLOM.NN.optimizer import OptunaOptimizer
 from pyLOM.NN.utils import RegressionEvaluator
-from pyLOM.NN.utils.config_serialization import serialize_config, deserialize_config
+from pyLOM.NN.utils.config_serialization import load_yaml, serialize_config, deserialize_config
 from pyLOM import cr_info
 
 
@@ -162,7 +162,7 @@ def save_experiment_artifacts(base_path: Path,
 # ─────────────────────────────────────────────────────
 
 config_path = Path("../pyLowOrder/Examples/NN/configs/gns_config.yaml").absolute()
-raw_cfg = yaml.safe_load(config_path.open("r"))
+raw_cfg = load_yaml(config_path)
 
 results_dir = raw_cfg["experiment"]["results_dir"]
 results_dir.mkdir(parents=True, exist_ok=True)
