@@ -3,7 +3,7 @@
 """
 Example: Training a GNS model on DLR airfoil data using pyLOM.
 
-Updated to use modern pyLOM API:
+Updated to use the modern pyLOM API:
   - Dataclass-based GNS instantiation via GNSConfig
   - Optuna-compatible Pipeline execution
   - Hash-verified configuration saving
@@ -15,6 +15,7 @@ Date: 2025-08-01
 # ─────────────────────────────────────────────────────
 # IMPORTS
 # ─────────────────────────────────────────────────────
+
 from pathlib import Path
 from typing import Any, Dict
 import numpy as np
@@ -34,62 +35,102 @@ from pyLOM import cr_info
 
 
 # ─────────────────────────────────────────────────────
-# UTILITIES: Plotting and Saving
+# UTILITIES: PLOTTING AND SAVING
 # ─────────────────────────────────────────────────────
 
-def plot_train_test_loss(train_loss, test_loss, path):
-    """Plot training and validation loss and save."""
+def plot_training_and_validation_loss(train_loss: list[float],
+                                      val_loss: list[float],
+                                      save_path: Path) -> None:
+    """
+    Plot and save training and validation loss curves.
+
+    Args:
+        train_loss (list[float]): Training loss values per iteration.
+        val_loss (list[float]): Validation loss values per epoch.
+        save_path (Path): File path where the plot will be saved.
+    """
+    if not train_loss or not val_loss:
+        raise ValueError("Both train_loss and val_loss must be non-empty.")
+
     plt.figure()
     plt.plot(range(1, len(train_loss) + 1), train_loss, label="Training Loss")
-    total_epochs = len(test_loss)
-    iters_per_epoch = len(train_loss) // total_epochs
-    plt.plot(np.arange(iters_per_epoch, len(train_loss) + 1, iters_per_epoch), test_loss, label="Validation Loss")
+
+    num_epochs = len(val_loss)
+    iters_per_epoch = len(train_loss) // num_epochs
+    val_iters = np.arange(iters_per_epoch, len(train_loss) + 1, iters_per_epoch)
+    plt.plot(val_iters, val_loss, label="Validation Loss")
+
     plt.yscale("log")
     plt.xlabel("Iterations")
     plt.ylabel("Loss")
     plt.grid()
     plt.legend()
-    plt.savefig(path, dpi=300)
+    plt.savefig(save_path, dpi=300)
     plt.close()
 
 
-def true_vs_pred_plot(y_true, y_pred, path=None):
-    """Plot true vs predicted values and optionally save to file."""
-    y_true = np.asarray(y_true)
-    y_pred = np.asarray(y_pred)
+
+def plot_true_vs_pred(y_true: np.ndarray,
+                      y_pred: np.ndarray,
+                      save_path: Path | None = None) -> None:
+    """
+    Plot predicted vs. true values.
+
+    Args:
+        y_true (np.ndarray): Ground-truth values.
+        y_pred (np.ndarray): Predicted values.
+        save_path (Path | None): Optional path to save the figure.
+    """
+    if y_true.shape != y_pred.shape:
+        raise ValueError("Shapes of y_true and y_pred must match.")
+
     num_outputs = y_true.shape[1]
     plt.figure(figsize=(10, 5 * num_outputs))
+
     for i in range(num_outputs):
         plt.subplot(num_outputs, 1, i + 1)
         plt.scatter(y_true[:, i], y_pred[:, i], s=1, alpha=0.5)
-        plt.plot([y_true[:, i].min(), y_true[:, i].max()],
-                 [y_true[:, i].min(), y_true[:, i].max()], 'r--')
+        min_val = min(y_true[:, i].min(), y_pred[:, i].min())
+        max_val = max(y_true[:, i].max(), y_pred[:, i].max())
+        plt.plot([min_val, max_val], [min_val, max_val], 'r--')
         plt.xlabel("True")
         plt.ylabel("Predicted")
         plt.grid()
+
     plt.tight_layout()
-    if path:
-        plt.savefig(path, dpi=300)
+    if save_path:
+        plt.savefig(save_path, dpi=300)
         plt.close()
 
 
-def save_experiment(base_path: Path,
-                    model: Any,
-                    metrics_dict: Dict,
-                    input_scaler: Any = None,
-                    output_scaler: Any = None,
-                    extra_files: Dict[str, Any] = None):
-    """Save model, configs, metrics and optional scalers and figures."""
-    base_path = Path(base_path)
+
+def save_experiment_artifacts(base_path: Path,
+                               model: Any,
+                               metrics_dict: Dict[str, float],
+                               input_scaler: Any = None,
+                               output_scaler: Any = None,
+                               extra_files: Dict[str, Any] | None = None) -> None:
+    """
+    Save all relevant experiment artifacts to disk.
+
+    Args:
+        base_path (Path): Root directory where to store outputs.
+        model (Any): Trained model with `.config` and `.save()` interface.
+        metrics_dict (Dict[str, float]): Dictionary of evaluation metrics.
+        input_scaler (Any, optional): Input scaler object to serialize.
+        output_scaler (Any, optional): Output scaler object to serialize.
+        extra_files (Dict[str, Callable], optional): 
+            Dictionary mapping filenames to functions that accept a Path.
+    """
     base_path.mkdir(parents=True, exist_ok=True)
 
-    yaml_path = base_path / "config.yaml"
+    yaml_config_path = base_path / "config.yaml"
     yaml.safe_dump({
         "model": serialize_config(asdict(model.config)),
         "fit": serialize_config(asdict(model.last_training_config)),
-    }, yaml_path.open("w"))
+    }, yaml_config_path.open("w"))
 
-    config_hash = hashlib.sha1(yaml_path.read_bytes()).hexdigest()
+    config_hash = hashlib.sha1(yaml_config_path.read_bytes()).hexdigest()
     timestamp = datetime.datetime.now().isoformat()
     yaml.safe_dump({
         "config_sha1": config_hash,
@@ -109,42 +150,46 @@ def save_experiment(base_path: Path,
         yaml.safe_dump(metrics_dict, f)
 
     if extra_files:
-        for name, gen in extra_files.items():
-            gen(base_path / name)
+        for filename, generator_fn in extra_files.items():
+            if not callable(generator_fn):
+                raise TypeError(f"Expected a callable for file '{filename}'")
+            generator_fn(base_path / filename)
+
+
+
+# ─────────────────────────────────────────────────────
+# SETUP: CONFIG LOAD, SEEDING, OUTPUT PATH
+# ─────────────────────────────────────────────────────
+
+config_path = Path("../pyLowOrder/Examples/NN/configs/gns_config.yaml").absolute()
+raw_cfg = yaml.safe_load(config_path.open("r"))
+
+results_dir = raw_cfg["experiment"]["results_dir"]
+results_dir.mkdir(parents=True, exist_ok=True)
+
+dataset_paths = raw_cfg["datasets"]
+mode = raw_cfg["experiment"].get("mode", "train")
+
+model_cfg_raw = raw_cfg["model"]
+training_cfg_raw = raw_cfg["training"]
+optuna_cfg_raw = raw_cfg["optuna"]
+
+model_params_cfg = model_cfg_raw["params"]
+graph_path = model_cfg_raw["graph_path"]
+
+model_params = deserialize_config(model_params_cfg)
+training_params = deserialize_config(training_cfg_raw)
+optuna_params = deserialize_config(optuna_cfg_raw)
 
 
 # ─────────────────────────────────────────────────────
-# SETUP: Load config, seed, results path
+# DATASET LOADING AND SCALERS
 # ─────────────────────────────────────────────────────
-yaml_path = Path("../pyLowOrder/Examples/NN/configs/gns_config.yaml").absolute()
-raw = yaml.safe_load(yaml_path.open("r"))
 
-resudir = raw.get("experiment").get("results_dir")
-resudir.mkdir(parents=True, exist_ok=True)
-
-dataset_paths = raw.get("datasets")
-
-mode = raw.get("experiment").get("mode", "train")
-
-model_serial = raw.get("model")
-training_serial = raw.get("training")
-optuna_serial = raw.get("optuna")
-
-model_params_serial = model_serial.get("params")
-graph_path = model_serial.get("graph_path")
-
-# Deserialize configurations
-model_params = deserialize_config(model_params_serial)
-training_params = deserialize_config(training_serial)
-optuna_params = deserialize_config(optuna_serial)
-
-# ─────────────────────────────────────────────────────
-# LOAD DATASETS AND SCALERS
-# ─────────────────────────────────────────────────────
 input_scaler = MinMaxScaler()
-output_scaler = None
+output_scaler = None  # Add output scaler here if required
 
-dataset_kwargs = dict(
+ds_kwargs = dict(
     field_names=["CP"],
     add_variables=True,
     add_mesh_coordinates=False,
@@ -154,29 +199,29 @@ dataset_kwargs = dict(
     squeeze_last_dim=False
 )
 
-td_train = Dataset.load(dataset_paths["train_ds"], **dataset_kwargs)
-td_val   = Dataset.load(dataset_paths["val_ds"], **dataset_kwargs)
-td_test  = Dataset.load(dataset_paths["test_ds"], **dataset_kwargs)
+ds_train = Dataset.load(dataset_paths["train_ds"], **ds_kwargs)
+ds_val   = Dataset.load(dataset_paths["val_ds"], **ds_kwargs)
+ds_test  = Dataset.load(dataset_paths["test_ds"], **ds_kwargs)
 
 
 # ─────────────────────────────────────────────────────
-# TRAIN OR OPTIMIZE MODEL
+# TRAINING OR OPTIMIZATION
 # ─────────────────────────────────────────────────────
 
 if mode == "optuna":
     optimizer = OptunaOptimizer(
-        optimization_params=optuna_params.get("optimization_params"),
-        n_trials=optuna_params.get("n_trials"),
-        direction=optuna_params.get("direction"),
-        pruner=optuna_params.get("pruner"),
-        sampler=optuna_params.get("sampler"),
+        optimization_params=optuna_params["optimization_params"],
+        n_trials=optuna_params["n_trials"],
+        direction=optuna_params["direction"],
+        pruner=optuna_params["pruner"],
+        sampler=optuna_params["sampler"],
         seed=optuna_params.get("seed", 42),
-        )
+    )
 
     pipeline = Pipeline(
-        train_dataset=td_train,
-        valid_dataset=td_val,
-        test_dataset=td_test,
+        train_dataset=ds_train,
+        valid_dataset=ds_val,
+        test_dataset=ds_test,
         optimizer=optimizer,
         model_class=GNS,
     )
@@ -185,9 +230,9 @@ else:
     model = GNS.from_graph_path(config=model_params, graph_path=graph_path)
 
     pipeline = Pipeline(
-        train_dataset=td_train,
-        valid_dataset=td_val,
-        test_dataset=td_test,
+        train_dataset=ds_train,
+        valid_dataset=ds_val,
+        test_dataset=ds_test,
         model=model,
         training_params=training_params,
     )
@@ -196,58 +241,61 @@ logs = pipeline.run()
 
 
 # ─────────────────────────────────────────────────────
-# EVALUATE AND SAVE EXPERIMENT
+# EVALUATION AND EXPERIMENT SAVING
 # ─────────────────────────────────────────────────────
-predictions = pipeline.model.predict(td_test)
-targets_eval = td_test[:][1]
+
+y_pred = pipeline.model.predict(ds_test)
+y_true = ds_test[:][1]
 
 evaluator = RegressionEvaluator()
-evaluator(targets_eval, predictions)
+evaluator(y_true, y_pred)
 evaluator.print_metrics()
 logs["metrics"] = evaluator.metrics_dict
 
-save_experiment(
-    base_path=resudir,
+save_experiment_artifacts(
+    base_path=results_dir,
     model=pipeline.model,
-    training_params=training_params,
     metrics_dict=evaluator.metrics_dict,
     input_scaler=input_scaler,
     output_scaler=output_scaler,
     extra_files={
-        "train_test_loss.png": lambda p: plot_train_test_loss(logs["train_loss"], logs["test_loss"], p),
-        "true_vs_pred.png": lambda p: true_vs_pred_plot(targets_eval, predictions, p),
+        "train_test_loss.png": lambda p: plot_training_and_validation_loss(logs["train_loss"], logs["test_loss"], p),
+        "true_vs_pred.png": lambda p: plot_true_vs_pred(y_true, y_pred, p),
     }
 )
 
 
 # ─────────────────────────────────────────────────────
-# INFERENCE TEST: Reload model and predict new input
+# INFERENCE TEST
 # ─────────────────────────────────────────────────────
-print("\n>>> Reloading model and input scaler from disk...")
-model_reloaded = GNS.load(resudir / "model.pth")
 
-with open(resudir / "input_scaler.pkl", "rb") as f:
+print("\n>>> Reloading model and input scaler from disk...")
+model_reloaded = GNS.load(results_dir / "model.pth")
+
+with open(results_dir / "input_scaler.pkl", "rb") as f:
     input_scaler_reloaded = pickle.load(f)
 
-raw_input = np.array([[4.0, 0.7]])  # AoA, Mach
-scaled_input = input_scaler_reloaded.transform(raw_input)
+sample_input = np.array([[4.0, 0.7]])  # AoA, Mach
+scaled_input = input_scaler_reloaded.transform(sample_input)
 input_tensor = torch.tensor(scaled_input, dtype=torch.float32, device=model_reloaded.device)
 
 with torch.no_grad():
-    pred_dummy = model_reloaded.predict(input_tensor)
+    prediction = model_reloaded.predict(input_tensor)
 
-print(f">>> Prediction shape: {pred_dummy.shape}")
-print(f">>> First 5 values: {pred_dummy[0, :5].detach().cpu().numpy()}")
+print(f">>> Prediction shape: {prediction.shape}")
+print(f">>> First 5 values: {prediction[0, :5].detach().cpu().numpy()}")
 
-# Optional: compare with nearest test sample
-inputs_test, targets_test = td_test[:]
-idx = np.argmin(np.linalg.norm(inputs_test - raw_input, axis=1))
-reference = targets_test[idx]
-print(f">>> Comparing with test sample at index {idx}")
-true_vs_pred_plot(reference, pred_dummy[0].cpu().numpy())
+# Compare with nearest test sample
+X_test, Y_test = ds_test[:]
+nearest_idx = np.argmin(np.linalg.norm(X_test - sample_input, axis=1))
+reference = Y_test[nearest_idx]
+
+print(f">>> Comparing with test sample at index {nearest_idx}")
+plot_true_vs_pred(reference, prediction[0].cpu().numpy())
 
 
 # ─────────────────────────────────────────────────────
 # DONE
 # ─────────────────────────────────────────────────────
+
 cr_info()
