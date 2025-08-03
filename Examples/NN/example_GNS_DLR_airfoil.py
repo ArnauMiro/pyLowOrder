@@ -164,7 +164,7 @@ def save_experiment_artifacts(base_path: Path,
 config_path = Path("../pyLowOrder/Examples/NN/configs/gns_config.yaml").absolute()
 raw_cfg = load_yaml(config_path)
 
-results_dir = raw_cfg["experiment"]["results_dir"]
+results_dir = Path(raw_cfg["experiment"]["results_dir"]).absolute()
 results_dir.mkdir(parents=True, exist_ok=True)
 
 dataset_paths = raw_cfg["datasets"]
