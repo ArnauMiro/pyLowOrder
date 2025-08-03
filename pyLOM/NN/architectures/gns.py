@@ -103,7 +103,10 @@ class GNS(torch.nn.Module):
 
         # --- Seed (optional) ---
         if self.seed is not None:
-            set_seed(self.seed)
+            set_seed(self.seed) # Used for weight initialization, dropout, backprop, etc.
+            self._generator = torch.Generator().manual_seed(self.seed) # Used for dataloader shuffling
+        else:
+            self._generator = None
 
 
     @classmethod
@@ -250,10 +253,11 @@ class GNS(torch.nn.Module):
         self.eval()
 
         with torch.no_grad():
-            input_dataloader = self._helpers.init_dataloader(X, batch_size=batch_size)
+            input_dataloader = self._helpers.init_dataloader(X, batch_size=batch_size, generator=self._generator)
             subgraph_loader = self._helpers.init_subgraph_loader(
                 batch_size=node_batch_size,
-                input_nodes=kwargs.get("input_nodes", None)
+                input_nodes=kwargs.get("input_nodes", None),
+                generator=self._generator,  # Use the same generator for reproducibility
             )
             return self._run_epoch(input_dataloader, subgraph_loader, is_train=False, return_loss=False)
 
@@ -292,7 +296,7 @@ class GNS(torch.nn.Module):
             num_workers=config.num_workers,
             pin_memory=config.pin_memory,
             shuffle=True,
-            seed=self.seed,
+            generator=self._generator,
         )
 
         eval_dataloader = None
@@ -302,13 +306,13 @@ class GNS(torch.nn.Module):
                 batch_size=config.batch_size,
                 num_workers=config.num_workers,
                 pin_memory=config.pin_memory,
-                shuffle=False,  # No se debe barajar el val/test
+                shuffle=False,  # No need to shuffle validation data
             )
 
         subgraph_loader = self._helpers.init_subgraph_loader(
             batch_size=config.node_batch_size,
             input_nodes=config.input_nodes,
-            seed=self.seed,
+            generator=self._generator,  # Use the same generator for reproducibility
         )
 
         # --- Initialize optimizer and scheduler ---)

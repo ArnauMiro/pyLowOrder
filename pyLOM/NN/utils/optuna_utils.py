@@ -8,31 +8,28 @@ from torch import Tensor
 
 from .. import DEVICE
 
-def set_seed(seed: int = 42, deterministic: bool = True, verbose: bool = False):
-    """
-    Sets the random seed across Python, NumPy, PyTorch and CUDA for reproducibility.
-
+def set_seed(seed: int = 42) -> None:
+    """Set the random seed for reproducibility.
     Args:
-        seed (int): The seed to use globally.
-        deterministic (bool): Whether to force deterministic CuDNN operations (may affect performance).
-        verbose (bool): Print seed setup info.
+        seed (int): The seed value to set for random number generation.
     """
-    os.environ["PYTHONHASHSEED"] = str(seed)
-
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
-    if deterministic:
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-
-    if verbose:
-        print(f"[set_seed] Seed set to {seed} | Deterministic: {deterministic}")
+def _worker_init_fn(worker_id: int) -> None:
+    """Initialize worker seed for DataLoader workers.
+    Args:
+        worker_id (int): The ID of the worker.
+    """
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
  
 
 def create_results_folder(RESUDIR: str, verbose: bool=True):
