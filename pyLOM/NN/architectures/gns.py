@@ -98,7 +98,7 @@ class GNS(torch.nn.Module):
 
         # --- GroupNorm configuration ---
         self.groupnorm = torch.nn.GroupNorm(
-            num_groups=self.config.num_groups,
+            num_groups=self.config.groupnorm_groups,
             num_channels=config.latent_dim
         ).to(self.device)
 
@@ -161,17 +161,17 @@ class GNS(torch.nn.Module):
     def _build_encoder(self):
         self.encoder = GNSMLP(
             input_size=self._encoder_input_dim,
-            output_size=self.latent_dim,
-            hidden_size=self.hidden_size,
+            output_size=self.config.latent_dim,
+            hidden_size=self.config.hidden_size,
             activation=self.activation,
             drop_p=self.p_dropouts
         ).to(self.device)
 
     def _build_decoder(self):
         self.decoder = GNSMLP(
-            input_size=self.latent_dim,
-            output_size=self.output_dim,
-            hidden_size=self.hidden_size,
+            input_size=self.config.latent_dim,
+            output_size=self.config.output_dim,
+            hidden_size=self.config.hidden_size,
             activation=self.activation,
             drop_p=self.p_dropouts
         ).to(self.device)
@@ -179,14 +179,14 @@ class GNS(torch.nn.Module):
     def _build_message_passing_layers(self):
         self.conv_layers_list = torch.nn.ModuleList([
             MessagePassingLayer(
-                in_channels=2 * self.latent_dim + self._edge_dim,
-                out_channels=self.latent_dim,
-                hidden_size=self.hidden_size,
-                message_hidden_layers=self.message_hidden_layers,
-                update_hidden_layers=self.update_hidden_layers,
+                in_channels=2 * self.config.latent_dim + self._edge_dim,
+                out_channels=self.config.latent_dim,
+                hidden_size=self.config.hidden_size,
+                message_hidden_layers=self.config.message_hidden_layers,
+                update_hidden_layers=self.config.update_hidden_layers,
                 activation=self.activation,
                 drop_p=self.p_dropouts,
-            ) for _ in range(self.num_msg_passing_layers)
+            ) for _ in range(self.config.num_msg_passing_layers)
         ]).to(self.device)
 
     @property
@@ -208,7 +208,7 @@ class GNS(torch.nn.Module):
             graph = graph.to(self.device)
 
 
-        self._encoder_input_dim = graph.x.shape[1] + self.input_dim # Update node features dimension
+        self._encoder_input_dim = graph.x.shape[1] + self.config.input_dim # Update node features dimension
         self._edge_dim = graph.edge_attr.shape[1] # Update edge features dimension
 
         self._graph = graph
@@ -462,7 +462,7 @@ class GNS(torch.nn.Module):
             })
             return total_loss / num_batches
         else:
-            return torch.cat(outputs, dim=0).reshape(-1, self.graph.num_nodes, self.output_dim)
+            return torch.cat(outputs, dim=0).reshape(-1, self.graph.num_nodes, self.config.output_dim)
 
 
     @cr('GNS._train_one_batch')
@@ -773,9 +773,9 @@ class GNS(torch.nn.Module):
 
     def __repr__(self):
         return (
-            f"<GNSModel: {self.input_dim} → {self.latent_dim} → {self.output_dim}>\n"
-            f" Layers: encoder({self.encoder_hidden_layers}), message({self.num_msg_passing_layers}), decoder({self.decoder_hidden_layers})\n"
-            f" MLPs: message({self.message_hidden_layers}), update({self.update_hidden_layers})\n"
+            f"<GNSModel: {self.config.input_dim} → {self.config.latent_dim} → {self.config.output_dim}>\n"
+            f" Layers: encoder({self.encoder_hidden_layers}), message({self.config.num_msg_passing_layers}), decoder({self.decoder_hidden_layers})\n"
+            f" MLPs: message({self.config.message_hidden_layers}), update({self.config.update_hidden_layers})\n"
             f" Activation: {self.activation.__class__.__name__}, Dropout: {self.p_dropouts}, Device: {self.device}\n"
             f" Graph: {repr(self.graph)}\n"
             f" Params: {count_trainable_params(self):,} trainable\n"
