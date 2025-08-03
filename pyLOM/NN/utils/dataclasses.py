@@ -58,29 +58,29 @@ class GNSTrainingParams:
     Training configuration for a GNS model.
 
     Fields:
+        loss_fn (torch.nn.Module): Loss function instance (e.g. nn.MSELoss()).
+        optimizer (type): Optimizer class (e.g. torch.optim.Adam).
+        scheduler (type): LR scheduler class (e.g. torch.optim.lr_scheduler.StepLR).
         epochs (int): Number of training epochs.
+        batch_size (int): Batch size for external inputs.
+        node_batch_size (int): Number of seed nodes per subgraph batch.
         lr (float): Learning rate.
         lr_gamma (float): Gamma factor for LR scheduler.
         lr_scheduler_step (int): Step interval for LR scheduler.
-        loss_fn (nn.Module): Loss function instance (e.g. nn.MSELoss()).
-        optimizer (type): Optimizer class (e.g. torch.optim.Adam).
-        scheduler (type): LR scheduler class (e.g. torch.optim.lr_scheduler.StepLR).
-        batch_size (int): Batch size for external inputs.
-        node_batch_size (int): Number of seed nodes per subgraph batch.
         num_workers (int): Number of workers for dataloaders.
         pin_memory (bool): Whether to pin memory for dataloaders.
         input_nodes (Tensor, optional): Seed nodes for subgraph sampling (if any).
         verbose (bool or int): Logging verbosity.
     """
-    epochs: int = 100
-    lr: float = 1e-4
-    lr_gamma: float = 0.1
-    lr_scheduler_step: int = 1
     loss_fn: Any = torch.nn.MSELoss(reduction='mean')
     optimizer: Any = torch.optim.Adam
     scheduler: Any = torch.optim.lr_scheduler.StepLR
-    batch_size: int = 1
+    epochs: int = 100
+    batch_size: int = 32
     node_batch_size: int = 256
+    lr: float = 1e-4
+    lr_gamma: float = 0.1
+    lr_scheduler_step: int = 1
     num_workers: int = 1
     pin_memory: bool = True
     input_nodes: Optional[torch.Tensor] = None
