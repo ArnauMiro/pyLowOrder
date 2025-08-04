@@ -36,27 +36,37 @@ training:
   lr: 6.5e-4
   lr_gamma: 0.9954
   lr_scheduler_step: 1
-  optimizer: Adam
-  scheduler: StepLR
-  loss_fn: MSELoss
-  batch_size: 15
-  node_batch_size: 32
-  num_workers: 4
-  pin_memory: true
-  verbose: 100
+  optimizer: torch.optim.Adam
+  scheduler: torch.optim.lr_scheduler.StepLR
+  loss_fn: torch.nn.MSELoss
+  print_every: 100
+
+  dataloader:
+    batch_size: 15
+    shuffle: true
+    num_workers: 4
+    pin_memory: true
+
+  subgraph_loader:
+    batch_size: 32
+    shuffle: true
+    num_workers: 4
+    use_parallel_sampling: false
+    pin_memory: true
+
 
 optuna:
   study:
     n_trials: 3
     direction: minimize
     pruner:
-      type: MedianPruner
+      type: optuna.pruners.MedianPruner
       n_startup_trials: 10
       n_warmup_steps: 5
     sampler:
-      type: TPESampler
+      type: optuna.samplers.TPESampler
       multivariate: true
-    seed: 42 # Used by sampler
+    seed: 42  # Used by sampler
 
   optimization_params:
     model:
@@ -71,22 +81,32 @@ optuna:
         decoder_hidden_layers: {type: int, low: 1, high: 4}
         message_hidden_layers: {type: int, low: 1, high: 4}
         update_hidden_layers: {type: int, low: 1, high: 4}
-        groupnorms_groups: 2
-        activation: {type: categorical, choices: [ELU, ReLU, LeakyReLU]}
+        groupnorm_groups: 2  # <- corregido: era `groupnorms_groups`
+        activation: {type: categorical, choices: [torch.nn.ELU, torch.nn.ReLU, torch.nn.LeakyReLU]}
         p_dropouts: {type: float, low: 0.0, high: 0.5}
         seed: 42
         device: cuda
 
     training:
-      loss_fn: MSELoss
-      optimizer: Adam
-      scheduler: StepLR
+      loss_fn: torch.nn.MSELoss
+      optimizer: torch.optim.Adam
+      scheduler: torch.optim.lr_scheduler.StepLR
       epochs: 3
-      batch_size: {type: int, low: 8, high: 64}
-      node_batch_size: {type: int, low: 1, high: 597}
       lr: {type: float, low: 1.0e-5, high: 1.0e-3, log: true}
       lr_gamma: {type: float, low: 0.9, high: 0.999}
       lr_scheduler_step: {type: int, low: 1, high: 10}
-      num_workers: 4
-      pin_memory: true
-      verbose: 1
+      print_every: 1
+
+      dataloader:
+        batch_size: {type: int, low: 8, high: 64}
+        shuffle: true
+        num_workers: 4
+        pin_memory: true
+
+      subgraph_loader:
+        batch_size: {type: int, low: 1, high: 597}
+        shuffle: true
+        num_workers: 4
+        pin_memory: true
+        use_parallel_sampling: false
+

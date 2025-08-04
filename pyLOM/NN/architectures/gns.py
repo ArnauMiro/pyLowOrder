@@ -24,7 +24,7 @@ from .. import DEVICE, set_seed
 from ..utils import count_trainable_params, cleanup_tensors, get_optimizing_value, hyperparams_serializer
 from ..gns import GNSMLP, MessagePassingLayer, Graph, InputsInjector, _ShapeValidator, _GNSHelpers, GNSModelParams, GNSTrainingParams
 from ..utils.wrappers import accepts_config
-from ..utils.config_serialization import serialize_config, deserialize_config
+from ..utils.config_manager import serialize_config, deserialize_config
 from ..optimizer import OptunaOptimizer, TrialPruned
 from ... import pprint, cr
 from ...utils import raiseError, get_git_commit
@@ -258,10 +258,10 @@ class GNS(torch.nn.Module):
             subgraph_loader = self._helpers.init_subgraph_dataloader(
                 batch_size=256,
                 input_nodes=None,
-                shuffle=True,
-                num_workers=4,  # > 0 activa el DataLoader
+                shuffle=False,  # We must not shuffle during inference
+                num_workers=4,  # > 0 activates dataloader
                 generator=torch.Generator().manual_seed(0),
-                use_parallel_sampling=True,  # <- Clave
+                use_parallel_sampling=True,  # <- Use parallel sampling for subgraphs
             )
             return self._run_epoch(input_dataloader, subgraph_loader, is_train=False, return_loss=False)
 
@@ -299,7 +299,7 @@ class GNS(torch.nn.Module):
             batch_size=config.batch_size,
             num_workers=config.num_workers,
             pin_memory=config.pin_memory,
-            shuffle=True,
+            shuffle=config.shuffle,  # Shuffle only if specified
             generator=self._generator,
         )
 
@@ -317,6 +317,15 @@ class GNS(torch.nn.Module):
             batch_size=config.node_batch_size,
             input_nodes=config.input_nodes,
             generator=self._generator,  # Use the same generator for reproducibility
+        )
+
+        subgraph_loader = self._helpers.init_subgraph_dataloader(
+            batch_size=config.node_batch_size,
+            input_nodes=config.input_nodes,
+            shuffle=config.shuffle,
+            num_workers=4,  # > 0 activates dataloader
+            generator=torch.Generator().manual_seed(0),
+            use_parallel_sampling=True,  # <- Use parallel sampling for subgraphs
         )
 
         # --- Initialize optimizer and scheduler ---)

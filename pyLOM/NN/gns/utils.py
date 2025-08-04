@@ -393,8 +393,8 @@ class _GNSHelpers:
         input_nodes: Optional[Union[Tensor, Sequence[int]]] = None,
         shuffle: bool = True,
         num_workers: int = 0,
-        generator: Optional[torch.Generator] = None,
         use_parallel_sampling: bool = False,
+        generator: Optional[torch.Generator] = None,
     ) -> Union[Iterable[Data], DataLoader]:
         """
         Initialize a subgraph dataloader over seed nodes.
@@ -404,8 +404,8 @@ class _GNSHelpers:
             input_nodes (Optional): Mask or indices of seed nodes.
             shuffle (bool): Whether to shuffle seed nodes.
             num_workers (int): Number of workers for parallel sampling.
-            generator (Optional): Torch generator for reproducibility.
             use_parallel_sampling (bool): Whether to use multiprocessing via ManualNeighborDataset.
+            generator (Optional): Torch generator for reproducibility.
 
         Returns:
             Iterable or DataLoader: Iterator over sampled subgraphs (torch_geometric.data.Data).

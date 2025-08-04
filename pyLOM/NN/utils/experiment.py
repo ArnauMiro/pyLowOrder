@@ -17,7 +17,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
 from torch.utils.data import Dataset as TorchDataset
 
-from pyLOM.NN.utils.config_serialization import serialize_config
+from pyLOM.NN.utils.config_manager import serialize_config
 from pyLOM.NN import GNS
 from pyLOM import pprint
 from pyLOM.utils import get_git_commit

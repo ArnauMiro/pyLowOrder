@@ -1,4 +1,4 @@
 from .layers import GNSMLP, MessagePassingLayer
 from .graph import Graph
 from .utils import InputsInjector, ManualNeighborLoader, _ShapeValidator, _GNSHelpers
-from ..utils.dataclasses import GNSModelParams, GNSTrainingParams
+from ..utils.dataclasses import GNSModelConfig, GNSTrainingConfig, SubgraphDataloaderConfig
