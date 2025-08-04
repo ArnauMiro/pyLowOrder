@@ -309,7 +309,10 @@ print(f">>> First 5 values: {prediction[0, :5].detach().cpu().numpy()}")
 
 # Compare with nearest test sample
 X_test, Y_test = ds_test[:]
-nearest_idx = np.argmin(np.linalg.norm(X_test - sample_input, axis=1))
+nearest_idx = np.argmin(np.linalg.norm(
+    np.array(X_test) - np.array(sample_input), axis=1
+))
+
 reference = Y_test[nearest_idx]
 
 print(f">>> Comparing with test sample at index {nearest_idx}")

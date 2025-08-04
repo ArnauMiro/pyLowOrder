@@ -610,7 +610,7 @@ class GNS(torch.nn.Module):
                 raiseError(f"Checkpoint is missing required key: '{key}'")
 
         # --- Reconstruct model ---
-        model_config = GNSModelParams(deserialize_config(checkpoint["model_config"]))
+        model_config = GNSModelParams(**deserialize_config(checkpoint["model_config"]))
         graph_path = checkpoint["graph_path"]
         model = cls.from_graph_path(config=model_config, graph_path=graph_path)
 
