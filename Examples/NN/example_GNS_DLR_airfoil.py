@@ -31,7 +31,7 @@ from pyLOM.NN import Dataset, GNS, Pipeline, MinMaxScaler
 from pyLOM.NN.optimizer import OptunaOptimizer
 from pyLOM.NN.utils import RegressionEvaluator
 from pyLOM.NN.utils.config_serialization import load_yaml, serialize_config, deserialize_config
-from pyLOM import cr_info
+from pyLOM import cr_info, pprint
 
 
 # ─────────────────────────────────────────────────────
@@ -126,34 +126,48 @@ def save_experiment_artifacts(base_path: Path,
                                metrics_dict: Dict[str, float],
                                input_scaler: Any = None,
                                output_scaler: Any = None,
-                               extra_files: Dict[str, Any] | None = None) -> None:
+                               extra_files: Dict[str, Any] | None = None,
+                               return_path: bool = False) -> None:
     """
     Save all relevant experiment artifacts to disk.
-
+    If base_path is a directory with no specific subfolder, a timestamped folder will be created automatically.
     Args:
-        base_path (Path): Root directory where to store outputs.
-        model (Any): Trained model with `.config` and `.save()` interface.
+        base_path (Path): Base path where artifacts will be saved.
+        model (Any): The trained model instance.
         metrics_dict (Dict[str, float]): Dictionary of evaluation metrics.
-        input_scaler (Any, optional): Input scaler object to serialize.
-        output_scaler (Any, optional): Output scaler object to serialize.
-        extra_files (Dict[str, Callable], optional): 
-            Dictionary mapping filenames to functions that accept a Path.
+        input_scaler (Any, optional): Input scaler instance (e.g., MinMaxScaler).
+        output_scaler (Any, optional): Output scaler instance (e.g., MinMaxScaler).
+        extra_files (Dict[str, Any], optional): Additional files to save, with filename as key and a callable generator function as value.
+        return_path (bool): If True, return the path where artifacts were saved.
+    Returns:
+        base_path (Path): The path where artifacts were saved, if return_path is True.
+    Raises:
+        TypeError: If extra_files values are not callable.
     """
+    # Ensure base_path is a directory, generate subfolder if needed
+    if base_path.is_dir() or not base_path.suffix:
+        timestamp = datetime.datetime.now().isoformat(timespec="seconds").replace(":", "-")
+        model_name = getattr(model.config, "model_name", model.__class__.__name__)
+        base_path = base_path / f"{timestamp}_{model_name}"
+    
     base_path.mkdir(parents=True, exist_ok=True)
 
+    # Save config.yaml
     yaml_config_path = base_path / "config.yaml"
     yaml.safe_dump({
         "model": serialize_config(asdict(model.config)),
-        "fit": serialize_config(asdict(model.last_training_config)),
+        "training": serialize_config(asdict(model.last_training_config)),
     }, yaml_config_path.open("w"))
 
+    # Save meta.yaml with hash and timestamp
     config_hash = hashlib.sha1(yaml_config_path.read_bytes()).hexdigest()
-    timestamp = datetime.datetime.now().isoformat()
-    yaml.safe_dump({
+    meta_info = {
         "config_sha1": config_hash,
-        "saved_at": timestamp
-    }, (base_path / "meta.yaml").open("w"))
+        "saved_at": datetime.datetime.now().isoformat()
+    }
+    yaml.safe_dump(meta_info, (base_path / "meta.yaml").open("w"))
 
+    # Save model and scalers
     model.save(base_path / "model.pth")
 
     if input_scaler:
@@ -163,16 +177,22 @@ def save_experiment_artifacts(base_path: Path,
         with open(base_path / "output_scaler.pkl", "wb") as f:
             pickle.dump(output_scaler, f)
 
-    # Convert NumPy types to native before saving
+    # Save evaluation metrics
     native_metrics = _convert_numpy_to_native(metrics_dict)
     with open(base_path / "metrics.yaml", "w") as f:
         yaml.safe_dump(native_metrics, f)
 
+    # Save any extra files
     if extra_files:
         for filename, generator_fn in extra_files.items():
             if not callable(generator_fn):
                 raise TypeError(f"Expected a callable for file '{filename}'")
             generator_fn(base_path / filename)
+
+    pprint(0, f"Experiment artifacts saved to: {base_path}")
+
+    if return_path:
+        return base_path
 
 
 
@@ -274,7 +294,7 @@ metrics = evaluator(y_true, y_pred)
 evaluator.print_metrics()
 logs["metrics"] = metrics
 
-save_experiment_artifacts(
+save_path = save_experiment_artifacts(
     base_path=results_dir,
     model=pipeline.model,
     metrics_dict=metrics,
@@ -283,7 +303,8 @@ save_experiment_artifacts(
     extra_files={
         "train_test_loss.png": lambda p: plot_training_and_validation_loss(logs["train_loss"], logs["test_loss"], p),
         "true_vs_pred.png": lambda p: plot_true_vs_pred(y_true, y_pred, p),
-    }
+    },
+    return_path=True
 )
 
 
@@ -292,9 +313,9 @@ save_experiment_artifacts(
 # ─────────────────────────────────────────────────────
 
 print("\n>>> Reloading model and input scaler from disk...")
-model_reloaded = GNS.load(results_dir / "model.pth")
+model_reloaded = GNS.load(save_path / "model.pth")
 
-with open(results_dir / "input_scaler.pkl", "rb") as f:
+with open(save_path / "input_scaler.pkl", "rb") as f:
     input_scaler_reloaded = pickle.load(f)
 
 sample_input = np.array([[4.0, 0.7]])  # AoA, Mach

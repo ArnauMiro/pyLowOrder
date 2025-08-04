@@ -20,30 +20,30 @@ model:
     output_dim: 1
     latent_dim: 16
     hidden_size: 256
-    num_msg_passing_layers: 3
-    encoder_hidden_layers: 2
+    num_msg_passing_layers: 1
+    encoder_hidden_layers: 6
     decoder_hidden_layers: 1
     message_hidden_layers: 2
     update_hidden_layers: 2
     groupnorm_groups: 2
     activation: ELU
-    p_dropouts: 0.1
+    p_dropouts: 0.0
     seed: 42
     device: cuda
 
 training:
-  epochs: 3
-  lr: 5.0e-4
-  lr_gamma: 0.98
+  epochs: 1000
+  lr: 6.5e-4
+  lr_gamma: 0.9954
   lr_scheduler_step: 1
   optimizer: Adam
   scheduler: StepLR
   loss_fn: MSELoss
-  batch_size: 16
-  node_batch_size: 512
+  batch_size: 15
+  node_batch_size: 32
   num_workers: 4
   pin_memory: true
-  verbose: 1
+  verbose: 100
 
 optuna:
   study:
