@@ -27,7 +27,7 @@ from pyLOM.NN.optimizer import OptunaOptimizer
 from pyLOM.NN.utils import RegressionEvaluator
 from pyLOM.NN.utils.config_serialization import load_yaml, deserialize_config
 from pyLOM import cr_info
-from pyLOM.NN.utils.experiment import save_experiment_artifacts, plot_training_and_validation_loss, plot_true_vs_pred
+from pyLOM.NN.utils.experiment import save_experiment_artifacts, plot_training_and_validation_loss, plot_true_vs_pred, evaluate_dataset_with_metrics
 
 # ─────────────────────────────────────────────────────
 # SETUP: CONFIG LOAD, SEEDING, OUTPUT PATH
@@ -145,7 +145,7 @@ else:
 
 
 # ─────────────────────────────────────────────────────
-# INFERENCE TEST
+# Debugging
 # ─────────────────────────────────────────────────────
 save_path = Path("/home/p.yeste/CETACEO_RESULTS/nlr7301/2025-08-04T05-24-09_GNS/")
 
@@ -157,58 +157,66 @@ with open(save_path / "input_scaler.pkl", "rb") as f:
 
 # Internal evaluation on training set
 loss_internal = model_reloaded._run_epoch(
-    input_dataloader=model._helpers.init_dataloader(ds_train, batch_size=32),
-    subgraph_loader=model._helpers.init_subgraph_dataloader(batch_size=256),
+    input_dataloader=model_reloaded._helpers.init_dataloader(ds_train, batch_size=1),
+    subgraph_loader=model_reloaded._helpers.init_subgraph_dataloader(batch_size=256),
     loss_fn=torch.nn.MSELoss(),
     return_loss=True,
     is_train=False,
 )
 print(f"[Internal Eval on train] MSE: {loss_internal:.6f}")
 
-# Evaluación externa
-preds = model.predict(ds_train)
-targets = ds_train[:][1]
-mse = F.mse_loss(preds, targets)
-print(f"[External Eval] MSE: {mse:.6f}")
-
-
 # External evaluation on training set
-preds = model.predict(ds_train)
-targets = ds_train[:][1]
-mse = F.mse_loss(preds, targets)
-print(f"[External Eval] MSE: {mse:.6f}")
+preds = model_reloaded.predict(ds_train).detach().cpu().numpy()
+_, targets = ds_train[:]
+if torch.is_tensor(targets):
+    targets = targets.cpu().numpy()
+
+metrics = evaluate_dataset_with_metrics(preds, targets)
+
+for k, v in metrics.items():
+    print(f"{k}: {v:.4f}")
 
 
-y_pred = model_reloaded.predict(ds_test)
-y_pred = y_pred.detach().cpu().numpy()
-y_true = ds_test[:][1]
-y_true = y_true.detach().cpu().numpy()
-
-print(f"\n>>> Dataset: test")
-print(f"\n>>> Predictions shape: {y_pred.shape}")
-print(f">>> True values shape: {y_true.shape}")
-print(f">>> First 5 predictions: {y_pred[:5, :5]}")
-print(f">>> First 5 true values: {y_true[:5, :5]}")
+# ─────────────────────────────────────────────────────
+# INFERENCE TEST
+# ─────────────────────────────────────────────────────
+# # External evaluation on training set
+# preds = model.predict(ds_train)
+# targets = ds_train[:][1]
+# mse = F.mse_loss(preds, targets)
+# print(f"[External Eval] MSE: {mse:.6f}")
 
 
-evaluator = RegressionEvaluator()
-metrics = evaluator(y_true, y_pred)
-evaluator.print_metrics()
+# y_pred = model_reloaded.predict(ds_test)
+# y_pred = y_pred.detach().cpu().numpy()
+# y_true = ds_test[:][1]
+# y_true = y_true.detach().cpu().numpy()
 
-y_pred = model_reloaded.predict(ds_train)
-y_pred = y_pred.detach().cpu().numpy()
-y_true = ds_train[:][1]
-y_true = y_true.detach().cpu().numpy()
+# print(f"\n>>> Dataset: test")
+# print(f"\n>>> Predictions shape: {y_pred.shape}")
+# print(f">>> True values shape: {y_true.shape}")
+# print(f">>> First 5 predictions: {y_pred[:5, :5]}")
+# print(f">>> First 5 true values: {y_true[:5, :5]}")
 
-print(f"\n>>> Dataset: train")
-print(f"\n>>> Predictions shape: {y_pred.shape}")
-print(f">>> True values shape: {y_true.shape}")
-print(f">>> First 5 predictions: {y_pred[:5, :5]}")
-print(f">>> First 5 true values: {y_true[:5, :5]}")
 
-evaluator = RegressionEvaluator()
-metrics = evaluator(y_true, y_pred)
-evaluator.print_metrics()
+# evaluator = RegressionEvaluator()
+# metrics = evaluator(y_true, y_pred)
+# evaluator.print_metrics()
+
+# y_pred = model_reloaded.predict(ds_train)
+# y_pred = y_pred.detach().cpu().numpy()
+# y_true = ds_train[:][1]
+# y_true = y_true.detach().cpu().numpy()
+
+# print(f"\n>>> Dataset: train")
+# print(f"\n>>> Predictions shape: {y_pred.shape}")
+# print(f">>> True values shape: {y_true.shape}")
+# print(f">>> First 5 predictions: {y_pred[:5, :5]}")
+# print(f">>> First 5 true values: {y_true[:5, :5]}")
+
+# evaluator = RegressionEvaluator()
+# metrics = evaluator(y_true, y_pred)
+# evaluator.print_metrics()
 
 # sample_input = np.array([[4.0, 0.7]])  # AoA, Mach
 # scaled_input = input_scaler_reloaded.transform(sample_input)

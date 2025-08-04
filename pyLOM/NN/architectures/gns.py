@@ -256,9 +256,12 @@ class GNS(torch.nn.Module):
         with torch.no_grad():
             input_dataloader = self._helpers.init_dataloader(X, batch_size=batch_size, generator=self._generator)
             subgraph_loader = self._helpers.init_subgraph_dataloader(
-                batch_size=node_batch_size,
-                input_nodes=kwargs.get("input_nodes", None),
-                generator=self._generator,  # Use the same generator for reproducibility
+                batch_size=256,
+                input_nodes=None,
+                shuffle=True,
+                num_workers=4,  # > 0 activa el DataLoader
+                generator=torch.Generator().manual_seed(0),
+                use_parallel_sampling=True,  # <- Clave
             )
             return self._run_epoch(input_dataloader, subgraph_loader, is_train=False, return_loss=False)
 

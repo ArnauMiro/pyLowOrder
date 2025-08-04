@@ -13,8 +13,12 @@ import hashlib
 import datetime
 from dataclasses import asdict
 import getpass
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+
+from torch.utils.data import Dataset as TorchDataset
 
 from pyLOM.NN.utils.config_serialization import serialize_config
+from pyLOM.NN import GNS
 from pyLOM import pprint
 from pyLOM.utils import get_git_commit
 
@@ -181,3 +185,51 @@ def save_experiment_artifacts(base_path: Path,
 
     if return_path:
         return base_path
+
+def evaluate_dataset_with_metrics(preds: np.ndarray, targets: np.ndarray) -> dict:
+    """
+    Evaluate predictions against targets using standard regression metrics.
+    
+    Args:
+        preds (np.ndarray): Model predictions. Shape: [B, N, F] or [B, N].
+        targets (np.ndarray): Ground truth values. Same shape as `preds`.
+
+    Returns:
+        dict: Dictionary of regression metrics.
+    """
+    # Flatten for per-sample evaluation
+    preds_flat = preds.reshape(-1)
+    targets_flat = targets.reshape(-1)
+
+    assert preds_flat.shape == targets_flat.shape, (
+        f"Shape mismatch: preds {preds_flat.shape}, targets {targets_flat.shape}"
+    )
+
+    # Standard metrics
+    mse = mean_squared_error(targets_flat, preds_flat)
+    rmse = np.sqrt(mse)
+    mae = mean_absolute_error(targets_flat, preds_flat)
+    r2 = r2_score(targets_flat, preds_flat)
+
+    # Relative errors
+    with np.errstate(divide='ignore', invalid='ignore'):
+        relative_errors = np.abs((targets_flat - preds_flat) / targets_flat)
+        relative_errors = relative_errors[np.isfinite(relative_errors)]
+
+    mre = np.mean(relative_errors) * 100 if len(relative_errors) > 0 else np.nan
+
+    # Absolute error quantiles
+    ae = np.abs(targets_flat - preds_flat)
+    ae_95 = np.percentile(ae, 95)
+    ae_99 = np.percentile(ae, 99)
+
+    return {
+        "mse": mse,
+        "rmse": rmse,
+        "mae": mae,
+        "mre": mre,
+        "ae_95": ae_95,
+        "ae_99": ae_99,
+        "r2": r2,
+        "l2_error": np.linalg.norm(preds_flat - targets_flat) / np.linalg.norm(targets_flat)
+    }

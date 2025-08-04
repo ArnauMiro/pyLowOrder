@@ -1,5 +1,5 @@
 # --- batchers used by gns.py ---
-from typing import Optional, Union, Sequence, Iterator
+from typing import Optional, Union, Sequence, Iterator, Iterable
 import torch
 from torch import Tensor
 from torch.utils.data import IterableDataset
@@ -394,35 +394,48 @@ class _GNSHelpers:
         shuffle: bool = True,
         num_workers: int = 0,
         generator: Optional[torch.Generator] = None,
-    ) -> DataLoader:
+        use_parallel_sampling: bool = False,
+    ) -> Union[Iterable[Data], DataLoader]:
         """
-        Initialize a PyTorch DataLoader over subgraphs, using ManualNeighborDataset.
+        Initialize a subgraph dataloader over seed nodes.
 
         Args:
             batch_size (int): Number of seed nodes per subgraph batch.
             input_nodes (Optional): Mask or indices of seed nodes.
             shuffle (bool): Whether to shuffle seed nodes.
             num_workers (int): Number of workers for parallel sampling.
-            generator (Optional): Torch generator for reproducible sampling.
+            generator (Optional): Torch generator for reproducibility.
+            use_parallel_sampling (bool): Whether to use multiprocessing via ManualNeighborDataset.
 
         Returns:
-            DataLoader: Iterator over subgraphs (Data objects).
+            Iterable or DataLoader: Iterator over sampled subgraphs (torch_geometric.data.Data).
         """
+        if use_parallel_sampling and num_workers > 0:
+            dataset = ManualNeighborDataset(
+                device=self.device,
+                base_graph=self.graph,
+                num_hops=self.num_msg_passing_layers,
+                batch_size=batch_size,
+                input_nodes=input_nodes,
+                shuffle=shuffle,
+                generator=generator,
+            )
 
-        dataset = ManualNeighborDataset(
-            device=self.device,
-            base_graph=self.graph,
-            num_hops=self.num_msg_passing_layers,
-            batch_size=batch_size,
-            input_nodes=input_nodes,
-            shuffle=shuffle,
-            generator=generator,
-        )
+            return DataLoader(
+                dataset,
+                num_workers=num_workers,
+                pin_memory=True,
+                batch_size=None,  # IterableDataset already yields samples
+            )
+        else:
+            return ManualNeighborLoader(
+                device=self.device,
+                base_graph=self.graph,
+                num_hops=self.num_msg_passing_layers,
+                batch_size=batch_size,
+                input_nodes=input_nodes,
+                shuffle=shuffle,
+                generator=generator,
+            )
 
-        return DataLoader(
-            dataset,
-            batch_size=None,  # Subgraphs are pre-batched
-            num_workers=num_workers,
-            pin_memory=False # Mandatory: tensors are already in GPU.
-        )
 
