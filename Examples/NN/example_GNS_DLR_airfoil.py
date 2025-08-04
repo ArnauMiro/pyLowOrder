@@ -104,6 +104,23 @@ def plot_true_vs_pred(y_true: np.ndarray,
 
 
 
+def _convert_numpy_to_native(obj):
+    """
+    Recursively convert NumPy scalar types in a structure to native Python types.
+    """
+    if isinstance(obj, dict):
+        return {k: _convert_numpy_to_native(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return type(obj)(_convert_numpy_to_native(v) for v in obj)
+    elif hasattr(obj, "item") and callable(obj.item):
+        try:
+            return obj.item()
+        except Exception:
+            return obj
+    else:
+        return obj
+
+
 def save_experiment_artifacts(base_path: Path,
                                model: Any,
                                metrics_dict: Dict[str, float],
@@ -146,8 +163,10 @@ def save_experiment_artifacts(base_path: Path,
         with open(base_path / "output_scaler.pkl", "wb") as f:
             pickle.dump(output_scaler, f)
 
+    # Convert NumPy types to native before saving
+    native_metrics = _convert_numpy_to_native(metrics_dict)
     with open(base_path / "metrics.yaml", "w") as f:
-        yaml.safe_dump(metrics_dict, f)
+        yaml.safe_dump(native_metrics, f)
 
     if extra_files:
         for filename, generator_fn in extra_files.items():
@@ -245,17 +264,20 @@ logs = pipeline.run()
 # ─────────────────────────────────────────────────────
 
 y_pred = pipeline.model.predict(ds_test)
+y_pred = y_pred.detach().cpu().numpy()
 y_true = ds_test[:][1]
+y_true = y_true.detach().cpu().numpy()
+
 
 evaluator = RegressionEvaluator()
-evaluator(y_true, y_pred)
+metrics = evaluator(y_true, y_pred)
 evaluator.print_metrics()
-logs["metrics"] = evaluator.metrics_dict
+logs["metrics"] = metrics
 
 save_experiment_artifacts(
     base_path=results_dir,
     model=pipeline.model,
-    metrics_dict=evaluator.metrics_dict,
+    metrics_dict=metrics,
     input_scaler=input_scaler,
     output_scaler=output_scaler,
     extra_files={

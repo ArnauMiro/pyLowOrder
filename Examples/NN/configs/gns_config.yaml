@@ -43,7 +43,7 @@ training:
   node_batch_size: 512
   num_workers: 4
   pin_memory: true
-  verbose: 25
+  verbose: 1
 
 optuna:
   study:

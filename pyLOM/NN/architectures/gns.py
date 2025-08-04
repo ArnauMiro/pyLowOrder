@@ -105,7 +105,7 @@ class GNS(torch.nn.Module):
         # --- Seed (optional) ---
         if self.seed is not None:
             set_seed(self.seed) # Used for weight initialization, dropout, backprop, etc.
-            self._generator = torch.Generator().manual_seed(self.seed) # Used for dataloader shuffling
+            self._generator = torch.Generator(device=torch.device('cpu')).manual_seed(self.seed) # Used for dataloader shuffling
         else:
             self._generator = None
 
@@ -255,7 +255,7 @@ class GNS(torch.nn.Module):
 
         with torch.no_grad():
             input_dataloader = self._helpers.init_dataloader(X, batch_size=batch_size, generator=self._generator)
-            subgraph_loader = self._helpers.init_subgraph_loader(
+            subgraph_loader = self._helpers.init_subgraph_dataloader(
                 batch_size=node_batch_size,
                 input_nodes=kwargs.get("input_nodes", None),
                 generator=self._generator,  # Use the same generator for reproducibility
@@ -310,7 +310,7 @@ class GNS(torch.nn.Module):
                 shuffle=False,  # No need to shuffle validation data
             )
 
-        subgraph_loader = self._helpers.init_subgraph_loader(
+        subgraph_loader = self._helpers.init_subgraph_dataloader(
             batch_size=config.node_batch_size,
             input_nodes=config.input_nodes,
             generator=self._generator,  # Use the same generator for reproducibility
@@ -544,12 +544,14 @@ class GNS(torch.nn.Module):
             raiseError(f"Invalid dataset for {self.__class__.__name__}: {e}")
 
     
-    def save(self, path: str) -> None:
+    def save(self, path: Union[str, Path]) -> None:
         """
         Save the current model to a checkpoint file.
         """
         if self.graph_path is None:
             raiseError("Cannot save model without graph_path set.")
+
+        path = Path(path)
 
         checkpoint = {
             "graph_path": self.graph_path,
@@ -571,14 +573,14 @@ class GNS(torch.nn.Module):
 
         if os.path.isdir(path):
             path = os.path.join(path, filename)
-        elif not path.endswith(".pth"):
+        elif path.suffix != ".pth":
             raiseError("Save path must end with '.pth' or be a directory.")
 
         torch.save(checkpoint, path)
 
 
     @classmethod
-    def load(cls, path: str, device: Union[str, torch.device] = DEVICE) -> "GNS":
+    def load(cls, path: Union[str, Path], device: Union[str, torch.device] = DEVICE) -> "GNS":
         """
         Load a GNS model from a checkpoint file.
 
@@ -589,10 +591,11 @@ class GNS(torch.nn.Module):
         Returns:
             GNS: Reconstructed model instance.
         """
+        path = Path(path)
         if not os.path.isfile(path):
             raiseError(f"Model file '{path}' not found.")
-        if not path.endswith(".pth"):
-            raiseError("Checkpoint file must have a '.pth' extension.")
+        if not path.suffix != ".pth":
+            raiseError(f"Checkpoint file must have a '.pth' extension. Extension was {path.suffix}.")
 
         device = torch.device(device)
         if device.type == "cuda" and not torch.cuda.is_available():
@@ -666,16 +669,18 @@ class GNS(torch.nn.Module):
         @cr("GNS.optimization_function")
         def optimization_function(trial: Trial) -> float:
             # Sample hyperparameters
-            model_params = {
+            model_params_serial = {
                 key: get_optimizing_value(key, val, trial)
                 for key, val in search_space.get("model").items()
             }
-            training_params = {
+            training_params_serial = {
                 key: get_optimizing_value(key, val, trial)
                 for key, val in search_space.get("training").items()
             }
 
-            model_params["graph_path"] = graph_path
+            model_params = deserialize_config(model_params_serial)
+            training_params = deserialize_config(training_params_serial)
+
             model = cls.from_graph(model_params, graph=shared_graph)
 
             pprint(0, f"\nTrial {trial.number + 1}/{optuna_optimizer.num_trials}:")

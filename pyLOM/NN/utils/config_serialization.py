@@ -46,41 +46,39 @@ _MAPPING_KEYS: Dict[str, Dict] = {
 
 
 def serialize_config(cfg: dict) -> dict:
-    """Serialize a configuration dictionary to a format suitable for storage.
-    Args:
-        cfg (dict): Configuration dictionary with keys that may include torch or optuna objects.
-    Returns:
-        dict: Serialized configuration dictionary with string representations of objects.
+    """
+    Serialize a configuration dictionary by converting object instances to string identifiers
+    using predefined mappings.
     """
     serialized = {}
     for key, value in cfg.items():
         if key in _MAPPING_KEYS:
-            reverse = {}
-            for k, v in _MAPPING_KEYS[key].items():
-                reverse[v] = k
-                if isinstance(v, type):
-                    reverse[v()] = k  # Add instance too
+            reverse = {v: k for k, v in _MAPPING_KEYS[key].items()}
 
-            if isinstance(value, type):
-                key_name = reverse.get(value)
+            # Special case: if value is an instance of mapped type
+            if isinstance(value, torch.nn.Module) or isinstance(value, torch.optim.Optimizer):
+                cls = value.__class__
+                if cls in reverse:
+                    serialized[key] = reverse[cls]
+                else:
+                    raise ValueError(f"Cannot serialize instance of {cls} for key '{key}'")
+
+            # If value is already a class
+            elif isinstance(value, type) and value in reverse:
+                serialized[key] = reverse[value]
+
             else:
-                key_name = reverse.get(value.__class__, value.__class__.__name__)
-            if key_name is None:
                 raise ValueError(f"Cannot serialize value '{value}' for key '{key}'")
-            serialized[key] = key_name
+
         else:
             serialized[key] = value
     return serialized
 
 
-
-
 def deserialize_config(cfg: dict) -> dict:
-    """Deserialize a configuration dictionary from a stored format.
-    Args:
-        cfg (dict): Configuration dictionary with string representations of objects.
-    Returns:
-        dict: Deserialized configuration dictionary with actual torch or optuna objects.
+    """
+    Deserialize a configuration dictionary by converting string identifiers to object instances
+    using predefined mappings.
     """
     deserialized = {}
     for key, value in cfg.items():
@@ -89,13 +87,19 @@ def deserialize_config(cfg: dict) -> dict:
             if isinstance(value, str):
                 if value not in mapping:
                     raise ValueError(f"Unknown value '{value}' for key '{key}'")
-                resolved = mapping[value]
-                deserialized[key] = resolved() if callable(resolved) and not isinstance(resolved, type) else resolved
+                cls = mapping[value]
+                # Don't instantiate optimizers or schedulers yet
+                if key in ("optimizer", "scheduler"):
+                    deserialized[key] = cls  # Leave as class for later instantiation
+                else:
+                    deserialized[key] = cls()  # Instantiate activation, loss, etc.
             else:
                 deserialized[key] = value
         else:
             deserialized[key] = value
     return deserialized
+
+
 
 
 def load_yaml(path: Union[str, Path]) -> dict:
