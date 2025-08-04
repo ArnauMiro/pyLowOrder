@@ -663,23 +663,34 @@ class GNS(torch.nn.Module):
                 }
         """
         optimization_params = optuna_optimizer.optimization_params
-        graph_path, search_space = cls.split_search_space(optimization_params)
+        graph_path = optimization_params["model"]["graph_path"]
+        model_space = optimization_params["model"]["params"]
+        training_space = optimization_params["training"]
         shared_graph = Graph.load(graph_path)
 
         @cr("GNS.optimization_function")
         def optimization_function(trial: Trial) -> float:
-            # Sample hyperparameters
-            model_params_serial = {
-                key: get_optimizing_value(key, val, trial)
-                for key, val in search_space.get("model").items()
+            model_sampled = {
+                k: get_optimizing_value(k, v, trial)
+                for k, v in model_space.items()
+                if isinstance(v, dict) and "type" in v
             }
-            training_params_serial = {
-                key: get_optimizing_value(key, val, trial)
-                for key, val in search_space.get("training").items()
+            model_fixed = {
+                k: v for k, v in model_space.items()
+                if not (isinstance(v, dict) and "type" in v)
             }
+            model_params = deserialize_config({**model_fixed, **model_sampled})
 
-            model_params = deserialize_config(model_params_serial)
-            training_params = deserialize_config(training_params_serial)
+            training_sampled = {
+                k: get_optimizing_value(k, v, trial)
+                for k, v in training_space.items()
+                if isinstance(v, dict) and "type" in v
+            }
+            training_fixed = {
+                k: v for k, v in training_space.items()
+                if not (isinstance(v, dict) and "type" in v)
+            }
+            training_params = deserialize_config({**training_fixed, **training_sampled})
 
             model = cls.from_graph(model_params, graph=shared_graph)
 
@@ -689,7 +700,6 @@ class GNS(torch.nn.Module):
 
             try:
                 if optuna_optimizer.pruner is not None:
-                    # Pruning support: run one epoch at a time
                     val_loss = None
                     for epoch in range(training_params.get("epochs")):
                         epoch_params = training_params.copy()
@@ -723,16 +733,17 @@ class GNS(torch.nn.Module):
         # Run Optuna optimization
         best_params_flat = optuna_optimizer.optimize(objective_function=optimization_function)
 
-        # Recover structured hyperparameters
-        graph_path, search_space = cls.split_search_space(optuna_optimizer.optimization_params)
-        best_model_params = search_space["model"].copy()
-        best_training_params = search_space["training"].copy()
+        # Reconstruct final model and training configs
+        best_model_params = model_space.copy()
+        best_training_params = training_space.copy()
 
-        # Fill with selected values
         for k in best_model_params:
-            best_model_params[k] = best_params_flat[k]
+            if isinstance(best_model_params[k], dict) and "type" in best_model_params[k]:
+                best_model_params[k] = best_params_flat[k]
         for k in best_training_params:
-            best_training_params[k] = best_params_flat[k]
+            if isinstance(best_training_params[k], dict) and "type" in best_training_params[k]:
+                best_training_params[k] = best_params_flat[k]
+
         best_model_params["graph_path"] = graph_path
 
         pprint(0, "\nBest hyperparameters:")
@@ -743,7 +754,6 @@ class GNS(torch.nn.Module):
         final_model = cls.from_graph_path(config=final_model_config, graph_path=graph_path)
 
         return final_model, best_training_params
-
 
 
     @staticmethod

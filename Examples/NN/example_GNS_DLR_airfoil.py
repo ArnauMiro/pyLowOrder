@@ -26,12 +26,14 @@ import yaml
 import hashlib
 import datetime
 from dataclasses import asdict
+import getpass
 
 from pyLOM.NN import Dataset, GNS, Pipeline, MinMaxScaler
 from pyLOM.NN.optimizer import OptunaOptimizer
 from pyLOM.NN.utils import RegressionEvaluator
 from pyLOM.NN.utils.config_serialization import load_yaml, serialize_config, deserialize_config
 from pyLOM import cr_info, pprint
+from pyLOM.utils import get_git_commit
 
 
 # ─────────────────────────────────────────────────────
@@ -161,9 +163,12 @@ def save_experiment_artifacts(base_path: Path,
 
     # Save meta.yaml with hash and timestamp
     config_hash = hashlib.sha1(yaml_config_path.read_bytes()).hexdigest()
-    meta_info = {
+    meta_info = {   
+        "saved_at": datetime.datetime.now().isoformat(),
         "config_sha1": config_hash,
-        "saved_at": datetime.datetime.now().isoformat()
+        "torch_version": torch.__version__,
+        "user": getpass.getuser(),
+        "git_commit": get_git_commit(),
     }
     yaml.safe_dump(meta_info, (base_path / "meta.yaml").open("w"))
 
@@ -220,7 +225,6 @@ model_params = deserialize_config(model_params_cfg)
 training_params = deserialize_config(training_cfg_raw)
 optuna_params = deserialize_config(optuna_cfg_raw)
 
-
 # ─────────────────────────────────────────────────────
 # DATASET LOADING AND SCALERS
 # ─────────────────────────────────────────────────────
@@ -248,13 +252,14 @@ ds_test  = Dataset.load(dataset_paths["test_ds"], **ds_kwargs)
 # ─────────────────────────────────────────────────────
 
 if mode == "optuna":
+    study = optuna_params["study"]
     optimizer = OptunaOptimizer(
         optimization_params=optuna_params["optimization_params"],
-        n_trials=optuna_params["n_trials"],
-        direction=optuna_params["direction"],
-        pruner=optuna_params["pruner"],
-        sampler=optuna_params["sampler"],
-        seed=optuna_params.get("seed", 42),
+        n_trials=study["n_trials"],
+        direction=study.get("direction"),
+        pruner=study.get("pruner"),
+        sampler=study.get("sampler"),
+        seed=study.get("seed"),
     )
 
     pipeline = Pipeline(
@@ -276,41 +281,45 @@ else:
         training_params=training_params,
     )
 
-logs = pipeline.run()
+# logs = pipeline.run()
 
 
 # ─────────────────────────────────────────────────────
 # EVALUATION AND EXPERIMENT SAVING
 # ─────────────────────────────────────────────────────
 
-y_pred = pipeline.model.predict(ds_test)
-y_pred = y_pred.detach().cpu().numpy()
-y_true = ds_test[:][1]
-y_true = y_true.detach().cpu().numpy()
+# y_pred = pipeline.model.predict(ds_test)
+# y_pred = y_pred.detach().cpu().numpy()
+# y_true = ds_test[:][1]
+# y_true = y_true.detach().cpu().numpy()
+
+# print(f"\n>>> Predictions shape: {y_pred.shape}")
+# print(f">>> True values shape: {y_true.shape}")
 
 
-evaluator = RegressionEvaluator()
-metrics = evaluator(y_true, y_pred)
-evaluator.print_metrics()
-logs["metrics"] = metrics
+# evaluator = RegressionEvaluator()
+# metrics = evaluator(y_true, y_pred)
+# evaluator.print_metrics()
+# logs["metrics"] = metrics
 
-save_path = save_experiment_artifacts(
-    base_path=results_dir,
-    model=pipeline.model,
-    metrics_dict=metrics,
-    input_scaler=input_scaler,
-    output_scaler=output_scaler,
-    extra_files={
-        "train_test_loss.png": lambda p: plot_training_and_validation_loss(logs["train_loss"], logs["test_loss"], p),
-        "true_vs_pred.png": lambda p: plot_true_vs_pred(y_true, y_pred, p),
-    },
-    return_path=True
-)
+# save_path = save_experiment_artifacts(
+#     base_path=results_dir,
+#     model=pipeline.model,
+#     metrics_dict=metrics,
+#     input_scaler=input_scaler,
+#     output_scaler=output_scaler,
+#     extra_files={
+#         "train_test_loss.png": lambda p: plot_training_and_validation_loss(logs["train_loss"], logs["test_loss"], p),
+#         "true_vs_pred.png": lambda p: plot_true_vs_pred(y_true, y_pred, p),
+#     },
+#     return_path=True
+# )
 
 
 # ─────────────────────────────────────────────────────
 # INFERENCE TEST
 # ─────────────────────────────────────────────────────
+save_path = Path("/home/p.yeste/CETACEO_RESULTS/nlr7301/2025-08-04T05-24-09_GNS/")
 
 print("\n>>> Reloading model and input scaler from disk...")
 model_reloaded = GNS.load(save_path / "model.pth")
@@ -318,26 +327,57 @@ model_reloaded = GNS.load(save_path / "model.pth")
 with open(save_path / "input_scaler.pkl", "rb") as f:
     input_scaler_reloaded = pickle.load(f)
 
-sample_input = np.array([[4.0, 0.7]])  # AoA, Mach
-scaled_input = input_scaler_reloaded.transform(sample_input)
-input_tensor = torch.tensor(scaled_input, dtype=torch.float32, device=model_reloaded.device)
+y_pred = model_reloaded.predict(ds_test)
+y_pred = y_pred.detach().cpu().numpy()
+y_true = ds_test[:][1]
+y_true = y_true.detach().cpu().numpy()
 
-with torch.no_grad():
-    prediction = model_reloaded.predict(input_tensor)
+print(f"\n>>> Dataset: test")
+print(f"\n>>> Predictions shape: {y_pred.shape}")
+print(f">>> True values shape: {y_true.shape}")
+print(f">>> First 5 predictions: {y_pred[:5, :5]}")
+print(f">>> First 5 true values: {y_true[:5, :5]}")
 
-print(f">>> Prediction shape: {prediction.shape}")
-print(f">>> First 5 values: {prediction[0, :5].detach().cpu().numpy()}")
 
-# Compare with nearest test sample
-X_test, Y_test = ds_test[:]
-nearest_idx = np.argmin(np.linalg.norm(
-    np.array(X_test) - np.array(sample_input), axis=1
-))
+evaluator = RegressionEvaluator()
+metrics = evaluator(y_true, y_pred)
+evaluator.print_metrics()
 
-reference = Y_test[nearest_idx]
+y_pred = model_reloaded.predict(ds_train)
+y_pred = y_pred.detach().cpu().numpy()
+y_true = ds_train[:][1]
+y_true = y_true.detach().cpu().numpy()
 
-print(f">>> Comparing with test sample at index {nearest_idx}")
-plot_true_vs_pred(reference, prediction[0].cpu().numpy())
+print(f"\n>>> Dataset: train")
+print(f"\n>>> Predictions shape: {y_pred.shape}")
+print(f">>> True values shape: {y_true.shape}")
+print(f">>> First 5 predictions: {y_pred[:5, :5]}")
+print(f">>> First 5 true values: {y_true[:5, :5]}")
+
+evaluator = RegressionEvaluator()
+metrics = evaluator(y_true, y_pred)
+evaluator.print_metrics()
+
+# sample_input = np.array([[4.0, 0.7]])  # AoA, Mach
+# scaled_input = input_scaler_reloaded.transform(sample_input)
+# input_tensor = torch.tensor(scaled_input, dtype=torch.float32, device=model_reloaded.device)
+
+# with torch.no_grad():
+#     prediction = model_reloaded.predict(input_tensor)
+
+# print(f">>> Prediction shape: {prediction.shape}")
+# print(f">>> First 5 values: {prediction[0, :5].detach().cpu().numpy()}")
+
+# # Compare with nearest test sample
+# X_test, Y_test = ds_test[:]
+# nearest_idx = np.argmin(np.linalg.norm(
+#     np.array(X_test) - np.array(sample_input), axis=1
+# ))
+
+# reference = Y_test[nearest_idx]
+
+# print(f">>> Comparing with test sample at index {nearest_idx}")
+# plot_true_vs_pred(reference, prediction[0].cpu().numpy())
 
 
 # ─────────────────────────────────────────────────────

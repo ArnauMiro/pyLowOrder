@@ -6,7 +6,7 @@ experiment:
   version: 1.0
   tags: [GNS, airfoil, baseline]
   results_dir: "../CETACEO_RESULTS/nlr7301/"
-  mode: train                      # Options: train | optuna
+  mode: optuna                      # Options: train | optuna
 
 datasets:
   train_ds: "../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
@@ -47,7 +47,7 @@ training:
 
 optuna:
   study:
-    n_trials: 100
+    n_trials: 3
     direction: minimize
     pruner:
       type: MedianPruner
@@ -83,10 +83,10 @@ optuna:
       scheduler: StepLR
       epochs: 3
       batch_size: {type: int, low: 8, high: 64}
-      node_batch_size: {type: int, low: 128, high: 102}
+      node_batch_size: {type: int, low: 1, high: 597}
       lr: {type: float, low: 1.0e-5, high: 1.0e-3, log: true}
       lr_gamma: {type: float, low: 0.9, high: 0.999}
       lr_scheduler_step: {type: int, low: 1, high: 10}
       num_workers: 4
       pin_memory: true
-      verbose: 25
+      verbose: 1
