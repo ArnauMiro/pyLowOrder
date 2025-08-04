@@ -22,27 +22,27 @@ try:
 		local_id = int(id%gpu_per_node)
 		cp.cuda.Device(local_id).use()
 
-	def gpu_warmup(X):
+	def gpu_warmup():
 		'''
 		Two small activations of the matmul and QR
 		algorithms allowing to setup the CUDA context
 		'''
 		# matmul
-		A = np.array([
+		A = cp.array([
 			[1 , 1, 1],
 			[-5, 2, 4],
 			[1 , 5, 3],
 			[4 , 3, 8],
 			[6 , 4, 2]], 
-		np.float32, order = 'C')
-		B = np.array([
+		cp.float32, order = 'C')
+		B = cp.array([
 			[1 , 1, 1, 2],
 			[-5, 2, 4, 5],
 			[1 , 5, 3, 4]], 
-		np.float32, order = 'C')
+		cp.float32, order = 'C')
 		C = cp.matmul(A,B)
 		# SVD and QR
-		A = np.array([[1,2],[3,4],[5,6],[7,8]],dtype=np.float32,order='C')
+		A = cp.array([[1,2],[3,4],[5,6],[7,8]],dtype=cp.float32,order='C')
 		Q,R   = cp.linalg.qr(A)
 		U,S,V = cp.linalg.svd(A)
 
