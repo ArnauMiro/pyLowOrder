@@ -594,7 +594,7 @@ class GNS(torch.nn.Module):
         path = Path(path)
         if not os.path.isfile(path):
             raiseError(f"Model file '{path}' not found.")
-        if not path.suffix != ".pth":
+        if not path.suffix == ".pth":
             raiseError(f"Checkpoint file must have a '.pth' extension. Extension was {path.suffix}.")
 
         device = torch.device(device)
