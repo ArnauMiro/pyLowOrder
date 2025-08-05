@@ -50,9 +50,7 @@ training:
   subgraph_loader:
     batch_size: 32
     shuffle: true
-    num_workers: 4
-    use_parallel_sampling: false
-    pin_memory: true
+    input nodes: null  # Use default from dataloader
 
 
 optuna:
@@ -106,7 +104,5 @@ optuna:
       subgraph_loader:
         batch_size: {type: int, low: 1, high: 597}
         shuffle: true
-        num_workers: 4
-        pin_memory: true
-        use_parallel_sampling: false
+        input_nodes: null  # Use default from dataloader
 

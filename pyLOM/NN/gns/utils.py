@@ -13,6 +13,7 @@ from . import Graph
 from ... import cr
 from ...utils import raiseError
 from ..utils.optuna_utils import _worker_init_fn
+from ..utils.dataclasses import SubgraphDataloaderConfig, TorchDataloaderConfig
 
 
 class _ShapeValidator:
@@ -293,24 +294,30 @@ class _GNSHelpers:
     def init_dataloader(
         self,
         X: Union[Tensor, TorchDataset],
-        *,
-        batch_size: int = 15,
-        shuffle: bool = True,
-        num_workers: int = 0,
-        pin_memory: Optional[bool] = None,
-        generator: Optional[torch.Generator] = None,
+        config: TorchDataloaderConfig,
     ) -> DataLoader:
+        """
+        Initialize a PyTorch DataLoader using the provided configuration.
+
+        Args:
+            X (Tensor or TorchDataset): Input data.
+            config (TorchDataloaderConfig): Loader configuration.
+
+        Returns:
+            DataLoader: Configured PyTorch dataloader.
+        """
+        pin_memory = config.pin_memory
         if pin_memory is None:
             pin_memory = self.device.type == "cuda" and torch.cuda.is_available()
 
-        worker_fn = _worker_init_fn if num_workers > 0 else None
+        worker_fn = _worker_init_fn if config.num_workers > 0 else None
 
         if isinstance(X, Tensor):
             dataset = TensorDataset(X.cpu())
             return DataLoader(
                 dataset,
-                batch_size=len(dataset),
-                shuffle=False,
+                batch_size=len(dataset),  # Full batch for tensors
+                shuffle=False,            # Shuffling not meaningful for tensors
                 num_workers=0,
                 pin_memory=pin_memory,
             )
@@ -318,45 +325,36 @@ class _GNSHelpers:
         elif isinstance(X, TorchDataset):
             return DataLoader(
                 X,
-                batch_size=batch_size,
-                shuffle=shuffle,
-                num_workers=num_workers,
+                batch_size=config.batch_size,
+                shuffle=config.shuffle,
+                num_workers=config.num_workers,
                 pin_memory=pin_memory,
-                generator=generator,
+                generator=config.generator,
                 worker_init_fn=worker_fn,
             )
+
         else:
-            raiseError(f"Unsupported input type: {type(X)}")
+            raiseError(f"Unsupported input type for dataloader: {type(X)}")
 
     def init_subgraph_dataloader(
         self,
-        *,
-        batch_size: int = 256,
-        input_nodes: Optional[Union[Tensor, Sequence[int]]] = None,
-        shuffle: bool = True,
-        generator: Optional[torch.Generator] = None,
+        config: SubgraphDataloaderConfig,
     ) -> ManualNeighborLoader:
         """
-        Initialize a simple, single-threaded subgraph loader using ManualNeighborLoader.
+        Initialize a subgraph sampler using ManualNeighborLoader and provided config.
 
         Args:
-            batch_size (int): Number of seed nodes per subgraph batch.
-            input_nodes (Optional): Seed node indices or mask.
-            shuffle (bool): Whether to shuffle seed nodes.
-            generator (Optional): Torch generator for reproducibility.
+            config (SubgraphDataloaderConfig): Configuration parameters.
 
         Returns:
-            Iterable[Data]: Iterator over sampled subgraphs.
+            ManualNeighborLoader: Configured subgraph loader.
         """
         return ManualNeighborLoader(
             device=self.device,
             base_graph=self.graph,
             num_hops=self.num_msg_passing_layers,
-            batch_size=batch_size,
-            input_nodes=input_nodes,
-            shuffle=shuffle,
-            generator=generator,
+            batch_size=config.batch_size,
+            input_nodes=config.input_nodes,
+            shuffle=config.shuffle,
+            generator=config.generator,
         )
-
-
-

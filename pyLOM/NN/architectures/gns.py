@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Dict, Tuple, Union, Optional
 import datetime
 import getpass
+import copy
 
 import torch
 from torch import Tensor
@@ -22,8 +23,9 @@ from optuna import Trial
 
 from .. import DEVICE, set_seed
 from ..utils import count_trainable_params, cleanup_tensors, get_optimizing_value, hyperparams_serializer
-from ..gns import GNSMLP, MessagePassingLayer, Graph, InputsInjector, _ShapeValidator, _GNSHelpers, GNSModelParams, GNSTrainingParams
-from ..utils.wrappers import accepts_config
+from ..gns import GNSMLP, MessagePassingLayer, Graph, InputsInjector, _ShapeValidator, _GNSHelpers
+from ..utils.wrappers import config_from_kwargs
+from ..utils.dataclasses import GNSModelConfig, GNSTrainingConfig, TorchDataloaderConfig, SubgraphDataloaderConfig
 from ..utils.config_manager import serialize_config, deserialize_config
 from ..optimizer import OptunaOptimizer, TrialPruned
 from ... import pprint, cr
@@ -39,23 +41,23 @@ class GNS(torch.nn.Module):
     It supports subgraph batching and is optimized for training on large RANS meshes.
 
     Note:
-        This constructor assumes a fully loaded `Graph` object and a validated `GNSModelParams` config.
+        This constructor assumes a fully loaded `Graph` object and a validated `GNSModelConfig` config.
         For standard usage, prefer using `GNS.from_graph(...)` or `GNS.from_graph_path(...)`.
     """
 
-    def __init__(self, *, config: GNSModelParams, graph: Graph) -> None:
+    def __init__(self, *, config: GNSModelConfig, graph: Graph) -> None:
         """
         Internal constructor for GNS. Do not use directly unless you know what you're doing.
 
         Args:
-            config (GNSModelParams): Fully validated model configuration.
+            config (GNSModelConfig): Fully validated model configuration.
             graph (Graph): In-memory Graph object required by all components of the model.
         """
         super().__init__()
 
         # --- Basic validation ---
-        if not isinstance(config, GNSModelParams):
-            raiseError("Expected config to be a GNSModelParams.")
+        if not isinstance(config, GNSModelConfig):
+            raiseError("Expected config to be a GNSModelConfig.")
         if not isinstance(graph, Graph):
             raiseError("Expected graph to be a Graph instance.")
 
@@ -111,8 +113,8 @@ class GNS(torch.nn.Module):
 
 
     @classmethod
-    @accepts_config(GNSModelParams)
-    def from_graph(cls, *, config: GNSModelParams, graph: Graph) -> "GNS":
+    @config_from_kwargs(GNSModelConfig)
+    def from_graph(cls, *, config: GNSModelConfig, graph: Graph) -> "GNS":
         """
         Construct a GNS model from a loaded Graph and a model config.
 
@@ -120,7 +122,7 @@ class GNS(torch.nn.Module):
         is already loaded in memory. The config must not contain `graph_path`.
 
         Args:
-            config (GNSModelParams): Fully resolved model configuration.
+            config (GNSModelConfig): Fully resolved model configuration.
             graph (Graph): In-memory Graph instance.
 
         Returns:
@@ -133,8 +135,8 @@ class GNS(torch.nn.Module):
 
 
     @classmethod
-    @accepts_config(GNSModelParams)
-    def from_graph_path(cls, *, config: GNSModelParams, graph_path: Union[str, Path]) -> "GNS":
+    @config_from_kwargs(GNSModelConfig)
+    def from_graph_path(cls, *, config: GNSModelConfig, graph_path: Union[str, Path]) -> "GNS":
         """
         Construct a GNS model by loading the Graph from disk.
 
@@ -142,7 +144,7 @@ class GNS(torch.nn.Module):
         is known (not the graph itself).
 
         Args:
-            config (GNSModelParams): Fully resolved model configuration.
+            config (GNSModelConfig): Fully resolved model configuration.
             graph_path (str or Path): Path to the graph file. Must be a valid Graph file.
 
         Returns:
@@ -238,7 +240,6 @@ class GNS(torch.nn.Module):
         X: Union[Tensor, TorchDataset],
         batch_size: int = 1,
         node_batch_size: int = 256,
-        **kwargs
     ) -> torch.Tensor:
         """
         Run inference on the model.
@@ -251,29 +252,36 @@ class GNS(torch.nn.Module):
             Tensor: Predictions of shape [B * N, F].
         """
         self._validate_shapes(X)
-        self.eval()
 
+        input_dataloader_config = TorchDataloaderConfig(
+            batch_size=batch_size,
+            shuffle=False,
+            generator=self._generator
+        )
+
+        subgraph_loader_config = SubgraphDataloaderConfig(
+            batch_size=node_batch_size,
+            shuffle=False,
+            input_nodes=None,
+            generator=torch.Generator().manual_seed(0)
+        )
+
+        input_dataloader = self._helpers.init_dataloader(X, input_dataloader_config)
+        subgraph_loader = self._helpers.init_subgraph_dataloader(subgraph_loader_config)
+
+        self.eval()
         with torch.no_grad():
-            input_dataloader = self._helpers.init_dataloader(X, batch_size=batch_size, generator=self._generator)
-            subgraph_loader = self._helpers.init_subgraph_dataloader(
-                batch_size=256,
-                input_nodes=None,
-                shuffle=False,  # We must not shuffle during inference
-                num_workers=4,  # > 0 activates dataloader
-                generator=torch.Generator().manual_seed(0),
-                use_parallel_sampling=True,  # <- Use parallel sampling for subgraphs
-            )
             return self._run_epoch(input_dataloader, subgraph_loader, is_train=False, return_loss=False)
 
 
-    @accepts_config(GNSTrainingParams)
+    @config_from_kwargs(GNSTrainingConfig)
     @cr('GNS.fit')
     def fit(
         self,
         train_dataset: TorchDataset,
         eval_dataset: Optional[TorchDataset] = None,
         *,
-        config: GNSTrainingParams,
+        config: GNSTrainingConfig,
         reset_state: bool = True
     ) -> Dict[str, list]:
         """
@@ -294,39 +302,22 @@ class GNS(torch.nn.Module):
             self._validate_shapes(eval_dataset)
 
         # --- Instantiate dataloaders ---
-        input_dataloader = self._helpers.init_dataloader(
-            train_dataset,
-            batch_size=config.batch_size,
-            num_workers=config.num_workers,
-            pin_memory=config.pin_memory,
-            shuffle=config.shuffle,  # Shuffle only if specified
-            generator=self._generator,
-        )
+        train_loader_config = config.dataloader
+        train_loader_config.generator = self._generator
+        input_dataloader = self._helpers.init_dataloader(train_dataset, train_loader_config)
 
         eval_dataloader = None
         if eval_dataset is not None:
-            eval_dataloader = self._helpers.init_dataloader(
-                eval_dataset,
-                batch_size=config.batch_size,
-                num_workers=config.num_workers,
-                pin_memory=config.pin_memory,
-                shuffle=False,  # No need to shuffle validation data
-            )
+            val_loader_config = copy.deepcopy(config.dataloader)
+            val_loader_config.shuffle = False
+            val_loader_config.generator = self._generator
+            eval_dataloader = self._helpers.init_dataloader(eval_dataset, val_loader_config)
+        else:
+            eval_dataloader = None
 
-        subgraph_loader = self._helpers.init_subgraph_dataloader(
-            batch_size=config.node_batch_size,
-            input_nodes=config.input_nodes,
-            generator=self._generator,  # Use the same generator for reproducibility
-        )
-
-        subgraph_loader = self._helpers.init_subgraph_dataloader(
-            batch_size=config.node_batch_size,
-            input_nodes=config.input_nodes,
-            shuffle=config.shuffle,
-            num_workers=4,  # > 0 activates dataloader
-            generator=torch.Generator().manual_seed(0),
-            use_parallel_sampling=True,  # <- Use parallel sampling for subgraphs
-        )
+        subgraph_loader_config = config.subgraph_loader
+        subgraph_loader_config.generator = self._generator
+        subgraph_loader = self._helpers.init_subgraph_dataloader(subgraph_loader_config)
 
         # --- Initialize optimizer and scheduler ---)
         if reset_state or self.optimizer is None:
@@ -622,7 +613,7 @@ class GNS(torch.nn.Module):
                 raiseError(f"Checkpoint is missing required key: '{key}'")
 
         # --- Reconstruct model ---
-        model_config = GNSModelParams(**deserialize_config(checkpoint["model_config"]))
+        model_config = GNSModelConfig(**deserialize_config(checkpoint["model_config"]))
         graph_path = checkpoint["graph_path"]
         model = cls.from_graph_path(config=model_config, graph_path=graph_path)
 
@@ -632,7 +623,7 @@ class GNS(torch.nn.Module):
         model.state = state
 
         if checkpoint.get("last_training_config") is not None:
-            last_training_config = GNSTrainingParams(
+            last_training_config = GNSTrainingConfig(
                 **deserialize_config(checkpoint["last_training_config"])
             )
             model.last_training_config = last_training_config
@@ -762,7 +753,7 @@ class GNS(torch.nn.Module):
         pprint(0, f"  Model params: {json.dumps(best_model_params, indent=4, default=hyperparams_serializer)}")
         pprint(0, f"  Training params: {json.dumps(best_training_params, indent=4, default=hyperparams_serializer)}")
 
-        final_model_config = GNSModelParams(**best_model_params)
+        final_model_config = GNSModelConfig(**best_model_params)
         final_model = cls.from_graph_path(config=final_model_config, graph_path=graph_path)
 
         return final_model, best_training_params

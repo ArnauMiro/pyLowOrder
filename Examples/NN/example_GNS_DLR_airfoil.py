@@ -25,7 +25,7 @@ import torch.nn.functional as F
 from pyLOM.NN import Dataset, GNS, Pipeline, MinMaxScaler
 from pyLOM.NN.optimizer import OptunaOptimizer
 from pyLOM.NN.utils import RegressionEvaluator
-from pyLOM.NN.utils.config_serialization import load_yaml, deserialize_config
+from pyLOM.NN.utils.config_manager import load_yaml, deserialize_config
 from pyLOM import cr_info
 from pyLOM.NN.utils.experiment import save_experiment_artifacts, plot_training_and_validation_loss, plot_true_vs_pred, evaluate_dataset_with_metrics
 

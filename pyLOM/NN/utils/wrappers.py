@@ -3,20 +3,14 @@ from functools import wraps
 from typing import Type, Callable, Any
 
 
-def accepts_config(config_class: Type) -> Callable:
+def config_from_kwargs(config_class: Type) -> Callable:
     """
-    Decorator that ensures a function receives a `config` instance of `config_class`.
-
-    Accepts either:
+    Decorator that allows a function to accept a configuration either as:
       - `config=instance_of_config_class`
-      - `config=dict(...)` with fields matching the config class
-      - `**kwargs` that include config-class fields
+      - `config=dict(...)` (converted to instance)
+      - `**kwargs` matching the dataclass fields
 
-    Args:
-        config_class (Type): A dataclass type to enforce or construct.
-
-    Returns:
-        Callable: Wrapped function with guaranteed `config: config_class` in kwargs.
+    Guarantees that the function receives a `config: config_class` in kwargs.
     """
     if not is_dataclass(config_class):
         raise TypeError(f"{config_class} must be a dataclass.")
@@ -26,31 +20,23 @@ def accepts_config(config_class: Type) -> Callable:
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs) -> Any:
-            # Case A: config provided explicitly
             if "config" in kwargs:
+                if any(k in config_fields for k in kwargs):
+                    raise ValueError("Cannot mix `config=...` with individual config fields as kwargs.")
                 raw = kwargs.pop("config")
-
                 if isinstance(raw, config_class):
                     config = raw
                 elif isinstance(raw, dict):
-                    try:
-                        config = config_class(**raw)
-                    except TypeError as e:
-                        raise ValueError(f"Invalid config dictionary for {config_class.__name__}: {e}")
+                    config = config_class(**raw)
                 else:
-                    raise TypeError(f"`config` must be {config_class.__name__} or dict, got {type(raw).__name__}")
-
+                    raise TypeError(f"`config` must be {config_class.__name__} or dict.")
             else:
-                # Case B: construct from kwargs
                 config_kwargs = {k: kwargs.pop(k) for k in list(kwargs) if k in config_fields}
-                try:
-                    config = config_class(**config_kwargs)
-                except TypeError as e:
-                    raise ValueError(f"Invalid arguments for {config_class.__name__}: {e}")
+                config = config_class(**config_kwargs)
 
             return func(*args, config=config, **kwargs)
 
-        # Augment docstring with config fields
+        # Docstring augmentation
         doc = func.__doc__ or ""
         doc += f"\n\nAccepted config fields for `{config_class.__name__}`:\n"
         for f in fields(config_class):
@@ -60,3 +46,4 @@ def accepts_config(config_class: Type) -> Callable:
         return wrapper
 
     return decorator
+

@@ -18,7 +18,7 @@ from torch import Tensor
 #----------------------------------------------------------------------
 
 @dataclass
-class ModelConfig:
+class ModelConfigBase:
     input_dim: int
     output_dim: int
     seed: Optional[int] = None
@@ -26,16 +26,16 @@ class ModelConfig:
 
 
 @dataclass
-class DataloaderConfig:
+class TorchDataloaderConfig:
     batch_size: int = 32
     shuffle: bool = True
-    num_workers: int = 1
-    pin_memory: bool = True
+    num_workers: int = 0
+    pin_memory: Optional[bool] = None  # let helper decide default
     generator: Optional[torch.Generator] = None
 
 
 @dataclass
-class TrainingConfig:
+class TrainingConfigBase:
     loss_fn: Any = torch.nn.MSELoss(reduction='mean')
     optimizer: Any = torch.optim.Adam
     scheduler: Any = torch.optim.lr_scheduler.StepLR
@@ -54,7 +54,7 @@ class TrainingConfig:
 #----------------------------------------------------------------------
 
 @dataclass
-class GNSModelConfig(ModelConfig):
+class GNSModelConfig(ModelConfigBase):
     latent_dim: int
     hidden_size: int
     num_msg_passing_layers: int
@@ -68,12 +68,15 @@ class GNSModelConfig(ModelConfig):
 
 
 @dataclass
-class SubgraphDataloaderConfig(DataloaderConfig):
+class SubgraphDataloaderConfig:
+    batch_size: int = 256
+    shuffle: bool = True
     input_nodes: Optional[Union[Tensor, Sequence[int]]] = None
-    use_parallel_sampling: bool = False
+    generator: Optional[torch.Generator] = None
+
 
 
 @dataclass
-class GNSTrainingConfig(TrainingConfig):
-    dataloader: DataloaderConfig = field(default_factory=DataloaderConfig)
+class GNSTrainingConfig(TrainingConfigBase):
+    dataloader: TorchDataloaderConfig = field(default_factory=TorchDataloaderConfig)
     subgraph_loader: SubgraphDataloaderConfig = field(default_factory=SubgraphDataloaderConfig)
