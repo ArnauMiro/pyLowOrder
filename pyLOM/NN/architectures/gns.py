@@ -22,10 +22,13 @@ from optuna import Trial
 
 from dacite import from_dict, Config
 
-from .. import DEVICE, cr, pprint, set_seed
-from ..utils import (
+from .. import DEVICE, set_seed
+from ... import pprint, cr
+from ...utils import (
     raiseError,
     get_git_commit,
+)
+from ..utils import (
     count_trainable_params,
     cleanup_tensors,
     get_optimizing_value,
@@ -46,7 +49,7 @@ from ..utils.config_schema import (
     TorchDataloaderConfig,
     SubgraphDataloaderConfig,
 )
-from ..utils.config_manager import (
+from ..utils.config_loader import (
     serialize_config_dict,
     resolve_config_dict,
 )
