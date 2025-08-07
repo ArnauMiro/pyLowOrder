@@ -8,28 +8,51 @@
 
 import os
 import json
-from dataclasses import asdict
-from pathlib import Path
-from typing import Dict, Tuple, Union, Optional
-import datetime
-import getpass
 import copy
+import getpass
+import datetime
+from pathlib import Path
+from typing import Dict, Tuple, Union, Optional, Callable
+from dataclasses import asdict
 
 import torch
 from torch import Tensor
-from torch.utils.data import Dataset as TorchDataset
 from torch_geometric.data import Data
 from optuna import Trial
 
-from .. import DEVICE, set_seed
-from ..utils import count_trainable_params, cleanup_tensors, get_optimizing_value, hyperparams_serializer
-from ..gns import GNSMLP, MessagePassingLayer, Graph, InputsInjector, _ShapeValidator, _GNSHelpers
+from dacite import from_dict, Config
+
+from .. import DEVICE, cr, pprint, set_seed
+from ..utils import (
+    raiseError,
+    get_git_commit,
+    count_trainable_params,
+    cleanup_tensors,
+    get_optimizing_value,
+    hyperparams_serializer,
+)
+from ..gns import (
+    GNSMLP,
+    MessagePassingLayer,
+    Graph,
+    InputsInjector,
+    _ShapeValidator,
+    _GNSHelpers,
+)
 from ..utils.wrappers import config_from_kwargs
-from ..utils.dataclasses import GNSModelConfig, GNSTrainingConfig, TorchDataloaderConfig, SubgraphDataloaderConfig
-from ..utils.config_manager import serialize_config, deserialize_config
+from ..utils.config_schema import (
+    GNSModelConfig,
+    GNSTrainingConfig,
+    TorchDataloaderConfig,
+    SubgraphDataloaderConfig,
+)
+from ..utils.config_manager import (
+    serialize_config_dict,
+    resolve_config_dict,
+)
+from ..utils.config_loader import GeneralTypeHooks
 from ..optimizer import OptunaOptimizer, TrialPruned
-from ... import pprint, cr
-from ...utils import raiseError, get_git_commit
+
 
 
 
@@ -61,11 +84,11 @@ class GNS(torch.nn.Module):
         if not isinstance(graph, Graph):
             raiseError("Expected graph to be a Graph instance.")
 
-        self.config = config
+        self.model_config = config
         self.device = torch.device(config.device)
         self.seed = config.seed
-        self.p_dropouts = config.p_dropouts
-        self.activation = config.activation
+        self.p_dropout = config.p_dropout
+        self.activation = config.activation()
 
         # --- Graph setup ---
         self.graph = graph  # setter handles .to(device)
@@ -100,7 +123,7 @@ class GNS(torch.nn.Module):
 
         # --- GroupNorm configuration ---
         self.groupnorm = torch.nn.GroupNorm(
-            num_groups=self.config.groupnorm_groups,
+            num_groups=self.model_config.groupnorm_groups,
             num_channels=config.latent_dim
         ).to(self.device)
 
@@ -113,7 +136,7 @@ class GNS(torch.nn.Module):
 
 
     @classmethod
-    @config_from_kwargs(GNSModelConfig)
+    # @config_from_kwargs(GNSModelConfig)
     def from_graph(cls, *, config: GNSModelConfig, graph: Graph) -> "GNS":
         """
         Construct a GNS model from a loaded Graph and a model config.
@@ -135,7 +158,7 @@ class GNS(torch.nn.Module):
 
 
     @classmethod
-    @config_from_kwargs(GNSModelConfig)
+    # @config_from_kwargs(GNSModelConfig)
     def from_graph_path(cls, *, config: GNSModelConfig, graph_path: Union[str, Path]) -> "GNS":
         """
         Construct a GNS model by loading the Graph from disk.
@@ -163,32 +186,32 @@ class GNS(torch.nn.Module):
     def _build_encoder(self):
         self.encoder = GNSMLP(
             input_size=self._encoder_input_dim,
-            output_size=self.config.latent_dim,
-            hidden_size=self.config.hidden_size,
+            output_size=self.model_config.latent_dim,
+            hidden_size=self.model_config.hidden_size,
             activation=self.activation,
-            drop_p=self.p_dropouts
+            drop_p=self.p_dropout
         ).to(self.device)
 
     def _build_decoder(self):
         self.decoder = GNSMLP(
-            input_size=self.config.latent_dim,
-            output_size=self.config.output_dim,
-            hidden_size=self.config.hidden_size,
+            input_size=self.model_config.latent_dim,
+            output_size=self.model_config.output_dim,
+            hidden_size=self.model_config.hidden_size,
             activation=self.activation,
-            drop_p=self.p_dropouts
+            drop_p=self.p_dropout
         ).to(self.device)
 
     def _build_message_passing_layers(self):
         self.conv_layers_list = torch.nn.ModuleList([
             MessagePassingLayer(
-                in_channels=2 * self.config.latent_dim + self._edge_dim,
-                out_channels=self.config.latent_dim,
-                hidden_size=self.config.hidden_size,
-                message_hidden_layers=self.config.message_hidden_layers,
-                update_hidden_layers=self.config.update_hidden_layers,
+                in_channels=2 * self.model_config.latent_dim + self._edge_dim,
+                out_channels=self.model_config.latent_dim,
+                hidden_size=self.model_config.hidden_size,
+                message_hidden_layers=self.model_config.message_hidden_layers,
+                update_hidden_layers=self.model_config.update_hidden_layers,
                 activation=self.activation,
-                drop_p=self.p_dropouts,
-            ) for _ in range(self.config.num_msg_passing_layers)
+                drop_p=self.p_dropout,
+            ) for _ in range(self.model_config.num_msg_passing_layers)
         ]).to(self.device)
 
     @property
@@ -210,7 +233,7 @@ class GNS(torch.nn.Module):
             graph = graph.to(self.device)
 
 
-        self._encoder_input_dim = graph.x.shape[1] + self.config.input_dim # Update node features dimension
+        self._encoder_input_dim = graph.x.shape[1] + self.model_config.input_dim # Update node features dimension
         self._edge_dim = graph.edge_attr.shape[1] # Update edge features dimension
 
         self._graph = graph
@@ -267,7 +290,7 @@ class GNS(torch.nn.Module):
         )
 
         input_dataloader = self._helpers.init_dataloader(X, input_dataloader_config)
-        subgraph_loader = self._helpers.init_subgraph_dataloader(subgraph_loader_config)
+        subgraph_loader = self._helpers.init_subgraph_loader(subgraph_loader_config)
 
         self.eval()
         with torch.no_grad():
@@ -282,7 +305,8 @@ class GNS(torch.nn.Module):
         eval_dataset: Optional[TorchDataset] = None,
         *,
         config: GNSTrainingConfig,
-        reset_state: bool = True
+        reset_state: bool = True,
+        on_epoch_end: Optional[Callable[[int, float], None]] = None,
     ) -> Dict[str, list]:
         """
         Train the model using subgraph batching over both the input parameter space and the node space.
@@ -292,6 +316,7 @@ class GNS(torch.nn.Module):
             eval_dataset: Optional validation dataset.
             config (GNSFitConfig): Training configuration dataclass.
             reset_state (bool): Whether to reset the optimizer and scheduler before training.
+            on_epoch_end (Callable[[int, float], None]): Optional callback to execute at the end of each epoch.
 
         Returns:
             Dict: Dictionary containing per-epoch train/test losses.
@@ -317,7 +342,7 @@ class GNS(torch.nn.Module):
 
         subgraph_loader_config = config.subgraph_loader
         subgraph_loader_config.generator = self._generator
-        subgraph_loader = self._helpers.init_subgraph_dataloader(subgraph_loader_config)
+        subgraph_loader = self._helpers.init_subgraph_loader(subgraph_loader_config)
 
         # --- Initialize optimizer and scheduler ---)
         if reset_state or self.optimizer is None:
@@ -384,6 +409,10 @@ class GNS(torch.nn.Module):
                 "test_loss_list": test_loss_list,
             }
             self.last_training_config = config
+
+            # Call on_epoch_end callback if provided
+            if on_epoch_end is not None:
+                on_epoch_end(epoch, train_loss)
 
         return {"train_loss": train_loss_list, "test_loss": test_loss_list}
 
@@ -465,7 +494,7 @@ class GNS(torch.nn.Module):
             })
             return total_loss / num_batches
         else:
-            return torch.cat(outputs, dim=0).reshape(-1, self.graph.num_nodes, self.config.output_dim)
+            return torch.cat(outputs, dim=0).reshape(-1, self.graph.num_nodes, self.model_config.output_dim)
 
 
     @cr('GNS._train_one_batch')
@@ -558,7 +587,7 @@ class GNS(torch.nn.Module):
 
         checkpoint = {
             "graph_path": self.graph_path,
-            "model_config": asdict(self.config),
+            "model_config": asdict(self.model_config),
             "state": self.state,
             "metadata": {
                 "saved_at": datetime.datetime.now().isoformat(),
@@ -568,7 +597,7 @@ class GNS(torch.nn.Module):
             },
         }
         if self.last_training_config is not None:
-            checkpoint["last_training_config"] = serialize_config(asdict(self.last_training_config))
+            checkpoint["last_training_config"] = serialize_config_dict(asdict(self.last_training_config))
 
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         n_epochs = len(self.state.get("epoch_list", [])) if self.state else 0
@@ -613,7 +642,7 @@ class GNS(torch.nn.Module):
                 raiseError(f"Checkpoint is missing required key: '{key}'")
 
         # --- Reconstruct model ---
-        model_config = GNSModelConfig(**deserialize_config(checkpoint["model_config"]))
+        model_config = GNSModelConfig(**resolve_config_dict(checkpoint["model_config"]))
         graph_path = checkpoint["graph_path"]
         model = cls.from_graph_path(config=model_config, graph_path=graph_path)
 
@@ -624,7 +653,7 @@ class GNS(torch.nn.Module):
 
         if checkpoint.get("last_training_config") is not None:
             last_training_config = GNSTrainingConfig(
-                **deserialize_config(checkpoint["last_training_config"])
+                **resolve_config_dict(checkpoint["last_training_config"])
             )
             model.last_training_config = last_training_config
             model.optimizer = last_training_config.optimizer(model.parameters(), lr=last_training_config.lr)
@@ -646,24 +675,15 @@ class GNS(torch.nn.Module):
         cls,
         train_dataset: torch.utils.data.Dataset,
         eval_dataset: torch.utils.data.Dataset,
-        optuna_optimizer: OptunaOptimizer,
+        optuna_optimizer: "OptunaOptimizer",  # quoted to avoid circular import issues
     ) -> Tuple["GNS", Dict[str, Dict]]:
         """
         Create and train an optimized GNS model using Optuna hyperparameter search.
 
         The graph path must be specified in `optuna_optimizer.optimization_params['model']['graph_path']`.
 
-        Args:
-            train_dataset (Dataset): Training dataset.
-            eval_dataset (Dataset): Validation dataset.
-            optuna_optimizer (OptunaOptimizer): Configured Optuna optimizer with search space and options.
-
         Returns:
-            Tuple[GNS, Dict[str, Dict]]: Final trained GNS model and best hyperparameters, structured as:
-                {
-                    "model": { ... },
-                    "training": { ... }
-                }
+            A tuple (trained_model, best_hyperparams) with final model and config dictionaries.
         """
         optimization_params = optuna_optimizer.optimization_params
         graph_path = optimization_params["model"]["graph_path"]
@@ -671,8 +691,13 @@ class GNS(torch.nn.Module):
         training_space = optimization_params["training"]
         shared_graph = Graph.load(graph_path)
 
+        # Prepare unified config resolution
+        type_hooks = GeneralTypeHooks()
+        dacite_cfg = Config(type_hooks=type_hooks, strict=True)
+
         @cr("GNS.optimization_function")
         def optimization_function(trial: Trial) -> float:
+            # Sample model hyperparameters
             model_sampled = {
                 k: get_optimizing_value(k, v, trial)
                 for k, v in model_space.items()
@@ -682,8 +707,10 @@ class GNS(torch.nn.Module):
                 k: v for k, v in model_space.items()
                 if not (isinstance(v, dict) and "type" in v)
             }
-            model_params = deserialize_config({**model_fixed, **model_sampled})
+            model_dict = resolve_config_dict({**model_fixed, **model_sampled})
+            model_cfg = from_dict(data_class=GNSModelConfig, data=model_dict, config=dacite_cfg)
 
+            # Sample training hyperparameters
             training_sampled = {
                 k: get_optimizing_value(k, v, trial)
                 for k, v in training_space.items()
@@ -693,30 +720,31 @@ class GNS(torch.nn.Module):
                 k: v for k, v in training_space.items()
                 if not (isinstance(v, dict) and "type" in v)
             }
-            training_params = deserialize_config({**training_fixed, **training_sampled})
+            training_dict = resolve_config_dict({**training_fixed, **training_sampled})
+            training_cfg = from_dict(data_class=GNSTrainingConfig, data=training_dict, config=dacite_cfg)
 
-            model = cls.from_graph(model_params, graph=shared_graph)
+            # Create and train model
+            model = cls.from_graph(config=model_cfg, graph=shared_graph)
 
             pprint(0, f"\nTrial {trial.number + 1}/{optuna_optimizer.num_trials}:")
-            pprint(0, f"  Model params: {json.dumps(model_params, default=hyperparams_serializer, indent=4)}")
-            pprint(0, f"  Training params: {json.dumps(training_params, default=hyperparams_serializer, indent=4)}")
+            pprint(0, f"  Model params: {json.dumps(model_cfg, default=hyperparams_serializer, indent=4)}")
+            pprint(0, f"  Training params: {json.dumps(training_cfg, default=hyperparams_serializer, indent=4)}")
+
+            def on_epoch(epoch: int, val_loss: float) -> None:
+                trial.report(val_loss, step=epoch)
+                if trial.should_prune():
+                    raise TrialPruned()
 
             try:
                 if optuna_optimizer.pruner is not None:
-                    val_loss = None
-                    for epoch in range(training_params.get("epochs")):
-                        epoch_params = training_params.copy()
-                        epoch_params["epochs"] = 1
-                        losses = model.fit(train_dataset, eval_dataset, **epoch_params, reset_state=False)
-                        val_loss = losses["test_loss"][-1]
-                        trial.report(val_loss, step=epoch)
-                        if trial.should_prune():
-                            with torch.no_grad():
-                                del model
-                                torch.cuda.empty_cache()
-                            raise TrialPruned()
+                    losses = model.fit(
+                        train_dataset,
+                        eval_dataset,
+                        config=training_cfg,
+                        on_epoch_end=on_epoch,
+                    )
                 else:
-                    losses = model.fit(train_dataset, eval_dataset, **training_params)
+                    losses = model.fit(train_dataset, eval_dataset, config=training_cfg)
                     val_loss = losses["test_loss"][-1]
                     trial.report(val_loss, step=9999)
 
@@ -733,30 +761,31 @@ class GNS(torch.nn.Module):
 
             return val_loss
 
-        # Run Optuna optimization
+        # Run optimization
         best_params_flat = optuna_optimizer.optimize(objective_function=optimization_function)
 
-        # Reconstruct final model and training configs
-        best_model_params = model_space.copy()
-        best_training_params = training_space.copy()
+        # Reconstruct config dictionaries
+        best_model_cfg = model_space.copy()
+        best_training_cfg = training_space.copy()
 
-        for k in best_model_params:
-            if isinstance(best_model_params[k], dict) and "type" in best_model_params[k]:
-                best_model_params[k] = best_params_flat[k]
-        for k in best_training_params:
-            if isinstance(best_training_params[k], dict) and "type" in best_training_params[k]:
-                best_training_params[k] = best_params_flat[k]
+        for k in best_model_cfg:
+            if isinstance(best_model_cfg[k], dict) and "type" in best_model_cfg[k]:
+                best_model_cfg[k] = best_params_flat[k]
+        for k in best_training_cfg:
+            if isinstance(best_training_cfg[k], dict) and "type" in best_training_cfg[k]:
+                best_training_cfg[k] = best_params_flat[k]
 
-        best_model_params["graph_path"] = graph_path
+        best_model_cfg["graph_path"] = graph_path
 
         pprint(0, "\nBest hyperparameters:")
-        pprint(0, f"  Model params: {json.dumps(best_model_params, indent=4, default=hyperparams_serializer)}")
-        pprint(0, f"  Training params: {json.dumps(best_training_params, indent=4, default=hyperparams_serializer)}")
+        pprint(0, f"  Model params: {json.dumps(best_model_cfg, indent=4, default=hyperparams_serializer)}")
+        pprint(0, f"  Training params: {json.dumps(best_training_cfg, indent=4, default=hyperparams_serializer)}")
 
-        final_model_config = GNSModelConfig(**best_model_params)
-        final_model = cls.from_graph_path(config=final_model_config, graph_path=graph_path)
+        final_model_cfg = from_dict(data_class=GNSModelConfig, data=resolve_config_dict(best_model_cfg), config=dacite_cfg)
+        final_model = cls.from_graph_path(config=final_model_cfg, graph_path=graph_path)
 
-        return final_model, best_training_params
+        return final_model, best_training_cfg
+
 
 
     @staticmethod
@@ -778,23 +807,23 @@ class GNS(torch.nn.Module):
 
         model_section = optimization_params.get("model", {})
         graph_path = model_section.get("graph_path")
-        model_params = model_section.get("params", {})
-        training_params = optimization_params.get("training", {})
+        model_cfg = model_section.get("params", {})
+        training_cfg = optimization_params.get("training", {})
 
         if graph_path is None:
             raise ValueError("Missing required key 'graph_path' in optimization_params['model'].")
 
         return graph_path, {
-            "model": model_params,
-            "training": training_params
+            "model": model_cfg,
+            "training": training_cfg
         }
 
     def __repr__(self):
         return (
-            f"<GNSModel: {self.config.input_dim} → {self.config.latent_dim} → {self.config.output_dim}>\n"
-            f" Layers: encoder({self.encoder_hidden_layers}), message({self.config.num_msg_passing_layers}), decoder({self.decoder_hidden_layers})\n"
-            f" MLPs: message({self.config.message_hidden_layers}), update({self.config.update_hidden_layers})\n"
-            f" Activation: {self.activation.__class__.__name__}, Dropout: {self.p_dropouts}, Device: {self.device}\n"
+            f"<GNSModel: {self.model_config.input_dim} → {self.model_config.latent_dim} → {self.model_config.output_dim}>\n"
+            f" Layers: encoder({self.encoder_hidden_layers}), message({self.model_config.num_msg_passing_layers}), decoder({self.decoder_hidden_layers})\n"
+            f" MLPs: message({self.model_config.message_hidden_layers}), update({self.model_config.update_hidden_layers})\n"
+            f" Activation: {self.activation.__class__.__name__}, Dropout: {self.p_dropout}, Device: {self.device}\n"
             f" Graph: {repr(self.graph)}\n"
             f" Params: {count_trainable_params(self):,} trainable\n"
             ")"

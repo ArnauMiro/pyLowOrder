@@ -17,7 +17,7 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
 from torch.utils.data import Dataset as TorchDataset
 
-from pyLOM.NN.utils.config_manager import serialize_config
+from pyLOM.NN.utils.config_manager import serialize_config_dict
 from pyLOM.NN import GNS
 from pyLOM import pprint
 from pyLOM.utils import get_git_commit
@@ -144,8 +144,8 @@ def save_experiment_artifacts(base_path: Path,
     # Save config.yaml
     yaml_config_path = base_path / "config.yaml"
     yaml.safe_dump({
-        "model": serialize_config(asdict(model.config)),
-        "training": serialize_config(asdict(model.last_training_config)),
+        "model": serialize_config_dict(asdict(model.config)),
+        "training": serialize_config_dict(asdict(model.last_training_config)),
     }, yaml_config_path.open("w"))
 
     # Save meta.yaml with hash and timestamp

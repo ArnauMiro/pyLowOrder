@@ -13,7 +13,7 @@ from . import Graph
 from ... import cr
 from ...utils import raiseError
 from ..utils.optuna_utils import _worker_init_fn
-from ..utils.dataclasses import SubgraphDataloaderConfig, TorchDataloaderConfig
+from ..utils.config_schema import SubgraphDataloaderConfig, TorchDataloaderConfig
 
 
 class _ShapeValidator:
@@ -336,7 +336,7 @@ class _GNSHelpers:
         else:
             raiseError(f"Unsupported input type for dataloader: {type(X)}")
 
-    def init_subgraph_dataloader(
+    def init_subgraph_loader(
         self,
         config: SubgraphDataloaderConfig,
     ) -> ManualNeighborLoader:

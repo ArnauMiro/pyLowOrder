@@ -17,10 +17,13 @@ from torch import Tensor
 # Base dataclass configurations
 #----------------------------------------------------------------------
 
-@dataclass
+@dataclass(kw_only=True)
 class ModelConfigBase:
     input_dim: int
     output_dim: int
+    hidden_size: int
+    activation: type[torch.nn.Module]
+    p_dropout: float = 0.0
     seed: Optional[int] = None
     device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -56,16 +59,18 @@ class TrainingConfigBase:
 @dataclass
 class GNSModelConfig(ModelConfigBase):
     latent_dim: int
-    hidden_size: int
     num_msg_passing_layers: int
     encoder_hidden_layers: int
     decoder_hidden_layers: int
     message_hidden_layers: int
     update_hidden_layers: int
     groupnorm_groups: int = 2
-    p_dropouts: float = 0.0
-    activation: torch.nn.Module = torch.nn.ELU()
 
+    def __post_init__(self):
+        if self.latent_dim % self.groupnorm_groups != 0:
+            raise ValueError(
+                f"'latent_dim' ({self.latent_dim}) must be divisible by 'groupnorm_groups' ({self.groupnorm_groups})."
+            )
 
 @dataclass
 class SubgraphDataloaderConfig:

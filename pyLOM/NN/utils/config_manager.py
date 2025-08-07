@@ -4,24 +4,26 @@ from pathlib import Path
 import yaml
 import dacite
 from importlib import import_module
-from inspect import isclass, isdataclass
-from dataclasses import asdict
+from inspect import isclass
+from dataclasses import asdict, is_dataclass
+import torch
 
 from ..gns import GNSModelConfig, GNSTrainingConfig, SubgraphDataloaderConfig
 
 #-----------------------------------------------------------------------
 # Utility functions for resolving and serializing configuration objects
 #-----------------------------------------------------------------------
+def load_yaml(path: Union[str, Path]) -> Dict[str, Any]:
+    """
+    Load a YAML file and return its contents as a dictionary.
+    """
+    with open(path, "r") as f:
+        return yaml.safe_load(f)
 
 def resolve_object(path: str) -> object:
     """
     Dynamically import an object from a dotted string path.
-
-    Args:
-        path (str): Full dotted path to the object, e.g., 'torch.optim.Adam'.
-
-    Returns:
-        object: The resolved Python object (class, function, etc.).
+    Example: 'torch.nn.ReLU' → <class 'torch.nn.ReLU'>
     """
     module_path, _, attr = path.rpartition(".")
     if not module_path:
@@ -32,20 +34,39 @@ def resolve_object(path: str) -> object:
 
 def resolve_config_dict(cfg: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Recursively resolve all string values that represent import paths (e.g., 'torch.nn.ELU')
-    into the corresponding Python objects.
+    Recursively resolve special string values in config:
+      - "torch.nn.ReLU" → corresponding class
+      - "cuda", "cpu" under key "device" → torch.device(...)
+      - strings ending in '/' or containing a file extension → Path(...)
     """
     resolved = {}
+
     for key, value in cfg.items():
         if isinstance(value, dict):
             resolved[key] = resolve_config_dict(value)
-        elif isinstance(value, str) and "." in value:
-            try:
-                resolved[key] = resolve_object(value)
-            except Exception:
-                resolved[key] = value  # Keep string if it doesn't resolve (e.g. enums, names)
+
+        elif isinstance(value, str):
+            # --- Handle torch.device ---
+            if key == "device" and value in ("cuda", "cpu"):
+                resolved[key] = torch.device(value)
+
+            # --- Handle import path ---
+            elif "." in value:
+                try:
+                    resolved[key] = resolve_object(value)
+                except Exception:
+                    resolved[key] = value  # Leave untouched if not resolvable
+
+            # --- Handle filesystem path ---
+            elif "/" in value or value.endswith(".h5"):
+                resolved[key] = Path(value)
+
+            else:
+                resolved[key] = value
+
         else:
             resolved[key] = value
+
     return resolved
 
 
@@ -63,7 +84,7 @@ def serialize_config_dict(cfg: Dict[str, Any]) -> Dict[str, Any]:
     for key, value in cfg.items():
         if isinstance(value, dict):
             serialized[key] = serialize_config_dict(value)
-        elif isdataclass(value):
+        elif is_dataclass(value):
             serialized[key] = serialize_config_dict(asdict(value))
         else:
             try:
