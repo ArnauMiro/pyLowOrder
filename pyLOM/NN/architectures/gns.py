@@ -17,6 +17,7 @@ from dataclasses import asdict
 
 import torch
 from torch import Tensor
+from torch.utils.data import Dataset as TorchDataset
 from torch_geometric.data import Data
 from optuna import Trial
 

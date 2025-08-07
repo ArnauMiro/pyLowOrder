@@ -7,6 +7,9 @@ from inspect import isclass
 import torch
 from dacite import from_dict, Config
 
+from .config_schema import AppConfig  # Assumes available elsewherez
+
+
 
 # ------------------------------
 # Core resolution functions
@@ -131,8 +134,6 @@ def load_full_config(path: str, model_registry: dict[str, Type], training_regist
     Returns:
         An instance of AppConfig with all fields fully resolved.
     """
-    from config_schema import AppConfig  # Assumes available elsewhere
-
     raw = load_yaml(path)
 
     type_hooks = GeneralTypeHooks()
