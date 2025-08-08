@@ -1,54 +1,88 @@
 import yaml
 import importlib
 from pathlib import Path
-from typing import Any, Callable, Type, Union
+from typing import Any, Type, Union, get_origin, get_args
 from dataclasses import asdict, is_dataclass
 from inspect import isclass
+import types
 import torch
+import torch.nn as nn
 from dacite import from_dict, Config
 
-from .config_schema import AppConfig  # Assumes available elsewherez
+from .config_schema import AppConfig
 
 
+# ==========================================================
+# Core resolution utilities
+# ==========================================================
+def get_path(obj: Any) -> str:
+    """Return full import path for a class or instance."""
+    if isinstance(obj, type):
+        return f"{obj.__module__}.{obj.__name__}"
+    return f"{obj.__class__.__module__}.{obj.__class__.__name__}"
 
-# ------------------------------
-# Core resolution functions
-# ------------------------------
+
 def resolve_callable(value: str) -> Any:
-    """Resolve a string like 'torch.nn.ReLU' to the actual class or function."""
+    """Resolve a dotted import path string to a Python object."""
     module_path, attr = value.rsplit(".", 1)
     module = importlib.import_module(module_path)
     return getattr(module, attr)
 
 
-def resolve_if_string(value: Any, expected_type: Type) -> Any:
-    """Generic resolver for strings to classes/functions/devices."""
-    if isinstance(value, str):
-        if expected_type == torch.device:
-            return torch.device(value)
-        if expected_type in [type, Callable] or isinstance(expected_type, type):
-            return resolve_callable(value)
-    return value
-
-
+# ==========================================================
+# Type hooks for dacite
+# ==========================================================
 class GeneralTypeHooks(dict):
-    """Custom type_hooks dict for dacite that creates hooks dynamically."""
+    """
+    Dynamic type_hooks mapping for dacite.
+    Handles:
+    - type[...] and Type[...] annotations
+    - Optional/Union containing type[...] arms
+    - torch.device
+    """
+
     def __missing__(self, key):
-        def hook(value):
-            return resolve_if_string(value, key)
-        self[key] = hook
-        return hook
+        origin = get_origin(key)
+
+        # Plain `type`
+        if key is type:
+            hook = lambda v: resolve_callable(v) if isinstance(v, str) else v
+            self[key] = hook
+            return hook
+
+        # Generic type[...] / Type[...]
+        if origin is type:
+            hook = lambda v: resolve_callable(v) if isinstance(v, str) else v
+            self[key] = hook
+            return hook
+
+        # Optional/Union containing a type[...] arm
+        if origin in (Union, getattr(types, "UnionType", None)):
+            if any(a is type or get_origin(a) is type for a in get_args(key)):
+                hook = lambda v: resolve_callable(v) if isinstance(v, str) else v
+                self[key] = hook
+                return hook
+
+        # torch.device
+        if key is torch.device:
+            hook = lambda v: torch.device(v)
+            self[key] = hook
+            return hook
+
+        # Default passthrough
+        self[key] = lambda v: v
+        return self[key]
 
 
-# ------------------------------
-# Bidirectional conversion
-# ------------------------------
+# ==========================================================
+# Bidirectional config transformation
+# ==========================================================
 def resolve_config_dict(cfg: dict) -> dict:
     """
-    Recursively resolve string references in the config dict:
-    - "torch.nn.ReLU" -> class
-    - "cuda"/"cpu" -> torch.device
-    - paths -> Path objects
+    Recursively resolve string references in a config dict:
+    - "torch.nn.ReLU" → class
+    - "cuda"/"cpu" → torch.device
+    - filesystem paths → Path objects
     """
     resolved = {}
     for key, value in cfg.items():
@@ -57,9 +91,14 @@ def resolve_config_dict(cfg: dict) -> dict:
         elif isinstance(value, str):
             if key == "device" and value in ("cuda", "cpu"):
                 resolved[key] = torch.device(value)
-            elif "." in value:
+            elif "." in value:  # Try to import
                 try:
-                    resolved[key] = resolve_callable(value)
+                    obj = resolve_callable(value)
+                    # NEW: If it's a nn.Module subclass, instantiate it
+                    if isclass(obj) and issubclass(obj, torch.nn.Module):
+                        resolved[key] = obj()
+                    else:
+                        resolved[key] = obj
                 except Exception:
                     resolved[key] = value
             elif "/" in value or value.endswith(".h5"):
@@ -73,14 +112,9 @@ def resolve_config_dict(cfg: dict) -> dict:
 
 def serialize_config_dict(cfg: dict) -> dict:
     """
-    Recursively serialize a config dict by converting objects/classes
+    Recursively serialize config by converting objects/classes
     into full import path strings.
     """
-    def get_path(obj: Any) -> str:
-        if isclass(obj) or callable(obj):
-            return f"{obj.__module__}.{obj.__name__}"
-        return f"{obj.__class__.__module__}.{obj.__class__.__name__}"
-
     serialized = {}
     for key, value in cfg.items():
         if isinstance(value, dict):
@@ -95,60 +129,58 @@ def serialize_config_dict(cfg: dict) -> dict:
     return serialized
 
 
-# ------------------------------
+# ==========================================================
 # YAML utilities
-# ------------------------------
+# ==========================================================
 def load_yaml(path: Union[str, Path]) -> dict:
+    """Load a YAML file into a Python dict."""
     with open(path, "r") as f:
         return yaml.safe_load(f)
 
 
-# ------------------------------
-# Dataclass instantiation helpers
-# ------------------------------
+# ==========================================================
+# Dataclass helpers
+# ==========================================================
 def to_dataclass(data: dict, cls: Type) -> Any:
-    """Build dataclass from raw (resolved) dict."""
+    """Instantiate a dataclass from a resolved config dict."""
     type_hooks = GeneralTypeHooks()
     return from_dict(data_class=cls, data=data, config=Config(type_hooks=type_hooks, strict=True))
 
 
 def from_dataclass(instance: Any) -> dict:
-    """Serialize a dataclass into a clean dict with import-paths."""
+    """Serialize a dataclass into a plain dict with import paths."""
     if not is_dataclass(instance):
         raise ValueError("from_dataclass expects a dataclass instance")
     return serialize_config_dict(asdict(instance))
 
 
-# ------------------------------
+# ==========================================================
 # Full config loader (App-level)
-# ------------------------------
-def load_full_config(path: str, model_registry: dict[str, Type], training_registry: dict[str, Type]) -> Any:
+# ==========================================================
+def load_full_config(
+    path: Union[str, Path],
+    model_registry: dict[str, Type],
+    training_registry: dict[str, Type]
+) -> Any:
     """
-    Load full application config from YAML, dispatching to correct model/training subclasses.
-
-    Args:
-        path: Path to the YAML file.
-        model_registry: Mapping from model type names to ModelConfig subclasses.
-        training_registry: Mapping from training type names to TrainingConfig subclasses.
-
-    Returns:
-        An instance of AppConfig with all fields fully resolved.
+    Load full application config from YAML and instantiate
+    the corresponding AppConfig dataclass.
     """
     raw = load_yaml(path)
 
-    type_hooks = GeneralTypeHooks()
-    dacite_cfg = Config(type_hooks=type_hooks, strict=True)
+    # Pre-resolve strings into proper Python objects
+    raw["model"]["params"] = resolve_config_dict(raw["model"]["params"])
+    raw["training"] = resolve_config_dict(raw["training"])
 
-    # Dispatch model.params
-    model_type = raw["model"].get("type")
-    if model_type is None:
-        raise ValueError("Missing 'model.type' in YAML config")
-    model_cls = model_registry[model_type.lower()]
-    raw["model"]["params"] = from_dict(model_cls, raw["model"]["params"], dacite_cfg)
+    dacite_cfg = Config(type_hooks={torch.device: torch.device}, strict=True)
 
-    # Dispatch training
-    training_type = raw.get("training_type", "default")
-    training_cls = training_registry[training_type.lower()]
-    raw["training"] = from_dict(training_cls, raw["training"], dacite_cfg)
+    # Build model config
+    model_cls = model_registry[raw["model"]["type"].lower()]
+    raw["model"]["params"] = from_dict(data_class=model_cls, data=raw["model"]["params"], config=dacite_cfg)
 
-    return from_dict(AppConfig, raw, dacite_cfg)
+    # Build training config
+    training_cls = training_registry[raw.get("training_type", "default").lower()]
+    raw["training"] = from_dict(data_class=training_cls, data=raw["training"], config=dacite_cfg)
+
+    # Build final AppConfig
+    return from_dict(data_class=AppConfig, data=raw, config=dacite_cfg)

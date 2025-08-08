@@ -32,7 +32,7 @@ from ...utils import (
 from ..utils import (
     count_trainable_params,
     cleanup_tensors,
-    get_optimizing_value,
+    sample_params,
     hyperparams_serializer,
 )
 from ..gns import (
@@ -92,7 +92,7 @@ class GNS(torch.nn.Module):
         self.device = torch.device(config.device)
         self.seed = config.seed
         self.p_dropout = config.p_dropout
-        self.activation = config.activation()
+        self.activation = config.activation
 
         # --- Graph setup ---
         self.graph = graph  # setter handles .to(device)
@@ -388,10 +388,7 @@ class GNS(torch.nn.Module):
                 test_loss_list.append(test_loss)
 
             # Logging
-            log_this_epoch = (
-                config.verbose is True
-                or (isinstance(config.verbose, int) and config.verbose > 0 and epoch % config.verbose == 0)
-            )
+            log_this_epoch = config.print_every is not None and config.print_every > 0 and epoch % config.print_every == 0
 
             if log_this_epoch:
                 test_log = f" | Eval loss: {test_loss:.4e}" if eval_dataloader else ""
@@ -702,29 +699,9 @@ class GNS(torch.nn.Module):
         @cr("GNS.optimization_function")
         def optimization_function(trial: Trial) -> float:
             # Sample model hyperparameters
-            model_sampled = {
-                k: get_optimizing_value(k, v, trial)
-                for k, v in model_space.items()
-                if isinstance(v, dict) and "type" in v
-            }
-            model_fixed = {
-                k: v for k, v in model_space.items()
-                if not (isinstance(v, dict) and "type" in v)
-            }
-            model_dict = resolve_config_dict({**model_fixed, **model_sampled})
+            model_dict = resolve_config_dict(sample_params(model_space, trial))
+            training_dict = resolve_config_dict(sample_params(training_space, trial))
             model_cfg = from_dict(data_class=GNSModelConfig, data=model_dict, config=dacite_cfg)
-
-            # Sample training hyperparameters
-            training_sampled = {
-                k: get_optimizing_value(k, v, trial)
-                for k, v in training_space.items()
-                if isinstance(v, dict) and "type" in v
-            }
-            training_fixed = {
-                k: v for k, v in training_space.items()
-                if not (isinstance(v, dict) and "type" in v)
-            }
-            training_dict = resolve_config_dict({**training_fixed, **training_sampled})
             training_cfg = from_dict(data_class=GNSTrainingConfig, data=training_dict, config=dacite_cfg)
 
             # Create and train model

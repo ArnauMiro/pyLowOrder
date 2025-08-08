@@ -14,7 +14,7 @@ class ModelConfigBase:
     input_dim: int
     output_dim: int
     hidden_size: int
-    activation: type[torch.nn.Module]
+    activation: torch.nn.Module
     p_dropout: float = 0.0
     seed: Optional[int] = None
     device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -29,7 +29,7 @@ class TrainingConfigBase:
     lr: float = 1e-4
     lr_gamma: float = 0.1
     lr_scheduler_step: int = 1
-    print_every: int = 1
+    print_every: Optional[int] = 1
 
 
 # ----------------------------------------------------------------------

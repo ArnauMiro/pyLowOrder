@@ -19,7 +19,7 @@ from torch import Tensor
 
 # Local modules
 from .. import DEVICE
-from .optuna_utils import set_seed, create_results_folder, select_device, count_trainable_params, cleanup_tensors, hyperparams_serializer, get_optimizing_value
+from .optuna_utils import set_seed, create_results_folder, select_device, count_trainable_params, cleanup_tensors, hyperparams_serializer, get_optimizing_value, sample_params
 from .scalers import MinMaxScaler
 from .schedulers import betaLinearScheduler
 
