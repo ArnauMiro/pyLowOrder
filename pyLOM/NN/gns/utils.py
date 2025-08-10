@@ -182,6 +182,7 @@ class InputsInjector:
 class ManualNeighborLoader:
     """
     CPU-based subgraph sampler similar to torch_geometric's NeighborLoader.
+    It yields Data subgraphs per node batch (not a `torch.utils.data.DataLoader`).
 
     Sampling is done on CPU. Only at iteration time are subgraphs moved to the target device.
 
@@ -257,7 +258,7 @@ class ManualNeighborLoader:
         x = self.base_graph.x[subset]
         edge_attr = self.base_graph.edge_attr[edge_mask]
 
-        seed_mask = torch.zeros(x.size(0), dtype=torch.bool)
+        seed_mask = torch.zeros(x.size(0), dtype=torch.bool, device=x.device)
         seed_mask[mapping] = True
 
         data = Data(
