@@ -31,8 +31,13 @@ from ...utils import (
 from ..utils import (
     count_trainable_params,
     cleanup_tensors,
-    sample_params,
 )
+
+from ..utils.optuna_utils import (
+    sample_params,
+    _materialize_space
+)
+
 from ..gns import (
     GNSMLP,
     MessagePassingLayer,
@@ -49,7 +54,7 @@ from ..utils.config_schema import (
     TorchDataloaderConfig,
     SubgraphDataloaderConfig,
 )
-from ..utils.resolvers import (
+from ..utils.config_resolvers import (
     resolve_device,
     resolve_activation,
     resolve_loss,
@@ -159,9 +164,6 @@ class GNS(torch.nn.Module):
             self._sg_generator_eval = None
 
 
-
-
-
     @classmethod
     # @config_from_kwargs(GNSModelConfig)
     def from_graph(cls, *, config: GNSModelConfig, graph: Graph) -> "GNS":
@@ -237,6 +239,26 @@ class GNS(torch.nn.Module):
                 drop_p=self.p_dropout,
             ) for _ in range(self.model_config.num_msg_passing_layers)
         ]).to(self.device)
+
+    @property
+    def graph(self) -> Graph:
+        """
+        Loaded RANS graph (read‑only after first assignment).
+
+        Returns
+        -------
+        Graph
+            In‑memory graph already validated and moved to the model device.
+
+        Raises
+        ------
+        RuntimeError
+            If accessed before being set (should not happen in normal flow).
+        """
+        if self._graph is None:
+            raiseError("Graph has not been set yet.")
+        return self._graph
+
 
     @graph.setter
     def graph(self, graph: Graph) -> None:
@@ -785,7 +807,7 @@ class GNS(torch.nn.Module):
 
         # ---- Extract search space and load shared graph once ----
         optimization_params = optuna_optimizer.optimization_params
-        graph_path, search_space = cls.split_search_space(optimization_params)
+        graph_path, search_space = cls._split_search_space(optimization_params)
         model_space = search_space["model"]
         training_space = search_space["training"]
 
@@ -869,14 +891,12 @@ class GNS(torch.nn.Module):
         best_params_flat = optuna_optimizer.optimize(objective_function=objective)
 
         # ---- Reconstruct best dicts for model and training (solo claves buscadas) ----
-        best_model_cfg_dict: Dict = {}
-        for k, v in model_space.items():
-            # if it was fix in search spcace, keep it; if it was searchable, pick value from best_params_flat.
-            best_model_cfg_dict[k] = best_params_flat.get(k, v)
+        best_model_cfg_dict    = _materialize_space(model_space,    best_params_flat)
+        best_training_cfg_dict = _materialize_space(training_space, best_params_flat)
 
-        best_training_cfg_dict: Dict = {}
-        for k, v in training_space.items():
-            best_training_cfg_dict[k] = best_params_flat.get(k, v)
+        best_model_cfg = from_dict(GNSModelConfig,    best_model_cfg_dict,    config=dacite_cfg)
+        best_training_cfg = from_dict(GNSTrainingConfig, best_training_cfg_dict, config=dacite_cfg)
+
 
         pprint(0, "\nBest hyperparameters:")
         pprint(0, "  Model params: " + json.dumps(best_model_cfg_dict, indent=4))
@@ -903,7 +923,7 @@ class GNS(torch.nn.Module):
 
 
     @staticmethod
-    def split_search_space(optimization_params: Dict) -> Tuple[str, Dict]:
+    def _split_search_space(optimization_params: Dict) -> Tuple[str, Dict]:
         """
         Splits the optimization_params dictionary into the shared graph_path
         and the actual search space (model.params + training).
@@ -919,10 +939,10 @@ class GNS(torch.nn.Module):
         if "training" not in optimization_params:
             raiseError("Missing 'training' section in optimization_params.")
 
-        model_section = optimization_params.get("model", {})
+        model_section = optimization_params.get("model")
         graph_path = model_section.get("graph_path")
-        model_cfg = model_section.get("params", {})
-        training_cfg = optimization_params.get("training", {})
+        model_cfg = model_section.get("config")
+        training_cfg = optimization_params.get("training")
 
         if graph_path is None:
             raise ValueError("Missing required key 'graph_path' in optimization_params['model'].")
@@ -931,6 +951,7 @@ class GNS(torch.nn.Module):
             "model": model_cfg,
             "training": training_cfg
         }
+
 
     def __repr__(self):
         return (

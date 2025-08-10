@@ -155,4 +155,26 @@ def sample_params(space: dict, trial, prefix="") -> dict:
             result[k] = get_optimizing_value(full_name, v, trial)
     return result
 
+def _is_dist_spec(x: object) -> bool:
+    return isinstance(x, dict) and "type" in x
+
+def _materialize_space(space: dict, flat: dict, prefix: str = "") -> dict:
+    """
+    Reemplaza specs {type:...} en `space` por valores de `flat` (claves punteadas).
+    Mantiene constantes y recorre recursivamente dicts anidados.
+    """
+    out = {}
+    for k, v in space.items():
+        path = f"{prefix}.{k}" if prefix else k
+        if _is_dist_spec(v):
+            if path not in flat:
+                raise ValueError(f"Missing sampled value for '{path}'")
+            out[k] = flat[path]
+        elif isinstance(v, dict):
+            out[k] = _materialize_space(v, flat, path)
+        else:
+            out[k] = flat.get(path, v)
+    return out
+
+
 
