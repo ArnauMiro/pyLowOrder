@@ -8,8 +8,9 @@
 
 # Built-in modules
 import os
-from typing import Optional, Tuple, Union, Dict
+from typing import Any, Optional, Tuple, Union, Dict
 import warnings
+import hashlib
 
 # Third-party libraries
 import numpy as np
@@ -452,3 +453,37 @@ class Graph(Data):
             edge_attr_dict=new_edge_attr_dict,
             device=self.edge_index.device
         )
+
+    def fingerprint(self) -> Dict[str, Any]:
+        """
+        Return a deterministic fingerprint of the graph topology and key shapes.
+
+        Notes
+        -----
+        - Hash includes only connectivity (edge_index), not floating values,
+          so it is stable across dtype/device conversions.
+        """
+        if not hasattr(self, "num_nodes") or not hasattr(self, "edge_index"):
+            raiseError("Graph must have 'num_nodes' and 'edge_index' to be fingerprinted.")
+
+        num_nodes = int(self.num_nodes)
+        ei = self.edge_index
+        if not isinstance(ei, torch.Tensor) or ei.ndim != 2 or ei.size(0) != 2:
+            raiseError("Graph 'edge_index' must be a 2 x E tensor.")
+
+        num_edges = int(ei.size(1))
+
+        # Hash connectivity on CPU, int64, contiguous
+        ei_cpu = ei.to(dtype=torch.int64, device="cpu", non_blocking=False).contiguous()
+        h = hashlib.sha256(ei_cpu.numpy().tobytes()).hexdigest()
+
+        x_shape: Optional[tuple] = tuple(self.x.shape) if getattr(self, "x", None) is not None else None
+        eattr_shape: Optional[tuple] = tuple(self.edge_attr.shape) if getattr(self, "edge_attr", None) is not None else None
+
+        return {
+            "num_nodes": num_nodes,
+            "num_edges": num_edges,
+            "edge_index_sha256": h,
+            "x_shape": x_shape,
+            "edge_attr_shape": eattr_shape,
+        }

@@ -19,17 +19,25 @@ def set_seed(seed: int = 42) -> None:
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+    try:
+        torch.use_deterministic_algorithms(True)
+    except Exception:
+        # Backwards compatible for older PyTorch versions
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
 
-def _worker_init_fn(worker_id: int) -> None:
-    """Initialize worker seed for DataLoader workers.
-    Args:
-        worker_id (int): The ID of the worker.
+def _worker_init_fn(_):
+    """Seed Python & NumPy per worker, derived from PyTorch worker seed.
+
+    Notes
+    -----
+    - torch.initial_seed() already incorporates rank/worker id.
+    - Use % 2**32 to obtain a numpy valid integer.
+    - Do not use torch.manual_seed() here: Pytorch already sets each worker internally.
     """
-    worker_seed = torch.initial_seed() % 2**32
-    np.random.seed(worker_seed)
-    random.seed(worker_seed)
+    seed = torch.initial_seed() % (2**32)
+    random.seed(seed)
+    np.random.seed(seed)
  
 
 def create_results_folder(RESUDIR: str, verbose: bool=True):

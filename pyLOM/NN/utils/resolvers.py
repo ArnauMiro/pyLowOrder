@@ -1,44 +1,52 @@
-from typing import Any, Dict
-import torch
+# utils/config_resolver.py
 
-# Predefined mappings for PyTorch and Optuna objects
-_MAPPING_KEYS: Dict[str, Dict[str, Any]] = {
-    "activation": {
-        "ELU": torch.nn.ELU,
-        "ReLU": torch.nn.ReLU,
-        "LeakyReLU": torch.nn.LeakyReLU,
-        "Sigmoid": torch.nn.Sigmoid,
-        "Tanh": torch.nn.Tanh,
-        "PReLU": torch.nn.PReLU,
-        "Softplus": torch.nn.Softplus,
-        "GELU": torch.nn.GELU,
-        "SELU": torch.nn.SELU
-    },
-    "loss_fn": {
-        "MSELoss": torch.nn.MSELoss,
-        "L1Loss": torch.nn.L1Loss,
-        "SmoothL1Loss": torch.nn.SmoothL1Loss,
-        "HuberLoss": torch.nn.HuberLoss
-    },
-    "optimizer": {
-        "Adam": torch.optim.Adam,
-        "SGD": torch.optim.SGD,
-        "RMSprop": torch.optim.RMSprop,
-        "AdamW": torch.optim.AdamW
-    },
-    "scheduler": {
-        "StepLR": torch.optim.lr_scheduler.StepLR,
-        "ExponentialLR": torch.optim.lr_scheduler.ExponentialLR,
-        "CosineAnnealingLR": torch.optim.lr_scheduler.CosineAnnealingLR
-    },
-    "sampler": {
-        "TPESampler": "optuna.samplers.TPESampler",
-        "RandomSampler": "optuna.samplers.RandomSampler",
-        "CmaEsSampler": "optuna.samplers.CmaEsSampler"
-    },
-    "pruner": {
-        "MedianPruner": "optuna.pruners.MedianPruner",
-        "NopPruner": "optuna.pruners.NopPruner",
-        "SuccessiveHalvingPruner": "optuna.pruners.SuccessiveHalvingPruner"
-    }
-}
+import importlib
+import torch
+from torch import nn, optim
+from torch.optim import lr_scheduler as lrs
+from ...utils import raiseError
+
+def resolve_import(path: str):
+    """Import a symbol from a fully-qualified import path."""
+    try:
+        module, name = path.rsplit(".", 1)
+        return getattr(importlib.import_module(module), name)
+    except Exception:
+        raiseError(f"Cannot import '{path}'.")
+
+def resolve_device(device_str: str) -> torch.device:
+    """Resolve device string to torch.device."""
+    return torch.device(device_str)
+
+def resolve_activation(activation_path: str) -> nn.Module:
+    """Instantiate an activation nn.Module from an import path."""
+    cls = resolve_import(activation_path)
+    obj = cls()
+    if not isinstance(obj, nn.Module):
+        raiseError(f"Activation '{activation_path}' is not an nn.Module.")
+    return obj
+
+def resolve_loss(loss_path: str) -> nn.Module:
+    """Instantiate a loss nn.Module from an import path."""
+    cls = resolve_import(loss_path)
+    obj = cls()
+    if not isinstance(obj, nn.Module):
+        raiseError(f"Loss '{loss_path}' is not an nn.Module.")
+    return obj
+
+def resolve_optimizer(optimizer_path: str):
+    """Resolve optimizer class from an import path."""
+    cls = resolve_import(optimizer_path)
+    if not isinstance(cls, type) or not issubclass(cls, optim.Optimizer):
+        raiseError(f"Optimizer '{optimizer_path}' is not a torch.optim.Optimizer.")
+    return cls
+
+def resolve_scheduler(scheduler_path: str):
+    """Resolve scheduler class from an import path."""
+    if scheduler_path is None:
+        return None
+    cls = resolve_import(scheduler_path)
+    # _LRScheduler is internal; comprobamos interfaz básica
+    if not isinstance(cls, type):
+        raiseError(f"Scheduler '{scheduler_path}' must be a class.")
+    return cls

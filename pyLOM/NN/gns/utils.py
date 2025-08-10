@@ -162,10 +162,8 @@ class InputsInjector:
         # 5. Targets
         targets_flat = None
         if targets_batch is not None:
-            if subset is not None:
-                # Filter the full graph node labels to match the subgraph nodes.
-                targets_batch_subgraph = targets_batch[:, subset, :]
-            targets_flat = targets_batch_subgraph.reshape(-1, targets_batch.shape[-1])  # [B*N, O]
+            tb = targets_batch[:, subset, :] if subset is not None else targets_batch
+            targets_flat = tb.reshape(-1, tb.shape[-1])
 
         data_kwargs = dict(
             x=x_repeated_injected,
@@ -291,10 +289,23 @@ class _GNSHelpers:
         self.graph = graph
         self.num_msg_passing_layers = num_msg_passing_layers
 
+    def _check_shuffle_generator_contract(self, *, shuffle: bool, generator: Optional[torch.Generator], ctx: str) -> None:
+        """
+        Enforce a simple contract to prevent silent RNG misuse:
+        - If shuffle is False -> generator MUST be None.
+        - If shuffle is True  -> generator MUST NOT be None (for reproducibility).
+        """
+        if shuffle is False and generator is not None:
+            raiseError(f"{ctx}: shuffle=False requires generator=None for clarity and determinism.")
+        if shuffle is True and generator is None:
+            raiseError(f"{ctx}: shuffle=True requires a torch.Generator for reproducible shuffling.")
+
     def init_dataloader(
         self,
         X: Union[Tensor, TorchDataset],
         config: TorchDataloaderConfig,
+        *,
+        generator: Optional[torch.Generator] = None,  # runtime
     ) -> DataLoader:
         """
         Initialize a PyTorch DataLoader using the provided configuration.
@@ -302,6 +313,7 @@ class _GNSHelpers:
         Args:
             X (Tensor or TorchDataset): Input data.
             config (TorchDataloaderConfig): Loader configuration.
+            generator (Optional[torch.Generator]): Runtime RNG if shuffling; None otherwise.
 
         Returns:
             DataLoader: Configured PyTorch dataloader.
@@ -313,42 +325,56 @@ class _GNSHelpers:
         worker_fn = _worker_init_fn if config.num_workers > 0 else None
 
         if isinstance(X, Tensor):
+            # Full-batch tensor path: no shuffle, no workers, no RNG.
             dataset = TensorDataset(X.cpu())
             return DataLoader(
                 dataset,
-                batch_size=len(dataset),  # Full batch for tensors
-                shuffle=False,            # Shuffling not meaningful for tensors
+                batch_size=len(dataset),
+                shuffle=False,
                 num_workers=0,
                 pin_memory=pin_memory,
             )
 
-        elif isinstance(X, TorchDataset):
+        if isinstance(X, TorchDataset):
+            self._check_shuffle_generator_contract(
+                shuffle=config.shuffle,
+                generator=generator,
+                ctx="DataLoader"
+            )
             return DataLoader(
                 X,
                 batch_size=config.batch_size,
                 shuffle=config.shuffle,
                 num_workers=config.num_workers,
                 pin_memory=pin_memory,
-                generator=config.generator,
+                generator=generator,      # <- runtime generator (may be None)
                 worker_init_fn=worker_fn,
             )
 
-        else:
-            raiseError(f"Unsupported input type for dataloader: {type(X)}")
+        raiseError(f"Unsupported input type for dataloader: {type(X)}")
 
     def init_subgraph_loader(
         self,
         config: SubgraphDataloaderConfig,
+        *,
+        generator: Optional[torch.Generator] = None,  # runtime
     ) -> ManualNeighborLoader:
         """
         Initialize a subgraph sampler using ManualNeighborLoader and provided config.
 
         Args:
             config (SubgraphDataloaderConfig): Configuration parameters.
+            generator (Optional[torch.Generator]): Runtime RNG if shuffling; None otherwise.
 
         Returns:
             ManualNeighborLoader: Configured subgraph loader.
         """
+        self._check_shuffle_generator_contract(
+            shuffle=config.shuffle,
+            generator=generator,
+            ctx="SubgraphLoader"
+        )
+
         return ManualNeighborLoader(
             device=self.device,
             base_graph=self.graph,
@@ -356,5 +382,5 @@ class _GNSHelpers:
             batch_size=config.batch_size,
             input_nodes=config.input_nodes,
             shuffle=config.shuffle,
-            generator=config.generator,
+            generator=generator,  # <- runtime generator (may be None)
         )

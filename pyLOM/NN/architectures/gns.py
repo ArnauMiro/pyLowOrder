@@ -8,12 +8,11 @@
 
 import os
 import json
-import copy
 import getpass
 import datetime
 from pathlib import Path
 from typing import Dict, Tuple, Union, Optional, Callable
-from dataclasses import asdict
+from dataclasses import asdict, replace
 
 import torch
 from torch import Tensor
@@ -45,14 +44,19 @@ from ..gns import (
 )
 from ..utils.wrappers import config_from_kwargs
 from ..utils.config_schema import (
+    GraphSpec,
     GNSModelConfig,
     GNSTrainingConfig,
     TorchDataloaderConfig,
     SubgraphDataloaderConfig,
 )
-from ..utils.config_loader import (
-    serialize_config_dict,
-    resolve_config_dict,
+from ..utils.resolvers import (
+    resolve_import,
+    resolve_device,
+    resolve_activation,
+    resolve_loss,
+    resolve_optimizer,
+    resolve_scheduler,
 )
 from ..utils.config_loader import GeneralTypeHooks
 from ..optimizer import OptunaOptimizer, TrialPruned
@@ -74,11 +78,15 @@ class GNS(torch.nn.Module):
 
     def __init__(self, *, config: GNSModelConfig, graph: Graph) -> None:
         """
-        Internal constructor for GNS. Do not use directly unless you know what you're doing.
+        Internal constructor for GNS. Do not use directly unless you know exactly what you're doing.
+
+        This method resolves the pure DTO configuration into runtime PyTorch objects
+        (device, activation function, RNG generators, etc.) and initializes all core
+        model components.
 
         Args:
-            config (GNSModelConfig): Fully validated model configuration.
-            graph (Graph): In-memory Graph object required by all components of the model.
+            config (GNSModelConfig): Pure DTO model configuration.
+            graph (Graph): Fully loaded in-memory Graph object.
         """
         super().__init__()
 
@@ -88,21 +96,22 @@ class GNS(torch.nn.Module):
         if not isinstance(graph, Graph):
             raiseError("Expected graph to be a Graph instance.")
 
+        # --- Resolve DTO config into runtime objects ---
         self.model_config = config
-        self.device = torch.device(config.device)
+        self.device = resolve_device(config.device)
         self.seed = config.seed
         self.p_dropout = config.p_dropout
-        self.activation = config.activation
+        self.activation = resolve_activation(config.activation)
 
         # --- Graph setup ---
-        self.graph = graph  # setter handles .to(device)
-        self.graph_path = None  # Will be set in from_graph_path
+        self.graph = graph  # property setter handles device transfer and validation
+        self.graph_path = None  # Will be set if loaded from path
 
         # --- Inputs injector (strong dependency) ---
         self.injector = InputsInjector(device=self.device)
 
         # --- Training state (used by fit) ---
-        self.last_training_config = None  # Last training config used
+        self.last_training_config = None
         self.state = {}
         self.optimizer = None
         self.scheduler = None
@@ -127,16 +136,28 @@ class GNS(torch.nn.Module):
 
         # --- GroupNorm configuration ---
         self.groupnorm = torch.nn.GroupNorm(
-            num_groups=self.model_config.groupnorm_groups,
+            num_groups=config.groupnorm_groups,
             num_channels=config.latent_dim
         ).to(self.device)
 
-        # --- Seed (optional) ---
+        # --- Seed & RNG generators ---
         if self.seed is not None:
-            set_seed(self.seed) # Used for weight initialization, dropout, backprop, etc.
-            self._generator = torch.Generator(device=torch.device('cpu')).manual_seed(self.seed) # Used for dataloader shuffling
+            # Global determinism for weight init, dropout, etc.
+            set_seed(self.seed)
+
+            # Runtime generators (CPU), decoupled streams
+            self._generator = torch.Generator(device="cpu").manual_seed(self.seed)         # train inputs
+            self._val_generator = torch.Generator(device="cpu").manual_seed(self.seed + 1) # eval/predict inputs
+
+            self._sg_generator_train = torch.Generator(device="cpu").manual_seed(self.seed + 2)  # train subgraphs
+            self._sg_generator_eval  = torch.Generator(device="cpu").manual_seed(self.seed + 3)  # eval/predict subgraphs
         else:
             self._generator = None
+            self._val_generator = None
+            self._sg_generator_train = None
+            self._sg_generator_eval = None
+
+
 
 
     @classmethod
@@ -218,29 +239,26 @@ class GNS(torch.nn.Module):
             ) for _ in range(self.model_config.num_msg_passing_layers)
         ]).to(self.device)
 
-    @property
-    def graph(self) -> Graph:
-        r"""Graph property to get the graph object."""
-        return self._graph
-    
     @graph.setter
     def graph(self, graph: Graph) -> None:
-        r"""Graph property to set the graph object."""
+        """Graph property to set the graph object."""
         if hasattr(self, "_graph") and self._graph is not None:
             raiseError("Graph has already been set and cannot be reassigned.")
         if not isinstance(graph, Graph):
             raiseError("Graph must be of type Graph.")
-        
+
+        # Validate and move to device if needed
         graph.validate()
-        
         if graph.device != self.device:
             graph = graph.to(self.device)
 
+        # Update dependent dims (model_config must be set before assigning graph)
+        self._encoder_input_dim = graph.x.shape[1] + self.model_config.input_dim
+        self._edge_dim = graph.edge_attr.shape[1]
 
-        self._encoder_input_dim = graph.x.shape[1] + self.model_config.input_dim # Update node features dimension
-        self._edge_dim = graph.edge_attr.shape[1] # Update edge features dimension
-
+        # Assign and fingerprint
         self._graph = graph
+        self.graph_fingerprint = graph.fingerprint()
 
     @cr('GNS.forward')
     def forward(self, graph: Union[Data, Graph]) -> Tensor:
@@ -275,31 +293,37 @@ class GNS(torch.nn.Module):
             X (Tensor or Dataset): Operational inputs. If Tensor, shape [B, D].
             batch_size (int): Used only if X is a Dataset.
             node_batch_size (int): Number of seed nodes per subgraph batch.
+
         Returns:
-            Tensor: Predictions of shape [B * N, F].
+            Tensor: Predictions of shape [B, N, F].
         """
         self._validate_shapes(X)
 
-        input_dataloader_config = TorchDataloaderConfig(
+        input_cfg = TorchDataloaderConfig(
             batch_size=batch_size,
             shuffle=False,
-            generator=self._generator
         )
-
-        subgraph_loader_config = SubgraphDataloaderConfig(
+        subgraph_cfg = SubgraphDataloaderConfig(
             batch_size=node_batch_size,
             shuffle=False,
             input_nodes=None,
-            generator=torch.Generator().manual_seed(0)
         )
 
-        input_dataloader = self._helpers.init_dataloader(X, input_dataloader_config)
-        subgraph_loader = self._helpers.init_subgraph_loader(subgraph_loader_config)
+        input_dataloader = self._helpers.init_dataloader(
+            X, input_cfg, generator=None
+        )
+        subgraph_loader = self._helpers.init_subgraph_loader(
+            subgraph_cfg, generator=None
+        )
 
         self.eval()
         with torch.no_grad():
-            return self._run_epoch(input_dataloader, subgraph_loader, is_train=False, return_loss=False)
-
+            return self._run_epoch(
+                input_dataloader,
+                subgraph_loader,
+                is_train=False,
+                return_loss=False
+            )
 
     @config_from_kwargs(GNSTrainingConfig)
     @cr('GNS.fit')
@@ -314,41 +338,40 @@ class GNS(torch.nn.Module):
     ) -> Dict[str, list]:
         """
         Train the model using subgraph batching over both the input parameter space and the node space.
-
-        Args:
-            train_dataset: Dataset of input parameters and targets.
-            eval_dataset: Optional validation dataset.
-            config (GNSFitConfig): Training configuration dataclass.
-            reset_state (bool): Whether to reset the optimizer and scheduler before training.
-            on_epoch_end (Callable[[int, float], None]): Optional callback to execute at the end of each epoch.
-
-        Returns:
-            Dict: Dictionary containing per-epoch train/test losses.
         """
         # --- Validate dataset shapes ---
         self._validate_shapes(train_dataset)
         if eval_dataset is not None:
             self._validate_shapes(eval_dataset)
 
-        # --- Instantiate dataloaders ---
-        train_loader_config = config.dataloader
-        train_loader_config.generator = self._generator
-        input_dataloader = self._helpers.init_dataloader(train_dataset, train_loader_config)
+        # --- Train loaders ---
+        train_input_dl = self._helpers.init_dataloader(
+            train_dataset,
+            config.dataloader,
+            generator=self._generator if config.dataloader.shuffle else None,
+        )
+        train_sg_loader = self._helpers.init_subgraph_loader(
+            config.subgraph_loader,
+            generator=self._sg_generator_train if config.subgraph_loader.shuffle else None,
+        )
 
+        # --- Eval loaders (optional) ---
         eval_dataloader = None
+        eval_subgraph_loader = None
         if eval_dataset is not None:
-            val_loader_config = copy.deepcopy(config.dataloader)
-            val_loader_config.shuffle = False
-            val_loader_config.generator = self._generator
-            eval_dataloader = self._helpers.init_dataloader(eval_dataset, val_loader_config)
-        else:
-            eval_dataloader = None
+            val_dl_cfg = replace(config.dataloader, shuffle=False)
+            eval_dataloader = self._helpers.init_dataloader(
+                eval_dataset,
+                val_dl_cfg,
+                generator=None,
+            )
+            val_sg_cfg = replace(config.subgraph_loader, shuffle=False)
+            eval_subgraph_loader = self._helpers.init_subgraph_loader(
+                val_sg_cfg,
+                generator=None,
+            )
 
-        subgraph_loader_config = config.subgraph_loader
-        subgraph_loader_config.generator = self._generator
-        subgraph_loader = self._helpers.init_subgraph_loader(subgraph_loader_config)
-
-        # --- Initialize optimizer and scheduler ---)
+        # --- Initialize optimizer and scheduler ---
         if reset_state or self.optimizer is None:
             self.optimizer = config.optimizer(self.parameters(), lr=config.lr)
 
@@ -369,8 +392,8 @@ class GNS(torch.nn.Module):
         total_epochs = len(epoch_list) + config.epochs
         for epoch in range(1 + len(epoch_list), 1 + total_epochs):
             train_loss = self._run_epoch(
-                input_dataloader,
-                subgraph_loader,
+                train_input_dl,
+                train_sg_loader,
                 return_loss=True,
                 loss_fn=config.loss_fn,
                 is_train=True
@@ -380,7 +403,7 @@ class GNS(torch.nn.Module):
             if eval_dataloader is not None:
                 test_loss = self._run_epoch(
                     eval_dataloader,
-                    subgraph_loader,
+                    eval_subgraph_loader,
                     return_loss=True,
                     loss_fn=config.loss_fn,
                     is_train=False
@@ -388,8 +411,11 @@ class GNS(torch.nn.Module):
                 test_loss_list.append(test_loss)
 
             # Logging
-            log_this_epoch = config.print_every is not None and config.print_every > 0 and epoch % config.print_every == 0
-
+            log_this_epoch = (
+                config.print_every is not None
+                and config.print_every > 0
+                and epoch % config.print_every == 0
+            )
             if log_this_epoch:
                 test_log = f" | Eval loss: {test_loss:.4e}" if eval_dataloader else ""
                 pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss: {train_loss:.4e}{test_log}", flush=True)
@@ -411,11 +437,11 @@ class GNS(torch.nn.Module):
             }
             self.last_training_config = config
 
-            # Call on_epoch_end callback if provided
             if on_epoch_end is not None:
                 on_epoch_end(epoch, train_loss)
 
         return {"train_loss": train_loss_list, "test_loss": test_loss_list}
+
 
 
     @cr('GNS._run_epoch')
