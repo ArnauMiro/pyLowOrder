@@ -1,4 +1,4 @@
-# config.yaml — pyLOM experiment configuration (auto_instantiate friendly)
+# config.yaml — pyLOM experiment configuration (DTO-friendly)
 
 experiment:
   name: gns_nlr7301_baseline
@@ -10,14 +10,14 @@ experiment:
 
 datasets:
   train_ds: "../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
-  val_ds: "../CETACEO_DATA/nlr7301/VAL_converter.h5"
-  test_ds: "../CETACEO_DATA/nlr7301/TEST_converter.h5"
+  val_ds:   "../CETACEO_DATA/nlr7301/VAL_converter.h5"
+  test_ds:  "../CETACEO_DATA/nlr7301/TEST_converter.h5"
 
 model:
-  type: GNS
+  # Kept outside the DTO on purpose (provenance, not a hyperparameter)
   graph_path: "../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
   config:
-    type: GNSModelConfig
+    # --- GNSModelConfig (pure DTO) ---
     input_dim: 2
     output_dim: 1
     latent_dim: 16
@@ -28,37 +28,29 @@ model:
     message_hidden_layers: 2
     update_hidden_layers: 2
     groupnorm_groups: 2
-    activation:
-      type: torch.nn.ELU
+    activation: "torch.nn.ELU"
     p_dropout: 0.0
     seed: 42
-    device:
-      type: torch.device
-      args: ["cuda"]
+    device: "cuda"
 
 training:
-  type: GNSTrainingConfig
+  # --- GNSTrainingConfig (pure DTO) ---
   epochs: 1000
   lr: 6.5e-4
   lr_gamma: 0.9954
   lr_scheduler_step: 1
-  optimizer:
-    type: torch.optim.Adam
-  scheduler:
-    type: torch.optim.lr_scheduler.StepLR
-  loss_fn:
-    type: torch.nn.MSELoss
+  optimizer: "torch.optim.Adam"
+  scheduler: "torch.optim.lr_scheduler.StepLR"
+  loss_fn: "torch.nn.MSELoss"
   print_every: 100
 
   dataloader:
-    type: TorchDataLoaderConfig
     batch_size: 15
     shuffle: true
     num_workers: 4
     pin_memory: true
 
   subgraph_loader:
-    type: SubgraphLoaderConfig
     batch_size: 32
     shuffle: true
     input_nodes: null
@@ -76,54 +68,51 @@ optuna:
       multivariate: true
     seed: 42
 
+  # Search space (NOT DTOs) — these stay as distributions for sampling.
   optimization_params:
     model:
       graph_path: "../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
-      params:
-        type: GNSModelConfig
+      config:
+        # Everything here is a search space for sampling -> returns a dict that
+        # we feed to dacite.from_dict(GNSModelConfig, ...)
         input_dim: 2
         output_dim: 1
-        latent_dim: {type: int, low: 8, high: 64, step: 2}
-        hidden_size: {type: int, low: 64, high: 512}
-        num_msg_passing_layers: {type: int, low: 1, high: 5}
-        encoder_hidden_layers: {type: int, low: 1, high: 4}
-        decoder_hidden_layers: {type: int, low: 1, high: 4}
-        message_hidden_layers: {type: int, low: 1, high: 4}
-        update_hidden_layers: {type: int, low: 1, high: 4}
+        latent_dim: { type: int, low: 8, high: 64, step: 2 }
+        hidden_size: { type: int, low: 64, high: 512 }
+        num_msg_passing_layers: { type: int, low: 1, high: 5 }
+        encoder_hidden_layers: { type: int, low: 1, high: 4 }
+        decoder_hidden_layers: { type: int, low: 1, high: 4 }
+        message_hidden_layers: { type: int, low: 1, high: 4 }
+        update_hidden_layers: { type: int, low: 1, high: 4 }
         groupnorm_groups: 2
         activation:
           type: categorical
           choices:
-            - torch.nn.ELU
-            - torch.nn.ReLU
-            - torch.nn.LeakyReLU
-        p_dropout: {type: float, low: 0.0, high: 0.5}
+            - "torch.nn.ELU"
+            - "torch.nn.ReLU"
+            - "torch.nn.LeakyReLU"
+        p_dropout: { type: float, low: 0.0, high: 0.5 }
         seed: 42
-        device:
-          type: torch.device
-          args: ["cuda"]
+        device: "cuda"
 
     training:
-      type: GNSTrainingConfig
-      loss_fn:
-        type: torch.nn.MSELoss
-      optimizer:
-        type: torch.optim.Adam
-      scheduler:
-        type: torch.optim.lr_scheduler.StepLR
+      # Search space for GNSTrainingConfig (NOT a DTO here)
+      loss_fn:    "torch.nn.MSELoss"
+      optimizer:  "torch.optim.Adam"
+      scheduler:  "torch.optim.lr_scheduler.StepLR"
       epochs: 3
-      lr: {type: float, low: 1.0e-5, high: 1.0e-3, log: true}
-      lr_gamma: {type: float, low: 0.9, high: 0.999}
-      lr_scheduler_step: {type: int, low: 1, high: 10}
+      lr: { type: float, low: 1.0e-5, high: 1.0e-3, log: true }
+      lr_gamma: { type: float, low: 0.9, high: 0.999 }
+      lr_scheduler_step: { type: int, low: 1, high: 10 }
       print_every: 1
 
       dataloader:
-        batch_size: {type: int, low: 8, high: 64}
+        batch_size: { type: int, low: 8, high: 64 }
         shuffle: true
         num_workers: 4
         pin_memory: true
 
       subgraph_loader:
-        batch_size: {type: int, low: 1, high: 597}
+        batch_size: { type: int, low: 1, high: 597 }
         shuffle: true
         input_nodes: null
