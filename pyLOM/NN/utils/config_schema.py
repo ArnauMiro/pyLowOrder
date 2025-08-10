@@ -2,8 +2,9 @@
 
 from dataclasses import dataclass, field
 from typing import Optional, Union, Sequence
-import torch
 from torch import Tensor
+
+from .. import DEVICE
 
 
 # ----------------------------------------------------------------------
@@ -24,7 +25,7 @@ class ModelConfigBase:
     activation: str = "torch.nn.ReLU"
     p_dropout: float = 0.0
     seed: Optional[int] = None
-    device: str = "cuda" if torch.cuda.is_available() else "cpu"
+    device: str = DEVICE
 
 
 @dataclass(frozen=True, kw_only=True)

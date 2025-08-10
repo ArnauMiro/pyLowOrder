@@ -1,10 +1,19 @@
 # utils/config_resolver.py
 
 import importlib
+import yaml
+from typing import Any, Mapping, Optional, Union
+from pathlib import Path
+
 import torch
 from torch import nn, optim
-from typing import Any, Mapping, Optional
+
 from ...utils import raiseError
+
+def load_yaml(path: Union[str, Path]) -> dict:
+    """Load a YAML file into a Python dict."""
+    with open(path, "r") as f:
+        return yaml.safe_load(f)
 
 def resolve_import(path: str):
     """Import a symbol from a fully-qualified import path."""

@@ -20,7 +20,6 @@ from __future__ import annotations
 
 from pathlib import Path
 import pickle
-import json
 import numpy as np
 import yaml
 import torch
@@ -36,7 +35,7 @@ from pyLOM.NN.utils.config_schema import (
     TorchDataloaderConfig,
     SubgraphDataloaderConfig,
 )
-from pyLOM.NN.utils.resolvers import instantiate_from_config
+from pyLOM.NN.utils.config_resolvers import load_yaml, instantiate_from_config
 from pyLOM.utils import pprint
 from pyLOM import cr_info
 
@@ -45,7 +44,7 @@ from pyLOM import cr_info
 # ─────────────────────────────────────────────────────
 
 config_path = Path("../pyLowOrder/Examples/NN/configs/gns_config.yaml").absolute()
-cfg = yaml.safe_load(config_path.read_text())
+cfg = load_yaml(config_path)
 
 # Experiment section
 exp_cfg = cfg["experiment"]
@@ -165,8 +164,8 @@ save_path = save_experiment_artifacts(
     base_path=results_path,
     model=pipeline.model,
     metrics_dict=metrics,
-    input_scaler=input_scaler,
-    output_scaler=output_scaler,
+    inputs_scaler=inputs_scaler,
+    outputs_scaler=outputs_scaler,
     extra_files={
         "train_val_loss.png": lambda p: plot_training_and_validation_loss(
             logs.get("train_loss", []), logs.get("test_loss", []), p
@@ -184,12 +183,12 @@ pprint(0, f"\nExperiment artifacts saved to: {save_path}")
 
 # Reload model and input scaler
 model_reloaded = GNS.from_graph_path(config=model_cfg, graph_path=graph_path)
-input_scaler_reloaded = MinMaxScaler.from_dict(input_scaler.to_dict())
+inputs_scaler_reloaded = MinMaxScaler.from_dict(inputs_scaler.to_dict())
 model_reloaded.eval()
 
 # Manual input
 sample_input = np.array([[4.0, 0.7]], dtype=np.float32)  # AoA, Mach
-scaled_input = input_scaler_reloaded.transform(sample_input)
+scaled_input = inputs_scaler_reloaded.transform(sample_input)
 input_tensor = torch.tensor(scaled_input, dtype=torch.float32, device=model_reloaded.device)
 
 with torch.no_grad():
@@ -214,11 +213,11 @@ plot_true_vs_pred(reference, prediction[0].cpu().numpy())
 ckpt_dir = save_path  # use the directory returned above
 print("\n>>> Reloading model and input scaler from disk...")
 model_ckpt = ckpt_dir / "model.pth"
-scaler_pkl = ckpt_dir / "input_scaler.pkl"
+scaler_pkl = ckpt_dir / "inputs_scaler.pkl"
 
 model_reloaded = GNS.load(model_ckpt, device=model_cfg.device)
 with open(scaler_pkl, "rb") as f:
-    input_scaler_reloaded = pickle.load(f)
+    inputs_scaler_reloaded = pickle.load(f)
 
 # Internal evaluation on training set using the new helper contracts
 train_dl_cfg = TorchDataloaderConfig(batch_size=1, shuffle=False)

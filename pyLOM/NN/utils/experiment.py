@@ -14,6 +14,9 @@ import datetime
 from dataclasses import asdict
 import getpass
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from pathlib import Path
+from dataclasses import asdict
+import datetime, getpass, hashlib, json, pickle, torch, yaml
 
 from torch.utils.data import Dataset as TorchDataset
 
@@ -110,81 +113,94 @@ def _convert_numpy_to_native(obj):
         return obj
 
 
-def save_experiment_artifacts(base_path: Path,
-                               model: Any,
-                               metrics_dict: Dict[str, float],
-                               input_scaler: Any = None,
-                               output_scaler: Any = None,
-                               extra_files: Dict[str, Any] | None = None,
-                               return_path: bool = False) -> None:
+def _to_native(d):
+    # if you already have _convert_numpy_to_native, use that; else keep this stub
+    return d
+
+def save_experiment_artifacts(
+    base_path: Path,
+    model: any,
+    metrics_dict: dict[str, float],
+    inputs_scaler: any = None,
+    outputs_scaler: any = None,
+    extra_files: dict[str, any] | None = None,
+    return_path: bool = False,
+) -> Path | None:
     """
-    Save all relevant experiment artifacts to disk.
-    If base_path is a directory with no specific subfolder, a timestamped folder will be created automatically.
-    Args:
-        base_path (Path): Base path where artifacts will be saved.
-        model (Any): The trained model instance.
-        metrics_dict (Dict[str, float]): Dictionary of evaluation metrics.
-        input_scaler (Any, optional): Input scaler instance (e.g., MinMaxScaler).
-        output_scaler (Any, optional): Output scaler instance (e.g., MinMaxScaler).
-        extra_files (Dict[str, Any], optional): Additional files to save, with filename as key and a callable generator function as value.
-        return_path (bool): If True, return the path where artifacts were saved.
-    Returns:
-        base_path (Path): The path where artifacts were saved, if return_path is True.
-    Raises:
-        TypeError: If extra_files values are not callable.
+    Save model checkpoint + DTO configs + provenance + scalers + metrics.
+
+    Notes
+    -----
+    - The written config.yaml mirrors what the checkpoint stores (DTOs + provenance).
+    - A stable SHA256 is computed from a canonical JSON dump of that config document.
     """
-    # Ensure base_path is a directory, generate subfolder if needed
+    # 1) Decide output directory (timestamped subfolder if 'base_path' is a dir)
     if base_path.is_dir() or not base_path.suffix:
         timestamp = datetime.datetime.now().isoformat(timespec="seconds").replace(":", "-")
-        model_name = getattr(model.config, "model_name", model.__class__.__name__)
-        base_path = base_path / f"{timestamp}_{model_name}"
-    
-    base_path.mkdir(parents=True, exist_ok=True)
+        model_name = getattr(model, "__class__", type("X",(object,),{})).__name__
+        out_dir = base_path / f"{timestamp}_{model_name}"
+    else:
+        out_dir = base_path
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Save config.yaml
-    yaml_config_path = base_path / "config.yaml"
-    yaml.safe_dump({
-        "model": serialize_config_dict(asdict(model.config)),
-        "training": serialize_config_dict(asdict(model.last_training_config)),
-    }, yaml_config_path.open("w"))
+    # 2) Build the DTO/provenance document we’ll save AND hash
+    model_cfg_dict  = asdict(model.model_config)
+    train_cfg_dict  = asdict(model.last_training_config) if getattr(model, "last_training_config", None) else None
+    prov_dict       = {
+        "graph_spec": asdict(model.graph_spec),
+        "graph_fingerprint": getattr(model, "graph_fingerprint", None),
+    }
+    config_doc = {
+        "model": model_cfg_dict,
+        "training": train_cfg_dict,
+        "provenance": prov_dict,
+    }
 
-    # Save meta.yaml with hash and timestamp
-    config_hash = hashlib.sha1(yaml_config_path.read_bytes()).hexdigest()
-    meta_info = {   
+    # 3) Stable hash from canonical JSON (independent of YAML formatting)
+    canonical = json.dumps(config_doc, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    config_sha256 = hashlib.sha256(canonical).hexdigest()
+
+    # 4) Write config.yaml (human‑readable) and meta.yaml
+    yaml_config_path = out_dir / "config.yaml"
+    with yaml_config_path.open("w") as f:
+        yaml.safe_dump(config_doc, f, sort_keys=False)
+
+    meta_info = {
         "saved_at": datetime.datetime.now().isoformat(),
-        "config_sha1": config_hash,
+        "config_sha256": config_sha256,
         "torch_version": torch.__version__,
         "user": getpass.getuser(),
         "git_commit": get_git_commit(),
     }
-    yaml.safe_dump(meta_info, (base_path / "meta.yaml").open("w"))
+    with (out_dir / "meta.yaml").open("w") as f:
+        yaml.safe_dump(meta_info, f, sort_keys=False)
 
-    # Save model and scalers
-    model.save(base_path / "model.pth")
+    # 5) Save model checkpoint (contains DTOs + provenance + states)
+    model.save(out_dir / "model.pth")
 
-    if input_scaler:
-        with open(base_path / "input_scaler.pkl", "wb") as f:
-            pickle.dump(input_scaler, f)
-    if output_scaler:
-        with open(base_path / "output_scaler.pkl", "wb") as f:
-            pickle.dump(output_scaler, f)
+    # 6) Save scalers (pickle)
+    if inputs_scaler is not None:
+        with (out_dir / "input_scaler.pkl").open("wb") as f:
+            pickle.dump(inputs_scaler, f)
+    if outputs_scaler is not None:
+        with (out_dir / "output_scaler.pkl").open("wb") as f:
+            pickle.dump(outputs_scaler, f)
 
-    # Save evaluation metrics
-    native_metrics = _convert_numpy_to_native(metrics_dict)
-    with open(base_path / "metrics.yaml", "w") as f:
-        yaml.safe_dump(native_metrics, f)
+    # 7) Save metrics (YAML with numpy→native conversion)
+    native_metrics = _to_native(metrics_dict)
+    with (out_dir / "metrics.yaml").open("w") as f:
+        yaml.safe_dump(native_metrics, f, sort_keys=False)
 
-    # Save any extra files
+    # 8) Extra files
     if extra_files:
         for filename, generator_fn in extra_files.items():
             if not callable(generator_fn):
                 raise TypeError(f"Expected a callable for file '{filename}'")
-            generator_fn(base_path / filename)
+            generator_fn(out_dir / filename)
 
-    pprint(0, f"Experiment artifacts saved to: {base_path}")
+    pprint(0, f"Experiment artifacts saved to: {out_dir}")
+    return out_dir if return_path else None
 
-    if return_path:
-        return base_path
 
 def evaluate_dataset_with_metrics(preds: np.ndarray, targets: np.ndarray) -> dict:
     """

@@ -22,7 +22,7 @@ from optuna import Trial
 
 from dacite import from_dict, Config
 
-from .. import DEVICE, set_seed
+from .. import set_seed
 from ... import pprint, cr
 from ...utils import (
     raiseError,
@@ -32,7 +32,6 @@ from ..utils import (
     count_trainable_params,
     cleanup_tensors,
     sample_params,
-    hyperparams_serializer,
 )
 from ..gns import (
     GNSMLP,
@@ -51,14 +50,12 @@ from ..utils.config_schema import (
     SubgraphDataloaderConfig,
 )
 from ..utils.resolvers import (
-    resolve_import,
     resolve_device,
     resolve_activation,
     resolve_loss,
     resolve_optimizer,
     resolve_scheduler,
 )
-from ..utils.config_loader import GeneralTypeHooks
 from ..optimizer import OptunaOptimizer, TrialPruned
 
 
@@ -638,9 +635,9 @@ class GNS(torch.nn.Module):
             raiseError("graph_fingerprint is missing; cannot save provenance.")
 
         # Ensure model_state_dict is present
-            state_to_save = dict(self.state) if self.state is not None else {}
-            if "model_state_dict" not in state_to_save:
-                state_to_save["model_state_dict"] = self.state_dict()
+        state_to_save = dict(self.state) if self.state is not None else {}
+        if "model_state_dict" not in state_to_save:
+            state_to_save["model_state_dict"] = self.state_dict()
 
             checkpoint = {
                 "model_config": asdict(self.model_config),
