@@ -11,8 +11,9 @@ import json
 import getpass
 import datetime
 from pathlib import Path
-from typing import Dict, Tuple, Union, Optional, Callable
+from typing import Any, Dict, Tuple, Union, Optional, Callable
 from dataclasses import asdict, replace
+from pathlib import Path
 
 import torch
 from torch import Tensor
@@ -76,7 +77,7 @@ class GNS(torch.nn.Module):
         For standard usage, prefer using `GNS.from_graph(...)` or `GNS.from_graph_path(...)`.
     """
 
-    def __init__(self, *, config: GNSModelConfig, graph: Graph) -> None:
+    def __init__(self, *, config: GNSModelConfig, graph: Graph, graph_spec: Optional[GraphSpec] = None) -> None:
         """
         Internal constructor for GNS. Do not use directly unless you know exactly what you're doing.
 
@@ -84,9 +85,14 @@ class GNS(torch.nn.Module):
         (device, activation function, RNG generators, etc.) and initializes all core
         model components.
 
-        Args:
-            config (GNSModelConfig): Pure DTO model configuration.
-            graph (Graph): Fully loaded in-memory Graph object.
+        Parameters
+        ----------
+        config : GNSModelConfig
+            Pure DTO with model hyperparameters.
+        graph : Graph
+            Fully loaded in-memory Graph object.
+        graph_spec : Optional[GraphSpec]
+            Optional provenance info (e.g., path/id). Not a hyperparameter.
         """
         super().__init__()
 
@@ -103,16 +109,16 @@ class GNS(torch.nn.Module):
         self.p_dropout = config.p_dropout
         self.activation = resolve_activation(config.activation)
 
-        # --- Graph setup ---
-        self.graph = graph  # property setter handles device transfer and validation
-        self.graph_path = None  # Will be set if loaded from path
+        # --- Graph & provenance ---
+        self.graph_spec = graph_spec or GraphSpec()
+        self.graph = graph  # setter validates, moves to device, updates dims, and sets self.graph_fingerprint
 
         # --- Inputs injector (strong dependency) ---
         self.injector = InputsInjector(device=self.device)
 
         # --- Training state (used by fit) ---
         self.last_training_config = None
-        self.state = {}
+        self.state: Dict[str, Any] = {}
         self.optimizer = None
         self.scheduler = None
 
@@ -142,8 +148,7 @@ class GNS(torch.nn.Module):
 
         # --- Seed & RNG generators ---
         if self.seed is not None:
-            # Global determinism for weight init, dropout, etc.
-            set_seed(self.seed)
+            set_seed(self.seed)  # global determinism
 
             # Runtime generators (CPU), decoupled streams
             self._generator = torch.Generator(device="cpu").manual_seed(self.seed)         # train inputs
@@ -156,6 +161,7 @@ class GNS(torch.nn.Module):
             self._val_generator = None
             self._sg_generator_train = None
             self._sg_generator_eval = None
+
 
 
 
@@ -183,29 +189,26 @@ class GNS(torch.nn.Module):
 
 
     @classmethod
-    # @config_from_kwargs(GNSModelConfig)
     def from_graph_path(cls, *, config: GNSModelConfig, graph_path: Union[str, Path]) -> "GNS":
         """
         Construct a GNS model by loading the Graph from disk.
 
-        This constructor is intended for cases where only the path to the graph
-        is known (not the graph itself).
+        Parameters
+        ----------
+        config : GNSModelConfig
+            Fully resolved model configuration.
+        graph_path : str or Path
+            Path to the graph file. Must be a valid Graph file.
 
-        Args:
-            config (GNSModelConfig): Fully resolved model configuration.
-            graph_path (str or Path): Path to the graph file. Must be a valid Graph file.
-
-        Returns:
-            GNS: Fully constructed model.
-
-        Raises:
-            RuntimeError: If no graph path is provided via config or argument.
+        Returns
+        -------
+        GNS
+            Fully constructed model with provenance info attached.
         """
-        graph = Graph.load(graph_path)
-        model = cls(config=config, graph=graph)
-        model.graph_path = graph_path
-        
-        return model
+        path = Path(graph_path)
+        graph = Graph.load(path)
+        spec = GraphSpec(path=str(path))
+        return cls(config=config, graph=graph, graph_spec=spec)
 
 
     def _build_encoder(self):
@@ -338,11 +341,21 @@ class GNS(torch.nn.Module):
     ) -> Dict[str, list]:
         """
         Train the model using subgraph batching over both the input parameter space and the node space.
+
+        Notes
+        -----
+        - Config DTOs are resolved to runtime objects here (loss, optimizer, scheduler).
+        - RNG generators are passed as runtime args to helpers; DTOs remain immutable.
         """
         # --- Validate dataset shapes ---
         self._validate_shapes(train_dataset)
         if eval_dataset is not None:
             self._validate_shapes(eval_dataset)
+
+        # --- Resolve runtime components from DTOs ---
+        loss_fn = resolve_loss(config.loss_fn)
+        optimizer_cls = resolve_optimizer(config.optimizer)
+        scheduler_cls = resolve_scheduler(config.scheduler)  # may be None
 
         # --- Train loaders ---
         train_input_dl = self._helpers.init_dataloader(
@@ -373,14 +386,18 @@ class GNS(torch.nn.Module):
 
         # --- Initialize optimizer and scheduler ---
         if reset_state or self.optimizer is None:
-            self.optimizer = config.optimizer(self.parameters(), lr=config.lr)
+            self.optimizer = optimizer_cls(self.parameters(), lr=config.lr)
 
-        if reset_state or (self.scheduler is None and config.scheduler is not None):
-            self.scheduler = config.scheduler(
-                self.optimizer,
-                step_size=config.lr_scheduler_step,
-                gamma=config.lr_gamma
-            )
+        if reset_state or (self.scheduler is None and scheduler_cls is not None):
+            # Default to StepLR-style kwargs; callers can change scheduler type via config.
+            if scheduler_cls is not None:
+                self.scheduler = scheduler_cls(
+                    self.optimizer,
+                    step_size=config.lr_scheduler_step,
+                    gamma=config.lr_gamma
+                )
+            else:
+                self.scheduler = None
 
         # --- Load training history if available ---
         state = self.state
@@ -395,7 +412,7 @@ class GNS(torch.nn.Module):
                 train_input_dl,
                 train_sg_loader,
                 return_loss=True,
-                loss_fn=config.loss_fn,
+                loss_fn=loss_fn,
                 is_train=True
             )
             train_loss_list.append(train_loss)
@@ -405,7 +422,7 @@ class GNS(torch.nn.Module):
                     eval_dataloader,
                     eval_subgraph_loader,
                     return_loss=True,
-                    loss_fn=config.loss_fn,
+                    loss_fn=loss_fn,
                     is_train=False
                 )
                 test_loss_list.append(test_loss)
@@ -441,7 +458,6 @@ class GNS(torch.nn.Module):
                 on_epoch_end(epoch, train_loss)
 
         return {"train_loss": train_loss_list, "test_loss": test_loss_list}
-
 
 
     @cr('GNS._run_epoch')
@@ -603,19 +619,32 @@ class GNS(torch.nn.Module):
             raiseError(f"Invalid dataset for {self.__class__.__name__}: {e}")
 
     
+
     def save(self, path: Union[str, Path]) -> None:
         """
         Save the current model to a checkpoint file.
-        """
-        if self.graph_path is None:
-            raiseError("Cannot save model without graph_path set.")
 
+        Notes
+        -----
+        - Stores pure DTOs for model/training configs.
+        - Stores graph provenance (GraphSpec) and graph fingerprint for mismatch detection.
+        - Stores training state (including optimizer/scheduler states if available).
+        """
         path = Path(path)
 
+        # --- Minimal validation ---
+        if not hasattr(self, "graph_spec"):
+            raiseError("graph_spec is missing; cannot save provenance.")
+        if not hasattr(self, "graph_fingerprint"):
+            raiseError("graph_fingerprint is missing; cannot save provenance.")
+
         checkpoint = {
-            "graph_path": self.graph_path,
             "model_config": asdict(self.model_config),
             "state": self.state,
+            "provenance": {
+                "graph_spec": asdict(self.graph_spec),
+                "graph_fingerprint": self.graph_fingerprint,
+            },
             "metadata": {
                 "saved_at": datetime.datetime.now().isoformat(),
                 "torch_version": torch.__version__,
@@ -624,14 +653,15 @@ class GNS(torch.nn.Module):
             },
         }
         if self.last_training_config is not None:
-            checkpoint["last_training_config"] = serialize_config_dict(asdict(self.last_training_config))
+            checkpoint["last_training_config"] = asdict(self.last_training_config)
 
+        # Default filename if path is a directory
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         n_epochs = len(self.state.get("epoch_list", [])) if self.state else 0
         filename = f"trained_model_{timestamp}_ep{n_epochs:03d}.pth"
 
         if os.path.isdir(path):
-            path = os.path.join(path, filename)
+            path = path / filename
         elif path.suffix != ".pth":
             raiseError("Save path must end with '.pth' or be a directory.")
 
@@ -639,62 +669,96 @@ class GNS(torch.nn.Module):
 
 
     @classmethod
-    def load(cls, path: Union[str, Path], device: Union[str, torch.device] = DEVICE) -> "GNS":
-        """
-        Load a GNS model from a checkpoint file.
+    def load(
+        cls,
+        ckpt_path: Union[str, Path],
+        *,
+        device: Optional[Union[str, torch.device]] = None,
+        graph: Optional[Graph] = None,
+        graph_spec: Optional[GraphSpec] = None,
+        strict_fingerprint: bool = True,
+    ) -> "GNS":
+        ckpt = torch.load(ckpt_path, map_location="cpu")  # map to CPU first; we will move later
 
-        Args:
-            path (str): Path to the .pth file.
-            device (str or torch.device): Device to map the model to.
+        # Rebuild pure DTOs from checkpoint
+        saved_cfg = GNSModelConfig(**ckpt["model_config"])
+        # Resolve target device
+        target_device = torch.device(device) if device is not None else torch.device(saved_cfg.device)
+        # Create a new config with the target device
+        model_cfg = replace(saved_cfg, device=str(target_device))
 
-        Returns:
-            GNS: Reconstructed model instance.
-        """
-        path = Path(path)
-        if not os.path.isfile(path):
-            raiseError(f"Model file '{path}' not found.")
-        if not path.suffix == ".pth":
-            raiseError(f"Checkpoint file must have a '.pth' extension. Extension was {path.suffix}.")
+        # Resolve graph and graph_spec
+        prov = ckpt["provenance"]
+        saved_spec_dict = prov.get("graph_spec", {}) or {}
+        saved_fp = prov.get("graph_fingerprint")
 
-        device = torch.device(device)
-        if device.type == "cuda" and not torch.cuda.is_available():
-            raiseError("CUDA is not available. Use CPU instead.")
+        if graph is None:
+            graph_path = saved_spec_dict.get("path")
+            if graph_path is None:
+                raiseError("Checkpoint has no graph path and no `graph` was provided.")
+            graph = Graph.load(graph_path)
+            graph_spec = GraphSpec(**saved_spec_dict)
+        else:
+            graph_spec = graph_spec or GraphSpec()
 
-        checkpoint = torch.load(path, map_location=device)
+        # Instantiate the model
+        model = cls(config=model_cfg, graph=graph, graph_spec=graph_spec)
 
-        # --- Validate checkpoint structure ---
-        required_keys = ["graph_path", "model_config", "state"]
-        for key in required_keys:
-            if key not in checkpoint:
-                raiseError(f"Checkpoint is missing required key: '{key}'")
+        if strict_fingerprint and saved_fp is not None and model.graph_fingerprint != saved_fp:
+            raiseError("Graph fingerprint mismatch between checkpoint and provided/loaded graph.")
 
-        # --- Reconstruct model ---
-        model_config = GNSModelConfig(**resolve_config_dict(checkpoint["model_config"]))
-        graph_path = checkpoint["graph_path"]
-        model = cls.from_graph_path(config=model_config, graph_path=graph_path)
-
-        # --- Load state ---
-        state = checkpoint["state"]
+        # Load model state dict
+        state = ckpt["state"]
         model.load_state_dict(state["model_state_dict"])
         model.state = state
 
-        if checkpoint.get("last_training_config") is not None:
-            last_training_config = GNSTrainingConfig(
-                **resolve_config_dict(checkpoint["last_training_config"])
-            )
-            model.last_training_config = last_training_config
-            model.optimizer = last_training_config.optimizer(model.parameters(), lr=last_training_config.lr)
-            model.optimizer.load_state_dict(state.get("optimizer_state_dict"))
-            if last_training_config.scheduler is not None:
-                model.scheduler = last_training_config.scheduler(
-                    model.optimizer,
-                    step_size=last_training_config.lr_scheduler_step,
-                    gamma=last_training_config.lr_gamma
-                )
-                model.scheduler.load_state_dict(state.get("scheduler_state_dict"))
+        # Rehydrate training state if available
+        if "last_training_config" in ckpt and ckpt["last_training_config"] is not None:
+            last_cfg = GNSTrainingConfig(**ckpt["last_training_config"])
+            model._rehydrate_training_state(last_cfg, state)
 
+        # Move model to target device
+        model.to(target_device)
         model.eval()
         return model
+
+    def _rehydrate_training_state(self, last_cfg: GNSTrainingConfig, state: Dict[str, Any]) -> None:
+        """
+        Rebuild optimizer and scheduler from the saved training config and state dicts.
+
+        Parameters
+        ----------
+        last_cfg : GNSTrainingConfig
+            Training DTO saved in the checkpoint.
+        state : Dict[str, Any]
+            State dict blob from the checkpoint, expected keys:
+            - 'optimizer_state_dict'
+            - 'scheduler_state_dict'
+        """
+        optimizer_cls = resolve_optimizer(last_cfg.optimizer)
+        scheduler_cls = resolve_scheduler(last_cfg.scheduler)
+
+        # Optimizer
+        self.optimizer = optimizer_cls(self.parameters(), lr=last_cfg.lr)
+        opt_sd = state.get("optimizer_state_dict")
+        if opt_sd:
+            self.optimizer.load_state_dict(opt_sd)
+
+        # Scheduler (optional)
+        if scheduler_cls is not None:
+            self.scheduler = scheduler_cls(
+                self.optimizer,
+                step_size=last_cfg.lr_scheduler_step,
+                gamma=last_cfg.lr_gamma
+            )
+            sch_sd = state.get("scheduler_state_dict")
+            if sch_sd:
+                self.scheduler.load_state_dict(sch_sd)
+        else:
+            self.scheduler = None
+
+        self.last_training_config = last_cfg
+
 
 
     @classmethod
