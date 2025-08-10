@@ -1,4 +1,4 @@
-# config.yaml — pyLOM experiment configuration
+# config.yaml — pyLOM experiment configuration (auto_instantiate friendly)
 
 experiment:
   name: gns_nlr7301_baseline
@@ -6,7 +6,7 @@ experiment:
   version: 1.0
   tags: [GNS, airfoil, baseline]
   results_path: "../CETACEO_RESULTS/nlr7301/"
-  mode: optuna                      # Options: train | optuna
+  mode: optuna
 
 datasets:
   train_ds: "../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
@@ -16,7 +16,8 @@ datasets:
 model:
   type: GNS
   graph_path: "../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
-  params:
+  config:
+    type: GNSModelConfig
     input_dim: 2
     output_dim: 1
     latent_dim: 16
@@ -27,34 +28,40 @@ model:
     message_hidden_layers: 2
     update_hidden_layers: 2
     groupnorm_groups: 2
-    activation: torch.nn.ELU
+    activation:
+      type: torch.nn.ELU
     p_dropout: 0.0
     seed: 42
-    device: cuda
-
-training_type: default  # <-- ✅ Added to support dynamic dispatch
+    device:
+      type: torch.device
+      args: ["cuda"]
 
 training:
+  type: GNSTrainingConfig
   epochs: 1000
   lr: 6.5e-4
   lr_gamma: 0.9954
   lr_scheduler_step: 1
-  optimizer: torch.optim.Adam
-  scheduler: torch.optim.lr_scheduler.StepLR
-  loss_fn: torch.nn.MSELoss
+  optimizer:
+    type: torch.optim.Adam
+  scheduler:
+    type: torch.optim.lr_scheduler.StepLR
+  loss_fn:
+    type: torch.nn.MSELoss
   print_every: 100
 
   dataloader:
+    type: TorchDataLoaderConfig
     batch_size: 15
     shuffle: true
     num_workers: 4
     pin_memory: true
 
   subgraph_loader:
+    type: SubgraphLoaderConfig
     batch_size: 32
     shuffle: true
-    input_nodes: null  # Use default from dataloader
-
+    input_nodes: null
 
 optuna:
   study:
@@ -73,6 +80,7 @@ optuna:
     model:
       graph_path: "../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
       params:
+        type: GNSModelConfig
         input_dim: 2
         output_dim: 1
         latent_dim: {type: int, low: 8, high: 64, step: 2}
@@ -83,15 +91,26 @@ optuna:
         message_hidden_layers: {type: int, low: 1, high: 4}
         update_hidden_layers: {type: int, low: 1, high: 4}
         groupnorm_groups: 2
-        activation: {type: categorical, choices: [torch.nn.ELU, torch.nn.ReLU, torch.nn.LeakyReLU]}
+        activation:
+          type: categorical
+          choices:
+            - torch.nn.ELU
+            - torch.nn.ReLU
+            - torch.nn.LeakyReLU
         p_dropout: {type: float, low: 0.0, high: 0.5}
         seed: 42
-        device: cuda
+        device:
+          type: torch.device
+          args: ["cuda"]
 
     training:
-      loss_fn: torch.nn.MSELoss
-      optimizer: torch.optim.Adam
-      scheduler: torch.optim.lr_scheduler.StepLR
+      type: GNSTrainingConfig
+      loss_fn:
+        type: torch.nn.MSELoss
+      optimizer:
+        type: torch.optim.Adam
+      scheduler:
+        type: torch.optim.lr_scheduler.StepLR
       epochs: 3
       lr: {type: float, low: 1.0e-5, high: 1.0e-3, log: true}
       lr_gamma: {type: float, low: 0.9, high: 0.999}

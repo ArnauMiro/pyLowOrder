@@ -61,7 +61,7 @@ class TorchDataloaderConfig:
 
 
 @dataclass
-class SubgraphDataloaderConfig:
+class SubgraphLoaderConfig:
     batch_size: int = 256
     shuffle: bool = True
     input_nodes: Optional[Union[Tensor, Sequence[int]]] = None
@@ -71,7 +71,7 @@ class SubgraphDataloaderConfig:
 @dataclass
 class GNSTrainingConfig(TrainingConfigBase):
     dataloader: TorchDataloaderConfig = TorchDataloaderConfig()
-    subgraph_loader: SubgraphDataloaderConfig = SubgraphDataloaderConfig()
+    subgraph_loader: SubgraphLoaderConfig = SubgraphLoaderConfig()
 
 
 # ----------------------------------------------------------------------

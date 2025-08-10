@@ -10,6 +10,7 @@ import torch.nn as nn
 from dacite import from_dict, Config
 
 from .config_schema import AppConfig
+from ...utils import raiseError
 
 
 # ==========================================================
@@ -77,37 +78,36 @@ class GeneralTypeHooks(dict):
 # ==========================================================
 # Bidirectional config transformation
 # ==========================================================
-def resolve_config_dict(cfg: dict) -> dict:
+def auto_instantiate(obj: Any) -> Any:
     """
-    Recursively resolve string references in a config dict:
-    - "torch.nn.ReLU" → class
-    - "cuda"/"cpu" → torch.device
-    - filesystem paths → Path objects
+    Recursively instantiate objects from dicts containing a `type` key.
+    - `args` is a list of positional args.
+    - Any other key is treated as a kwarg.
     """
-    resolved = {}
-    for key, value in cfg.items():
-        if isinstance(value, dict):
-            resolved[key] = resolve_config_dict(value)
-        elif isinstance(value, str):
-            if key == "device" and value in ("cuda", "cpu"):
-                resolved[key] = torch.device(value)
-            elif "." in value:  # Try to import
-                try:
-                    obj = resolve_callable(value)
-                    # NEW: If it's a nn.Module subclass, instantiate it
-                    if isclass(obj) and issubclass(obj, torch.nn.Module):
-                        resolved[key] = obj()
-                    else:
-                        resolved[key] = obj
-                except Exception:
-                    resolved[key] = value
-            elif "/" in value or value.endswith(".h5"):
-                resolved[key] = Path(value)
-            else:
-                resolved[key] = value
+    if isinstance(obj, dict):
+        if "type" in obj:
+            cls = resolve_callable(obj["type"]) if isinstance(obj["type"], str) else obj["type"]
+
+            args = [auto_instantiate(a) for a in obj.get("args", [])]
+            kwargs = {k: auto_instantiate(v) for k, v in obj.items() if k not in ("type", "args")}
+
+            return cls(*args, **kwargs)
         else:
-            resolved[key] = value
-    return resolved
+            return {k: auto_instantiate(v) for k, v in obj.items()}
+
+    elif isinstance(obj, list):
+        return [auto_instantiate(v) for v in obj]
+
+    elif isinstance(obj, str):
+        if "." in obj:
+            try:
+                return resolve_callable(obj)
+            except Exception:
+                return obj
+        return obj
+
+    return obj
+
 
 
 def serialize_config_dict(cfg: dict) -> dict:
@@ -157,30 +157,10 @@ def from_dataclass(instance: Any) -> dict:
 # ==========================================================
 # Full config loader (App-level)
 # ==========================================================
-def load_full_config(
-    path: Union[str, Path],
-    model_registry: dict[str, Type],
-    training_registry: dict[str, Type]
-) -> Any:
-    """
-    Load full application config from YAML and instantiate
-    the corresponding AppConfig dataclass.
-    """
+def load_full_config(path: Union[str, Path]) -> AppConfig:
+    """Load YAML and instantiate all sections using `auto_instantiate`."""
     raw = load_yaml(path)
+    resolved = auto_instantiate(raw)
+    type_hooks = GeneralTypeHooks()
+    return from_dict(data_class=AppConfig, data=resolved, config=Config(type_hooks=type_hooks, strict=True))
 
-    # Pre-resolve strings into proper Python objects
-    raw["model"]["params"] = resolve_config_dict(raw["model"]["params"])
-    raw["training"] = resolve_config_dict(raw["training"])
-
-    dacite_cfg = Config(type_hooks={torch.device: torch.device}, strict=True)
-
-    # Build model config
-    model_cls = model_registry[raw["model"]["type"].lower()]
-    raw["model"]["params"] = from_dict(data_class=model_cls, data=raw["model"]["params"], config=dacite_cfg)
-
-    # Build training config
-    training_cls = training_registry[raw.get("training_type", "default").lower()]
-    raw["training"] = from_dict(data_class=training_cls, data=raw["training"], config=dacite_cfg)
-
-    # Build final AppConfig
-    return from_dict(data_class=AppConfig, data=raw, config=dacite_cfg)
