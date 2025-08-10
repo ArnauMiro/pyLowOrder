@@ -773,39 +773,51 @@ class GNS(torch.nn.Module):
 
         The graph path must be specified in `optuna_optimizer.optimization_params['model']['graph_path']`.
 
-        Returns:
-            A tuple (trained_model, best_hyperparams) with final model and config dictionaries.
+        Returns
+        -------
+        (GNS, Dict[str, Dict]):
+            - trained_model: Final GNS model built with the best hyperparameters.
+            - best_hyperparams: {"model": <dict>, "training": <dict>} best params found by Optuna.
         """
-        optimization_params = optuna_optimizer.optimization_params
-        graph_path = optimization_params["model"]["graph_path"]
-        model_space = optimization_params["model"]["params"]
-        training_space = optimization_params["training"]
-        shared_graph = Graph.load(graph_path)
+        if eval_dataset is None:
+            raiseError("Optuna optimization requires a validation dataset (eval_dataset).")
 
-        # Prepare unified config resolution
-        type_hooks = GeneralTypeHooks()
-        dacite_cfg = Config(type_hooks=type_hooks, strict=True)
+        # ---- Extract search space and load shared graph once ----
+        optimization_params = optuna_optimizer.optimization_params
+        graph_path, search_space = cls.split_search_space(optimization_params)
+        model_space = search_space["model"]
+        training_space = search_space["training"]
+
+        shared_graph = Graph.load(graph_path)  # one in-memory graph for all trials
+
+        # ---- Dacite config for DTOs (type hooks if you need them) ----
+        dacite_cfg = Config(strict=True)
 
         @cr("GNS.optimization_function")
-        def optimization_function(trial: Trial) -> float:
-            # Sample model hyperparameters
-            model_dict = resolve_config_dict(sample_params(model_space, trial))
-            training_dict = resolve_config_dict(sample_params(training_space, trial))
+        def objective(trial: Trial) -> float:
+            # 1) Sample hyperparameters (plain dicts)
+            model_dict = sample_params(model_space, trial)
+            training_dict = sample_params(training_space, trial)
+
+            # 2) Build DTOs (pure dataclasses)
             model_cfg = from_dict(data_class=GNSModelConfig, data=model_dict, config=dacite_cfg)
             training_cfg = from_dict(data_class=GNSTrainingConfig, data=training_dict, config=dacite_cfg)
 
-            # Create and train model
-            model = cls.from_graph(config=model_cfg, graph=shared_graph)
+            # 3) Build model (no resolvers here; __init__ y fit se encargan internamente)
+            model = cls(config=model_cfg, graph=shared_graph, graph_spec=GraphSpec(path=str(graph_path)))
 
+            # 4) Logging (DTOs -> dicts)
             pprint(0, f"\nTrial {trial.number + 1}/{optuna_optimizer.num_trials}:")
-            pprint(0, f"  Model params: {json.dumps(model_cfg, default=hyperparams_serializer, indent=4)}")
-            pprint(0, f"  Training params: {json.dumps(training_cfg, default=hyperparams_serializer, indent=4)}")
+            pprint(0, "  Model params: " + json.dumps(asdict(model_cfg), indent=4))
+            pprint(0, "  Training params: " + json.dumps(asdict(training_cfg), indent=4))
 
+            # 5) Optional pruning callback
             def on_epoch(epoch: int, val_loss: float) -> None:
                 trial.report(val_loss, step=epoch)
                 if trial.should_prune():
                     raise TrialPruned()
 
+            # 6) Train (fit se encarga de resolver loss/optimizer/scheduler)
             try:
                 if optuna_optimizer.pruner is not None:
                     losses = model.fit(
@@ -815,47 +827,77 @@ class GNS(torch.nn.Module):
                         on_epoch_end=on_epoch,
                     )
                 else:
-                    losses = model.fit(train_dataset, eval_dataset, config=training_cfg)
-                    val_loss = losses["test_loss"][-1]
-                    trial.report(val_loss, step=9999)
+                    losses = model.fit(
+                        train_dataset,
+                        eval_dataset,
+                        config=training_cfg
+                    )
+                    # report final metric explicitly for completeness
+                    if losses["test_loss"]:
+                        trial.report(losses["test_loss"][-1], step=9999)
 
+            except TrialPruned:
+                # Explicit cleanup on pruning
+                with torch.no_grad():
+                    del model
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                raise
             except RuntimeError as e:
                 with torch.no_grad():
                     del model
-                    torch.cuda.empty_cache()
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
                 pprint(0, f"RuntimeError during trial {trial.number}: {str(e)}")
                 raise e
 
+            # 7) Select final validation loss
+            if not losses["test_loss"]:
+                raiseError("Training returned no validation losses; cannot score the trial.")
+            val_loss = float(losses["test_loss"][-1])
+
+            # 8) Cleanup memoria
             with torch.no_grad():
                 del model
-                torch.cuda.empty_cache()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
 
             return val_loss
 
-        # Run optimization
-        best_params_flat = optuna_optimizer.optimize(objective_function=optimization_function)
+        # ---- Run optimization ----
+        best_params_flat = optuna_optimizer.optimize(objective_function=objective)
 
-        # Reconstruct config dictionaries
-        best_model_cfg = model_space.copy()
-        best_training_cfg = training_space.copy()
+        # ---- Reconstruct best dicts for model and training (solo claves buscadas) ----
+        best_model_cfg_dict: Dict = {}
+        for k, v in model_space.items():
+            # if it was fix in search spcace, keep it; if it was searchable, pick value from best_params_flat.
+            best_model_cfg_dict[k] = best_params_flat.get(k, v)
 
-        for k in best_model_cfg:
-            if isinstance(best_model_cfg[k], dict) and "type" in best_model_cfg[k]:
-                best_model_cfg[k] = best_params_flat[k]
-        for k in best_training_cfg:
-            if isinstance(best_training_cfg[k], dict) and "type" in best_training_cfg[k]:
-                best_training_cfg[k] = best_params_flat[k]
-
-        best_model_cfg["graph_path"] = graph_path
+        best_training_cfg_dict: Dict = {}
+        for k, v in training_space.items():
+            best_training_cfg_dict[k] = best_params_flat.get(k, v)
 
         pprint(0, "\nBest hyperparameters:")
-        pprint(0, f"  Model params: {json.dumps(best_model_cfg, indent=4, default=hyperparams_serializer)}")
-        pprint(0, f"  Training params: {json.dumps(best_training_cfg, indent=4, default=hyperparams_serializer)}")
+        pprint(0, "  Model params: " + json.dumps(best_model_cfg_dict, indent=4))
+        pprint(0, "  Training params: " + json.dumps(best_training_cfg_dict, indent=4))
 
-        final_model_cfg = from_dict(data_class=GNSModelConfig, data=resolve_config_dict(best_model_cfg), config=dacite_cfg)
-        final_model = cls.from_graph_path(config=final_model_cfg, graph_path=graph_path)
+        # ---- Build final DTOs & final model ----
+        best_model_cfg = from_dict(data_class=GNSModelConfig, data=best_model_cfg_dict, config=dacite_cfg)
+        best_training_cfg = from_dict(data_class=GNSTrainingConfig, data=best_training_cfg_dict, config=dacite_cfg)
 
-        return final_model, best_training_cfg
+        final_model = cls(
+            config=best_model_cfg,
+            graph=shared_graph,  # reuse the shared graph
+            graph_spec=GraphSpec(path=str(graph_path)),
+        )
+
+        # Train final model with the best hyperparameters
+        final_model.fit(train_dataset, eval_dataset, config=best_training_cfg)
+
+        return final_model, {
+            "model": best_model_cfg,
+            "training": best_training_cfg
+        }
 
 
 
