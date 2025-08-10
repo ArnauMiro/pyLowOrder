@@ -36,24 +36,9 @@ from pyLOM.NN.utils.config_schema import (
     TorchDataloaderConfig,
     SubgraphDataloaderConfig,
 )
-from pyLOM.NN.utils.resolvers import resolve_import
+from pyLOM.NN.utils.resolvers import instantiate_from_config
 from pyLOM.utils import pprint
 from pyLOM import cr_info
-
-# ─────────────────────────────────────────────────────
-# HELPERS
-# ─────────────────────────────────────────────────────
-
-def _resolve_optuna_component(spec: dict | None):
-    """Resolve an Optuna component from a dict like {'type': 'optuna.pruners.MedianPruner', ...}."""
-    if not spec:
-        return None
-    type_path = spec.get("type")
-    if not type_path:
-        return None
-    cls = resolve_import(type_path)
-    kwargs = {k: v for k, v in spec.items() if k != "type"}
-    return cls(**kwargs)
 
 # ─────────────────────────────────────────────────────
 # CONFIG LOAD, DTOs, OUTPUT PATH
@@ -112,8 +97,8 @@ ds_test  = Dataset.load(dataset_paths["test_ds"],  **ds_kwargs)
 
 if mode == "optuna":
     # Instantiate Optuna components from strings in YAML (if present)
-    pruner  = _resolve_optuna_component(optuna_study_cfg.get("pruner"))
-    sampler = _resolve_optuna_component(optuna_study_cfg.get("sampler"))
+    pruner  = instantiate_from_config(optuna_study_cfg.get("pruner"))
+    sampler = instantiate_from_config(optuna_study_cfg.get("sampler"))
 
     optimizer = OptunaOptimizer(
         optimization_params=optimization_params["optimization_params"] if "optimization_params" in optimization_params else optimization_params,  # tolerate nesting
