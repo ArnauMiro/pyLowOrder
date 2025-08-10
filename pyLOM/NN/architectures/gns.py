@@ -13,7 +13,6 @@ import datetime
 from pathlib import Path
 from typing import Any, Dict, Tuple, Union, Optional, Callable
 from dataclasses import asdict, replace
-from pathlib import Path
 
 import torch
 from torch import Tensor
@@ -638,22 +637,27 @@ class GNS(torch.nn.Module):
         if not hasattr(self, "graph_fingerprint"):
             raiseError("graph_fingerprint is missing; cannot save provenance.")
 
-        checkpoint = {
-            "model_config": asdict(self.model_config),
-            "state": self.state,
-            "provenance": {
-                "graph_spec": asdict(self.graph_spec),
-                "graph_fingerprint": self.graph_fingerprint,
-            },
-            "metadata": {
-                "saved_at": datetime.datetime.now().isoformat(),
-                "torch_version": torch.__version__,
-                "user": getpass.getuser(),
-                "git_commit": get_git_commit(),
-            },
-        }
-        if self.last_training_config is not None:
-            checkpoint["last_training_config"] = asdict(self.last_training_config)
+        # Ensure model_state_dict is present
+            state_to_save = dict(self.state) if self.state is not None else {}
+            if "model_state_dict" not in state_to_save:
+                state_to_save["model_state_dict"] = self.state_dict()
+
+            checkpoint = {
+                "model_config": asdict(self.model_config),
+                "state": state_to_save,
+                "provenance": {
+                    "graph_spec": asdict(self.graph_spec),
+                    "graph_fingerprint": self.graph_fingerprint,
+                },
+                "metadata": {
+                    "saved_at": datetime.datetime.now().isoformat(),
+                    "torch_version": torch.__version__,
+                    "user": getpass.getuser(),
+                    "git_commit": get_git_commit(),
+                },
+            }
+            if self.last_training_config is not None:
+                checkpoint["last_training_config"] = asdict(self.last_training_config)
 
         # Default filename if path is a directory
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -933,12 +937,17 @@ class GNS(torch.nn.Module):
 
     def __repr__(self):
         return (
-            f"<GNSModel: {self.model_config.input_dim} → {self.model_config.latent_dim} → {self.model_config.output_dim}>\n"
-            f" Layers: encoder({self.encoder_hidden_layers}), message({self.model_config.num_msg_passing_layers}), decoder({self.decoder_hidden_layers})\n"
-            f" MLPs: message({self.model_config.message_hidden_layers}), update({self.model_config.update_hidden_layers})\n"
-            f" Activation: {self.activation.__class__.__name__}, Dropout: {self.p_dropout}, Device: {self.device}\n"
+            f"<GNSModel: {self.model_config.input_dim} → "
+            f"{self.model_config.latent_dim} → {self.model_config.output_dim}>\n"
+            f" Layers: encoder({self.model_config.encoder_hidden_layers}), "
+            f"message({self.model_config.num_msg_passing_layers}), "
+            f"decoder({self.model_config.decoder_hidden_layers})\n"
+            f" MLPs: message({self.model_config.message_hidden_layers}), "
+            f"update({self.model_config.update_hidden_layers})\n"
+            f" Activation: {self.activation.__class__.__name__}, "
+            f"Dropout: {self.p_dropout}, Device: {self.device}\n"
             f" Graph: {repr(self.graph)}\n"
             f" Params: {count_trainable_params(self):,} trainable\n"
             ")"
-
         )
+
