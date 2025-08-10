@@ -3,7 +3,7 @@
 import importlib
 import torch
 from torch import nn, optim
-from torch.optim import lr_scheduler as lrs
+from typing import Any, Mapping, Optional
 from ...utils import raiseError
 
 def resolve_import(path: str):
@@ -50,3 +50,39 @@ def resolve_scheduler(scheduler_path: str):
     if not isinstance(cls, type):
         raiseError(f"Scheduler '{scheduler_path}' must be a class.")
     return cls
+
+# pyLOM/utils/factory.py
+
+
+def instantiate_from_config(spec: Optional[Mapping[str, Any]]) -> Any:
+    """
+    Instantiate a Python object from a config dict with a `type` key.
+
+    Example spec:
+    --------
+    spec = {
+        "type": "torch.optim.Adam",
+        "args": [[...]],          # optional positional args (list)
+        "lr": 0.001,              # keyword args
+        "weight_decay": 1e-4
+    }
+
+    Returns
+    -------
+    object : Any
+        Instantiated object.
+    """
+    if not spec:
+        return None
+    if "type" not in spec:
+        raise ValueError("Spec must contain a 'type' key.")
+
+    cls_or_fn = resolve_import(spec["type"])
+
+    args = spec.get("args", [])
+    if not isinstance(args, (list, tuple)):
+        raise TypeError("'args' must be a list or tuple if provided.")
+
+    kwargs = {k: v for k, v in spec.items() if k not in ("type", "args")}
+    return cls_or_fn(*args, **kwargs)
+
