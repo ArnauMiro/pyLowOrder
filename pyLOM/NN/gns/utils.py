@@ -1,8 +1,7 @@
 # --- batchers used by gns.py ---
-from typing import Optional, Union, Sequence, Iterator, Iterable
+from typing import Optional, Union, Sequence
 import torch
 from torch import Tensor
-from torch.utils.data import IterableDataset
 from torch.utils.data import Dataset as TorchDataset
 from torch.utils.data import TensorDataset
 from torch.utils.data import DataLoader

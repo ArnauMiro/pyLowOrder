@@ -35,6 +35,12 @@ from pyLOM.NN.utils.config_schema import (
     TorchDataloaderConfig,
     SubgraphDataloaderConfig,
 )
+from pyLOM.NN.utils.experiment import (
+    save_experiment_artifacts,
+    plot_training_and_validation_loss,
+    plot_true_vs_pred,
+    evaluate_dataset_with_metrics,
+)
 from pyLOM.NN.utils.config_resolvers import load_yaml, instantiate_from_config
 from pyLOM.utils import pprint
 from pyLOM import cr_info
@@ -150,16 +156,6 @@ logs["metrics"] = metrics
 # ─────────────────────────────────────────────────────
 # EXPERIMENT SAVING
 # ─────────────────────────────────────────────────────
-
-# Your helpers likely take care of saving model via `model.save(...)` internally.
-# If not, do it explicitly here; example shows external utility:
-from pyLOM.NN.utils.experiment import (
-    save_experiment_artifacts,
-    plot_training_and_validation_loss,
-    plot_true_vs_pred,
-    evaluate_dataset_with_metrics,
-)
-
 save_path = save_experiment_artifacts(
     base_path=results_path,
     model=pipeline.model,

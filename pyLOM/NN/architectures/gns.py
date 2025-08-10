@@ -6,7 +6,6 @@
 #
 # Last rev: 30/03/2025
 
-import os
 import json
 import getpass
 import datetime
@@ -637,7 +636,6 @@ class GNS(torch.nn.Module):
             raiseError(f"Invalid dataset for {self.__class__.__name__}: {e}")
 
     
-
     def save(self, path: Union[str, Path]) -> None:
         """
         Save the current model to a checkpoint file.
@@ -656,34 +654,35 @@ class GNS(torch.nn.Module):
         if not hasattr(self, "graph_fingerprint"):
             raiseError("graph_fingerprint is missing; cannot save provenance.")
 
-        # Ensure model_state_dict is present
-        state_to_save = dict(self.state) if self.state is not None else {}
+        # --- State: ensure model_state_dict is present ---
+        state_to_save = dict(self.state) if getattr(self, "state", None) else {}
         if "model_state_dict" not in state_to_save:
             state_to_save["model_state_dict"] = self.state_dict()
 
-            checkpoint = {
-                "model_config": asdict(self.model_config),
-                "state": state_to_save,
-                "provenance": {
-                    "graph_spec": asdict(self.graph_spec),
-                    "graph_fingerprint": self.graph_fingerprint,
-                },
-                "metadata": {
-                    "saved_at": datetime.datetime.now().isoformat(),
-                    "torch_version": torch.__version__,
-                    "user": getpass.getuser(),
-                    "git_commit": get_git_commit(),
-                },
-            }
-            if self.last_training_config is not None:
-                checkpoint["last_training_config"] = asdict(self.last_training_config)
+        # --- Build checkpoint (always) ---
+        checkpoint = {
+            "model_config": asdict(self.model_config),
+            "state": state_to_save,
+            "provenance": {
+                "graph_spec": asdict(self.graph_spec),
+                "graph_fingerprint": self.graph_fingerprint,
+            },
+            "metadata": {
+                "saved_at": datetime.datetime.now().isoformat(),
+                "torch_version": str(torch.__version__),  # normalize to str
+                "user": getpass.getuser(),
+                "git_commit": get_git_commit(),
+            },
+        }
+        if getattr(self, "last_training_config", None) is not None:
+            checkpoint["last_training_config"] = asdict(self.last_training_config)
 
-        # Default filename if path is a directory
+        # --- Resolve final path ---
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        n_epochs = len(self.state.get("epoch_list", [])) if self.state else 0
+        n_epochs = len(state_to_save.get("epoch_list", []))
         filename = f"trained_model_{timestamp}_ep{n_epochs:03d}.pth"
 
-        if os.path.isdir(path):
+        if path.is_dir():
             path = path / filename
         elif path.suffix != ".pth":
             raiseError("Save path must end with '.pth' or be a directory.")
@@ -798,9 +797,9 @@ class GNS(torch.nn.Module):
 
         Returns
         -------
-        (GNS, Dict[str, Dict]):
-            - trained_model: Final GNS model built with the best hyperparameters.
-            - best_hyperparams: {"model": <dict>, "training": <dict>} best params found by Optuna.
+        (GNS, Dict[str, Any]):
+            - trained_model (GNS): instancia del modelo (no entrenado).
+            - fit_kwargs (dict): kwargs para GNS.fit, p.ej. {"config": GNSTrainingConfig}.
         """
         if eval_dataset is None:
             raiseError("Optuna optimization requires a validation dataset (eval_dataset).")
@@ -912,13 +911,7 @@ class GNS(torch.nn.Module):
             graph_spec=GraphSpec(path=str(graph_path)),
         )
 
-        # Train final model with the best hyperparameters
-        final_model.fit(train_dataset, eval_dataset, config=best_training_cfg)
-
-        return final_model, {
-            "model": best_model_cfg,
-            "training": best_training_cfg
-        }
+        return final_model, {"config": best_training_cfg}
 
 
 

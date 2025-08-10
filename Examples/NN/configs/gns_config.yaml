@@ -57,7 +57,7 @@ training:
 
 optuna:
   study:
-    n_trials: 3
+    n_trials: 2
     direction: minimize
     pruner:
       type: optuna.pruners.MedianPruner
@@ -100,7 +100,7 @@ optuna:
       loss_fn:    "torch.nn.MSELoss"
       optimizer:  "torch.optim.Adam"
       scheduler:  "torch.optim.lr_scheduler.StepLR"
-      epochs: 3
+      epochs: 2
       lr: { type: float, low: 1.0e-5, high: 1.0e-3, log: true }
       lr_gamma: { type: float, low: 0.9, high: 0.999 }
       lr_scheduler_step: { type: int, low: 1, high: 10 }
