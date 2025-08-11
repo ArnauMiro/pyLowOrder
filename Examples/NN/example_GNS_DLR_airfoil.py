@@ -120,7 +120,6 @@ if mode == "optuna":
     )
 
 elif mode == "train":
-    # Plain training: instantiate model with DTO + provenance (graph path)
     model = GNS.from_graph_path(config=model_cfg, graph_path=graph_path)
 
     pipeline = Pipeline(
@@ -128,8 +127,9 @@ elif mode == "train":
         valid_dataset=ds_val,
         test_dataset=ds_test,
         model=model,
-        training_cfg=training_cfg,
+        training_params={"config": training_cfg},  # <- clave correcta
     )
+
 else:
     raiseError(f"Unknown mode: {mode}. Use 'train' or 'optuna'.")
 

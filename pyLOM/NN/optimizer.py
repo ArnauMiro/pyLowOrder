@@ -60,7 +60,7 @@ try:
             Returns:
                 Dict: The best parameters obtained from the optimization.
             """
-            study = optuna.create_study(direction=self.direction, pruner=self.pruner)
+            study = optuna.create_study(direction=self.direction, pruner=self.pruner, sampler=self.sampler)
             study.optimize(objective_function, n_trials=self.num_trials)
             if self.save_dir is not None:
                 file_path = str(self.save_dir) + '/best_params.json'
