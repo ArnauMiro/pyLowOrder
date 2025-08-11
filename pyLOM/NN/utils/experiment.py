@@ -17,8 +17,9 @@ from pathlib import Path
 from dataclasses import asdict
 import datetime, getpass, hashlib, json, pickle, torch, yaml
 
-from pyLOM import pprint
-from pyLOM.utils import get_git_commit
+from ... import pprint
+from ...utils import get_git_commit, raiseError
+from ...utils.config_resolvers import to_native
 
 
 # ─────────────────────────────────────────────────────
@@ -89,29 +90,6 @@ def plot_true_vs_pred(y_true: np.ndarray,
         plt.savefig(save_path, dpi=300)
         plt.close()
 
-
-
-def _convert_numpy_to_native(obj):
-    """
-    Recursively convert NumPy scalar types in a structure to native Python types.
-    """
-    if isinstance(obj, dict):
-        return {k: _convert_numpy_to_native(v) for k, v in obj.items()}
-    elif isinstance(obj, (list, tuple)):
-        return type(obj)(_convert_numpy_to_native(v) for v in obj)
-    elif hasattr(obj, "item") and callable(obj.item):
-        try:
-            return obj.item()
-        except Exception:
-            return obj
-    else:
-        return obj
-
-
-def _to_native(d):
-    # if you already have _convert_numpy_to_native, use that; else keep this stub
-    return d
-
 def save_experiment_artifacts(
     base_path: Path,
     model: any,
@@ -167,22 +145,32 @@ def save_experiment_artifacts(
         "user": getpass.getuser(),
         "git_commit": get_git_commit(),
     }
+    meta_info = to_native(meta_info)  # Convert to native types
     with (out_dir / "meta.yaml").open("w") as f:
         yaml.safe_dump(meta_info, f, sort_keys=False)
 
     # 5) Save model checkpoint (contains DTOs + provenance + states)
     model.save(out_dir / "model.pth")
 
-    # 6) Save scalers (pickle)
+    # 6) Save scalers (via their own API)
+    # Use consistent, pluralized names and JSON extension.
     if inputs_scaler is not None:
-        with (out_dir / "input_scaler.pkl").open("wb") as f:
-            pickle.dump(inputs_scaler, f)
+        if not getattr(inputs_scaler, "is_fitted", True):
+            raiseError("inputs_scaler must be fitted before saving.")
+        inputs_scaler.save(str(out_dir / "inputs_scaler.json"))
+        if hasattr(inputs_scaler, "save"):
+            inputs_scaler.save(str(out_dir / "inputs_scaler.json"))
+        else:
+            raiseError("inputs_scaler does not implement a .save(filepath) method.")
+
     if outputs_scaler is not None:
-        with (out_dir / "output_scaler.pkl").open("wb") as f:
-            pickle.dump(outputs_scaler, f)
+        if hasattr(outputs_scaler, "save"):
+            outputs_scaler.save(str(out_dir / "outputs_scaler.json"))
+        else:
+            raiseError("outputs_scaler does not implement a .save(filepath) method.")
 
     # 7) Save metrics (YAML with numpy→native conversion)
-    native_metrics = _to_native(metrics_dict)
+    native_metrics = to_native(metrics_dict)
     with (out_dir / "metrics.yaml").open("w") as f:
         yaml.safe_dump(native_metrics, f, sort_keys=False)
 

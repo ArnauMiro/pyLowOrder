@@ -19,9 +19,7 @@ Date: 2025-08-01
 from __future__ import annotations
 
 from pathlib import Path
-import pickle
 import numpy as np
-import yaml
 import torch
 
 from dacite import from_dict, Config as DaciteConfig
@@ -32,17 +30,14 @@ from pyLOM.NN.utils import RegressionEvaluator
 from pyLOM.NN.utils.config_schema import (
     GNSModelConfig,
     GNSTrainingConfig,
-    TorchDataloaderConfig,
-    SubgraphDataloaderConfig,
 )
 from pyLOM.NN.utils.experiment import (
     save_experiment_artifacts,
     plot_training_and_validation_loss,
     plot_true_vs_pred,
-    evaluate_dataset_with_metrics,
 )
-from pyLOM.NN.utils.config_resolvers import load_yaml, instantiate_from_config
-from pyLOM.utils import pprint
+from pyLOM.utils.config_resolvers import load_yaml, instantiate_from_config
+from pyLOM.utils import pprint, raiseError
 from pyLOM import cr_info
 
 # ─────────────────────────────────────────────────────
@@ -124,7 +119,7 @@ if mode == "optuna":
         model_class=GNS,
     )
 
-else:
+elif mode == "train":
     # Plain training: instantiate model with DTO + provenance (graph path)
     model = GNS.from_graph_path(config=model_cfg, graph_path=graph_path)
 
@@ -135,6 +130,8 @@ else:
         model=model,
         training_cfg=training_cfg,
     )
+else:
+    raiseError(f"Unknown mode: {mode}. Use 'train' or 'optuna'.")
 
 logs = pipeline.run()
 
@@ -171,15 +168,14 @@ save_path = save_experiment_artifacts(
     return_path=True,
 )
 
-pprint(0, f"\nExperiment artifacts saved to: {save_path}")
-
 # ─────────────────────────────────────────────────────
 # INFERENCE TEST
 # ─────────────────────────────────────────────────────
 
 # Reload model and input scaler
 model_reloaded = GNS.from_graph_path(config=model_cfg, graph_path=graph_path)
-inputs_scaler_reloaded = MinMaxScaler.from_dict(inputs_scaler.to_dict())
+inputs_scaler_reloaded = MinMaxScaler.load(str(save_path / "inputs_scaler.json"))
+
 model_reloaded.eval()
 
 # Manual input
@@ -205,38 +201,49 @@ plot_true_vs_pred(reference, prediction[0].cpu().numpy())
 # DEBUGGING: RELOAD FROM DISK (checkpoint round-trip)
 # ─────────────────────────────────────────────────────
 
-# Example expected structure; adjust to your saver if needed
-ckpt_dir = save_path  # use the directory returned above
-print("\n>>> Reloading model and input scaler from disk...")
-model_ckpt = ckpt_dir / "model.pth"
-scaler_pkl = ckpt_dir / "inputs_scaler.pkl"
+# # Example expected structure; adjust to your saver if needed
+# model_ckpt = ckpt_dir / "model.pth"
+# scaler_json = ckpt_dir / "inputs_scaler.json"
+# model_reloaded = GNS.load(model_ckpt, device=model_cfg.device)
 
-model_reloaded = GNS.load(model_ckpt, device=model_cfg.device)
-with open(scaler_pkl, "rb") as f:
-    inputs_scaler_reloaded = pickle.load(f)
+# # Preferred path: JSON via scaler API
+# if scaler_json.exists():
+#     inputs_scaler_reloaded = MinMaxScaler.load(str(scaler_json))
+# else:
+#     # Optional backward-compat: fallback to legacy pickle (emit a warning)
+#     scaler_pkl = ckpt_dir / "inputs_scaler.pkl"
+#     if scaler_pkl.exists():
+#         raiseWarning("Legacy scaler file detected (.pkl). Consider migrating to .json via MinMaxScaler.save().")
+#         with open(scaler_pkl, "rb") as f:
+#             inputs_scaler_reloaded = pickle.load(f)
+#     else:
+#         raiseError("No scaler file found: expected inputs_scaler.json (or legacy inputs_scaler.pkl).")
 
-# Internal evaluation on training set using the new helper contracts
-train_dl_cfg = TorchDataloaderConfig(batch_size=1, shuffle=False)
-sg_dl_cfg    = SubgraphDataloaderConfig(batch_size=256, shuffle=False)
+# with open(scaler_pkl, "rb") as f:
+#     inputs_scaler_reloaded = pickle.load(f)
 
-loss_internal = model_reloaded._run_epoch(
-    input_dataloader=model_reloaded._helpers.init_dataloader(ds_train, train_dl_cfg, generator=None),
-    subgraph_loader=model_reloaded._helpers.init_subgraph_loader(sg_dl_cfg, generator=None),
-    loss_fn=torch.nn.MSELoss(),
-    return_loss=True,
-    is_train=False,
-)
-print(f"[Internal Eval on train] MSE: {loss_internal:.6f}")
+# # Internal evaluation on training set using the new helper contracts
+# train_dl_cfg = TorchDataloaderConfig(batch_size=1, shuffle=False)
+# sg_dl_cfg    = SubgraphDataloaderConfig(batch_size=256, shuffle=False)
 
-# External evaluation on training set
-preds = model_reloaded.predict(ds_train).detach().cpu().numpy()
-_, targets = ds_train[:]
-if torch.is_tensor(targets):
-    targets = targets.cpu().numpy()
+# loss_internal = model_reloaded._run_epoch(
+#     input_dataloader=model_reloaded._helpers.init_dataloader(ds_train, train_dl_cfg, generator=None),
+#     subgraph_loader=model_reloaded._helpers.init_subgraph_loader(sg_dl_cfg, generator=None),
+#     loss_fn=torch.nn.MSELoss(),
+#     return_loss=True,
+#     is_train=False,
+# )
+# print(f"[Internal Eval on train] MSE: {loss_internal:.6f}")
 
-metrics = evaluate_dataset_with_metrics(preds, targets)
-for k, v in metrics.items():
-    print(f"{k}: {v:.4f}")
+# # External evaluation on training set
+# preds = model_reloaded.predict(ds_train).detach().cpu().numpy()
+# _, targets = ds_train[:]
+# if torch.is_tensor(targets):
+#     targets = targets.cpu().numpy()
+
+# metrics = evaluate_dataset_with_metrics(preds, targets)
+# for k, v in metrics.items():
+#     print(f"{k}: {v:.4f}")
 
 # ─────────────────────────────────────────────────────
 # DONE

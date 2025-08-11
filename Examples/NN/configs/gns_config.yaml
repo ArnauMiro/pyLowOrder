@@ -6,7 +6,7 @@ experiment:
   version: 1.0
   tags: [GNS, airfoil, baseline]
   results_path: "../CETACEO_RESULTS/nlr7301/"
-  mode: optuna
+  mode: train
 
 datasets:
   train_ds: "../CETACEO_DATA/nlr7301/TRAIN_converter.h5"

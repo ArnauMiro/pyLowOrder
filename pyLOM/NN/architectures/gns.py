@@ -53,7 +53,7 @@ from ..utils.config_schema import (
     TorchDataloaderConfig,
     SubgraphDataloaderConfig,
 )
-from ..utils.config_resolvers import (
+from ...utils.config_resolvers import (
     resolve_device,
     resolve_activation,
     resolve_loss,
@@ -896,10 +896,10 @@ class GNS(torch.nn.Module):
         best_model_cfg = from_dict(GNSModelConfig,    best_model_cfg_dict,    config=dacite_cfg)
         best_training_cfg = from_dict(GNSTrainingConfig, best_training_cfg_dict, config=dacite_cfg)
 
-
-        pprint(0, "\nBest hyperparameters:")
-        pprint(0, "  Model params: " + json.dumps(best_model_cfg_dict, indent=4))
-        pprint(0, "  Training params: " + json.dumps(best_training_cfg_dict, indent=4))
+        # ---- Logging best hyperparameters ---- (Already done by optuna)
+        # pprint(0, "\nBest hyperparameters:")
+        # pprint(0, "  Model params: " + json.dumps(best_model_cfg_dict, indent=4))
+        # pprint(0, "  Training params: " + json.dumps(best_training_cfg_dict, indent=4))
 
         # ---- Build final DTOs & final model ----
         best_model_cfg = from_dict(data_class=GNSModelConfig, data=best_model_cfg_dict, config=dacite_cfg)
