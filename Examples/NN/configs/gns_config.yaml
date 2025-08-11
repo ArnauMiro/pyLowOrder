@@ -6,7 +6,7 @@ experiment:
   version: 1.0
   tags: [GNS, airfoil, baseline]
   results_path: "../CETACEO_RESULTS/nlr7301/"
-  mode: train
+  mode: optuna
 
 datasets:
   train_ds: "../CETACEO_DATA/nlr7301/TRAIN_converter.h5"
@@ -61,8 +61,8 @@ optuna:
     direction: minimize
     pruner:
       type: optuna.pruners.MedianPruner
-      n_startup_trials: 10
-      n_warmup_steps: 5
+      n_startup_trials: 15
+      n_warmup_steps: 100
     sampler:
       type: optuna.samplers.TPESampler
       multivariate: true
@@ -104,7 +104,7 @@ optuna:
       lr: { type: float, low: 1.0e-5, high: 1.0e-3, log: true }
       lr_gamma: { type: float, low: 0.9, high: 0.999 }
       lr_scheduler_step: { type: int, low: 1, high: 10 }
-      print_every: 1
+      print_every: null
 
       dataloader:
         batch_size: { type: int, low: 8, high: 64 }

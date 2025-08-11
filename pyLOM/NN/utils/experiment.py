@@ -62,18 +62,19 @@ def plot_true_vs_pred(y_true: np.ndarray,
                       y_pred: np.ndarray,
                       save_path: Path | None = None) -> None:
     """
-    Plot predicted vs. true values.
-
-    Args:
-        y_true (np.ndarray): Ground-truth values.
-        y_pred (np.ndarray): Predicted values.
-        save_path (Path | None): Optional path to save the figure.
+    Plot predicted vs. true values with sensible figsize for many outputs.
     """
     if y_true.shape != y_pred.shape:
         raise ValueError("Shapes of y_true and y_pred must match.")
 
     num_outputs = y_true.shape[1]
-    plt.figure(figsize=(10, 5 * num_outputs))
+
+    # Limit figure size growth
+    height_per_plot = 3
+    max_height = 20
+    fig_height = min(height_per_plot * num_outputs, max_height)
+
+    plt.figure(figsize=(8, fig_height))
 
     for i in range(num_outputs):
         plt.subplot(num_outputs, 1, i + 1)
@@ -89,6 +90,7 @@ def plot_true_vs_pred(y_true: np.ndarray,
     if save_path:
         plt.savefig(save_path, dpi=300)
         plt.close()
+
 
 def save_experiment_artifacts(
     base_path: Path,
