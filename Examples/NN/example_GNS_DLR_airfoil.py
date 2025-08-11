@@ -15,9 +15,6 @@ Date: 2025-08-01
 # ─────────────────────────────────────────────────────
 # IMPORTS
 # ─────────────────────────────────────────────────────
-
-from __future__ import annotations
-
 from pathlib import Path
 import numpy as np
 import torch
@@ -196,54 +193,6 @@ reference = Y_test[nearest_idx]
 
 pprint(0, f">>> Comparing with test sample at index {nearest_idx}")
 plot_true_vs_pred(reference, prediction[0].cpu().numpy())
-
-# ─────────────────────────────────────────────────────
-# DEBUGGING: RELOAD FROM DISK (checkpoint round-trip)
-# ─────────────────────────────────────────────────────
-
-# # Example expected structure; adjust to your saver if needed
-# model_ckpt = ckpt_dir / "model.pth"
-# scaler_json = ckpt_dir / "inputs_scaler.json"
-# model_reloaded = GNS.load(model_ckpt, device=model_cfg.device)
-
-# # Preferred path: JSON via scaler API
-# if scaler_json.exists():
-#     inputs_scaler_reloaded = MinMaxScaler.load(str(scaler_json))
-# else:
-#     # Optional backward-compat: fallback to legacy pickle (emit a warning)
-#     scaler_pkl = ckpt_dir / "inputs_scaler.pkl"
-#     if scaler_pkl.exists():
-#         raiseWarning("Legacy scaler file detected (.pkl). Consider migrating to .json via MinMaxScaler.save().")
-#         with open(scaler_pkl, "rb") as f:
-#             inputs_scaler_reloaded = pickle.load(f)
-#     else:
-#         raiseError("No scaler file found: expected inputs_scaler.json (or legacy inputs_scaler.pkl).")
-
-# with open(scaler_pkl, "rb") as f:
-#     inputs_scaler_reloaded = pickle.load(f)
-
-# # Internal evaluation on training set using the new helper contracts
-# train_dl_cfg = TorchDataloaderConfig(batch_size=1, shuffle=False)
-# sg_dl_cfg    = SubgraphDataloaderConfig(batch_size=256, shuffle=False)
-
-# loss_internal = model_reloaded._run_epoch(
-#     input_dataloader=model_reloaded._helpers.init_dataloader(ds_train, train_dl_cfg, generator=None),
-#     subgraph_loader=model_reloaded._helpers.init_subgraph_loader(sg_dl_cfg, generator=None),
-#     loss_fn=torch.nn.MSELoss(),
-#     return_loss=True,
-#     is_train=False,
-# )
-# print(f"[Internal Eval on train] MSE: {loss_internal:.6f}")
-
-# # External evaluation on training set
-# preds = model_reloaded.predict(ds_train).detach().cpu().numpy()
-# _, targets = ds_train[:]
-# if torch.is_tensor(targets):
-#     targets = targets.cpu().numpy()
-
-# metrics = evaluate_dataset_with_metrics(preds, targets)
-# for k, v in metrics.items():
-#     print(f"{k}: {v:.4f}")
 
 # ─────────────────────────────────────────────────────
 # DONE

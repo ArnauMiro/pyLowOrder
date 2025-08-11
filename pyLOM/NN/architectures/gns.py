@@ -270,6 +270,7 @@ class GNS(torch.nn.Module):
         # Validate and move to device if needed
         graph.validate()
         if graph.device != self.device:
+            pprint(0, f"Moving graph to device {self.device}.")
             graph = graph.to(self.device)
 
         # Update dependent dims (model_config must be set before assigning graph)

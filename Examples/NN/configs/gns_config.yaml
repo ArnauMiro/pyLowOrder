@@ -35,14 +35,14 @@ model:
 
 training:
   # --- GNSTrainingConfig (pure DTO) ---
-  epochs: 2
+  epochs: 1000
   lr: 6.5e-4
   lr_gamma: 0.9954
   lr_scheduler_step: 1
   optimizer: "torch.optim.Adam"
   scheduler: "torch.optim.lr_scheduler.StepLR"
   loss_fn: "torch.nn.MSELoss"
-  print_every: 1
+  print_every: 25
 
   dataloader:
     batch_size: 15
@@ -57,7 +57,7 @@ training:
 
 optuna:
   study:
-    n_trials: 2
+    n_trials: 100
     direction: minimize
     pruner:
       type: optuna.pruners.MedianPruner
@@ -100,7 +100,7 @@ optuna:
       loss_fn:    "torch.nn.MSELoss"
       optimizer:  "torch.optim.Adam"
       scheduler:  "torch.optim.lr_scheduler.StepLR"
-      epochs: 2
+      epochs: 1000
       lr: { type: float, low: 1.0e-5, high: 1.0e-3, log: true }
       lr_gamma: { type: float, low: 0.9, high: 0.999 }
       lr_scheduler_step: { type: int, low: 1, high: 10 }
