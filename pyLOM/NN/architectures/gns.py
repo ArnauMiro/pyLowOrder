@@ -672,7 +672,7 @@ class GNS(torch.nn.Module):
                 "saved_at": datetime.datetime.now().isoformat(),
                 "torch_version": str(torch.__version__),  # normalize to str
                 "user": getpass.getuser(),
-                "git_commit": get_git_commit(),
+                "git_commit": get_git_commit(obj=GNS)
             },
         }
         if getattr(self, "last_training_config", None) is not None:
