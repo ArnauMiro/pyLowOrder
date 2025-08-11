@@ -17,7 +17,8 @@ name = "pyLowOrder"
 #
 # For a discussion on single-sourcing the version, see
 # https://packaging.python.org/guides/single-sourcing-package-version/
-version = "2.1.0"
+# version = "3.0.0"
+dynamic = ["version"]
 
 # This is a one-line description or tagline of what your project does. This
 # corresponds to the "Summary" metadata field:
@@ -43,7 +44,8 @@ requires-python = ">=3.9"
 # This is either text indicating the license for the distribution, or a file
 # that contains the license
 # https://packaging.python.org/en/latest/specifications/core-metadata/#license
-license = {file = "LICENSE"}
+license = "MIT"
+license-files = ["LICENSE"]
 
 # This field adds keywords for your project which will appear on the
 # project page. What does your project relate to?
@@ -86,9 +88,6 @@ classifiers = [  # Optional
   "Intended Audience :: Science/Research",
   "Topic :: Scientific/Engineering",
 
-  # Pick your license as you wish
-  "License :: OSI Approved :: MIT License",
-
   # Specify the Python versions you support here. In particular, ensure
   # that you indicate you support Python 3. These classifiers are *not*
   # checked by "pip install". See instead "python_requires" below.
@@ -124,6 +123,19 @@ dependencies = [
 # Similar to `dependencies` above, these must be valid existing
 # projects.
 [project.optional-dependencies] 
+# Dependencies on cupy
+cuda = [
+    "cupy",
+]
+cuda12x = [
+    "cupy-cuda12x",
+]
+cuda11x = [
+    "cupy-cuda11x",
+]
+rocm-4-0 = [
+    "cupy-rocm-4-0",
+]
 # Dependencies to work with the NN module
 NN = [
   "torch>=2.3.0",
@@ -132,10 +144,24 @@ NN = [
   "tensorflow",
   "optuna",
 ]
+# Dependencies to work with the GPR module
+GPR = [
+  "GPy",
+  "emukit",
+  "h5py<=3.10.0",
+]
 # Optional visualization dependencies
 optionals = [
-  "ensight-reader",
   "pyvista",
+  "scikit-learn",
+  "nvtx",
+]
+# Dependencies for the RL module
+rl = [
+  "AeroSandbox",
+  "gymnasium>=1.1.1",
+  "stable_baselines3",
+  "neuralFoil-torch",
 ]
 
 # List URLs that are relevant to your project
@@ -160,6 +186,9 @@ optionals = [
 # installed, specify them here.
 package-data = {}
 
+[tool.setuptools.dynamic]
+version = {attr = "pyLOM.__version__"}  
+
 [tool.setuptools.packages.find]
 exclude = ["Converters", "DATA","Deps","Examples","Testsuite","Tools"]
 
@@ -167,7 +196,7 @@ exclude = ["Converters", "DATA","Deps","Examples","Testsuite","Tools"]
 # These are the assumed default build requirements from pip:
 # https://pip.pypa.io/en/stable/reference/pip/#pep-517-and-518-support
 requires = [
-  "setuptools>=43.0.0", 
+  "setuptools>=77.0.0", 
   "wheel",
   "numpy",
   "cython>=3.0.0",

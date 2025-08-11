@@ -8,21 +8,22 @@
 from __future__ import print_function
 
 import numpy as np
-from ..vmmath       import vector_norm, vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, matmulp, vandermondeTime
-from ..POD          import truncate
-from ..utils.cr     import cr, cr_start, cr_stop
-from ..utils.errors import raiseError
-from ..utils.parall import mpi_gather, mpi_reduce, pprint
+
+from ..utils.gpu import cp
+from ..vmmath    import vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, matmulp, vandermondeTime
+from ..POD       import truncate
+from ..utils     import cr_nvtx as cr, cr_start, cr_stop
 
 
 def _order_modes(muReal, muImag, Phi, bJov):
 	'''
     Order the modes according to its amplitude, forcing that in case of a conjugate eigenvalue, the positive part always is the first one
 	'''
-	muReal = muReal[flip(np.abs(bJov).argsort())]
-	muImag = muImag[flip(np.abs(bJov).argsort())]
-	Phi    = transpose(transpose(Phi)[flip(np.abs(bJov).argsort())])
-	bJov   = bJov[flip(np.abs(bJov).argsort())]
+	cnp    = cp if type(muReal) is cp.ndarray else np
+	muReal = muReal[flip(cnp.abs(bJov).argsort())]
+	muImag = muImag[flip(cnp.abs(bJov).argsort())]
+	Phi    = transpose(transpose(Phi)[flip(cnp.abs(bJov).argsort())])
+	bJov   = bJov[flip(cnp.abs(bJov).argsort())]
 	p = False
 	for ii in range(muImag.shape[0]):
 		if p == True:
@@ -59,7 +60,7 @@ def run(X, r, remove_mean = True):
 		- b:        Amplitude of the DMD modes
 		- X_DMD:    Reconstructed flow
 	'''
-	#Remove temporal mean or not, depending on the user choice
+	# Remove temporal mean or not, depending on the user choice
 	if remove_mean:
 		cr_start('DMD.temporal_mean',0)
 		#Compute temporal mean
@@ -70,7 +71,7 @@ def run(X, r, remove_mean = True):
 	else:
 		Y = X.copy()
 
-	#Compute SVD
+	# Compute SVD
 	cr_start('DMD.SVD',0)
 	U, S, VT = tsqr_svd(Y[:, :-1])
 	cr_stop('DMD.SVD',0)
@@ -79,22 +80,26 @@ def run(X, r, remove_mean = True):
 	U, S, VT = truncate(U, S, VT, r)
 	cr_stop('DMD.truncate', 0)
 
-	#Project A (Jacobian of the snapshots) into POD basis
+	# Project A (Jacobian of the snapshots) into POD basis
 	cr_start('DMD.linear_mapping',0)
 	aux1   = matmulp(transpose(U), Y[:, 1:])
 	aux2   = transpose(vecmat(1./S, VT))
 	Atilde = matmul(aux1, aux2)
 	cr_stop('DMD.linear_mapping',0)
 
-	#Eigendecomposition of Atilde: Eigenvectors given as complex matrix
+	# Eigendecomposition of Atilde: Eigenvectors given as complex matrix
+	# NOTE: there is no implementation of eig in cupy yet
 	cr_start('DMD.modes',0)
 	muReal, muImag, w = eigen(Atilde)
+	muReal = cp.asarray(muReal) if type(Atilde) is cp.ndarray else muReal
+	muImag = cp.asarray(muImag) if type(Atilde) is cp.ndarray else muReal
+	w      = cp.asarray(w)      if type(Atilde) is cp.ndarray else muReal
 
-	#Mode computation
+	# Mode computation
 	Phi =  matmul(matmul(matmul(Y[:, 1:], transpose(VT)), diag(1/S)), w)/(muReal + muImag*1J)
 	cr_stop('DMD.modes',0)
 
-	#Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
+	# Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
 	cr_start('DMD.amplitudes',0)
 	Vand = vandermonde(muReal, muImag, muReal.shape[0], Y.shape[1]-1)
 	P    = matmul(transpose(conj(w)), w)*conj(matmul(Vand, transpose(conj(Vand))))
@@ -104,7 +109,7 @@ def run(X, r, remove_mean = True):
 	bJov = matmul(inv(transpose(conj(Pl))), matmul(inv(Pl), q)) #Amplitudes according to Jovanovic 2014
 	cr_stop('DMD.amplitudes',0)
 
-	#Order modes and eigenvalues according to its amplitude
+	# Order modes and eigenvalues according to its amplitude
 	cr_start('DMD.order',0)
 	muReal, muImag, Phi, bJov = _order_modes(muReal, muImag, Phi, bJov)
 	cr_stop('DMD.order',0)
@@ -116,10 +121,11 @@ def frequency_damping(real, imag, dt):
 	'''
 	Computation of the damping ratio and the frequency of each mode
 	'''
+	p = cp if type(real) is cp.ndarray else np
 	mod, arg = polar(real, imag) #Create vmmath/complex.c?
-	#Computation of the damping ratio of the mode
-	delta = np.log(mod)/dt
-	#Computation of the frequency of the mode
+	# Computation of the damping ratio of the mode
+	delta = p.log(mod)/dt
+	# Computation of the frequency of the mode
 	omega = arg/dt
 	return delta, omega
 
@@ -128,7 +134,8 @@ def mode_computation(X, V, S, W):
 	'''
 	Computation of DMD Modes
 	'''
-	return  matmul(matmul(matmul(X, transpose(V)), diag(1/S)), np.abs(W))
+	p = cp if type(X) is cp.ndarray else np
+	return  matmul(matmul(matmul(X, transpose(V)), diag(1/S)), p.abs(W))
 
 @cr('DMD.reconstruction_jovanovic')
 def reconstruction_jovanovic(Phi, real, imag, t, bJov):

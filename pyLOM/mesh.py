@@ -8,13 +8,12 @@
 from __future__ import print_function, division
 
 import os, numpy as np
+from collections import defaultdict
 
-from .             import inp_out as io
-from .vmmath       import cellCenters, normals
-from .utils.cr     import cr
-from .utils.mem    import mem
-from .utils.errors import raiseError
-from .utils.parall import mpi_reduce
+from .       import inp_out as io
+from .vmmath import cellCenters, normals, cell_adjacency, edge_to_cells, wall_normals
+from .utils  import cr_nvtx as cr, mem, raiseError, mpi_reduce
+
 
 
 ALYA2ELTYP = {
@@ -65,58 +64,60 @@ ID2MTYPE = {
 }
 
 class Mesh(object):
-	'''
+	r'''
 	The Mesh class wraps the mesh details of the case.
 	'''
 	def __init__(self,mtype,xyz,connectivity,eltype,cellOrder,pointOrder,ptable):
-		'''
+		r'''
 		Class constructor
 		'''
 		self._type   = mtype
 		self._xyz    = xyz
 		self._xyzc   = None
 		self._normal = None
+		self._wall_normal = None
 		self._conec  = connectivity
+		self._cell_conec = None
 		self._eltype = eltype
 		self._cellO  = cellOrder
 		self._pointO = pointOrder
 		self._ptable = ptable
 
 	def __str__(self):
-		'''
+		r'''
 		String representation
 		'''
 		s   = 'Mesh (%s) of %d nodes and %d elements:\n' % (self.type,self.npoints,self.ncells)
 		s  += '  > xyz  - max = ' + str(np.nanmax(self._xyz,axis=0)) + ', min = ' + str(np.nanmin(self._xyz,axis=0)) + '\n'
 		return s
 
-	def find_point(self,xyz):
-		'''
+	def find_point(self,xyz:np.array):
+		r'''
 		Return all the points where self._xyz == xyz
 		'''
 		return np.where(np.all(self._xyz == xyz,axis=1))[0]
 
-	def find_cell(self,eltype):
-		'''
+	def find_cell(self,eltype:int):
+		r'''
 		Return all the elements where self._elemList == elem
 		'''
 		return np.where(np.all(self._eltype == eltype))[0]
 
-	def find_point_in_cell(self,inode):
-		'''
+	def find_point_in_cell(self,inode:int):
+		r'''
 		Return all the elements where the node is
 		'''
 		return np.where(np.any(np.isin(self._conec,inode),axis=1))[0]
 
-	def size(self,pointData):
-		'''
+	def size(self,pointData:bool):
+		r'''
 		Return the size accoding to the type of data
 		'''
 		return self.npoints if pointData else self.ncells
 
 	@cr('Mesh.cellcenters')
 	def cellcenters(self):
-		'''
+		r'''
 		Computes and returns the cell centers
 		'''
 		if self.type == 'STRUCT2D':
@@ -151,10 +152,58 @@ class Mesh(object):
 		if self.type == 'UNSTRUCT':
 			xyzc = cellCenters(self._xyz,self._conec)
 		return xyzc
+	
+	@cr('Mesh._compute_cell_connectivity')
+	def _compute_cell_connectivity(self):
+		'''Computes the connectivity between cells that share an edge.
+
+		Returns
+		-------
+		padded_neighbors : list
+			Connectivity array of neighbors for each cell. Each list is padded with -1s to have a fixed length.
+		'''
+		# Step 1: Create a dictionary to store the edges and their corresponding cells
+		edge_dict = edge_to_cells(self.connectivity)  # Dictionary mapping edges to cells
+
+		# Neighbors dictionary asigning the neighbors to each cell
+		adjacency_dict = cell_adjacency(edge_dict)
+
+		# Step 3: Pad the neighbors list with -1s
+		max_len = max(len(adjacency_dict[cell]) for cell in range(self.ncells))
+		padded_neighbors = np.array([list(adjacency_dict[cell]) + [-1] * (max_len - len(adjacency_dict[cell])) for cell in range(self.ncells)], dtype=np.int32)
+
+		return padded_neighbors
+
+	@cr('Mesh.wall_normals')
+	def wall_normals(self) -> np.ndarray:
+		r'''
+		Computes the normalized wall normals of the cells in the mesh.
+		Wall normals are the vectors normal to the edges and tangent to the cell.
+			
+		Returns
+		-------
+		wall_normals : np.ndarray
+			Array with the edge normals of each cell concatenated along axis 1.
+		'''
+
+		# Array to store the edge normals of each cell. Assumes every cell has the same number of edges.
+		wall_normals_arr = np.zeros((self.ncells, 3*self.nnodcell))
+
+		# Iterate over each cell
+		for cell_id in range(self.ncells):
+			cell_normal = self.normal[cell_id]
+			cell_nodes = self.connectivity[cell_id]
+			nodes_xyz = self.xyz[cell_nodes]  # Get the nodes of the cell
+
+			_, cell_normals_list = wall_normals(cell_nodes, nodes_xyz, cell_normal)  # Compute the edge normals of the cell
+
+			wall_normals_arr[cell_id] = np.concatenate(cell_normals_list)  # Store the edge normals of the cell
+
+		return wall_normals_arr
 
 	@cr('Mesh.reshape')
-	def reshape_var(self,var,info):
-		'''
+	def reshape_var(self,var:str,info:dict):
+		r'''
 		Reshape a variable according to the mesh
 		'''
 		# Obtain number of points from the mesh
@@ -167,8 +216,8 @@ class Mesh(object):
 		return out
 
 	@cr('Mesh.save')
-	def save(self,fname,**kwargs):
-		'''
+	def save(self,fname:str,**kwargs):
+		r'''
 		Store the mesh in various formats.
 		'''
 		# Guess format from extension
@@ -187,8 +236,8 @@ class Mesh(object):
 
 	@classmethod
 	@cr('Mesh.load')
-	def load(cls,fname,**kwargs):
-		'''
+	def load(cls,fname:str,**kwargs):
+		r'''
 		Load a mesh from various formats
 		'''
 		# Guess format from extension
@@ -205,7 +254,7 @@ class Mesh(object):
 
 	@classmethod
 	@cr('Mesh.new_struct2D')
-	def new_struct2D(cls,nx,ny,x,y,dimsx,dimsy,ptable=None):
+	def new_struct2D(cls,nx:int,ny:int,x:float,y:float,dimsx:float,dimsy:float,ptable=None):
 		xyz    = _struct2d_compute_xyz(nx,ny,x,y,dimsx,dimsy)
 		conec  = _struct2d_compute_conec(nx,ny,xyz)
 		eltype = 3*np.ones(((nx-1)*(ny-1),),np.uint8)
@@ -215,7 +264,7 @@ class Mesh(object):
 
 	@classmethod
 	@cr('Mesh.new_struct3D')
-	def new_struct3D(cls,nx,ny,nz,x,y,z,dimsx,dimsy,dimsz,ptable=None):
+	def new_struct3D(cls,nx:int,ny:int,nz:int,x:float,y:float,z:float,dimsx:float,dimsy:float,dimsz:float,ptable=None):
 		xyz    = _struct3d_compute_xyz(nx,ny,nz,x,y,z,dimsx,dimsy,dimsz)
 		conec  = _struct3d_compute_conec(nx,ny,nz,xyz)
 		eltype = 5*np.ones(((nx-1)*(ny-1)*(nz-1),),np.uint8)
@@ -225,7 +274,7 @@ class Mesh(object):
 
 	@classmethod
 	@cr('Mesh.from_pyQvarsi')
-	def from_pyQvarsi(cls,mesh,ptable=None,sod=False):
+	def from_pyQvarsi(cls,mesh,ptable=None,sod:bool=False):
 		'''
 		Create the mesh structure from a pyQvarsi mesh structure
 		'''
@@ -259,11 +308,7 @@ class Mesh(object):
 		return mpi_reduce(self.ncells,op='sum',all=True)
 	@property
 	def ncellsG2(self):
-		if self.cellOrder.shape[0] > 0:
-			ncells = self.cellOrder.max()
-		else:
-			ncells = 0
-		return mpi_reduce(ncells,op='max',all=True) + 1
+		return mpi_reduce(self.cellOrder.max() if self.cellOrder.shape[0] > 0 else 0,op='max',all=True) + 1
 	@property
 	def nnodcell(self):
 		return self._conec.shape[1]
@@ -288,10 +333,19 @@ class Mesh(object):
 	def normal(self):
 		if self._normal is None: self._normal = normals(self._xyz,self._conec)
 		return self._normal
+	@property
+	def wall_normal(self):
+		if self._wall_normal is None: self._wall_normal = self.wall_normals()
+		return self._wall_normal
 
 	@property
 	def connectivity(self):
 		return self._conec
+	@property
+	def cell_connectivity(self):
+		if self._cell_conec is None:
+			self._cell_conec = self._compute_cell_connectivity()
+		return self._cell_conec
 	@property
 	def cellOrder(self):
 		return self._cellO
@@ -317,8 +371,8 @@ class Mesh(object):
 		return ELTYPE2ENSI[self._eltype[0]]
 
 
-def _struct2d_compute_xyz(nx,ny,x,y,dimsx,dimsy):
-	'''
+def _struct2d_compute_xyz(nx:int,ny:int,x:float,y:float,dimsx:float,dimsy:float):
+	r'''
 	Compute points for a 2D structured mesh
 	'''
 	if x is None:
@@ -333,8 +387,8 @@ def _struct2d_compute_xyz(nx,ny,x,y,dimsx,dimsy):
 	xy[:,1] = yy.reshape((nx*ny,),order='C')
 	return xy
 
-def _struct2d_compute_conec(nx,ny,xyz):
-	'''
+def _struct2d_compute_conec(nx:int,ny:int,xyz:np.array):
+	r'''
 	Compute connectivity for a 2D structured mesh
 	'''
 	# Obtain the ids
@@ -349,8 +403,8 @@ def _struct2d_compute_conec(nx,ny,xyz):
 	return conec
 
 
-def _struct3d_compute_xyz(nx,ny,nz,x,y,z,dimsx,dimsy,dimsz):
-	'''
+def _struct3d_compute_xyz(nx:int,ny:int,nz:int,x:float,y:float,z:float,dimsx:float,dimsy:float,dimsz:float):
+	r'''
 	Compute points for a 2D structured mesh
 	'''
 	if x is None:
@@ -369,8 +423,8 @@ def _struct3d_compute_xyz(nx,ny,nz,x,y,z,dimsx,dimsy,dimsz):
 	xyz[:,2] = zz.reshape((nx*ny*nz,),order='C')
 	return xyz
 
-def _struct3d_compute_conec(nx,ny,nz,xyz):
-	'''
+def _struct3d_compute_conec(nx:int,ny:int,nz:int,xyz:np.array):
+	r'''
 	Compute connectivity for a 2D structured mesh
 	'''
 	# Obtain the ids

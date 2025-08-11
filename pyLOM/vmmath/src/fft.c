@@ -25,6 +25,22 @@ typedef double _Complex dcomplex_t;
 #include "fft.h"
 
 
+void shammwin(float *out, const int N) {
+	/*
+		Hamming window
+	*/
+	for(int i=0; i<N; ++i)
+		out[i] = 0.54 - 0.46*cos(2.*M_PI*(float)(i)/(float)(N-1));
+}
+
+void dhammwin(double *out, const int N) {
+	/*
+		Hamming window
+	*/
+	for(int i=0; i<N; ++i)
+		out[i] = 0.54 - 0.46*cos(2.*M_PI*(double)(i)/(double)(N-1));
+}
+
 void sfft1D(fcomplex_t *out, float *y, const int n) {
 	/*
 		Compute FFT of an array y of size n.

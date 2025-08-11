@@ -11,20 +11,25 @@ import os, torch, torch.nn as nn
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-from ..utils.plots  import plotSnapshot
+from ..utils.plots  import plotSnapshot, plotModalErrorBars, plotTimeSeries
 
-from .callbacks     import EarlyStopper
-from .utils         import Dataset, create_results_folder, select_device, betaLinearScheduler, MinMaxScaler, set_seed
-
-from .stats         import RegressionEvaluator
+from .pipeline      import Pipeline
+from .utils         import Dataset, MinMaxScaler, select_device, betaLinearScheduler, create_results_folder, set_seed
 
 from .optimizer     import OptunaOptimizer
-from .pipeline      import Pipeline
+
+from .stats         import RegressionEvaluator
+from .callbacks     import EarlyStopper
+
+from .interpolator import Interpolator
+from .aerodynamics import global_coeff
 
 from .architectures.mlp               import MLP
-from .architectures.kan               import KAN, ChebyshevLayer, JacobiLayer
+from .architectures.kan               import KAN, KAN_SIN, ChebyshevLayer, JacobiLayer, SineLayer
 from .architectures.autoencoders      import Autoencoder, VariationalAutoencoder
-from .architectures.encoders_decoders import Encoder2D, Decoder2D, Encoder3D, Decoder3D
+from .architectures.encoders_decoders import Encoder2D, Decoder2D, Encoder3D, Decoder3D, ShallowDecoder
+from .architectures.pinn              import PINN, BurgersPINN, Euler2DPINN, NavierStokesIncompressible2DPINN, BoundaryCondition
+from .architectures.shred             import SHRED
 
 
 

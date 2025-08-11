@@ -31,15 +31,15 @@ jobs:
         uses: mpi4py/setup-mpi@v1
         with:
           mpi: openmpi
-      - name: Set up Python 3.9.15
+      - name: Set up Python 3.11.11
         uses: actions/setup-python@v3
         with:
-          python-version: 3.9.15
+          python-version: 3.11.11
       # Run pyLOM compilation and deployment
       - name: Set up configuration
         run: |
-          sed -i 's/USE_MKL       = ON/USE_MKL       = OFF/g' options.cfg
-          sed -i 's/FORCE_GCC     = OFF/FORCE_GCC     = ON/g' options.cfg
+          sed -i 's/USE_MKL          = ON/USE_MKL          = OFF/g' options.cfg
+          sed -i 's/USE_GCC          = OFF/USE_GCC          = ON/g' options.cfg
       - name: Fix h5py
         run: |
           sudo apt install libhdf5-mpi-dev

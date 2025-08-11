@@ -11,17 +11,19 @@ import os, numpy as np, h5py
 
 from ..partition_table import PartitionTable
 from ..mesh            import MTYPE2ID, ID2MTYPE
-from ..utils.cr        import cr
-from ..utils.parall    import MPI_COMM, MPI_RANK, MPI_SIZE, worksplit, writesplit, is_rank_or_serial, mpi_reduce, mpi_gather
-from ..utils.errors    import raiseError
+from ..utils           import cr, MPI_COMM, MPI_RANK, MPI_SIZE, worksplit, writesplit, is_rank_or_serial, mpi_reduce, mpi_gather, raiseError
 
 
 PYLOM_H5_VERSION = (3,0)
 
 
 def h5_save_partition(file,ptable):
-	'''
-	Save a partition table inside an HDF5 file
+	r'''
+	Save a partition table inside an HDF5 file.
+
+	Args:
+		file (string): file name
+		ptable (PartitionTable): partition table to be saved
 	'''
 	# Create a group for the mesh
 	group = file.create_group('PARTITIONS')
@@ -31,8 +33,14 @@ def h5_save_partition(file,ptable):
 	group.create_dataset('Points',(ptable.n_partitions,),dtype='i4',data=ptable.Points)
 
 def h5_load_partition(file):
-	'''
-	Load a partition table inside an HDF5 file
+	r'''
+	Load a partition table inside an HDF5 file.
+
+	Args:
+		file (string): file name to load the partition from
+
+	Returns:
+		PartitionTable
 	'''
 	# Load file
 	if not 'PARTITIONS' in file.keys(): raiseError('No partition table stored in dataset!')
@@ -44,8 +52,18 @@ def h5_load_partition(file):
 	return PartitionTable(nparts,ids,elements,points)
 
 def h5_save_meshes(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
-	'''
+	r'''
 	Save the mesh inside the HDF5 file
+
+	Args:
+		file (string): file name to load the partition from
+		mtype
+		xyz (np.ndarray): coordinates
+		conec (np.ndarray): connectivity
+		eltype (np.ndarray): type of element
+		cellO (np.ndarray): cell order
+		pointO (np.ndarray): point order
+		ptable (PartitionTable): partition table
 	'''
 	# Save the mesh type
 	file.create_dataset('type',(1,),dtype='i4',data=MTYPE2ID[mtype])
@@ -80,8 +98,18 @@ def h5_save_meshes(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	dcellO[istart:iend]   = cellO
 
 def h5_save_meshes_nopartition(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
-	'''
-	Save the mesh inside the HDF5 file
+	r'''
+	Save the mesh inside the HDF5 file removing the repeated points so that we can change the partition while running the POD.
+
+	Args:
+		file (string): file name to load the partition from
+		mtype
+		xyz (np.ndarray): coordinates
+		conec (np.ndarray): connectivity
+		eltype (np.ndarray): type of element
+		cellO (np.ndarray): cell order
+		pointO (np.ndarray): point order
+		ptable (PartitionTable): partition table
 	'''
 	# Save the mesh type
 	file.create_dataset('type',(1,),dtype='i4',data=MTYPE2ID[mtype])
@@ -113,8 +141,14 @@ def h5_save_meshes_nopartition(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	dcellO[istart:iend]   = cellO
 
 def h5_load_meshes_size(file):
-	'''
+	r'''
 	Load only the number of cells and points for the partition
+
+	Args:
+		file (string): file where the mesh is stored
+	
+	Returns
+		int, int: number of points and number of cells
 	'''
 	# If the mesh is present read the size
 	npoints = int(file['npoints'][0])
@@ -122,8 +156,16 @@ def h5_load_meshes_size(file):
 	return npoints, ncells
 
 def h5_load_meshes(file,ptable,repart):
-	'''
+	r'''
 	Load the mesh inside the HDF5 file
+
+	Args:
+		file (string): file where the mesh is stored
+		ptable (PartitionTable): partition table which the mesh will be loaded
+		repart (Bool): whether the mesh has to be repartitioned or not
+
+	Returns
+		_, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray: mesh type, coordinates, connectivity, element type, cell order and point order
 	'''
 	# Read mesh type
 	mtype  = ID2MTYPE[int(file['type'][0])]
@@ -145,7 +187,9 @@ def h5_load_meshes(file,ptable,repart):
 	xyz    = np.array(file['xyz'][inods,:],file['xyz'].dtype) 
 	pointO = np.array(file['pointOrder'][inods],np.int32)
 	# Fix the connectivity to start at zero
-	conec = np.searchsorted(pointO,conec.flatten()).reshape(conec.shape).astype(np.int32)
+	conec2 = -np.ones_like(conec).flatten()# This is a 1D array of -1 of the size of our connectivity
+	conec2[conec.flatten() >= 0] = np.searchsorted(pointO, conec[conec >= 0].flatten()) # Search only the positive values
+	conec = conec2.reshape(conec.shape).astype(np.int32) # Reshape the connectivity to its original format
 	# Return
 	return mtype, xyz, conec, eltype, cellO, pointO
 
@@ -310,8 +354,6 @@ def h5_fill_field_datasets(dsetDict,fieldDict,ptable,point,inods,idx):
 	'''
 	# Skip master if needed
 	if ptable.has_master and MPI_RANK == 0: return
-	# Skip empty partition
-	if idx is None: return
 	for var in dsetDict.keys():
 		# Fill dataset
 		dsetDict[var]['ndim'][:]  = fieldDict[var]['ndim']
@@ -697,6 +739,87 @@ def h5_load_mesh_mpio(fname):
 	file.close()
 	return mtype, xyz, conec, eltype, cellO, pointO, ptable
 
+@cr('h5IO.save_QR')
+def h5_save_QR(fname,Q,Y,B,ptable,nvars=1,pointData=True,mode='w'):
+	r'''
+	Store QR variables into an HDF5 file. Can be appended to another HDF by setting the mode to 'a'. Then no partition table will be saved.
+
+	Args:
+		fname (string): file name
+		Q (np.ndarray): Q matrix
+		Y (np.ndarray): Randomized matrix before QR
+		B (np.ndarray): R upper triangular matrix or B in case of doing randomized QR
+		ptable (PartitionTable): partition table
+		nvars (int, optional): number of variables analyzed jointly (default=1)
+		pointData(bool, optional): whether is point data or cell data (default=True)
+		Writing mode (string, optional): the h5 will be written again or appended.
+	'''
+	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,mode)
+	# Store attributes and partition table
+	if not mode == 'a':
+		file.attrs['Version'] = PYLOM_H5_VERSION
+		# Store partition table
+		h5_save_partition(file,ptable)
+	# Now create a QR group
+	group = file.create_group('QR')
+	# Create the datasets for U, S and V
+	group.create_dataset('pointData',(1,),dtype='u1',data=pointData)
+	group.create_dataset('n_variables',(1,),dtype='u1',data=nvars)
+	Qsize = (mpi_reduce(Q.shape[0],op='sum',all=True),Q.shape[1]) if Q is not None else None
+	Ysize = (mpi_reduce(Y.shape[0],op='sum',all=True),Y.shape[1]) if Y is not None else None
+	dsetQ = group.create_dataset('Q',Qsize,dtype=Q.dtype)         if Q is not None else None
+	dsetY = group.create_dataset('Y',Ysize,dtype=Y.dtype)         if Y is not None else None
+	dsetB = group.create_dataset('B',B.shape,dtype=B.dtype)       if B is not None else None
+	# Store S and U that are repeated across the ranks
+	# So it is enough that one rank stores them
+	if is_rank_or_serial(0):
+		if dsetB is not None: dsetB[:] = B 
+	# Store U in parallel
+	istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=pointData)
+	if dsetQ is not None: dsetQ[istart:iend,:] = Q
+	if dsetY is not None: dsetY[istart:iend,:] = Y
+	file.close()
+
+@cr('h5IO.load_QR')
+def h5_load_QR(fname,vars,ptable=None):
+	r'''
+	Load QR variables from an HDF5 file.
+	
+	Args:
+		fname (string): file name
+		vars (list): variables to load, it must be any of Q, B, Y.
+		ptable (PartitionTable, optional): partition table used to load the data (default, None)
+	
+	Returns:
+		list: list of the np.ndarray requested to load.
+	'''
+	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,'r')
+	# Check the file version
+	version = tuple(file.attrs['Version'])
+	if not version == PYLOM_H5_VERSION:
+		raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
+	# Read the requested variables S, V
+	varList = []
+	if 'Q' in vars:
+		# Check if we need to read the partition table
+		if ptable is None: ptable = h5_load_partition(file)
+		# Read
+		nvars = int(file['QR']['n_variables'][0])
+		point = bool(file['QR']['pointData'][0])
+		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=point)
+		varList.append(np.array(file['QR']['Q'][istart:iend,:]))
+	if 'Y' in vars:
+		# Check if we need to read the partition table
+		if ptable is None: ptable = h5_load_partition(file)
+		# Read
+		nvars = int(file['QR']['n_variables'][0])
+		point = bool(file['QR']['pointData'][0])
+		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=point)
+		varList.append(np.array(file['QR']['Y'][istart:iend,:]))
+	if 'B' in vars: varList.append( np.array(file['QR']['B'][:,:]))
+	# Return
+	file.close()
+	return varList
 
 @cr('h5IO.save_POD')
 def h5_save_POD(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
@@ -716,18 +839,18 @@ def h5_save_POD(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
 	# Create the datasets for U, S and V
 	group.create_dataset('pointData',(1,),dtype='u1',data=pointData)
 	group.create_dataset('n_variables',(1,),dtype='u1',data=nvars)
-	Usize = (mpi_reduce(U.shape[0],op='sum',all=True),U.shape[1])
-	dsetU = group.create_dataset('U',Usize,dtype=U.dtype)
-	dsetS = group.create_dataset('S',S.shape,dtype=S.dtype)
-	dsetV = group.create_dataset('V',V.shape,dtype=V.dtype)
+	Usize = (mpi_reduce(U.shape[0],op='sum',all=True),U.shape[1]) if U is not None else None
+	dsetU = group.create_dataset('U',Usize,dtype=U.dtype)   if U is not None else None
+	dsetS = group.create_dataset('S',S.shape,dtype=S.dtype) if S is not None else None
+	dsetV = group.create_dataset('V',V.shape,dtype=V.dtype) if V is not None else None
 	# Store S and U that are repeated across the ranks
 	# So it is enough that one rank stores them
 	if is_rank_or_serial(0):
-		dsetS[:] = S
-		dsetV[:] = V
+		if dsetS is not None: dsetS[:] = S
+		if dsetV is not None: dsetV[:] = V 
 	# Store U in parallel
 	istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=pointData)
-	dsetU[istart:iend,:] = U
+	if dsetU is not None: dsetU[istart:iend,:] = U
 	file.close()
 
 @cr('h5IO.load_POD')
@@ -749,9 +872,9 @@ def h5_load_POD(fname,vars,nmod,ptable=None):
 		nvars = int(file['POD']['n_variables'][0])
 		point = bool(file['POD']['pointData'][0])
 		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=point)
-		varList.append( np.array(file['POD']['U'][istart:iend,:nmod]) )
-	if 'S' in vars: varList.append( np.array(file['POD']['S'][:]) )
-	if 'V' in vars: varList.append( np.array(file['POD']['V'][:,:]) )
+		varList.append(np.array(file['POD']['U'][istart:iend,:]) if nmod < 0 else np.array(file['POD']['U'][istart:iend,:nmod]))
+	if 'S' in vars: varList.append( np.array(file['POD']['S'][:]) if nmod < 0 else  np.array(file['POD']['S'][:nmod]) )
+	if 'V' in vars: varList.append( np.array(file['POD']['V'][:,:]) if nmod < 0 else np.array(file['POD']['V'][:nmod,:]) )
 	# Return
 	file.close()
 	return varList

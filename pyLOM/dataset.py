@@ -7,15 +7,12 @@
 # Last rev: 30/07/2021
 from __future__ import print_function, division
 
-import os, mpi4py, numpy as np
-mpi4py.rc.recv_mprobe = False
-from mpi4py import MPI
+import os, numpy as np
 
-from .             import inp_out as io
-from .utils.cr     import cr
-from .utils.mem    import mem
-from .utils.errors import raiseError
-from .utils.parall import mpi_reduce
+from .partition_table import PartitionTable
+from .                import inp_out as io
+from .utils           import cr_nvtx as cr, raiseError, gpu_to_cpu, cpu_to_gpu, pprint, mpi_gather, MPI_RANK, MPI_SIZE
+from .vmmath          import data_splitting, find_random_sensors
 
 
 class Dataset(object):
@@ -62,9 +59,9 @@ class Dataset(object):
 			field  = self.fields[key]['value']
 			nanstr = ' (has NaNs) ' if np.any(np.isnan(field)) else ' '
 			s     += '  > ' +  key + nanstr + '- max = ' + str(np.nanmax(field)) \
-										    + ', min = ' + str(np.nanmin(field)) \
-										    + ', avg = ' + str(np.nanmean(field)) \
-										    + '\n'
+											+ ', min = ' + str(np.nanmin(field)) \
+											+ ', avg = ' + str(np.nanmean(field)) \
+											+ '\n'
 		return s
 		
 	# Set and get functions
@@ -98,9 +95,15 @@ class Dataset(object):
 		'''
 		return self.fields.pop(varname)
 
-	def get_variable(self,key):
-		'''
+	def get_variable(self,key:str):
+		r'''
 		Recover the value of a variable given its key
+
+		Args:
+			key (str): name of the variable
+
+		Returns:
+			(np.ndarray): value of the variable
 		'''
 		return self._vardict[key]['value']
 
@@ -124,6 +127,24 @@ class Dataset(object):
 		Returns the information for a certain variable
 		'''
 		return {'point':self._point,'ndim':self._fieldict[var]['ndim']}
+	
+	def to_gpu(self,fields=None):
+		'''
+		Send field data to the GPU
+		'''
+		fields = fields if not fields is None else self.fieldnames
+		for key in fields:
+			self._fieldict[key]['value'] = cpu_to_gpu(self._fieldict[key]['value'])
+		return self
+
+	def to_cpu(self,fields=None):
+		'''
+		Send field data to the CPU
+		'''
+		fields = fields if not fields is None else self.fieldnames
+		for key in fields:
+			self._fieldict[key]['value'] = gpu_to_cpu(self._fieldict[key]['value'])
+		return self
 
 	def add_field(self,varname,ndim,var):
 		'''
@@ -143,6 +164,34 @@ class Dataset(object):
 			'value' : var, 
 		}
 
+	def split_data(self,var,mode='reconstruct'):
+		r'''
+		Generate random training, validation and test masks for a dataset of Nt samples.
+
+		Args:
+			variable (str): variable which will be splitted in different samples
+			mode (str, optional): type of splitting to perform (default, ``'reconstruct'``). In reconstruct mode all three datasets have samples along all the data range.
+	
+		Returns:
+			[(np.ndarray), (np.ndarray), (np.ndarray)]: List of arrays containing the identifiers of the training, validation and test samples.
+		'''
+		
+		N    = len(self.vars[var]["value"])
+		idim = self.vars[var]["idim"]
+		trid, vaid, teid = data_splitting(N, mode)
+		self.add_variable('training_%s'%var,idim,trid)
+		self.add_variable('validation_%s'%var,idim,vaid)
+		self.add_variable('test_%s'%var,idim,teid)
+
+		return trid, vaid, teid
+
+	def mask_field(self, key, mask):
+		'''
+		Mask a field over a defined variable
+		'''
+		mask = mask if mask is not str else self.get_variable(mask)
+		return self[key][:,mask]
+
 	def append_variable(self,varname,var,**fieldict):
 		'''
 		Appends new timesteps to the dataset
@@ -157,6 +206,36 @@ class Dataset(object):
 		for v in fieldict:
 			aux = np.concatenate((self[v][:,:,idim],fieldict[v]),axis=1)[:,idx]
 			self[v][:,:,idim] = aux
+
+	def select_random_sensors(self, nsensors, bounds, VARLIST, seed=-1):
+		'''
+		Generates a set of coordinats of nsensors random sensors inside the region defined by bounds.
+		Then for each sensor finds the nearest point from the dataset to get its coordinates and dataset value.
+		It creates a new dataset containing all the sensor coordinates and values
+		'''
+		np.random.seed(0) if seed == -1 else np.random.seed(seed)
+
+		mysensors = find_random_sensors(bounds, self.xyz, nsensors)
+
+		# Initialize new dataset
+		myNsensors = len(mysensors)
+		time       = self.get_variable('time')
+		nparts     = MPI_SIZE
+		ids        = np.arange(1,nparts+1,dtype=np.int32)
+		points     = mpi_gather(myNsensors, all=True) if MPI_SIZE > 1 else np.array([myNsensors])
+		elements   = np.zeros((MPI_SIZE,), dtype=int)
+		ptable     = PartitionTable(nparts, ids, elements, points, has_master=False)
+		sp, ep     = ptable.partition_bounds(MPI_RANK)
+		order      = np.linspace(start=sp, stop=ep-1, num=ep-sp, dtype=int)
+		sd         = self.__class__(xyz=self.xyz[mysensors], ptable=ptable, order=order, point=True, vars=self._vardict)#{'time':{'idim':0,'value':time}})
+		for field in self.fieldnames:
+			if field not in VARLIST:
+				continue
+			if self.fields[field]["ndim"] > 1:
+				pprint(0, "WARNING!! Multidimensional variables are skipped as sensor datasets must be saved in nopartition mode. Separate each dimension of your variable", flush=True)
+				continue
+			sd.add_field(field,1,self[field][mysensors])
+		return sd
 
 	@cr('Dataset.reshape')
 	def reshape(self,field,info):

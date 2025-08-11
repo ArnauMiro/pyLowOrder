@@ -9,9 +9,7 @@ from __future__ import print_function, division
 
 import numpy as np
 
-from .utils.parall import MPI_SIZE, worksplit, mpi_gather
-from .utils.cr     import cr
-from .utils.mem    import mem
+from .utils import cr, mem, MPI_SIZE, worksplit, mpi_gather
 
 
 class PartitionTable(object):
@@ -128,7 +126,7 @@ class PartitionTable(object):
 
 	@classmethod
 	@cr('PartTable.from_pyQvarsi')
-	def from_pyQvarsi(cls,ptable,porder=1,has_master=False):
+	def from_pyQvarsi(cls,ptable,porder=1,ndime=3,has_master=False):
 		'''
 		Create a partition table from a partition table coming
 		from pyQvarsi
@@ -136,7 +134,7 @@ class PartitionTable(object):
 		nparts   = ptable.n_partitions
 		ids      = np.arange(1,nparts+1,dtype=np.int32)
 		points   = ptable.Points
-		elements = ptable.Elements*porder**3
+		elements = ptable.Elements*porder**ndime
 		return cls(nparts,ids,elements,points,has_master=has_master)		
 
 	@property

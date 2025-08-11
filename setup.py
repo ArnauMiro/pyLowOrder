@@ -11,6 +11,15 @@ import os, sys, numpy as np, mpi4py
 from setuptools import setup, Extension, find_packages
 from Cython.Build import cythonize
 
+
+## Read INIT file
+with open('pyLOM/__init__.py') as f:
+	for l in f.readlines():
+		if '__version__' in l:
+			__version__ = eval(l.split('=')[1].strip())
+
+
+## Read README file
 with open('README.md') as f:
 	readme = f.read()
 
@@ -24,36 +33,69 @@ with open('options.cfg') as f:
 		options[linep[0].strip()] = linep[1].strip()
 		if options[linep[0].strip()] == 'ON':  options[linep[0].strip()] = True
 		if options[linep[0].strip()] == 'OFF': options[linep[0].strip()] = False
+options['MODULES_COMPILED'] = options['MODULES_COMPILED'].lower().split(',')
 
 
 ## Set up compiler options and flags
-CC  = 'mpicc'   if options['FORCE_GCC'] or not os.system('which icc > /dev/null') == 0 else 'mpiicc'
-CXX = 'mpicxx'  if options['FORCE_GCC'] or not os.system('which icc > /dev/null') == 0 else 'mpiicpc'
-FC  = 'mpifort' if options['FORCE_GCC'] or not os.system('which icc > /dev/null') == 0 else 'mpiifort'
+ICC = 'icx'    if 'ACC' in options['PLATFORM'] else 'icc'
+CC  = 'mpicc'  if not os.system('which %s > /dev/null'%ICC) == 0 else 'mpiicc'
+CXX = 'mpicxx' if not os.system('which %s > /dev/null'%ICC) == 0 else 'mpiicpc'
+FC  = 'mpif90' if not os.system('which %s > /dev/null'%ICC) == 0 else 'mpiifort'
+if options['USE_GCC'] or options['USE_NVHPC']:
+	CC  = 'mpicc'
+	CXX = 'mpicxx'
+	FC  = 'mpif90'
 
-CFLAGS   = ''
-CXXFLAGS = ' -std=c++11'
-FFLAGS   = ''
+CFLAGS   = ' -fPIC'
+CXXFLAGS = ' -fPIC -std=c++11'
+FFLAGS   = ' -fPIC'
 DFLAGS   = ' -DNPY_NO_DEPRECATED_API'
 if options['USE_MKL']:   DFLAGS += ' -DUSE_MKL'
 if options['USE_FFTW']:  DFLAGS += ' -DUSE_FFTW3'
 if options['USE_GESVD']: DFLAGS += ' -DUSE_LAPACK_DGESVD'
 if CC == 'mpicc':
 	# Using GCC as a compiler
-	CFLAGS   += ' -O0 -g -rdynamic -fPIC' if options['DEBUGGING'] else ' -O%s -ffast-math -fPIC' % options['OPTL']
-	CXXFLAGS += ' -O0 -g -rdynamic -fPIC' if options['DEBUGGING'] else ' -O%s -ffast-math -fPIC' % options['OPTL']
-	FFLAGS   += ' -O0 -g -rdynamic -fPIC' if options['DEBUGGING'] else ' -O%s -ffast-math -fPIC' % options['OPTL']
-	# Vectorization flags
-	if options['VECTORIZATION']:
-		CFLAGS   += ' -march=native -ftree-vectorize'
-		CXXFLAGS += ' -march=native -ftree-vectorize'
-		FFLAGS   += ' -march=native -ftree-vectorize'
-	# OpenMP flag
-	if options['OPENMP_PARALL']:
-		CFLAGS   += ' -fopenmp'
-		CXXFLAGS += ' -fopenmp'
+	if options['USE_GCC']:
+		if options['DEBUGGING']:
+			CFLAGS   += ' -O0 -g -rdynamic'
+			CXXFLAGS += ' -O0 -g -rdynamic'
+			FFLAGS   += ' -O0 -g -rdynamic'
+		else:
+			CFLAGS   += ' -O%s -ffast-math' % options['OPTL']
+			CXXFLAGS += ' -O%s -ffast-math' % options['OPTL']
+			FFLAGS   += ' -O%s -ffast-math' % options['OPTL']
+		# Vectorization flags
+		if options['VECTORIZATION']:
+			CFLAGS   += ' -march=native -ftree-vectorize'
+			CXXFLAGS += ' -march=native -ftree-vectorize'
+			FFLAGS   += ' -march=native -ftree-vectorize'	
+		# OpenMP flag
+		if options['OPENMP_PARALL']:
+			CFLAGS   += ' -fopenmp '
+			CXXFLAGS += ' -fopenmp '
+			DFLAGS   += ' -DUSE_OMP'
+	# Using NVHPC as a compiler
+	if options['USE_NVHPC']:
+		if options['DEBUGGING']:
+			CFLAGS   += ' -O0 -g'
+			CXXFLAGS += ' -O0 -g'
+			FFLAGS   += ' -O0 -g'
+		else:
+			CFLAGS   += ' -O%s' % options['OPTL']
+			CXXFLAGS += ' -O%s' % options['OPTL']
+			FFLAGS   += ' -O%s' % options['OPTL']
+		# Vectorization flags
+		if options['VECTORIZATION']:
+			CFLAGS   += ' -tp=%s -fast' % options['TUNE']
+			CXXFLAGS += ' -tp=%s -fast' % options['TUNE']
+			FFLAGS   += ' -tp=%s -fast' % options['TUNE']	
+		# OpenMP flag
+		if options['OPENMP_PARALL']:
+			CFLAGS   += ' -mp'
+			CXXFLAGS += ' -mp'
+			DFLAGS   += ' -DUSE_OMP'
 else:
-	# Using GCC as a compiler
+	# Using INTEL as a compiler
 	CFLAGS   += ' -O0 -g -traceback -fPIC' if options['DEBUGGING'] else ' -O%s -fPIC' % options['OPTL']
 	CXXFLAGS += ' -O0 -g -traceback -fPIC' if options['DEBUGGING'] else ' -O%s -fPIC' % options['OPTL']
 	FFLAGS   += ' -O0 -g -traceback -fPIC' if options['DEBUGGING'] else ' -O%s -fPIC' % options['OPTL']
@@ -124,11 +166,52 @@ else:
 
 ## Modules
 # vmmath module
-Module_math = Extension('pyLOM.vmmath.wrapper',
-						sources       = ['pyLOM/vmmath/wrapper.pyx',
+Module_cfuncs     = Extension('pyLOM.vmmath.cfuncs',
+						sources       = ['pyLOM/vmmath/cfuncs.pyx',
 										 'pyLOM/vmmath/src/vector_matrix.c',
 										 'pyLOM/vmmath/src/averaging.c',
 										 'pyLOM/vmmath/src/svd.c',
+										 'pyLOM/vmmath/src/fft.c',
+										 'pyLOM/vmmath/src/geometric.c',
+										 'pyLOM/vmmath/src/truncation.c',
+										 'pyLOM/vmmath/src/stats.c',
+										 'pyLOM/vmmath/src/regression.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
+Module_maths     = Extension('pyLOM.vmmath.maths',
+						sources       = ['pyLOM/vmmath/maths.pyx',
+										 'pyLOM/vmmath/src/vector_matrix.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
+Module_averaging = Extension('pyLOM.vmmath.averaging',
+						sources       = ['pyLOM/vmmath/averaging.pyx',
+										 'pyLOM/vmmath/src/averaging.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
+Module_svd       = Extension('pyLOM.vmmath.svd',
+						sources       = ['pyLOM/vmmath/svd.pyx',
+										 'pyLOM/vmmath/src/vector_matrix.c',
+										 'pyLOM/vmmath/src/svd.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
+Module_fft       = Extension('pyLOM.vmmath.fft',
+						sources       = ['pyLOM/vmmath/fft.pyx',
 										 'pyLOM/vmmath/src/fft.c',
 									    ],
 						language      = 'c',
@@ -136,12 +219,43 @@ Module_math = Extension('pyLOM.vmmath.wrapper',
 						extra_objects = extra_objects,
 						libraries     = libraries,
 					   )
-# input output module
-Module_IO_ensight  = Extension('pyLOM.inp_out.io_ensight',
-						sources      = ['pyLOM/inp_out/io_ensight.pyx'],
-						language     = 'c',
-						include_dirs = [np.get_include()],
-						libraries    = libraries,
+Module_geometric = Extension('pyLOM.vmmath.geometric',
+						sources       = ['pyLOM/vmmath/geometric.pyx',
+										 'pyLOM/vmmath/src/geometric.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
+Module_truncation = Extension('pyLOM.vmmath.truncation',
+						sources       = ['pyLOM/vmmath/truncation.pyx',
+										 'pyLOM/vmmath/src/vector_matrix.c',
+										 'pyLOM/vmmath/src/truncation.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
+Module_stats     = Extension('pyLOM.vmmath.stats',
+						sources       = ['pyLOM/vmmath/stats.pyx',
+										 'pyLOM/vmmath/src/stats.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
+Module_regression = Extension('pyLOM.vmmath.regression',
+						sources       = ['pyLOM/vmmath/regression.pyx',
+										 'pyLOM/vmmath/src/vector_matrix.c',
+										 'pyLOM/vmmath/src/regression.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
 					   )
 # low-order modules
 Module_POD = Extension('pyLOM.POD.wrapper',
@@ -182,21 +296,31 @@ Module_SPOD = Extension('pyLOM.SPOD.wrapper',
 					   )
 
 
+## Build modules
+# Math module
+Module_Math  = [Module_cfuncs]
+Module_Math += [Module_maths]      if 'math.maths'      in options['MODULES_COMPILED'] else []
+Module_Math += [Module_averaging]  if 'math.averaging'  in options['MODULES_COMPILED'] else []
+Module_Math += [Module_svd]        if 'math.svd'        in options['MODULES_COMPILED'] else []
+Module_Math += [Module_fft]        if 'math.fft'        in options['MODULES_COMPILED'] else []
+Module_Math += [Module_geometric]  if 'math.geometric'  in options['MODULES_COMPILED'] else []
+Module_Math += [Module_truncation] if 'math.truncation' in options['MODULES_COMPILED'] else []
+Module_Math += [Module_stats]      if 'math.stats'      in options['MODULES_COMPILED'] else []
+Module_Math += [Module_regression] if 'math.regression' in options['MODULES_COMPILED'] else []
+# ROM module
+Module_ROM   = [Module_POD]  if 'rom.pod'  in options['MODULES_COMPILED'] else []
+Module_ROM  += [Module_DMD]  if 'rom.dmd'  in options['MODULES_COMPILED'] else []
+Module_ROM  += [Module_SPOD] if 'rom.spod' in options['MODULES_COMPILED'] else []
+
+
 ## Decide which modules to compile
-modules_list = [
-	# Math module
-	Module_math,
-	# IO module
-	Module_IO_ensight,
-	# Low order algorithms
-	Module_POD,Module_DMD,Module_SPOD
-] if options['USE_COMPILED'] else []
+modules_list = Module_Math + Module_ROM if options['USE_COMPILED'] else []
 
 
 ## Main setup
 setup(
 	name             = 'pyLowOrder',
-	version          = '2.1.0',
+	version          = __version__,
 	author           = 'Benet Eiximeno, Beka Begiashvili, Arnau Miro, Eusebio Valero, Oriol Lehmkuhl',
 	author_email     = 'benet.eiximeno@bsc.es, beka.begiashvili@alumnos.upm.es, arnau.mirojane@bsc.es, eusebio.valero@upm.es, oriol.lehmkuhl@bsc.es',
 	maintainer       = 'Benet Eiximeno, Arnau Miro',

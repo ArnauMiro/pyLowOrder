@@ -38,8 +38,10 @@ jobs:
         uses: mpi4py/setup-mpi@v1
         with:
           mpi: openmpi
-      - name: Set up Python 3.x
+      - name: Set up Python 3.11.11
         uses: actions/setup-python@v3
+        with:
+          python-version: 3.11.11
       # Install dependencies, build and install
       - name: Install dependencies
         run: |
@@ -48,7 +50,7 @@ jobs:
       - name: Build package
         run: |
           make requirements_full
-          sed -i 's/USE_COMPILED  = ON/USE_COMPILED  = OFF/g' options.cfg
+          sed -i 's/USE_COMPILED     = ON/USE_COMPILED     = OFF/g' options.cfg
           make package-build
           make install
       # Publish to PyPi once the test-sute has been successfully run

@@ -1,0 +1,67 @@
+name: Deploy documentation
+run-name: Building and deploying the documentation @${{ github.actor }}
+
+on:
+  push:
+    branches: [ "main" ]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:    
+  build-docs:
+    runs-on: ubuntu-22.04
+    env:
+      CC: mpicc
+      CXX: mpc++
+      FC: mpif90
+    steps:
+      # Free up some disk space in the runner
+      - name: Maximize build space
+        uses: AdityaGarg8/remove-unwanted-software@v4.1
+        with:
+          remove-android: 'true'
+          remove-dotnet:  'true'
+          remove-haskell: 'true'
+          remove-codeql:  'true'
+      - uses: actions/checkout@v3
+      # Setup MPI and Python for this job
+      - name: Setup MPI
+        uses: mpi4py/setup-mpi@v1
+        with:
+          mpi: openmpi
+      - name: Set up Python 3.11.11
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.11.11
+      # Run pyLOM compilation and deployment
+      - name: Set up configuration
+        run: |
+          sed -i 's/USE_MKL          = ON/USE_MKL          = OFF/g' options.cfg
+          sed -i 's/USE_GCC          = OFF/USE_GCC          = ON/g' options.cfg
+          sed -i 's/USE_COMPILED     = ON/USE_COMPILED     = OFF/g' options.cfg
+      - name: Fix h5py
+        run: |
+          sudo apt install libhdf5-mpi-dev
+          CC=mpicc HDF5_MPI="ON" pip install --no-binary=h5py h5py
+      - name: Set up dependencies
+        run: make deps requirements_full
+      - name: Install
+        run: make install
+      - name: Install sphinx dependencies
+        run: |
+          sudo apt install pandoc
+          pip install -r requirements_docs.txt
+      - name: Build the documentation 
+        run: |
+          sphinx-apidoc -f -o docs/source/api pyLOM -t docs/source/_templates
+          cd docs/source
+          make clean
+          make html
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/source/_build/html
+          publish_branch: gh-pages
