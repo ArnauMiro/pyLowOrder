@@ -8,7 +8,76 @@ from torch import Tensor
 
 from .. import DEVICE
 
+
+import os
+import random
+import numpy as np
+import torch
+
 def set_seed(seed: int = 42) -> None:
+    """
+    Set the random seed for full reproducibility across Python, NumPy, and PyTorch.
+    
+    This function enforces determinism in all major sources of randomness:
+    - Python's built-in random module
+    - NumPy
+    - PyTorch (CPU and CUDA)
+    - cuBLAS/cuDNN kernels
+    
+    It also sets relevant environment variables to avoid hidden sources
+    of non-determinism (e.g., Python hash seed, cuBLAS workspace).
+    
+    Note
+    ----
+    - Setting `torch.use_deterministic_algorithms(True)` may raise an error 
+      if your code calls non-deterministic ops. In that case, rewrite those ops 
+      or handle them explicitly.
+    - Some performance optimizations (e.g., `torch.backends.cudnn.benchmark`) 
+      are disabled to guarantee determinism.
+    
+    Args
+    ----
+    seed : int, optional
+        The seed value to use for all RNGs (default = 42).
+    """
+    # -------------------------------
+    # Python & NumPy RNGs
+    # -------------------------------
+    os.environ["PYTHONHASHSEED"] = str(seed)  # enforce deterministic hashing in Python
+    random.seed(seed)
+    np.random.seed(seed)
+
+    # -------------------------------
+    # PyTorch CPU & CUDA RNGs
+    # -------------------------------
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+
+    # -------------------------------
+    # cuBLAS/cuDNN Determinism
+    # -------------------------------
+    # cuBLAS (matrix multiplications) may introduce nondeterminism unless configured
+    os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")  # or ":16:8" if OOM occurs
+
+    try:
+        # Enforce deterministic algorithms globally (PyTorch >= 1.8)
+        torch.use_deterministic_algorithms(True, warn_only=False)
+    except Exception:
+        # Fallback for older versions
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+    # -------------------------------
+    # Disable TF32 for Ampere+ GPUs
+    # -------------------------------
+    # TF32 can cause slight numerical differences across runs
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
+
+
+def set_seed_legacy(seed: int = 42) -> None:
     """Set the random seed for reproducibility.
     Args:
         seed (int): The seed value to set for random number generation.
