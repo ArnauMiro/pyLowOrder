@@ -347,7 +347,6 @@ class GNS(torch.nn.Module):
 
         self._dprint("Running evaluation epoch...")
         self.eval()
-        torch.set_printoptions(precision=4, sci_mode=False, threshold=10)  # no listar toneladas de números
         with torch.no_grad():
             return self._run_epoch(
                 input_dataloader,
@@ -570,7 +569,9 @@ class GNS(torch.nn.Module):
             })
             return total_loss / num_losses
         else:
-            return torch.cat(outputs, dim=0).reshape(-1, self.graph.num_nodes, self.model_config.output_dim)
+            outputs_numpy = torch.cat(outputs, dim=0).cpu().numpy()
+            outputs_numpy = outputs_numpy.reshape(-1, self.graph.num_nodes, self.model_config.output_dim)
+            return outputs_numpy
 
 
     @cr('GNS._train_one_batch')

@@ -76,10 +76,7 @@ class Dataset(torch.utils.data.Dataset):
         self.mesh_shape = mesh_shape
         if snapshots_by_column:
             variables_out = [variable.T for variable in variables_out]
-        # if outputs_scaler is not None:
-        #     if not outputs_scaler.is_fitted:
-        #         outputs_scaler.fit(variables_out)
-        #     variables_out = outputs_scaler.transform(variables_out)
+
         self.variables_out = self._process_variables_out(variables_out, outputs_scaler, squeeze_last_dim)
         if variables_in is not None:
             self.parameters = self._process_parameters(parameters, combine_parameters_with_cartesian_prod)

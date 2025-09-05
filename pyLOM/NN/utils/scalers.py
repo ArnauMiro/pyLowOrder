@@ -43,171 +43,281 @@ class ScalerProtocol(Protocol):
 
 class MinMaxScaler:
     r"""
-    Min-max scaling to scale variables to a desired range. The formula is given by:
+    Min-max scaling to scale variables to a desired range.
 
-    .. math::
+    By default (blocks=None), each column is treated as an independent variable
+    (fully backward-compatible with previous behavior).
 
-        X_{scaled} = \frac{X - X_{min}}{X_{max} - X_{min}} * (feature\_range_{max} - feature\_range_{min}) + feature\_range_{min}
+    If `blocks` is provided, it defines groups of columns (blocks) that are scaled
+    together sharing the same (min, max). This is ideal when each "variable"
+    is actually a vector quantity with multiple components.
 
     Args:
-        feature_range (Tuple): Desired range of transformed data. Default is ``(0, 1)``.
-        column (bool, optional): Scale over the column space or the row space (default ``False``)
+        feature_range (Tuple): Desired range of transformed data. Default: (0, 1).
+        column (bool): Scale over column or row space. Default: False.
+        blocks (Optional[List[Union[slice, Sequence[int]]]]): Column groupings.
+            - None (default): each column is its own variable (old behavior).
+            - List of slices or list of index lists. E.g.:
+                blocks=[slice(0,1), slice(1,3), slice(3,6)]
+              or   blocks=[[0], [1,2], [3,4,5]]
     """
 
-    def __init__(self, feature_range=(0, 1), column=False):
+    def __init__(self, feature_range=(0, 1), column=False, blocks=None):
         self.feature_range = feature_range
         self._is_fitted = False
         self._column    = column
+        self.blocks     = blocks  # NEW
 
     @property
     def is_fitted(self):
         return self._is_fitted
-    
+
+    # ---------- internal helpers (robustos y retrocompatibles) ----------
+    def _ensure_2d(self, x):
+        """Return x as 2D array/tensor of shape (n_samples, n_features)."""
+        if isinstance(x, torch.Tensor):
+            if x.ndim == 1:
+                return x.unsqueeze(1)
+            return x
+        x = np.asarray(x)
+        if x.ndim == 1:
+            x = x[:, None]
+        return x
+
+    def _split_into_blocks(self, X2d):
+        """
+        Split a 2D np.ndarray/torch.Tensor into a list of 2D blocks by self.blocks.
+        If self.blocks is None, split by single columns (old behavior).
+        """
+        is_tensor = isinstance(X2d, torch.Tensor)
+
+        # Build list of (take_fn, block) safely for np/torch
+        def take_cols(a, cols):
+            if is_tensor:
+                return a[:, cols] if isinstance(cols, list) else a[:, cols]
+            else:
+                return a[:, cols]
+
+        nfeat = X2d.shape[1]
+        if self.blocks is None:
+            # one column per variable (old behavior)
+            blocks = [take_cols(X2d, i if is_tensor else slice(i, i+1)) for i in range(nfeat)]
+        else:
+            norm_blocks = []
+            for b in self.blocks:
+                if isinstance(b, slice):
+                    norm_blocks.append(take_cols(X2d, b))
+                else:
+                    # list/tuple of indices
+                    # torch advanced indexing needs a tensor of column indices
+                    if is_tensor and not isinstance(b, torch.Tensor):
+                        cols = torch.tensor(b, dtype=torch.long, device=X2d.device)
+                        norm_blocks.append(X2d.index_select(dim=1, index=cols))
+                    else:
+                        norm_blocks.append(take_cols(X2d, b))
+            blocks = norm_blocks
+        return blocks
+
+    def _stack_blocks(self, blocks, as_tensor=False):
+        """
+        Stack list of 2D blocks back to a single 2D array/tensor with original column order.
+        Assumes blocks cover all columns in order given by `blocks`/default.
+        """
+        if as_tensor:
+            return torch.hstack(blocks)
+        else:
+            return np.hstack(blocks)
+
+    # ------------------------------ API ------------------------------
     def fit(self, variables: Union[List[Union[np.ndarray, torch.tensor]], np.ndarray, torch.tensor]):
         """
-        Compute the min and max values of each variable.
-        Args:
-            variables (List): List of variables to be fitted. The variables should be numpy arrays or torch tensors.
-            A numpy array or torch tensor can be passed directly and each column will be considered as a variable to be scaled.
+        Compute the min and max per variable.
+        - If `blocks is None`:
+            - Backward compatible: if `variables` is array/tensor, split by columns.
+            - If `variables` is a list, each item is treated as an independent variable.
+        - If `blocks` provided and `variables` is array/tensor:
+            - Group by the blocks for min/max.
         """
-        variables = self._cast_variables(variables)
+        # Normalize inputs to a single 2D matrix for easier handling
+        is_array  = isinstance(variables, np.ndarray)
+        is_tensor = isinstance(variables, torch.Tensor)
+
+        if is_array or is_tensor:
+            X = self._ensure_2d(variables)
+            blocks = self._split_into_blocks(X)
+        else:
+            # List path (backward-compatible): each element can be (n, d_i)
+            blocks = []
+            for v in variables:
+                v2d = self._ensure_2d(v)
+                blocks.append(v2d)
+
         min_max_values = []
-        for variable in variables:
-            min_val = float(variable.min())
-            max_val = float(variable.max())
-            min_max_values.append({"min": min_val, "max": max_val})
+        for block in blocks:
+            # Compute global min/max over the whole block (shared for all its columns)
+            bmin = float(block.min())
+            bmax = float(block.max())
+            min_max_values.append({"min": bmin, "max": bmax})
         self.variable_scaling_params = min_max_values
         self._is_fitted = True
 
+        # Keep metadata to reconstruct shapes
+        # When fitting from a single 2D matrix, we remember how to split/stack later.
+        # If a list is passed, we know we should return a list on transform if a list was passed.
+        self._fit_from_list = not (is_array or is_tensor)
+
     def transform(
         self, variables: Union[List[Union[np.ndarray, torch.tensor]], np.ndarray, torch.tensor]
-    ) -> List[Union[np.ndarray, torch.tensor]]:
+    ):
         """
-        Scale variables to the range defined on `feature_range` using min-max scaling.
-        Args:
-            variables (List): List of variables to be scaled. The variables should be numpy arrays or torch tensors.
-            A numpy array or torch tensor can be passed directly and each column will be considered as a variable to be scaled.
+        Scale variables using min-max.
         Returns:
-            scaled_variables: List of scaled variables.
+            - If input was np.ndarray/torch.Tensor: returns same type (2D), preserving shape.
+            - If input was list: returns list of same length with each block scaled.
         """
-        is_array = isinstance(variables, (np.ndarray))
-        is_tensor = isinstance(variables, (torch.Tensor))
-        variables = self._cast_variables(variables)
-        scaled_variables = []
-        for i, variable in enumerate(variables):
-            min_val = self.variable_scaling_params[i]["min"]
-            max_val = self.variable_scaling_params[i]["max"]
+        if not self._is_fitted:
+            raiseError("Scaler must be fitted before transform")
+
+        def _scale_block(block, params, feature_range):
+            min_val, max_val = params["min"], params["max"]
             data_range = max_val - min_val
             data_range = 1 if data_range == 0 else data_range
-            scaled_variable = (variable - min_val) / data_range
-            # scale the variable to the desired feature_range
-            scaled_variable = (
-                scaled_variable * (self.feature_range[1] - self.feature_range[0])
-                + self.feature_range[0]
-            )
-            scaled_variables.append(scaled_variable)
+            out = (block - min_val) / data_range
+            out = out * (feature_range[1] - feature_range[0]) + feature_range[0]
+            return out
 
-        if is_array:
-            scaled_variables = np.hstack(scaled_variables)
-        elif is_tensor:
-            scaled_variables = torch.hstack(scaled_variables)
+        is_array  = isinstance(variables, np.ndarray)
+        is_tensor = isinstance(variables, torch.Tensor)
 
-        return scaled_variables.T if self._column else scaled_variables
-    
-    def fit_transform(self, variables: List[Union[np.ndarray, torch.tensor]]) -> List[Union[np.ndarray, torch.tensor]]:
-        """
-        Fit and transform the variables using min-max scaling.
-        Args:
-            variables (List): List of variables to be fitted and scaled. The variables should be numpy arrays or torch tensors.
-            A numpy array or torch tensor can be passed directly and each column will be considered as a variable to be scaled.
-        Returns:
-            scaled_variables: List of scaled variables.
-        """
+        # --- Case 1: array/tensor input ---
+        if is_array or is_tensor:
+            X = self._ensure_2d(variables)
+            blocks = self._split_into_blocks(X)
+
+            if is_tensor:
+                scaled_blocks = [
+                    _scale_block(block, p, self.feature_range) for block, p in zip(blocks, self.variable_scaling_params)
+                ]
+                out = self._stack_blocks(scaled_blocks, as_tensor=True)
+                return out.T if self._column else out
+            else:
+                scaled_blocks = [
+                    _scale_block(block.astype(float), p, self.feature_range) for block, p in zip(blocks, self.variable_scaling_params)
+                ]
+                out = self._stack_blocks(scaled_blocks, as_tensor=False)
+                return out.T if self._column else out
+
+        # --- Case 2: list input (backward-compatible) ---
+        scaled_list = []
+        for i, v in enumerate(variables):
+            v2d = self._ensure_2d(v)
+            scaled_v = _scale_block(v2d, self.variable_scaling_params[i], self.feature_range)
+            scaled_list.append(scaled_v)
+        return scaled_list
+
+    def fit_transform(self, variables):
         self.fit(variables)
         return self.transform(variables)
 
-    def inverse_transform(self, variables: List[Union[np.ndarray, torch.tensor]]) -> List[Union[np.ndarray, torch.tensor]]:
+    def inverse_transform(self, variables):
         """
-        Inverse scale variables that have been scaled using min-max scaling.
-        Args:
-            variables (List): List of variables to be inverse scaled. The variables should be numpy arrays or torch tensors.
-            A numpy array or torch tensor can be passed directly and each column will be considered as a variable to be scaled.
-        Returns:
-            inverse_scaled_variables: List of inverse scaled variables.
+        Inverse transformation. Mirrors `transform` rules on input/output typing.
         """
-        is_array = isinstance(variables, (np.ndarray))
-        is_tensor = isinstance(variables, (torch.Tensor))
-        variables = self._cast_variables(variables)
-        if len(variables) != len(self.variable_scaling_params):
-            raiseError(
-                f"Number of variables to inverse transform ({len(variables)}) does not match the number of variables fitted ({len(self.variable_scaling_params)})"
-            )
-        inverse_scaled_variables = []
-        for variable, scaling_params in zip(variables, self.variable_scaling_params):
-            min_val = scaling_params["min"]
-            max_val = scaling_params["max"]
-            inverse_scaled_variable = (variable - self.feature_range[0]) / (
-                self.feature_range[1] - self.feature_range[0]
-            )
+        if not self._is_fitted:
+            raiseError("Scaler must be fitted before inverse_transform")
+
+        def _inv_block(block, params, feature_range):
+            min_val, max_val = params["min"], params["max"]
             data_range = max_val - min_val
             data_range = 1 if data_range == 0 else data_range
-            inverse_scaled_variable = inverse_scaled_variable * data_range + min_val
-            inverse_scaled_variables.append(inverse_scaled_variable)
-        if is_array:
-            inverse_scaled_variables = np.hstack(inverse_scaled_variables)
-        elif is_tensor:
-            inverse_scaled_variables = torch.hstack(inverse_scaled_variables)
-        return inverse_scaled_variables.T if self._column else inverse_scaled_variables
+            out = (block - feature_range[0]) / (feature_range[1] - feature_range[0])
+            out = out * data_range + min_val
+            return out
+
+        is_array  = isinstance(variables, np.ndarray)
+        is_tensor = isinstance(variables, torch.Tensor)
+
+        if is_array or is_tensor:
+            X = self._ensure_2d(variables)
+            blocks = self._split_into_blocks(X)
+
+            if len(blocks) != len(self.variable_scaling_params):
+                raiseError(
+                    f"Number of variables to inverse transform ({len(blocks)}) does not match the number fitted ({len(self.variable_scaling_params)})"
+                )
+
+            if is_tensor:
+                inv_blocks = [
+                    _inv_block(block, p, self.feature_range) for block, p in zip(blocks, self.variable_scaling_params)
+                ]
+                out = self._stack_blocks(inv_blocks, as_tensor=True)
+                return out.T if self._column else out
+            else:
+                inv_blocks = [
+                    _inv_block(block.astype(float), p, self.feature_range) for block, p in zip(blocks, self.variable_scaling_params)
+                ]
+                out = self._stack_blocks(inv_blocks, as_tensor=False)
+                return out.T if self._column else out
+
+        # list path
+        inv_list = []
+        if len(variables) != len(self.variable_scaling_params):
+            raiseError(
+                f"Number of variables to inverse transform ({len(variables)}) does not match the number fitted ({len(self.variable_scaling_params)})"
+            )
+        for v, p in zip(variables, self.variable_scaling_params):
+            v2d = self._ensure_2d(v)
+            inv_list.append(_inv_block(v2d, p, self.feature_range))
+        return inv_list
 
     def save(self, filepath: str) -> None:
-        """
-        Save the fitted scaler parameters to a JSON file.
-        
-        Args:
-            filepath (str): Path where the scaler parameters will be saved
-        """
         if not self.is_fitted:
             raiseError("Scaler must be fitted before it can be saved")
-        
+        # Normalize blocks to a JSON-serializable form
+        def _serialize_blocks(blocks):
+            if blocks is None:
+                return None
+            serial = []
+            for b in blocks:
+                if isinstance(b, slice):
+                    serial.append({"type": "slice", "start": b.start, "stop": b.stop, "step": b.step})
+                else:
+                    serial.append({"type": "list", "indices": list(b)})
+            return serial
+
         save_dict = {
             "feature_range": self.feature_range,
             "variable_scaling_params": self.variable_scaling_params,
-            "column": self._column
+            "column": self._column,
+            "blocks": _serialize_blocks(self.blocks),
         }
-        
         with open(filepath, 'w') as f:
             json.dump(save_dict, f, indent=4)
 
     @staticmethod
     def load(filepath: str) -> 'MinMaxScaler':
-        """
-        Load a saved MinMaxScaler from a JSON file.
-        
-        Args:
-            filepath (str): Path to the saved scaler parameters
-            
-        Returns:
-            MinMaxScaler: A new MinMaxScaler instance with the loaded parameters
-
-        """
         if not os.path.exists(filepath):
             raiseError(f"No file found at {filepath}")
-        
         with open(filepath, 'r') as f:
-            loaded_dict = json.load(f)
-        
-        scaler = MinMaxScaler(feature_range=tuple(loaded_dict["feature_range"]),column=loaded_dict["column"])
-        
-        # Restore the scaling parameters
-        scaler.variable_scaling_params = loaded_dict["variable_scaling_params"]
-        scaler._is_fitted = True
-        
-        return scaler   
+            loaded = json.load(f)
 
-    def _cast_variables(self, variables):
-        variables = variables.T if self._column else variables
-        if isinstance(variables, (torch.Tensor)):
-            variables = [variables[:, i].unsqueeze(1) for i in range(variables.shape[1])]
-        elif isinstance(variables, (np.ndarray)):
-            variables = [np.expand_dims(variables[:, i], axis=1) for i in range(variables.shape[1])]
-        return variables
+        # Reconstruct blocks
+        def _deserialize_blocks(serial):
+            if serial is None:
+                return None
+            out = []
+            for item in serial:
+                if item["type"] == "slice":
+                    out.append(slice(item["start"], item["stop"], item["step"]))
+                else:
+                    out.append(list(item["indices"]))
+            return out
+
+        scaler = MinMaxScaler(
+            feature_range=tuple(loaded["feature_range"]),
+            column=loaded["column"],
+            blocks=_deserialize_blocks(loaded.get("blocks", None))
+        )
+        scaler.variable_scaling_params = loaded["variable_scaling_params"]
+        scaler._is_fitted = True
+        return scaler
