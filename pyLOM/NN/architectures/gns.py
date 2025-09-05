@@ -611,6 +611,7 @@ class GNS(torch.nn.Module):
         if self._counter % 100 == 0:
             self._dprint(f" - Training batch {self._counter}: output.shape={output.shape}, targets.shape={targets.shape}")
         loss = loss_fn(output, targets)
+        self._dprint(f" - Computed loss: {loss.item():.4e}. Backpropagating...")
         loss.backward()
         self.optimizer.step()
 

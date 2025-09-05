@@ -39,7 +39,7 @@ class GNSMLP(nn.Module):
 
         for i, layer in enumerate(self.layers[:-1]):
             # print("Layer:", layer)
-            snap(x, f"[mp] before Linear{i}")
+            # snap(x, f"[mp] before Linear{i}")
             x = ensure_2d_f32_contig(x)
             assert_finite(x, f"[mp] Linear{i} input")
 
