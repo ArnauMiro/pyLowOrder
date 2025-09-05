@@ -175,7 +175,13 @@ class MLP(nn.Module):
                 train_loss_list.append(loss_val_item)
                 train_loss += loss_val_item
                 if print_rate_batch != 0 and (b_idx % print_rate_batch) == 0:
-                    pprint(0, "Batch %4d/%4d | Train loss (x1e5) %0.4f" % (b_idx, len(self.train_dataloader), loss_val_item * 1e5), flush=True)
+                    pprint(0, f"Batch {b_idx+1}/{len(self.train_dataloader)}")
+                    pprint(0, f"Outputs shape: {oupt.shape}", flush=True)
+                    pprint(0, f"Targets shape: {y_train.shape}", flush=True)
+                    pprint(0, f"Outputs: {oupt.detach().cpu().numpy()[:10]}", flush=True)
+                    pprint(0, f"Targets: {y_train.detach().cpu().numpy()[:10]}", flush=True)
+                    pprint(0, f"mean((outputs-targets)**2): {np.mean((oupt-y_train).detach().cpu().numpy()**2):.4e}", flush=True)
+                    pprint(0, "Batch %4d/%4d | Train loss: %0.4e" % (b_idx, len(self.train_dataloader), loss_val_item), flush=True)
                    
             train_loss = train_loss / (b_idx + 1)
             

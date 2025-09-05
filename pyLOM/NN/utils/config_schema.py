@@ -67,6 +67,7 @@ class GNSModelConfig(ModelConfigBase):
     message_hidden_layers: int
     update_hidden_layers: int
     groupnorm_groups: int = 2  # verificar divisibilidad en el constructor del modelo
+    debug: bool = False
 
 
 @dataclass(frozen=True, kw_only=True)

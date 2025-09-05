@@ -76,11 +76,11 @@ class Dataset(torch.utils.data.Dataset):
         self.mesh_shape = mesh_shape
         if snapshots_by_column:
             variables_out = [variable.T for variable in variables_out]
-        if outputs_scaler is not None:
-            if not outputs_scaler.is_fitted:
-                outputs_scaler.fit(variables_out)
-            variables_out = outputs_scaler.transform(variables_out)
-        self.variables_out = self._process_variables_out(variables_out, squeeze_last_dim)
+        # if outputs_scaler is not None:
+        #     if not outputs_scaler.is_fitted:
+        #         outputs_scaler.fit(variables_out)
+        #     variables_out = outputs_scaler.transform(variables_out)
+        self.variables_out = self._process_variables_out(variables_out, outputs_scaler, squeeze_last_dim)
         if variables_in is not None:
             self.parameters = self._process_parameters(parameters, combine_parameters_with_cartesian_prod)
             self.variables_in = torch.tensor(variables_in, dtype=torch.float32)
@@ -99,17 +99,30 @@ class Dataset(torch.utils.data.Dataset):
                 raiseWarning("Parameters were passed but no input variables were passed. Parameters will be ignored.")
             self.parameters = None
 
-    def _process_variables_out(self, variables_out, squeeze_last_dim=True):
+    def _process_variables_out(self, variables_out, outputs_scaler, squeeze_last_dim=True):
         variables_out_stacked = []
         for variable in variables_out:
+            print(f"Processing output variable with shape {variable.shape}")
+            if outputs_scaler is not None:
+                if not outputs_scaler.is_fitted:
+                    outputs_scaler.fit(variable.reshape(-1, 1))
+                print("Scaling output variable")
+                print(f"minmax before scaling: {variable.min(), variable.max()}")
+                variable_flat = variable.reshape(-1, 1)
+                variable = outputs_scaler.transform(variable_flat).reshape(variable.shape) # Scale each variable globally
+                print(f"minmax after scaling: {variable.min(), variable.max()}")
             variable = torch.tensor(variable)
+            print(f"variable shape before reshaping with {self.mesh_shape}: {variable.shape}")
             variable = variable.reshape(-1, *self.mesh_shape)
+            print(f"variable shape after reshaping: {variable.shape}")
             variables_out_stacked.append(variable)
-        variables_out_stacked = torch.stack(variables_out_stacked, dim=1)
+        variables_out_stacked = torch.stack(variables_out_stacked, dim=-1)
 
         if squeeze_last_dim:  # If the last dimension is 1, squeeze it
             if variables_out_stacked.shape[-1] == 1:  # (N, C, 1) -> (N, C)
                 variables_out_stacked = variables_out_stacked.squeeze(-1)
+
+        print("Final variables_out shape:", variables_out_stacked.shape)
         return variables_out_stacked.float()
 
     def _process_parameters(self, parameters, combine_parameters_with_cartesian_prod):
@@ -515,11 +528,21 @@ class Dataset(torch.utils.data.Dataset):
         variables_out = tuple(
             [original_dataset[var_name] for var_name in field_names]
         )
-        if add_variables:
-            variables_out = np.stack(variables_out, axis=1) if len(variables_out) > 0 else None
 
+        # if add_variables:
+        #     print("stacking variables_out")
+        #     variables_out = np.stack(variables_out, axis=2) if len(variables_out) > 0 else None
+        #     variables_out_tuple = (variables_out,)
+        # else:
+        #     variables_out_tuple = variables_out
+
+        variables_out_tuple = variables_out
+        for i, var_name in enumerate(field_names):
+            print(f"Loaded output variable '{var_name}' with shape {original_dataset[var_name].shape}")
+            print(f"Variable {i}-th in variables_out shape: {variables_out_tuple[i].shape}")
+            print(f"Variable {i}-th in variables_out_tuple shape: {variables_out_tuple[i].shape}")
         return cls(
-            variables_out=variables_out,
+            variables_out=variables_out_tuple,
             parameters=parameters,
             variables_in=variables_in,
             **kwargs,

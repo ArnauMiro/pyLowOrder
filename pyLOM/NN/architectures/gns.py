@@ -12,6 +12,7 @@ import datetime
 from pathlib import Path
 from typing import Any, Dict, Tuple, Union, Optional, Callable
 from dataclasses import asdict, replace
+import numpy as np
 
 import torch
 from torch import Tensor
@@ -108,6 +109,7 @@ class GNS(torch.nn.Module):
         self.seed = config.seed
         self.p_dropout = config.p_dropout
         self.activation = resolve_activation(config.activation)
+        self.debug = config.debug
 
         # --- Graph & provenance ---
         self.graph_spec = graph_spec or GraphSpec()
@@ -292,11 +294,15 @@ class GNS(torch.nn.Module):
         Returns:
             Tensor: Predicted values for all nodes in the graph.
         """
+        self._dprint(f"Initiating forward pass on device {self.device}...")
         x, edge_index, edge_attr = graph.x, graph.edge_index, graph.edge_attr
 
+        self._dprint(f" - x.shape: {x.shape}, edge_index.shape: {edge_index.shape}, edge_attr.shape: {edge_attr.shape}")
         h = self.activation(self.encoder(x))
+        self._dprint(f" - Encoded node features h.shape: {h.shape}")
         for conv in self.conv_layers_list:
             h = self.groupnorm(self.activation(conv(h, edge_index, edge_attr)))
+        self._dprint(f" - After message passing h.shape: {h.shape}. Running decoder...")
         y_hat = self.decoder(h)
         return y_hat
 
@@ -318,8 +324,10 @@ class GNS(torch.nn.Module):
         Returns:
             Tensor: Predictions of shape [B, N, F].
         """
+        self._dprint("Starting prediction...")
         self._validate_shapes(X)
 
+        self._dprint(f"Creating dataloaders (batch_size={batch_size}, node_batch_size={node_batch_size})...")
         input_cfg = TorchDataloaderConfig(
             batch_size=batch_size,
             shuffle=False,
@@ -337,7 +345,9 @@ class GNS(torch.nn.Module):
             subgraph_cfg, generator=None
         )
 
+        self._dprint("Running evaluation epoch...")
         self.eval()
+        torch.set_printoptions(precision=4, sci_mode=False, threshold=10)  # no listar toneladas de números
         with torch.no_grad():
             return self._run_epoch(
                 input_dataloader,
@@ -502,6 +512,7 @@ class GNS(torch.nn.Module):
                 - If `return_loss` is True: average loss (float) over all batches (used in training/eval).
                 - If `return_loss` is False: tensor of predictions with shape [B, N, F] (used in prediction mode).
         """
+        self._dprint(f"{'Training' if is_train else 'Evaluating/Predicting'} epoch on device {self.device}...")
         self.train() if is_train else self.eval()
         outputs = []
         total_loss = 0.0
@@ -511,7 +522,7 @@ class GNS(torch.nn.Module):
         last_output = None
         last_targets = None
         last_loss = None
-        num_batches = 0
+        num_losses = 0
 
         with context:
             for batch in input_dataloader:
@@ -523,25 +534,29 @@ class GNS(torch.nn.Module):
 
                 for subgraph in subgraph_loader:
                     if is_train:
+                        self._dprint("Training on new batch...")
                         loss_val, G, out, targets, loss = self._train_one_batch(
                             subgraph, inputs_batch, targets_batch, loss_fn
                         )
                     elif return_loss:
+                        self._dprint("Evaluating on new batch...")
                         loss_val, G, out, targets, loss = self._eval_one_batch(
                             subgraph, inputs_batch, targets_batch, loss_fn
                         )
                     else:
+                        self._dprint("Predicting on new batch...")
                         out = self._eval_one_batch(subgraph, inputs_batch, targets_batch)
                         outputs.append(out)
                         continue  # Skip loss-related code
 
                     if return_loss:
                         total_loss += loss_val
-                        num_batches += 1
                         last_graph = G
                         last_output = out
                         last_targets = targets
                         last_loss = loss
+
+                    num_losses += 1
 
             if is_train and self.scheduler is not None:
                 self.scheduler.step()
@@ -553,7 +568,7 @@ class GNS(torch.nn.Module):
                 "targets": last_targets,
                 "loss": last_loss,
             })
-            return total_loss / num_batches
+            return total_loss / num_losses
         else:
             return torch.cat(outputs, dim=0).reshape(-1, self.graph.num_nodes, self.model_config.output_dim)
 
@@ -583,6 +598,9 @@ class GNS(torch.nn.Module):
                 - Ground truth targets on the seed nodes.
                 - Loss tensor.
         """
+        if not hasattr(self, "_counter"):
+            self._counter = 0
+        self._counter += 1
         G = self.injector.replicate_inject(subgraph, inputs_batch, targets_batch)
 
         self.optimizer.zero_grad()
@@ -590,6 +608,8 @@ class GNS(torch.nn.Module):
         targets = G.y[G.seed_mask]
 
         assert output.shape == targets.shape, f"Output shape {output.shape} != target shape {targets.shape}"
+        if self._counter % 100 == 0:
+            self._dprint(f" - Training batch {self._counter}: output.shape={output.shape}, targets.shape={targets.shape}")
         loss = loss_fn(output, targets)
         loss.backward()
         self.optimizer.step()
@@ -618,10 +638,12 @@ class GNS(torch.nn.Module):
                 - If `loss_fn` is provided: a tuple (loss_value, graph, output, targets, loss_tensor) for evaluation.
                 - If `loss_fn` is None: predictions on seed nodes as a Tensor of shape [S, F], where S is number of seed nodes.
         """
+        self._dprint("Evaluating on new batch...")
         G = self.injector.replicate_inject(subgraph, inputs_batch, targets_batch)
         output = self.forward(G)[G.seed_mask]
 
         if loss_fn is not None:
+            self._dprint("Computing evaluation loss...")
             targets = G.y[G.seed_mask]
             assert output.shape == targets.shape, f"Output shape {output.shape} != target shape {targets.shape}"
             loss = loss_fn(output, targets)
@@ -946,6 +968,18 @@ class GNS(torch.nn.Module):
             "training": training_cfg
         }
 
+    def _dprint(self, *args, rank: int = -1, **kwargs) -> None:
+        """
+        Debug print with MPI support.
+        Only prints if debugging is enabled.
+        
+        Args:
+            *args: Positional arguments to forward to pprint.
+            rank (int): Target rank. Default -1 means all ranks.
+            **kwargs: Additional keyword arguments for pprint.
+        """
+        if self.debug:
+            pprint(rank, *args, **kwargs)
 
     def __repr__(self):
         return (
