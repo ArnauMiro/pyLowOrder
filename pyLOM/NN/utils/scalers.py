@@ -9,7 +9,7 @@
 # Built-in modules
 import os
 import json
-from typing import List, Union, Protocol
+from typing import List, Union, Optional,Protocol
 
 # Third-party libraries
 import numpy as np
@@ -19,25 +19,44 @@ import torch
 from ...utils.errors import raiseError
 
 
-
+ArrayLike = Union[np.ndarray, torch.Tensor]
+BlockList = List[ArrayLike]
+InputLike = Union[ArrayLike, BlockList]
 
 class ScalerProtocol(Protocol):
-    r'''
-    Abstract protocol for scalers. Must include:
+    r"""
+    Abstract protocol for scalers used in NN pipelines.
+
+    Requirements:
+        - is_fitted: Whether the scaler has been fitted.
         - fit: Fit the scaler to the data.
         - transform: Transform the data using the fitted scaler.
         - fit_transform: Fit the scaler to the data and transform it.
-    '''
-    def fit(self, X: np.ndarray, y=None) -> "ScalerProtocol":
-        r""" Fit the scaler to the data. """
+        - inverse_transform: Inverse the transformation.
+
+    All methods must accept either:
+        - A 2D array/tensor of shape (n_samples, n_features), or
+        - A list of 2D arrays/tensors, one block per "channel" (each of shape (n_samples, 1)).
+    """
+
+    @property
+    def is_fitted(self) -> bool:
         ...
 
-    def transform(self, X: np.ndarray) -> np.ndarray:
-        r""" Transform the data using the fitted scaler. """
+    def fit(self, X: InputLike, y: Optional[ArrayLike] = None) -> "ScalerProtocol":
+        r"""Fit the scaler to the data."""
         ...
 
-    def fit_transform(self, X: np.ndarray, y=None) -> np.ndarray:
-        r""" Adjust the scaler to the data and transform it. """
+    def transform(self, X: InputLike) -> InputLike:
+        r"""Transform the data using the fitted scaler."""
+        ...
+
+    def fit_transform(self, X: InputLike, y: Optional[ArrayLike] = None) -> InputLike:
+        r"""Fit the scaler to the data and transform it."""
+        ...
+
+    def inverse_transform(self, X: InputLike) -> InputLike:
+        r"""Inverse the transformation on the given data."""
         ...
 
 

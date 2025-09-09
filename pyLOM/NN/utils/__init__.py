@@ -1,27 +1,52 @@
-#!/usr/bin/env python
-#
-# pyLOM - Python Low Order Modeling.
-#
-# NN utility routines.
-#
-# Last rev:
+"""
+pyLOM.NN.utils
+----------------
+Public API for neural-network utilities in pyLOM.
 
-# Built-in modules
-import os
-import random
-from typing import Union, Dict, Tuple, List
+This module re-exports commonly used utilities for convenience.
+Keep imports lightweight; avoid importing heavy third-party libs here.
+"""
 
-# Third-party libraries
-import gc
-import numpy as np
-import torch
-from torch import Tensor
+from .experiment import (
+    evaluate_model,
+    compute_regression_metrics,
+    plot_true_vs_pred,
+)
 
-# Local modules
-from .. import DEVICE
-from .optuna_utils import set_seed, create_results_folder, select_device, count_trainable_params, cleanup_tensors, hyperparams_serializer, get_optimizing_value, sample_params
+from .optuna_utils import (
+    set_seed,
+    create_results_folder,
+    select_device,
+    count_trainable_params,
+    cleanup_tensors,
+    hyperparams_serializer,
+    get_optimizing_value,
+    sample_params,
+)
+
 from .scalers import MinMaxScaler
 from .schedulers import betaLinearScheduler
+from .stats import RegressionEvaluator
+from .callbacks import EarlyStopper
 
-from .stats         import RegressionEvaluator
-from .callbacks     import EarlyStopper
+
+__all__ = [
+    # experiment
+    "evaluate_model",
+    "compute_regression_metrics",
+    "plot_true_vs_pred",
+    # optuna_utils
+    "set_seed",
+    "create_results_folder",
+    "select_device",
+    "count_trainable_params",
+    "cleanup_tensors",
+    "hyperparams_serializer",
+    "get_optimizing_value",
+    "sample_params",
+    # scalers, schedulers, metrics, callbacks
+    "MinMaxScaler",
+    "betaLinearScheduler",
+    "RegressionEvaluator",
+    "EarlyStopper",
+]
