@@ -137,13 +137,16 @@ class Graph(Data):
 
     def _validate_edge_index(self):
         assert isinstance(self.edge_index, torch.Tensor), "edge_index must be a tensor"
+        assert self.edge_index.dtype in (torch.int32, torch.int64), "edge_index must be integer typed"
         assert self.edge_index.shape[0] == 2, "edge_index must have shape [2, num_edges]"
         assert self.edge_index.shape[1] == self.num_edges, "edge_index second dimension must match number of edges"
-        assert self.edge_index.max() < self.num_nodes, "edge_index contains invalid node indices"
-        assert not torch.isnan(self.edge_index).any(), "edge_index contains NaNs"
+        assert int(self.edge_index.max()) < int(self.num_nodes), "edge_index contains invalid node indices"
+        # torch.isnan() does not support integer tensors; use a bounds check instead
+        assert (self.edge_index >= 0).all(), "edge_index contains negative indices"
 
-    @cr('Graph.from_pyLOM_mesh')
+
     @classmethod
+    @cr('Graph.from_pyLOM_mesh')
     def from_pyLOM_mesh(cls,
                         mesh: Mesh,
                         device: Optional[Union[str, torch.device]] = None,
@@ -270,6 +273,53 @@ class Graph(Data):
             "edge_attr_dict": {k: torch.tensor(v['value']) for k, v in edgeAttrDict.items()},
         }
 
+    @staticmethod
+    def _canonical_edge(edge: Union[np.ndarray, list, tuple]) -> tuple[int, ...]:
+        """
+        Return an immutable, undirected, canonical representation of an edge (or face).
+        Converts any array-like into a *deduplicated* sorted tuple of ints, safe as a dict key.
+
+        Notes
+        -----
+        - Dedup is critical because some providers (e.g., wall_normals) may repeat node ids.
+        - For 2D surfaces, edges should reduce to exactly 2 unique nodes.
+        """
+        e = np.asarray(edge).astype(int).ravel()
+        u = np.unique(e)                # <-- remove duplicates
+        return tuple(sorted(u.tolist()))
+
+    @staticmethod
+    def _edge_key_from_local_or_global(
+        edge: Union[np.ndarray, list, tuple],
+        cell_nodes: Optional[np.ndarray] = None,
+    ) -> Optional[tuple[int, int]]:
+        """
+        Build a canonical, hashable, undirected key for an edge using *global* node ids.
+
+        If `cell_nodes` is provided and `edge` looks like local indices (i.e., max(edge) < len(cell_nodes)),
+        the function converts local -> global via `cell_nodes[edge]`. Then it deduplicates and sorts.
+
+        Returns:
+            (u, v) as an increasing tuple of two global node ids, or None if the edge is degenerate.
+        """
+        e = np.asarray(edge).ravel().astype(int)
+
+        # Heuristic: treat as local indices if they fit within the local array bounds
+        if cell_nodes is not None and e.size > 0 and e.max(initial=-1) < len(cell_nodes):
+            # map local -> global
+            g = np.asarray(cell_nodes, dtype=int)[e]
+        else:
+            # assume already global
+            g = e
+
+        # deduplicate and sort to remove orientation ambiguity and repeated ids
+        uniq = np.unique(g)
+        if uniq.size != 2:
+            return None  # degenerate (boundary collapse or malformed edge)
+        u, v = sorted(uniq.tolist())
+        return (u, v)
+
+
     @cr('Graph._compute_x_dict')
     @staticmethod
     def _compute_x_dict(mesh: Mesh) -> Dict[str, torch.Tensor]:
@@ -295,76 +345,131 @@ class Graph(Data):
     @cr('Graph._compute_edge_index_and_attr_dict')
     @staticmethod
     def _compute_edge_index_and_attr_dict(mesh: Mesh) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
-        r'''Computes the edge index and attributes of Graph as described in
-            Hines, D., & Bekemeyer, P. (2023). Graph neural networks for the prediction of aircraft surface pressure distributions.
-            Aerospace Science and Technology, 137, 108268.
-            https://doi.org/10.1016/j.ast.2023.108268
-        Args:
-            mesh (Mesh): A RANS mesh in pyLOM format.
-        Returns:
-            Tuple[torch.Tensor, Dict[str, torch.Tensor]]: Edge index and attributes of the graph.
-        '''
-        # Check whether the cells are 2D
+        r"""Compute dual-graph edge index and attributes from a pyLOM surface mesh.
+
+        Design:
+        - Decouple topology from geometry:
+        (1) Build global edge→cells incidence from connectivity.
+        (2) For each cell, compute wall normals (Cython) and record them per (cell_id, global_edge).
+        (3) For each interior global edge with {a,b}, emit directed dual edges a→b and b→a,
+            attaching the wall-normal as seen from the source cell.
+
+        Robustness:
+        - Enforce Cython dtypes/contiguity (intc/float64).
+        - Resolve local vs. global edge ambiguity by trying both interpretations.
+        """
+        import numpy as np
+        import torch
+        from collections import defaultdict
+
+        # --- guards
         if not np.all(np.isin(mesh.eltype, [2, 3, 4, 5])):
-            raiseError("The mesh must contain only 2D cells in order to compute the wall normals.")
-        
+            raiseError("The mesh must contain only 2D cells to compute wall normals.")
 
-        # Dictionary that maps each edge to the cells that share it
-        edge_dict = edge_to_cells(mesh.connectivity)
-        # List storing directed edges in the dual graph
-        edge_list = []
-        # List to store the wall normals.
-        wall_normals_list = []
+        def canon(u: int, v: int) -> tuple[int, int]:
+            return (u, v) if u < v else (v, u)
 
-        # Iterate over each cell
-        for i, cell_id in enumerate(range(mesh.ncells)):
-            cell_normal = mesh.normal[cell_id]
-            cell_nodes = mesh.connectivity[cell_id]
-            nodes_xyz = mesh.xyz[cell_nodes]  # Get the nodes of the cell
+        def resolve_global_edge(edge, cell_nodes, incidence) -> Optional[tuple[int, int]]:
+            """Return a canonical GLOBAL (u,v) for a raw edge that may be global or local.
+            Try global first; if not found, try local→global mapping.
+            """
+            e = np.asarray(edge, dtype=np.int64).ravel()
+            if e.size < 2:
+                return None
 
-            cell_edges, cell_wall_normals = wall_normals(cell_nodes, nodes_xyz, cell_normal)  # Compute the edge normals of the cell
-            
-            # Directed dual edges: tuples of the form (cell_id, neighbor_id)
-            dual_edges = [
-                (cell_id, (edge_dict[edge] - {cell_id}).pop()) if len(edge_dict[edge]) == 2 else None # If the edge is not a boundary edge, get the neighbor cell
-                for edge in cell_edges
-            ]
+            # A) assume global
+            a = canon(int(e[0]), int(e[1]))
+            if a in incidence:
+                return a
 
-            edge_list.extend(dual_edges)
-            wall_normals_list.extend(cell_wall_normals)
+            # B) assume local positions
+            cn = np.asarray(cell_nodes, dtype=np.int64).ravel()
+            if int(e.max(initial=-1)) < len(cn):
+                b = canon(int(cn[int(e[0])]), int(cn[int(e[1])]))
+                if b in incidence:
+                    return b
 
-            if i%1e5 == 0:
-                print(f"Processing mesh. {i} cells out of {mesh.ncells} processed.")
+            return None
 
-        # Remove the wall normals and dual edges at the boundary walls
-        edge_list, wall_normals_list = zip(*[
-                (x, y) for x, y in zip(edge_list, wall_normals_list) if x is not None
-            ])
+        # --- 1) topology: build incidence from connectivity (GLOBAL ids)
+        incidence: dict[tuple[int, int], set[int]] = defaultdict(set)
+        for cell_id, cnodes in enumerate(mesh.connectivity):
+            cn = np.asarray(cnodes, dtype=np.int64).ravel()
+            # polygon ring (assumes cyclic order)
+            for a, b in zip(cn, np.roll(cn, -1)):
+                incidence[canon(int(a), int(b))].add(cell_id)
 
-        edge_index_np = np.array(edge_list, dtype=np.int64).T  # Convert to numpy array and transpose
-        wall_normals_tensor = torch.tensor(wall_normals_list, dtype=torch.float32)  # Convert to torch tensor
+        n_interior = sum(1 for s in incidence.values() if len(s) == 2)
+        if n_interior == 0:
+            raiseError("No interior edges found. Mesh likely not welded (cells do not share node IDs).")
 
-        # Compute the rest of the edge_attributes
-        # Get the cell centers
+        # --- 2) geometry: per-cell wall normals (Cython expects intc/float64)
+        wall_normal_map: dict[tuple[int, tuple[int, int]], np.ndarray] = {}
+        for cell_id in range(mesh.ncells):
+            # dtypes/contiguity para Cython
+            cell_nodes_intc = np.ascontiguousarray(mesh.connectivity[cell_id], dtype=np.intc)     # GLOBAL ids pero intc
+            nodes_xyz_f64   = np.ascontiguousarray(mesh.xyz[cell_nodes_intc], dtype=np.float64)
+            cell_norm_f64   = np.asarray(mesh.normal[cell_id], dtype=np.float64)
+
+            # Cálculo geométrico
+            # Devuelve listas alineadas por índice: i ↔ arista (i, i+1)
+            _, cell_wall_normals = wall_normals(cell_nodes_intc, nodes_xyz_f64, cell_norm_f64)
+
+            # Usamos SIEMPRE el par global tomado de connectivity por posición (i, i+1)
+            cell_nodes_global = np.asarray(mesh.connectivity[cell_id], dtype=np.int64)
+            n = int(cell_nodes_global.size)
+            for i, wn in enumerate(cell_wall_normals):
+                u = int(cell_nodes_global[i])
+                v = int(cell_nodes_global[(i + 1) % n])
+                gk = (u, v) if u < v else (v, u)  # clave canónica global
+                # Solo guardamos si la arista existe en la incidencia (interior o borde)
+                if gk in incidence:
+                    wall_normal_map[(cell_id, gk)] = np.asarray(wn, dtype=float)
+
+
+        # --- 3) build directed dual edges + attach wall normals (source-view)
+        pairs: list[tuple[int, int]] = []
+        wn_list: list[np.ndarray] = []
+        for gk, cells in incidence.items():
+            if len(cells) != 2:
+                continue  # boundary
+            a, b = tuple(cells)
+            # a -> b
+            pairs.append((a, b))
+            wn_list.append(wall_normal_map.get((a, gk), np.zeros(3, dtype=float)))
+            # b -> a
+            pairs.append((b, a))
+            wn_list.append(wall_normal_map.get((b, gk), np.zeros(3, dtype=float)))
+
+        if not pairs:
+            raiseError("No dual edges were constructed. Check wall_normals and edge mapping.")
+
+        edge_index_np = np.asarray(pairs, dtype=np.int64).T  # [2, E]
+        wall_normals_tensor = torch.tensor(np.asarray(wn_list), dtype=torch.float32)
+
+        # --- edge geometric attributes (spherical direction i->j)
         xyzc = mesh.xyzc
-        # Get the edge coordinates
         c_i = xyzc[edge_index_np[0, :]]
         c_j = xyzc[edge_index_np[1, :]]
         d_ij = c_j - c_i
-        # Transform to spherical coordinates
-        r = np.linalg.norm(d_ij, axis=1)           # Distance ||x_i - x_j||  
-        theta = np.arccos(d_ij[:, 2] / r)          # Angle from z-axis
-        phi = np.arctan2(d_ij[:, 1], d_ij[:, 0])   # Azimuthal angle in xy-plane
 
-        r = torch.from_numpy(r).float()
-        theta = torch.from_numpy(theta).float()
-        phi = torch.from_numpy(phi).float()
-        
+        r = np.linalg.norm(d_ij, axis=1)
+        with np.errstate(invalid='ignore', divide='ignore'):
+            theta = np.arccos(np.clip(d_ij[:, 2] / np.where(r == 0.0, 1.0, r), -1.0, 1.0))
+        phi = np.arctan2(d_ij[:, 1], d_ij[:, 0])
+
         edge_index = torch.tensor(edge_index_np, dtype=torch.int64)
-        edge_attr_dict = {'edges_spherical': torch.stack((r, theta, phi), dim=1),
-                           'wall_normals': wall_normals_tensor}
-
+        edge_attr_dict = {
+            'edges_spherical': torch.stack((torch.from_numpy(r).float(),
+                                            torch.from_numpy(theta).float(),
+                                            torch.from_numpy(phi).float()), dim=1),
+            'wall_normals': wall_normals_tensor
+        }
         return edge_index, edge_attr_dict
+
+
+
+
 
     def node_attr(self):
         """

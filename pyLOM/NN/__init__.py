@@ -15,6 +15,7 @@ from ..utils.plots  import plotSnapshot, plotModalErrorBars, plotTimeSeries
 
 from .pipeline      import Pipeline
 from .dataset       import Dataset
+from .gns           import Graph
 from .utils         import RegressionEvaluator, EarlyStopper, MinMaxScaler, select_device, betaLinearScheduler, create_results_folder, set_seed
 from .optimizer     import OptunaOptimizer
 from .interpolator  import Interpolator
