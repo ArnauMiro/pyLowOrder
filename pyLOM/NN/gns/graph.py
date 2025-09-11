@@ -177,27 +177,40 @@ class Graph(Data):
         """
         Save the graph to disk. Supports .h5, .pt, .pkl.
 
-        Args:
-            fname (str): Output file path.
+        Contract
+        --------
+        - For HDF5, we pass *flat* dictionaries: {attr_name: np.ndarray}.
+        This avoids object dtypes and matches io.h5_save_graph_serial expectations.
         """
         fmt = os.path.splitext(fname)[1][1:].lower()
 
         if fmt == 'h5':
-            node_dict = self._to_pyLOM_format(self.x_dict)
-            edge_dict = self._to_pyLOM_format(self.edge_attr_dict)
+            # --- Prepare flat numpy dicts (no nested metadata) ---
+            x_np = {k: v.detach().cpu().numpy().astype(np.float32, copy=False)
+                    for k, v in self.x_dict.items()}
+            e_np = {k: v.detach().cpu().numpy().astype(np.float32, copy=False)
+                    for k, v in self.edge_attr_dict.items()}
+
+            # Early failure if any object dtype sneaks in
+            for name, arr in list(x_np.items()) + list(e_np.items()):
+                if np.asarray(arr).dtype == np.dtype('O'):
+                    raiseError(f"HDF5 requires numeric arrays; attribute '{name}' has object dtype.")
+
             io.h5_save_graph_serial(
                 fname,
-                num_nodes=self.num_nodes,
-                num_edges=self.num_edges,
-                edge_index=self.edge_index.cpu().numpy(),
-                xDict=node_dict,
-                edgeAttrDict=edge_dict,
+                num_nodes=int(self.num_nodes),
+                num_edges=int(self.num_edges),
+                edge_index=self.edge_index.detach().cpu().numpy().astype(np.int64, copy=False),
+                nodeFeatrDict=x_np,
+                edgeFeatrDict=e_np,
                 **kwargs
             )
+
         elif fmt in ['pt', 'pkl']:
             torch.save(self, fname)
         else:
             raiseError(f"Unsupported file format: {fmt}")
+
 
     @classmethod
     def load(cls, fname: str, **kwargs) -> "Graph":
@@ -213,8 +226,8 @@ class Graph(Data):
         fmt = os.path.splitext(fname)[1][1:].lower()
 
         if fmt == 'h5':
-            num_nodes, num_edges, edge_index, xDict, edgeAttrDict = io.h5_load_graph_serial(fname)
-            init_kwargs = cls._from_pyLOM_format(edge_index, xDict, edgeAttrDict)
+            num_nodes, num_edges, edge_index, nodeFeatrDict, edgeFeatrDict = io.h5_load_graph_serial(fname)
+            init_kwargs = cls._from_pyLOM_format(edge_index, nodeFeatrDict, edgeFeatrDict)
 
             # Set device
             device = kwargs.get('device', DEVICE)
@@ -258,20 +271,35 @@ class Graph(Data):
     @staticmethod
     def _from_pyLOM_format(
         edge_index: np.ndarray,
-        xDict: Dict[str, Dict[str, np.ndarray]],
-        edgeAttrDict: Dict[str, Dict[str, np.ndarray]]
+        nodeFeatrDict: Dict[str, Any],
+        edgeFeatrDict: Dict[str, Any]
     ) -> Dict:
         """
         Convert pyLOM HDF5 format back to constructor arguments.
 
-        Returns:
-            Dict: Keyword arguments for cls.__init__
+        Compatibility
+        -------------
+        - Accepts both *flat* dicts {name: ndarray} and *nested* dicts
+        {name: {'value': ndarray, 'ndim': int}} for backward compatibility.
         """
+        def to_tensor_dict(d: Dict[str, Any]) -> Dict[str, torch.Tensor]:
+            out: Dict[str, torch.Tensor] = {}
+            for k, v in d.items():
+                # Nested format: {'value': np.ndarray, ...}
+                if isinstance(v, dict) and 'value' in v:
+                    arr = v['value']
+                else:
+                    arr = v
+                t = torch.as_tensor(arr)
+                out[k] = t
+            return out
+
         return {
-            "edge_index": torch.tensor(edge_index, dtype=torch.long),
-            "x_dict": {k: torch.tensor(v['value']) for k, v in xDict.items()},
-            "edge_attr_dict": {k: torch.tensor(v['value']) for k, v in edgeAttrDict.items()},
+            "edge_index": torch.as_tensor(edge_index, dtype=torch.long),
+            "x_dict": to_tensor_dict(nodeFeatrDict),
+            "edge_attr_dict": to_tensor_dict(edgeFeatrDict),
         }
+
 
     @staticmethod
     def _canonical_edge(edge: Union[np.ndarray, list, tuple]) -> tuple[int, ...]:
