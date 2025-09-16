@@ -173,37 +173,71 @@ class Graph(Data):
 
         return graph
 
-    def save(self, fname: str, **kwargs):
+    def save(self, fname: str, mode: Optional[str] = None, **kwargs):
         """
-        Save the graph to disk. Supports .h5, .pt, .pkl.
+        Persist the graph to disk. Supports .h5, .pt, .pkl.
 
-        Contract
-        --------
-        - For HDF5, we pass *flat* dictionaries: {attr_name: np.ndarray}.
-        This avoids object dtypes and matches io.h5_save_graph_serial expectations.
+        HDF5 schema (strict, graph_flat_v2)
+        -----------------------------------
+        - /GRAPH attrs['schema'] = "graph_flat_v2"
+        - /GRAPH/numNodes : i4[1]
+        - /GRAPH/numEdges : i4[1]
+        - /GRAPH/edgeIndex : i4[2,E]
+        - /GRAPH/NODEFEATRS : group
+            * attrs['feature_names'] : S[]
+            * <feat_name> : float32[N, k_i]
+        - /GRAPH/EDGEFEATRS : group
+            * attrs['feature_names'] : S[]
+            * <feat_name> : float32[E, k_i]
+
+        Parameters
+        ----------
+        fname : str
+            Output file path.
+        mode : {'w','a'} or None
+            HDF5 file mode when saving to .h5. Use 'a' to preserve other
+            root groups and only replace /GRAPH. Ignored for .pt/.pkl. When
+            omitted, defaults to 'w' if ``fname`` does not exist and 'a'
+            otherwise (matching ``Dataset.save``).
+
+        Notes
+        -----
+        * Only numeric features are stored under NODEFEATRS/EDGEFEATRS.
+        Text metadata must be stored elsewhere (e.g., /GRAPH/METADATA).
+        * Only the /GRAPH group is created/overwritten; other root groups
+        (e.g., /DATASET) remain untouched.
         """
         fmt = os.path.splitext(fname)[1][1:].lower()
 
         if fmt == 'h5':
-            # --- Prepare flat numpy dicts (no nested metadata) ---
-            x_np = {k: v.detach().cpu().numpy().astype(np.float32, copy=False)
+            import numpy as _np
+            from ... import io
+
+            # Flat numeric dicts
+            x_np = {k: v.detach().cpu().numpy().astype(_np.float32, copy=False)
                     for k, v in self.x_dict.items()}
-            e_np = {k: v.detach().cpu().numpy().astype(np.float32, copy=False)
+            e_np = {k: v.detach().cpu().numpy().astype(_np.float32, copy=False)
                     for k, v in self.edge_attr_dict.items()}
 
-            # Early failure if any object dtype sneaks in
+            # Early type check (reject objects/strings)
             for name, arr in list(x_np.items()) + list(e_np.items()):
-                if np.asarray(arr).dtype == np.dtype('O'):
-                    raiseError(f"HDF5 requires numeric arrays; attribute '{name}' has object dtype.")
+                dt = _np.asarray(arr).dtype
+                if dt == _np.dtype('O') or dt.kind in ('U', 'S'):
+                    raiseError(f"HDF5 requires numeric arrays; feature '{name}' has dtype={dt}.")
+
+            if mode is None:
+                mode_kw = 'w' if not os.path.exists(fname) else 'a'
+            else:
+                mode_kw = mode
 
             io.h5_save_graph_serial(
-                fname,
+                fname=fname,
                 num_nodes=int(self.num_nodes),
                 num_edges=int(self.num_edges),
-                edge_index=self.edge_index.detach().cpu().numpy().astype(np.int64, copy=False),
+                edge_index=self.edge_index.detach().cpu().numpy().astype(_np.int32, copy=False),
                 nodeFeatrDict=x_np,
                 edgeFeatrDict=e_np,
-                **kwargs
+                mode=mode_kw,
             )
 
         elif fmt in ['pt', 'pkl']:
@@ -215,37 +249,66 @@ class Graph(Data):
     @classmethod
     def load(cls, fname: str, **kwargs) -> "Graph":
         """
-        Load a graph from disk. Supports .h5, .pt, .pkl.
+        Load a graph from disk (strict HDF5 loader: graph_flat_v2 only).
+
+        Only the /GRAPH group is inspected; other root groups are ignored.
 
         Args:
-            fname (str): File path to load from.
+            fname: Path to the HDF5/PKL/PT file.
+            device (optional kwarg): target device.
 
         Returns:
-            Graph: Loaded graph object.
+            Graph
         """
         fmt = os.path.splitext(fname)[1][1:].lower()
 
         if fmt == 'h5':
+            from ... import io
+            import numpy as _np
+
             num_nodes, num_edges, edge_index, nodeFeatrDict, edgeFeatrDict = io.h5_load_graph_serial(fname)
-            init_kwargs = cls._from_pyLOM_format(edge_index, nodeFeatrDict, edgeFeatrDict)
 
-            # Set device
+            def _to_tensor_dict_strict(d):
+                out = {}
+                for k, arr in d.items():
+                    a = _np.asarray(arr)
+                    if a.dtype == _np.dtype('O') or a.dtype.kind in ('U', 'S'):
+                        raiseError(f"Non-numeric feature '{k}' with dtype={a.dtype} found in HDF5.")
+                    # Enforce float32 on features
+                    if a.dtype.kind not in ('f', 'c'):
+                        a = a.astype(_np.float32, copy=False)
+                    else:
+                        a = a.astype(_np.float32, copy=False)
+                    out[k] = torch.as_tensor(a)
+                return out
+
+            x_dict = _to_tensor_dict_strict(nodeFeatrDict)
+            edge_attr_dict = _to_tensor_dict_strict(edgeFeatrDict)
+
             device = kwargs.get('device', DEVICE)
-            init_kwargs['device'] = torch.device(device) if isinstance(device, str) else device
+            graph = cls(
+                edge_index=torch.as_tensor(edge_index, dtype=torch.long, device='cpu'),
+                x_dict=x_dict,
+                edge_attr_dict=edge_attr_dict,
+                device=device,
+            )
 
-            # Construct graph
-            graph = cls(**init_kwargs)
+            # Structural checks
+            assert int(graph.num_nodes) == int(num_nodes), f"num_nodes mismatch ({graph.num_nodes} vs {num_nodes})"
+            assert int(graph.num_edges) == int(num_edges), f"num_edges mismatch ({graph.num_edges} vs {num_edges})"
 
-            # Validate structural consistency
-            assert graph.num_nodes == num_nodes, f"Mismatch: loaded num_nodes={graph.num_nodes}, file={num_nodes}"
-            assert graph.num_edges == num_edges, f"Mismatch: loaded num_edges={graph.num_edges}, file={num_edges}"
             return graph
 
         elif fmt in ['pt', 'pkl']:
-            return torch.load(fname)
+            g = torch.load(fname)
+            if not isinstance(g, cls):
+                raiseError("Loaded object is not a Graph instance.")
+            g.validate()
+            return g
 
         else:
             raiseError(f"Unsupported file format: {fmt}")
+
 
 
     @staticmethod

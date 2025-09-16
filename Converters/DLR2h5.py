@@ -14,6 +14,7 @@ from tqdm import tqdm
 
 import pyLOM
 from pyLOM.NN import Graph
+from pyLOM import io as pyIO
 
 
 def process_edge_vectors(edge_index: np.ndarray, xyz: np.ndarray) -> np.ndarray:
@@ -128,7 +129,19 @@ def main():
     for dset in datasets:
         path = os.path.join(datapath, f"{dset.upper()}_converter.h5")
         print(f"Appending graph to {path}")
-        g.save(path, mode='a')
+        # Persist only /GRAPH using strict flat schema, preserving other groups (mode='a')
+        x_np = {k: v.detach().cpu().numpy().astype(np.float32, copy=False) for k, v in g.x_dict.items()}
+        e_np = {k: v.detach().cpu().numpy().astype(np.float32, copy=False) for k, v in g.edge_attr_dict.items()}
+        edge_index_np = g.edge_index.detach().cpu().numpy().astype(np.int32, copy=False)
+        pyIO.h5_save_graph_serial(
+            fname=path,
+            num_nodes=int(g.num_nodes),
+            num_edges=int(g.num_edges),
+            edge_index=edge_index_np,
+            nodeFeatrDict=x_np,
+            edgeFeatrDict=e_np,
+            mode='a',
+        )
 
     # Select a snapshot from the dataset and plot the airfoil with CP distribution
     i_case = 0  # First case for demonstration 
