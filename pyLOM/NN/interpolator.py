@@ -7,6 +7,10 @@
 # Last rev: 22/05/2025
 
 import torch
+import numpy as np
+
+from scipy.optimize import minimize, LinearConstraint
+import scipy.sparse as sp
 
 from ..dataset          import Dataset as pyLOMDataset
 from ..utils.errors     import raiseError
@@ -19,8 +23,7 @@ class Interpolator():
     ):
         self.dataset = dataset
 
-    @staticmethod
-    def objective_mse(
+    def objective_mse_torch(
         field_mod: torch.Tensor, 
         field_ref: torch.Tensor, 
         **kwargs: dict,
@@ -38,8 +41,61 @@ class Interpolator():
         """
         mse_loss = torch.nn.MSELoss(reduction='sum')
         return mse_loss(field_mod, field_ref)
+    
+    def objective_mse_np(
+        field_mod: np.ndarray,
+        field_ref: np.ndarray,
+        **kwargs: dict,
+    )-> np.ndarray:
+        r"""
+        Objective function to minimize the difference between the modified and original field.
 
-    @staticmethod
+        Args:
+            field_mod (np.ndarray): Modified field.
+            field_ref (np.ndarray): Original field.
+            **kwargs: Additional arguments.
+
+        Returns:
+            np.ndarray: The sum of squared differences between the modified and original field.
+        """
+        return np.sum((field_mod - field_ref)**2)
+
+    def objective_mse_grad(
+        field_mod: np.ndarray,
+        field_ref: np.ndarray,
+        **kwargs: dict,
+    )-> np.ndarray:
+        r"""
+        Gradient of the objective function to minimize the difference between the modified and original field.
+        
+        Args:
+            field_mod (np.ndarray): Modified field.
+            field_ref (np.ndarray): Original field.
+            **kwargs: Additional arguments.
+            
+        Returns:
+            np.ndarray: The gradient of the sum of squared differences between the modified and original field.
+        """
+        return 2 * (field_mod - field_ref)
+    
+    def objective_mse_hess(
+        x,
+        v,
+        target=None,
+    )-> np.ndarray:
+        r"""
+        Hessian of the objective function to minimize the difference between the modified and original field.
+        
+        Args:
+            x (np.ndarray): Current point.
+            v (np.ndarray): Direction tensor.
+            target (np.ndarray): Target values.
+
+        Returns:
+            np.ndarray: The Hessian of the sum of squared differences between the modified and original field.
+        """
+        return 2 * v
+
     def multitarget_equality_penalty(
         field_mod: torch.Tensor,
         penalty_func: callable,
@@ -73,7 +129,6 @@ class Interpolator():
             penalty += diff * factor
         return penalty
 
-    @staticmethod
     def get_opt_params_for_case(
         dataset: pyLOMDataset,
         i: int,
@@ -114,11 +169,24 @@ class Interpolator():
             'penalty_func': kwargs.get('penalty_func'),
             'target_names': kwargs.get('target_names'),
         }
+    
+    def create_linear_constraint(
+        constr_jac: callable,
+        target_names: list,
+        ref_values: dict,
+        penalty_args: dict,
+        **kwargs,
+    ):
+        constrains_jac = constr_jac(**penalty_args)
+        A = sp.vstack([sp.csr_matrix(jac) for jac in constrains_jac], format='csr')
+        b = np.array([ref_values[name].item() for name in target_names], dtype=np.float64)
 
-    def adjust_field(
+        return LinearConstraint(A, lb=b, ub=b)
+
+    def adjust_field_first_order(
         self,
         fieldname: str,
-        obj_func: callable = objective_mse,
+        obj_func: callable = objective_mse_torch,
         get_opt_param_func: callable = get_opt_params_for_case,
         constr_func: callable = multitarget_equality_penalty,
         optimizer_class: torch.optim.Optimizer = torch.optim.Adam,
@@ -220,6 +288,47 @@ class Interpolator():
 
             field_mod[:, i] = colTensor.detach().numpy()
             field_losses.append(losses)
+
+        ndim = self.dataset.info(fieldname)['ndim']
+        self.dataset.add_field(varname=fieldname + 'Adjusted', ndim=ndim, var=field_mod)
+        return self.dataset, field_losses
+
+    def adjust_field_second_order(
+        self,
+        fieldname: str,
+        constr_jac: callable,
+        obj_func: callable = objective_mse_np,
+        obj_grad: callable = objective_mse_grad,
+        obj_hess: callable = objective_mse_hess,
+        get_opt_param_func: callable = get_opt_params_for_case,
+        create_linear_constraint: callable = create_linear_constraint,
+        **kwargs
+    )-> tuple[pyLOMDataset, list]:
+
+        field = self.dataset[fieldname]
+        field_mod = field.copy()
+        field_losses = []
+
+        for i, col in enumerate(field.T):
+            colTensor = np.array(col, dtype=np.float64)
+            colTensor0 = colTensor.copy()
+            opt_vars = get_opt_param_func(self.dataset, i, **kwargs)
+            lin_con = create_linear_constraint(constr_jac, **opt_vars)
+
+            res = minimize(
+                fun=obj_func,
+                x0=colTensor0,
+                args=(colTensor,),
+                method='trust-constr',
+                jac=obj_grad,
+                hessp=obj_hess,
+                constraints=[lin_con],
+                options={"verbose": 3, "sparse_jacobian": True},
+                tol=1e-9,
+            )
+
+            field_mod[:, i] = res.x
+            field_losses.append(res)
 
         ndim = self.dataset.info(fieldname)['ndim']
         self.dataset.add_field(varname=fieldname + 'Adjusted', ndim=ndim, var=field_mod)

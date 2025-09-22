@@ -22,7 +22,7 @@ from .stats         import RegressionEvaluator
 from .callbacks     import EarlyStopper
 
 from .interpolator import Interpolator
-from .aerodynamics import global_coeff
+from .aerodynamics import global_coeff, jacobians_pressure
 
 from .architectures.mlp               import MLP
 from .architectures.kan               import KAN, KAN_SIN, ChebyshevLayer, JacobiLayer, SineLayer
