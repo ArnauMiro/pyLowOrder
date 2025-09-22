@@ -1084,8 +1084,18 @@ def h5_save_graph_serial_legacy(fname, num_nodes, num_edges, edge_index,
             arr = np.asarray(edgeFeatrDict[name])
             edge_grp.create_dataset(name, data=arr)
 
-def h5_save_graph_serial(fname, num_nodes, num_edges, edge_index,
-                         nodeFeatrDict, edgeFeatrDict, mode='w'):
+def h5_save_graph_serial(
+    fname,
+    num_nodes,
+    num_edges,
+    edge_index,
+    node_features_dict=None,
+    edge_features_dict=None,
+    mode='w',
+    *,
+    nodeFeatrDict=None,
+    edgeFeatrDict=None,
+):
     """
     Save a Graph in HDF5 (serial mode), strict flat schema with ordering.
 
@@ -1104,6 +1114,19 @@ def h5_save_graph_serial(fname, num_nodes, num_edges, edge_index,
         <feat_name>            : float32[E, k_i]
     """
     import h5py, numpy as np
+
+    if node_features_dict is None:
+        node_features_dict = nodeFeatrDict
+    elif nodeFeatrDict is not None:
+        raiseError("Provide either 'node_features_dict' or legacy 'nodeFeatrDict', not both.")
+
+    if edge_features_dict is None:
+        edge_features_dict = edgeFeatrDict
+    elif edgeFeatrDict is not None:
+        raiseError("Provide either 'edge_features_dict' or legacy 'edgeFeatrDict', not both.")
+
+    if node_features_dict is None or edge_features_dict is None:
+        raiseError("Both node and edge feature dictionaries are required.")
 
     # Normalize edge_index shape and dtype -> int32 on disk
     edge_index = np.asarray(edge_index)
@@ -1125,8 +1148,8 @@ def h5_save_graph_serial(fname, num_nodes, num_edges, edge_index,
             out[name] = a
         return out
 
-    nodeFeatrDict = _prep_feats(nodeFeatrDict)
-    edgeFeatrDict = _prep_feats(edgeFeatrDict)
+    node_features_dict = _prep_feats(node_features_dict)
+    edge_features_dict = _prep_feats(edge_features_dict)
 
     with h5py.File(fname, mode) as f:
         f.attrs['Version'] = PYLOM_H5_VERSION
@@ -1142,19 +1165,19 @@ def h5_save_graph_serial(fname, num_nodes, num_edges, edge_index,
 
         # Node features
         node_grp = g.create_group('NODEFEATRS')
-        node_names = list(nodeFeatrDict.keys())
+        node_names = list(node_features_dict.keys())
         node_grp.attrs['feature_names'] = np.array(node_names, dtype='S')
 
         for name in node_names:
-            node_grp.create_dataset(name, data=nodeFeatrDict[name])
+            node_grp.create_dataset(name, data=node_features_dict[name])
 
         # Edge features
         edge_grp = g.create_group('EDGEFEATRS')
-        edge_names = list(edgeFeatrDict.keys())
+        edge_names = list(edge_features_dict.keys())
         edge_grp.attrs['feature_names'] = np.array(edge_names, dtype='S')
 
         for name in edge_names:
-            edge_grp.create_dataset(name, data=edgeFeatrDict[name])
+            edge_grp.create_dataset(name, data=edge_features_dict[name])
 
 
 
@@ -1218,8 +1241,8 @@ def h5_load_graph_serial(fname):
     num_nodes : int
     num_edges : int
     edge_index : np.ndarray, shape (2, E), dtype=int64
-    nodeFeatrDict : OrderedDict[str, np.ndarray]  # float32 arrays
-    edgeFeatrDict : OrderedDict[str, np.ndarray]  # float32 arrays
+    node_features_dict : OrderedDict[str, np.ndarray]  # float32 arrays
+    edge_features_dict : OrderedDict[str, np.ndarray]  # float32 arrays
     """
     import h5py, numpy as np
     from collections import OrderedDict
@@ -1258,7 +1281,7 @@ def h5_load_graph_serial(fname):
             raiseError("Missing feature_names attribute in /GRAPH/NODEFEATRS.")
 
         node_names = _decode_bytes_list(node_grp.attrs['feature_names'])
-        nodeFeatrDict = OrderedDict()
+        node_features_dict = OrderedDict()
         for name in node_names:
             arr = np.array(node_grp[name])
             # Enforce numeric and float32
@@ -1268,7 +1291,7 @@ def h5_load_graph_serial(fname):
                 arr = arr.astype('float32', copy=False)
             else:
                 arr = arr.astype('float32', copy=False)
-            nodeFeatrDict[name] = arr
+            node_features_dict[name] = arr
 
         # Edge features in stored order
         if 'EDGEFEATRS' not in g:
@@ -1278,7 +1301,7 @@ def h5_load_graph_serial(fname):
             raiseError("Missing feature_names attribute in /GRAPH/EDGEFEATRS.")
 
         edge_names = _decode_bytes_list(edge_grp.attrs['feature_names'])
-        edgeFeatrDict = OrderedDict()
+        edge_features_dict = OrderedDict()
         for name in edge_names:
             arr = np.array(edge_grp[name])
             if arr.dtype == np.dtype('O') or arr.dtype.kind in ('U', 'S'):
@@ -1287,9 +1310,9 @@ def h5_load_graph_serial(fname):
                 arr = arr.astype('float32', copy=False)
             else:
                 arr = arr.astype('float32', copy=False)
-            edgeFeatrDict[name] = arr
+            edge_features_dict[name] = arr
 
-    return num_nodes, num_edges, edge_index, nodeFeatrDict, edgeFeatrDict
+    return num_nodes, num_edges, edge_index, node_features_dict, edge_features_dict
 
 
 def h5_create_graph_datasets(group,varDict):

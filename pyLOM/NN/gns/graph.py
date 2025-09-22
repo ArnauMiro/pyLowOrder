@@ -33,9 +33,14 @@ class Graph(Data):
     def __init__(
         self,
         edge_index: torch.Tensor,
-        x_dict: Dict[str, torch.Tensor],
-        edge_attr_dict: Dict[str, torch.Tensor],
+        node_features_dict: Optional[Dict[str, torch.Tensor]] = None,
+        edge_features_dict: Optional[Dict[str, torch.Tensor]] = None,
+        *,
         device: Union[str, torch.device] = None,
+        x_dict: Optional[Dict[str, torch.Tensor]] = None,
+        edge_attr_dict: Optional[Dict[str, torch.Tensor]] = None,
+        nodeFeatrDict: Optional[Dict[str, torch.Tensor]] = None,
+        edgeFeatrDict: Optional[Dict[str, torch.Tensor]] = None,
         # **custom_attr_dict: Any # Not yet implemented.
     ):
         r'''
@@ -43,10 +48,32 @@ class Graph(Data):
 
         Args:
             edge_index (torch.Tensor): Edge connectivity in COO format [2, num_edges].
-            x_dict (Dict[str, torch.Tensor]): Dict of node features with shape [num_nodes, feature_dim] per entry.
-            edge_attr_dict (Dict[str, torch.Tensor]): Dict of edge features with shape [num_edges, feature_dim] per entry.
+            node_features_dict (Dict[str, torch.Tensor], optional): Preferred name for the node-feature dictionary. Shape per entry [num_nodes, feature_dim].
+            edge_features_dict (Dict[str, torch.Tensor], optional): Preferred name for the edge-feature dictionary. Shape per entry [num_edges, feature_dim].
             device (Union[str, torch.device], optional): Computation device. Defaults to global DEVICE.
+
+        Legacy aliases:
+            x_dict / nodeFeatrDict and edge_attr_dict / edgeFeatrDict remain supported but will raise if mixed with the new names.
         '''
+        node_features_dict = self._select_feature_dict(
+            {
+                "node_features_dict": node_features_dict,
+                "x_dict": x_dict,
+                "nodeFeatrDict": nodeFeatrDict,
+            },
+            required=True,
+            kind="node",
+        )
+        edge_features_dict = self._select_feature_dict(
+            {
+                "edge_features_dict": edge_features_dict,
+                "edge_attr_dict": edge_attr_dict,
+                "edgeFeatrDict": edgeFeatrDict,
+            },
+            required=True,
+            kind="edge",
+        )
+
         if device is None:
             device = torch.device(DEVICE)  # Default to global DEVICE constant
         elif isinstance(device, str):
@@ -58,20 +85,20 @@ class Graph(Data):
 
         # Ensure everything is on the correct device
         edge_index = edge_index.to(device)
-        x_dict = {k: v.to(device) for k, v in x_dict.items()}
-        edge_attr_dict = {k: v.to(device) for k, v in edge_attr_dict.items()}
+        node_features_dict = {k: v.to(device) for k, v in node_features_dict.items()}
+        edge_features_dict = {k: v.to(device) for k, v in edge_features_dict.items()}
         # custom_attr_dict = {k: (v.to(device) if isinstance(v, torch.Tensor) else v) for k, v in custom_attr_dict.items()} # Not yet implemented.
 
         # Concatenate node/edge attributes
-        x = torch.cat(list(x_dict.values()), dim=1) if x_dict else None
-        edge_attr = torch.cat(list(edge_attr_dict.values()), dim=1) if edge_attr_dict else None
+        x = torch.cat(list(node_features_dict.values()), dim=1) if node_features_dict else None
+        edge_attr = torch.cat(list(edge_features_dict.values()), dim=1) if edge_features_dict else None
 
         # Build kwargs for Data
         data_kwargs = {
             'edge_index': edge_index,
             'x': x,
             'edge_attr': edge_attr,
-            'num_nodes': next(iter(x_dict.values())).shape[0] if x_dict else None
+            'num_nodes': next(iter(node_features_dict.values())).shape[0] if node_features_dict else None
             # **custom_attr_dict,
         }
 
@@ -81,17 +108,43 @@ class Graph(Data):
         self.device = device
         
         # Register individual attributes for user-friendly access
-        for k, v in x_dict.items():
+        for k, v in node_features_dict.items():
             setattr(self, k, v)
-        for k, v in edge_attr_dict.items():
+        for k, v in edge_features_dict.items():
             setattr(self, k, v)
 
         # store raw attribute dicts (for i/o operations)
-        self.x_dict = x_dict
-        self.edge_attr_dict = edge_attr_dict
+        self.node_features_dict = node_features_dict
+        self.edge_features_dict = edge_features_dict
+        # Backward compatible aliases
+        self.x_dict = self.node_features_dict
+        self.edge_attr_dict = self.edge_features_dict
         # self.custom_attr_dict = custom_attr_dict # Not yet implemented.
 
         self.validate()
+
+    @staticmethod
+    def _select_feature_dict(
+        candidates: Dict[str, Optional[Dict[str, torch.Tensor]]],
+        *,
+        required: bool,
+        kind: str,
+    ) -> Dict[str, torch.Tensor]:
+        """Resolve the preferred feature dictionary, guarding against conflicting aliases."""
+        provided = {name: value for name, value in candidates.items() if value is not None}
+
+        if not provided:
+            if required:
+                raiseError(f"Missing {kind} feature dictionary. Expected one of {', '.join(candidates.keys())}.")
+            return {}
+
+        if len(provided) > 1:
+            raiseError(
+                f"Received multiple {kind} feature dictionaries ({', '.join(provided.keys())})."
+                " Please specify only one naming convention."
+            )
+
+        return next(iter(provided.values()))
 
     def validate(self) -> "Graph":
         """
@@ -102,38 +155,38 @@ class Graph(Data):
         Raises:
             AssertionError: If any inconsistency is found.
         """
-        self._validate_x()
-        self._validate_edge_attr()
+        self._validate_node_features()
+        self._validate_edge_features()
         self._validate_edge_index()
         return self
 
-    def _validate_x(self):
-        assert isinstance(self.x_dict, dict), "x_dict must be a dictionary"
-        assert len(set(self.x_dict)) == len(self.x_dict), "Duplicate keys in x_dict"
+    def _validate_node_features(self):
+        assert isinstance(self.node_features_dict, dict), "node_features_dict must be a dictionary"
+        assert len(set(self.node_features_dict)) == len(self.node_features_dict), "Duplicate keys in node_features_dict"
         
         # Check shapes
-        for k, v in self.x_dict.items():
+        for k, v in self.node_features_dict.items():
             assert isinstance(v, torch.Tensor), f"Node attribute '{k}' must be a tensor"
             assert v.shape[0] == self.num_nodes, f"Node attribute '{k}' has wrong number of nodes: expected {self.num_nodes}, got {v.shape[0]}"
             assert not torch.isnan(v).any(), f"Node attribute '{k}' contains NaNs"
 
         # Validate concatenation
-        x_cat = torch.cat(list(self.x_dict.values()), dim=-1)
-        assert self.x.shape == x_cat.shape, "x shape mismatch with concatenated x_dict"
-        assert torch.allclose(self.x, x_cat, atol=1e-6), "x do not match concatenated x_dict"
+        x_cat = torch.cat(list(self.node_features_dict.values()), dim=-1)
+        assert self.x.shape == x_cat.shape, "x shape mismatch with concatenated node_features_dict"
+        assert torch.allclose(self.x, x_cat, atol=1e-6), "x does not match concatenated node_features_dict"
 
-    def _validate_edge_attr(self):
-        assert isinstance(self.edge_attr_dict, dict), "edge_attr_dict must be a dictionary"
-        assert len(set(self.edge_attr_dict)) == len(self.edge_attr_dict), "Duplicate keys in edge_attr_dict"
+    def _validate_edge_features(self):
+        assert isinstance(self.edge_features_dict, dict), "edge_features_dict must be a dictionary"
+        assert len(set(self.edge_features_dict)) == len(self.edge_features_dict), "Duplicate keys in edge_features_dict"
         
-        for k, v in self.edge_attr_dict.items():
+        for k, v in self.edge_features_dict.items():
             assert isinstance(v, torch.Tensor), f"Edge attribute '{k}' must be a tensor"
             assert v.shape[0] == self.num_edges, f"Edge attribute '{k}' has wrong number of edges: expected {self.num_edges}, got {v.shape[0]}"
             assert not torch.isnan(v).any(), f"Edge attribute '{k}' contains NaNs"
 
-        edge_attr_cat = torch.cat(list(self.edge_attr_dict.values()), dim=-1)
-        assert self.edge_attr.shape == edge_attr_cat.shape, "edge_attr shape mismatch with concatenated edge_attr_dict"
-        assert torch.allclose(self.edge_attr, edge_attr_cat, atol=1e-6), "edge_attr do not match concatenated edge_attr_dict"
+        edge_attr_cat = torch.cat(list(self.edge_features_dict.values()), dim=-1)
+        assert self.edge_attr.shape == edge_attr_cat.shape, "edge_attr shape mismatch with concatenated edge_features_dict"
+        assert torch.allclose(self.edge_attr, edge_attr_cat, atol=1e-6), "edge_attr does not match concatenated edge_features_dict"
 
     def _validate_edge_index(self):
         assert isinstance(self.edge_index, torch.Tensor), "edge_index must be a tensor"
@@ -160,13 +213,13 @@ class Graph(Data):
         Returns:
             Graph: A Graph object with the computed node attributes and edge index/attributes.
         """
-        x_dict = cls._compute_x_dict(mesh)  # Get the node attributes
-        edge_index, edge_attr_dict = cls._compute_edge_index_and_attr_dict(mesh)  # Get the edge attributes
+        node_features_dict = cls._compute_node_features_dict(mesh)  # Get the node attributes
+        edge_index, edge_features_dict = cls._compute_edge_index_and_features_dict(mesh)  # Get the edge attributes
 
         graph = cls(
             edge_index=edge_index,
-            x_dict = x_dict,
-            edge_attr_dict=edge_attr_dict,
+            node_features_dict=node_features_dict,
+            edge_features_dict=edge_features_dict,
             device=device,
             # **custom_attr_dict # Not yet implemented.
             )
@@ -215,9 +268,9 @@ class Graph(Data):
 
             # Flat numeric dicts
             x_np = {k: v.detach().cpu().numpy().astype(_np.float32, copy=False)
-                    for k, v in self.x_dict.items()}
+                    for k, v in self.node_features_dict.items()}
             e_np = {k: v.detach().cpu().numpy().astype(_np.float32, copy=False)
-                    for k, v in self.edge_attr_dict.items()}
+                    for k, v in self.edge_features_dict.items()}
 
             # Early type check (reject objects/strings)
             for name, arr in list(x_np.items()) + list(e_np.items()):
@@ -235,8 +288,8 @@ class Graph(Data):
                 num_nodes=int(self.num_nodes),
                 num_edges=int(self.num_edges),
                 edge_index=self.edge_index.detach().cpu().numpy().astype(_np.int32, copy=False),
-                nodeFeatrDict=x_np,
-                edgeFeatrDict=e_np,
+                node_features_dict=x_np,
+                edge_features_dict=e_np,
                 mode=mode_kw,
             )
 
@@ -266,7 +319,7 @@ class Graph(Data):
             from ... import io
             import numpy as _np
 
-            num_nodes, num_edges, edge_index, nodeFeatrDict, edgeFeatrDict = io.h5_load_graph_serial(fname)
+            num_nodes, num_edges, edge_index, node_features_np, edge_features_np = io.h5_load_graph_serial(fname)
 
             def _to_tensor_dict_strict(d):
                 out = {}
@@ -282,14 +335,14 @@ class Graph(Data):
                     out[k] = torch.as_tensor(a)
                 return out
 
-            x_dict = _to_tensor_dict_strict(nodeFeatrDict)
-            edge_attr_dict = _to_tensor_dict_strict(edgeFeatrDict)
+            node_features_dict = _to_tensor_dict_strict(node_features_np)
+            edge_features_dict = _to_tensor_dict_strict(edge_features_np)
 
             device = kwargs.get('device', DEVICE)
             graph = cls(
                 edge_index=torch.as_tensor(edge_index, dtype=torch.long, device='cpu'),
-                x_dict=x_dict,
-                edge_attr_dict=edge_attr_dict,
+                node_features_dict=node_features_dict,
+                edge_features_dict=edge_features_dict,
                 device=device,
             )
 
@@ -312,12 +365,12 @@ class Graph(Data):
 
 
     @staticmethod
-    def _to_pyLOM_format(attr_dict: Dict[str, torch.Tensor]) -> Dict[str, Dict[str, Union[int, np.ndarray]]]:
+    def _to_pyLOM_format(features_dict: Dict[str, torch.Tensor]) -> Dict[str, Dict[str, Union[int, np.ndarray]]]:
         """
-        Convert tensor dictionary to pyLOM HDF5-compatible format.
+        Convert a feature dictionary to the pyLOM HDF5-compatible format.
 
         Args:
-            attr_dict (Dict[str, torch.Tensor]): Dictionary of tensor attributes.
+            features_dict (Dict[str, torch.Tensor]): Dictionary of named feature tensors.
 
         Returns:
             Dict[str, Dict]: pyLOM format dictionary.
@@ -327,15 +380,15 @@ class Graph(Data):
                 'ndim': value.shape[1] if value.ndim > 1 else 1,
                 'value': value.cpu().numpy()
             }
-            for key, value in attr_dict.items()
+            for key, value in features_dict.items()
         }
 
 
     @staticmethod
     def _from_pyLOM_format(
         edge_index: np.ndarray,
-        nodeFeatrDict: Dict[str, Any],
-        edgeFeatrDict: Dict[str, Any]
+        node_features: Dict[str, Any],
+        edge_features: Dict[str, Any]
     ) -> Dict:
         """
         Convert pyLOM HDF5 format back to constructor arguments.
@@ -357,10 +410,16 @@ class Graph(Data):
                 out[k] = t
             return out
 
+        node_features_dict = to_tensor_dict(node_features)
+        edge_features_dict = to_tensor_dict(edge_features)
+
         return {
             "edge_index": torch.as_tensor(edge_index, dtype=torch.long),
-            "x_dict": to_tensor_dict(nodeFeatrDict),
-            "edge_attr_dict": to_tensor_dict(edgeFeatrDict),
+            "node_features_dict": node_features_dict,
+            "edge_features_dict": edge_features_dict,
+            # Backward compatible aliases (will be deprecated in future release)
+            "x_dict": node_features_dict,
+            "edge_attr_dict": edge_features_dict,
         }
 
 
@@ -411,9 +470,9 @@ class Graph(Data):
         return (u, v)
 
 
-    @cr('Graph._compute_x_dict')
+    @cr('Graph._compute_node_features_dict')
     @staticmethod
-    def _compute_x_dict(mesh: Mesh) -> Dict[str, torch.Tensor]:
+    def _compute_node_features_dict(mesh: Mesh) -> Dict[str, torch.Tensor]:
         r'''Computes the node attributes of Graph as described in
             Hines, D., & Bekemeyer, P. (2023). Graph neural networks for the prediction of aircraft surface pressure distributions.
             Aerospace Science and Technology, 137, 108268.
@@ -429,13 +488,16 @@ class Graph(Data):
         # Get the surface normals
         surface_normals = mesh.normal
         
-        x_dict = {'xyz': torch.tensor(xyzc, dtype=torch.float32), 'normals': torch.tensor(surface_normals, dtype=torch.float32)}
+        node_features_dict = {
+            'xyz': torch.tensor(xyzc, dtype=torch.float32),
+            'normals': torch.tensor(surface_normals, dtype=torch.float32)
+        }
 
-        return x_dict
+        return node_features_dict
 
-    @cr('Graph._compute_edge_index_and_attr_dict')
+    @cr('Graph._compute_edge_index_and_features_dict')
     @staticmethod
-    def _compute_edge_index_and_attr_dict(mesh: Mesh) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+    def _compute_edge_index_and_features_dict(mesh: Mesh) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
         r"""Compute dual-graph edge index and attributes from a pyLOM surface mesh.
 
         Design:
@@ -550,13 +612,13 @@ class Graph(Data):
         phi = np.arctan2(d_ij[:, 1], d_ij[:, 0])
 
         edge_index = torch.tensor(edge_index_np, dtype=torch.int64)
-        edge_attr_dict = {
+        edge_features_dict = {
             'edges_spherical': torch.stack((torch.from_numpy(r).float(),
                                             torch.from_numpy(theta).float(),
                                             torch.from_numpy(phi).float()), dim=1),
             'wall_normals': wall_normals_tensor
         }
-        return edge_index, edge_attr_dict
+        return edge_index, edge_features_dict
 
 
 
@@ -564,24 +626,24 @@ class Graph(Data):
 
     def node_attr(self):
         """
-        [DEPRECATED] Use `x_dict` instead.
+        [DEPRECATED] Use `node_features_dict` instead.
 
         This method is retained for backward compatibility. It returns the dictionary of node attributes,
         where each entry corresponds to a named tensor of shape [num_nodes, feature_dim].
 
         Note:
-            This method will be removed in a future version. Please use `graph.x_dict` instead.
+            This method will be removed in a future version. Please use `graph.node_features_dict` instead.
 
         Example:
             >>> g.node_attr()  # Deprecated
-            >>> g.x_dict['xyz']  # Preferred
+            >>> g.node_features_dict['xyz']  # Preferred
         """
         warnings.warn(
-            "`node_attr()` is deprecated. Use `graph.x_dict` instead.",
+            "`node_attr()` is deprecated. Use `graph.node_features_dict` instead.",
             DeprecationWarning,
             stacklevel=2
         )
-        return self.x_dict
+        return self.node_features_dict
 
 
     @cr('Graph.filter')
@@ -629,8 +691,8 @@ class Graph(Data):
         idx_map[node_mask] = torch.arange(node_mask.sum())
 
         # Filter node features
-        new_x_dict = {
-            k: v[node_mask] for k, v in self.x_dict.items()
+        new_node_features_dict = {
+            k: v[node_mask] for k, v in self.node_features_dict.items()
         }
 
         # Identify edges where both source and target nodes are kept
@@ -639,14 +701,14 @@ class Graph(Data):
         new_edge_index = idx_map[self.edge_index[:, edge_mask]]
 
         # Filter edge features
-        new_edge_attr_dict = {
-            k: v[edge_mask] for k, v in self.edge_attr_dict.items()
+        new_edge_features_dict = {
+            k: v[edge_mask] for k, v in self.edge_features_dict.items()
         }
 
         return Graph(
             edge_index=new_edge_index,
-            x_dict=new_x_dict,
-            edge_attr_dict=new_edge_attr_dict,
+            node_features_dict=new_node_features_dict,
+            edge_features_dict=new_edge_features_dict,
             device=self.edge_index.device
         )
 
