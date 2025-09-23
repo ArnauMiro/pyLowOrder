@@ -113,9 +113,20 @@ class MinMaxScaler:
         # Build list of (take_fn, block) safely for np/torch
         def take_cols(a, cols):
             if is_tensor:
-                return a[:, cols] if isinstance(cols, list) else a[:, cols]
+                if isinstance(cols, slice):
+                    block = a[:, cols]
+                elif isinstance(cols, torch.Tensor):
+                    block = a.index_select(dim=1, index=cols.to(dtype=torch.long, device=a.device))
+                elif isinstance(cols, (list, tuple)):
+                    idx = torch.tensor(cols, dtype=torch.long, device=a.device)
+                    block = a.index_select(dim=1, index=idx)
+                else:
+                    idx = torch.tensor([cols], dtype=torch.long, device=a.device)
+                    block = a.index_select(dim=1, index=idx)
+                return block if block.ndim > 1 else block.unsqueeze(1)
             else:
-                return a[:, cols]
+                block = a[:, cols]
+                return block if block.ndim > 1 else block.reshape(-1, 1)
 
         nfeat = X2d.shape[1]
         if self.blocks is None:
@@ -124,16 +135,7 @@ class MinMaxScaler:
         else:
             norm_blocks = []
             for b in self.blocks:
-                if isinstance(b, slice):
-                    norm_blocks.append(take_cols(X2d, b))
-                else:
-                    # list/tuple of indices
-                    # torch advanced indexing needs a tensor of column indices
-                    if is_tensor and not isinstance(b, torch.Tensor):
-                        cols = torch.tensor(b, dtype=torch.long, device=X2d.device)
-                        norm_blocks.append(X2d.index_select(dim=1, index=cols))
-                    else:
-                        norm_blocks.append(take_cols(X2d, b))
+                norm_blocks.append(take_cols(X2d, b))
             blocks = norm_blocks
         return blocks
 

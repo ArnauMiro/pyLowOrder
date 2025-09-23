@@ -7,6 +7,7 @@
 # Last rev:
 
 # Built-in modules
+import copy
 from itertools import product, accumulate
 from typing import List, Optional, Tuple, Union, Callable, Sequence, cast
 
@@ -729,11 +730,89 @@ class Dataset(torch.utils.data.Dataset):
         was_numpy = isinstance(x, np.ndarray)
         X = torch.as_tensor(x)
         if X.ndim != 2:
+            print(f"Warning: expected 2D inputs matrix, got shape {X.shape}, reshaping to 2D")
             X = X.reshape(-1, X.shape[-1])
 
+        print(f"x.shape: {x.shape}")
         X_inv = sc.inverse_transform(X)               # protocol guarantees this
+        print(f"X_inv type: {type(X_inv)}, length: {len(X_inv)}")
         X_inv_t = torch.as_tensor(X_inv, dtype=X.dtype)
+        print(f"X_inv_t shape: {X_inv_t.shape}")
         return X_inv_t.detach().cpu().numpy() if was_numpy else X_inv_t
+
+    def filter_by_spatial_mask(self, mask, *, inplace: bool = False, keep_scalers: bool = False) -> "Dataset":
+        """Return a dataset filtered along the spatial/mesh dimension.
+
+        The mask must flag the mesh cells/points to keep. When ``variables_in`` is present,
+        the mask length must match the number of input coordinates. Otherwise it must match
+        ``np.prod(mesh_shape)``.
+
+        Args:
+            mask: Boolean-like 1D array/tensor selecting the spatial positions to keep.
+            inplace: If True, modify the current dataset and return it. Defaults to False.
+            keep_scalers: If False, drop attached scalers in the filtered dataset so they can
+                be re-fitted on the reduced data. Defaults to False.
+        """
+        target = self if inplace else copy.deepcopy(self)
+
+        mask_tensor = torch.as_tensor(mask, dtype=torch.bool)
+        mask_flat = mask_tensor.reshape(-1)
+        if mask_flat.numel() == 0 or mask_flat.sum() == 0:
+            raiseError("Spatial mask is empty; nothing to keep.")
+
+        spatial_size = int(np.prod(target.mesh_shape))
+
+        def _filter_outputs(size_to_match: int):
+            mask_for_out = mask_flat.to(target.variables_out.device)
+            rest_shape = target.variables_out.shape[1 + len(target.mesh_shape) :]
+            reshaped = target.variables_out.reshape(
+                target.variables_out.shape[0], size_to_match, *rest_shape
+            )
+            filtered = reshaped[:, mask_for_out, ...]
+            kept = int(mask_flat.sum().item())
+            target.variables_out = filtered.reshape(
+                target.variables_out.shape[0], kept, *rest_shape
+            )
+            target.mesh_shape = (kept,) if len(target.mesh_shape) == 1 else target.mesh_shape
+
+        if target.variables_in is None:
+            if mask_flat.numel() != spatial_size:
+                raiseError(
+                    f"Mask length {mask_flat.numel()} does not match mesh size {spatial_size}."
+                )
+            _filter_outputs(spatial_size)
+        else:
+            n_points = target.variables_in.shape[0]
+
+            if mask_flat.numel() == spatial_size and spatial_size != n_points:
+                _filter_outputs(spatial_size)
+            elif mask_flat.numel() == n_points:
+                mask_for_in = mask_flat.to(target.variables_in.device)
+                target.variables_in = target.variables_in[mask_for_in]
+                if spatial_size == n_points:
+                    target.mesh_shape = (int(mask_flat.sum().item()),)
+
+                total_samples = target.variables_out.shape[0]
+                rest_shape = target.variables_out.shape[1:]
+                if total_samples % n_points != 0:
+                    raiseError(
+                        "Cannot reshape outputs with the provided mask; dataset length is not a multiple of the number of input points."
+                    )
+                blocks = total_samples // n_points
+                mask_for_out = mask_flat.to(target.variables_out.device)
+                reshaped = target.variables_out.reshape(blocks, n_points, *rest_shape)
+                filtered = reshaped[:, mask_for_out, ...]
+                target.variables_out = filtered.reshape(-1, *rest_shape)
+            else:
+                raiseError(
+                    f"Mask length {mask_flat.numel()} does not match mesh size {spatial_size} or number of input points {n_points}."
+                )
+
+        if not keep_scalers:
+            target.inputs_scaler = None
+            target.outputs_scaler = None
+
+        return target
 
     def inverse_scale_outputs(
         self,
@@ -780,5 +859,4 @@ class Dataset(torch.utils.data.Dataset):
             self.inputs_scaler.save(f"{prefix}_inputs_scaler.json")
         if self.outputs_scaler is not None and hasattr(self.outputs_scaler, "save") and self.outputs_scaler.is_fitted:
             self.outputs_scaler.save(f"{prefix}_outputs_scaler.json")
-
 
