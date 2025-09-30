@@ -993,7 +993,7 @@ class GNS(torch.nn.Module):
             **kwargs: Additional keyword arguments for pprint.
         """
         if self.debug:
-            pprint(rank, *args, **kwargs)
+            pprint(rank, *args, **kwargs, flush=True)
 
     def __repr__(self):
         return (
