@@ -26,6 +26,36 @@ ArrayLike = Union[np.ndarray, "torch.Tensor"]
 
 
 # ─────────────────────────────────────────────────────
+# UTILITIES: ARRAY HANDLING
+# ─────────────────────────────────────────────────────
+
+def to_numpy(value: ArrayLike | Sequence[Any], *, dtype: np.dtype | type | None = None,
+             copy: bool = False) -> np.ndarray:
+    """Convert tensors or array-likes to a NumPy array with optional dtype/copy.
+
+    Parameters
+    ----------
+    value : array-like or torch.Tensor
+        Input object to convert.
+    dtype : numpy dtype or type, optional
+        If provided, cast the resulting array to this dtype.
+    copy : bool, default False
+        Force copying the data. When ``False`` NumPy may reuse the underlying
+        memory if possible.
+    """
+
+    array = value.detach().cpu().numpy() if isinstance(value, torch.Tensor) else np.asarray(value)
+
+    if dtype is not None:
+        array = array.astype(dtype, copy=False)
+
+    if copy:
+        array = np.array(array, dtype=array.dtype, copy=True)
+
+    return array
+
+
+# ─────────────────────────────────────────────────────
 # UTILITIES: PLOTTING AND SAVING
 # ─────────────────────────────────────────────────────
 
@@ -222,9 +252,7 @@ def compute_regression_metrics(
         l2_error, and absolute error percentiles 'ae_p{p}'.
     """
     def _to_numpy_flat(a: ArrayLike) -> np.ndarray:
-        if isinstance(a, torch.Tensor):
-            a = a.detach().cpu().numpy()
-        return np.asarray(a, dtype=float).reshape(-1)
+        return np.asarray(to_numpy(a), dtype=float).reshape(-1)
 
     y_pred = _to_numpy_flat(preds)
     y_true = _to_numpy_flat(targets)
@@ -299,9 +327,7 @@ def evaluate_model(model, training_params, dataset, evaluators) -> Tuple[Dict[st
     """
     def _as_column(arr: ArrayLike) -> np.ndarray:
         # Convert to numpy and ensure shape (N*, 1)
-        if isinstance(arr, torch.Tensor):
-            arr = arr.detach().cpu().numpy()
-        return np.asarray(arr).reshape(-1, 1)
+        return to_numpy(arr).reshape(-1, 1)
 
     # --- Predict ---
     print(f"Evaluating model: {model.__class__.__name__}")
@@ -392,9 +418,7 @@ def plot_true_vs_pred(
         The metrics dict (computed or the one provided), extended with 'slope' and 'intercept'.
     """
     def _to_numpy_1d(a: ArrayLike) -> np.ndarray:
-        if isinstance(a, torch.Tensor):
-            a = a.detach().cpu().numpy()
-        return np.ravel(np.asarray(a))
+        return np.ravel(to_numpy(a))
 
     y_true = _to_numpy_1d(y_true_col)
     y_pred = _to_numpy_1d(y_pred_col)
@@ -563,15 +587,10 @@ def plot_train_test_loss(
 
     def _to_1d_float_array(x: Union[Sequence[Any], np.ndarray, torch.Tensor]) -> np.ndarray:
         """Convert various inputs to a 1D float numpy array."""
-        if isinstance(x, torch.Tensor):
-            return x.detach().cpu().numpy().astype(float).reshape(-1)
-        if isinstance(x, np.ndarray):
-            return x.astype(float).reshape(-1)
-        if isinstance(x, (list, tuple)):
-            if len(x) > 0 and isinstance(x[0], torch.Tensor):
-                return np.asarray([float(t.detach().cpu().item()) for t in x], dtype=float).reshape(-1)
-            return np.asarray(x, dtype=float).reshape(-1)
-        raise TypeError(f"Unsupported loss series type: {type(x)}")
+        arr = to_numpy(x)
+        if isinstance(x, (list, tuple)) and len(x) > 0 and isinstance(x[0], torch.Tensor):
+            arr = np.asarray([float(t.detach().cpu().item()) for t in x], dtype=float)
+        return np.asarray(arr, dtype=float).reshape(-1)
 
     def _smooth(y: np.ndarray) -> np.ndarray:
         """Apply optional smoothing to a 1D array for plotting only."""
