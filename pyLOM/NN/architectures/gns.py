@@ -379,12 +379,16 @@ class GNS(torch.nn.Module):
         if eval_dataset is not None:
             self._validate_shapes(eval_dataset)
 
+        self._dprint(f"Validated datasets. Train size: {len(train_dataset)}" +
+                     (f", Eval size: {len(eval_dataset)}" if eval_dataset is not None else ""))
+
         # --- Resolve runtime components from DTOs ---
         loss_fn = resolve_loss(config.loss_fn)
         optimizer_cls = resolve_optimizer(config.optimizer)
         scheduler_cls = resolve_scheduler(config.scheduler)  # may be None
 
         # --- Train loaders ---
+        self._dprint(f"Creating training dataloaders with parameters: {asdict(config.dataloader)} and {asdict(config.subgraph_loader)}")
         train_input_dl = self._helpers.init_dataloader(
             train_dataset,
             config.dataloader,
@@ -512,10 +516,14 @@ class GNS(torch.nn.Module):
                 - If `return_loss` is False: tensor of predictions with shape [B, N, F] (used in prediction mode).
         """
         self._dprint(f"{'Training' if is_train else 'Evaluating/Predicting'} epoch on device {self.device}...")
+        self._dprint(f" - Input dataloader len/batch size: {input_dataloader.__len__()}/{input_dataloader.batch_size}")
         self.train() if is_train else self.eval()
+        self._dprint(f"Set model to {'train' if is_train else 'eval'} mode.")
         outputs = []
         total_loss = 0.0
+        self._dprint("Initializing context manager...")
         context = torch.enable_grad() if is_train else torch.no_grad()
+        self._dprint("Initialized context manager.")
 
         last_graph = None
         last_output = None
@@ -523,14 +531,18 @@ class GNS(torch.nn.Module):
         last_loss = None
         num_losses = 0
 
+        self._dprint("Starting main loop over input batches...")
         with context:
+            self._dprint("Entering input dataloader loop...")
             for batch in input_dataloader:
+                self._dprint("Processing new input batch...")
                 inputs_batch = batch[0].to(self.device)
                 try:
                     targets_batch = batch[1].to(self.device)
                 except IndexError:
                     targets_batch = None
-
+                self._dprint(f"Processing new input batch with inputs.shape={inputs_batch.shape}" +
+                             (f", targets.shape={targets_batch.shape}" if targets_batch is not None else ", no targets"))
                 for subgraph in subgraph_loader:
                     if is_train:
                         self._dprint("Training on new batch...")
