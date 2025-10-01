@@ -307,17 +307,17 @@ class GNS(torch.nn.Module):
         Returns:
             Tensor: Predicted values for all nodes in the graph.
         """
-        self._dprint(f"Initiating forward pass on device {self.device}...")
+        self._debug_print(f"Initiating forward pass on device {self.device}...")
         x, edge_index, edge_attr = graph.x, graph.edge_index, graph.edge_attr
 
-        self._dprint(f" - x.shape: {x.shape}, edge_index.shape: {edge_index.shape}, edge_attr.shape: {edge_attr.shape}")
+        self._debug_print(f" - x.shape: {x.shape}, edge_index.shape: {edge_index.shape}, edge_attr.shape: {edge_attr.shape}")
         h = self.activation(self.encoder(x))
-        self._dprint(f" - Encoded node features h.shape: {h.shape}")
+        self._debug_print(f" - Encoded node features h.shape: {h.shape}")
         for conv, norm in zip(self.conv_layers_list, self.groupnorm_layers):
             h = conv(h, edge_index, edge_attr)
             h = self.activation(h)
             h = norm(h)
-        self._dprint(f" - After message passing h.shape: {h.shape}. Running decoder...")
+        self._debug_print(f" - After message passing h.shape: {h.shape}. Running decoder...")
         y_hat = self.decoder(h)
         return y_hat
 
@@ -339,10 +339,13 @@ class GNS(torch.nn.Module):
         Returns:
             Tensor: Predictions of shape [B, N, F].
         """
-        self._dprint("Starting prediction...")
-        self._validate_shapes(X)
+        self._debug_print("Starting prediction...")
+        try:
+            self.validator.validate(X)
+        except Exception as e:
+            raiseError(f"Invalid dataset for {self.__class__.__name__}: {e}")
 
-        self._dprint(f"Creating dataloaders (batch_size={batch_size}, node_batch_size={node_batch_size})...")
+        self._debug_print(f"Creating dataloaders (batch_size={batch_size}, node_batch_size={node_batch_size})...")
         input_cfg = TorchDataloaderConfig(
             batch_size=batch_size,
             shuffle=False,
@@ -360,14 +363,16 @@ class GNS(torch.nn.Module):
             subgraph_cfg, generator=None
         )
 
-        self._dprint("Running evaluation epoch...")
+        self._debug_print("Running evaluation epoch...")
         self.eval()
+        runner = _GNSTrainingLoop(self)
         with torch.no_grad():
-            return self._run_epoch(
-                input_dataloader,
-                subgraph_loader,
+            return runner.run_epoch(
+                input_dataloader=input_dataloader,
+                subgraph_loader=subgraph_loader,
+                loss_fn=None,
+                return_loss=False,
                 is_train=False,
-                return_loss=False
             )
 
     @config_from_kwargs(GNSTrainingConfig)
@@ -393,9 +398,12 @@ class GNS(torch.nn.Module):
         - Tracks and restores the best validation checkpoint at the end of training.
         """
         # --- Validate dataset shapes ---
-        self._validate_shapes(train_dataset)
-        if eval_dataset is not None:
-            self._validate_shapes(eval_dataset)
+        try:
+            self.validator.validate(train_dataset)
+            if eval_dataset is not None:
+                self.validator.validate(eval_dataset)
+        except Exception as e:
+            raiseError(f"Invalid dataset for {self.__class__.__name__}: {e}")
 
         self._debug_print(f"Validated datasets. Train size: {len(train_dataset)}" +
                      (f", Eval size: {len(eval_dataset)}" if eval_dataset is not None else ""))
@@ -468,67 +476,6 @@ class GNS(torch.nn.Module):
             train_loss_list=train_loss_list,
             test_loss_list=test_loss_list,
         )
-
-
-    @cr('GNS._run_epoch')
-    def _run_epoch(
-        self,
-        input_dataloader,
-        subgraph_loader,
-        loss_fn: torch.nn.Module = None,
-        return_loss: bool = False,
-        is_train: bool = False
-    ) -> Union[float, Tensor]:
-        runner = _GNSTrainingLoop(self)
-        return runner.run_epoch(
-            input_dataloader=input_dataloader,
-            subgraph_loader=subgraph_loader,
-            loss_fn=loss_fn,
-            return_loss=return_loss,
-            is_train=is_train,
-        )
-
-
-    @cr('GNS._train_one_batch')
-    def _train_one_batch(
-        self,
-        subgraph: Data,
-        inputs_batch: Tensor,
-        targets_batch: Tensor,
-        loss_fn: torch.nn.Module
-    ) -> Tuple[float, Data, Tensor, Tensor, Tensor]:
-        runner = _GNSTrainingLoop(self)
-        return runner._train_one_batch(
-            subgraph=subgraph,
-            inputs_batch=inputs_batch,
-            targets_batch=targets_batch,
-            loss_fn=loss_fn,
-        )
-
-    @cr('GNS._eval_one_batch')
-    def _eval_one_batch(
-        self,
-        subgraph: Data,
-        inputs_batch: Tensor,
-        targets_batch: Union[Tensor, None],
-        loss_fn: torch.nn.Module = None
-    ) -> Union[Tuple[float, Data, Tensor, Tensor, Tensor], Tensor]:
-        runner = _GNSTrainingLoop(self)
-        return runner._eval_one_batch(
-            subgraph=subgraph,
-            inputs_batch=inputs_batch,
-            targets_batch=targets_batch,
-            loss_fn=loss_fn,
-        )
-
-
-    def _validate_shapes(self, X):
-        try:
-            self.validator.validate(X)
-        except Exception as e:
-            raiseError(f"Invalid dataset for {self.__class__.__name__}: {e}")
-
-    
     def save(self, path: Union[str, Path]) -> None:
         """
         Save the current model to a checkpoint file.
