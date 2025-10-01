@@ -111,6 +111,11 @@ class GNS(torch.nn.Module):
         self.p_dropout = config.p_dropout
         self.activation = resolve_activation(config.activation)
         self.debug = config.debug
+        # Stage 5: stable debug print helper (closure), to avoid attribute lookup issues
+        def _debug_print(*args, rank: int = -1, **kwargs):
+            if self.debug:
+                pprint(rank, *args, **kwargs, flush=True)
+        self._debug_print = _debug_print
 
         # --- Graph & provenance ---
         self.graph_spec = graph_spec or GraphSpec()
@@ -389,7 +394,7 @@ class GNS(torch.nn.Module):
         if eval_dataset is not None:
             self._validate_shapes(eval_dataset)
 
-        self._dprint(f"Validated datasets. Train size: {len(train_dataset)}" +
+        self._debug_print(f"Validated datasets. Train size: {len(train_dataset)}" +
                      (f", Eval size: {len(eval_dataset)}" if eval_dataset is not None else ""))
 
         # --- Resolve runtime components from DTOs ---
@@ -398,7 +403,7 @@ class GNS(torch.nn.Module):
         scheduler_cls = resolve_scheduler(config.scheduler)  # may be None
 
         # --- Train loaders ---
-        self._dprint(f"Creating training dataloaders with parameters: {asdict(config.dataloader)} and {asdict(config.subgraph_loader)}")
+        self._debug_print(f"Creating training dataloaders with parameters: {asdict(config.dataloader)} and {asdict(config.subgraph_loader)}")
         train_input_dl = self._helpers.init_dataloader(
             train_dataset,
             config.dataloader,
@@ -446,86 +451,19 @@ class GNS(torch.nn.Module):
         train_loss_list = state.get("train_loss_list", [])
         test_loss_list  = state.get("test_loss_list", [])
 
-        # --- Training loop ---
-        total_epochs = len(epoch_list) + config.epochs
-        best_val_loss = state.get("best_val_loss", float("inf"))
-        best_epoch = state.get("best_epoch")
-        best_checkpoint = None
-        for epoch in range(1 + len(epoch_list), 1 + total_epochs):
-            train_loss = self._run_epoch(
-                train_input_dl,
-                train_sg_loader,
-                return_loss=True,
-                loss_fn=loss_fn,
-                is_train=True
-            )
-            train_loss_list.append(train_loss)
-
-            if eval_dataloader is not None:
-                test_loss = self._run_epoch(
-                    eval_dataloader,
-                    eval_subgraph_loader,
-                    return_loss=True,
-                    loss_fn=loss_fn,
-                    is_train=False
-                )
-                test_loss_list.append(test_loss)
-
-                if test_loss < best_val_loss:
-                    best_val_loss = test_loss
-                    best_epoch = epoch
-                    best_checkpoint = {
-                        "model_state_dict": copy.deepcopy(self.state_dict()),
-                        "optimizer_state_dict": copy.deepcopy(self.optimizer.state_dict()) if self.optimizer is not None else {},
-                        "scheduler_state_dict": copy.deepcopy(self.scheduler.state_dict()) if self.scheduler is not None else {},
-                    }
-
-            # Logging
-            log_this_epoch = (
-                config.print_every is not None
-                and config.print_every > 0
-                and epoch % config.print_every == 0
-            )
-            if log_this_epoch:
-                test_log = f" | Eval loss: {test_loss:.4e}" if eval_dataloader else ""
-                pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss: {train_loss:.4e}{test_log}", flush=True)
-
-                if self.device.type == "cuda":
-                    allocated = torch.cuda.memory_allocated(self.device) / 1024 ** 2
-                    reserved = torch.cuda.memory_reserved(self.device) / 1024 ** 2
-                    pprint(0, f"[GPU] Allocated: {allocated:.2f} MB | Reserved: {reserved:.2f} MB", flush=True)
-
-            # Save state
-            epoch_list.append(epoch)
-            self.state = {
-                "model_state_dict": self.state_dict(),
-                "optimizer_state_dict": self.optimizer.state_dict(),
-                "scheduler_state_dict": self.scheduler.state_dict() if self.scheduler is not None else {},
-                "epoch_list": epoch_list,
-                "train_loss_list": train_loss_list,
-                "test_loss_list": test_loss_list,
-                "best_val_loss": best_val_loss,
-                "best_epoch": best_epoch,
-            }
-            self.last_training_config = config
-
-            if on_epoch_end is not None:
-                on_epoch_end(epoch, train_loss)
-
-        if best_checkpoint is not None:
-            self.load_state_dict(best_checkpoint["model_state_dict"])
-            if self.optimizer is not None and best_checkpoint["optimizer_state_dict"]:
-                self.optimizer.load_state_dict(best_checkpoint["optimizer_state_dict"])
-            if self.scheduler is not None and best_checkpoint["scheduler_state_dict"]:
-                self.scheduler.load_state_dict(best_checkpoint["scheduler_state_dict"])
-
-            self.state.update({
-                "model_state_dict": best_checkpoint["model_state_dict"],
-                "optimizer_state_dict": best_checkpoint["optimizer_state_dict"],
-                "scheduler_state_dict": best_checkpoint["scheduler_state_dict"],
-            })
-
-        return {"train_loss": train_loss_list, "test_loss": test_loss_list, "best_val_loss": best_val_loss, "best_epoch": best_epoch}
+        runner = _GNSTrainingLoop(self)
+        return runner.train(
+            train_input_dl=train_input_dl,
+            train_subgraph_dl=train_sg_loader,
+            eval_input_dl=eval_dataloader,
+            eval_subgraph_dl=eval_subgraph_loader,
+            loss_fn=loss_fn,
+            config=config,
+            on_epoch_end=on_epoch_end,
+            epoch_list=epoch_list,
+            train_loss_list=train_loss_list,
+            test_loss_list=test_loss_list,
+        )
 
 
     @cr('GNS._run_epoch')
@@ -537,96 +475,14 @@ class GNS(torch.nn.Module):
         return_loss: bool = False,
         is_train: bool = False
     ) -> Union[float, Tensor]:
-        """
-        Run one epoch over the dataset, either in training or evaluation mode.
-
-        Args:
-            input_dataloader (DataLoader): Yields batches of [inputs, targets].
-            subgraph_loader (DataLoader): Yields seed nodes for subgraph sampling.
-            loss_fn (callable, optional): Loss function to apply (only if return_loss=True).
-            return_loss (bool): Whether to compute and return averaged loss.
-            is_train (bool): Whether to perform gradient updates (training) or not (evaluation/prediction).
-
-        Returns:
-            Union[float, Tensor]:
-                - If `return_loss` is True: average loss (float) over all batches (used in training/eval).
-                - If `return_loss` is False: tensor of predictions with shape [B, N, F] (used in prediction mode).
-        """
-        self._dprint(f"{'Training' if is_train else 'Evaluating/Predicting'} epoch on device {self.device}...")
-        self._dprint(f" - Input dataloader len/batch size: {input_dataloader.__len__()}/{input_dataloader.batch_size}")
-        self.train() if is_train else self.eval()
-        self._dprint(f"Set model to {'train' if is_train else 'eval'} mode.")
-        outputs = []
-        total_loss = 0.0
-        self._dprint("Initializing context manager...")
-        context = torch.enable_grad() if is_train else torch.no_grad()
-        self._dprint("Initialized context manager.")
-
-        last_graph = None
-        last_output = None
-        last_targets = None
-        last_loss = None
-        num_losses = 0
-
-        self._dprint("Starting main loop over input batches...")
-        with context:
-            self._dprint("Entering input dataloader loop...")
-            for batch in input_dataloader:
-                self._dprint("Processing new input batch...")
-                inputs_batch = batch[0].to(self.device)
-                try:
-                    targets_batch = batch[1].to(self.device)
-                except IndexError:
-                    targets_batch = None
-                self._dprint(f"Processing new input batch with inputs.shape={inputs_batch.shape}" +
-                             (f", targets.shape={targets_batch.shape}" if targets_batch is not None else ", no targets"))
-                for seed_batch in subgraph_loader:
-                    if isinstance(seed_batch, (list, tuple)):
-                        seed_nodes = seed_batch[0]
-                    else:
-                        seed_nodes = seed_batch
-
-                    subgraph = self._helpers.build_subgraph(seed_nodes)
-                    if is_train:
-                        self._dprint("Training on new batch...")
-                        loss_val, G, out, targets, loss = self._train_one_batch(
-                            subgraph, inputs_batch, targets_batch, loss_fn
-                        )
-                    elif return_loss:
-                        self._dprint("Evaluating on new batch...")
-                        loss_val, G, out, targets, loss = self._eval_one_batch(
-                            subgraph, inputs_batch, targets_batch, loss_fn
-                        )
-                    else:
-                        self._dprint("Predicting on new batch...")
-                        out = self._eval_one_batch(subgraph, inputs_batch, targets_batch)
-                        outputs.append(out)
-                        continue  # Skip loss-related code
-
-                    if return_loss:
-                        total_loss += loss_val
-                        last_graph = G
-                        last_output = out
-                        last_targets = targets
-                        last_loss = loss
-
-                    num_losses += 1
-
-            if is_train and self.scheduler is not None:
-                self.scheduler.step()
-
-        if return_loss:
-            cleanup_tensors({
-                "graph": last_graph,
-                "output": last_output,
-                "targets": last_targets,
-                "loss": last_loss,
-            })
-            return total_loss / num_losses
-        else:
-            outputs_numpy = torch.cat(outputs, dim=0).cpu().numpy()
-            outputs_numpy = outputs_numpy.reshape(-1, self.graph.num_nodes, self.model_config.output_dim)
-            return outputs_numpy
+        runner = _GNSTrainingLoop(self)
+        return runner.run_epoch(
+            input_dataloader=input_dataloader,
+            subgraph_loader=subgraph_loader,
+            loss_fn=loss_fn,
+            return_loss=return_loss,
+            is_train=is_train,
+        )
 
 
     @cr('GNS._train_one_batch')
@@ -637,59 +493,13 @@ class GNS(torch.nn.Module):
         targets_batch: Tensor,
         loss_fn: torch.nn.Module
     ) -> Tuple[float, Data, Tensor, Tensor, Tensor]:
-        """
-        Execute a single training step over a subgraph batch.
-
-        Args:
-            subgraph (Data): Subgraph seed data from the loader.
-            inputs_batch (Tensor): Input parameter batch of shape [B, D].
-            targets_batch (Tensor): Ground truth tensor of shape [B, N, F].
-            loss_fn (callable): Loss function to compute training loss.
-
-        Returns:
-            Tuple[float, Data, Tensor, Tensor, Tensor]:
-                - Loss value for this batch.
-                - The processed graph with injected inputs and targets.
-                - Model outputs on the seed nodes.
-                - Ground truth targets on the seed nodes.
-                - Loss tensor.
-        """
-        if not hasattr(self, "_counter"):
-            self._counter = 0
-        self._counter += 1
-        G = self.injector.replicate_inject(subgraph, inputs_batch, targets_batch)
-
-        self.optimizer.zero_grad()
-        output = self.forward(G)[G.seed_mask]
-        targets = G.y[G.seed_mask]
-
-        if output.shape != targets.shape:
-            subgraph_seed_count = int(getattr(subgraph, "seed_mask", torch.tensor([])).sum().item()) if getattr(subgraph, "seed_mask", None) is not None else None
-            G_seed_count = int(G.seed_mask.sum().item()) if getattr(G, "seed_mask", None) is not None else None
-            debug_info = {
-                "inputs_batch.shape": tuple(inputs_batch.shape),
-                "targets_batch.shape": tuple(targets_batch.shape) if targets_batch is not None else None,
-                "subgraph.num_nodes": int(subgraph.num_nodes),
-                "subgraph.seed_mask.sum": subgraph_seed_count,
-                "subgraph.subset.shape": tuple(getattr(subgraph, "subset", torch.tensor([])).shape) if getattr(subgraph, "subset", None) is not None else None,
-                "G.x.shape": tuple(G.x.shape),
-                "G.y.shape": tuple(G.y.shape) if getattr(G, "y", None) is not None else None,
-                "G.seed_mask.shape": tuple(G.seed_mask.shape) if getattr(G, "seed_mask", None) is not None else None,
-                "G.seed_mask.sum": G_seed_count,
-                "output.shape": tuple(output.shape),
-                "targets.shape": tuple(targets.shape),
-            }
-            pprint(0, f"[GNS] Shape mismatch detected in _train_one_batch: {debug_info}", flush=True)
-
-        assert output.shape == targets.shape, f"Output shape {output.shape} != target shape {targets.shape}"
-        if self._counter % 100 == 0:
-            self._dprint(f" - Training batch {self._counter}: output.shape={output.shape}, targets.shape={targets.shape}")
-        loss = loss_fn(output, targets)
-        self._dprint(f" - Computed loss: {loss.item():.4e}. Backpropagating...")
-        loss.backward()
-        self.optimizer.step()
-
-        return loss.item(), G, output, targets, loss
+        runner = _GNSTrainingLoop(self)
+        return runner._train_one_batch(
+            subgraph=subgraph,
+            inputs_batch=inputs_batch,
+            targets_batch=targets_batch,
+            loss_fn=loss_fn,
+        )
 
     @cr('GNS._eval_one_batch')
     def _eval_one_batch(
@@ -699,32 +509,13 @@ class GNS(torch.nn.Module):
         targets_batch: Union[Tensor, None],
         loss_fn: torch.nn.Module = None
     ) -> Union[Tuple[float, Data, Tensor, Tensor, Tensor], Tensor]:
-        """
-        Perform a single evaluation (validation or prediction) step.
-
-        Args:
-            subgraph (Data): Subgraph seed data from the loader.
-            inputs_batch (Tensor): Input parameter batch of shape [B, D].
-            targets_batch (Tensor or None): Ground truth targets if available.
-            loss_fn (callable, optional): If provided, computes loss against targets.
-
-        Returns:
-            Union[Tuple[float, Data, Tensor, Tensor, Tensor], Tensor]:
-                - If `loss_fn` is provided: a tuple (loss_value, graph, output, targets, loss_tensor) for evaluation.
-                - If `loss_fn` is None: predictions on seed nodes as a Tensor of shape [S, F], where S is number of seed nodes.
-        """
-        self._dprint("Evaluating on new batch...")
-        G = self.injector.replicate_inject(subgraph, inputs_batch, targets_batch)
-        output = self.forward(G)[G.seed_mask]
-
-        if loss_fn is not None:
-            self._dprint("Computing evaluation loss...")
-            targets = G.y[G.seed_mask]
-            assert output.shape == targets.shape, f"Output shape {output.shape} != target shape {targets.shape}"
-            loss = loss_fn(output, targets)
-            return loss.item(), G, output, targets, loss
-        else:
-            return output
+        runner = _GNSTrainingLoop(self)
+        return runner._eval_one_batch(
+            subgraph=subgraph,
+            inputs_batch=inputs_batch,
+            targets_batch=targets_batch,
+            loss_fn=loss_fn,
+        )
 
 
     def _validate_shapes(self, X):
@@ -1071,3 +862,282 @@ class GNS(torch.nn.Module):
             f" Params: {count_trainable_params(self):,} trainable\n"
             ")"
         )
+
+
+# ------------------------------------------------------------
+# Internal training loop helper (Stage 1: not used yet)
+# ------------------------------------------------------------
+class _GNSTrainingLoop:
+    """Internal helper that encapsulates the GNS training/eval loops.
+
+    Note: Added in Stage 1. Not wired yet; keeps the logic in one place for later delegation.
+    """
+
+    def __init__(self, model: "GNS") -> None:
+        self.model = model
+
+    def train(
+        self,
+        *,
+        train_input_dl,
+        train_subgraph_dl,
+        eval_input_dl,
+        eval_subgraph_dl,
+        loss_fn: torch.nn.Module,
+        config: GNSTrainingConfig,
+        on_epoch_end: Optional[Callable[[int, float], None]],
+        epoch_list: list,
+        train_loss_list: list,
+        test_loss_list: list,
+    ) -> Dict[str, list]:
+        model = self.model
+        total_epochs = len(epoch_list) + config.epochs
+        state = model.state
+        best_val_loss = state.get("best_val_loss", float("inf"))
+        best_epoch = state.get("best_epoch")
+        best_checkpoint = None
+
+        for epoch in range(1 + len(epoch_list), 1 + total_epochs):
+            train_loss = self.run_epoch(
+                input_dataloader=train_input_dl,
+                subgraph_loader=train_subgraph_dl,
+                loss_fn=loss_fn,
+                return_loss=True,
+                is_train=True,
+            )
+            train_loss_list.append(train_loss)
+
+            test_loss = None
+            if eval_input_dl is not None:
+                test_loss = self.run_epoch(
+                    input_dataloader=eval_input_dl,
+                    subgraph_loader=eval_subgraph_dl,
+                    loss_fn=loss_fn,
+                    return_loss=True,
+                    is_train=False,
+                )
+                test_loss_list.append(test_loss)
+
+                if test_loss < best_val_loss:
+                    best_val_loss = test_loss
+                    best_epoch = epoch
+                    best_checkpoint = {
+                        "model_state_dict": copy.deepcopy(model.state_dict()),
+                        "optimizer_state_dict": copy.deepcopy(model.optimizer.state_dict()) if model.optimizer is not None else {},
+                        "scheduler_state_dict": copy.deepcopy(model.scheduler.state_dict()) if model.scheduler is not None else {},
+                    }
+
+            log_this_epoch = (
+                config.print_every is not None and config.print_every > 0 and epoch % config.print_every == 0
+            )
+            if log_this_epoch:
+                test_log = f" | Eval loss: {test_loss:.4e}" if test_loss is not None else ""
+                pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss: {train_loss:.4e}{test_log}", flush=True)
+                if model.device.type == "cuda":
+                    allocated = torch.cuda.memory_allocated(model.device) / 1024 ** 2
+                    reserved = torch.cuda.memory_reserved(model.device) / 1024 ** 2
+                    pprint(0, f"[GPU] Allocated: {allocated:.2f} MB | Reserved: {reserved:.2f} MB", flush=True)
+
+            epoch_list.append(epoch)
+            model.state = {
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": model.optimizer.state_dict(),
+                "scheduler_state_dict": model.scheduler.state_dict() if model.scheduler is not None else {},
+                "epoch_list": epoch_list,
+                "train_loss_list": train_loss_list,
+                "test_loss_list": test_loss_list,
+                "best_val_loss": best_val_loss,
+                "best_epoch": best_epoch,
+            }
+            model.last_training_config = config
+
+            if on_epoch_end is not None:
+                on_epoch_end(epoch, train_loss)
+
+        if best_checkpoint is not None:
+            model.load_state_dict(best_checkpoint["model_state_dict"])
+            if model.optimizer is not None and best_checkpoint["optimizer_state_dict"]:
+                model.optimizer.load_state_dict(best_checkpoint["optimizer_state_dict"])
+            if model.scheduler is not None and best_checkpoint["scheduler_state_dict"]:
+                model.scheduler.load_state_dict(best_checkpoint["scheduler_state_dict"])
+            model.state.update({
+                "model_state_dict": best_checkpoint["model_state_dict"],
+                "optimizer_state_dict": best_checkpoint["optimizer_state_dict"],
+                "scheduler_state_dict": best_checkpoint["scheduler_state_dict"],
+            })
+
+        return {
+            "train_loss": train_loss_list,
+            "test_loss": test_loss_list,
+            "best_val_loss": best_val_loss,
+            "best_epoch": best_epoch,
+        }
+
+    def run_epoch(
+        self,
+        input_dataloader,
+        subgraph_loader,
+        *,
+        loss_fn: Optional[torch.nn.Module] = None,
+        return_loss: bool = False,
+        is_train: bool = False,
+    ) -> Union[float, Tensor]:
+        model = self.model
+        model._debug_print(f"{'Training' if is_train else 'Evaluating/Predicting'} epoch on device {model.device}...")
+        model._debug_print(f" - Input dataloader len/batch size: {input_dataloader.__len__()}/{input_dataloader.batch_size}")
+        model.train() if is_train else model.eval()
+        model._debug_print(f"Set model to {'train' if is_train else 'eval'} mode.")
+
+        outputs = []
+        total_loss = 0.0
+        model._debug_print("Initializing context manager...")
+        context = torch.enable_grad() if is_train else torch.no_grad()
+        model._debug_print("Initialized context manager.")
+
+        last_graph = None
+        last_output = None
+        last_targets = None
+        last_loss = None
+        num_losses = 0
+
+        model._debug_print("Starting main loop over input batches...")
+        with context:
+            model._debug_print("Entering input dataloader loop...")
+            for batch in input_dataloader:
+                model._debug_print("Processing new input batch...")
+                inputs_batch = batch[0].to(model.device)
+                try:
+                    targets_batch = batch[1].to(model.device)
+                except IndexError:
+                    targets_batch = None
+                model._debug_print(
+                    f"Processing new input batch with inputs.shape={inputs_batch.shape}" +
+                    (f", targets.shape={targets_batch.shape}" if targets_batch is not None else ", no targets")
+                )
+
+                for seed_batch in subgraph_loader:
+                    if isinstance(seed_batch, (list, tuple)):
+                        seed_nodes = seed_batch[0]
+                    else:
+                        seed_nodes = seed_batch
+
+                    subgraph = model._helpers.build_subgraph(seed_nodes)
+                    if is_train:
+                        model._debug_print("Training on new batch...")
+                        loss_val, G, out, targets, loss = self._train_one_batch(
+                            subgraph=subgraph,
+                            inputs_batch=inputs_batch,
+                            targets_batch=targets_batch,
+                            loss_fn=loss_fn,
+                        )
+                    elif return_loss:
+                        model._debug_print("Evaluating on new batch...")
+                        loss_val, G, out, targets, loss = self._eval_one_batch(
+                            subgraph=subgraph,
+                            inputs_batch=inputs_batch,
+                            targets_batch=targets_batch,
+                            loss_fn=loss_fn,
+                        )
+                    else:
+                        model._debug_print("Predicting on new batch...")
+                        out = self._eval_one_batch(
+                            subgraph=subgraph,
+                            inputs_batch=inputs_batch,
+                            targets_batch=targets_batch,
+                            loss_fn=None,
+                        )
+                        outputs.append(out)
+                        continue  # Skip loss-related code
+
+                    if return_loss:
+                        total_loss += loss_val
+                        last_graph = G
+                        last_output = out
+                        last_targets = targets
+                        last_loss = loss
+
+                    num_losses += 1
+
+            if is_train and model.scheduler is not None:
+                model.scheduler.step()
+
+        if return_loss:
+            cleanup_tensors({
+                "graph": last_graph,
+                "output": last_output,
+                "targets": last_targets,
+                "loss": last_loss,
+            })
+            return total_loss / max(1, num_losses)
+
+        outputs_numpy = torch.cat(outputs, dim=0).cpu().numpy()
+        outputs_numpy = outputs_numpy.reshape(-1, model.graph.num_nodes, model.model_config.output_dim)
+        return outputs_numpy
+
+    def _train_one_batch(
+        self,
+        *,
+        subgraph: Data,
+        inputs_batch: Tensor,
+        targets_batch: Tensor,
+        loss_fn: torch.nn.Module,
+    ) -> Tuple[float, Data, Tensor, Tensor, Tensor]:
+        model = self.model
+        if not hasattr(model, "_counter"):
+            model._counter = 0
+        model._counter += 1
+        G = model.injector.replicate_inject(subgraph, inputs_batch, targets_batch)
+
+        model.optimizer.zero_grad()
+        output = model.forward(G)[G.seed_mask]
+        targets = G.y[G.seed_mask]
+
+        if output.shape != targets.shape:
+            subgraph_seed_count = int(getattr(subgraph, "seed_mask", torch.tensor([])).sum().item()) if getattr(subgraph, "seed_mask", None) is not None else None
+            G_seed_count = int(G.seed_mask.sum().item()) if getattr(G, "seed_mask", None) is not None else None
+            debug_info = {
+                "inputs_batch.shape": tuple(inputs_batch.shape),
+                "targets_batch.shape": tuple(targets_batch.shape) if targets_batch is not None else None,
+                "subgraph.num_nodes": int(subgraph.num_nodes),
+                "subgraph.seed_mask.sum": subgraph_seed_count,
+                "subgraph.subset.shape": tuple(getattr(subgraph, "subset", torch.tensor([])).shape) if getattr(subgraph, "subset", None) is not None else None,
+                "G.x.shape": tuple(G.x.shape),
+                "G.y.shape": tuple(G.y.shape) if getattr(G, "y", None) is not None else None,
+                "G.seed_mask.shape": tuple(G.seed_mask.shape) if getattr(G, "seed_mask", None) is not None else None,
+                "G.seed_mask.sum": G_seed_count,
+                "output.shape": tuple(output.shape),
+                "targets.shape": tuple(targets.shape),
+            }
+            pprint(0, f"[GNS] Shape mismatch detected in _train_one_batch: {debug_info}", flush=True)
+
+        assert output.shape == targets.shape, f"Output shape {output.shape} != target shape {targets.shape}"
+        if model._counter % 100 == 0:
+            model._debug_print(f" - Training batch {model._counter}: output.shape={output.shape}, targets.shape={targets.shape}")
+        loss = loss_fn(output, targets)
+        model._debug_print(f" - Computed loss: {loss.item():.4e}. Backpropagating...")
+        loss.backward()
+        model.optimizer.step()
+
+        return loss.item(), G, output, targets, loss
+
+    def _eval_one_batch(
+        self,
+        *,
+        subgraph: Data,
+        inputs_batch: Tensor,
+        targets_batch: Optional[Tensor],
+        loss_fn: Optional[torch.nn.Module],
+    ) -> Union[Tuple[float, Data, Tensor, Tensor, Tensor], Tensor]:
+        model = self.model
+        model._debug_print("Evaluating on new batch...")
+        G = model.injector.replicate_inject(subgraph, inputs_batch, targets_batch)
+        output = model.forward(G)[G.seed_mask]
+
+        if loss_fn is not None:
+            model._debug_print("Computing evaluation loss...")
+            targets = G.y[G.seed_mask]
+            assert output.shape == targets.shape, f"Output shape {output.shape} != target shape {targets.shape}"
+            loss = loss_fn(output, targets)
+            return loss.item(), G, output, targets, loss
+
+        return output
