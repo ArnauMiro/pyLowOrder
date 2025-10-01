@@ -143,9 +143,14 @@ class GNS(torch.nn.Module):
         self._build_decoder()
 
         # --- GroupNorm configuration ---
-        self.groupnorm = torch.nn.GroupNorm(
-            num_groups=config.groupnorm_groups,
-            num_channels=config.latent_dim
+        self.groupnorm_layers = torch.nn.ModuleList(
+            [
+                torch.nn.GroupNorm(
+                    num_groups=config.groupnorm_groups,
+                    num_channels=config.latent_dim,
+                )
+                for _ in range(config.num_msg_passing_layers)
+            ]
         ).to(self.device)
 
         # --- Seed & RNG generators ---
@@ -302,8 +307,10 @@ class GNS(torch.nn.Module):
         self._dprint(f" - x.shape: {x.shape}, edge_index.shape: {edge_index.shape}, edge_attr.shape: {edge_attr.shape}")
         h = self.activation(self.encoder(x))
         self._dprint(f" - Encoded node features h.shape: {h.shape}")
-        for conv in self.conv_layers_list:
-            h = self.groupnorm(self.activation(conv(h, edge_index, edge_attr)))
+        for conv, norm in zip(self.conv_layers_list, self.groupnorm_layers):
+            h = conv(h, edge_index, edge_attr)
+            h = self.activation(h)
+            h = norm(h)
         self._dprint(f" - After message passing h.shape: {h.shape}. Running decoder...")
         y_hat = self.decoder(h)
         return y_hat
@@ -1012,4 +1019,3 @@ class GNS(torch.nn.Module):
             f" Params: {count_trainable_params(self):,} trainable\n"
             ")"
         )
-
