@@ -503,6 +503,9 @@ def plot_train_test_loss(
     moving_avg_window: int = 5,      # for moving average smoothing
     mark_min: bool = True,           # mark the epoch of minimal loss for each series
     grid: bool = True,
+    minor_ticks: bool = False,
+    linecolors: Optional[Sequence[str]] = None,
+    linestyles: Optional[Sequence[str]] = None,
     legend_loc: str = "best",
     # Saving / rendering
     save: bool = False,              # backward-compat; if True and save_path is None -> "./plots/train_test_losses.png"
@@ -536,6 +539,8 @@ def plot_train_test_loss(
         If True, annotate and mark the epoch of the minimum loss per series.
     grid : bool
         Show a light grid.
+    minor_ticks : bool
+        If True, enable minor ticks on both axes.
     legend_loc : str
         Legend location.
     save : bool
@@ -597,12 +602,13 @@ def plot_train_test_loss(
     # Prepare figure/axes
     created_fig = False
     if ax is None:
-        fig, ax = plt.subplots(figsize=(8, 5))
+        fig, ax = plt.subplots(figsize=(6, 5))
         created_fig = True
     else:
         fig = ax.figure
 
-    ax.set_title(title)
+    if title is not None:
+        ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_yscale(yscale)
@@ -612,7 +618,7 @@ def plot_train_test_loss(
     # Normalize loss_dict to flat series for plotting
     # Case 1: value is a sequence/array/tensor => single series
     # Case 2: value is a mapping => multiple named series (e.g., train/val/test)
-    for model_name, series in loss_dict.items():
+    for idx, (model_name, series) in enumerate(loss_dict.items()):
         if isinstance(series, Mapping):
             # nested: plot each split
             for split_name, split_series in series.items():
@@ -647,7 +653,7 @@ def plot_train_test_loss(
             epochs = np.arange(1, len(y_raw) + 1)
             y_vis = _smooth(y_raw)
 
-            ax.plot(epochs, y_vis, label=f"{model_name}")
+            ax.plot(epochs, y_vis, label=f"{model_name}", color=linecolors[idx], linestyle=linestyles[idx])
 
             min_idx = int(np.argmin(y_raw))
             min_val = float(y_raw[min_idx])
@@ -670,8 +676,13 @@ def plot_train_test_loss(
 
     if grid:
         ax.grid(True, linestyle=":", linewidth=0.8)
-    ax.legend(loc=legend_loc, frameon=True)
+    ax.legend(loc=legend_loc, frameon=True, fontsize=10)
     fig.tight_layout()
+
+    if minor_ticks:
+        ax.minorticks_on()
+        ax.tick_params(axis='both', which='major', length=7, width=1, direction='in')
+        ax.tick_params(axis='both', which='minor', length=4, width=0.8, direction='in')
 
     # Saving logic
     final_save_path = save_path
