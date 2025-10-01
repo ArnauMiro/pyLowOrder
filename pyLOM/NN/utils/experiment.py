@@ -369,8 +369,8 @@ def plot_training_and_validation_loss(train_loss: list[float],
     plt.plot(range(1, len(train_loss) + 1), train_loss, label="Training Loss")
 
     num_epochs = len(val_loss)
-    iters_per_epoch = len(train_loss) // num_epochs
-    val_iters = np.arange(iters_per_epoch, len(train_loss) + 1, iters_per_epoch)
+    # Map validation epochs to iteration axis robustly even if not divisible
+    val_iters = np.linspace(1, len(train_loss), num_epochs)
     plt.plot(val_iters, val_loss, label="Validation Loss")
 
     plt.yscale("log")

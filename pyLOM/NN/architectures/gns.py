@@ -327,7 +327,7 @@ class GNS(torch.nn.Module):
         X: Union[Tensor, TorchDataset],
         batch_size: int = 1,
         node_batch_size: int = 256,
-    ) -> torch.Tensor:
+    ) -> np.ndarray:
         """
         Run inference on the model.
 
@@ -337,7 +337,7 @@ class GNS(torch.nn.Module):
             node_batch_size (int): Number of seed nodes per subgraph batch.
 
         Returns:
-            Tensor: Predictions of shape [B, N, F].
+            np.ndarray: Predictions of shape [B, N, F].
         """
         self._debug_print("Starting prediction...")
         try:
