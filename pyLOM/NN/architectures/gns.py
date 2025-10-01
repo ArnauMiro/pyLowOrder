@@ -386,8 +386,11 @@ class GNS(torch.nn.Module):
 
         Notes
         -----
+        - Delegates the epoch loop to the internal runner `_GNSTrainingLoop` (separation of concerns).
+        - Keeps the external contract expected by `Pipeline` intact.
         - Config DTOs are resolved to runtime objects here (loss, optimizer, scheduler).
         - RNG generators are passed as runtime args to helpers; DTOs remain immutable.
+        - Tracks and restores the best validation checkpoint at the end of training.
         """
         # --- Validate dataset shapes ---
         self._validate_shapes(train_dataset)
@@ -451,6 +454,7 @@ class GNS(torch.nn.Module):
         train_loss_list = state.get("train_loss_list", [])
         test_loss_list  = state.get("test_loss_list", [])
 
+        # Delegate epoch loop to the training runner (encapsulates train/val and best-checkpoint logic)
         runner = _GNSTrainingLoop(self)
         return runner.train(
             train_input_dl=train_input_dl,
@@ -868,9 +872,12 @@ class GNS(torch.nn.Module):
 # Internal training loop helper (Stage 1: not used yet)
 # ------------------------------------------------------------
 class _GNSTrainingLoop:
-    """Internal helper that encapsulates the GNS training/eval loops.
+    """
+    Internal helper that encapsulates el bucle de entrenamiento y evaluación de GNS.
 
-    Note: Added in Stage 1. Not wired yet; keeps the logic in one place for later delegation.
+    - Ejecuta épocas completas (`run_epoch`) sobre los dataloaders existentes.
+    - Implementa pasos de train/val por subgrafo (`_train_one_batch`, `_eval_one_batch`).
+    - Gestiona mejor checkpoint en validación vía `train(...)` (usado por `GNS.fit`).
     """
 
     def __init__(self, model: "GNS") -> None:
@@ -1107,7 +1114,7 @@ class _GNSTrainingLoop:
                 "output.shape": tuple(output.shape),
                 "targets.shape": tuple(targets.shape),
             }
-            pprint(0, f"[GNS] Shape mismatch detected in _train_one_batch: {debug_info}", flush=True)
+            model._debug_print(f"[GNS] Shape mismatch detected in _train_one_batch: {debug_info}")
 
         assert output.shape == targets.shape, f"Output shape {output.shape} != target shape {targets.shape}"
         if model._counter % 100 == 0:

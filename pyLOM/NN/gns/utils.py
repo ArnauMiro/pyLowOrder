@@ -97,6 +97,14 @@ class InputsInjector:
 
     Args:
         device (Union[str, torch.device]): Target device where the batched graph will reside.
+
+    Notes
+    -----
+    - Node features are repeated B times and concatenated with the B input conditions.
+    - Edge indices are offset by N per replica; edge attributes are repeated.
+    - When later constructing subgraphs with ``k_hop_subgraph``, PyG may return a boolean
+      ``edge_mask``; prefer boolean indexing for ``edge_attr`` on CUDA to avoid
+      ``index_select_out_cuda_impl not implemented for 'Bool'``.
     """
 
     def __init__(self, device: torch.device) -> None:
@@ -370,9 +378,11 @@ class _GNSHelpers:
         generator: Optional[torch.Generator] = None,  # runtime
     ) -> Union[DataLoader, "ManualNeighborLoader"]:
         """
-        Initialize a subgraph sampler depending on mode:
-        - mode == "nodes": returns a DataLoader of node indices (seed batches).
-        - mode == "manual": returns ManualNeighborLoader yielding Data subgraphs directly.
+        Initialize a subgraph sampler depending on ``config.mode``:
+        - ``"nodes"``: returns a DataLoader of node indices (seed batches), and subgraphs are
+          built on-the-fly via ``build_subgraph``.
+        - ``"manual"``: returns ``ManualNeighborLoader`` yielding Data subgraphs directly
+          (backward compatible path similar to PyG's NeighborLoader).
 
         Args:
             config (SubgraphDataloaderConfig): Configuration parameters.
@@ -419,6 +429,13 @@ class _GNSHelpers:
 
         Returns:
             Data: Torch Geometric data object containing the subgraph.
+
+        Notes
+        -----
+        - ``k_hop_subgraph`` returns ``(subset, edge_index, mapping, edge_mask)``. The
+          ``edge_mask`` can be a boolean tensor; in that case use boolean indexing
+          for ``edge_attr`` to stay backend-safe on CUDA.
+        - This function moves only the necessary slices to the model's current device.
         """
         if seed_nodes.ndim > 1:
             seed_nodes = seed_nodes.view(-1)
