@@ -90,6 +90,11 @@ class InputsInjector:
     Prepares (sub)graphs for batched inference or training by injecting global input parameters
     into node features and replicating the graph structure.
 
+    Unlike ``Batch.from_data_list`` this routine performs the concatenation in-place to avoid
+    allocating intermediate ``Data`` lists, which keeps memory overhead low and works in
+    environments where PyG's higher level batching helpers (e.g. ``NeighborLoader``) are not
+    available.
+
     Args:
         device (Union[str, torch.device]): Target device where the batched graph will reside.
     """
@@ -182,6 +187,11 @@ class ManualNeighborLoader:
     """
     CPU-based subgraph sampler similar to torch_geometric's NeighborLoader.
     It yields Data subgraphs per node batch (not a `torch.utils.data.DataLoader`).
+
+    This custom loader exists to keep compatibility with deployments where importing
+    ``torch_geometric.loader.NeighborLoader`` is not possible (e.g. cluster images lacking the
+    extension). Keeping the implementation local also grants fine-grained control over shuffling
+    contracts shared with ``_GNSHelpers``.
 
     Sampling is done on CPU. Only at iteration time are subgraphs moved to the target device.
 
