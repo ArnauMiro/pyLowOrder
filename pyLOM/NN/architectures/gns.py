@@ -12,6 +12,7 @@ import datetime
 from pathlib import Path
 from typing import Any, Dict, Tuple, Union, Optional, Callable
 from dataclasses import asdict, replace
+import copy
 import numpy as np
 
 import torch
@@ -447,6 +448,9 @@ class GNS(torch.nn.Module):
 
         # --- Training loop ---
         total_epochs = len(epoch_list) + config.epochs
+        best_val_loss = state.get("best_val_loss", float("inf"))
+        best_epoch = state.get("best_epoch")
+        best_checkpoint = None
         for epoch in range(1 + len(epoch_list), 1 + total_epochs):
             train_loss = self._run_epoch(
                 train_input_dl,
@@ -466,6 +470,15 @@ class GNS(torch.nn.Module):
                     is_train=False
                 )
                 test_loss_list.append(test_loss)
+
+                if test_loss < best_val_loss:
+                    best_val_loss = test_loss
+                    best_epoch = epoch
+                    best_checkpoint = {
+                        "model_state_dict": copy.deepcopy(self.state_dict()),
+                        "optimizer_state_dict": copy.deepcopy(self.optimizer.state_dict()) if self.optimizer is not None else {},
+                        "scheduler_state_dict": copy.deepcopy(self.scheduler.state_dict()) if self.scheduler is not None else {},
+                    }
 
             # Logging
             log_this_epoch = (
@@ -491,13 +504,28 @@ class GNS(torch.nn.Module):
                 "epoch_list": epoch_list,
                 "train_loss_list": train_loss_list,
                 "test_loss_list": test_loss_list,
+                "best_val_loss": best_val_loss,
+                "best_epoch": best_epoch,
             }
             self.last_training_config = config
 
             if on_epoch_end is not None:
                 on_epoch_end(epoch, train_loss)
 
-        return {"train_loss": train_loss_list, "test_loss": test_loss_list}
+        if best_checkpoint is not None:
+            self.load_state_dict(best_checkpoint["model_state_dict"])
+            if self.optimizer is not None and best_checkpoint["optimizer_state_dict"]:
+                self.optimizer.load_state_dict(best_checkpoint["optimizer_state_dict"])
+            if self.scheduler is not None and best_checkpoint["scheduler_state_dict"]:
+                self.scheduler.load_state_dict(best_checkpoint["scheduler_state_dict"])
+
+            self.state.update({
+                "model_state_dict": best_checkpoint["model_state_dict"],
+                "optimizer_state_dict": best_checkpoint["optimizer_state_dict"],
+                "scheduler_state_dict": best_checkpoint["scheduler_state_dict"],
+            })
+
+        return {"train_loss": train_loss_list, "test_loss": test_loss_list, "best_val_loss": best_val_loss, "best_epoch": best_epoch}
 
 
     @cr('GNS._run_epoch')
@@ -628,6 +656,24 @@ class GNS(torch.nn.Module):
         self.optimizer.zero_grad()
         output = self.forward(G)[G.seed_mask]
         targets = G.y[G.seed_mask]
+
+        if output.shape != targets.shape:
+            subgraph_seed_count = int(getattr(subgraph, "seed_mask", torch.tensor([])).sum().item()) if getattr(subgraph, "seed_mask", None) is not None else None
+            G_seed_count = int(G.seed_mask.sum().item()) if getattr(G, "seed_mask", None) is not None else None
+            debug_info = {
+                "inputs_batch.shape": tuple(inputs_batch.shape),
+                "targets_batch.shape": tuple(targets_batch.shape) if targets_batch is not None else None,
+                "subgraph.num_nodes": int(subgraph.num_nodes),
+                "subgraph.seed_mask.sum": subgraph_seed_count,
+                "subgraph.subset.shape": tuple(getattr(subgraph, "subset", torch.tensor([])).shape) if getattr(subgraph, "subset", None) is not None else None,
+                "G.x.shape": tuple(G.x.shape),
+                "G.y.shape": tuple(G.y.shape) if getattr(G, "y", None) is not None else None,
+                "G.seed_mask.shape": tuple(G.seed_mask.shape) if getattr(G, "seed_mask", None) is not None else None,
+                "G.seed_mask.sum": G_seed_count,
+                "output.shape": tuple(output.shape),
+                "targets.shape": tuple(targets.shape),
+            }
+            pprint(0, f"[GNS] Shape mismatch detected in _train_one_batch: {debug_info}", flush=True)
 
         assert output.shape == targets.shape, f"Output shape {output.shape} != target shape {targets.shape}"
         if self._counter % 100 == 0:
