@@ -63,8 +63,6 @@ class MessagePassingLayer(MessagePassing):
         drop_p: float = 0.0,
     ):
         super().__init__(aggr='mean')
-        self.dropout = nn.Dropout(p=drop_p)
-
         self.phi = GNSMLP(
             input_size=in_channels,
             output_size=out_channels,
