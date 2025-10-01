@@ -215,8 +215,9 @@ class GNS(torch.nn.Module):
             input_size=self._encoder_input_dim,
             output_size=self.model_config.latent_dim,
             hidden_size=self.model_config.hidden_size,
+            num_hidden_layers=self.model_config.encoder_hidden_layers,
             activation=self.activation,
-            drop_p=self.p_dropout
+            drop_p=self.p_dropout,
         ).to(self.device)
 
     def _build_decoder(self):
@@ -224,8 +225,9 @@ class GNS(torch.nn.Module):
             input_size=self.model_config.latent_dim,
             output_size=self.model_config.output_dim,
             hidden_size=self.model_config.hidden_size,
+            num_hidden_layers=self.model_config.decoder_hidden_layers,
             activation=self.activation,
-            drop_p=self.p_dropout
+            drop_p=self.p_dropout,
         ).to(self.device)
 
     def _build_message_passing_layers(self):
