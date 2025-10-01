@@ -580,7 +580,13 @@ class GNS(torch.nn.Module):
                     targets_batch = None
                 self._dprint(f"Processing new input batch with inputs.shape={inputs_batch.shape}" +
                              (f", targets.shape={targets_batch.shape}" if targets_batch is not None else ", no targets"))
-                for subgraph in subgraph_loader:
+                for seed_batch in subgraph_loader:
+                    if isinstance(seed_batch, (list, tuple)):
+                        seed_nodes = seed_batch[0]
+                    else:
+                        seed_nodes = seed_batch
+
+                    subgraph = self._helpers.build_subgraph(seed_nodes)
                     if is_train:
                         self._dprint("Training on new batch...")
                         loss_val, G, out, targets, loss = self._train_one_batch(

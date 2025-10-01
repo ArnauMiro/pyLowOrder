@@ -368,16 +368,16 @@ class _GNSHelpers:
         config: SubgraphDataloaderConfig,
         *,
         generator: Optional[torch.Generator] = None,  # runtime
-    ) -> ManualNeighborLoader:
+    ) -> DataLoader:
         """
-        Initialize a subgraph sampler using ManualNeighborLoader and provided config.
+        Initialize a node sampler DataLoader that yields seed node batches.
 
         Args:
             config (SubgraphDataloaderConfig): Configuration parameters.
             generator (Optional[torch.Generator]): Runtime RNG if shuffling; None otherwise.
 
         Returns:
-            ManualNeighborLoader: Configured subgraph loader.
+            DataLoader: DataLoader yielding tensors of seed node indices.
         """
         self._check_shuffle_generator_contract(
             shuffle=config.shuffle,
@@ -385,12 +385,68 @@ class _GNSHelpers:
             ctx="SubgraphLoader"
         )
 
-        return ManualNeighborLoader(
-            device=self.device,
-            base_graph=self.graph,
-            num_hops=self.num_msg_passing_layers,
+        node_indices = self._resolve_input_nodes(config.input_nodes)
+
+        return DataLoader(
+            node_indices,
             batch_size=config.batch_size,
-            input_nodes=config.input_nodes,
             shuffle=config.shuffle,
-            generator=generator,  # <- runtime generator (may be None)
+            drop_last=False,
+            generator=generator,
+            num_workers=0,
         )
+
+    def build_subgraph(self, seed_nodes: Tensor) -> Data:
+        """
+        Build a k-hop subgraph around the provided seed nodes.
+
+        Args:
+            seed_nodes (Tensor): Tensor of node indices (on CPU or GPU).
+
+        Returns:
+            Data: Torch Geometric data object containing the subgraph.
+        """
+        if seed_nodes.ndim > 1:
+            seed_nodes = seed_nodes.view(-1)
+        seed_nodes_cpu = seed_nodes.to(dtype=torch.long, device="cpu")
+
+        subset, edge_index, mapping, edge_mask = k_hop_subgraph(
+            seed_nodes_cpu,
+            num_hops=self.num_msg_passing_layers,
+            edge_index=self.graph.edge_index.cpu(),
+            relabel_nodes=True,
+        )
+
+        subset_device = subset.to(self.graph.x.device)
+        edge_mask_device = edge_mask.to(self.graph.edge_attr.device)
+
+        x = self.graph.x.index_select(0, subset_device)
+        edge_attr = self.graph.edge_attr.index_select(0, edge_mask_device)
+
+        seed_mask = torch.zeros(subset.size(0), dtype=torch.bool, device=self.graph.x.device)
+        seed_mask[mapping.to(self.graph.x.device)] = True
+
+        data = Data(
+            x=x,
+            edge_index=edge_index.to(self.graph.edge_index.device),
+            edge_attr=edge_attr,
+            seed_mask=seed_mask,
+            subset=subset_device,
+        )
+
+        return data.to(self.device)
+
+    def _resolve_input_nodes(self, input_nodes: Optional[Union[Tensor, Sequence[int]]]) -> Tensor:
+        if input_nodes is None:
+            return torch.arange(self.graph.num_nodes, device="cpu", dtype=torch.long)
+
+        input_nodes = torch.as_tensor(input_nodes, device="cpu")
+        if input_nodes.dtype == torch.bool:
+            if input_nodes.ndim != 1 or input_nodes.size(0) != self.graph.num_nodes:
+                raiseError("Boolean mask must have shape [N]")
+            return input_nodes.nonzero(as_tuple=False).view(-1).to(torch.long)
+
+        if input_nodes.dtype in (torch.int32, torch.int64):
+            return input_nodes.to(torch.long)
+
+        raiseError("input_nodes must be LongTensor, BoolTensor, or list of ints.")
