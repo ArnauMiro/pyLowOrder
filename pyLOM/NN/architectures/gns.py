@@ -1016,12 +1016,11 @@ class _GNSTrainingLoop:
                 )
 
                 for seed_batch in subgraph_loader:
-                    if isinstance(seed_batch, (list, tuple)):
-                        seed_nodes = seed_batch[0]
+                    if isinstance(seed_batch, Data):
+                        subgraph = seed_batch
                     else:
-                        seed_nodes = seed_batch
-
-                    subgraph = model._helpers.build_subgraph(seed_nodes)
+                        seed_nodes = seed_batch[0] if isinstance(seed_batch, (list, tuple)) else seed_batch
+                        subgraph = model._helpers.build_subgraph(seed_nodes)
                     if is_train:
                         model._debug_print("Training on new batch...")
                         loss_val, G, out, targets, loss = self._train_one_batch(

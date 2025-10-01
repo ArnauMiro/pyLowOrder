@@ -368,16 +368,18 @@ class _GNSHelpers:
         config: SubgraphDataloaderConfig,
         *,
         generator: Optional[torch.Generator] = None,  # runtime
-    ) -> DataLoader:
+    ) -> Union[DataLoader, "ManualNeighborLoader"]:
         """
-        Initialize a node sampler DataLoader that yields seed node batches.
+        Initialize a subgraph sampler depending on mode:
+        - mode == "nodes": returns a DataLoader of node indices (seed batches).
+        - mode == "manual": returns ManualNeighborLoader yielding Data subgraphs directly.
 
         Args:
             config (SubgraphDataloaderConfig): Configuration parameters.
             generator (Optional[torch.Generator]): Runtime RNG if shuffling; None otherwise.
 
         Returns:
-            DataLoader: DataLoader yielding tensors of seed node indices.
+            DataLoader or ManualNeighborLoader.
         """
         self._check_shuffle_generator_contract(
             shuffle=config.shuffle,
@@ -385,8 +387,20 @@ class _GNSHelpers:
             ctx="SubgraphLoader"
         )
 
-        node_indices = self._resolve_input_nodes(config.input_nodes)
+        mode = getattr(config, "mode", "nodes")
+        if mode == "manual":
+            return ManualNeighborLoader(
+                device=self.device,
+                base_graph=self.graph,
+                num_hops=self.num_msg_passing_layers,
+                batch_size=config.batch_size,
+                input_nodes=config.input_nodes,
+                shuffle=config.shuffle,
+                generator=generator,
+            )
 
+        # Default: nodes mode
+        node_indices = self._resolve_input_nodes(config.input_nodes)
         return DataLoader(
             node_indices,
             batch_size=config.batch_size,

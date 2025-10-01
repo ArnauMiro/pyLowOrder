@@ -85,6 +85,7 @@ class SubgraphDataloaderConfig:
     batch_size: int = 256
     shuffle: bool = True
     input_nodes: Optional[Union[Tensor, Sequence[int]]] = None
+    mode: str = "nodes"  # "nodes" uses node DataLoader + build_subgraph; "manual" uses ManualNeighborLoader
 
 
 @dataclass(frozen=True, kw_only=True)
