@@ -421,7 +421,10 @@ class _GNSHelpers:
         edge_mask_device = edge_mask.to(self.graph.edge_attr.device)
 
         x = self.graph.x.index_select(0, subset_device)
-        edge_attr = self.graph.edge_attr.index_select(0, edge_mask_device)
+        if edge_mask_device.dtype == torch.bool:
+            edge_attr = self.graph.edge_attr[edge_mask_device]
+        else:
+            edge_attr = self.graph.edge_attr.index_select(0, edge_mask_device)
 
         seed_mask = torch.zeros(subset.size(0), dtype=torch.bool, device=self.graph.x.device)
         seed_mask[mapping.to(self.graph.x.device)] = True
