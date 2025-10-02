@@ -679,6 +679,8 @@ def plot_train_test_loss(
     ax.legend(loc=legend_loc, frameon=True, fontsize=10)
     fig.tight_layout()
 
+    ax.set_xlim(left=0, right=epochs[-1] + 1)
+
     if minor_ticks:
         ax.minorticks_on()
         ax.tick_params(axis='both', which='major', length=7, width=1, direction='in')
