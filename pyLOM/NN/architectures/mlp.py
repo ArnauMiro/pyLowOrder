@@ -22,10 +22,13 @@ class MLP(nn.Module):
         n_layers (int): Number of hidden layers.
         hidden_size (int): Number of neurons in each hidden layer.
         p_dropouts (float, optional): Dropout probability for the hidden layers (default: ``0.0``).
-        checkpoint_file (str, optional): Path to a checkpoint file to load the model from (default: ``None``).
         activation (torch.nn.Module, optional): Activation function to use (default: ``torch.nn.functional.relu``).
         device (torch.device, optional): Device to use (default: ``torch.device("cpu")``).
+        initialization (Callable, optional): Initialization function for the weights (default: ``torch.nn.init.xavier_uniform_``).
+        initialization_kwargs (Dict, optional): Additional keyword arguments for the initialization function (default: ``{}``).
         seed (int, optional): Seed for reproducibility (default: ``None``).
+        model_name_base (str, optional): Name of the model used as a base for the model name (default: ``"mlp"``).
+        verbose (bool, optional): If ``True``, prints the model parameters and total size (default: ``True``).
         kwargs: Additional keyword arguments.
     """
     def __init__(
@@ -40,6 +43,8 @@ class MLP(nn.Module):
         initialization: Callable = torch.nn.init.xavier_uniform_,
         initialization_kwargs: Dict = {},
         seed: int = None,
+        model_name_base: str = "mlp",
+        verbose: bool = True,
         **kwargs: Dict,
     ):
         self.input_size = input_size
@@ -51,6 +56,8 @@ class MLP(nn.Module):
         self.device = device
         self.initialization = initialization
         self.initialization_kwargs = initialization_kwargs
+        self.seed = seed
+        self.model_name_base = model_name_base
 
         super().__init__()
         if seed is not None:
@@ -73,6 +80,30 @@ class MLP(nn.Module):
         nn.init.zeros_(self.oupt.bias)
 
         self.to(self.device)
+        if verbose:
+            pprint(0, f"Creating model: {self.model_name_base}")
+            keys_print = [
+                "input_size",
+                "output_size",
+                "n_layers",
+                "hidden_size",
+                "p_dropouts",
+                "activation",
+                "device",
+                "initialization",
+                "initialization_kwargs",
+                "seed",
+                "model_name_base",
+            ]
+            for key in keys_print:
+                value = getattr(self, key)
+                if callable(value):
+                    value = value.__name__
+                pprint(0, f"\t{key}: {value}")
+            pprint(
+                0,
+                f"\ttotal_size (trainable parameters): {sum(p.numel() for p in self.parameters() if p.requires_grad)}\n"
+            )
     
     def forward(self, x):
         for layer in self.layers:
@@ -87,14 +118,17 @@ class MLP(nn.Module):
         train_dataset: torch.utils.data.Dataset,
         eval_dataset: torch.utils.data.Dataset = None,
         epochs: int = 100,
+        batch_size: int = 32,
         lr: float = 0.001,
-        lr_gamma: float = 1,
-        lr_scheduler_step: int = 1,
         loss_fn: torch.nn.Module = torch.nn.MSELoss(),
         optimizer_class: torch.optim.Optimizer = torch.optim.Adam,
-        scheduler_class: torch.optim.lr_scheduler.LRScheduler = torch.optim.lr_scheduler.StepLR,
+        scheduler_class: torch.optim.lr_scheduler.LRScheduler = None,
+        optimizer_kwargs: dict = {},
+        scheduler_kwargs: dict = {},
+        save_logs_path: str = None,
         print_rate_batch: int = 0,
         print_rate_epoch: int = 1,
+        save_best: bool = False,
         **kwargs,
     )-> Dict[str, List[float]]:
         r"""
@@ -104,26 +138,32 @@ class MLP(nn.Module):
             train_dataset (torch.utils.data.Dataset): Training dataset to fit the model.
             eval_dataset (torch.utils.data.Dataset): Evaluation dataset to evaluate the model after each epoch (default: ``None``).
             epochs (int, optional): Number of epochs to train the model (default: ``100``).
+            batch_size (int, optional): Batch size for training (default: ``32``).
             lr (float, optional): Learning rate for the optimizer (default: ``0.001``).
-            lr_gamma (float, optional): Multiplicative factor of learning rate decay (default: ``1``).
-            lr_scheduler_step (int, optional): Number of epochs to decay the learning rate (default: ``1``).
             loss_fn (torch.nn.Module, optional): Loss function to optimize (default: ``torch.nn.MSELoss()``).
             optimizer_class (torch.optim.Optimizer, optional): Optimizer class to use (default: ``torch.optim.Adam``).
-            scheduler_class (torch.optim.lr_scheduler._LRScheduler, optional): Learning rate scheduler class to use. If ``None``, no scheduler will be used (default: ``torch.optim.lr_scheduler.StepLR``).
+            scheduler_class (torch.optim.lr_scheduler._LRScheduler, optional): Learning rate scheduler class to use. If ``None``, no scheduler will be used (default: ``None``).
+            optimizer_kwargs (dict, optional): Additional keyword arguments to pass to the optimizer (default: ``{}``).
+            scheduler_kwargs (dict, optional): Additional keyword arguments to pass to the scheduler (default: ``{}``).
+            save_logs_path (str, optional): Path to save the training results. If ``None``, no results will be saved (default: ``None``).
             print_rate_batch (int, optional): Print loss every ``print_rate_batch`` batches (default: ``1``). If set to ``0``, no print will be done.
             print_rate_epoch (int, optional): Print loss every ``print_rate_epoch`` epochs (default: ``1``). If set to ``0``, no print will be done.
             kwargs (dict, optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):
-                
-                - batch_size (int, optional): Batch size (default: ``32``).
                 - shuffle (bool, optional): Shuffle the data (default: ``True``).
                 - num_workers (int, optional): Number of workers to use (default: ``0``).
                 - pin_memory (bool, optional): Pin memory (default: ``True``).
 
         Returns:
-            Dict[str, List[float]]: Dictionary containing the training and evaluation losses.
+            Dict[str, List[float]]: Dictionary containing the training and evaluation results:
+                - "train_loss": List of training losses for each epoch.
+                - "test_loss": List of evaluation losses for each epoch (if eval_dataset is provided
+                - "lr": List of learning rates for each epoch.
+                - "loss_iterations_train": List of training losses for each iteration.
+                - "loss_iterations_test": List of evaluation losses for each iteration (if eval_dataset is provided).
+                - "grad_norms": List of gradient norms for each iteration.
         """
         dataloader_params = {
-            "batch_size": 32,
+            "batch_size": batch_size,
             "shuffle": True,
             "num_workers": 0,
             "pin_memory": True,
@@ -142,43 +182,72 @@ class MLP(nn.Module):
             self.eval_dataloader = DataLoader(eval_dataset, **dataloader_params)
 
         if not hasattr(self, "optimizer"):
-            self.optimizer = optimizer_class(self.parameters(), lr=lr)
+            self.optimizer = optimizer_class(
+                self.parameters(),
+                lr=lr,
+                **optimizer_kwargs
+            )
         if not hasattr(self, "scheduler"):
-            self.scheduler = scheduler_class(self.optimizer, step_size=lr_scheduler_step, gamma=lr_gamma) if scheduler_class is not None else None
+            if scheduler_class is not None:
+                self.scheduler = scheduler_class(
+                    self.optimizer,
+                    **scheduler_kwargs
+                )
+            else:
+                self.scheduler = None
         
         if hasattr(self, "checkpoint"):
-            self.optimizer.load_state_dict(self.checkpoint["state"][0])
-            if self.scheduler is not None and len(self.checkpoint["state"][1]) > 0:
-                self.scheduler.load_state_dict(self.checkpoint["state"][1])
-                self.scheduler.gamma = lr_gamma
-                self.scheduler.step_size = lr_scheduler_step
-            epoch_list = self.checkpoint["state"][2]
-            train_loss_list = self.checkpoint["state"][3]
-            test_loss_list = self.checkpoint["state"][4]
+            results_fn = os.path.join(save_logs_path,f"training_results_{self.model_name_base}.npy")
+            if "optimizer" in self.checkpoint:
+                self.optimizer.load_state_dict(self.checkpoint["optimizer"])
+            if "scheduler" in self.checkpoint and self.scheduler is not None: 
+                self.scheduler.load_state_dict(self.checkpoint["scheduler"])
+            if os.path.isfile(results_fn):
+                results = np.load(results_fn, allow_pickle=True).item()
+                train_losses = results["train_loss"].tolist()
+                test_losses = results["test_loss"].tolist()
+                loss_iterations_train = results["loss_iterations_train"].tolist()
+                loss_iterations_test = results["loss_iterations_test"].tolist()
+                current_lr_vec = results["lr"].tolist()
+                grad_norms = results["grad_norms"].tolist()
         else:
-            epoch_list = []
-            train_loss_list = []
-            test_loss_list = []
+            train_losses = []
+            test_losses = []
+            loss_iterations_train = []
+            loss_iterations_test = []
+            current_lr_vec = []
+            grad_norms = []
 
-        total_epochs = len(epoch_list)+epochs
-        for epoch in range(1+len(epoch_list), 1+total_epochs):
+        total_epochs = len(train_losses) + epochs
+        self.model_name = f"{self.model_name_base}_{total_epochs:05d}"
+        for epoch in range(1+len(train_losses), 1+total_epochs):
             train_loss = 0.0
             self.train()
-            for b_idx, batch in enumerate(self.train_dataloader):
-                x_train, y_train = batch[0].to(self.device), batch[1].to(self.device)
+
+            def closure():
                 self.optimizer.zero_grad()
                 oupt = self(x_train)
                 loss_val = loss_fn(oupt, y_train)
                 loss_val.backward()
-                self.optimizer.step()
-                loss_val_item = loss_val.item()
-                train_loss_list.append(loss_val_item)
-                train_loss += loss_val_item
+                loss_iterations_train.append(loss_val.item())
+                return loss_val
+
+            for b_idx, batch in enumerate(self.train_dataloader):
+                x_train, y_train = batch[0].to(self.device), batch[1].to(self.device)
+                train_loss += self.optimizer.step(closure).item()
+                total_norm = torch.norm(torch.stack([p.grad.norm() for p in self.parameters() if p.grad is not None]))
+                grad_norms.append(total_norm.item())
+        
                 if print_rate_batch != 0 and (b_idx % print_rate_batch) == 0:
-                    pprint(0, "Batch %4d/%4d | Train loss (x1e5) %0.4f" % (b_idx, len(self.train_dataloader), loss_val_item * 1e5), flush=True)
-                   
+                    pprint(
+                        0,
+                        f"\tBatch {b_idx+1}/{len(self.train_dataloader)}, Train Loss: {train_loss:.4e}",
+                        flush=True
+                    )
+                    
             train_loss = train_loss / (b_idx + 1)
-            
+            train_losses.append(train_loss)
+
             if self.scheduler is not None:
                 self.scheduler.step()
             
@@ -190,26 +259,53 @@ class MLP(nn.Module):
                         x_test, y_test = sample[0].to(self.device), sample[1].to(self.device)
                         test_output = self(x_test)
                         loss_val = loss_fn(test_output, y_test)
+                        loss_iterations_test.append(loss_val.item())
                         test_loss += loss_val.item()
 
                 test_loss = test_loss / (n_idx + 1)
-                test_loss_list.append(test_loss)
+                test_losses.append(test_loss)
+
+                if save_best and (len(test_losses) == 1 or test_loss < min(test_losses[:-1])):
+                    if save_logs_path is not None:
+                        best_model_file = os.path.join(save_logs_path, f"best_model_{self.model_name_base}.pth")
+                        self.save(best_model_file)
+                    elif save_best:
+                        raiseWarning("The argument save_best is set to True but no save_logs_path is provided. The best model will not be saved.")
+            
+            current_lr = self.optimizer.param_groups[0]["lr"]
+            current_lr_vec.append(current_lr)
             
             if print_rate_epoch != 0 and (epoch % print_rate_epoch) == 0:
-                test_log = f" | Test loss (x1e5) {test_loss * 1e5:.4f}" if eval_dataset is not None else ""
-                pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss (x1e5) {train_loss * 1e5:.4f} {test_log}", flush=True)
-
-            epoch_list.append(epoch)
-            self.state = (
-                self.optimizer.state_dict(),
-                self.scheduler.state_dict() if self.scheduler is not None else {},
-                epoch_list,
-                train_loss_list,
-                test_loss_list,
+                if torch.cuda.is_available():
+                    mem_used = torch.cuda.memory_allocated() / (1024**2)  # Memory usage in MB
+                    memory_usage_str = f", MEM: {mem_used:.2f} MB"
+                else:
+                    memory_usage_str = ""
+                test_log = f", Test Loss: {test_loss:.4e}" if eval_dataset is not None else ""
+                pprint(
+                    0,
+                    f"\tEpoch {epoch}/{total_epochs}, Train Loss: {train_loss:.4e}{test_log}, "
+                    f"LR: {current_lr:.2e}{memory_usage_str}",
+                    flush=True
                 )
-            
-        return {"train_loss": train_loss_list, "test_loss": test_loss_list}
-    
+
+        results = {
+            "train_loss": np.array(train_losses),
+            "test_loss": np.array(test_losses),
+            "lr": np.array(current_lr_vec),
+            "loss_iterations_train": np.array(loss_iterations_train),
+            "loss_iterations_test": np.array(loss_iterations_test),
+            "grad_norms": np.array(grad_norms),
+            "check": [True],
+        }
+
+        if save_logs_path is not None:
+            pprint(0, f"\nPrinting losses on path: {save_logs_path}")
+            fn = os.path.join(save_logs_path,f"training_results_{self.model_name_base}.npy")
+            np.save(fn, results)
+
+        return results
+
     @cr('MLP.predict')
     def predict(
         self, 
@@ -270,18 +366,8 @@ class MLP(nn.Module):
         else:
             return all_predictions
 
-    def save(
-        self, 
-        path: str,
-    ):
-        r"""
-        Save the model to a checkpoint file.
-
-        Args:
-            path (str): Path to save the model. It can be either a path to a directory or a file name. 
-            If it is a directory, the model will be saved with a filename that includes the number of epochs trained.
-        """
-        checkpoint = {
+    def _define_checkpoint(self):
+        return {
             "input_size": self.input_size,
             "output_size": self.output_size,
             "n_layers": self.n_layers,
@@ -289,15 +375,36 @@ class MLP(nn.Module):
             "p_dropouts": self.p_dropouts,
             "activation": self.activation,
             "device": self.device,
+            "initialization": self.initialization,
+            "initialization_kwargs": self.initialization_kwargs,
+            "seed": self.seed,
+            "model_name_base": self.model_name_base,
             "state_dict": self.state_dict(),
-            "state": self.state,
         }
+
+    def save(
+        self, 
+        path: str,
+        save_only_model: bool = False
+    ):
+        r"""
+        Save the model to a checkpoint file.
+
+        Args:
+            path (str): Path to save the model. It can be either a path to a directory or a file name. 
+            save_only_model (bool, optional): If ``True``, only the model state will be saved. If ``False``, the optimizer and scheduler states will also be saved (default: ``False``).
+        """
+        self.checkpoint = self._define_checkpoint()
+
+        if not save_only_model:
+            self.checkpoint["optimizer"] = self.optimizer.state_dict()
+            self.checkpoint["scheduler"] = self.scheduler.state_dict()
         
         if os.path.isdir(path):
-            filename = "/trained_model_{:06d}".format(len(self.state[2])) + ".pth"
+            filename = "/" + str(self.model_name) + ".pth"
             path = path + filename
-        torch.save(checkpoint, path)
-    
+        torch.save(self.checkpoint, path)
+
     @classmethod
     def load(
         cls, 
@@ -312,7 +419,7 @@ class MLP(nn.Module):
             device (torch.device, optional): Device to use (default: ``torch.device("cpu")``).
 
         Returns:
-            Model (MLP): The loaded model.
+            model (MLP): The loaded model with the trained weights.
         """
         checkpoint = torch.load(path, map_location=device, weights_only=False)
         raiseWarning("The model has been loaded with weights_only set to False. According with torch documentation, this is not recommended if you do not trust the source of your saved model, as it could lead to arbitrary code execution.")
@@ -325,6 +432,10 @@ class MLP(nn.Module):
             checkpoint["p_dropouts"],
             checkpoint["activation"],
             checkpoint["device"],
+            checkpoint["initialization"],
+            checkpoint["initialization_kwargs"],
+            checkpoint["seed"],
+            checkpoint["model_name_base"]
         )
         
         model.load_state_dict(checkpoint["state_dict"])
@@ -390,7 +501,9 @@ class MLP(nn.Module):
             training_params = {}       
             for key, params in optimization_params.items():
                 training_params[key] = cls._get_optimizing_value(key, params, trial)
-            model = cls(input_dim, output_dim, **training_params)
+            training_params["save_logs_path"] = None
+            
+            model = cls(input_dim, output_dim, verbose=False, **training_params)
             if optuna_optimizer.pruner is not None:
                 epochs = training_params["epochs"]
                 training_params["epochs"] = 1
