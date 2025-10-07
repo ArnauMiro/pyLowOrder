@@ -168,6 +168,7 @@ class KAN(nn.Module):
                 else:
                     pprint(0, f"\t{key}: {value}")
             pprint(0, "   ")
+        
         dataloader_params = {
             "batch_size": batch_size,
             "shuffle": True,
@@ -180,14 +181,14 @@ class KAN(nn.Module):
         train_loader = DataLoader(train_dataset, **dataloader_params)
         test_loader = DataLoader(eval_dataset, **dataloader_params)
 
-        train_losses = torch.tensor([], device=self.device)
-        test_losses = torch.tensor([], device=self.device)
-
+        train_losses = []
+        test_losses = []
         loss_iterations_train = []
         loss_iterations_test = []
-        self.optimizer = optimizer_class(self.parameters(), lr=lr, **opti_kwargs)
         current_lr_vec = []
         grad_norms = []
+
+        self.optimizer = optimizer_class(self.parameters(), lr=lr, **opti_kwargs)
 
         if scheduler_type == "StepLR":
             self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, **lr_kwargs)
@@ -298,8 +299,8 @@ class KAN(nn.Module):
                     break
 
         results = {
-            "train_loss": train_losses.cpu().numpy(),
-            "test_loss": test_losses.cpu().numpy(),
+            "train_loss": np.array(train_losses),
+            "test_loss": np.array(test_losses),
             "lr": np.array(current_lr_vec),
             "loss_iterations_train": np.array(loss_iterations_train),
             "loss_iterations_test": np.array(loss_iterations_test),
@@ -317,9 +318,9 @@ class KAN(nn.Module):
 
                 for key in results.keys():
                     if key != 'check':
-                        results[key]=np.concatenate((results[key], results_old[key]), axis=0)
+                        results[key] = np.concatenate((results_old[key], results[key]), axis=0)
                     else:
-                        results[key].extend(results_old[key][:])
+                        results[key] = results_old[key] + results[key][:]
                 if verbose:
                     pprint(0, "Updating previous data in file" + save_logs_path + f"training_results_{self.model_name}.npy")
 
