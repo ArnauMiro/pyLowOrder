@@ -13,7 +13,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 from ..utils.plots  import plotSnapshot, plotModalErrorBars, plotTimeSeries
 
-from .pipeline      import Pipeline
+from .pipeline      import Pipeline, ClusteredPipeline
 from .utils         import Dataset, MinMaxScaler, select_device, betaLinearScheduler, create_results_folder, set_seed
 
 from .optimizer     import OptunaOptimizer
