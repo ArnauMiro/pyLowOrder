@@ -163,9 +163,9 @@ class ClusteredPipeline:
     def _filter_one_cluster(self, dataset, cluster_id):
 
         def filter_by_cluster(inputs, outputs, cluster_id, cluster_col):
-            inputs = np.asarray(inputs)
+            outputs = np.asarray(outputs)
             tol = 1e-8
-            mask = (np.abs(inputs[:, cluster_col] - cluster_id) < tol)
+            mask = (np.abs(outputs[:, cluster_col] - cluster_id) < tol)
             return mask.tolist()
     
         ds_filtered = dataset.filter(
@@ -175,7 +175,7 @@ class ClusteredPipeline:
             batch_size=len(dataset),
             return_views=False,
         )
-        ds_filtered.remove_column(self.cluster_col_idx, from_variables_out=False)
+        ds_filtered.remove_column(self.cluster_col_idx, from_variables_out=True)
         return ds_filtered
 
     @property
