@@ -8,7 +8,7 @@ from typing import Dict, List, Tuple, Callable
 from ..optimizer import OptunaOptimizer, TrialPruned
 from .. import DEVICE, set_seed  # pyLOM/NN/__init__.py
 from ... import pprint, cr  # pyLOM/__init__.py
-from ...utils.errors import raiseWarning
+from ...utils.errors import raiseWarning, raiseError
 
 
 class MLP(nn.Module):
@@ -27,7 +27,7 @@ class MLP(nn.Module):
         initialization (Callable, optional): Initialization function for the weights (default: ``torch.nn.init.xavier_uniform_``).
         initialization_kwargs (Dict, optional): Additional keyword arguments for the initialization function (default: ``{}``).
         seed (int, optional): Seed for reproducibility (default: ``None``).
-        model_name_base (str, optional): Name of the model used as a base for the model name (default: ``"mlp"``).
+        model_name (str, optional): Name of the model used as a base for the model name (default: ``"mlp"``).
         verbose (bool, optional): If ``True``, prints the model parameters and total size (default: ``True``).
         kwargs: Additional keyword arguments.
     """
@@ -43,7 +43,7 @@ class MLP(nn.Module):
         initialization: Callable = torch.nn.init.xavier_uniform_,
         initialization_kwargs: Dict = {},
         seed: int = None,
-        model_name_base: str = "mlp",
+        model_name: str = "mlp",
         verbose: bool = True,
         **kwargs: Dict,
     ):
@@ -57,7 +57,7 @@ class MLP(nn.Module):
         self.initialization = initialization
         self.initialization_kwargs = initialization_kwargs
         self.seed = seed
-        self.model_name_base = model_name_base
+        self.model_name = model_name
 
         super().__init__()
         if seed is not None:
@@ -81,7 +81,7 @@ class MLP(nn.Module):
 
         self.to(self.device)
         if verbose:
-            pprint(0, f"Creating model: {self.model_name_base}")
+            pprint(0, f"Creating model: {self._model_name}")
             keys_print = [
                 "input_size",
                 "output_size",
@@ -93,7 +93,7 @@ class MLP(nn.Module):
                 "initialization",
                 "initialization_kwargs",
                 "seed",
-                "model_name_base",
+                "model_name",
             ]
             for key in keys_print:
                 value = getattr(self, key)
@@ -111,6 +111,19 @@ class MLP(nn.Module):
             x = z
         z = self.oupt(x)
         return z
+    
+    @property
+    def model_name(self) -> str:
+        return self._model_name
+    
+    @model_name.setter
+    def model_name(self, value: str) -> None:
+        if not isinstance(value, str):
+            raiseError("model_name must be a string")
+        value = value.strip()
+        if not value:
+            raiseError("model_name cannot be empty")
+        self._model_name = value
     
     @cr('MLP.fit')
     def fit(
@@ -197,7 +210,7 @@ class MLP(nn.Module):
                 self.scheduler = None
         
         if hasattr(self, "checkpoint"):
-            results_fn = os.path.join(save_logs_path,f"training_results_{self.model_name_base}.npy")
+            results_fn = os.path.join(save_logs_path,f"training_results_{self._model_name}.npy")
             if "optimizer" in self.checkpoint:
                 self.optimizer.load_state_dict(self.checkpoint["optimizer"])
             if "scheduler" in self.checkpoint and self.scheduler is not None: 
@@ -219,7 +232,7 @@ class MLP(nn.Module):
             grad_norms = []
 
         total_epochs = len(train_losses) + epochs
-        self.model_name = f"{self.model_name_base}_{total_epochs:05d}"
+        self.mname = f"{self._model_name}_{total_epochs:05d}"
         for epoch in range(1+len(train_losses), 1+total_epochs):
             train_loss = 0.0
             self.train()
@@ -267,7 +280,7 @@ class MLP(nn.Module):
 
                 if save_best and (len(test_losses) == 1 or test_loss < min(test_losses[:-1])):
                     if save_logs_path is not None:
-                        best_model_file = os.path.join(save_logs_path, f"best_model_{self.model_name_base}.pth")
+                        best_model_file = os.path.join(save_logs_path, f"best_model_{self._model_name}.pth")
                         self.save(best_model_file)
                     elif save_best:
                         raiseWarning("The argument save_best is set to True but no save_logs_path is provided. The best model will not be saved.")
@@ -301,7 +314,7 @@ class MLP(nn.Module):
 
         if save_logs_path is not None:
             pprint(0, f"\nPrinting losses on path: {save_logs_path}")
-            fn = os.path.join(save_logs_path,f"training_results_{self.model_name_base}.npy")
+            fn = os.path.join(save_logs_path,f"training_results_{self._model_name}.npy")
             np.save(fn, results)
 
         return results
@@ -378,7 +391,7 @@ class MLP(nn.Module):
             "initialization": self.initialization,
             "initialization_kwargs": self.initialization_kwargs,
             "seed": self.seed,
-            "model_name_base": self.model_name_base,
+            "model_name": self._model_name,
             "state_dict": self.state_dict(),
         }
 
@@ -401,7 +414,7 @@ class MLP(nn.Module):
             self.checkpoint["scheduler"] = self.scheduler.state_dict()
         
         if os.path.isdir(path):
-            filename = "/" + str(self.model_name) + ".pth"
+            filename = "/" + str(self.mname) + ".pth"
             path = path + filename
         torch.save(self.checkpoint, path)
 
@@ -435,7 +448,7 @@ class MLP(nn.Module):
             checkpoint["initialization"],
             checkpoint["initialization_kwargs"],
             checkpoint["seed"],
-            checkpoint["model_name_base"]
+            checkpoint["model_name"]
         )
         
         model.load_state_dict(checkpoint["state_dict"])

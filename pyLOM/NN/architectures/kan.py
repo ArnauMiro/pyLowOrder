@@ -68,7 +68,7 @@ class KAN(nn.Module):
 
         self.to(self.device)
         if verbose:
-            pprint(0, f"Creating model KAN: {self.model_name}")
+            pprint(0, f"Creating model KAN: {self._model_name}")
             keys_print = [
                 "input_size",
                 "output_size",
@@ -92,6 +92,19 @@ class KAN(nn.Module):
         x = self.output(x)
 
         return x
+
+    @property
+    def model_name(self) -> str:
+        return self._model_name
+    
+    @model_name.setter
+    def model_name(self, value: str) -> None:
+        if not isinstance(value, str):
+            raiseError("model_name must be a string")
+        value = value.strip()
+        if not value:
+            raiseError("model_name cannot be empty")
+        self._model_name = value
 
     @cr("KAN.fit")
     def fit(
@@ -149,7 +162,7 @@ class KAN(nn.Module):
         """
         if verbose:
             pprint(0, "")
-            pprint(0, f"TRAINNING MODEL {self.model_name}")
+            pprint(0, f"TRAINNING MODEL {self._model_name}")
             pprint(0, "")
             pprint(0, "Conditions:")
             pprint(0, f"\tepochs:     {epochs}")
@@ -313,8 +326,8 @@ class KAN(nn.Module):
             if verbose:
                 pprint(0, f"Printing losses on path {save_logs_path}")
 
-            if os.path.isfile(save_logs_path + f"training_results_{self.model_name}.npy"):
-                results_old = np.load(save_logs_path + f"training_results_{self.model_name}.npy", allow_pickle=True).item()
+            if os.path.isfile(save_logs_path + f"training_results_{self._model_name}.npy"):
+                results_old = np.load(save_logs_path + f"training_results_{self._model_name}.npy", allow_pickle=True).item()
 
                 for key in results.keys():
                     if key != 'check':
@@ -322,11 +335,11 @@ class KAN(nn.Module):
                     else:
                         results[key] = results_old[key] + results[key][:]
                 if verbose:
-                    pprint(0, "Updating previous data in file" + save_logs_path + f"training_results_{self.model_name}.npy")
+                    pprint(0, "Updating previous data in file" + save_logs_path + f"training_results_{self._model_name}.npy")
 
-            np.save(save_logs_path + f"training_results_{self.model_name}.npy", results)
+            np.save(save_logs_path + f"training_results_{self._model_name}.npy", results)
             if verbose:
-                pprint(0, f"Training results saved at {save_logs_path}training_results_{self.model_name}.npy")
+                pprint(0, f"Training results saved at {save_logs_path}training_results_{self._model_name}.npy")
 
         return results
             
@@ -397,7 +410,7 @@ class KAN(nn.Module):
             "n_layers": self.n_layers,
             "hidden_size": self.hidden_size,
             "layer_type": self.layer_type,
-            "model_name": self.model_name,
+            "model_name": self._model_name,
             "p_dropouts": self.p_dropouts,
             "degree": self.degree,
             "state_dict": self.state_dict(),
@@ -421,7 +434,7 @@ class KAN(nn.Module):
             checkpoint["scheduler"] = self.scheduler.state_dict()
 
         if os.path.isdir(path):
-            filename = f"{self.model_name}.pth"
+            filename = f"{self._model_name}.pth"
             path = path + filename
 
         torch.save(checkpoint, path)
