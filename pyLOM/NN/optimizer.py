@@ -9,6 +9,8 @@
 import json
 
 from typing         import Callable, Dict
+from pathlib        import Path
+from itertools      import count
 from ..utils.errors import raiseError
 from ..             import pprint
 
@@ -65,8 +67,17 @@ try:
             study = optuna.create_study(direction=self.direction, pruner=self.pruner)
             study.optimize(objective_function, n_trials=self.num_trials)
             if self.save_dir is not None:
-                file_path = str(self.save_dir) + '/best_params.json'
-                json.dump(study.best_params, open(file_path, 'w'))
+                save_dir = Path(self.save_dir)
+                save_dir.mkdir(parents=True, exist_ok=True)
+
+                for i in count():
+                    file_path = save_dir / f"best_params_{i}.json"
+                    try:
+                        with open(file_path, "x") as f:
+                            json.dump(study.best_params, f, indent=2, sort_keys=True)
+                        break
+                    except FileExistsError:
+                        continue
 
             self._print_optimization_report(study)
             
