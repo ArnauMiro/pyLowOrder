@@ -149,7 +149,7 @@ class MLP(nn.Module):
         
         Args:
             train_dataset (torch.utils.data.Dataset): Training dataset to fit the model.
-            eval_dataset (torch.utils.data.Dataset): Evaluation dataset to evaluate the model after each epoch (default: ``None``).
+            eval_dataset (torch.utils.data.Dataset, optional): Evaluation dataset to evaluate the model after each epoch (default: ``None``).
             epochs (int, optional): Number of epochs to train the model (default: ``100``).
             batch_size (int, optional): Batch size for training (default: ``32``).
             lr (float, optional): Learning rate for the optimizer (default: ``0.001``).
@@ -174,6 +174,7 @@ class MLP(nn.Module):
                 - "loss_iterations_train": List of training losses for each iteration.
                 - "loss_iterations_test": List of evaluation losses for each iteration (if eval_dataset is provided).
                 - "grad_norms": List of gradient norms for each iteration.
+                - "check": List with a single boolean indicating successful training.
         """
         dataloader_params = {
             "batch_size": batch_size,
@@ -510,10 +511,21 @@ class MLP(nn.Module):
         """
         optimization_params = optuna_optimizer.optimization_params
         input_dim, output_dim = train_dataset[0][0].shape[0], train_dataset[0][1].shape[0]
+        
+        def suggest_value(name, space, trial):
+            if isinstance(space, (tuple, list)):
+                use_log = (space[1] / max(1e-12, space[0])) >= 1000 if isinstance(space[0], (int, float)) else False
+                if isinstance(space[0], int):
+                    return trial.suggest_int(name, int(space[0]), int(space[1]), log=use_log)
+                elif isinstance(space[0], float):
+                    return trial.suggest_float(name, float(space[0]), float(space[1]), log=use_log)
+            else:
+                return space
+        
         def optimization_function(trial) -> float:
             training_params = {}       
             for key, params in optimization_params.items():
-                training_params[key] = cls._get_optimizing_value(key, params, trial)
+                training_params[key] = suggest_value(key, params, trial)
             training_params["save_logs_path"] = None
             
             model = cls(input_dim, output_dim, verbose=False, **training_params)
@@ -542,13 +554,3 @@ class MLP(nn.Module):
                 optimization_params[param] = best_params[param]
         
         return cls(input_dim, output_dim, **optimization_params), optimization_params
-
-    def _get_optimizing_value(name, value, trial):
-        if isinstance(value, tuple) or isinstance(value, list):
-            use_log = value[1] / value[0] >= 1000
-            if isinstance(value[0], int):
-                return trial.suggest_int(name, value[0], value[1], log=use_log)
-            elif isinstance(value[0], float):
-                return trial.suggest_float(name, value[0], value[1], log=use_log)
-        else:
-            return value
