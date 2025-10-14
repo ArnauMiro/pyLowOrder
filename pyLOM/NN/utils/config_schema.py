@@ -36,6 +36,7 @@ class TrainingConfigBase:
     scheduler: Optional[str] = "torch.optim.lr_scheduler.StepLR"
     epochs: int = 100
     lr: float = 1e-4
+    weight_decay: float = 0.0
     lr_gamma: float = 0.1
     lr_scheduler_step: int = 1
     print_every: Optional[int] = 1

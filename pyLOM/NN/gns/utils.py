@@ -134,6 +134,9 @@ class InputsInjector:
                 - seed_mask: shape [B * N]
                 - y (optional): shape [B * N, O]
         """
+        # Normalize inputs to 2D [B, D]
+        if inputs_batch.ndim == 1:
+            inputs_batch = inputs_batch.unsqueeze(0)
         B = inputs_batch.size(0)
         N = getattr(graph, 'num_nodes', None)
         x = getattr(graph, 'x', None)

@@ -444,7 +444,12 @@ class GNS(torch.nn.Module):
 
         # --- Initialize optimizer and scheduler ---
         if reset_state or self.optimizer is None:
-            self.optimizer = optimizer_cls(self.parameters(), lr=config.lr)
+            # Support weight decay (regularization) for small datasets
+            try:
+                self.optimizer = optimizer_cls(self.parameters(), lr=config.lr, weight_decay=getattr(config, 'weight_decay', 0.0))
+            except TypeError:
+                # Fallback if optimizer does not accept weight_decay
+                self.optimizer = optimizer_cls(self.parameters(), lr=config.lr)
 
         if reset_state or (self.scheduler is None and scheduler_cls is not None):
             # Default to StepLR-style kwargs; callers can change scheduler type via config.
