@@ -128,9 +128,9 @@ class ClusteredPipeline:
         self.test_dataset = test_dataset
         self.valid_dataset = valid_dataset
 
-        assert (self.optimizers_dict is not None and self.model_classes_dict is not None) or (
-            self._models is not None and self.training_params_dict is not None
-        ), "Either models_list and training_params_list or optimizers_list and model_classes_list must be provided"
+        assert (optimizers_dict is not None and model_classes_dict is not None) or (
+            models_dict is not None and training_params_dict is not None
+        ), "Either models_dict and training_params_dict or optimizers_dict and model_classes_dict must be provided"
 
         self.cluster_col_idx = cluster_col_idx
         self.n_clusters = self._get_n_clusters()
@@ -150,21 +150,21 @@ class ClusteredPipeline:
 
         if training_params_dict is not None:
             assert all(k in training_params_dict.keys() for k in self.dict_keys), "training_params_dict must contain keys: " + ", ".join(self.dict_keys)
-            assert (len(self.training_params_dict)-1) == self.n_clusters, "Number of training_params must match number of clusters"
+            assert (len(training_params_dict)-1) == self.n_clusters, "Number of training_params must match number of clusters"
             self.training_params_dict = training_params_dict
         else:
             self.training_params_dict = {k: None for k in self.dict_keys}
 
         if optimizers_dict is not None:
             assert all(k in optimizers_dict.keys() for k in self.dict_keys), "optimizers_dict must contain keys: " + ", ".join(self.dict_keys[1:])
-            assert (len(self.optimizers_dict)-1) == self.n_clusters, "Number of optimizers must match number of clusters"
+            assert (len(optimizers_dict)-1) == self.n_clusters, "Number of optimizers must match number of clusters"
             self.optimizers_dict = optimizers_dict
         else:
             self.optimizers_dict = {k: None for k in self.dict_keys}
 
         if model_classes_dict is not None:
             assert all(k in model_classes_dict.keys() for k in self.dict_keys), "model_classes_dict must contain keys: " + ", ".join(self.dict_keys[1:])
-            assert (len(self.model_classes_dict)-1) == self.n_clusters, "Number of model_classes must match number of clusters"
+            assert (len(model_classes_dict)-1) == self.n_clusters, "Number of model_classes must match number of clusters"
             self.model_classes_dict = model_classes_dict
         else:
             self.model_classes_dict = {k: None for k in self.dict_keys}
@@ -177,7 +177,8 @@ class ClusteredPipeline:
     def _get_cluster_ids(self):
         cluster_col = self.train_dataset[:][1][:, self.cluster_col_idx]
         cluster_col_np = cluster_col.detach().cpu().numpy() if hasattr(cluster_col, "detach") else np.asarray(cluster_col)
-        return np.unique(cluster_col_np)
+        unique = np.unique(cluster_col_np)
+        return np.rint(unique).astype(np.int64).tolist()
 
     def _filter_one_cluster(self, dataset, cluster_id):
 
@@ -197,10 +198,10 @@ class ClusteredPipeline:
         ds_filtered.remove_column(self.cluster_col_idx, from_variables_out=True)
         return ds_filtered
     
-    def _keep_cluster_column(self, dataset, cluster_col_idx):
-        outs = dataset[:][cluster_col_idx]
+    def _keep_cluster_column(self, dataset):
+        outs = dataset[:][1]
         ds_new = copy.deepcopy(dataset)
-        ds_new.variables_out = outs
+        ds_new.variables_out = outs[:,self.cluster_col_idx]
         return ds_new
 
     @property
