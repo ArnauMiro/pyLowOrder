@@ -18,7 +18,7 @@ from .utils         import Dataset, MinMaxScaler, select_device, betaLinearSched
 
 from .optimizer     import OptunaOptimizer
 
-from .stats         import RegressionEvaluator
+from .stats         import RegressionEvaluator, ClassificationEvaluator
 from .callbacks     import EarlyStopper
 
 from .interpolator import Interpolator
@@ -30,7 +30,7 @@ from .architectures.autoencoders      import Autoencoder, VariationalAutoencoder
 from .architectures.encoders_decoders import Encoder2D, Decoder2D, Encoder3D, Decoder3D, ShallowDecoder
 from .architectures.pinn              import PINN, BurgersPINN, Euler2DPINN, NavierStokesIncompressible2DPINN, BoundaryCondition
 from .architectures.shred             import SHRED
-
+from .architectures.xgb_classifier    import XGBClassifier
 
 
 # Wrapper of the activation functions
