@@ -4,6 +4,9 @@ import numpy as np
 import torch.nn as nn
 
 from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
 from typing import Dict, List, Tuple, Callable
 from ..optimizer import OptunaOptimizer, TrialPruned
 from .. import DEVICE, set_seed  # pyLOM/NN/__init__.py
@@ -142,6 +145,10 @@ class MLP(nn.Module):
         print_rate_batch: int = 0,
         print_rate_epoch: int = 1,
         save_best: bool = False,
+        ddp: bool = False,
+        ddp_backend: str = "nccl",
+        local_rank: int = None,
+        find_unused_parameters: bool = False,
         **kwargs,
     )-> Dict[str, List[float]]:
         r"""
@@ -165,6 +172,10 @@ class MLP(nn.Module):
                 - shuffle (bool, optional): Shuffle the data (default: ``True``).
                 - num_workers (int, optional): Number of workers to use (default: ``0``).
                 - pin_memory (bool, optional): Pin memory (default: ``True``).
+            ddp (bool, optional): Enable DistributedDataParallel for multi-GPU training (default: ``False``).
+            ddp_backend (str, optional): Backend for torch.distributed (default: ``"nccl"``).
+            local_rank (int, optional): Local GPU rank. If ``None``, inferred from ``LOCAL_RANK`` env (default: ``None``).
+            find_unused_parameters (bool, optional): Passed to DDP wrapper (default: ``False``).
 
         Returns:
             Dict[str, List[float]]: Dictionary containing the training and evaluation results:
@@ -183,21 +194,77 @@ class MLP(nn.Module):
             "pin_memory": True,
         }
 
-        if not hasattr(self, "train_dataloader"):
+        # --- DDP setup (minimal) ---
+        if ddp:
+            # Infer local rank from torch.run/torch.distributed.launch if not provided
+            if local_rank is None:
+                env_lr = os.environ.get("LOCAL_RANK")
+                local_rank = int(env_lr) if env_lr is not None else 0
+
+            # Initialize process group if needed
+            if not (dist.is_available() and dist.is_initialized()):
+                try:
+                    dist.init_process_group(backend=ddp_backend)
+                except Exception as e:
+                    raiseError(f"Failed to init DDP process group: {e}")
+
+            # Set device and move model
+            if torch.cuda.is_available():
+                torch.cuda.set_device(local_rank)
+                self.device = torch.device(f"cuda:{local_rank}")
+            else:
+                self.device = torch.device("cpu")
+            self.to(self.device)
+
+        # Main process check for logging/saving
+        is_main_process = True
+        if ddp and dist.is_available() and dist.is_initialized():
+            try:
+                is_main_process = dist.get_rank() == 0
+            except Exception:
+                is_main_process = True
+
+        # Build DataLoaders (use DistributedSampler when ddp=True)
+        if ddp:
+            # Samplers override shuffle
+            dataloader_params["shuffle"] = False
             for key in dataloader_params.keys():
                 if key in kwargs:
                     dataloader_params[key] = kwargs[key]
-            self.train_dataloader = DataLoader(train_dataset, **dataloader_params)
+            self.train_sampler = DistributedSampler(train_dataset, shuffle=True, drop_last=False)
+            self.train_dataloader = DataLoader(train_dataset, sampler=self.train_sampler, **dataloader_params)
         
-        if not hasattr(self, "eval_dataloader") and eval_dataset is not None:
-            for key in dataloader_params.keys():
-                if key in kwargs:
-                    dataloader_params[key] = kwargs[key]
-            self.eval_dataloader = DataLoader(eval_dataset, **dataloader_params)
+            if eval_dataset is not None:
+                self.eval_sampler = DistributedSampler(eval_dataset, shuffle=False, drop_last=False)
+                self.eval_dataloader = DataLoader(eval_dataset, sampler=self.eval_sampler, **dataloader_params)
+        else:
+            if not hasattr(self, "train_dataloader"):
+                for key in dataloader_params.keys():
+                    if key in kwargs:
+                        dataloader_params[key] = kwargs[key]
+                self.train_dataloader = DataLoader(train_dataset, **dataloader_params)
+            if not hasattr(self, "eval_dataloader") and eval_dataset is not None:
+                for key in dataloader_params.keys():
+                    if key in kwargs:
+                        dataloader_params[key] = kwargs[key]
+                self.eval_dataloader = DataLoader(eval_dataset, **dataloader_params)
+
+        # Wrap model with DDP if requested
+        model = self
+        if ddp:
+            try:
+                model = DDP(
+                    self,
+                    device_ids=[local_rank] if torch.cuda.is_available() else None,
+                    output_device=local_rank if torch.cuda.is_available() else None,
+                    find_unused_parameters=find_unused_parameters,
+                )
+            except Exception as e:
+                raiseError(f"Failed to wrap model with DDP: {e}")
 
         if not hasattr(self, "optimizer"):
             self.optimizer = optimizer_class(
-                self.parameters(),
+                model.parameters(),
                 lr=lr,
                 **optimizer_kwargs
             )
@@ -236,11 +303,18 @@ class MLP(nn.Module):
         self.mname = f"{self._model_name}_{total_epochs:05d}"
         for epoch in range(1+len(train_losses), 1+total_epochs):
             train_loss = 0.0
-            self.train()
+            model.train()
+
+            # Ensure sampler shuffles differently each epoch under DDP
+            if ddp:
+                try:
+                    self.train_sampler.set_epoch(epoch)
+                except Exception:
+                    pass
 
             def closure():
                 self.optimizer.zero_grad()
-                oupt = self(x_train)
+                oupt = model(x_train)
                 loss_val = loss_fn(oupt, y_train)
                 loss_val.backward()
                 loss_iterations_train.append(loss_val.item())
@@ -249,10 +323,10 @@ class MLP(nn.Module):
             for b_idx, batch in enumerate(self.train_dataloader):
                 x_train, y_train = batch[0].to(self.device), batch[1].to(self.device)
                 train_loss += self.optimizer.step(closure).item()
-                total_norm = torch.norm(torch.stack([p.grad.norm() for p in self.parameters() if p.grad is not None]))
+                total_norm = torch.norm(torch.stack([p.grad.norm() for p in model.parameters() if p.grad is not None]))
                 grad_norms.append(total_norm.item())
         
-                if print_rate_batch != 0 and (b_idx % print_rate_batch) == 0:
+                if is_main_process and print_rate_batch != 0 and (b_idx % print_rate_batch) == 0:
                     pprint(
                         0,
                         f"\tBatch {b_idx+1}/{len(self.train_dataloader)}, Train Loss: {train_loss:.4e}",
@@ -267,11 +341,11 @@ class MLP(nn.Module):
             
             test_loss = 0.0
             if eval_dataset is not None:
-                self.eval()
+                model.eval()
                 with torch.no_grad():
                     for n_idx, sample in enumerate(self.eval_dataloader):
                         x_test, y_test = sample[0].to(self.device), sample[1].to(self.device)
-                        test_output = self(x_test)
+                        test_output = model(x_test)
                         loss_val = loss_fn(test_output, y_test)
                         loss_iterations_test.append(loss_val.item())
                         test_loss += loss_val.item()
@@ -280,16 +354,16 @@ class MLP(nn.Module):
                 test_losses.append(test_loss)
 
                 if save_best and (len(test_losses) == 1 or test_loss < min(test_losses[:-1])):
-                    if save_logs_path is not None:
+                    if is_main_process and save_logs_path is not None:
                         best_model_file = os.path.join(save_logs_path, f"best_model_{self._model_name}.pth")
                         self.save(best_model_file)
-                    elif save_best:
+                    elif is_main_process and save_best:
                         raiseWarning("The argument save_best is set to True but no save_logs_path is provided. The best model will not be saved.")
             
             current_lr = self.optimizer.param_groups[0]["lr"]
             current_lr_vec.append(current_lr)
             
-            if print_rate_epoch != 0 and (epoch % print_rate_epoch) == 0:
+            if is_main_process and print_rate_epoch != 0 and (epoch % print_rate_epoch) == 0:
                 if torch.cuda.is_available():
                     mem_used = torch.cuda.memory_allocated() / (1024**2)  # Memory usage in MB
                     memory_usage_str = f", MEM: {mem_used:.2f} MB"
@@ -313,7 +387,7 @@ class MLP(nn.Module):
             "check": [True],
         }
 
-        if save_logs_path is not None:
+        if is_main_process and save_logs_path is not None:
             pprint(0, f"\nPrinting losses on path: {save_logs_path}")
             fn = os.path.join(save_logs_path,f"training_results_{self._model_name}.npy")
             np.save(fn, results)
