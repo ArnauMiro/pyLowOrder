@@ -31,8 +31,8 @@ def launch_example(resudir: str, ddp_on: bool, nproc: int, basedir: str, casestr
     if ddp_on:
         torchrun = os.environ.get("TORCHRUN_BIN", "torchrun")
         cmd = [
-            torchrun, "--nproc_per_node", str(nproc),
-            sys.executable, EXAMPLE,
+            torchrun, "--standalone", "--nproc_per_node", str(nproc),
+            EXAMPLE,
             "--ddp", "on",
             "--resudir", resudir,
             "--basedir", basedir,
@@ -56,18 +56,24 @@ def _load_results(resudir: str, mode: str) -> Dict:
         raise FileNotFoundError(fname)
     data = np.load(fname, allow_pickle=True).item()
     # Derive metrics consistently
-    epochs = int(len(data.get("epoch_time_s", []))) if data.get("epoch_time_s") is not None else (
-        int(len(data.get("test_loss", []))) if data.get("test_loss") is not None else None
-    )
+    et = data.get("epoch_time_s")
+    tl = data.get("test_loss")
+    tr = data.get("train_loss")
+    epochs = int(len(et)) if et is not None else (int(len(tl)) if tl is not None else None)
     total_time = data.get("cr_total_time_s")
     if total_time is None:
-        et = data.get("epoch_time_s") or []
-        total_time = float(np.sum(et)) if len(et) else None
+        if et is not None:
+            et_np = np.asarray(et, dtype=float)
+            total_time = float(np.nansum(et_np)) if et_np.size > 0 else None
     avg_epoch_time = (float(total_time) / float(epochs)) if (total_time is not None and epochs) else None
-    thr_g = data.get("throughput_samples_per_sec_global") or []
-    avg_thr_g = float(np.mean(thr_g)) if len(thr_g) else None
-    train = data.get("train_loss") or []
-    test = data.get("test_loss") or []
+    thr_g = data.get("throughput_samples_per_sec_global")
+    if thr_g is not None:
+        thr_g_np = np.asarray(thr_g, dtype=float)
+        avg_thr_g = float(np.nanmean(thr_g_np)) if thr_g_np.size > 0 else None
+    else:
+        avg_thr_g = None
+    train = tr if tr is not None else []
+    test = tl if tl is not None else []
     final_train = float(train[-1]) if len(train) else None
     final_test = float(test[-1]) if len(test) else None
     # Optional RMSE if preds are saved
@@ -132,8 +138,9 @@ def task_compare(single_base: str, ddp_base: str, repeats: int, out_dir: str) ->
         "speedup_total_time_std": None,
     }
     try:
-        if s["total_time_s_mean"] and d["total_time_s_mean"] and d["total_time_s_mean"] > 0:
-            comp["speedup_total_time_mean"] = s["total_time_s_mean"] / d["total_time_s_mean"]
+        if (s.get("total_time_s_mean") is not None and d.get("total_time_s_mean") is not None
+                and d["total_time_s_mean"] > 0):
+            comp["speedup_total_time_mean"] = float(s["total_time_s_mean"]) / float(d["total_time_s_mean"])
     except Exception:
         pass
     with open(os.path.join(out_dir, "comparison_avg.json"), "w") as f:
@@ -236,8 +243,10 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
     try:
         import matplotlib.pyplot as plt
         gp = [e["gpus"] for e in scaling["entries"]]
-        tt = [e.get("total_time_s_mean") for e in scaling["entries"]]
-        spv = [e.get(f"speedup_vs_{g0}") for e in scaling["entries"]]
+        tt = [float(v) if v is not None else np.nan for v in [e.get("total_time_s_mean") for e in scaling["entries"]]]
+        spv = [float(v) if v is not None else np.nan for v in [e.get(f"speedup_vs_{g0}") for e in scaling["entries"]]]
+        rm = [float(v) if v is not None else np.nan for v in [e.get("rmse_mean") for e in scaling["entries"]]]
+        rm_std = [float(v) if v is not None else np.nan for v in [e.get("rmse_std") for e in scaling["entries"]]]
         # Time
         fig, ax = plt.subplots(figsize=(6, 4))
         ax.bar([str(x) for x in gp], tt)
@@ -258,7 +267,45 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
         fig.tight_layout()
         fig.savefig(os.path.join(resudir_base, "scaling_speedup.png"), dpi=300)
         plt.close(fig)
-        print(f"Saved: {os.path.join(resudir_base, 'scaling_time.png')} and scaling_speedup.png")
+        # RMSE vs GPUs (with error bars)
+        rm_arr = np.asarray(rm, dtype=float)
+        rm_std_arr = np.asarray(rm_std, dtype=float)
+        gp_arr = np.asarray(gp, dtype=int)
+        mask = np.isfinite(rm_arr)
+        if np.any(mask):
+            fig, ax = plt.subplots(figsize=(6, 4))
+            ax.errorbar(gp_arr[mask], rm_arr[mask], yerr=rm_std_arr[mask], fmt='-o', capsize=4)
+            ax.set_title("RMSE vs GPUs")
+            ax.set_xlabel("GPUs")
+            ax.set_ylabel("RMSE (mean ± std)")
+            ax.grid(True, linestyle='--', alpha=0.4)
+            fig.tight_layout()
+            fig.savefig(os.path.join(resudir_base, "scaling_rmse.png"), dpi=300)
+            plt.close(fig)
+        # RMSE vs Training Time (scatter with annotations)
+        tt_arr = np.asarray(tt, dtype=float)
+        mask2 = np.isfinite(tt_arr) & np.isfinite(rm_arr)
+        if np.any(mask2):
+            fig, ax = plt.subplots(figsize=(6, 4))
+            ax.scatter(tt_arr[mask2], rm_arr[mask2], c='tab:blue')
+            for x, y, g in zip(tt_arr[mask2], rm_arr[mask2], gp_arr[mask2]):
+                ax.annotate(str(int(g)), (x, y), textcoords="offset points", xytext=(5, 5), fontsize=8)
+            # Pearson corr if >=2 points
+            if np.count_nonzero(mask2) >= 2:
+                try:
+                    r = float(np.corrcoef(tt_arr[mask2], rm_arr[mask2])[0,1])
+                    ax.set_title(f"RMSE vs Training Time (r={r:.3f})")
+                except Exception:
+                    ax.set_title("RMSE vs Training Time")
+            else:
+                ax.set_title("RMSE vs Training Time")
+            ax.set_xlabel("Total time (s)")
+            ax.set_ylabel("RMSE (mean)")
+            ax.grid(True, linestyle='--', alpha=0.4)
+            fig.tight_layout()
+            fig.savefig(os.path.join(resudir_base, "rmse_vs_time.png"), dpi=300)
+            plt.close(fig)
+        print(f"Saved: {os.path.join(resudir_base, 'scaling_time.png')}, scaling_speedup.png, scaling_rmse.png, rmse_vs_time.png")
     except Exception as e:
         print(f"[WARN] Could not generate scaling figures: {e}")
 
