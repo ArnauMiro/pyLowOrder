@@ -4,7 +4,7 @@
 #
 # Last rev: 09/07/2021
 
-__version__ = '3.1.0'
+__version__ = '3.2.0'
 
 # Import essential tools
 from .                import inp_out as io, vmmath as math
@@ -23,15 +23,7 @@ from .utils.gpu    import gpu_device
 from . import POD, PCA, DMD, SPOD, MANIFOLD, GPOD
 
 # Import AI Models
-# Leaving this commented as the NN module overloads the memory when loaded
+# The NN module overloads the memory when loaded
 # to load the NN module use `import pyLOM.NN` instead
-# Show a warning in case the modules cannot be loaded
-#try:
-#    from . import NN
-#except:
-#	from .utils.errors import raiseWarning
-#	raiseWarning('Import - Cannot load NN! Ensure that the correct dependencies are installed',allranks=False)
-#	del raiseWarning
-
 
 del dataset, partition_table, mesh

@@ -211,7 +211,8 @@ def h5_save_points(file,xyz,order,ptable,point):
 	istart, iend = ptable.partition_bounds(MPI_RANK,points=point)
 	dxyz[istart:iend,:] = xyz
 	dpoinO[istart:iend] = order
-	return None, None, None
+	inods,idx = np.unique(order,return_index=True)
+	return inods, idx, npointG
 
 def h5_save_points_nopartition(file,xyz,order,ptable,point):
 	'''
@@ -930,8 +931,8 @@ def h5_load_DMD(fname,vars,nmod,ptable=None):
 		# Read
 		nvars = int(file['DMD']['n_variables'][0])
 		point = bool(file['DMD']['pointData'][0])
-		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,point=point)
-		varList.append( np.array(file['DMD']['Phi'][istart:iend,:nmod]) )
+		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=point)
+		varList.append( np.array(file['DMD']['Phi'][istart:iend,:]) )
 	if 'mu' in vars: 
 		varList.append( np.array(file['DMD']['Mu'][:,0]) ) # Real
 		varList.append( np.array(file['DMD']['Mu'][:,1]) ) # Imag

@@ -9,7 +9,7 @@ from __future__ import print_function, division
 
 import time, numpy as np
 
-from ..utils.gpu import cp
+from ..utils.gpu import cp, gpu_to_cpu, cpu_to_gpu
 from .maths      import matmul, matmulp
 from ..utils     import cr_nvtx as cr, MPI_RANK, MPI_SIZE, mpi_send, mpi_recv
 
@@ -140,6 +140,35 @@ def randomized_qr(Ai, r, q, seed=-1):
 
 	Qi,_ = tsqr(Yi)
 	B    = matmulp(Qi.T,Ai)
+
+	return Qi, B
+
+@cr('math.randomized_qr2')
+def randomized_qr2(Ai, r, q, seed=-1):
+	'''
+	Ai(m,n)  data matrix dispersed on each processor.
+	r        target number of modes
+
+	Qi(m,r)  
+	B (r,n) 
+
+	Here we only perform the tsqr on GPU while
+	matmul happens on CPU.
+	'''
+	Ai = gpu_to_cpu(Ai) # Ensure Ai is on CPU
+	_, n = Ai.shape
+	seed = int(time.time()) if seed < 0 else seed
+	np.random.seed(seed=seed)
+	omega = np.random.rand(n, r).astype(Ai.dtype) # on CPU
+	Yi = cpu_to_gpu(matmul(Ai,omega)) # on CPU to GPU
+	# QR factorization on A
+	for j in range(q):
+		Qi,_ = tsqr(Yi) # on GPU
+		Q2i  = matmulp(Ai.T,gpu_to_cpu(Qi)) # on CPU
+		Yi   = cpu_to_gpu(matmul(Ai,Q2i)) # on CPU to GPU
+
+	Qi,_ = tsqr(Yi) # on GPU
+	B    = cpu_to_gpu(matmulp(gpu_to_cpu(Qi.T),Ai))
 
 	return Qi, B
 
