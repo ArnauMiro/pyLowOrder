@@ -53,7 +53,7 @@
     <link rel="search" title="Search" href="../../../search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="3.1.0" />
+  <meta name="docsearch:version" content="3.2.0" />
   </head>
   
   
@@ -368,6 +368,10 @@
 <span class="c1"># Last rev: 22/05/2025</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">minimize</span><span class="p">,</span> <span class="n">LinearConstraint</span>
+<span class="kn">import</span> <span class="nn">scipy.sparse</span> <span class="k">as</span> <span class="nn">sp</span>
 
 <span class="kn">from</span> <span class="nn">..dataset</span>          <span class="kn">import</span> <span class="n">Dataset</span> <span class="k">as</span> <span class="n">pyLOMDataset</span>
 <span class="kn">from</span> <span class="nn">..utils.errors</span>     <span class="kn">import</span> <span class="n">raiseError</span>
@@ -382,10 +386,9 @@
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span>
 
-<div class="viewcode-block" id="Interpolator.objective_mse">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Interpolator.objective_mse">[docs]</a>
-    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">objective_mse</span><span class="p">(</span>
+<div class="viewcode-block" id="Interpolator.objective_mse_torch">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Interpolator.objective_mse_torch">[docs]</a>
+    <span class="k">def</span> <span class="nf">objective_mse_torch</span><span class="p">(</span>
         <span class="n">field_mod</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> 
         <span class="n">field_ref</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> 
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
@@ -404,10 +407,72 @@
         <span class="n">mse_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">(</span><span class="n">reduction</span><span class="o">=</span><span class="s1">&#39;sum&#39;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">mse_loss</span><span class="p">(</span><span class="n">field_mod</span><span class="p">,</span> <span class="n">field_ref</span><span class="p">)</span></div>
 
+    
+<div class="viewcode-block" id="Interpolator.objective_mse_np">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Interpolator.objective_mse_np">[docs]</a>
+    <span class="k">def</span> <span class="nf">objective_mse_np</span><span class="p">(</span>
+        <span class="n">field_mod</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">field_ref</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Objective function to minimize the difference between the modified and original field.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            field_mod (np.ndarray): Modified field.</span>
+<span class="sd">            field_ref (np.ndarray): Original field.</span>
+<span class="sd">            **kwargs: Additional arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray: The sum of squared differences between the modified and original field.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">field_mod</span> <span class="o">-</span> <span class="n">field_ref</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Interpolator.objective_mse_grad">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Interpolator.objective_mse_grad">[docs]</a>
+    <span class="k">def</span> <span class="nf">objective_mse_grad</span><span class="p">(</span>
+        <span class="n">field_mod</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">field_ref</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gradient of the objective function to minimize the difference between the modified and original field.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            field_mod (np.ndarray): Modified field.</span>
+<span class="sd">            field_ref (np.ndarray): Original field.</span>
+<span class="sd">            **kwargs: Additional arguments.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray: The gradient of the sum of squared differences between the modified and original field.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">field_mod</span> <span class="o">-</span> <span class="n">field_ref</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="Interpolator.objective_mse_hess">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Interpolator.objective_mse_hess">[docs]</a>
+    <span class="k">def</span> <span class="nf">objective_mse_hess</span><span class="p">(</span>
+        <span class="n">x</span><span class="p">,</span>
+        <span class="n">v</span><span class="p">,</span>
+        <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Hessian of the objective function to minimize the difference between the modified and original field.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            x (np.ndarray): Current point.</span>
+<span class="sd">            v (np.ndarray): Direction tensor.</span>
+<span class="sd">            target (np.ndarray): Target values.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray: The Hessian of the sum of squared differences between the modified and original field.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">v</span></div>
+
 
 <div class="viewcode-block" id="Interpolator.multitarget_equality_penalty">
 <a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Interpolator.multitarget_equality_penalty">[docs]</a>
-    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">multitarget_equality_penalty</span><span class="p">(</span>
         <span class="n">field_mod</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">penalty_func</span><span class="p">:</span> <span class="nb">callable</span><span class="p">,</span>
@@ -444,7 +509,6 @@
 
 <div class="viewcode-block" id="Interpolator.get_opt_params_for_case">
 <a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Interpolator.get_opt_params_for_case">[docs]</a>
-    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">get_opt_params_for_case</span><span class="p">(</span>
         <span class="n">dataset</span><span class="p">:</span> <span class="n">pyLOMDataset</span><span class="p">,</span>
         <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -486,13 +550,29 @@
             <span class="s1">&#39;target_names&#39;</span><span class="p">:</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;target_names&#39;</span><span class="p">),</span>
         <span class="p">}</span></div>
 
+    
+<div class="viewcode-block" id="Interpolator.create_linear_constraint">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Interpolator.create_linear_constraint">[docs]</a>
+    <span class="k">def</span> <span class="nf">create_linear_constraint</span><span class="p">(</span>
+        <span class="n">constr_jac</span><span class="p">:</span> <span class="nb">callable</span><span class="p">,</span>
+        <span class="n">target_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+        <span class="n">ref_values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+        <span class="n">penalty_args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">constrains_jac</span> <span class="o">=</span> <span class="n">constr_jac</span><span class="p">(</span><span class="o">**</span><span class="n">penalty_args</span><span class="p">)</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">sp</span><span class="o">.</span><span class="n">csr_matrix</span><span class="p">(</span><span class="n">jac</span><span class="p">)</span> <span class="k">for</span> <span class="n">jac</span> <span class="ow">in</span> <span class="n">constrains_jac</span><span class="p">],</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;csr&#39;</span><span class="p">)</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ref_values</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">target_names</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Interpolator.adjust_field">
-<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Interpolator.adjust_field">[docs]</a>
-    <span class="k">def</span> <span class="nf">adjust_field</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">LinearConstraint</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">lb</span><span class="o">=</span><span class="n">b</span><span class="p">,</span> <span class="n">ub</span><span class="o">=</span><span class="n">b</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Interpolator.adjust_field_first_order">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Interpolator.adjust_field_first_order">[docs]</a>
+    <span class="k">def</span> <span class="nf">adjust_field_first_order</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">fieldname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">obj_func</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">=</span> <span class="n">objective_mse</span><span class="p">,</span>
+        <span class="n">obj_func</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">=</span> <span class="n">objective_mse_torch</span><span class="p">,</span>
         <span class="n">get_opt_param_func</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">=</span> <span class="n">get_opt_params_for_case</span><span class="p">,</span>
         <span class="n">constr_func</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">=</span> <span class="n">multitarget_equality_penalty</span><span class="p">,</span>
         <span class="n">optimizer_class</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">,</span>
@@ -594,6 +674,50 @@
 
             <span class="n">field_mod</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">colTensor</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
             <span class="n">field_losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">losses</span><span class="p">)</span>
+
+        <span class="n">ndim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">fieldname</span><span class="p">)[</span><span class="s1">&#39;ndim&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">add_field</span><span class="p">(</span><span class="n">varname</span><span class="o">=</span><span class="n">fieldname</span> <span class="o">+</span> <span class="s1">&#39;Adjusted&#39;</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="n">ndim</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="n">field_mod</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">field_losses</span></div>
+
+
+<div class="viewcode-block" id="Interpolator.adjust_field_second_order">
+<a class="viewcode-back" href="../../../api/pyLOM.NN.html#pyLOM.NN.Interpolator.adjust_field_second_order">[docs]</a>
+    <span class="k">def</span> <span class="nf">adjust_field_second_order</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">fieldname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">constr_jac</span><span class="p">:</span> <span class="nb">callable</span><span class="p">,</span>
+        <span class="n">obj_func</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">=</span> <span class="n">objective_mse_np</span><span class="p">,</span>
+        <span class="n">obj_grad</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">=</span> <span class="n">objective_mse_grad</span><span class="p">,</span>
+        <span class="n">obj_hess</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">=</span> <span class="n">objective_mse_hess</span><span class="p">,</span>
+        <span class="n">get_opt_param_func</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">=</span> <span class="n">get_opt_params_for_case</span><span class="p">,</span>
+        <span class="n">create_linear_constraint</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">=</span> <span class="n">create_linear_constraint</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span><span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">pyLOMDataset</span><span class="p">,</span> <span class="nb">list</span><span class="p">]:</span>
+
+        <span class="n">field</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">[</span><span class="n">fieldname</span><span class="p">]</span>
+        <span class="n">field_mod</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">field_losses</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">T</span><span class="p">):</span>
+            <span class="n">colTensor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+            <span class="n">colTensor0</span> <span class="o">=</span> <span class="n">colTensor</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">opt_vars</span> <span class="o">=</span> <span class="n">get_opt_param_func</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">lin_con</span> <span class="o">=</span> <span class="n">create_linear_constraint</span><span class="p">(</span><span class="n">constr_jac</span><span class="p">,</span> <span class="o">**</span><span class="n">opt_vars</span><span class="p">)</span>
+
+            <span class="n">res</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span>
+                <span class="n">fun</span><span class="o">=</span><span class="n">obj_func</span><span class="p">,</span>
+                <span class="n">x0</span><span class="o">=</span><span class="n">colTensor0</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">colTensor</span><span class="p">,),</span>
+                <span class="n">method</span><span class="o">=</span><span class="s1">&#39;trust-constr&#39;</span><span class="p">,</span>
+                <span class="n">jac</span><span class="o">=</span><span class="n">obj_grad</span><span class="p">,</span>
+                <span class="n">hessp</span><span class="o">=</span><span class="n">obj_hess</span><span class="p">,</span>
+                <span class="n">constraints</span><span class="o">=</span><span class="p">[</span><span class="n">lin_con</span><span class="p">],</span>
+                <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;verbose&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;sparse_jacobian&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+                <span class="n">tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">field_mod</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">x</span>
+            <span class="n">field_losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
 
         <span class="n">ndim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">fieldname</span><span class="p">)[</span><span class="s1">&#39;ndim&#39;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">add_field</span><span class="p">(</span><span class="n">varname</span><span class="o">=</span><span class="n">fieldname</span> <span class="o">+</span> <span class="s1">&#39;Adjusted&#39;</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="n">ndim</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="n">field_mod</span><span class="p">)</span>

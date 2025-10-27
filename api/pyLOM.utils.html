@@ -56,7 +56,7 @@
     <link rel="prev" title="pyLOM.io" href="pyLOM.io.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="3.1.0" />
+  <meta name="docsearch:version" content="3.2.0" />
   </head>
   
   
@@ -559,6 +559,13 @@ if necessary.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="pyLOM.utils.gpu_warmup">
+<span class="sig-prename descclassname"><span class="pre">pyLOM.utils.</span></span><span class="sig-name descname"><span class="pre">gpu_warmup</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/gpu.html#gpu_warmup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.gpu_warmup" title="Link to this definition">#</a></dt>
+<dd><p>Two small activations of the matmul and QR
+algorithms allowing to setup the CUDA context</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="pyLOM.utils.gpu_to_cpu">
 <span class="sig-prename descclassname"><span class="pre">pyLOM.utils.</span></span><span class="sig-name descname"><span class="pre">gpu_to_cpu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/pyLOM/utils/gpu.html#gpu_to_cpu"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyLOM.utils.gpu_to_cpu" title="Link to this definition">#</a></dt>
 <dd><p>Move an array from GPU to CPU</p>
@@ -652,6 +659,7 @@ if necessary.</p>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mpi_reduce"><code class="docutils literal notranslate"><span class="pre">mpi_reduce()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.mpi_bcast"><code class="docutils literal notranslate"><span class="pre">mpi_bcast()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.gpu_device"><code class="docutils literal notranslate"><span class="pre">gpu_device()</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.gpu_warmup"><code class="docutils literal notranslate"><span class="pre">gpu_warmup()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.gpu_to_cpu"><code class="docutils literal notranslate"><span class="pre">gpu_to_cpu()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.cpu_to_gpu"><code class="docutils literal notranslate"><span class="pre">cpu_to_gpu()</span></code></a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#pyLOM.utils.ascontiguousarray"><code class="docutils literal notranslate"><span class="pre">ascontiguousarray()</span></code></a></li>

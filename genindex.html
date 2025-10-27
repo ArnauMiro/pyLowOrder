@@ -53,7 +53,7 @@
     <link rel="search" title="Search" href="search.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
-  <meta name="docsearch:version" content="3.1.0" />
+  <meta name="docsearch:version" content="3.2.0" />
   </head>
   
   
@@ -418,7 +418,9 @@
 </li>
       <li><a href="api/pyLOM.html#pyLOM.Dataset.add_variable">add_variable() (pyLOM.Dataset method)</a>
 </li>
-      <li><a href="api/pyLOM.NN.html#pyLOM.NN.Interpolator.adjust_field">adjust_field() (pyLOM.NN.Interpolator method)</a>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.Interpolator.adjust_field_first_order">adjust_field_first_order() (pyLOM.NN.Interpolator method)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.Interpolator.adjust_field_second_order">adjust_field_second_order() (pyLOM.NN.Interpolator method)</a>
 </li>
       <li><a href="api/pyLOM.NN.html#pyLOM.NN.RegressionEvaluator.ae_q">ae_q() (pyLOM.NN.RegressionEvaluator method)</a>
 </li>
@@ -524,14 +526,14 @@
         <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr">(in module pyLOM.utils)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/pyLOM.html#pyLOM.cr_info">cr_info() (in module pyLOM)</a>
 
       <ul>
         <li><a href="api/pyLOM.utils.html#pyLOM.utils.cr_info">(in module pyLOM.utils)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/pyLOM.html#pyLOM.cr_nvtx">cr_nvtx() (in module pyLOM)</a>
 
       <ul>
@@ -557,6 +559,8 @@
       <li><a href="api/pyLOM.RL.html#pyLOM.RL.SolverFactory.create_airfoil_solver">create_airfoil_solver() (pyLOM.RL.SolverFactory static method)</a>
 </li>
       <li><a href="api/pyLOM.RL.html#pyLOM.RL.create_env">create_env() (in module pyLOM.RL)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.Interpolator.create_linear_constraint">create_linear_constraint() (pyLOM.NN.Interpolator method)</a>
 </li>
       <li><a href="api/pyLOM.NN.html#pyLOM.NN.KAN.create_optimized_model">create_optimized_model() (pyLOM.NN.KAN class method)</a>
 
@@ -776,7 +780,7 @@
       </ul></li>
       <li><a href="api/pyLOM.html#pyLOM.Dataset.get_dim">get_dim() (pyLOM.Dataset method)</a>
 </li>
-      <li><a href="api/pyLOM.NN.html#pyLOM.NN.Interpolator.get_opt_params_for_case">get_opt_params_for_case() (pyLOM.NN.Interpolator static method)</a>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.Interpolator.get_opt_params_for_case">get_opt_params_for_case() (pyLOM.NN.Interpolator method)</a>
 </li>
       <li><a href="api/pyLOM.RL.html#pyLOM.RL.AirfoilCSTParametrizer.get_optimizable_bounds">get_optimizable_bounds() (pyLOM.RL.AirfoilCSTParametrizer method)</a>
 
@@ -821,6 +825,8 @@
 </li>
       </ul></li>
       <li><a href="api/pyLOM.utils.html#pyLOM.utils.gpu_to_cpu">gpu_to_cpu() (in module pyLOM.utils)</a>
+</li>
+      <li><a href="api/pyLOM.utils.html#pyLOM.utils.gpu_warmup">gpu_warmup() (in module pyLOM.utils)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -895,6 +901,10 @@
 
 <h2 id="J">J</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.jacobians_pressure">jacobians_pressure() (in module pyLOM.NN)</a>
+</li>
+  </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/pyLOM.NN.html#pyLOM.NN.JacobiLayer">JacobiLayer (class in pyLOM.NN)</a>
 </li>
@@ -1053,7 +1063,7 @@
 </li>
       <li><a href="api/pyLOM.math.html#pyLOM.math.MRE_array">MRE_array() (in module pyLOM.math)</a>
 </li>
-      <li><a href="api/pyLOM.NN.html#pyLOM.NN.Interpolator.multitarget_equality_penalty">multitarget_equality_penalty() (pyLOM.NN.Interpolator static method)</a>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.Interpolator.multitarget_equality_penalty">multitarget_equality_penalty() (pyLOM.NN.Interpolator method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1117,12 +1127,18 @@
 <h2 id="O">O</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/pyLOM.NN.html#pyLOM.NN.Interpolator.objective_mse">objective_mse() (pyLOM.NN.Interpolator static method)</a>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.Interpolator.objective_mse_grad">objective_mse_grad() (pyLOM.NN.Interpolator method)</a>
 </li>
-      <li><a href="api/pyLOM.NN.html#pyLOM.NN.OptunaOptimizer.optimization_params">optimization_params (pyLOM.NN.OptunaOptimizer property)</a>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.Interpolator.objective_mse_hess">objective_mse_hess() (pyLOM.NN.Interpolator method)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.Interpolator.objective_mse_np">objective_mse_np() (pyLOM.NN.Interpolator method)</a>
+</li>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.Interpolator.objective_mse_torch">objective_mse_torch() (pyLOM.NN.Interpolator method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/pyLOM.NN.html#pyLOM.NN.OptunaOptimizer.optimization_params">optimization_params (pyLOM.NN.OptunaOptimizer property)</a>
+</li>
       <li><a href="api/pyLOM.NN.html#pyLOM.NN.OptunaOptimizer.optimize">optimize() (pyLOM.NN.OptunaOptimizer method)</a>
 </li>
       <li><a href="api/pyLOM.NN.html#pyLOM.NN.OptunaOptimizer">OptunaOptimizer (class in pyLOM.NN)</a>
@@ -1345,6 +1361,8 @@
       <li><a href="api/pyLOM.utils.html#pyLOM.utils.raiseWarning">raiseWarning() (in module pyLOM.utils)</a>
 </li>
       <li><a href="api/pyLOM.math.html#pyLOM.math.randomized_qr">randomized_qr() (in module pyLOM.math)</a>
+</li>
+      <li><a href="api/pyLOM.math.html#pyLOM.math.randomized_qr2">randomized_qr2() (in module pyLOM.math)</a>
 </li>
       <li><a href="api/pyLOM.math.html#pyLOM.math.randomized_svd">randomized_svd() (in module pyLOM.math)</a>
 </li>
