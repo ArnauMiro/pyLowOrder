@@ -5,6 +5,10 @@
 # Last revision: 14/11/2024
 
 import os, numpy as np, torch, matplotlib.pyplot as plt
+try:
+    plt.switch_backend("Agg")
+except Exception:
+    pass
 import torch.distributed as dist
 import argparse
 import pyLOM, pyLOM.NN
@@ -49,73 +53,243 @@ def print_dset_stats(name,td):
     x, y = next(iter(torch.utils.data.DataLoader(td, batch_size=len(td))))
     pyLOM.pprint(0,f'name={name} ({len(td)}), x ({x.shape}) = [{x.min(dim=0)},{x.max(dim=0)}], y ({y.shape}) = [{y.min(dim=0)},{y.max(dim=0)}]')
 
-def true_vs_pred_plot(y_true, y_pred, path):
+def true_vs_pred_plot(y_true, y_pred, path, mode: str = None):
     """
     Auxiliary function to plot the true vs predicted values
     """
-    num_plots = y_true.shape[1]
+    # Coerce to numpy arrays (N, C)
+    try:
+        if hasattr(y_true, 'detach'):
+            y_true_np = y_true.detach().cpu().numpy()
+        else:
+            y_true_np = np.asarray(y_true)
+        if hasattr(y_pred, 'detach'):
+            y_pred_np = y_pred.detach().cpu().numpy()
+        else:
+            y_pred_np = np.asarray(y_pred)
+        if y_true_np.ndim == 1:
+            y_true_np = y_true_np.reshape(-1, 1)
+        if y_pred_np.ndim == 1:
+            y_pred_np = y_pred_np.reshape(-1, 1)
+    except Exception:
+        return
+    num_plots = y_true_np.shape[1]
     plt.figure(figsize=(10, 5 * num_plots))
     for j in range(num_plots):
         plt.subplot(num_plots, 1, j + 1)
-        plt.scatter(y_true[:, j], y_pred[:, j], s=1, c="b", alpha=0.5)
+        yt = y_true_np[:, j].ravel()
+        yp = y_pred_np[:, j].ravel()
+        # Scatter
+        plt.scatter(yt, yp, s=1, c="b", alpha=0.5, label="Data")
+        # Regression line yp ≈ a*yt + b
+        try:
+            a, b = np.polyfit(yt, yp, 1)
+            y_fit = a * yt + b
+            ss_res = np.sum((yp - y_fit) ** 2)
+            ss_tot = np.sum((yp - np.mean(yp)) ** 2) + 1e-12
+            r2 = 1.0 - ss_res / ss_tot
+            rmse = float(np.sqrt(np.mean((yp - yt) ** 2)))
+            x_line = np.linspace(yt.min(), yt.max(), 100)
+            y_line = a * x_line + b
+            plt.plot(x_line, y_line, 'r-', lw=2, label=f"Reg: y={a:.3f}x+{b:.3f}, R2={r2:.4f}")
+        except Exception:
+            rmse = float(np.sqrt(np.mean((yp - yt) ** 2)))
+            # If fit fails, still show RMSE
+            pass
         plt.xlabel("True values")
         plt.ylabel("Predicted values")
-        plt.title(f"Scatterplot for Component {j+1}")
+        mode_str = f" - Mode: {mode.upper()}" if mode else ""
+        plt.title(f"Scatterplot for Component {j+1}{mode_str} (RMSE={rmse:.4e})")
         plt.grid(True)
+        plt.legend()
 
     plt.tight_layout()
     plt.savefig(path, dpi=300)
+    print(f"Saved: {path}", flush=True)
 
-def plot_train_test_loss(train_loss, test_loss, path):
-    """
-    Auxiliary function to plot the training and test loss
-    """
-    plt.figure()
-    plt.plot(range(1, len(train_loss) + 1), train_loss, label="Training Loss")
-    total_epochs = len(test_loss) # test loss is calculated at the end of each epoch
-    total_iters = len(train_loss) # train loss is calculated at the end of each iteration/batch
-    iters_per_epoch = total_iters // total_epochs
-    plt.plot(np.arange(iters_per_epoch, total_iters+1, step=iters_per_epoch), test_loss, label="Test Loss")
-    plt.xlabel("Iterations")
-    plt.ylabel("Loss")
-    plt.title("Training Loss vs Epoch")
-    plt.yscale("log")
-    plt.legend()
-    plt.grid()
-    plt.savefig(path, dpi=300)
+## removed unused plot_train_test_loss (kept only minimal plotting utilities)
 
-def plot_compare_test_loss(res_single_path, res_ddp_path, out_path):
+## removed unused plot_compare_test_loss (replaced by all-in-one figure)
+
+## removed unused plot_compare_curves (replaced by all-in-one figure)
+
+def plot_compare_all_in_one(res_single_path, res_ddp_path, out_path):
     """
-    Plot an overlay of test loss per epoch for single vs DDP runs
-    loading the saved numpy result files.
+    Plot all four curves (Single-Train, Single-Test, DDP-Train, DDP-Test)
+    overlaid in a single axes for quick comparison.
     """
     try:
         rs = np.load(res_single_path, allow_pickle=True).item()
         rd = np.load(res_ddp_path, allow_pickle=True).item()
+        tr_s = rs.get('train_loss', [])
+        tr_d = rd.get('train_loss', [])
         ts_s = rs.get('test_loss', [])
         ts_d = rd.get('test_loss', [])
-        plt.figure()
+        plt.figure(figsize=(8, 5))
+        if len(tr_s) > 0:
+            plt.plot(range(1, len(tr_s)+1), tr_s, label='Single - Train', linestyle='-')
         if len(ts_s) > 0:
-            plt.plot(range(1, len(ts_s)+1), ts_s, label='Single - Test Loss')
+            plt.plot(range(1, len(ts_s)+1), ts_s, label='Single - Test', linestyle='--')
+        if len(tr_d) > 0:
+            plt.plot(range(1, len(tr_d)+1), tr_d, label='DDP - Train', linestyle='-')
         if len(ts_d) > 0:
-            plt.plot(range(1, len(ts_d)+1), ts_d, label='DDP - Test Loss')
+            plt.plot(range(1, len(ts_d)+1), ts_d, label='DDP - Test', linestyle='--')
+        plt.yscale('log')
         plt.xlabel('Epoch')
         plt.ylabel('Loss')
-        plt.title('Test Loss Comparison (Single vs DDP)')
-        plt.yscale('log')
-        plt.grid()
+        plt.title('Training and Test Loss (Single vs DDP)')
+        plt.grid(True)
         plt.legend()
+        plt.tight_layout()
         plt.savefig(out_path, dpi=300)
+        # no-op
     except Exception as e:
-        print(f"Could not create comparison plot: {e}")
+        print(f"Could not create all-in-one curves plot: {e}")
+
+def generate_comparisons(res_dir: str):
+    res_single = os.path.join(res_dir, 'training_results_mlp_single.npy')
+    res_ddp    = os.path.join(res_dir, 'training_results_mlp_ddp.npy')
+    exists_single = os.path.exists(res_single)
+    exists_ddp = os.path.exists(res_ddp)
+    if exists_single and exists_ddp:
+        # Single all-in-one figure
+        try:
+            out3 = os.path.join(res_dir, 'curves_all_in_one_single_vs_ddp.png')
+            plot_compare_all_in_one(res_single, res_ddp, out3)
+        except Exception:
+            pass
+        # JSON report
+        try:
+            rs = np.load(res_single, allow_pickle=True).item()
+            rd = np.load(res_ddp, allow_pickle=True).item()
+            # No external sidecars; rely on values embedded in NPY (cr_total_time_s, cr_channels)
+            preds_s_path = os.path.join(res_dir, 'scaled_preds_single.npy')
+            preds_d_path = os.path.join(res_dir, 'scaled_preds_ddp.npy')
+            y_path = os.path.join(res_dir, 'scaled_y.npy')
+            rmse_s = rmse_d = None
+            if os.path.exists(y_path) and os.path.exists(preds_s_path):
+                y_true_np = np.load(y_path)
+                y_pred_s = np.load(preds_s_path)
+                rmse_s = float(np.sqrt(np.mean((y_pred_s - y_true_np) ** 2)))
+            if os.path.exists(y_path) and os.path.exists(preds_d_path):
+                y_true_np = np.load(y_path)
+                y_pred_d = np.load(preds_d_path)
+                rmse_d = float(np.sqrt(np.mean((y_pred_d - y_true_np) ** 2)))
+            report_path = os.path.join(res_dir, 'comparison_report.json')
+            pyLOM.NN.MLP.write_comparison_report(rs, rd, report_path, rmse_single=rmse_s, rmse_ddp=rmse_d, notes='Auto-generated comparison report')
+
+            # Bar chart comparing timing/throughput and final loss (uses CR timing when available)
+            try:
+                import matplotlib.pyplot as _plt
+                # Timing (prefer CR times to avoid inconsistencies)
+                def get_total_time(d):
+                    if 'cr_total_time_s' in d and d['cr_total_time_s'] is not None:
+                        return float(d['cr_total_time_s'])
+                    et = d.get('epoch_time_s', [])
+                    return float(np.sum(et)) if len(et) else None
+                def get_avg_epoch(d):
+                    et = d.get('epoch_time_s', [])
+                    return float(np.mean(et)) if len(et) else None
+                def get_avg_thr(d):
+                    thr = d.get('throughput_samples_per_sec_global', [])
+                    return float(np.mean(thr)) if len(thr) else None
+                def get_final_test(d):
+                    tl = d.get('test_loss', [])
+                    return float(tl[-1]) if len(tl) else None
+
+                total_time_s = get_total_time(rs)
+                total_time_d = get_total_time(rd)
+                avg_epoch_s = get_avg_epoch(rs)
+                avg_epoch_d = get_avg_epoch(rd)
+                avg_thr_s = get_avg_thr(rs)
+                avg_thr_d = get_avg_thr(rd)
+                final_test_s = get_final_test(rs)
+                final_test_d = get_final_test(rd)
+
+                labels = ['Single', 'DDP']
+                fig, axes = _plt.subplots(2, 2, figsize=(10, 7))
+
+                # Total time (lower is better). Speedup = single/ddp
+                bars00 = axes[0,0].bar(labels, [total_time_s, total_time_d], color=['tab:blue', 'tab:orange'])
+                axes[0,0].set_title('Total Training Time (s)')
+                axes[0,0].grid(True, axis='y', linestyle='--', alpha=0.4)
+                if total_time_s and total_time_d and total_time_d > 0:
+                    sp = total_time_s / total_time_d
+                    axes[0,0].text(0.5, 0.95, f"Speedup DDP: ×{sp:.2f}", transform=axes[0,0].transAxes, ha='center', va='top', fontsize=9)
+
+                # Avg epoch time (lower is better). Speedup = single/ddp
+                bars01 = axes[0,1].bar(labels, [avg_epoch_s, avg_epoch_d], color=['tab:blue', 'tab:orange'])
+                axes[0,1].set_title('Avg Epoch Time (s)')
+                axes[0,1].grid(True, axis='y', linestyle='--', alpha=0.4)
+                if avg_epoch_s and avg_epoch_d and avg_epoch_d > 0:
+                    sp = avg_epoch_s / avg_epoch_d
+                    axes[0,1].text(0.5, 0.95, f"Speedup DDP: ×{sp:.2f}", transform=axes[0,1].transAxes, ha='center', va='top', fontsize=9)
+
+                # Avg throughput (higher is better). Speedup = ddp/single
+                bars10 = axes[1,0].bar(labels, [avg_thr_s, avg_thr_d], color=['tab:blue', 'tab:orange'])
+                axes[1,0].set_title('Avg Throughput (samples/s)')
+                axes[1,0].grid(True, axis='y', linestyle='--', alpha=0.4)
+                if avg_thr_s and avg_thr_d and avg_thr_s > 0:
+                    sp = avg_thr_d / avg_thr_s
+                    axes[1,0].text(0.5, 0.95, f"Speedup DDP: ×{sp:.2f}", transform=axes[1,0].transAxes, ha='center', va='top', fontsize=9)
+
+                # Final test loss, annotate RMSE
+                bars = axes[1,1].bar(labels, [final_test_s, final_test_d], color=['tab:blue', 'tab:orange'])
+                axes[1,1].set_title('Final Test Loss')
+                axes[1,1].grid(True, axis='y', linestyle='--', alpha=0.4)
+                for bar, txt in zip(bars, [rmse_s, rmse_d]):
+                    if txt is not None:
+                        h = bar.get_height()
+                        axes[1,1].text(bar.get_x() + bar.get_width()/2, h, f"RMSE={txt:.3e}", ha='center', va='bottom', fontsize=8)
+                if final_test_s and final_test_d and final_test_d > 0:
+                    # Improvement factor (>1 means DDP lower loss)
+                    imp = final_test_s / final_test_d
+                    axes[1,1].text(0.5, 0.95, f"Factor DDP (loss): ×{imp:.2f}", transform=axes[1,1].transAxes, ha='center', va='top', fontsize=9)
+
+                fig.tight_layout()
+                fig.savefig(os.path.join(res_dir, 'comparison_bars.png'), dpi=300)
+                _plt.close(fig)
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+def _parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ddp", dest="ddp_mode", default="off", choices=["on","off"], help="DDP mode: on|off")
+    parser.add_argument("--resudir", dest="resudir", default="MLP_DLR_airfoil", help="Results output directory")
+    parser.add_argument("--basedir", dest="basedir", default="/home/airbus/CETACEO_cp_interp/DATA/DLR_pylom/", help="Base directory of datasets")
+    parser.add_argument("--casestr", dest="casestr", default="NRL7301", help="Case string prefix for dataset files")
+    parser.add_argument("--postprocess-only", dest="postprocess_only", action="store_true", help="Only generate comparison plots/report from existing NPY files and exit")
+    return parser.parse_known_args()[0]
+
+# Parse CLI/env before any path-dependent work
+args = _parse_args()
+ddp_enabled = (args.ddp_mode == "on")
+print(f"pyLOM NN: DDP mode is {'ON' if ddp_enabled else 'OFF'}")
+
+# Resolve results directory from CLI/env
+resudir_env = os.environ.get("PYLOM_RESUDIR", "").strip()
+RESUDIR = resudir_env if len(resudir_env) > 0 else args.resudir
+if _is_main_process():
+    print(f"pyLOM NN: Results directory is {RESUDIR}")
+pyLOM.NN.create_results_folder(RESUDIR)
+
+# Fast path: only postprocess (no training)
+if args.postprocess_only and _is_main_process():
+    generate_comparisons(RESUDIR)
+    import sys
+    sys.exit(0)
+
+# Dataset location
+BASEDIR = args.basedir
+CASESTR = args.casestr
 
 ## Set device
 device = pyLOM.NN.select_device("cpu") # Force CPU for this example, if left in blank it will automatically select the device
 
 
 ## Load datasets and set up the results output
-BASEDIR = '/home/airbus/CETACEO_cp_interp/DATA/DLR_pylom/'
-CASESTR = 'NRL7301'
 
 input_scaler  = pyLOM.NN.MinMaxScaler()
 output_scaler = pyLOM.NN.MinMaxScaler()
@@ -133,27 +307,7 @@ if _is_main_process():
     print_dset_stats('test', td_test)
     print_dset_stats('val',  td_val)
 
-## functions moved to top: _detect_ddp and _is_main_process
-
-# Manual DDP mode control via CLI/env
-def _parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--ddp", dest="ddp_mode", default="off", choices=["on","off"], help="DDP mode: on|off")
-    parser.add_argument("--resudir", dest="resudir", default="MLP_DLR_airfoil", help="Results output directory")
-    return parser.parse_known_args()[0]
-
-args = _parse_args()
-ddp_mode_env = os.environ.get("PYLOM_DDP", "").strip().lower()
-ddp_mode = ddp_mode_env if ddp_mode_env in ("on","off") else args.ddp_mode
-ddp_enabled = (ddp_mode == "on")
-print(f"pyLOM NN: DDP mode is {'ON' if ddp_enabled else 'OFF'}")
-
-# Resolve results directory from CLI/env
-resudir_env = os.environ.get("PYLOM_RESUDIR", "").strip()
-RESUDIR = resudir_env if len(resudir_env) > 0 else args.resudir
-if _is_main_process():
-    print(f"pyLOM NN: Results directory is {RESUDIR}")
-pyLOM.NN.create_results_folder(RESUDIR)
+## functions moved to top: _is_main_process and _parse_args
 
 mode_tag = 'ddp' if ddp_enabled else 'single'
 
@@ -224,21 +378,18 @@ if _is_main_process():
 
 # check that the scaling is correct
 if _is_main_process():
-    print(scaled_y.min(), scaled_y.max())
+    pass
 
 if _is_main_process():
     evaluator = pyLOM.NN.RegressionEvaluator()
     evaluator(scaled_y, scaled_preds)
     evaluator.print_metrics()
 
-    true_vs_pred_plot(scaled_y, scaled_preds, os.path.join(RESUDIR, f'true_vs_pred_{mode_tag}.png'))
-    plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], os.path.join(RESUDIR, f'train_test_loss_{mode_tag}.png'))
-
-    # If both runs exist, generate comparison plot of test loss
-    res_single = os.path.join(RESUDIR, 'training_results_mlp_single.npy')
-    res_ddp    = os.path.join(RESUDIR, 'training_results_mlp_ddp.npy')
-    if os.path.exists(res_single) and os.path.exists(res_ddp):
-        plot_compare_test_loss(res_single, res_ddp, os.path.join(RESUDIR, 'test_loss_compare_single_vs_ddp.png'))
+    true_vs_pred_plot(scaled_y, scaled_preds, os.path.join(RESUDIR, f'true_vs_pred_{mode_tag}.png'), mode=mode_tag)
+    # No CR sidecars: timing comes embedded in NPY via pyLOM.nn (cr_total_time_s)
+    # Generate a single curves plot overlaying the 4 curves (train/test, single/DDP)
+    generate_comparisons(RESUDIR)
 
     pyLOM.cr_info()
-    plt.show()
+
+# No extra hooks; comparisons already attempted above
