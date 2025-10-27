@@ -5,9 +5,25 @@
 # Last revision: 14/11/2024
 
 import os, numpy as np, torch, matplotlib.pyplot as plt
+import torch.distributed as dist
 import pyLOM, pyLOM.NN
 
 seed = 19
+
+def _detect_ddp():
+    env = os.environ
+    return any(
+        env.get(k) is not None for k in [
+            "LOCAL_RANK", "RANK", "WORLD_SIZE",
+            "OMPI_COMM_WORLD_LOCAL_RANK", "SLURM_LOCALID"
+        ]
+    )
+
+def _is_main_process():
+    try:
+        return (not dist.is_available()) or (not dist.is_initialized()) or dist.get_rank() == 0
+    except Exception:
+        return True
 
 def load_dataset(fname,inputs_scaler,outputs_scaler):
     '''
@@ -87,9 +103,12 @@ dataset = td_train + td_test + td_val
 generator = torch.Generator().manual_seed(seed) # set seed for reproducibility
 td_train, td_test, td_val = dataset.get_splits([0.7, 0.15, 0.15], shuffle=True, generator=generator, return_views=True)
 
-print_dset_stats('train',td_train)
-print_dset_stats('test', td_test)
-print_dset_stats('val',  td_val)
+if _is_main_process():
+    print_dset_stats('train',td_train)
+    print_dset_stats('test', td_test)
+    print_dset_stats('val',  td_val)
+
+## functions moved to top: _detect_ddp and _is_main_process
 
 model = pyLOM.NN.MLP(
     input_size=4, # x, y, AoA, Mach
@@ -98,6 +117,8 @@ model = pyLOM.NN.MLP(
     n_layers=6,
     p_dropouts=0.15,
 )
+
+ddp_enabled = _detect_ddp()
 
 training_params = {
     "epochs": 50,
@@ -109,7 +130,9 @@ training_params = {
     "device": device,
     "lr": 0.000838, 
     "lr_gamma": 0.99, 
-    "batch_size": 119, 
+    "batch_size": 119,
+    # Enable DDP automatically if launched with torchrun/mpirun (env vars present)
+    "ddp": ddp_enabled,
 }
 
 pipeline = pyLOM.NN.Pipeline(
@@ -121,34 +144,45 @@ pipeline = pyLOM.NN.Pipeline(
 )
 training_logs = pipeline.run()
 
+# Print a compact training summary (mode, final losses, throughput) only on main process
+if _is_main_process():
+    summary = pyLOM.NN.MLP.summarize_results(training_logs)
+    print(f"Training summary: {summary}")
+
 # check saving and loading the model
-pipeline.model.save(os.path.join(RESUDIR,"model.pth"))
-model = pyLOM.NN.MLP.load(RESUDIR + "/model.pth")
+if _is_main_process():
+    pipeline.model.save(os.path.join(RESUDIR,"model.pth"))
+    model = pyLOM.NN.MLP.load(RESUDIR + "/model.pth")
 
 # check saving and loading the scalers
-input_scaler.save(os.path.join(RESUDIR,"input_scaler.json"))
-output_scaler.save(os.path.join(RESUDIR,"output_scaler.json"))
-input_scaler = pyLOM.NN.MinMaxScaler.load(os.path.join(RESUDIR,"input_scaler.json"))
-output_scaler = pyLOM.NN.MinMaxScaler.load(os.path.join(RESUDIR,"output_scaler.json"))
+if _is_main_process():
+    input_scaler.save(os.path.join(RESUDIR,"input_scaler.json"))
+    output_scaler.save(os.path.join(RESUDIR,"output_scaler.json"))
+    input_scaler = pyLOM.NN.MinMaxScaler.load(os.path.join(RESUDIR,"input_scaler.json"))
+    output_scaler = pyLOM.NN.MinMaxScaler.load(os.path.join(RESUDIR,"output_scaler.json"))
 
 # to predict from a dataset
-preds = model.predict(td_test, batch_size=2048)
+if _is_main_process():
+    preds = model.predict(td_test, batch_size=2048)
 
 # to predict from a tensor
 # preds = model(torch.tensor(dataset_test[:][0], device=model.device)).cpu().detach().numpy()
 
-scaled_preds = output_scaler.inverse_transform(preds)
-scaled_y     = output_scaler.inverse_transform(td_test[:][1])
+if _is_main_process():
+    scaled_preds = output_scaler.inverse_transform(preds)
+    scaled_y     = output_scaler.inverse_transform(td_test[:][1])
 
 # check that the scaling is correct
-pyLOM.pprint(0,scaled_y.min(), scaled_y.max())
+if _is_main_process():
+    print(scaled_y.min(), scaled_y.max())
 
-evaluator = pyLOM.NN.RegressionEvaluator()
-evaluator(scaled_y, scaled_preds)
-evaluator.print_metrics()
+if _is_main_process():
+    evaluator = pyLOM.NN.RegressionEvaluator()
+    evaluator(scaled_y, scaled_preds)
+    evaluator.print_metrics()
 
-true_vs_pred_plot(scaled_y, scaled_preds, RESUDIR + '/true_vs_pred.png')
-plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss.png')
+    true_vs_pred_plot(scaled_y, scaled_preds, RESUDIR + '/true_vs_pred.png')
+    plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss.png')
 
-pyLOM.cr_info()
-plt.show()
+    pyLOM.cr_info()
+    plt.show()

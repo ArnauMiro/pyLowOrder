@@ -1,4 +1,5 @@
 import os
+import time
 import torch
 import numpy as np
 import torch.nn as nn
@@ -198,12 +199,32 @@ class MLP(nn.Module):
         if ddp:
             # Infer local rank from torch.run/torch.distributed.launch if not provided
             if local_rank is None:
-                env_lr = os.environ.get("LOCAL_RANK")
+                env_lr = (
+                    os.environ.get("LOCAL_RANK")
+                    or os.environ.get("OMPI_COMM_WORLD_LOCAL_RANK")
+                    or os.environ.get("SLURM_LOCALID")
+                )
                 local_rank = int(env_lr) if env_lr is not None else 0
 
             # Initialize process group if needed
             if not (dist.is_available() and dist.is_initialized()):
                 try:
+                    # Populate env:// variables if launched with MPI/SLURM
+                    if os.environ.get("RANK") is None:
+                        mpi_rank = os.environ.get("OMPI_COMM_WORLD_RANK") or os.environ.get("SLURM_PROCID")
+                        if mpi_rank is not None:
+                            os.environ["RANK"] = str(mpi_rank)
+                    if os.environ.get("WORLD_SIZE") is None:
+                        mpi_world = os.environ.get("OMPI_COMM_WORLD_SIZE") or os.environ.get("SLURM_NTASKS")
+                        if mpi_world is not None:
+                            os.environ["WORLD_SIZE"] = str(mpi_world)
+                    if os.environ.get("LOCAL_RANK") is None:
+                        mpi_local = os.environ.get("OMPI_COMM_WORLD_LOCAL_RANK") or os.environ.get("SLURM_LOCALID")
+                        if mpi_local is not None:
+                            os.environ["LOCAL_RANK"] = str(mpi_local)
+                    # Reasonable single-node defaults if missing
+                    os.environ.setdefault("MASTER_ADDR", "127.0.0.1")
+                    os.environ.setdefault("MASTER_PORT", "29500")
                     dist.init_process_group(backend=ddp_backend)
                 except Exception as e:
                     raiseError(f"Failed to init DDP process group: {e}")
@@ -216,11 +237,15 @@ class MLP(nn.Module):
                 self.device = torch.device("cpu")
             self.to(self.device)
 
-        # Main process check for logging/saving
+        # World/rank info and main process check for logging/saving
+        rank = 0
+        world_size = 1
         is_main_process = True
         if ddp and dist.is_available() and dist.is_initialized():
             try:
-                is_main_process = dist.get_rank() == 0
+                rank = dist.get_rank()
+                world_size = dist.get_world_size()
+                is_main_process = rank == 0
             except Exception:
                 is_main_process = True
 
@@ -291,6 +316,19 @@ class MLP(nn.Module):
                 loss_iterations_test = results["loss_iterations_test"].tolist()
                 current_lr_vec = results["lr"].tolist()
                 grad_norms = results["grad_norms"].tolist()
+                epoch_times = results.get("epoch_time_s", []).tolist()
+                throughput_local = results.get("throughput_samples_per_sec_local", []).tolist()
+                throughput_global = results.get("throughput_samples_per_sec_global", []).tolist()
+            else:
+                train_losses = []
+                test_losses = []
+                loss_iterations_train = []
+                loss_iterations_test = []
+                current_lr_vec = []
+                grad_norms = []
+                epoch_times = []
+                throughput_local = []
+                throughput_global = []
         else:
             train_losses = []
             test_losses = []
@@ -298,6 +336,9 @@ class MLP(nn.Module):
             loss_iterations_test = []
             current_lr_vec = []
             grad_norms = []
+            epoch_times = []
+            throughput_local = []
+            throughput_global = []
 
         total_epochs = len(train_losses) + epochs
         self.mname = f"{self._model_name}_{total_epochs:05d}"
@@ -312,6 +353,10 @@ class MLP(nn.Module):
                 except Exception:
                     pass
 
+            # Timing and throughput accounting
+            epoch_start_time = time.perf_counter()
+            samples_train_epoch_local = 0
+
             def closure():
                 self.optimizer.zero_grad()
                 oupt = model(x_train)
@@ -322,6 +367,7 @@ class MLP(nn.Module):
 
             for b_idx, batch in enumerate(self.train_dataloader):
                 x_train, y_train = batch[0].to(self.device), batch[1].to(self.device)
+                samples_train_epoch_local += x_train.size(0)
                 train_loss += self.optimizer.step(closure).item()
                 total_norm = torch.norm(torch.stack([p.grad.norm() for p in model.parameters() if p.grad is not None]))
                 grad_norms.append(total_norm.item())
@@ -333,7 +379,15 @@ class MLP(nn.Module):
                         flush=True
                     )
                     
-            train_loss = train_loss / (b_idx + 1)
+            # Global average train loss across ranks
+            train_batches_local = b_idx + 1
+            train_loss_sum_local = train_loss
+            if ddp and dist.is_available() and dist.is_initialized():
+                agg = torch.tensor([train_loss_sum_local, float(train_batches_local)], device=self.device)
+                dist.all_reduce(agg, op=dist.ReduceOp.SUM)
+                train_loss = (agg[0] / agg[1]).item()
+            else:
+                train_loss = train_loss_sum_local / train_batches_local
             train_losses.append(train_loss)
 
             if self.scheduler is not None:
@@ -343,14 +397,25 @@ class MLP(nn.Module):
             if eval_dataset is not None:
                 model.eval()
                 with torch.no_grad():
+                    test_loss_sum_local = 0.0
+                    test_batches_local = 0
+                    eval_samples_epoch_local = 0
                     for n_idx, sample in enumerate(self.eval_dataloader):
                         x_test, y_test = sample[0].to(self.device), sample[1].to(self.device)
                         test_output = model(x_test)
                         loss_val = loss_fn(test_output, y_test)
                         loss_iterations_test.append(loss_val.item())
-                        test_loss += loss_val.item()
+                        test_loss_sum_local += loss_val.item()
+                        test_batches_local += 1
+                        eval_samples_epoch_local += x_test.size(0)
 
-                test_loss = test_loss / (n_idx + 1)
+                # Compute global eval loss (mean over all ranks and batches)
+                if ddp and dist.is_available() and dist.is_initialized():
+                    agg_eval = torch.tensor([test_loss_sum_local, float(test_batches_local)], device=self.device)
+                    dist.all_reduce(agg_eval, op=dist.ReduceOp.SUM)
+                    test_loss = (agg_eval[0] / agg_eval[1]).item()
+                else:
+                    test_loss = test_loss_sum_local / max(1, test_batches_local)
                 test_losses.append(test_loss)
 
                 if save_best and (len(test_losses) == 1 or test_loss < min(test_losses[:-1])):
@@ -377,6 +442,25 @@ class MLP(nn.Module):
                     flush=True
                 )
 
+            # End epoch timing and throughput
+            epoch_time = time.perf_counter() - epoch_start_time
+            epoch_times.append(epoch_time)
+            # Local throughput
+            throughput_local.append(samples_train_epoch_local / max(1e-12, epoch_time))
+            # Global throughput: sum samples across ranks, divide by max epoch time
+            if ddp and dist.is_available() and dist.is_initialized():
+                # Sum samples
+                t_samp = torch.tensor([float(samples_train_epoch_local)], device=self.device)
+                dist.all_reduce(t_samp, op=dist.ReduceOp.SUM)
+                total_samples_all = t_samp.item()
+                # Max time
+                t_time = torch.tensor([epoch_time], device=self.device)
+                dist.all_reduce(t_time, op=dist.ReduceOp.MAX)
+                epoch_time_max = t_time.item()
+                throughput_global.append(total_samples_all / max(1e-12, epoch_time_max))
+            else:
+                throughput_global.append(samples_train_epoch_local / max(1e-12, epoch_time))
+
         results = {
             "train_loss": np.array(train_losses),
             "test_loss": np.array(test_losses),
@@ -385,6 +469,18 @@ class MLP(nn.Module):
             "loss_iterations_test": np.array(loss_iterations_test),
             "grad_norms": np.array(grad_norms),
             "check": [True],
+            # Extra metrics for DDP/normal comparison
+            "epoch_time_s": np.array(epoch_times),
+            "throughput_samples_per_sec_local": np.array(throughput_local),
+            "throughput_samples_per_sec_global": np.array(throughput_global),
+            "mode": "ddp" if (ddp and dist.is_available() and dist.is_initialized()) else "single",
+            "ddp_info": {
+                "enabled": bool(ddp),
+                "backend": ddp_backend if ddp else None,
+                "world_size": int(world_size),
+                "rank": int(rank),
+                "local_rank": int(local_rank) if local_rank is not None else 0,
+            },
         }
 
         if is_main_process and save_logs_path is not None:
@@ -393,6 +489,75 @@ class MLP(nn.Module):
             np.save(fn, results)
 
         return results
+
+    @staticmethod
+    def summarize_results(results: Dict) -> Dict:
+        """
+        Produce a compact summary of a training run's key metrics.
+        Returns a dict with final losses, average epoch time and throughputs.
+        """
+        summary = {}
+        try:
+            train_loss = results.get("train_loss")
+            test_loss = results.get("test_loss")
+            epoch_time = results.get("epoch_time_s")
+            thr_glob = results.get("throughput_samples_per_sec_global")
+            thr_loc = results.get("throughput_samples_per_sec_local")
+            summary.update({
+                "mode": results.get("mode", "single"),
+                "final_train_loss": float(train_loss[-1]) if train_loss is not None and len(train_loss)>0 else None,
+                "final_test_loss": float(test_loss[-1]) if test_loss is not None and len(test_loss)>0 else None,
+                "avg_epoch_time_s": float(np.mean(epoch_time)) if epoch_time is not None and len(epoch_time)>0 else None,
+                "avg_throughput_global": float(np.mean(thr_glob)) if thr_glob is not None and len(thr_glob)>0 else None,
+                "avg_throughput_local": float(np.mean(thr_loc)) if thr_loc is not None and len(thr_loc)>0 else None,
+            })
+            ddp_info = results.get("ddp_info", {})
+            summary.update({
+                "world_size": ddp_info.get("world_size", 1),
+                "rank": ddp_info.get("rank", 0),
+                "backend": ddp_info.get("backend", None),
+            })
+        except Exception:
+            pass
+        return summary
+
+    @staticmethod
+    def compare_results(results_a: Dict, results_b: Dict) -> Dict:
+        """
+        Compare two training runs (e.g., single vs DDP) and return key ratios.
+        Keys returned include speedup and loss ratios for quick reporting.
+        """
+        sa = MLP.summarize_results(results_a)
+        sb = MLP.summarize_results(results_b)
+        comp = {
+            "mode_a": sa.get("mode"),
+            "mode_b": sb.get("mode"),
+            "speedup_global": None,
+            "speedup_local": None,
+            "final_train_loss_ratio": None,
+            "final_test_loss_ratio": None,
+        }
+        try:
+            if sa.get("avg_throughput_global") and sb.get("avg_throughput_global"):
+                comp["speedup_global"] = float(sb["avg_throughput_global"]) / float(sa["avg_throughput_global"])  # b over a
+        except Exception:
+            pass
+        try:
+            if sa.get("avg_throughput_local") and sb.get("avg_throughput_local"):
+                comp["speedup_local"] = float(sb["avg_throughput_local"]) / float(sa["avg_throughput_local"])  # b over a
+        except Exception:
+            pass
+        try:
+            if sa.get("final_train_loss") and sb.get("final_train_loss"):
+                comp["final_train_loss_ratio"] = float(sb["final_train_loss"]) / float(sa["final_train_loss"])  # b over a
+        except Exception:
+            pass
+        try:
+            if sa.get("final_test_loss") and sb.get("final_test_loss"):
+                comp["final_test_loss_ratio"] = float(sb["final_test_loss"]) / float(sa["final_test_loss"])  # b over a
+        except Exception:
+            pass
+        return comp
 
     @cr('MLP.predict')
     def predict(
@@ -485,8 +650,10 @@ class MLP(nn.Module):
         self.checkpoint = self._define_checkpoint()
 
         if not save_only_model:
-            self.checkpoint["optimizer"] = self.optimizer.state_dict()
-            self.checkpoint["scheduler"] = self.scheduler.state_dict()
+            if hasattr(self, "optimizer") and self.optimizer is not None:
+                self.checkpoint["optimizer"] = self.optimizer.state_dict()
+            if hasattr(self, "scheduler") and self.scheduler is not None:
+                self.checkpoint["scheduler"] = self.scheduler.state_dict()
         
         if os.path.isdir(path):
             filename = "/" + str(self.mname) + ".pth"
