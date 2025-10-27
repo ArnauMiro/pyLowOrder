@@ -1,4 +1,5 @@
 import os
+import json
 import time
 import torch
 import numpy as np
@@ -12,6 +13,7 @@ from typing import Dict, List, Tuple, Callable
 from ..optimizer import OptunaOptimizer, TrialPruned
 from .. import DEVICE, set_seed  # pyLOM/NN/__init__.py
 from ... import pprint, cr  # pyLOM/__init__.py
+import pyLOM.utils.cr as cr_utils
 from ...utils.errors import raiseWarning, raiseError
 
 
@@ -461,6 +463,20 @@ class MLP(nn.Module):
             else:
                 throughput_global.append(samples_train_epoch_local / max(1e-12, epoch_time))
 
+        # Snapshot CR channels for this process (for reproducible reporting)
+        cr_channels = {}
+        try:
+            for ch_name, ch in cr_utils.CHANNEL_DICT.items():
+                cr_channels[ch_name] = {
+                    "n": int(ch.nop),
+                    "tmin": float(ch.tmin),
+                    "tmax": float(ch.tmax),
+                    "tavg": float(ch.tavg),
+                    "tsum": float(ch.tsum),
+                }
+        except Exception:
+            pass
+
         results = {
             "train_loss": np.array(train_losses),
             "test_loss": np.array(test_losses),
@@ -481,7 +497,16 @@ class MLP(nn.Module):
                 "rank": int(rank),
                 "local_rank": int(local_rank) if local_rank is not None else 0,
             },
+            "cr_channels": cr_channels,
         }
+
+        # Attach CR timing (end-to-end fit) if available to avoid inconsistencies
+        try:
+            ch = cr_utils.CHANNEL_DICT.get('MLP.fit')
+            if ch is not None:
+                results["cr_total_time_s"] = float(ch.tsum)
+        except Exception:
+            pass
 
         if is_main_process and save_logs_path is not None:
             pprint(0, f"\nPrinting losses on path: {save_logs_path}")
@@ -507,10 +532,20 @@ class MLP(nn.Module):
                 "mode": results.get("mode", "single"),
                 "final_train_loss": float(train_loss[-1]) if train_loss is not None and len(train_loss)>0 else None,
                 "final_test_loss": float(test_loss[-1]) if test_loss is not None and len(test_loss)>0 else None,
-                "avg_epoch_time_s": float(np.mean(epoch_time)) if epoch_time is not None and len(epoch_time)>0 else None,
                 "avg_throughput_global": float(np.mean(thr_glob)) if thr_glob is not None and len(thr_glob)>0 else None,
                 "avg_throughput_local": float(np.mean(thr_loc)) if thr_loc is not None and len(thr_loc)>0 else None,
+                "epochs": int(len(epoch_time)) if epoch_time is not None else (int(len(test_loss)) if test_loss is not None else None),
             })
+            # Single source of timing: prefer CR total time (end-to-end fit)
+            summary["cr_total_time_s"] = float(results.get("cr_total_time_s")) if results.get("cr_total_time_s") is not None else None
+            # Also mirror it as total_time_s for convenience in consumers
+            summary["total_time_s"] = summary["cr_total_time_s"]
+            # Provide avg_epoch_time_s consistently derived from CR timing when available
+            if summary.get("total_time_s") is not None and summary.get("epochs"):
+                try:
+                    summary["avg_epoch_time_s"] = float(summary["total_time_s"]) / float(summary["epochs"])
+                except Exception:
+                    summary["avg_epoch_time_s"] = None
             ddp_info = results.get("ddp_info", {})
             summary.update({
                 "world_size": ddp_info.get("world_size", 1),
@@ -536,7 +571,18 @@ class MLP(nn.Module):
             "speedup_local": None,
             "final_train_loss_ratio": None,
             "final_test_loss_ratio": None,
+            "total_time_single_s": None,
+            "total_time_ddp_s": None,
+            "time_saved_s": None,
+            "speedup_total_time": None,
+            "epochs_single": None,
+            "epochs_ddp": None,
         }
+        # Identify roles
+        def pick(summary, mode_name):
+            return summary if summary.get("mode") == mode_name else None
+        single = pick(sa, "single") or pick(sb, "single")
+        ddp = pick(sa, "ddp") or pick(sb, "ddp")
         try:
             if sa.get("avg_throughput_global") and sb.get("avg_throughput_global"):
                 comp["speedup_global"] = float(sb["avg_throughput_global"]) / float(sa["avg_throughput_global"])  # b over a
@@ -557,7 +603,78 @@ class MLP(nn.Module):
                 comp["final_test_loss_ratio"] = float(sb["final_test_loss"]) / float(sa["final_test_loss"])  # b over a
         except Exception:
             pass
+        try:
+            if single is not None:
+                comp["total_time_single_s"] = single.get("cr_total_time_s") or single.get("total_time_s")
+                comp["epochs_single"] = single.get("epochs")
+            if ddp is not None:
+                comp["total_time_ddp_s"] = ddp.get("cr_total_time_s") or ddp.get("total_time_s")
+                comp["epochs_ddp"] = ddp.get("epochs")
+            if comp["total_time_single_s"] and comp["total_time_ddp_s"]:
+                comp["time_saved_s"] = float(comp["total_time_single_s"]) - float(comp["total_time_ddp_s"])
+                if comp["total_time_ddp_s"] > 0:
+                    comp["speedup_total_time"] = float(comp["total_time_single_s"]) / float(comp["total_time_ddp_s"])
+        except Exception:
+            pass
         return comp
+
+    @staticmethod
+    def write_comparison_report(
+        results_single: Dict,
+        results_ddp: Dict,
+        out_path: str,
+        rmse_single: float = None,
+        rmse_ddp: float = None,
+        notes: str = None,
+    ) -> Dict:
+        sa = MLP.summarize_results(results_single)
+        sb = MLP.summarize_results(results_ddp)
+        comp = MLP.compare_results(results_single, results_ddp)
+        # Prepare cr_info-like ordered lists (sorted by tsum desc)
+        def cr_ordered(results: Dict):
+            try:
+                ch = results.get("cr_channels", {})
+                items = [
+                    {
+                        "name": k,
+                        "n": int(v.get("n", 0)),
+                        "tmin": float(v.get("tmin", 0.0)),
+                        "tmax": float(v.get("tmax", 0.0)),
+                        "tavg": float(v.get("tavg", 0.0)),
+                        "tsum": float(v.get("tsum", 0.0)),
+                    }
+                    for k, v in ch.items()
+                ]
+                items.sort(key=lambda x: x["tsum"], reverse=True)
+                return items
+            except Exception:
+                return []
+        report = {
+            "single": sa,
+            "ddp": sb,
+            "comparison": comp,
+            "rmse_single": float(rmse_single) if rmse_single is not None else None,
+            "rmse_ddp": float(rmse_ddp) if rmse_ddp is not None else None,
+            "rmse_delta": None,
+            "time_saved_over_rmse_loss": None,
+            "notes": notes,
+            "cr_info_single": cr_ordered(results_single),
+            "cr_info_ddp": cr_ordered(results_ddp),
+        }
+        try:
+            if report["rmse_single"] is not None and report["rmse_ddp"] is not None:
+                report["rmse_delta"] = float(report["rmse_ddp"]) - float(report["rmse_single"])  # >0 means worse accuracy in DDP
+                ts = comp.get("time_saved_s")
+                if ts is not None and report["rmse_delta"] not in (None, 0.0):
+                    report["time_saved_over_rmse_loss"] = float(ts) / float(report["rmse_delta"]) if report["rmse_delta"] != 0 else None
+        except Exception:
+            pass
+        try:
+            with open(out_path, "w") as f:
+                json.dump(report, f, indent=2)
+        except Exception:
+            pass
+        return report
 
     @cr('MLP.predict')
     def predict(
