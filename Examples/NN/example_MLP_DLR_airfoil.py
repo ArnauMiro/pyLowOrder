@@ -6,24 +6,26 @@
 
 import os, numpy as np, torch, matplotlib.pyplot as plt
 import torch.distributed as dist
+import argparse
 import pyLOM, pyLOM.NN
 
 seed = 19
 
-def _detect_ddp():
-    env = os.environ
-    return any(
-        env.get(k) is not None for k in [
-            "LOCAL_RANK", "RANK", "WORLD_SIZE",
-            "OMPI_COMM_WORLD_LOCAL_RANK", "SLURM_LOCALID"
-        ]
-    )
-
 def _is_main_process():
     try:
-        return (not dist.is_available()) or (not dist.is_initialized()) or dist.get_rank() == 0
+        if dist.is_available() and dist.is_initialized():
+            return dist.get_rank() == 0
     except Exception:
-        return True
+        pass
+    # Fallback to env vars before dist init (torchrun/mpi/slurm)
+    for k in ("RANK", "OMPI_COMM_WORLD_RANK", "SLURM_PROCID"):
+        v = os.environ.get(k)
+        if v is not None:
+            try:
+                return int(v) == 0
+            except Exception:
+                break
+    return True
 
 def load_dataset(fname,inputs_scaler,outputs_scaler):
     '''
@@ -82,6 +84,31 @@ def plot_train_test_loss(train_loss, test_loss, path):
     plt.grid()
     plt.savefig(path, dpi=300)
 
+def plot_compare_test_loss(res_single_path, res_ddp_path, out_path):
+    """
+    Plot an overlay of test loss per epoch for single vs DDP runs
+    loading the saved numpy result files.
+    """
+    try:
+        rs = np.load(res_single_path, allow_pickle=True).item()
+        rd = np.load(res_ddp_path, allow_pickle=True).item()
+        ts_s = rs.get('test_loss', [])
+        ts_d = rd.get('test_loss', [])
+        plt.figure()
+        if len(ts_s) > 0:
+            plt.plot(range(1, len(ts_s)+1), ts_s, label='Single - Test Loss')
+        if len(ts_d) > 0:
+            plt.plot(range(1, len(ts_d)+1), ts_d, label='DDP - Test Loss')
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.title('Test Loss Comparison (Single vs DDP)')
+        plt.yscale('log')
+        plt.grid()
+        plt.legend()
+        plt.savefig(out_path, dpi=300)
+    except Exception as e:
+        print(f"Could not create comparison plot: {e}")
+
 ## Set device
 device = pyLOM.NN.select_device("cpu") # Force CPU for this example, if left in blank it will automatically select the device
 
@@ -89,8 +116,6 @@ device = pyLOM.NN.select_device("cpu") # Force CPU for this example, if left in 
 ## Load datasets and set up the results output
 BASEDIR = '/home/airbus/CETACEO_cp_interp/DATA/DLR_pylom/'
 CASESTR = 'NRL7301'
-RESUDIR = 'MLP_DLR_airfoil'
-pyLOM.NN.create_results_folder(RESUDIR)
 
 input_scaler  = pyLOM.NN.MinMaxScaler()
 output_scaler = pyLOM.NN.MinMaxScaler()
@@ -110,15 +135,36 @@ if _is_main_process():
 
 ## functions moved to top: _detect_ddp and _is_main_process
 
+# Manual DDP mode control via CLI/env
+def _parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ddp", dest="ddp_mode", default="off", choices=["on","off"], help="DDP mode: on|off")
+    parser.add_argument("--resudir", dest="resudir", default="MLP_DLR_airfoil", help="Results output directory")
+    return parser.parse_known_args()[0]
+
+args = _parse_args()
+ddp_mode_env = os.environ.get("PYLOM_DDP", "").strip().lower()
+ddp_mode = ddp_mode_env if ddp_mode_env in ("on","off") else args.ddp_mode
+ddp_enabled = (ddp_mode == "on")
+print(f"pyLOM NN: DDP mode is {'ON' if ddp_enabled else 'OFF'}")
+
+# Resolve results directory from CLI/env
+resudir_env = os.environ.get("PYLOM_RESUDIR", "").strip()
+RESUDIR = resudir_env if len(resudir_env) > 0 else args.resudir
+if _is_main_process():
+    print(f"pyLOM NN: Results directory is {RESUDIR}")
+pyLOM.NN.create_results_folder(RESUDIR)
+
+mode_tag = 'ddp' if ddp_enabled else 'single'
+
 model = pyLOM.NN.MLP(
     input_size=4, # x, y, AoA, Mach
     output_size=1, # CP
     hidden_size=129,
     n_layers=6,
     p_dropouts=0.15,
+    model_name=f"mlp_{mode_tag}",
 )
-
-ddp_enabled = _detect_ddp()
 
 training_params = {
     "epochs": 50,
@@ -131,8 +177,9 @@ training_params = {
     "lr": 0.000838, 
     "lr_gamma": 0.99, 
     "batch_size": 119,
-    # Enable DDP automatically if launched with torchrun/mpirun (env vars present)
+    # DDP switch: auto|on|off controlled by CLI/env; here resolved to boolean
     "ddp": ddp_enabled,
+    "save_logs_path": RESUDIR,
 }
 
 pipeline = pyLOM.NN.Pipeline(
@@ -171,6 +218,9 @@ if _is_main_process():
 if _is_main_process():
     scaled_preds = output_scaler.inverse_transform(preds)
     scaled_y     = output_scaler.inverse_transform(td_test[:][1])
+    # Save predictions/targets for cross-run comparison if needed
+    np.save(os.path.join(RESUDIR, f"scaled_preds_{mode_tag}.npy"), scaled_preds)
+    np.save(os.path.join(RESUDIR, f"scaled_y.npy"), scaled_y)
 
 # check that the scaling is correct
 if _is_main_process():
@@ -181,8 +231,14 @@ if _is_main_process():
     evaluator(scaled_y, scaled_preds)
     evaluator.print_metrics()
 
-    true_vs_pred_plot(scaled_y, scaled_preds, RESUDIR + '/true_vs_pred.png')
-    plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], RESUDIR + '/train_test_loss.png')
+    true_vs_pred_plot(scaled_y, scaled_preds, os.path.join(RESUDIR, f'true_vs_pred_{mode_tag}.png'))
+    plot_train_test_loss(training_logs['train_loss'], training_logs['test_loss'], os.path.join(RESUDIR, f'train_test_loss_{mode_tag}.png'))
+
+    # If both runs exist, generate comparison plot of test loss
+    res_single = os.path.join(RESUDIR, 'training_results_mlp_single.npy')
+    res_ddp    = os.path.join(RESUDIR, 'training_results_mlp_ddp.npy')
+    if os.path.exists(res_single) and os.path.exists(res_ddp):
+        plot_compare_test_loss(res_single, res_ddp, os.path.join(RESUDIR, 'test_loss_compare_single_vs_ddp.png'))
 
     pyLOM.cr_info()
     plt.show()
