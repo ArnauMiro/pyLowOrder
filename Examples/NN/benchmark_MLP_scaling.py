@@ -93,6 +93,8 @@ def _load_results(resudir: str, mode: str) -> Dict:
         final_train_loss=final_train,
         final_test_loss=final_test,
         rmse=rmse,
+        train_loss_curve=np.asarray(train, dtype=float) if len(train) else None,
+        test_loss_curve=np.asarray(test, dtype=float) if len(test) else None,
     )
 
 
@@ -112,6 +114,20 @@ def aggregate_runs(base_dir: str, mode: str, repeats: int) -> Dict:
             runs.append(_load_results(run_dir, mode))
         except Exception as e:
             print(f"[WARN] Skipping run {i} at {run_dir}: {e}")
+    # Curves aggregation (align by min length)
+    tr_curves = [r["train_loss_curve"] for r in runs if r.get("train_loss_curve") is not None]
+    ts_curves = [r["test_loss_curve"] for r in runs if r.get("test_loss_curve") is not None]
+    def _agg_curves(curves):
+        if not curves:
+            return None, None
+        min_len = min(c.shape[0] for c in curves)
+        if min_len <= 0:
+            return None, None
+        arr = np.stack([c[:min_len] for c in curves], axis=0)
+        return arr.mean(axis=0), (arr.std(axis=0, ddof=1) if arr.shape[0] > 1 else np.zeros(min_len))
+    tr_mean, tr_std = _agg_curves(tr_curves)
+    ts_mean, ts_std = _agg_curves(ts_curves)
+
     summary = {
         "mode": mode,
         "runs": len(runs),
@@ -123,6 +139,13 @@ def aggregate_runs(base_dir: str, mode: str, repeats: int) -> Dict:
         m, s = _mean_std(runs, k)
         summary[f"{k}_mean"] = m
         summary[f"{k}_std"] = s
+    # Attach curves (as lists for JSON serializable)
+    if tr_mean is not None:
+        summary["train_loss_curve_mean"] = tr_mean.tolist()
+        summary["train_loss_curve_std"] = tr_std.tolist()
+    if ts_mean is not None:
+        summary["test_loss_curve_mean"] = ts_mean.tolist()
+        summary["test_loss_curve_std"] = ts_std.tolist()
     return summary
 
 
@@ -267,6 +290,36 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
         fig.tight_layout()
         fig.savefig(os.path.join(resudir_base, "scaling_speedup.png"), dpi=300)
         plt.close(fig)
+        # 2x2 bars: Total time, Avg epoch time, Throughput, Final test loss with factors vs baseline
+        # Collect metrics
+        ae = [float(v) if v is not None else np.nan for v in [e.get("avg_epoch_time_s_mean") for e in scaling["entries"]]]
+        thr = [float(v) if v is not None else np.nan for v in [e.get("avg_throughput_global_mean") for e in scaling["entries"]]]
+        fl = [float(v) if v is not None else np.nan for v in [e.get("final_test_loss_mean") for e in scaling["entries"]]]
+        # Factors vs baseline
+        def _ratio(a, b):
+            return (a / b) if (np.isfinite(a) and np.isfinite(b) and b > 0) else np.nan
+        t_factor = [_ratio(tt[0], x) for x in tt]  # speedup in time (higher is better)
+        ae_factor = [_ratio(ae[0], x) for x in ae]  # faster epochs
+        thr_factor = [_ratio(x, thr[0]) for x in thr]  # throughput gain
+        loss_factor = [_ratio(fl[0], x) for x in fl]  # loss improvement (>1 is lower loss)
+        fig, axes = plt.subplots(2, 2, figsize=(11, 7))
+        axes = axes.ravel()
+        def _bars(ax, data, title, ylabel, factors):
+            ax.bar([str(x) for x in gp], data)
+            ax.set_title(title)
+            ax.set_ylabel(ylabel)
+            ax.grid(True, axis='y', linestyle='--', alpha=0.4)
+            # annotate per bar
+            for i, v in enumerate(data):
+                if np.isfinite(v) and np.isfinite(factors[i]):
+                    ax.text(i, v, f"×{factors[i]:.2f}", ha='center', va='bottom', fontsize=8)
+        _bars(axes[0], tt, 'Total Training Time (mean)', 'Seconds', t_factor)
+        _bars(axes[1], ae, 'Avg Epoch Time (mean)', 'Seconds', ae_factor)
+        _bars(axes[2], thr, 'Avg Throughput (global)', 'Samples/s', thr_factor)
+        _bars(axes[3], fl, 'Final Test Loss (mean)', 'Loss', loss_factor)
+        fig.tight_layout()
+        fig.savefig(os.path.join(resudir_base, 'scaling_bars_2x2.png'), dpi=300)
+        plt.close(fig)
         # RMSE vs GPUs (with error bars)
         rm_arr = np.asarray(rm, dtype=float)
         rm_std_arr = np.asarray(rm_std, dtype=float)
@@ -308,6 +361,97 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
         print(f"Saved: {os.path.join(resudir_base, 'scaling_time.png')}, scaling_speedup.png, scaling_rmse.png, rmse_vs_time.png")
     except Exception as e:
         print(f"[WARN] Could not generate scaling figures: {e}")
+
+    # For each g: aggregate true vs pred across runs and save scatter with regression
+    try:
+        import matplotlib.pyplot as plt
+        for e in scaling["entries"]:
+            g = e["gpus"]
+            gdir = os.path.join(resudir_base, f"g{g}")
+            y_list, p_list = [], []
+            for i in range(1, repeats + 1):
+                rdir = os.path.join(gdir, f"run{i}")
+                yp = os.path.join(rdir, "scaled_preds_ddp.npy")
+                yt = os.path.join(rdir, "scaled_y.npy")
+                if os.path.exists(yp) and os.path.exists(yt):
+                    try:
+                        y_true = np.load(yt)
+                        y_pred = np.load(yp)
+                        # flatten to 1D if needed
+                        y_list.append(y_true.reshape(-1))
+                        p_list.append(y_pred.reshape(-1))
+                    except Exception:
+                        pass
+            if y_list and p_list:
+                y = np.concatenate(y_list)
+                p = np.concatenate(p_list)
+                # regression
+                try:
+                    a, b = np.polyfit(y, p, 1)
+                    y_fit = a * y + b
+                    ss_res = np.sum((p - y_fit) ** 2)
+                    ss_tot = np.sum((p - np.mean(p)) ** 2) + 1e-12
+                    r2 = 1.0 - ss_res / ss_tot
+                except Exception:
+                    a = b = r2 = np.nan
+                fig, ax = plt.subplots(figsize=(6, 4))
+                ax.scatter(y, p, s=1, alpha=0.3, label='Data')
+                if np.isfinite(a) and np.isfinite(b):
+                    x_line = np.linspace(np.nanmin(y), np.nanmax(y), 100)
+                    y_line = a * x_line + b
+                    ax.plot(x_line, y_line, 'r-', lw=2, label=f"Reg: y={a:.3f}x+{b:.3f}, R2={r2:.4f}")
+                rmse_g = float(np.sqrt(np.nanmean((p - y) ** 2)))
+                ax.set_title(f"True vs Pred (g={g}) RMSE={rmse_g:.3e}")
+                ax.set_xlabel("True")
+                ax.set_ylabel("Pred")
+                ax.grid(True)
+                ax.legend()
+                fig.tight_layout()
+                fig.savefig(os.path.join(gdir, "true_vs_pred_ddp_avg.png"), dpi=300)
+                plt.close(fig)
+    except Exception as e:
+        print(f"[WARN] Could not generate per-g true_vs_pred plots: {e}")
+
+    # Avg training/test losses per g in one figure (two subplots) with light error bands
+    try:
+        import matplotlib.pyplot as plt
+        fig, axes = plt.subplots(2, 1, figsize=(9, 7), sharex=True)
+        colors = plt.cm.tab10.colors
+        for idx, e in enumerate(scaling["entries"]):
+            g = e["gpus"]
+            trm = e.get("train_loss_curve_mean")
+            trs = e.get("train_loss_curve_std")
+            tsm = e.get("test_loss_curve_mean")
+            tss = e.get("test_loss_curve_std")
+            col = colors[idx % len(colors)]
+            if trm is not None:
+                trm_np = np.asarray(trm, dtype=float)
+                axes[0].plot(np.arange(1, trm_np.size+1), trm_np, label=f"g={g}", color=col, lw=1.8)
+                if trs is not None:
+                    trs_np = np.asarray(trs, dtype=float)
+                    if trs_np.size == trm_np.size:
+                        lo, hi = trm_np - trs_np, trm_np + trs_np
+                        axes[0].fill_between(np.arange(1, trm_np.size+1), lo, hi, color=col, alpha=0.12, linewidth=0)
+            if tsm is not None:
+                tsm_np = np.asarray(tsm, dtype=float)
+                axes[1].plot(np.arange(1, tsm_np.size+1), tsm_np, label=f"g={g}", color=col, lw=1.8)
+                if tss is not None:
+                    tss_np = np.asarray(tss, dtype=float)
+                    if tss_np.size == tsm_np.size:
+                        lo, hi = tsm_np - tss_np, tsm_np + tss_np
+                        axes[1].fill_between(np.arange(1, tsm_np.size+1), lo, hi, color=col, alpha=0.12, linewidth=0)
+        axes[0].set_title("Average Training Loss per GPU count")
+        axes[1].set_title("Average Test Loss per GPU count")
+        for ax in axes:
+            ax.set_xlabel("Epoch")
+            ax.set_ylabel("Loss")
+            ax.grid(True)
+            ax.legend()
+        fig.tight_layout()
+        fig.savefig(os.path.join(resudir_base, "avg_losses_by_g.png"), dpi=300)
+        plt.close(fig)
+    except Exception as e:
+        print(f"[WARN] Could not generate avg_losses_by_g.png: {e}")
 
 
 def main():

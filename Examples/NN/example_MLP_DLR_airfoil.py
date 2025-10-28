@@ -321,7 +321,7 @@ model = pyLOM.NN.MLP(
 )
 
 training_params = {
-    "epochs": 5,
+    "epochs": 50,
     'lr_scheduler_step': 1,
     "optimizer_class": torch.optim.Adam,
     "loss_fn": torch.nn.MSELoss(),
