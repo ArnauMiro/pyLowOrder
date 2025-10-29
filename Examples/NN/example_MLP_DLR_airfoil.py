@@ -352,8 +352,17 @@ training_params = {
     "batch_size": int(getattr(args, 'batch_size', 119)),
     # DDP switch: auto|on|off controlled by CLI/env; here resolved to boolean
     "ddp": ddp_enabled,
+    # Pick correct backend automatically: 'nccl' for GPU (CUDA/ROCm), 'gloo' for CPU
+    "ddp_backend": ('nccl' if torch.cuda.is_available() else 'gloo'),
     "save_logs_path": RESUDIR,
 }
+
+# Log selected DDP backend on main process for clarity
+if _is_main_process():
+    try:
+        print(f"pyLOM NN: DDP backend = {training_params['ddp_backend']}")
+    except Exception:
+        pass
 
 try:
     training_params.update({

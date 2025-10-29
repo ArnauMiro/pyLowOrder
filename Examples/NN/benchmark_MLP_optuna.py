@@ -43,11 +43,11 @@ def suggest_space(trial):
     return hp
 
 
-def launch_example(resudir: str, ddp_on: bool, nproc: int, basedir: str, casestr: str, params: Dict, batch_size: int = None) -> int:
+def launch_example(resudir: str, ddp_on: bool, nproc: int, basedir: str, casestr: str, params: Dict, batch_size: int = None, epochs: int = 50) -> int:
     os.makedirs(resudir, exist_ok=True)
     # Write hparams.json for the Example to consume (keeps toflexo clean)
     hp = dict(params)
-    hp['epochs'] = 50
+    hp['epochs'] = int(epochs)
     if batch_size is not None:
         hp['batch_size'] = int(batch_size)
     hp_path = os.path.join(resudir, 'hparams.json')
@@ -63,7 +63,7 @@ def launch_example(resudir: str, ddp_on: bool, nproc: int, basedir: str, casestr
     return _run(cmd)
 
 
-def optimize_for_g(out_dir: str, g: int, trials: int, basedir: str, casestr: str, base_batch: int, ddp: bool, fixed_batch: int = None) -> Dict:
+def optimize_for_g(out_dir: str, g: int, trials: int, basedir: str, casestr: str, base_batch: int, ddp: bool, fixed_batch: int = None, epochs: int = 50) -> Dict:
     import optuna
     study = optuna.create_study(direction='minimize')
 
@@ -72,7 +72,7 @@ def optimize_for_g(out_dir: str, g: int, trials: int, basedir: str, casestr: str
         # For 1‑GPU equivalent branch, batch_size is fixed (must match DDP best batch)
         bs = None if fixed_batch is None else int(fixed_batch)
         run_dir = os.path.join(out_dir, f"trial_{trial.number}")
-        rc = launch_example(run_dir, ddp_on=ddp, nproc=g if ddp else 1, basedir=basedir, casestr=casestr, params=hp, batch_size=bs)
+        rc = launch_example(run_dir, ddp_on=ddp, nproc=g if ddp else 1, basedir=basedir, casestr=casestr, params=hp, batch_size=bs, epochs=epochs)
         if rc != 0:
             raise optuna.TrialPruned()
         mode = 'ddp' if ddp else 'single'
@@ -85,7 +85,7 @@ def optimize_for_g(out_dir: str, g: int, trials: int, basedir: str, casestr: str
 
     study.optimize(objective, n_trials=trials)
     best = study.best_params
-    best['epochs'] = 50
+    best['epochs'] = int(epochs)
     if fixed_batch is not None:
         best['batch_size'] = int(fixed_batch)
     # Persist best params
@@ -134,6 +134,7 @@ def main():
     ap.add_argument('--basedir', default='/home/airbus/CETACEO_cp_interp/DATA/DLR_pylom/')
     ap.add_argument('--casestr', default='NRL7301')
     ap.add_argument('--base-batch', type=int, default=119)
+    ap.add_argument('--epochs', type=int, default=50)
     args = ap.parse_args()
 
     base = args.resudir_base
@@ -155,11 +156,11 @@ def main():
         gdir = os.path.join(base, f"g{g}")
         os.makedirs(gdir, exist_ok=True)
         # 1) Optimize DDP @ g GPUs
-        best_ddp = optimize_for_g(gdir, g, args.trials, args.basedir, args.casestr, args.base_batch, ddp=True)
+        best_ddp = optimize_for_g(gdir, g, args.trials, args.basedir, args.casestr, args.base_batch, ddp=True, epochs=args.epochs)
         # 2) Consolidate with repeats
         for i in range(1, args.repeats + 1):
             rdir = os.path.join(gdir, f"run{i}")
-            launch_example(rdir, ddp_on=True, nproc=g, basedir=args.basedir, casestr=args.casestr, params=best_ddp)
+            launch_example(rdir, ddp_on=True, nproc=g, basedir=args.basedir, casestr=args.casestr, params=best_ddp, epochs=args.epochs)
         ddp_agg = aggregate_runs(gdir, 'ddp', args.repeats)
         ddp_agg['gpus'] = g
         summary['entries'].append(ddp_agg)
@@ -170,11 +171,11 @@ def main():
         gdir_e = os.path.join(base, f"g{g}_equiv")
         os.makedirs(gdir_e, exist_ok=True)
         bs_fix = int(best_ddp.get('batch_size', args.base_batch * g))
-        best_single = optimize_for_g(gdir_e, 1, args.trials, args.basedir, args.casestr, args.base_batch, ddp=False, fixed_batch=bs_fix)
+        best_single = optimize_for_g(gdir_e, 1, args.trials, args.basedir, args.casestr, args.base_batch, ddp=False, fixed_batch=bs_fix, epochs=args.epochs)
         # 4) Consolidate with repeats
         for i in range(1, args.repeats + 1):
             rdir = os.path.join(gdir_e, f"run{i}")
-            launch_example(rdir, ddp_on=False, nproc=1, basedir=args.basedir, casestr=args.casestr, params=best_single, batch_size=bs_fix)
+            launch_example(rdir, ddp_on=False, nproc=1, basedir=args.basedir, casestr=args.casestr, params=best_single, batch_size=bs_fix, epochs=args.epochs)
         single_agg = aggregate_runs(gdir_e, 'single', args.repeats)
         single_agg['gpus'] = g
         single_agg['equivalent_batch'] = bs_fix
