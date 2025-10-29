@@ -31,6 +31,7 @@ def launch_example(resudir: str, ddp_on: bool, nproc: int, basedir: str, casestr
             "--resudir", resudir,
             "--basedir", basedir,
             "--casestr", casestr,
+            "--no-figures",
         ]
         if batch_size is not None:
             cmd += ["--batch-size", str(int(batch_size))]
@@ -41,6 +42,7 @@ def launch_example(resudir: str, ddp_on: bool, nproc: int, basedir: str, casestr
             "--resudir", resudir,
             "--basedir", basedir,
             "--casestr", casestr,
+            "--no-figures",
         ]
         if batch_size is not None:
             cmd += ["--batch-size", str(int(batch_size))]
@@ -204,6 +206,8 @@ def main():
     # 2x2 summary figure with grouped bars
     try:
         import matplotlib.pyplot as plt
+        fig_dir = os.path.join(base, 'figures')
+        os.makedirs(fig_dir, exist_ok=True)
         gp = [e["gpus"] for e in entries]
         # Time speedup
         t_ddp = [e.get("total_time_s_mean") for e in entries]
@@ -297,7 +301,7 @@ def main():
         ax11.legend()
 
         fig.tight_layout()
-        outp = os.path.join(base, 'summary_4in1.png')
+        outp = os.path.join(fig_dir, 'summary_4in1.png')
         fig.savefig(outp, dpi=300)
         plt.close(fig)
         print(f"Saved: {outp}")
@@ -317,7 +321,7 @@ def main():
         ax.set_ylabel("Seconds")
         ax.grid(True, axis='y', linestyle='--', alpha=0.4)
         fig.tight_layout()
-        fig.savefig(os.path.join(base, "scaling_time.png"), dpi=300)
+        fig.savefig(os.path.join(fig_dir, "scaling_time.png"), dpi=300)
         plt.close(fig)
 
         # Speedup (DDP)
@@ -330,7 +334,7 @@ def main():
         ax.set_ylabel("Speedup")
         ax.grid(True, linestyle='--', alpha=0.4)
         fig.tight_layout()
-        fig.savefig(os.path.join(base, "scaling_speedup.png"), dpi=300)
+        fig.savefig(os.path.join(fig_dir, "scaling_speedup.png"), dpi=300)
         plt.close(fig)
 
         # RMSE vs GPUs (DDP)
@@ -349,7 +353,7 @@ def main():
             ax.grid(True, linestyle='--', alpha=0.4)
             # Use automatic Y-limits for RMSE plot
             fig.tight_layout()
-            fig.savefig(os.path.join(base, "scaling_rmse.png"), dpi=300)
+            fig.savefig(os.path.join(fig_dir, "scaling_rmse.png"), dpi=300)
             plt.close(fig)
 
         # RMSE vs Time (DDP) standalone
@@ -383,7 +387,7 @@ def main():
             ax.grid(True, linestyle='--', alpha=0.4)
             ax.legend()
             fig.tight_layout()
-            fig.savefig(os.path.join(base, "rmse_vs_time.png"), dpi=300)
+            fig.savefig(os.path.join(fig_dir, "rmse_vs_time.png"), dpi=300)
             plt.close(fig)
 
         # Average losses per g (DDP): two figures requested
@@ -408,7 +412,7 @@ def main():
                 ax.grid(True, linestyle='--', alpha=0.4)
                 ax.legend()
             fig.tight_layout()
-            fig.savefig(os.path.join(base, "avg_losses_by_g.png"), dpi=300)
+            fig.savefig(os.path.join(fig_dir, "avg_losses_by_g.png"), dpi=300)
             plt.close(fig)
 
             # Log scale
@@ -431,7 +435,7 @@ def main():
                 ax.grid(True, linestyle='--', alpha=0.4)
                 ax.legend()
             fig.tight_layout()
-            fig.savefig(os.path.join(base, "avg_losses_by_g_log.png"), dpi=300)
+            fig.savefig(os.path.join(fig_dir, "avg_losses_by_g_log.png"), dpi=300)
             plt.close(fig)
         except Exception:
             pass
@@ -478,7 +482,7 @@ def main():
                 ax.grid(True)
                 ax.legend()
                 fig.tight_layout()
-                fig.savefig(os.path.join(gdir, "true_vs_pred_ddp_avg.png"), dpi=300)
+                fig.savefig(os.path.join(fig_dir, f"true_vs_pred_ddp_avg_g{g}.png"), dpi=300)
                 plt.close(fig)
             # Per-g curves (DDP): linear + log stacked
             trm = e.get('train_loss_curve_mean')
@@ -510,7 +514,7 @@ def main():
                 axes[1].grid(True, linestyle='--', alpha=0.4)
                 axes[1].legend()
                 fig.tight_layout()
-                fig.savefig(os.path.join(gdir, "curves_train_test_avg.png"), dpi=300)
+                fig.savefig(os.path.join(fig_dir, f"curves_train_test_avg_ddp_g{g}.png"), dpi=300)
                 plt.close(fig)
 
             # Per-run: write training losses log JSON inside each run directory (DDP)
@@ -592,7 +596,7 @@ def main():
                 ax.grid(True)
                 ax.legend()
                 fig.tight_layout()
-                fig.savefig(os.path.join(gdir_e, "true_vs_pred_single_avg.png"), dpi=300)
+                fig.savefig(os.path.join(fig_dir, f"true_vs_pred_single_avg_g{g}.png"), dpi=300)
                 plt.close(fig)
             # Per-g curves (equiv 1-GPU): linear + log stacked
             trm_e = ee.get('train_loss_curve_mean')
@@ -624,7 +628,7 @@ def main():
                 axes[1].grid(True, linestyle='--', alpha=0.4)
                 axes[1].legend()
                 fig.tight_layout()
-                fig.savefig(os.path.join(gdir_e, "curves_train_test_avg.png"), dpi=300)
+                fig.savefig(os.path.join(fig_dir, f"curves_train_test_avg_single_g{g}.png"), dpi=300)
                 plt.close(fig)
 
             # Per-run: write training losses log JSON inside each run directory (equiv 1-GPU)

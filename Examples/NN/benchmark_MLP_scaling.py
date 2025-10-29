@@ -26,8 +26,21 @@ def _run(cmd: List[str], env: Dict[str, str] = None) -> int:
         return 127
 
 
-def launch_example(resudir: str, ddp_on: bool, nproc: int, basedir: str, casestr: str) -> int:
+def launch_example(resudir: str, ddp_on: bool, nproc: int, basedir: str, casestr: str,
+                   epochs: int | None = None, batch_size: int | None = None) -> int:
     os.makedirs(resudir, exist_ok=True)
+    # If epochs/batch are provided, write hparams.json for the Example to consume
+    if epochs is not None or batch_size is not None:
+        hp = {}
+        if epochs is not None:
+            hp['epochs'] = int(epochs)
+        if batch_size is not None:
+            hp['batch_size'] = int(batch_size)
+        try:
+            with open(os.path.join(resudir, 'hparams.json'), 'w') as f:
+                json.dump(hp, f)
+        except Exception:
+            pass
     if ddp_on:
         torchrun = os.environ.get("TORCHRUN_BIN", "torchrun")
         cmd = [
@@ -37,6 +50,7 @@ def launch_example(resudir: str, ddp_on: bool, nproc: int, basedir: str, casestr
             "--resudir", resudir,
             "--basedir", basedir,
             "--casestr", casestr,
+            "--no-figures",
         ]
     else:
         cmd = [
@@ -45,6 +59,7 @@ def launch_example(resudir: str, ddp_on: bool, nproc: int, basedir: str, casestr
             "--resudir", resudir,
             "--basedir", basedir,
             "--casestr", casestr,
+            "--no-figures",
         ]
     return _run(cmd)
 
@@ -173,6 +188,8 @@ def task_compare(single_base: str, ddp_base: str, repeats: int, out_dir: str) ->
     # Optional: bar figures with error bars for selected metrics
     try:
         import matplotlib.pyplot as plt
+        fig_dir = os.path.join(resudir_base, 'figures')
+        os.makedirs(fig_dir, exist_ok=True)
         labels = ["Single", "DDP"]
         # Build metric arrays (mean, std) pairs
         metrics = [
@@ -223,8 +240,14 @@ def task_compare(single_base: str, ddp_base: str, repeats: int, out_dir: str) ->
         print(f"[WARN] Could not generate comparison_avg_bars.png: {e}")
 
 
-def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, casestr: str, launch: bool, ddp_baseline: bool, equiv: bool, base_batch: int) -> None:
+def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, casestr: str, launch: bool, ddp_baseline: bool, equiv: bool, base_batch: int, epochs: int | None = None) -> None:
     os.makedirs(resudir_base, exist_ok=True)
+    # Ensure central figures directory exists and is available for all plotting blocks
+    fig_dir = os.path.join(resudir_base, 'figures')
+    try:
+        os.makedirs(fig_dir, exist_ok=True)
+    except Exception:
+        pass
     per_g = {}
     per_g_equiv = {}
     for g in gpus:
@@ -237,7 +260,8 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
             for i in range(1, repeats + 1):
                 rdir = os.path.join(gdir, f"run{i}")
                 print(f"[RUN] g={g} i={i} -> {rdir}")
-                rc = launch_example(rdir, ddp_on=(mode == "ddp"), nproc=g if mode == "ddp" else 1, basedir=basedir, casestr=casestr)
+                rc = launch_example(rdir, ddp_on=(mode == "ddp"), nproc=g if mode == "ddp" else 1,
+                                    basedir=basedir, casestr=casestr, epochs=epochs)
                 if rc != 0:
                     print(f"[ERR] Run failed (g={g}, i={i}) rc={rc}")
                     break
@@ -294,7 +318,8 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
                 for i in range(1, repeats + 1):
                     rdir = os.path.join(gdir_e, f"run{i}")
                     print(f"[RUN][EQUIV] g={g} i={i} (1-GPU, batch={bs}) -> {rdir}")
-                    rc = launch_example(rdir, ddp_on=False, nproc=1, basedir=basedir, casestr=casestr)
+                    rc = launch_example(rdir, ddp_on=False, nproc=1, basedir=basedir, casestr=casestr,
+                                        epochs=epochs, batch_size=bs)
                     if rc != 0:
                         print(f"[ERR] Equiv run failed (g={g}, i={i}) rc={rc}")
                         break
@@ -384,7 +409,7 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
         ax.set_ylabel("Seconds")
         ax.grid(True, axis='y', linestyle='--', alpha=0.4)
         fig.tight_layout()
-        fig.savefig(os.path.join(resudir_base, "scaling_time.png"), dpi=300)
+        fig.savefig(os.path.join(fig_dir, "scaling_time.png"), dpi=300)
         plt.close(fig)
         # Speedup
         fig, ax = plt.subplots(figsize=(6, 4))
@@ -394,37 +419,56 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
         ax.set_ylabel("Speedup")
         ax.grid(True, linestyle='--', alpha=0.4)
         fig.tight_layout()
-        fig.savefig(os.path.join(resudir_base, "scaling_speedup.png"), dpi=300)
+        fig.savefig(os.path.join(fig_dir, "scaling_speedup.png"), dpi=300)
         plt.close(fig)
-        # 2x2 bars: Total time, Avg epoch time, Throughput, Final test loss with factors vs baseline
-        # Collect metrics
-        ae = [float(v) if v is not None else np.nan for v in [e.get("avg_epoch_time_s_mean") for e in scaling["entries"]]]
-        thr = [float(v) if v is not None else np.nan for v in [e.get("avg_throughput_global_mean") for e in scaling["entries"]]]
-        fl = [float(v) if v is not None else np.nan for v in [e.get("final_test_loss_mean") for e in scaling["entries"]]]
-        # Factors vs baseline
-        def _ratio(a, b):
-            return (a / b) if (np.isfinite(a) and np.isfinite(b) and b > 0) else np.nan
-        t_factor = [_ratio(tt[0], x) for x in tt]  # speedup in time (higher is better)
-        ae_factor = [_ratio(ae[0], x) for x in ae]  # faster epochs
-        thr_factor = [_ratio(x, thr[0]) for x in thr]  # throughput gain
-        loss_factor = [_ratio(fl[0], x) for x in fl]  # loss improvement (>1 is lower loss)
+        # 2x2 grouped bars: DDP vs 1-GPU-equivalent (if present)
+        ae = [float(v) if v is not None else np.nan for v in [e.get('avg_epoch_time_s_mean') for e in scaling['entries']]]
+        thr = [float(v) if v is not None else np.nan for v in [e.get('avg_throughput_global_mean') for e in scaling['entries']]]
+        fl = [float(v) if v is not None else np.nan for v in [e.get('final_test_loss_mean') for e in scaling['entries']]]
+        entries_equiv = scaling.get('entries_equiv', [])
+        has_equiv = bool(entries_equiv)
+        if has_equiv:
+            emap = {e.get('gpus'): e for e in entries_equiv}
+            tt_e = [float(emap.get(g, {}).get('total_time_s_mean')) if emap.get(g, {}).get('total_time_s_mean') is not None else np.nan for g in gp]
+            ae_e = [float(emap.get(g, {}).get('avg_epoch_time_s_mean')) if emap.get(g, {}).get('avg_epoch_time_s_mean') is not None else np.nan for g in gp]
+            thr_e = [float(emap.get(g, {}).get('avg_throughput_global_mean')) if emap.get(g, {}).get('avg_throughput_global_mean') is not None else np.nan for g in gp]
+            fl_e = [float(emap.get(g, {}).get('final_test_loss_mean')) if emap.get(g, {}).get('final_test_loss_mean') is not None else np.nan for g in gp]
         fig, axes = plt.subplots(2, 2, figsize=(11, 7))
         axes = axes.ravel()
-        def _bars(ax, data, title, ylabel, factors):
-            ax.bar([str(x) for x in gp], data)
+        x = np.arange(len(gp))
+        w = 0.35
+        def _group(ax, ddp_vals, equiv_vals, title, ylabel, annotate_kind):
+            b1 = ax.bar(x - w/2, ddp_vals, width=w, label='DDP')
+            if has_equiv:
+                b2 = ax.bar(x + w/2, equiv_vals, width=w, label='1GPU (b×g)')
+            ax.set_xticks(x, [str(g) for g in gp])
             ax.set_title(title)
             ax.set_ylabel(ylabel)
             ax.grid(True, axis='y', linestyle='--', alpha=0.4)
-            # annotate per bar
-            for i, v in enumerate(data):
-                if np.isfinite(v) and np.isfinite(factors[i]):
-                    ax.text(i, v, f"×{factors[i]:.2f}", ha='center', va='bottom', fontsize=8)
-        _bars(axes[0], tt, 'Total Training Time (mean)', 'Seconds', t_factor)
-        _bars(axes[1], ae, 'Avg Epoch Time (mean)', 'Seconds', ae_factor)
-        _bars(axes[2], thr, 'Avg Throughput (global)', 'Samples/s', thr_factor)
-        _bars(axes[3], fl, 'Final Test Loss (mean)', 'Loss', loss_factor)
+            # annotate relative to DDP baseline at g0
+            base = ddp_vals[0] if ddp_vals and np.isfinite(ddp_vals[0]) else None
+            if base and base > 0:
+                for i, v in enumerate(ddp_vals):
+                    if v and np.isfinite(v):
+                        if annotate_kind == 'time' or annotate_kind == 'loss':
+                            ax.text(x[i]-w/2, v, f"×{base/float(v):.2f}", ha='center', va='bottom', fontsize=8)
+                        elif annotate_kind == 'thr':
+                            ax.text(x[i]-w/2, v, f"×{float(v)/base:.2f}", ha='center', va='bottom', fontsize=8)
+                if has_equiv:
+                    for i, v in enumerate(equiv_vals):
+                        if v and np.isfinite(v):
+                            if annotate_kind == 'time' or annotate_kind == 'loss':
+                                ax.text(x[i]+w/2, v, f"×{base/float(v):.2f}", ha='center', va='bottom', fontsize=8)
+                            elif annotate_kind == 'thr':
+                                ax.text(x[i]+w/2, v, f"×{float(v)/base:.2f}", ha='center', va='bottom', fontsize=8)
+            if has_equiv:
+                ax.legend()
+        _group(axes[0], tt, tt_e if has_equiv else [], 'Total Training Time (mean)', 'Seconds', 'time')
+        _group(axes[1], ae, ae_e if has_equiv else [], 'Avg Epoch Time (mean)', 'Seconds', 'time')
+        _group(axes[2], thr, thr_e if has_equiv else [], 'Avg Throughput (global)', 'Samples/s', 'thr')
+        _group(axes[3], fl, fl_e if has_equiv else [], 'Final Test Loss (mean)', 'Loss', 'loss')
         fig.tight_layout()
-        fig.savefig(os.path.join(resudir_base, 'scaling_bars_2x2.png'), dpi=300)
+        fig.savefig(os.path.join(fig_dir, 'scaling_bars_2x2.png'), dpi=300)
         plt.close(fig)
         # RMSE vs GPUs (with error bars)
         rm_arr = np.asarray(rm, dtype=float)
@@ -440,7 +484,7 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
             ax.grid(True, linestyle='--', alpha=0.4)
         # Auto Y axis range for RMSE (no fixed limits)
             fig.tight_layout()
-            fig.savefig(os.path.join(resudir_base, "scaling_rmse.png"), dpi=300)
+            fig.savefig(os.path.join(fig_dir, "scaling_rmse.png"), dpi=300)
             plt.close(fig)
         # RMSE vs Training Time (scatter with annotations)
         tt_arr = np.asarray(tt, dtype=float)
@@ -482,9 +526,61 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
             # Ensure X axis starts at 0 (auto Y range)
             ax.set_xlim(left=0.0)
             fig.tight_layout()
-            fig.savefig(os.path.join(resudir_base, "rmse_vs_time.png"), dpi=300)
+            fig.savefig(os.path.join(fig_dir, "rmse_vs_time.png"), dpi=300)
             plt.close(fig)
-        print(f"Saved: {os.path.join(resudir_base, 'scaling_time.png')}, scaling_speedup.png, scaling_rmse.png, rmse_vs_time.png")
+        # Also output average losses per g: linear and log
+        try:
+            colors = plt.cm.tab10.colors
+            # Linear
+            fig, axes = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+            for idx, e in enumerate(scaling.get('entries', [])):
+                g = e.get('gpus')
+                trm = e.get('train_loss_curve_mean')
+                tsm = e.get('test_loss_curve_mean')
+                col = colors[idx % len(colors)]
+                if trm is not None:
+                    y = np.asarray(trm, dtype=float)
+                    axes[0].plot(np.arange(1, y.size+1), y, label=f"g={g}", color=col)
+                if tsm is not None:
+                    y = np.asarray(tsm, dtype=float)
+                    axes[1].plot(np.arange(1, y.size+1), y, label=f"g={g}", color=col)
+            axes[0].set_title('Average Train Loss per GPU count (DDP)')
+            axes[1].set_title('Average Test Loss per GPU count (DDP)')
+            for ax in axes:
+                ax.set_xlabel('Epoch')
+                ax.set_ylabel('Loss')
+                ax.grid(True, linestyle='--', alpha=0.4)
+                ax.legend()
+            fig.tight_layout()
+            fig.savefig(os.path.join(fig_dir, 'avg_losses_by_g.png'), dpi=300)
+            plt.close(fig)
+            # Log
+            fig, axes = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+            for idx, e in enumerate(scaling.get('entries', [])):
+                g = e.get('gpus')
+                trm = e.get('train_loss_curve_mean')
+                tsm = e.get('test_loss_curve_mean')
+                col = colors[idx % len(colors)]
+                if trm is not None:
+                    y = np.asarray(trm, dtype=float)
+                    axes[0].plot(np.arange(1, y.size+1), y, label=f"g={g}", color=col)
+                if tsm is not None:
+                    y = np.asarray(tsm, dtype=float)
+                    axes[1].plot(np.arange(1, y.size+1), y, label=f"g={g}", color=col)
+            axes[0].set_title('Average Train Loss per GPU count (DDP) (log)')
+            axes[1].set_title('Average Test Loss per GPU count (DDP) (log)')
+            for ax in axes:
+                ax.set_xlabel('Epoch')
+                ax.set_ylabel('Loss')
+                ax.set_yscale('log')
+                ax.grid(True, linestyle='--', alpha=0.4)
+                ax.legend()
+            fig.tight_layout()
+            fig.savefig(os.path.join(fig_dir, 'avg_losses_by_g_log.png'), dpi=300)
+            plt.close(fig)
+        except Exception:
+            pass
+        print(f"Saved: {os.path.join(fig_dir, 'scaling_time.png')}, scaling_speedup.png, scaling_rmse.png, rmse_vs_time.png, avg_losses_by_g.png, avg_losses_by_g_log.png")
     except Exception as e:
         print(f"[WARN] Could not generate scaling figures: {e}")
 
@@ -533,7 +629,7 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
                 ax.grid(True)
                 ax.legend()
                 fig.tight_layout()
-                fig.savefig(os.path.join(gdir, "true_vs_pred_ddp_avg.png"), dpi=300)
+                fig.savefig(os.path.join(fig_dir, f"true_vs_pred_ddp_avg_g{g}.png"), dpi=300)
                 plt.close(fig)
     except Exception as e:
         print(f"[WARN] Could not generate per-g true_vs_pred plots: {e}")
@@ -602,6 +698,7 @@ def main():
     ps.add_argument("--ddp-baseline", action="store_true", help="Use DDP even for g=1 (recommended for fair scaling)")
     ps.add_argument("--equiv", action="store_true", help="Also run 1-GPU equivalent (batch=base-batch×g) and aggregate")
     ps.add_argument("--base-batch", type=int, default=119, help="Baseline per-process batch used to build equivalent 1-GPU batch")
+    ps.add_argument("--epochs", type=int, default=None, help="Override number of epochs for Example runs")
 
     # plot_curves: regenerate curves (train/test) from a results directory
     pp = sub.add_parser("plot_curves", help="Plot training/test curves from existing NPYs in a results dir")
@@ -629,7 +726,8 @@ def main():
         task_compare(args.single_dir, args.ddp_dir, args.repeats, args.out_dir)
     elif args.task == "scale":
         g_list = [int(x) for x in str(args.gpus).split(',') if str(x).strip()]
-        task_scale(args.resudir_base, g_list, args.repeats, args.basedir, args.casestr, args.launch, args.ddp_baseline, args.equiv, args.base_batch)
+        task_scale(args.resudir_base, g_list, args.repeats, args.basedir, args.casestr, args.launch,
+                   args.ddp_baseline, args.equiv, args.base_batch, args.epochs)
     elif args.task == "plot_curves":
         # Load available single/ddp results and create a two-subplot figure
         res_dir = args.resudir
@@ -707,7 +805,8 @@ def main():
                 ax.grid(True)
                 ax.legend()
             fig.tight_layout()
-            outp = os.path.join(base, 'avg_losses_by_g_log.png' if args.logy else 'avg_losses_by_g.png')
+            os.makedirs(os.path.join(base, 'figures'), exist_ok=True)
+            outp = os.path.join(base, 'figures', 'avg_losses_by_g_log.png' if args.logy else 'avg_losses_by_g.png')
             fig.savefig(outp, dpi=300)
             plt.close(fig)
             print(f"Saved: {outp}")
@@ -754,7 +853,9 @@ def main():
             ax.legend()
             ax.set_xlim(left=0.0)
             fig.tight_layout()
-            outp = os.path.join(base, 'rmse_vs_time.png')
+            # ensure figures dir exists for subcommand outputs
+            os.makedirs(os.path.join(base, 'figures'), exist_ok=True)
+            outp = os.path.join(base, 'figures', 'rmse_vs_time.png')
             fig.savefig(outp, dpi=300)
             plt.close(fig)
             print(f"Saved: {outp}")
@@ -853,7 +954,8 @@ def main():
                 ax11.set_ylabel('RMSE (mean)')
                 ax11.legend()
             fig.tight_layout()
-            outp = os.path.join(base, 'summary_4in1.png')
+            os.makedirs(os.path.join(base, 'figures'), exist_ok=True)
+            outp = os.path.join(base, 'figures', 'summary_4in1.png')
             fig.savefig(outp, dpi=300)
             plt.close(fig)
             print(f"Saved: {outp}")
