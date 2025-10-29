@@ -401,23 +401,41 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
         spv = [float(v) if v is not None else np.nan for v in [e.get(f"speedup_vs_{g0}") for e in scaling["entries"]]]
         rm = [float(v) if v is not None else np.nan for v in [e.get("rmse_mean") for e in scaling["entries"]]]
         rm_std = [float(v) if v is not None else np.nan for v in [e.get("rmse_std") for e in scaling["entries"]]]
-        # Time
+        # Time (DDP + optional 1-GPU equiv)
         fig, ax = plt.subplots(figsize=(6, 4))
-        ax.bar([str(x) for x in gp], tt)
+        labels = [str(x) for x in gp]
+        ax.bar(labels, tt, label='DDP')
+        # Overlay equiv if present
+        entries_equiv = scaling.get('entries_equiv', [])
+        has_equiv = bool(entries_equiv)
+        if has_equiv:
+            emap = {e.get('gpus'): e for e in entries_equiv}
+            tt_e = [float(emap.get(g, {}).get('total_time_s_mean')) if emap.get(g, {}).get('total_time_s_mean') is not None else np.nan for g in gp]
+            ax.bar(labels, tt_e, alpha=0.6, label='1GPU (b×g)')
         ax.set_title("Total Training Time (mean)")
         ax.set_xlabel("GPUs")
         ax.set_ylabel("Seconds")
         ax.grid(True, axis='y', linestyle='--', alpha=0.4)
+        if has_equiv:
+            ax.legend()
         fig.tight_layout()
         fig.savefig(os.path.join(fig_dir, "scaling_time.png"), dpi=300)
         plt.close(fig)
-        # Speedup
+        # Speedup (DDP + optional 1-GPU equiv)
         fig, ax = plt.subplots(figsize=(6, 4))
-        ax.plot(gp, spv, marker='o')
+        ax.plot(gp, spv, marker='o', label='DDP')
+        if has_equiv:
+            # Compute equiv speedup vs same baseline
+            t0 = tt[0] if tt and np.isfinite(tt[0]) else None
+            tt_e = [float(emap.get(g, {}).get('total_time_s_mean')) if emap.get(g, {}).get('total_time_s_mean') is not None else np.nan for g in gp]
+            spv_e = [float(t0)/float(x) if (t0 and x and np.isfinite(x)) else np.nan for x in tt_e]
+            ax.plot(gp, spv_e, marker='o', label='1GPU (b×g)')
         ax.set_title(f"Speedup vs {g0} GPU(s)")
         ax.set_xlabel("GPUs")
         ax.set_ylabel("Speedup")
         ax.grid(True, linestyle='--', alpha=0.4)
+        if has_equiv:
+            ax.legend()
         fig.tight_layout()
         fig.savefig(os.path.join(fig_dir, "scaling_speedup.png"), dpi=300)
         plt.close(fig)
@@ -433,44 +451,104 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
             ae_e = [float(emap.get(g, {}).get('avg_epoch_time_s_mean')) if emap.get(g, {}).get('avg_epoch_time_s_mean') is not None else np.nan for g in gp]
             thr_e = [float(emap.get(g, {}).get('avg_throughput_global_mean')) if emap.get(g, {}).get('avg_throughput_global_mean') is not None else np.nan for g in gp]
             fl_e = [float(emap.get(g, {}).get('final_test_loss_mean')) if emap.get(g, {}).get('final_test_loss_mean') is not None else np.nan for g in gp]
-        fig, axes = plt.subplots(2, 2, figsize=(11, 7))
-        axes = axes.ravel()
+        # Summary 2×2 composite (standard): speedup, final loss, test curves (log), rmse_vs_time
+        fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+        ax00, ax01, ax10, ax11 = axes.ravel()
         x = np.arange(len(gp))
-        w = 0.35
-        def _group(ax, ddp_vals, equiv_vals, title, ylabel, annotate_kind):
-            b1 = ax.bar(x - w/2, ddp_vals, width=w, label='DDP')
+        # 1.1 Speedup panel: bars if <=4, else polyline
+        if len(gp) <= 4:
+            w = 0.35
+            ax00.bar(x - w/2, [float(s) if s is not None else np.nan for s in spv], width=w, label='DDP')
             if has_equiv:
-                b2 = ax.bar(x + w/2, equiv_vals, width=w, label='1GPU (b×g)')
-            ax.set_xticks(x, [str(g) for g in gp])
-            ax.set_title(title)
-            ax.set_ylabel(ylabel)
-            ax.grid(True, axis='y', linestyle='--', alpha=0.4)
-            # annotate relative to DDP baseline at g0
-            base = ddp_vals[0] if ddp_vals and np.isfinite(ddp_vals[0]) else None
-            if base and base > 0:
-                for i, v in enumerate(ddp_vals):
-                    if v and np.isfinite(v):
-                        if annotate_kind == 'time' or annotate_kind == 'loss':
-                            ax.text(x[i]-w/2, v, f"×{base/float(v):.2f}", ha='center', va='bottom', fontsize=8)
-                        elif annotate_kind == 'thr':
-                            ax.text(x[i]-w/2, v, f"×{float(v)/base:.2f}", ha='center', va='bottom', fontsize=8)
-                if has_equiv:
-                    for i, v in enumerate(equiv_vals):
-                        if v and np.isfinite(v):
-                            if annotate_kind == 'time' or annotate_kind == 'loss':
-                                ax.text(x[i]+w/2, v, f"×{base/float(v):.2f}", ha='center', va='bottom', fontsize=8)
-                            elif annotate_kind == 'thr':
-                                ax.text(x[i]+w/2, v, f"×{float(v)/base:.2f}", ha='center', va='bottom', fontsize=8)
+                # equiv speedup
+                t0 = tt[0] if tt and np.isfinite(tt[0]) else None
+                tt_e = [float(emap.get(g, {}).get('total_time_s_mean')) if emap.get(g, {}).get('total_time_s_mean') is not None else np.nan for g in gp]
+                spv_e = [float(t0)/float(x) if (t0 and x and np.isfinite(x)) else np.nan for x in tt_e]
+                ax00.bar(x + w/2, spv_e, width=w, label='1GPU (b×g)')
+            ax00.set_xticks(x, [str(g) for g in gp])
+        else:
+            ax00.plot(gp, spv, marker='o', label='DDP')
             if has_equiv:
-                ax.legend()
-        _group(axes[0], tt, tt_e if has_equiv else [], 'Total Training Time (mean)', 'Seconds', 'time')
-        _group(axes[1], ae, ae_e if has_equiv else [], 'Avg Epoch Time (mean)', 'Seconds', 'time')
-        _group(axes[2], thr, thr_e if has_equiv else [], 'Avg Throughput (global)', 'Samples/s', 'thr')
-        _group(axes[3], fl, fl_e if has_equiv else [], 'Final Test Loss (mean)', 'Loss', 'loss')
+                t0 = tt[0] if tt and np.isfinite(tt[0]) else None
+                tt_e = [float(emap.get(g, {}).get('total_time_s_mean')) if emap.get(g, {}).get('total_time_s_mean') is not None else np.nan for g in gp]
+                spv_e = [float(t0)/float(x) if (t0 and x and np.isfinite(x)) else np.nan for x in tt_e]
+                ax00.plot(gp, spv_e, marker='o', label='1GPU (b×g)')
+        for i, s in enumerate(spv):
+            if s is not None and np.isfinite(s):
+                ax00.text(i if len(gp)<=4 else gp[i], s, f"×{s:.2f}", ha='center', va='bottom', fontsize=8)
+        ax00.set_title('Time Speedup (vs {} GPU)'.format(gp[0]))
+        ax00.set_ylabel('× speedup')
+        ax00.grid(True, axis='y', linestyle='--', alpha=0.4)
+        if has_equiv:
+            ax00.legend()
+        # 1.2 Final Test Loss: bars if <=4, else polyline
+        vals_loss = [float(l) if l is not None else np.nan for l in fl]
+        if has_equiv:
+            fl_e = [float(emap.get(g, {}).get('final_test_loss_mean')) if emap.get(g, {}).get('final_test_loss_mean') is not None else np.nan for g in gp]
+        if len(gp) <= 4:
+            w = 0.35
+            ax01.bar(x - w/2, vals_loss, width=w, label='DDP')
+            if has_equiv:
+                ax01.bar(x + w/2, fl_e, width=w, label='1GPU (b×g)')
+            ax01.set_xticks(x, [str(g) for g in gp])
+        else:
+            ax01.plot(gp, vals_loss, marker='o', label='DDP')
+            if has_equiv:
+                ax01.plot(gp, fl_e, marker='o', label='1GPU (b×g)')
+        l0 = vals_loss[0] if len(vals_loss)>0 and np.isfinite(vals_loss[0]) else None
+        if l0 is not None:
+            for i, v in enumerate(vals_loss):
+                if np.isfinite(v) and v>0:
+                    ax01.text(i if len(gp)<=4 else gp[i], v, f"×{l0/float(v):.2f}", ha='center', va='bottom', fontsize=8)
+        ax01.set_title('Final Test Loss (mean)')
+        ax01.set_ylabel('Loss')
+        ax01.grid(True, axis='y', linestyle='--', alpha=0.4)
+        if has_equiv:
+            ax01.legend()
+        # 2.1 Test loss curves (log)
+        colors = plt.cm.tab10.colors
+        for idx, e in enumerate(scaling.get('entries', [])):
+            tsm = e.get('test_loss_curve_mean')
+            if tsm is not None:
+                y = np.asarray(tsm, dtype=float)
+                ax10.plot(np.arange(1, y.size+1), y, label=f"g={e.get('gpus')}", color=colors[idx % len(colors)])
+        ax10.set_title('Average Test Loss per GPU count (DDP)')
+        ax10.set_xlabel('Epoch')
+        ax10.set_ylabel('Loss')
+        ax10.set_yscale('log')
+        ax10.grid(True, linestyle='--', alpha=0.4)
+        ax10.legend()
+        # 2.2 RMSE vs time with regression
+        x_arr = np.asarray(tt, dtype=float)
+        y_arr = np.asarray(rm, dtype=float)
+        m = np.isfinite(x_arr) & np.isfinite(y_arr)
+        if np.any(m):
+            xm = x_arr[m]
+            ym = y_arr[m]
+            gm = np.asarray(gp, dtype=float)[m]
+            ax11.scatter(xm, ym, c='tab:blue')
+            for xi, yi, gi in zip(xm, ym, gm):
+                ax11.annotate(str(int(gi)), (xi, yi), textcoords='offset points', xytext=(5,5), fontsize=8)
+            if xm.size >= 2:
+                a, b = np.polyfit(xm, ym, 1)
+                y_fit = a * xm + b
+                ss_res = float(np.nansum((ym - y_fit) ** 2))
+                ss_tot = float(np.nansum((ym - np.nanmean(ym)) ** 2) + 1e-12)
+                r2 = 1.0 - ss_res / ss_tot
+                x_line = np.linspace(0.0, float(np.nanmax(xm)), 100)
+                y_line = a * x_line + b
+                ax11.plot(x_line, y_line, color='red', linestyle='--', linewidth=1.0,
+                          label=f"Reg: y={a:.3e}x+{b:.3f}, R2={r2:.3f}")
+        ax11.set_xlim(left=0.0)
+        ax11.grid(True, linestyle='--', alpha=0.4)
+        ax11.set_title('RMSE vs Training Time')
+        ax11.set_xlabel('Total time (s)')
+        ax11.set_ylabel('RMSE (mean)')
+        ax11.legend()
         fig.tight_layout()
-        fig.savefig(os.path.join(fig_dir, 'scaling_bars_2x2.png'), dpi=300)
+        fig.savefig(os.path.join(fig_dir, 'summary_4in1.png'), dpi=300)
         plt.close(fig)
-        # RMSE vs GPUs (with error bars)
+        # RMSE vs GPUs (with error bars), overlay equiv
         rm_arr = np.asarray(rm, dtype=float)
         rm_std_arr = np.asarray(rm_std, dtype=float)
         gp_arr = np.asarray(gp, dtype=int)
@@ -478,10 +556,17 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
         if np.any(mask):
             fig, ax = plt.subplots(figsize=(6, 4))
             ax.errorbar(gp_arr[mask], rm_arr[mask], yerr=rm_std_arr[mask], fmt='-o', capsize=4)
+            if has_equiv:
+                rm_e = [float(emap.get(g, {}).get('rmse_mean')) if emap.get(g, {}).get('rmse_mean') is not None else np.nan for g in gp]
+                rm_e_arr = np.asarray(rm_e, dtype=float)
+                mask_e = np.isfinite(rm_e_arr)
+                ax.errorbar(gp_arr[mask_e], rm_e_arr[mask_e], yerr=None, fmt='-o', capsize=4, label='1GPU (b×g)')
             ax.set_title("RMSE vs GPUs")
             ax.set_xlabel("GPUs")
             ax.set_ylabel("RMSE (mean ± std)")
             ax.grid(True, linestyle='--', alpha=0.4)
+            if has_equiv:
+                ax.legend()
         # Auto Y axis range for RMSE (no fixed limits)
             fig.tight_layout()
             fig.savefig(os.path.join(fig_dir, "scaling_rmse.png"), dpi=300)
@@ -629,51 +714,12 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
                 ax.grid(True)
                 ax.legend()
                 fig.tight_layout()
-                fig.savefig(os.path.join(fig_dir, f"true_vs_pred_ddp_avg_g{g}.png"), dpi=300)
+                # per-g figure suppressed by request
                 plt.close(fig)
     except Exception as e:
         print(f"[WARN] Could not generate per-g true_vs_pred plots: {e}")
 
-    # Avg training/test losses per g in one figure (two subplots) with light error bands
-    try:
-        import matplotlib.pyplot as plt
-        fig, axes = plt.subplots(2, 1, figsize=(9, 7), sharex=True)
-        colors = plt.cm.tab10.colors
-        for idx, e in enumerate(scaling["entries"]):
-            g = e["gpus"]
-            trm = e.get("train_loss_curve_mean")
-            trs = e.get("train_loss_curve_std")
-            tsm = e.get("test_loss_curve_mean")
-            tss = e.get("test_loss_curve_std")
-            col = colors[idx % len(colors)]
-            if trm is not None:
-                trm_np = np.asarray(trm, dtype=float)
-                axes[0].plot(np.arange(1, trm_np.size+1), trm_np, label=f"g={g}", color=col, lw=1.8)
-                if trs is not None:
-                    trs_np = np.asarray(trs, dtype=float)
-                    if trs_np.size == trm_np.size:
-                        lo, hi = trm_np - trs_np, trm_np + trs_np
-                        axes[0].fill_between(np.arange(1, trm_np.size+1), lo, hi, color=col, alpha=0.12, linewidth=0)
-            if tsm is not None:
-                tsm_np = np.asarray(tsm, dtype=float)
-                axes[1].plot(np.arange(1, tsm_np.size+1), tsm_np, label=f"g={g}", color=col, lw=1.8)
-                if tss is not None:
-                    tss_np = np.asarray(tss, dtype=float)
-                    if tss_np.size == tsm_np.size:
-                        lo, hi = tsm_np - tss_np, tsm_np + tss_np
-                        axes[1].fill_between(np.arange(1, tsm_np.size+1), lo, hi, color=col, alpha=0.12, linewidth=0)
-        axes[0].set_title("Average Training Loss per GPU count")
-        axes[1].set_title("Average Test Loss per GPU count")
-        for ax in axes:
-            ax.set_xlabel("Epoch")
-            ax.set_ylabel("Loss")
-            ax.grid(True)
-            ax.legend()
-        fig.tight_layout()
-        fig.savefig(os.path.join(resudir_base, "avg_losses_by_g.png"), dpi=300)
-        plt.close(fig)
-    except Exception as e:
-        print(f"[WARN] Could not generate avg_losses_by_g.png: {e}")
+    # (duplicate avg_losses_by_g removed; now generated only in figures/ above)
 
 
 def main():

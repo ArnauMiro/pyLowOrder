@@ -482,7 +482,7 @@ def main():
                 ax.grid(True)
                 ax.legend()
                 fig.tight_layout()
-                fig.savefig(os.path.join(fig_dir, f"true_vs_pred_ddp_avg_g{g}.png"), dpi=300)
+                # per-g figure suppressed by request
                 plt.close(fig)
             # Per-g curves (DDP): linear + log stacked
             trm = e.get('train_loss_curve_mean')
@@ -513,9 +513,9 @@ def main():
                 axes[1].set_yscale('log')
                 axes[1].grid(True, linestyle='--', alpha=0.4)
                 axes[1].legend()
-                fig.tight_layout()
-                fig.savefig(os.path.join(fig_dir, f"curves_train_test_avg_ddp_g{g}.png"), dpi=300)
-                plt.close(fig)
+            fig.tight_layout()
+            # per-g figure suppressed by request
+            plt.close(fig)
 
             # Per-run: write training losses log JSON inside each run directory (DDP)
             for i in range(1, args.repeats + 1):
@@ -595,9 +595,9 @@ def main():
                 ax.set_ylabel("Pred")
                 ax.grid(True)
                 ax.legend()
-                fig.tight_layout()
-                fig.savefig(os.path.join(fig_dir, f"true_vs_pred_single_avg_g{g}.png"), dpi=300)
-                plt.close(fig)
+            fig.tight_layout()
+            # per-g figure suppressed by request
+            plt.close(fig)
             # Per-g curves (equiv 1-GPU): linear + log stacked
             trm_e = ee.get('train_loss_curve_mean')
             tsm_e = ee.get('test_loss_curve_mean')
@@ -627,9 +627,9 @@ def main():
                 axes[1].set_yscale('log')
                 axes[1].grid(True, linestyle='--', alpha=0.4)
                 axes[1].legend()
-                fig.tight_layout()
-                fig.savefig(os.path.join(fig_dir, f"curves_train_test_avg_single_g{g}.png"), dpi=300)
-                plt.close(fig)
+            fig.tight_layout()
+            # per-g figure suppressed by request
+            plt.close(fig)
 
             # Per-run: write training losses log JSON inside each run directory (equiv 1-GPU)
             for i in range(1, args.repeats + 1):
