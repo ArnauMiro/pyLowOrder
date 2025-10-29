@@ -261,6 +261,7 @@ def _parse_args():
     parser.add_argument("--basedir", dest="basedir", default="/home/airbus/CETACEO_cp_interp/DATA/DLR_pylom/", help="Base directory of datasets")
     parser.add_argument("--casestr", dest="casestr", default="NRL7301", help="Case string prefix for dataset files")
     parser.add_argument("--postprocess-only", dest="postprocess_only", action="store_true", help="Only generate comparison plots/report from existing NPY files and exit")
+    parser.add_argument("--batch-size", dest="batch_size", type=int, default=119, help="Override training batch size (per process)")
     return parser.parse_known_args()[0]
 
 # Parse CLI/env before any path-dependent work
@@ -330,7 +331,7 @@ training_params = {
     "device": device,
     "lr": 0.000838, 
     "lr_gamma": 0.99, 
-    "batch_size": 119,
+    "batch_size": int(getattr(args, 'batch_size', 119)),
     # DDP switch: auto|on|off controlled by CLI/env; here resolved to boolean
     "ddp": ddp_enabled,
     "save_logs_path": RESUDIR,

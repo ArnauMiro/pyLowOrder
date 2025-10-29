@@ -332,6 +332,8 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
             ax.set_xlabel("GPUs")
             ax.set_ylabel("RMSE (mean ± std)")
             ax.grid(True, linestyle='--', alpha=0.4)
+            # Fix Y axis range for RMSE
+            ax.set_ylim(0.0, 0.15)
             fig.tight_layout()
             fig.savefig(os.path.join(resudir_base, "scaling_rmse.png"), dpi=300)
             plt.close(fig)
@@ -340,21 +342,41 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
         mask2 = np.isfinite(tt_arr) & np.isfinite(rm_arr)
         if np.any(mask2):
             fig, ax = plt.subplots(figsize=(6, 4))
-            ax.scatter(tt_arr[mask2], rm_arr[mask2], c='tab:blue')
-            for x, y, g in zip(tt_arr[mask2], rm_arr[mask2], gp_arr[mask2]):
+            xdat = tt_arr[mask2]
+            ydat = rm_arr[mask2]
+            gdat = gp_arr[mask2]
+            ax.scatter(xdat, ydat, c='tab:blue')
+            for x, y, g in zip(xdat, ydat, gdat):
                 ax.annotate(str(int(g)), (x, y), textcoords="offset points", xytext=(5, 5), fontsize=8)
-            # Pearson corr if >=2 points
-            if np.count_nonzero(mask2) >= 2:
+            # Pearson corr and linear regression (with intercept)
+            if xdat.size >= 2:
                 try:
-                    r = float(np.corrcoef(tt_arr[mask2], rm_arr[mask2])[0,1])
-                    ax.set_title(f"RMSE vs Training Time (r={r:.3f})")
+                    r = float(np.corrcoef(xdat, ydat)[0,1])
                 except Exception:
-                    ax.set_title("RMSE vs Training Time")
+                    r = np.nan
+                try:
+                    a, b = np.polyfit(xdat, ydat, 1)
+                    y_fit = a * xdat + b
+                    ss_res = float(np.nansum((ydat - y_fit) ** 2))
+                    ss_tot = float(np.nansum((ydat - np.nanmean(ydat)) ** 2) + 1e-12)
+                    r2 = 1.0 - ss_res / ss_tot
+                    x_line = np.linspace(0.0, float(np.nanmax(xdat)), 100)
+                    y_line = a * x_line + b
+                    ax.plot(x_line, y_line, color='red', linestyle='--', linewidth=1.0,
+                            label=f"Reg: y={a:.3e}x+{b:.3f}, R2={r2:.3f}")
+                except Exception:
+                    r = r if np.isfinite(r) else np.nan
+                title_suf = f" (r={r:.3f})" if np.isfinite(r) else ""
+                ax.set_title(f"RMSE vs Training Time{title_suf}")
             else:
                 ax.set_title("RMSE vs Training Time")
             ax.set_xlabel("Total time (s)")
             ax.set_ylabel("RMSE (mean)")
             ax.grid(True, linestyle='--', alpha=0.4)
+            ax.legend()
+            # Ensure axes start at 0 and fix RMSE Y range
+            ax.set_xlim(left=0.0)
+            ax.set_ylim(0.0, 0.10)
             fig.tight_layout()
             fig.savefig(os.path.join(resudir_base, "rmse_vs_time.png"), dpi=300)
             plt.close(fig)
@@ -399,7 +421,7 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
                 if np.isfinite(a) and np.isfinite(b):
                     x_line = np.linspace(np.nanmin(y), np.nanmax(y), 100)
                     y_line = a * x_line + b
-                    ax.plot(x_line, y_line, 'r-', lw=2, label=f"Reg: y={a:.3f}x+{b:.3f}, R2={r2:.4f}")
+                    ax.plot(x_line, y_line, 'r--', lw=1.0, label=f"Reg: y={a:.3f}x+{b:.3f}, R2={r2:.4f}")
                 rmse_g = float(np.sqrt(np.nanmean((p - y) ** 2)))
                 ax.set_title(f"True vs Pred (g={g}) RMSE={rmse_g:.3e}")
                 ax.set_xlabel("True")
@@ -475,6 +497,26 @@ def main():
     ps.add_argument("--launch", action="store_true", help="Actually launch training runs; otherwise only aggregate")
     ps.add_argument("--ddp-baseline", action="store_true", help="Use DDP even for g=1 (recommended for fair scaling)")
 
+    # plot_curves: regenerate curves (train/test) from a results directory
+    pp = sub.add_parser("plot_curves", help="Plot training/test curves from existing NPYs in a results dir")
+    pp.add_argument("--resudir", required=True, help="Results directory containing training_results_mlp_*.npy")
+    pp.add_argument("--out", default=None, help="Output PNG path (defaults to <resudir>/curves_train_test_log.png)")
+    pp.add_argument("--logy", action="store_true", help="Use logarithmic Y scale")
+
+    # plot_avg_by_g: regenerate the averaged curves per g from scaling_summary.json
+    pg = sub.add_parser("plot_avg_by_g", help="Plot averaged train/test curves per GPU count from scaling_summary.json")
+    pg.add_argument("--resudir-base", required=True, help="Scaling base directory containing scaling_summary.json")
+    pg.add_argument("--logy", action="store_true", help="Use logarithmic Y scale")
+
+    # plot_rmse_vs_time: regenerate the RMSE vs time scatter with regression from scaling_summary.json
+    pr = sub.add_parser("plot_rmse_vs_time", help="Plot RMSE vs Training Time (with regression) from scaling_summary.json")
+    pr.add_argument("--resudir-base", required=True, help="Scaling base directory containing scaling_summary.json")
+
+    # plot_summary4: composite 2x2 figure (speedup, final loss, test curves (log), rmse_vs_time)
+    p4 = sub.add_parser("plot_summary4", help="Create a 2x2 summary figure from scaling_summary.json")
+    p4.add_argument("--resudir-base", required=True, help="Scaling base directory containing scaling_summary.json")
+    p4.add_argument("--logy", action="store_true", help="Use logarithmic Y for test loss curves")
+
     args = p.parse_args()
 
     if args.task == "compare":
@@ -482,6 +524,237 @@ def main():
     elif args.task == "scale":
         g_list = [int(x) for x in str(args.gpus).split(',') if str(x).strip()]
         task_scale(args.resudir_base, g_list, args.repeats, args.basedir, args.casestr, args.launch, args.ddp_baseline)
+    elif args.task == "plot_curves":
+        # Load available single/ddp results and create a two-subplot figure
+        res_dir = args.resudir
+        out_path = args.out or os.path.join(res_dir, 'curves_train_test_log.png')
+        try:
+            import matplotlib.pyplot as plt
+            # Try to load both modes if present
+            paths = {
+                'single': os.path.join(res_dir, 'training_results_mlp_single.npy'),
+                'ddp': os.path.join(res_dir, 'training_results_mlp_ddp.npy'),
+            }
+            data = {}
+            for k, fp in paths.items():
+                if os.path.exists(fp):
+                    try:
+                        data[k] = np.load(fp, allow_pickle=True).item()
+                    except Exception:
+                        pass
+            if not data:
+                raise FileNotFoundError('No training_results_mlp_*.npy found in ' + res_dir)
+            fig, axes = plt.subplots(2, 1, figsize=(9, 7), sharex=False)
+            colors = {'single': 'tab:blue', 'ddp': 'tab:orange'}
+            # Training losses (per-iteration)
+            for mode, d in data.items():
+                tr = d.get('train_loss')
+                if tr is not None and len(tr) > 0:
+                    tr_np = np.asarray(tr, dtype=float)
+                    axes[0].plot(np.arange(1, tr_np.size+1), tr_np, label=f"{mode.capitalize()} - Train", color=colors.get(mode, None), lw=1.5)
+            # Test losses (per-epoch)
+            for mode, d in data.items():
+                ts = d.get('test_loss')
+                if ts is not None and len(ts) > 0:
+                    ts_np = np.asarray(ts, dtype=float)
+                    axes[1].plot(np.arange(1, ts_np.size+1), ts_np, label=f"{mode.capitalize()} - Test", color=colors.get(mode, None), lw=1.5)
+            for ax, title in zip(axes, ("Training Loss", "Test Loss")):
+                if args.logy:
+                    ax.set_yscale('log')
+                ax.set_title(title)
+                ax.set_xlabel('Epoch' if title.startswith('Test') else 'Iteration')
+                ax.set_ylabel('Loss')
+                ax.grid(True, linestyle='--', alpha=0.4)
+                ax.legend()
+            fig.tight_layout()
+            fig.savefig(out_path, dpi=300)
+            plt.close(fig)
+            print(f"Saved: {out_path}")
+        except Exception as e:
+            print(f"[ERR] plot_curves failed: {e}")
+    elif args.task == "plot_avg_by_g":
+        base = args.resudir_base
+        summ = os.path.join(base, 'scaling_summary.json')
+        try:
+            with open(summ, 'r') as f:
+                scaling = json.load(f)
+            import matplotlib.pyplot as plt
+            fig, axes = plt.subplots(2, 1, figsize=(9, 7), sharex=True)
+            colors = plt.cm.tab10.colors
+            for idx, e in enumerate(scaling.get('entries', [])):
+                g = e.get('gpus')
+                trm = e.get('train_loss_curve_mean')
+                tsm = e.get('test_loss_curve_mean')
+                col = colors[idx % len(colors)]
+                if trm is not None:
+                    trm_np = np.asarray(trm, dtype=float)
+                    axes[0].plot(np.arange(1, trm_np.size+1), trm_np, label=f"g={g}", color=col, lw=1.8)
+                if tsm is not None:
+                    tsm_np = np.asarray(tsm, dtype=float)
+                    axes[1].plot(np.arange(1, tsm_np.size+1), tsm_np, label=f"g={g}", color=col, lw=1.8)
+            for ax, title in zip(axes, ("Average Training Loss per GPU count", "Average Test Loss per GPU count")):
+                if args.logy:
+                    ax.set_yscale('log')
+                ax.set_title(title)
+                ax.set_xlabel("Epoch")
+                ax.set_ylabel("Loss")
+                ax.grid(True)
+                ax.legend()
+            fig.tight_layout()
+            outp = os.path.join(base, 'avg_losses_by_g_log.png' if args.logy else 'avg_losses_by_g.png')
+            fig.savefig(outp, dpi=300)
+            plt.close(fig)
+            print(f"Saved: {outp}")
+        except Exception as e:
+            print(f"[ERR] plot_avg_by_g failed: {e}")
+    elif args.task == "plot_rmse_vs_time":
+        base = args.resudir_base
+        summ = os.path.join(base, 'scaling_summary.json')
+        try:
+            with open(summ, 'r') as f:
+                scaling = json.load(f)
+            import matplotlib.pyplot as plt
+            # Extract arrays
+            gp = [e.get('gpus') for e in scaling.get('entries', [])]
+            tt = [e.get('total_time_s_mean') for e in scaling.get('entries', [])]
+            rm = [e.get('rmse_mean') for e in scaling.get('entries', [])]
+            gp_arr = np.asarray(gp, dtype=float)
+            xdat = np.asarray(tt, dtype=float)
+            ydat = np.asarray(rm, dtype=float)
+            mask = np.isfinite(xdat) & np.isfinite(ydat)
+            if not np.any(mask):
+                raise RuntimeError('No finite data points found')
+            x = xdat[mask]
+            y = ydat[mask]
+            gmask = gp_arr[mask]
+            fig, ax = plt.subplots(figsize=(6, 4))
+            ax.scatter(x, y, c='tab:blue')
+            for xi, yi, gi in zip(x, y, gmask):
+                ax.annotate(str(int(gi)), (xi, yi), textcoords='offset points', xytext=(5, 5), fontsize=8)
+            # Regression + R^2
+            a, b = np.polyfit(x, y, 1)
+            y_fit = a * x + b
+            ss_res = float(np.nansum((y - y_fit) ** 2))
+            ss_tot = float(np.nansum((y - np.nanmean(y)) ** 2) + 1e-12)
+            r2 = 1.0 - ss_res / ss_tot
+            x_line = np.linspace(0.0, float(np.nanmax(x)), 100)
+            y_line = a * x_line + b
+            ax.plot(x_line, y_line, color='red', linestyle='--', linewidth=1.0,
+                    label=f"Reg: y={a:.3e}x+{b:.3f}, R2={r2:.3f}")
+            ax.set_title('RMSE vs Training Time')
+            ax.set_xlabel('Total time (s)')
+            ax.set_ylabel('RMSE (mean)')
+            ax.grid(True, linestyle='--', alpha=0.4)
+            ax.legend()
+            ax.set_xlim(left=0.0)
+            ax.set_ylim(0.0, 0.10)
+            fig.tight_layout()
+            outp = os.path.join(base, 'rmse_vs_time.png')
+            fig.savefig(outp, dpi=300)
+            plt.close(fig)
+            print(f"Saved: {outp}")
+        except Exception as e:
+            print(f"[ERR] plot_rmse_vs_time failed: {e}")
+    elif args.task == "plot_summary4":
+        base = args.resudir_base
+        summ = os.path.join(base, 'scaling_summary.json')
+        try:
+            with open(summ, 'r') as f:
+                scaling = json.load(f)
+            import matplotlib.pyplot as plt
+            entries = scaling.get('entries', [])
+            if not entries:
+                raise RuntimeError('No entries in scaling_summary.json')
+            gp = [e.get('gpus') for e in entries]
+            times = [e.get('total_time_s_mean') for e in entries]
+            losses = [e.get('final_test_loss_mean') for e in entries]
+            rm = [e.get('rmse_mean') for e in entries]
+            # Compute speedup vs first entry (or use stored value if present)
+            t0 = times[0] if times and times[0] is not None else None
+            if t0 is None or t0 <= 0:
+                raise RuntimeError('Invalid baseline time')
+            speed = []
+            for e, t in zip(entries, times):
+                sp = e.get(f"speedup_vs_{gp[0]}")
+                if sp is None and (t is not None and t > 0):
+                    sp = float(t0) / float(t)
+                speed.append(sp)
+            # Factors for final loss: baseline_loss / loss
+            l0 = losses[0] if losses and losses[0] is not None else None
+            loss_factor = []
+            for l in losses:
+                if l0 is not None and l not in (None, 0):
+                    loss_factor.append(float(l0) / float(l))
+                else:
+                    loss_factor.append(None)
+            fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+            ax00, ax01, ax10, ax11 = axes.ravel()
+            # 1.1 Time speedup
+            ax00.bar([str(x) for x in gp], [float(s) if s is not None else np.nan for s in speed])
+            for i, s in enumerate(speed):
+                if s is not None and np.isfinite(s):
+                    ax00.text(i, s, f"×{s:.2f}", ha='center', va='bottom', fontsize=8)
+            ax00.set_title('Time Speedup (vs {} GPU)'.format(gp[0]))
+            ax00.set_ylabel('× speedup')
+            ax00.grid(True, axis='y', linestyle='--', alpha=0.4)
+            # 1.2 Final Test Loss
+            vals_loss = [float(l) if l is not None else np.nan for l in losses]
+            ax01.bar([str(x) for x in gp], vals_loss)
+            for i, (v, fct) in enumerate(zip(vals_loss, loss_factor)):
+                if np.isfinite(v) and fct is not None and np.isfinite(fct):
+                    ax01.text(i, v, f"×{fct:.2f}", ha='center', va='bottom', fontsize=8)
+            ax01.set_title('Final Test Loss (mean)')
+            ax01.set_ylabel('Loss')
+            ax01.grid(True, axis='y', linestyle='--', alpha=0.4)
+            # 2.1 Test loss curves (log optional)
+            colors = plt.cm.tab10.colors
+            for idx, e in enumerate(entries):
+                tsm = e.get('test_loss_curve_mean')
+                if tsm is not None:
+                    y = np.asarray(tsm, dtype=float)
+                    ax10.plot(np.arange(1, y.size+1), y, label=f"g={e.get('gpus')}", color=colors[idx % len(colors)])
+            ax10.set_title('Average Test Loss per GPU count')
+            ax10.set_xlabel('Epoch')
+            ax10.set_ylabel('Loss')
+            if args.logy:
+                ax10.set_yscale('log')
+            ax10.grid(True, linestyle='--', alpha=0.4)
+            ax10.legend()
+            # 2.2 RMSE vs time with regression
+            x = np.asarray(times, dtype=float)
+            y = np.asarray(rm, dtype=float)
+            m = np.isfinite(x) & np.isfinite(y)
+            if np.any(m):
+                xm = x[m]
+                ym = y[m]
+                gm = np.asarray(gp, dtype=float)[m]
+                ax11.scatter(xm, ym, c='tab:blue')
+                for xi, yi, gi in zip(xm, ym, gm):
+                    ax11.annotate(str(int(gi)), (xi, yi), textcoords='offset points', xytext=(5,5), fontsize=8)
+                if xm.size >= 2:
+                    a, b = np.polyfit(xm, ym, 1)
+                    y_fit = a * xm + b
+                    ss_res = float(np.nansum((ym - y_fit) ** 2))
+                    ss_tot = float(np.nansum((ym - np.nanmean(ym)) ** 2) + 1e-12)
+                    r2 = 1.0 - ss_res / ss_tot
+                    x_line = np.linspace(0.0, float(np.nanmax(xm)), 100)
+                    y_line = a * x_line + b
+                    ax11.plot(x_line, y_line, color='red', linestyle='--', linewidth=1.0,
+                              label=f"Reg: y={a:.3e}x+{b:.3f}, R2={r2:.3f}")
+                ax11.set_xlim(left=0.0)
+                ax11.set_ylim(0.0, 0.10)
+                ax11.grid(True, linestyle='--', alpha=0.4)
+                ax11.set_title('RMSE vs Training Time')
+                ax11.set_xlabel('Total time (s)')
+                ax11.set_ylabel('RMSE (mean)')
+                ax11.legend()
+            fig.tight_layout()
+            outp = os.path.join(base, 'summary_4in1.png')
+            fig.savefig(outp, dpi=300)
+            plt.close(fig)
+            print(f"Saved: {outp}")
+        except Exception as e:
+            print(f"[ERR] plot_summary4 failed: {e}")
     else:
         p.error("Unknown task")
 
