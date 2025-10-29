@@ -331,6 +331,6 @@ setup(
 	),
     long_description = readme,
     url              = 'https://github.com/ArnauMiro/pyLowOrder',
-    packages         = find_packages(exclude=('Converters','Examples','Deps','Testsuite','Tools')),
+    packages         = find_packages(exclude=('Converters','DATA','Deps','docs','Examples','Testsuite','Tools')),
 	install_requires = ['numpy','matplotlib','cython>=3.0.0','h5py>=3.0.0','mpi4py>=4.0.0','nfft']
 )
