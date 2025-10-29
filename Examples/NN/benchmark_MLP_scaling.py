@@ -243,6 +243,32 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
         # Aggregate
         per_g[g] = aggregate_runs(gdir, mode, repeats)
 
+        # Per-run: write training losses log JSON inside each run directory
+        for i in range(1, repeats + 1):
+            rdir = os.path.join(gdir, f"run{i}")
+            tr_file = os.path.join(rdir, f"training_results_mlp_{mode}.npy")
+            if not os.path.exists(tr_file):
+                continue
+            try:
+                data = np.load(tr_file, allow_pickle=True).item()
+                outj = {
+                    "mode": mode,
+                    "gpus": g,
+                    "run": i,
+                    "epochs": int(len(data.get('test_loss'))) if data.get('test_loss') is not None else None,
+                    "train_loss": (np.asarray(data.get('train_loss'), dtype=float).tolist()
+                                    if data.get('train_loss') is not None else None),
+                    "test_loss": (np.asarray(data.get('test_loss'), dtype=float).tolist()
+                                   if data.get('test_loss') is not None else None),
+                    "epoch_time_s": (np.asarray(data.get('epoch_time_s'), dtype=float).tolist()
+                                      if data.get('epoch_time_s') is not None else None),
+                    "notes": "Generated from training_results_mlp_*.npy by benchmark_MLP_scaling.py"
+                }
+                with open(os.path.join(rdir, "training_log.json"), "w") as f:
+                    json.dump(outj, f, indent=2)
+            except Exception:
+                pass
+
     # Compute speedup (vs first g)
     g0 = gpus[0]
     t0 = per_g[g0].get("total_time_s_mean")
@@ -332,8 +358,7 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
             ax.set_xlabel("GPUs")
             ax.set_ylabel("RMSE (mean ± std)")
             ax.grid(True, linestyle='--', alpha=0.4)
-            # Fix Y axis range for RMSE
-            ax.set_ylim(0.0, 0.15)
+        # Auto Y axis range for RMSE (no fixed limits)
             fig.tight_layout()
             fig.savefig(os.path.join(resudir_base, "scaling_rmse.png"), dpi=300)
             plt.close(fig)
@@ -374,9 +399,8 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
             ax.set_ylabel("RMSE (mean)")
             ax.grid(True, linestyle='--', alpha=0.4)
             ax.legend()
-            # Ensure axes start at 0 and fix RMSE Y range
+            # Ensure X axis starts at 0 (auto Y range)
             ax.set_xlim(left=0.0)
-            ax.set_ylim(0.0, 0.10)
             fig.tight_layout()
             fig.savefig(os.path.join(resudir_base, "rmse_vs_time.png"), dpi=300)
             plt.close(fig)
@@ -647,7 +671,6 @@ def main():
             ax.grid(True, linestyle='--', alpha=0.4)
             ax.legend()
             ax.set_xlim(left=0.0)
-            ax.set_ylim(0.0, 0.10)
             fig.tight_layout()
             outp = os.path.join(base, 'rmse_vs_time.png')
             fig.savefig(outp, dpi=300)
@@ -742,7 +765,6 @@ def main():
                     ax11.plot(x_line, y_line, color='red', linestyle='--', linewidth=1.0,
                               label=f"Reg: y={a:.3e}x+{b:.3f}, R2={r2:.3f}")
                 ax11.set_xlim(left=0.0)
-                ax11.set_ylim(0.0, 0.10)
                 ax11.grid(True, linestyle='--', alpha=0.4)
                 ax11.set_title('RMSE vs Training Time')
                 ax11.set_xlabel('Total time (s)')

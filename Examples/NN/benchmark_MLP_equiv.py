@@ -289,7 +289,7 @@ def main():
                 ax11.plot(x_line, y_line, color='red', linestyle='--', linewidth=1.0,
                           label=f"Reg: y={a:.3e}x+{b:.3f}, R2={r2:.3f}")
         ax11.set_xlim(left=0.0)
-        ax11.set_ylim(0.0, 0.10)
+        # Use automatic Y-limits for RMSE vs Time in summary figure
         ax11.grid(True, linestyle='--', alpha=0.4)
         ax11.set_title('RMSE vs Training Time (DDP)')
         ax11.set_xlabel('Total time (s)')
@@ -347,7 +347,7 @@ def main():
             ax.set_xlabel("GPUs")
             ax.set_ylabel("RMSE (mean ± std)")
             ax.grid(True, linestyle='--', alpha=0.4)
-            ax.set_ylim(0.0, 0.15)
+            # Use automatic Y-limits for RMSE plot
             fig.tight_layout()
             fig.savefig(os.path.join(base, "scaling_rmse.png"), dpi=300)
             plt.close(fig)
@@ -376,7 +376,7 @@ def main():
                 ax.plot(x_line, y_line, color='red', linestyle='--', linewidth=1.0,
                         label=f"Reg: y={a:.3e}x+{b:.3f}, R2={r2:.3f}")
             ax.set_xlim(left=0.0)
-            ax.set_ylim(0.0, 0.10)
+            # Use automatic Y-limits for RMSE vs Time
             ax.set_title('RMSE vs Training Time [DDP]')
             ax.set_xlabel('Total time (s)')
             ax.set_ylabel('RMSE (mean)')
@@ -512,6 +512,32 @@ def main():
                 fig.tight_layout()
                 fig.savefig(os.path.join(gdir, "curves_train_test_avg.png"), dpi=300)
                 plt.close(fig)
+
+            # Per-run: write training losses log JSON inside each run directory (DDP)
+            for i in range(1, args.repeats + 1):
+                rdir = os.path.join(gdir, f"run{i}")
+                tr_file = os.path.join(rdir, "training_results_mlp_ddp.npy")
+                if not os.path.exists(tr_file):
+                    continue
+                try:
+                    data = np.load(tr_file, allow_pickle=True).item()
+                    outj = {
+                        "mode": "ddp",
+                        "gpus": g,
+                        "run": i,
+                        "epochs": int(len(data.get('test_loss'))) if data.get('test_loss') is not None else None,
+                        "train_loss": (np.asarray(data.get('train_loss'), dtype=float).tolist()
+                                        if data.get('train_loss') is not None else None),
+                        "test_loss": (np.asarray(data.get('test_loss'), dtype=float).tolist()
+                                       if data.get('test_loss') is not None else None),
+                        "epoch_time_s": (np.asarray(data.get('epoch_time_s'), dtype=float).tolist()
+                                          if data.get('epoch_time_s') is not None else None),
+                        "notes": "Generated from training_results_mlp_ddp.npy by benchmark_MLP_equiv.py"
+                    }
+                    with open(os.path.join(rdir, "training_log.json"), "w") as f:
+                        json.dump(outj, f, indent=2)
+                except Exception:
+                    pass
             # Equiv 1-GPU
             gdir_e = os.path.join(base, f"g{g}_equiv")
             y_list, p_list = [], []
@@ -585,6 +611,32 @@ def main():
                 fig.tight_layout()
                 fig.savefig(os.path.join(gdir_e, "curves_train_test_avg.png"), dpi=300)
                 plt.close(fig)
+
+            # Per-run: write training losses log JSON inside each run directory (equiv 1-GPU)
+            for i in range(1, args.repeats + 1):
+                rdir = os.path.join(gdir_e, f"run{i}")
+                tr_file = os.path.join(rdir, "training_results_mlp_single.npy")
+                if not os.path.exists(tr_file):
+                    continue
+                try:
+                    data = np.load(tr_file, allow_pickle=True).item()
+                    outj = {
+                        "mode": "single",
+                        "gpus": g,
+                        "run": i,
+                        "epochs": int(len(data.get('test_loss'))) if data.get('test_loss') is not None else None,
+                        "train_loss": (np.asarray(data.get('train_loss'), dtype=float).tolist()
+                                        if data.get('train_loss') is not None else None),
+                        "test_loss": (np.asarray(data.get('test_loss'), dtype=float).tolist()
+                                       if data.get('test_loss') is not None else None),
+                        "epoch_time_s": (np.asarray(data.get('epoch_time_s'), dtype=float).tolist()
+                                          if data.get('epoch_time_s') is not None else None),
+                        "notes": "Generated from training_results_mlp_single.npy by benchmark_MLP_equiv.py"
+                    }
+                    with open(os.path.join(rdir, "training_log.json"), "w") as f:
+                        json.dump(outj, f, indent=2)
+                except Exception:
+                    pass
 
     except Exception as e:
         print(f"[WARN] Could not regenerate legacy figures: {e}")

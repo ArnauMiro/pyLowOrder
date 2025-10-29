@@ -6,6 +6,7 @@ import json
 import shlex
 import argparse
 import subprocess as sp
+import tempfile
 from typing import List, Dict
 
 import numpy as np
@@ -71,16 +72,21 @@ def optimize_for_g(out_dir: str, g: int, trials: int, basedir: str, casestr: str
         hp = suggest_space(trial)
         # For 1‑GPU equivalent branch, batch_size is fixed (must match DDP best batch)
         bs = None if fixed_batch is None else int(fixed_batch)
-        run_dir = os.path.join(out_dir, f"trial_{trial.number}")
-        rc = launch_example(run_dir, ddp_on=ddp, nproc=g if ddp else 1, basedir=basedir, casestr=casestr, params=hp, batch_size=bs, epochs=epochs)
-        if rc != 0:
-            raise optuna.TrialPruned()
-        mode = 'ddp' if ddp else 'single'
-        try:
-            res = load_results(run_dir, mode)
-            loss = get_final_test_loss(res)
-        except Exception:
-            loss = float('inf')
+        # Use a temporary directory outside the scaling tree to avoid
+        # creating and then removing trial_* folders in the results area.
+        with tempfile.TemporaryDirectory(prefix=f"mlp_opt_g{g}_") as tmpdir:
+            rc = launch_example(tmpdir, ddp_on=ddp, nproc=g if ddp else 1,
+                                basedir=basedir, casestr=casestr,
+                                params=hp, batch_size=bs, epochs=epochs)
+            if rc != 0:
+                raise optuna.TrialPruned()
+            mode = 'ddp' if ddp else 'single'
+            try:
+                res = load_results(tmpdir, mode)
+                loss = get_final_test_loss(res)
+            except Exception:
+                loss = float('inf')
+        # TemporaryDirectory auto-cleans; nothing is written under out_dir per trial.
         return loss
 
     study.optimize(objective, n_trials=trials)
