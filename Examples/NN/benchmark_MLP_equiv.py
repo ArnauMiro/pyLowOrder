@@ -589,6 +589,31 @@ def main():
     except Exception as e:
         print(f"[WARN] Could not regenerate legacy figures: {e}")
 
+    # Duplicate best_params.json to shallow locations for quick access
+    try:
+        import shutil
+        # DDP best params per g
+        for e in entries:
+            g = e.get('gpus')
+            if g is None:
+                continue
+            src = os.path.join(base, f"g{g}", "optuna_ddp", "best_params.json")
+            dst = os.path.join(base, f"g{g}", "best_params.json")
+            if os.path.exists(src):
+                shutil.copyfile(src, dst)
+        # Equivalent 1-GPU best params per g
+        for e in entries_equiv:
+            g = e.get('gpus')
+            if g is None:
+                continue
+            src = os.path.join(base, f"g{g}_equiv", "optuna_single", "best_params.json")
+            dst = os.path.join(base, f"g{g}_equiv", "best_params.json")
+            if os.path.exists(src):
+                shutil.copyfile(src, dst)
+        print("Duplicated best_params.json into g*/ and g*_equiv/ for quick access")
+    except Exception as e:
+        print(f"[WARN] Could not duplicate best_params.json: {e}")
+
 
 if __name__ == "__main__":
     main()

@@ -312,12 +312,30 @@ if _is_main_process():
 
 mode_tag = 'ddp' if ddp_enabled else 'single'
 
+_hp = {}
+try:
+    import json as _json
+    _hp_path = os.path.join(RESUDIR, 'hparams.json')
+    if os.path.exists(_hp_path):
+        with open(_hp_path, 'r') as _f:
+            _hp = _json.load(_f) or {}
+except Exception:
+    _hp = {}
+
+_hp_n_layers = int(_hp.get('n_layers', 6))
+_hp_hidden_size = int(_hp.get('hidden_size', 129))
+_hp_p_dropouts = float(_hp.get('p_dropouts', 0.15))
+_hp_epochs = int(_hp.get('epochs', 50))
+_hp_lr = float(_hp.get('lr', 8.38e-04))
+_hp_lr_gamma = float(_hp.get('lr_gamma', 0.99))
+_hp_batch_size = int(_hp.get('batch_size', 119))
+
 model = pyLOM.NN.MLP(
     input_size=4, # x, y, AoA, Mach
     output_size=1, # CP
-    hidden_size=129,
-    n_layers=6,
-    p_dropouts=0.15,
+    hidden_size=_hp_hidden_size,
+    n_layers=_hp_n_layers,
+    p_dropouts=_hp_p_dropouts,
     model_name=f"mlp_{mode_tag}",
 )
 
@@ -336,6 +354,16 @@ training_params = {
     "ddp": ddp_enabled,
     "save_logs_path": RESUDIR,
 }
+
+try:
+    training_params.update({
+    "epochs": _hp_epochs,
+    "lr": _hp_lr,
+    "lr_gamma": _hp_lr_gamma,
+    "batch_size": _hp_batch_size,
+    })
+except Exception:
+    pass
 
 pipeline = pyLOM.NN.Pipeline(
     train_dataset=td_train,
