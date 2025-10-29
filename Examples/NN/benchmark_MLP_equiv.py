@@ -536,6 +536,21 @@ def main():
                     }
                     with open(os.path.join(rdir, "training_log.json"), "w") as f:
                         json.dump(outj, f, indent=2)
+                    # Also write a human-readable training.log (CSV-like)
+                    try:
+                        tr = np.asarray(data.get('train_loss'), dtype=float) if data.get('train_loss') is not None else np.asarray([], dtype=float)
+                        ts = np.asarray(data.get('test_loss'), dtype=float) if data.get('test_loss') is not None else np.asarray([], dtype=float)
+                        et = np.asarray(data.get('epoch_time_s'), dtype=float) if data.get('epoch_time_s') is not None else np.asarray([], dtype=float)
+                        n = int(max(tr.size, ts.size, et.size))
+                        with open(os.path.join(rdir, "training.log"), "w") as tf:
+                            tf.write("epoch,train_loss,test_loss,epoch_time_s\n")
+                            for k in range(n):
+                                a = tr[k] if k < tr.size else float('nan')
+                                b = ts[k] if k < ts.size else float('nan')
+                                c = et[k] if k < et.size else float('nan')
+                                tf.write(f"{k+1},{a:.6e},{b:.6e},{c:.6e}\n")
+                    except Exception:
+                        pass
                 except Exception:
                     pass
             # Equiv 1-GPU
@@ -635,6 +650,21 @@ def main():
                     }
                     with open(os.path.join(rdir, "training_log.json"), "w") as f:
                         json.dump(outj, f, indent=2)
+                    # Also write a human-readable training.log (CSV-like)
+                    try:
+                        tr = np.asarray(data.get('train_loss'), dtype=float) if data.get('train_loss') is not None else np.asarray([], dtype=float)
+                        ts = np.asarray(data.get('test_loss'), dtype=float) if data.get('test_loss') is not None else np.asarray([], dtype=float)
+                        et = np.asarray(data.get('epoch_time_s'), dtype=float) if data.get('epoch_time_s') is not None else np.asarray([], dtype=float)
+                        n = int(max(tr.size, ts.size, et.size))
+                        with open(os.path.join(rdir, "training.log"), "w") as tf:
+                            tf.write("epoch,train_loss,test_loss,epoch_time_s\n")
+                            for k in range(n):
+                                a = tr[k] if k < tr.size else float('nan')
+                                b = ts[k] if k < ts.size else float('nan')
+                                c = et[k] if k < et.size else float('nan')
+                                tf.write(f"{k+1},{a:.6e},{b:.6e},{c:.6e}\n")
+                    except Exception:
+                        pass
                 except Exception:
                     pass
 

@@ -261,6 +261,7 @@ def _parse_args():
     parser.add_argument("--basedir", dest="basedir", default="/home/airbus/CETACEO_cp_interp/DATA/DLR_pylom/", help="Base directory of datasets")
     parser.add_argument("--casestr", dest="casestr", default="NRL7301", help="Case string prefix for dataset files")
     parser.add_argument("--postprocess-only", dest="postprocess_only", action="store_true", help="Only generate comparison plots/report from existing NPY files and exit")
+    parser.add_argument("--no-figures", dest="no_figures", action="store_true", help="Disable saving figures (useful for Optuna trials)")
     parser.add_argument("--batch-size", dest="batch_size", type=int, default=119, help="Override training batch size (per process)")
     return parser.parse_known_args()[0]
 
@@ -423,10 +424,11 @@ if _is_main_process():
     evaluator(scaled_y, scaled_preds)
     evaluator.print_metrics()
 
-    true_vs_pred_plot(scaled_y, scaled_preds, os.path.join(RESUDIR, f'true_vs_pred_{mode_tag}.png'), mode=mode_tag)
-    # No CR sidecars: timing comes embedded in NPY via pyLOM.nn (cr_total_time_s)
-    # Generate a single curves plot overlaying the 4 curves (train/test, single/DDP)
-    generate_comparisons(RESUDIR)
+    if not getattr(args, 'no_figures', False):
+        true_vs_pred_plot(scaled_y, scaled_preds, os.path.join(RESUDIR, f'true_vs_pred_{mode_tag}.png'), mode=mode_tag)
+        # No CR sidecars: timing comes embedded in NPY via pyLOM.nn (cr_total_time_s)
+        # Generate a single curves plot overlaying the 4 curves (train/test, single/DDP)
+        generate_comparisons(RESUDIR)
 
     pyLOM.cr_info()
 

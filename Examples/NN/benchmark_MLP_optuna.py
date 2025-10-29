@@ -7,6 +7,8 @@ import shlex
 import argparse
 import subprocess as sp
 import tempfile
+import time
+from datetime import datetime
 from typing import List, Dict
 
 import numpy as np
@@ -27,8 +29,21 @@ def load_results(resudir: str, mode: str) -> Dict:
 
 
 def get_final_test_loss(res: Dict) -> float:
-    tl = res.get('test_loss') or []
-    return float(tl[-1]) if len(tl) else float('inf')
+    """Return final test loss as float, robust to numpy arrays and None.
+
+    If the list/array is empty or missing, return +inf so the trial is
+    considered worse without crashing Optuna.
+    """
+    tl = res.get('test_loss', None)
+    if tl is None:
+        return float('inf')
+    try:
+        tl_np = np.asarray(tl, dtype=float)
+    except Exception:
+        return float('inf')
+    if tl_np.size == 0:
+        return float('inf')
+    return float(tl_np[-1])
 
 
 def suggest_space(trial):
@@ -57,37 +72,71 @@ def launch_example(resudir: str, ddp_on: bool, nproc: int, basedir: str, casestr
     if ddp_on:
         cmd = [
             os.environ.get('TORCHRUN_BIN', 'torchrun'), '--standalone', '--nproc_per_node', str(nproc),
-            EXAMPLE, '--ddp', 'on', '--resudir', resudir, '--basedir', basedir, '--casestr', casestr,
+            EXAMPLE, '--ddp', 'on', '--resudir', resudir, '--basedir', basedir, '--casestr', casestr, '--no-figures',
         ]
     else:
-        cmd = [sys.executable, EXAMPLE, '--ddp', 'off', '--resudir', resudir, '--basedir', basedir, '--casestr', casestr]
+        cmd = [sys.executable, EXAMPLE, '--ddp', 'off', '--resudir', resudir, '--basedir', basedir, '--casestr', casestr, '--no-figures']
     return _run(cmd)
 
 
-def optimize_for_g(out_dir: str, g: int, trials: int, basedir: str, casestr: str, base_batch: int, ddp: bool, fixed_batch: int = None, epochs: int = 50) -> Dict:
+def optimize_for_g(out_dir: str, g: int, trials: int, basedir: str, casestr: str, base_batch: int, ddp: bool, fixed_batch: int | None = None, epochs: int = 50, tmp_base: str | None = None) -> Dict:
     import optuna
     study = optuna.create_study(direction='minimize')
+    # Prepare per-optimizer log directory and JSONL file to capture all trials
+    opt_dir = os.path.join(out_dir, 'optuna_ddp' if ddp else 'optuna_single')
+    os.makedirs(opt_dir, exist_ok=True)
+    trials_log = os.path.join(opt_dir, 'optuna_trials.jsonl')
 
     def objective(trial):
         hp = suggest_space(trial)
         # For 1‑GPU equivalent branch, batch_size is fixed (must match DDP best batch)
         bs = None if fixed_batch is None else int(fixed_batch)
-        # Use a temporary directory outside the scaling tree to avoid
-        # creating and then removing trial_* folders in the results area.
-        with tempfile.TemporaryDirectory(prefix=f"mlp_opt_g{g}_") as tmpdir:
-            rc = launch_example(tmpdir, ddp_on=ddp, nproc=g if ddp else 1,
-                                basedir=basedir, casestr=casestr,
-                                params=hp, batch_size=bs, epochs=epochs)
-            if rc != 0:
-                raise optuna.TrialPruned()
-            mode = 'ddp' if ddp else 'single'
+        # Use a temporary directory outside the scaling tree. Prefer tmp_base (e.g. /dev/shm)
+        # when it exists and is writable; otherwise fall back to default location.
+        dir_arg = None
+        if tmp_base and str(tmp_base).lower() not in ("none", "off") and os.path.isdir(tmp_base) and os.access(tmp_base, os.W_OK):
+            dir_arg = tmp_base
+        start = time.time()
+        status = 'running'
+        value = None
+        with tempfile.TemporaryDirectory(prefix=f"mlp_opt_g{g}_", dir=dir_arg) as tmpdir:
             try:
+                rc = launch_example(tmpdir, ddp_on=ddp, nproc=g if ddp else 1,
+                                    basedir=basedir, casestr=casestr,
+                                    params=hp, batch_size=bs, epochs=epochs)
+                if rc != 0:
+                    status = 'pruned'
+                    raise optuna.TrialPruned()
+                mode = 'ddp' if ddp else 'single'
                 res = load_results(tmpdir, mode)
-                loss = get_final_test_loss(res)
+                value = get_final_test_loss(res)
+                status = 'complete'
+            except optuna.TrialPruned:
+                raise
             except Exception:
-                loss = float('inf')
+                status = 'fail'
+                raise
+            finally:
+                # Append a JSON line with trial info
+                try:
+                    rec = {
+                        'ts': datetime.now().isoformat(timespec='seconds'),
+                        'trial': int(trial.number),
+                        'gpus': int(g),
+                        'ddp': bool(ddp),
+                        'epochs': int(epochs),
+                        'batch_size': (int(bs) if bs is not None else None),
+                        'status': status,
+                        'value': (float(value) if value is not None else None),
+                        'params': hp,
+                        'duration_s': float(time.time() - start),
+                    }
+                    with open(trials_log, 'a') as f:
+                        f.write(json.dumps(rec) + "\n")
+                except Exception:
+                    pass
         # TemporaryDirectory auto-cleans; nothing is written under out_dir per trial.
-        return loss
+        return float(value) if value is not None else float('inf')
 
     study.optimize(objective, n_trials=trials)
     best = study.best_params
@@ -95,10 +144,23 @@ def optimize_for_g(out_dir: str, g: int, trials: int, basedir: str, casestr: str
     if fixed_batch is not None:
         best['batch_size'] = int(fixed_batch)
     # Persist best params
-    bp_dir = os.path.join(out_dir, 'optuna_ddp' if ddp else 'optuna_single')
+    bp_dir = opt_dir
     os.makedirs(bp_dir, exist_ok=True)
     with open(os.path.join(bp_dir, 'best_params.json'), 'w') as f:
         json.dump(best, f, indent=2)
+    # Persist a brief study summary for traceability
+    try:
+        summary = {
+            'n_trials': len(study.trials),
+            'n_complete': int(sum(t.state.name == 'COMPLETE' for t in study.trials)),
+            'n_pruned': int(sum(t.state.name == 'PRUNED' for t in study.trials)),
+            'best_value': float(study.best_value) if study.best_value is not None else None,
+            'best_trial': int(study.best_trial.number) if study.best_trial is not None else None,
+        }
+        with open(os.path.join(bp_dir, 'study_summary.json'), 'w') as f:
+            json.dump(summary, f, indent=2)
+    except Exception:
+        pass
     # Return best config
     return best
 
@@ -141,6 +203,7 @@ def main():
     ap.add_argument('--casestr', default='NRL7301')
     ap.add_argument('--base-batch', type=int, default=119)
     ap.add_argument('--epochs', type=int, default=50)
+    ap.add_argument('--tmp-base', default='/dev/shm', help='Base dir for temporary trial artifacts (use "none" to disable)')
     args = ap.parse_args()
 
     base = args.resudir_base
@@ -162,7 +225,7 @@ def main():
         gdir = os.path.join(base, f"g{g}")
         os.makedirs(gdir, exist_ok=True)
         # 1) Optimize DDP @ g GPUs
-        best_ddp = optimize_for_g(gdir, g, args.trials, args.basedir, args.casestr, args.base_batch, ddp=True, epochs=args.epochs)
+        best_ddp = optimize_for_g(gdir, g, args.trials, args.basedir, args.casestr, args.base_batch, ddp=True, epochs=args.epochs, tmp_base=args.tmp_base)
         # 2) Consolidate with repeats
         for i in range(1, args.repeats + 1):
             rdir = os.path.join(gdir, f"run{i}")
@@ -177,7 +240,7 @@ def main():
         gdir_e = os.path.join(base, f"g{g}_equiv")
         os.makedirs(gdir_e, exist_ok=True)
         bs_fix = int(best_ddp.get('batch_size', args.base_batch * g))
-        best_single = optimize_for_g(gdir_e, 1, args.trials, args.basedir, args.casestr, args.base_batch, ddp=False, fixed_batch=bs_fix, epochs=args.epochs)
+        best_single = optimize_for_g(gdir_e, 1, args.trials, args.basedir, args.casestr, args.base_batch, ddp=False, fixed_batch=bs_fix, epochs=args.epochs, tmp_base=args.tmp_base)
         # 4) Consolidate with repeats
         for i in range(1, args.repeats + 1):
             rdir = os.path.join(gdir_e, f"run{i}")

@@ -223,9 +223,10 @@ def task_compare(single_base: str, ddp_base: str, repeats: int, out_dir: str) ->
         print(f"[WARN] Could not generate comparison_avg_bars.png: {e}")
 
 
-def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, casestr: str, launch: bool, ddp_baseline: bool) -> None:
+def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, casestr: str, launch: bool, ddp_baseline: bool, equiv: bool, base_batch: int) -> None:
     os.makedirs(resudir_base, exist_ok=True)
     per_g = {}
+    per_g_equiv = {}
     for g in gpus:
         gdir = os.path.join(resudir_base, f"g{g}")
         os.makedirs(gdir, exist_ok=True)
@@ -266,8 +267,78 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
                 }
                 with open(os.path.join(rdir, "training_log.json"), "w") as f:
                     json.dump(outj, f, indent=2)
+                # Also write a human-readable training.log (CSV-like)
+                try:
+                    tr = np.asarray(data.get('train_loss'), dtype=float) if data.get('train_loss') is not None else np.asarray([], dtype=float)
+                    ts = np.asarray(data.get('test_loss'), dtype=float) if data.get('test_loss') is not None else np.asarray([], dtype=float)
+                    et = np.asarray(data.get('epoch_time_s'), dtype=float) if data.get('epoch_time_s') is not None else np.asarray([], dtype=float)
+                    n = int(max(tr.size, ts.size, et.size))
+                    with open(os.path.join(rdir, "training.log"), "w") as tf:
+                        tf.write("epoch,train_loss,test_loss,epoch_time_s\n")
+                        for k in range(n):
+                            a = tr[k] if k < tr.size else float('nan')
+                            b = ts[k] if k < ts.size else float('nan')
+                            c = et[k] if k < et.size else float('nan')
+                            tf.write(f"{k+1},{a:.6e},{b:.6e},{c:.6e}\n")
+                except Exception:
+                    pass
             except Exception:
                 pass
+
+        # Optional: also run equivalent 1-GPU with batch = base_batch * g
+        if equiv:
+            gdir_e = os.path.join(resudir_base, f"g{g}_equiv")
+            os.makedirs(gdir_e, exist_ok=True)
+            if launch:
+                bs = int(base_batch) * int(g)
+                for i in range(1, repeats + 1):
+                    rdir = os.path.join(gdir_e, f"run{i}")
+                    print(f"[RUN][EQUIV] g={g} i={i} (1-GPU, batch={bs}) -> {rdir}")
+                    rc = launch_example(rdir, ddp_on=False, nproc=1, basedir=basedir, casestr=casestr)
+                    if rc != 0:
+                        print(f"[ERR] Equiv run failed (g={g}, i={i}) rc={rc}")
+                        break
+            per_g_equiv[g] = aggregate_runs(gdir_e, 'single', repeats)
+            # Per-run logs for equivalent branch
+            for i in range(1, repeats + 1):
+                rdir = os.path.join(gdir_e, f"run{i}")
+                tr_file = os.path.join(rdir, f"training_results_mlp_single.npy")
+                if not os.path.exists(tr_file):
+                    continue
+                try:
+                    data = np.load(tr_file, allow_pickle=True).item()
+                    outj = {
+                        "mode": 'single',
+                        "gpus": g,
+                        "run": i,
+                        "epochs": int(len(data.get('test_loss'))) if data.get('test_loss') is not None else None,
+                        "train_loss": (np.asarray(data.get('train_loss'), dtype=float).tolist()
+                                        if data.get('train_loss') is not None else None),
+                        "test_loss": (np.asarray(data.get('test_loss'), dtype=float).tolist()
+                                       if data.get('test_loss') is not None else None),
+                        "epoch_time_s": (np.asarray(data.get('epoch_time_s'), dtype=float).tolist()
+                                          if data.get('epoch_time_s') is not None else None),
+                        "notes": "Generated from training_results_mlp_single.npy by benchmark_MLP_scaling.py"
+                    }
+                    with open(os.path.join(rdir, "training_log.json"), 'w') as f:
+                        json.dump(outj, f, indent=2)
+                    # Also write a human-readable training.log (CSV-like)
+                    try:
+                        tr = np.asarray(data.get('train_loss'), dtype=float) if data.get('train_loss') is not None else np.asarray([], dtype=float)
+                        ts = np.asarray(data.get('test_loss'), dtype=float) if data.get('test_loss') is not None else np.asarray([], dtype=float)
+                        et = np.asarray(data.get('epoch_time_s'), dtype=float) if data.get('epoch_time_s') is not None else np.asarray([], dtype=float)
+                        n = int(max(tr.size, ts.size, et.size))
+                        with open(os.path.join(rdir, "training.log"), "w") as tf:
+                            tf.write("epoch,train_loss,test_loss,epoch_time_s\n")
+                            for k in range(n):
+                                a = tr[k] if k < tr.size else float('nan')
+                                b = ts[k] if k < ts.size else float('nan')
+                                c = et[k] if k < et.size else float('nan')
+                                tf.write(f"{k+1},{a:.6e},{b:.6e},{c:.6e}\n")
+                    except Exception:
+                        pass
+                except Exception:
+                    pass
 
     # Compute speedup (vs first g)
     g0 = gpus[0]
@@ -283,6 +354,15 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
             "speedup_vs_{}".format(g0): sp,
             "efficiency": eff,
         })
+    if equiv:
+        scaling["entries_equiv"] = []
+        for g in gpus:
+            if g in per_g_equiv:
+                scaling["entries_equiv"].append({
+                    "gpus": g,
+                    **per_g_equiv[g],
+                    "equivalent_batch": int(base_batch) * int(g),
+                })
     out_json = os.path.join(resudir_base, "scaling_summary.json")
     with open(out_json, "w") as f:
         json.dump(scaling, f, indent=2)
@@ -520,6 +600,8 @@ def main():
     ps.add_argument("--casestr", default="NRL7301")
     ps.add_argument("--launch", action="store_true", help="Actually launch training runs; otherwise only aggregate")
     ps.add_argument("--ddp-baseline", action="store_true", help="Use DDP even for g=1 (recommended for fair scaling)")
+    ps.add_argument("--equiv", action="store_true", help="Also run 1-GPU equivalent (batch=base-batch×g) and aggregate")
+    ps.add_argument("--base-batch", type=int, default=119, help="Baseline per-process batch used to build equivalent 1-GPU batch")
 
     # plot_curves: regenerate curves (train/test) from a results directory
     pp = sub.add_parser("plot_curves", help="Plot training/test curves from existing NPYs in a results dir")
@@ -547,7 +629,7 @@ def main():
         task_compare(args.single_dir, args.ddp_dir, args.repeats, args.out_dir)
     elif args.task == "scale":
         g_list = [int(x) for x in str(args.gpus).split(',') if str(x).strip()]
-        task_scale(args.resudir_base, g_list, args.repeats, args.basedir, args.casestr, args.launch, args.ddp_baseline)
+        task_scale(args.resudir_base, g_list, args.repeats, args.basedir, args.casestr, args.launch, args.ddp_baseline, args.equiv, args.base_batch)
     elif args.task == "plot_curves":
         # Load available single/ddp results and create a two-subplot figure
         res_dir = args.resudir
