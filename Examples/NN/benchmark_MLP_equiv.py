@@ -215,12 +215,31 @@ def main():
         gp = [e["gpus"] for e in entries]
         # Time speedup
         t_ddp = [e.get("total_time_s_mean") for e in entries]
+        t_ddp_std = [e.get("total_time_s_std") for e in entries]
         t_eq = [e.get("total_time_s_mean") for e in entries_equiv]
-        sp_ddp = [float(t0)/float(x) if (t0 and x) else np.nan for x in t_ddp]
-        sp_eq = [float(t0)/float(x) if (t0 and x) else np.nan for x in t_eq]
+        t_eq_std = [e.get("total_time_s_std") for e in entries_equiv]
+        def _sp_err(t0, s0, t, s):
+            out_s, out_e = [], []
+            for ti, si in zip(t, s):
+                if t0 and ti:
+                    sval = float(t0)/float(ti)
+                    err = None
+                    if s0 is not None and si is not None:
+                        err = sval * np.sqrt((float(s0)/float(t0))**2 + (float(si)/float(ti))**2)
+                    out_s.append(sval)
+                    out_e.append(err)
+                else:
+                    out_s.append(np.nan)
+                    out_e.append(None)
+            return out_s, out_e
+        s0 = t_ddp_std[0] if t_ddp_std else None
+        sp_ddp, sp_ddp_err = _sp_err(t0, s0, t_ddp, t_ddp_std)
+        sp_eq, sp_eq_err = _sp_err(t0, s0, t_eq, t_eq_std)
         # Final test loss
         l_ddp = [e.get("final_test_loss_mean") for e in entries]
+        l_ddp_std = [e.get("final_test_loss_std") for e in entries]
         l_eq = [e.get("final_test_loss_mean") for e in entries_equiv]
+        l_eq_std = [e.get("final_test_loss_std") for e in entries_equiv]
         l0 = l_ddp[0] if l_ddp and l_ddp[0] else None
         f_ddp = [float(l0)/float(x) if (l0 and x) else np.nan for x in l_ddp]
         f_eq = [float(l0)/float(x) if (l0 and x) else np.nan for x in l_eq]
@@ -230,8 +249,10 @@ def main():
         x = np.arange(len(gp))
         w = 0.35
         # 1.1 Speedup grouped bars
-        b1 = ax00.bar(x - w/2, sp_ddp, width=w, label='DDP', color=COL_DDP)
-        b2 = ax00.bar(x + w/2, sp_eq, width=w, label='1GPU (b×g)', color=COL_EQUIV)
+        b1 = ax00.bar(x - w/2, sp_ddp, width=w, label='DDP', color=COL_DDP,
+                      yerr=(sp_ddp_err if any(e is not None for e in sp_ddp_err) else None), capsize=4)
+        b2 = ax00.bar(x + w/2, sp_eq, width=w, label='1GPU (b×g)', color=COL_EQUIV,
+                      yerr=(sp_eq_err if any(e is not None for e in sp_eq_err) else None), capsize=4)
         ax00.set_xticks(x, [str(g) for g in gp])
         ax00.set_title('Time Speedup (vs {} GPU)'.format(gp[0]))
         ax00.set_ylabel('× speedup')
@@ -245,8 +266,10 @@ def main():
                     ax00.text(bar.get_x()+bar.get_width()/2, h, f"×{h:.2f}", ha='center', va='bottom', fontsize=8)
 
         # 1.2 Final Test Loss grouped bars
-        b1 = ax01.bar(x - w/2, l_ddp, width=w, label='DDP', color=COL_DDP)
-        b2 = ax01.bar(x + w/2, l_eq, width=w, label='1GPU (b×g)', color=COL_EQUIV)
+        b1 = ax01.bar(x - w/2, l_ddp, width=w, label='DDP', color=COL_DDP,
+                      yerr=(l_ddp_std if np.any(np.isfinite(np.asarray(l_ddp_std, float))) else None), capsize=4)
+        b2 = ax01.bar(x + w/2, l_eq, width=w, label='1GPU (b×g)', color=COL_EQUIV,
+                      yerr=(l_eq_std if np.any(np.isfinite(np.asarray(l_eq_std, float))) else None), capsize=4)
         ax01.set_xticks(x, [str(g) for g in gp])
         ax01.set_title('Final Test Loss (mean)')
         ax01.set_ylabel('Loss')
@@ -316,18 +339,24 @@ def main():
     try:
         import matplotlib.pyplot as plt
         gp = [e["gpus"] for e in entries]
-        # Total time: DDP + 1GPU (b×g) grouped bars (<=4) o líneas (>4)
+        # Total time: DDP + 1GPU (b×g) grouped bars (<=4) o líneas (>4) con bigotes
         tt = [e.get("total_time_s_mean") for e in entries]
+        tt_std = [e.get("total_time_s_std") for e in entries]
         tt_e = [e.get("total_time_s_mean") for e in entries_equiv]
+        tt_e_std = [e.get("total_time_s_std") for e in entries_equiv]
         fig, ax = plt.subplots(figsize=(6, 4))
         if len(gp) <= 4:
             x = np.arange(len(gp)); w = 0.35
-            ax.bar(x - w/2, tt, width=w, label='DDP', color=COL_DDP)
-            ax.bar(x + w/2, tt_e, width=w, label='1GPU (b×g)', color=COL_EQUIV)
+            ax.bar(x - w/2, tt, width=w, label='DDP', color=COL_DDP,
+                   yerr=(tt_std if np.any(np.isfinite(np.asarray(tt_std, float))) else None), capsize=4)
+            ax.bar(x + w/2, tt_e, width=w, label='1GPU (b×g)', color=COL_EQUIV,
+                   yerr=(tt_e_std if np.any(np.isfinite(np.asarray(tt_e_std, float))) else None), capsize=4)
             ax.set_xticks(x, [str(g) for g in gp])
         else:
-            ax.plot(gp, tt, marker='o', label='DDP', color=COL_DDP)
-            ax.plot(gp, tt_e, marker='o', label='1GPU (b×g)', color=COL_EQUIV)
+            ax.errorbar(gp, tt, yerr=tt_std if np.any(np.isfinite(np.asarray(tt_std, float))) else None,
+                        fmt='-o', label='DDP', color=COL_DDP, capsize=4)
+            ax.errorbar(gp, tt_e, yerr=tt_e_std if np.any(np.isfinite(np.asarray(tt_e_std, float))) else None,
+                        fmt='-o', label='1GPU (b×g)', color=COL_EQUIV, capsize=4)
         ax.set_title("Total Training Time (mean)")
         ax.set_xlabel("GPUs")
         ax.set_ylabel("Seconds")
@@ -337,19 +366,38 @@ def main():
         fig.savefig(os.path.join(fig_dir, "scaling_time.png"), dpi=300)
         plt.close(fig)
 
-        # Speedup: DDP + 1GPU (b×g) (línea/agrupadas)
+        # Speedup: DDP + 1GPU (b×g) (línea/agrupadas) con bigotes
         t0 = tt[0] if tt and tt[0] else None
-        spv = [float(t0)/float(x) if (t0 and x) else np.nan for x in tt]
-        spv_e = [float(t0)/float(x) if (t0 and x) else np.nan for x in tt_e]
+        s0 = tt_std[0] if tt_std else None
+        def _sp_err2(t0, s0, arr, std):
+            out_s, out_e = [], []
+            for a, s in zip(arr, std):
+                if t0 and a:
+                    sval = float(t0)/float(a)
+                    err = None
+                    if s0 is not None and s is not None:
+                        err = sval * np.sqrt((float(s0)/float(t0))**2 + (float(s)/float(a))**2)
+                    out_s.append(sval)
+                    out_e.append(err)
+                else:
+                    out_s.append(np.nan)
+                    out_e.append(None)
+            return out_s, out_e
+        spv, spv_err = _sp_err2(t0, s0, tt, tt_std)
+        spv_e, spv_e_err = _sp_err2(t0, s0, tt_e, tt_e_std)
         fig, ax = plt.subplots(figsize=(6, 4))
         if len(gp) <= 4:
             x = np.arange(len(gp)); w = 0.35
-            ax.bar(x - w/2, spv, width=w, label='DDP', color=COL_DDP)
-            ax.bar(x + w/2, spv_e, width=w, label='1GPU (b×g)', color=COL_EQUIV)
+            ax.bar(x - w/2, spv, width=w, label='DDP', color=COL_DDP,
+                   yerr=(spv_err if any(e is not None for e in spv_err) else None), capsize=4)
+            ax.bar(x + w/2, spv_e, width=w, label='1GPU (b×g)', color=COL_EQUIV,
+                   yerr=(spv_e_err if any(e is not None for e in spv_e_err) else None), capsize=4)
             ax.set_xticks(x, [str(g) for g in gp])
         else:
-            ax.plot(gp, spv, marker='o', label='DDP', color=COL_DDP)
-            ax.plot(gp, spv_e, marker='o', label='1GPU (b×g)', color=COL_EQUIV)
+            ax.errorbar(gp, spv, yerr=spv_err if any(e is not None for e in spv_err) else None,
+                        fmt='-o', label='DDP', color=COL_DDP, capsize=4)
+            ax.errorbar(gp, spv_e, yerr=spv_e_err if any(e is not None for e in spv_e_err) else None,
+                        fmt='-o', label='1GPU (b×g)', color=COL_EQUIV, capsize=4)
         ax.set_title(f"Speedup vs {gp[0]} GPU(s)")
         ax.set_xlabel("GPUs")
         ax.set_ylabel("Speedup")

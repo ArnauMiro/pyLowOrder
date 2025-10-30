@@ -269,8 +269,20 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
                 if rc != 0:
                     print(f"[ERR] Run failed (g={g}, i={i}) rc={rc}")
                     break
-        # Aggregate
-        per_g[g] = aggregate_runs(gdir, mode, repeats)
+        # Aggregate with fallback: if no data for the assumed mode, try the other
+        agg = aggregate_runs(gdir, mode, repeats)
+        # Fallback logic: if no runs or no total_time_s_mean for the assumed mode,
+        # try the alternate mode present under the same gdir.
+        if (int(agg.get('runs', 0)) == 0) or (agg.get('total_time_s_mean') is None):
+            alt_mode = 'single' if mode == 'ddp' else 'ddp'
+            try:
+                alt = aggregate_runs(gdir, alt_mode, repeats)
+                if int(alt.get('runs', 0)) > 0 and alt.get('total_time_s_mean') is not None:
+                    print(f"[INFO] Using fallback mode='{alt_mode}' for g={g} (no data for '{mode}')")
+                    agg = alt
+            except Exception:
+                pass
+        per_g[g] = agg
 
         # Per-run: write training losses log JSON inside each run directory
         for i in range(1, repeats + 1):
@@ -402,6 +414,7 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
         import matplotlib.pyplot as plt
         gp = [e["gpus"] for e in scaling["entries"]]
         tt = [float(v) if v is not None else np.nan for v in [e.get("total_time_s_mean") for e in scaling["entries"]]]
+        tt_std = [float(v) if v is not None else np.nan for v in [e.get("total_time_s_std") for e in scaling["entries"]]]
         spv = [float(v) if v is not None else np.nan for v in [e.get(f"speedup_vs_{g0}") for e in scaling["entries"]]]
         rm = [float(v) if v is not None else np.nan for v in [e.get("rmse_mean") for e in scaling["entries"]]]
         rm_std = [float(v) if v is not None else np.nan for v in [e.get("rmse_std") for e in scaling["entries"]]]
@@ -412,17 +425,22 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
         if has_equiv:
             emap = {e.get('gpus'): e for e in entries_equiv}
             tt_e = [float(emap.get(g, {}).get('total_time_s_mean')) if emap.get(g, {}).get('total_time_s_mean') is not None else np.nan for g in gp]
+            tt_e_std = [float(emap.get(g, {}).get('total_time_s_std')) if emap.get(g, {}).get('total_time_s_std') is not None else np.nan for g in gp]
         # Barras agrupadas si pocos puntos; polilínea si hay muchos
         if len(gp) <= 4:
             x = np.arange(len(gp)); w = 0.35
-            ax.bar(x - w/2, tt, width=w, label='DDP', color='tab:blue')
+            ax.bar(x - w/2, tt, width=w, label='DDP', color=COL_DDP,
+                   yerr=(tt_std if np.any(np.isfinite(np.asarray(tt_std, float))) else None), capsize=4)
             if has_equiv:
-                ax.bar(x + w/2, tt_e, width=w, label='1GPU (b×g)', color='tab:orange')
+                ax.bar(x + w/2, tt_e, width=w, label='1GPU (b×g)', color=COL_EQUIV,
+                       yerr=(tt_e_std if np.any(np.isfinite(np.asarray(tt_e_std, float))) else None), capsize=4)
             ax.set_xticks(x, [str(g) for g in gp])
         else:
-            ax.plot(gp, tt, marker='o', label='DDP', color=COL_DDP)
+            ax.errorbar(gp, tt, yerr=tt_std if np.any(np.isfinite(np.asarray(tt_std, float))) else None,
+                        fmt='-o', label='DDP', color=COL_DDP, capsize=4)
             if has_equiv:
-                ax.plot(gp, tt_e, marker='o', label='1GPU (b×g)', color=COL_EQUIV)
+                ax.errorbar(gp, tt_e, yerr=tt_e_std if np.any(np.isfinite(np.asarray(tt_e_std, float))) else None,
+                            fmt='-o', label='1GPU (b×g)', color=COL_EQUIV, capsize=4)
         ax.set_title("Total Training Time (mean)")
         ax.set_xlabel("GPUs")
         ax.set_ylabel("Seconds")
@@ -434,13 +452,35 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
         plt.close(fig)
         # Speedup (DDP + optional 1-GPU equiv)
         fig, ax = plt.subplots(figsize=(6, 4))
-        ax.plot(gp, spv, marker='o', label='DDP', color=COL_DDP)
+        # Propagación de error para speedup S=t0/t
+        t0 = tt[0] if tt and np.isfinite(tt[0]) else None
+        s0 = tt_std[0] if tt_std and np.isfinite(tt_std[0]) else None
+        def _sp_err(t, s, t0, s0):
+            out = []
+            for ti, si in zip(t, s):
+                if t0 and ti and np.isfinite(t0) and np.isfinite(ti) and t0 > 0 and ti > 0:
+                    sval = float(t0) / float(ti)
+                    err = None
+                    if s0 is not None and np.isfinite(s0) and si is not None and np.isfinite(si):
+                        err = sval * np.sqrt((float(s0)/float(t0))**2 + (float(si)/float(ti))**2)
+                    out.append((sval, err))
+                else:
+                    out.append((np.nan, None))
+            return out
+        sp_pairs = _sp_err(tt, tt_std, t0, s0)
+        spv = [p[0] for p in sp_pairs]
+        spv_err = [p[1] for p in sp_pairs]
+        ax.errorbar(gp, spv, yerr=spv_err if any(e is not None for e in spv_err) else None,
+                    fmt='-o', label='DDP', color=COL_DDP, capsize=4)
         if has_equiv:
             # Compute equiv speedup vs same baseline
-            t0 = tt[0] if tt and np.isfinite(tt[0]) else None
             tt_e = [float(emap.get(g, {}).get('total_time_s_mean')) if emap.get(g, {}).get('total_time_s_mean') is not None else np.nan for g in gp]
-            spv_e = [float(t0)/float(x) if (t0 and x and np.isfinite(x)) else np.nan for x in tt_e]
-            ax.plot(gp, spv_e, marker='o', label='1GPU (b×g)', color=COL_EQUIV)
+            tt_e_std = [float(emap.get(g, {}).get('total_time_s_std')) if emap.get(g, {}).get('total_time_s_std') is not None else np.nan for g in gp]
+            sp_e_pairs = _sp_err(tt_e, tt_e_std, t0, s0)
+            spv_e = [p[0] for p in sp_e_pairs]
+            spv_e_err = [p[1] for p in sp_e_pairs]
+            ax.errorbar(gp, spv_e, yerr=spv_e_err if any(e is not None for e in spv_e_err) else None,
+                        fmt='-o', label='1GPU (b×g)', color=COL_EQUIV, capsize=4)
         ax.set_title(f"Speedup vs {g0} GPU(s)")
         ax.set_xlabel("GPUs")
         ax.set_ylabel("Speedup")
@@ -462,6 +502,10 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
             ae_e = [float(emap.get(g, {}).get('avg_epoch_time_s_mean')) if emap.get(g, {}).get('avg_epoch_time_s_mean') is not None else np.nan for g in gp]
             thr_e = [float(emap.get(g, {}).get('avg_throughput_global_mean')) if emap.get(g, {}).get('avg_throughput_global_mean') is not None else np.nan for g in gp]
             fl_e = [float(emap.get(g, {}).get('final_test_loss_mean')) if emap.get(g, {}).get('final_test_loss_mean') is not None else np.nan for g in gp]
+            tt_std = [float(v) if v is not None else np.nan for v in [e.get('total_time_s_std') for e in scaling['entries']]]
+            tt_e_std = [float(emap.get(g, {}).get('total_time_s_std')) if emap.get(g, {}).get('total_time_s_std') is not None else np.nan for g in gp]
+            fl_std = [float(v) if v is not None else np.nan for v in [e.get('final_test_loss_std') for e in scaling['entries']]]
+            fl_e_std = [float(emap.get(g, {}).get('final_test_loss_std')) if emap.get(g, {}).get('final_test_loss_std') is not None else np.nan for g in gp]
         # Summary 2×2 composite (standard): speedup, final loss, test curves (log), rmse_vs_time
         fig, axes = plt.subplots(2, 2, figsize=(12, 8))
         ax00, ax01, ax10, ax11 = axes.ravel()
@@ -469,21 +513,34 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
         # 1.1 Speedup panel: bars if <=4, else polyline
         if len(gp) <= 4:
             w = 0.35
-            ax00.bar(x - w/2, [float(s) if s is not None else np.nan for s in spv], width=w, label='DDP', color=COL_DDP)
+            # recompute speedup + error
+            t0 = tt[0] if tt and np.isfinite(tt[0]) else None
+            s0 = tt_std[0] if tt_std and np.isfinite(tt_std[0]) else None
+            sp_pairs = _sp_err(tt, tt_std, t0, s0)
+            spv = [p[0] for p in sp_pairs]
+            spv_err = [p[1] for p in sp_pairs]
+            ax00.bar(x - w/2, [float(s) if s is not None else np.nan for s in spv], width=w, label='DDP', color=COL_DDP,
+                     yerr=(spv_err if any(e is not None for e in spv_err) else None), capsize=4)
             if has_equiv:
                 # equiv speedup
-                t0 = tt[0] if tt and np.isfinite(tt[0]) else None
-                tt_e = [float(emap.get(g, {}).get('total_time_s_mean')) if emap.get(g, {}).get('total_time_s_mean') is not None else np.nan for g in gp]
-                spv_e = [float(t0)/float(x) if (t0 and x and np.isfinite(x)) else np.nan for x in tt_e]
-                ax00.bar(x + w/2, spv_e, width=w, label='1GPU (b×g)', color=COL_EQUIV)
+                sp_e_pairs = _sp_err(tt_e, tt_e_std, t0, s0)
+                spv_e = [p[0] for p in sp_e_pairs]
+                spv_e_err = [p[1] for p in sp_e_pairs]
+                ax00.bar(x + w/2, spv_e, width=w, label='1GPU (b×g)', color=COL_EQUIV,
+                         yerr=(spv_e_err if any(e is not None for e in spv_e_err) else None), capsize=4)
             ax00.set_xticks(x, [str(g) for g in gp])
         else:
-            ax00.plot(gp, spv, marker='o', label='DDP', color=COL_DDP)
+            sp_pairs = _sp_err(tt, tt_std, t0, s0)
+            spv = [p[0] for p in sp_pairs]
+            spv_err = [p[1] for p in sp_pairs]
+            ax00.errorbar(gp, spv, yerr=spv_err if any(e is not None for e in spv_err) else None,
+                          fmt='-o', label='DDP', color=COL_DDP, capsize=4)
             if has_equiv:
-                t0 = tt[0] if tt and np.isfinite(tt[0]) else None
-                tt_e = [float(emap.get(g, {}).get('total_time_s_mean')) if emap.get(g, {}).get('total_time_s_mean') is not None else np.nan for g in gp]
-                spv_e = [float(t0)/float(x) if (t0 and x and np.isfinite(x)) else np.nan for x in tt_e]
-                ax00.plot(gp, spv_e, marker='o', label='1GPU (b×g)', color=COL_EQUIV)
+                sp_e_pairs = _sp_err(tt_e, tt_e_std, t0, s0)
+                spv_e = [p[0] for p in sp_e_pairs]
+                spv_e_err = [p[1] for p in sp_e_pairs]
+                ax00.errorbar(gp, spv_e, yerr=spv_e_err if any(e is not None for e in spv_e_err) else None,
+                              fmt='-o', label='1GPU (b×g)', color=COL_EQUIV, capsize=4)
         for i, s in enumerate(spv):
             if s is not None and np.isfinite(s):
                 ax00.text(i if len(gp)<=4 else gp[i], s, f"×{s:.2f}", ha='center', va='bottom', fontsize=8)
@@ -498,14 +555,22 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
             fl_e = [float(emap.get(g, {}).get('final_test_loss_mean')) if emap.get(g, {}).get('final_test_loss_mean') is not None else np.nan for g in gp]
         if len(gp) <= 4:
             w = 0.35
-            ax01.bar(x - w/2, vals_loss, width=w, label='DDP', color=COL_DDP)
+            fl_std = [float(v) if v is not None else np.nan for v in [e.get('final_test_loss_std') for e in scaling['entries']]]
+            ax01.bar(x - w/2, vals_loss, width=w, label='DDP', color=COL_DDP,
+                     yerr=(fl_std if np.any(np.isfinite(np.asarray(fl_std, float))) else None), capsize=4)
             if has_equiv:
-                ax01.bar(x + w/2, fl_e, width=w, label='1GPU (b×g)', color=COL_EQUIV)
+                fl_e_std = [float(emap.get(g, {}).get('final_test_loss_std')) if emap.get(g, {}).get('final_test_loss_std') is not None else np.nan for g in gp]
+                ax01.bar(x + w/2, fl_e, width=w, label='1GPU (b×g)', color=COL_EQUIV,
+                         yerr=(fl_e_std if np.any(np.isfinite(np.asarray(fl_e_std, float))) else None), capsize=4)
             ax01.set_xticks(x, [str(g) for g in gp])
         else:
-            ax01.plot(gp, vals_loss, marker='o', label='DDP', color=COL_DDP)
+            fl_std = [float(v) if v is not None else np.nan for v in [e.get('final_test_loss_std') for e in scaling['entries']]]
+            ax01.errorbar(gp, vals_loss, yerr=fl_std if np.any(np.isfinite(np.asarray(fl_std, float))) else None,
+                          fmt='-o', label='DDP', color=COL_DDP, capsize=4)
             if has_equiv:
-                ax01.plot(gp, fl_e, marker='o', label='1GPU (b×g)', color=COL_EQUIV)
+                fl_e_std = [float(emap.get(g, {}).get('final_test_loss_std')) if emap.get(g, {}).get('final_test_loss_std') is not None else np.nan for g in gp]
+                ax01.errorbar(gp, fl_e, yerr=fl_e_std if np.any(np.isfinite(np.asarray(fl_e_std, float))) else None,
+                              fmt='-o', label='1GPU (b×g)', color=COL_EQUIV, capsize=4)
         l0 = vals_loss[0] if len(vals_loss)>0 and np.isfinite(vals_loss[0]) else None
         if l0 is not None:
             for i, v in enumerate(vals_loss):
@@ -520,9 +585,16 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
         colors = plt.cm.tab10.colors
         for idx, e in enumerate(scaling.get('entries', [])):
             tsm = e.get('test_loss_curve_mean')
+            tss = e.get('test_loss_curve_std')
             if tsm is not None:
                 y = np.asarray(tsm, dtype=float)
-                ax10.plot(np.arange(1, y.size+1), y, label=f"g={e.get('gpus')}", color=colors[idx % len(colors)])
+                xep = np.arange(1, y.size+1)
+                col = colors[idx % len(colors)]
+                ax10.plot(xep, y, label=f"g={e.get('gpus')}", color=col)
+                if tss is not None:
+                    s = np.asarray(tss, dtype=float)
+                    if s.shape == y.shape:
+                        ax10.fill_between(xep, y - s, y + s, color=col, alpha=0.15)
         ax10.set_title('Average Test Loss per GPU count (DDP)')
         ax10.set_xlabel('Epoch')
         ax10.set_ylabel('Loss')
@@ -570,9 +642,11 @@ def task_scale(resudir_base: str, gpus: List[int], repeats: int, basedir: str, c
                         color=COL_DDP, ecolor=COL_DDP, label='DDP')
             if has_equiv:
                 rm_e = [float(emap.get(g, {}).get('rmse_mean')) if emap.get(g, {}).get('rmse_mean') is not None else np.nan for g in gp]
+                rm_e_std = [float(emap.get(g, {}).get('rmse_std')) if emap.get(g, {}).get('rmse_std') is not None else np.nan for g in gp]
                 rm_e_arr = np.asarray(rm_e, dtype=float)
+                rm_e_std_arr = np.asarray(rm_e_std, dtype=float)
                 mask_e = np.isfinite(rm_e_arr)
-                ax.errorbar(gp_arr[mask_e], rm_e_arr[mask_e], yerr=None, fmt='-o', capsize=4,
+                ax.errorbar(gp_arr[mask_e], rm_e_arr[mask_e], yerr=rm_e_std_arr[mask_e] if np.any(np.isfinite(rm_e_std_arr)) else None, fmt='-o', capsize=4,
                             color=COL_EQUIV, ecolor=COL_EQUIV, label='1GPU (b×g)')
             ax.set_title("RMSE vs GPUs")
             ax.set_xlabel("GPUs")
