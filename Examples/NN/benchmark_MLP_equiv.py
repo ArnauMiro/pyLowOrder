@@ -10,6 +10,10 @@ from typing import List, Dict, Tuple
 
 import numpy as np
 
+# Consistent series colors across figures
+COL_DDP = 'tab:blue'
+COL_EQUIV = 'tab:orange'
+
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 EXAMPLE = os.path.join(THIS_DIR, "example_MLP_DLR_airfoil.py")
 
@@ -226,8 +230,8 @@ def main():
         x = np.arange(len(gp))
         w = 0.35
         # 1.1 Speedup grouped bars
-        b1 = ax00.bar(x - w/2, sp_ddp, width=w, label='DDP')
-        b2 = ax00.bar(x + w/2, sp_eq, width=w, label='1GPU (b×g)')
+        b1 = ax00.bar(x - w/2, sp_ddp, width=w, label='DDP', color=COL_DDP)
+        b2 = ax00.bar(x + w/2, sp_eq, width=w, label='1GPU (b×g)', color=COL_EQUIV)
         ax00.set_xticks(x, [str(g) for g in gp])
         ax00.set_title('Time Speedup (vs {} GPU)'.format(gp[0]))
         ax00.set_ylabel('× speedup')
@@ -241,8 +245,8 @@ def main():
                     ax00.text(bar.get_x()+bar.get_width()/2, h, f"×{h:.2f}", ha='center', va='bottom', fontsize=8)
 
         # 1.2 Final Test Loss grouped bars
-        b1 = ax01.bar(x - w/2, l_ddp, width=w, label='DDP')
-        b2 = ax01.bar(x + w/2, l_eq, width=w, label='1GPU (b×g)')
+        b1 = ax01.bar(x - w/2, l_ddp, width=w, label='DDP', color=COL_DDP)
+        b2 = ax01.bar(x + w/2, l_eq, width=w, label='1GPU (b×g)', color=COL_EQUIV)
         ax01.set_xticks(x, [str(g) for g in gp])
         ax01.set_title('Final Test Loss (mean)')
         ax01.set_ylabel('Loss')
@@ -312,45 +316,71 @@ def main():
     try:
         import matplotlib.pyplot as plt
         gp = [e["gpus"] for e in entries]
-        # Total time (DDP)
+        # Total time: DDP + 1GPU (b×g) grouped bars (<=4) o líneas (>4)
         tt = [e.get("total_time_s_mean") for e in entries]
+        tt_e = [e.get("total_time_s_mean") for e in entries_equiv]
         fig, ax = plt.subplots(figsize=(6, 4))
-        ax.bar([str(x) for x in gp], [float(v) if v is not None else np.nan for v in tt])
-        ax.set_title("Total Training Time (mean) [DDP]")
+        if len(gp) <= 4:
+            x = np.arange(len(gp)); w = 0.35
+            ax.bar(x - w/2, tt, width=w, label='DDP', color=COL_DDP)
+            ax.bar(x + w/2, tt_e, width=w, label='1GPU (b×g)', color=COL_EQUIV)
+            ax.set_xticks(x, [str(g) for g in gp])
+        else:
+            ax.plot(gp, tt, marker='o', label='DDP', color=COL_DDP)
+            ax.plot(gp, tt_e, marker='o', label='1GPU (b×g)', color=COL_EQUIV)
+        ax.set_title("Total Training Time (mean)")
         ax.set_xlabel("GPUs")
         ax.set_ylabel("Seconds")
         ax.grid(True, axis='y', linestyle='--', alpha=0.4)
+        ax.legend()
         fig.tight_layout()
         fig.savefig(os.path.join(fig_dir, "scaling_time.png"), dpi=300)
         plt.close(fig)
 
-        # Speedup (DDP)
+        # Speedup: DDP + 1GPU (b×g) (línea/agrupadas)
         t0 = tt[0] if tt and tt[0] else None
         spv = [float(t0)/float(x) if (t0 and x) else np.nan for x in tt]
+        spv_e = [float(t0)/float(x) if (t0 and x) else np.nan for x in tt_e]
         fig, ax = plt.subplots(figsize=(6, 4))
-        ax.plot(gp, spv, marker='o')
-        ax.set_title(f"Speedup vs {gp[0]} GPU(s) [DDP]")
+        if len(gp) <= 4:
+            x = np.arange(len(gp)); w = 0.35
+            ax.bar(x - w/2, spv, width=w, label='DDP', color=COL_DDP)
+            ax.bar(x + w/2, spv_e, width=w, label='1GPU (b×g)', color=COL_EQUIV)
+            ax.set_xticks(x, [str(g) for g in gp])
+        else:
+            ax.plot(gp, spv, marker='o', label='DDP', color=COL_DDP)
+            ax.plot(gp, spv_e, marker='o', label='1GPU (b×g)', color=COL_EQUIV)
+        ax.set_title(f"Speedup vs {gp[0]} GPU(s)")
         ax.set_xlabel("GPUs")
         ax.set_ylabel("Speedup")
         ax.grid(True, linestyle='--', alpha=0.4)
+        ax.legend()
         fig.tight_layout()
         fig.savefig(os.path.join(fig_dir, "scaling_speedup.png"), dpi=300)
         plt.close(fig)
 
-        # RMSE vs GPUs (DDP)
+        # RMSE vs GPUs: overlay equiv
         rm = [e.get("rmse_mean") for e in entries]
         rm_std = [e.get("rmse_std") for e in entries]
+        rm_e = [e.get("rmse_mean") for e in entries_equiv]
         rm_arr = np.asarray([float(v) if v is not None else np.nan for v in rm], dtype=float)
         rm_std_arr = np.asarray([float(v) if v is not None else np.nan for v in rm_std], dtype=float)
+        rm_e_arr = np.asarray([float(v) if v is not None else np.nan for v in rm_e], dtype=float)
         gp_arr = np.asarray(gp, dtype=int)
         mask = np.isfinite(rm_arr)
         if np.any(mask):
             fig, ax = plt.subplots(figsize=(6, 4))
-            ax.errorbar(gp_arr[mask], rm_arr[mask], yerr=rm_std_arr[mask], fmt='-o', capsize=4)
-            ax.set_title("RMSE vs GPUs [DDP]")
+            ax.errorbar(gp_arr[mask], rm_arr[mask], yerr=rm_std_arr[mask], fmt='-o', capsize=4,
+                        color=COL_DDP, ecolor=COL_DDP, label='DDP')
+            mask_e = np.isfinite(rm_e_arr)
+            if np.any(mask_e):
+                ax.errorbar(gp_arr[mask_e], rm_e_arr[mask_e], yerr=None, fmt='-o', capsize=4,
+                            color=COL_EQUIV, ecolor=COL_EQUIV, label='1GPU (b×g)')
+            ax.set_title("RMSE vs GPUs")
             ax.set_xlabel("GPUs")
             ax.set_ylabel("RMSE (mean ± std)")
             ax.grid(True, linestyle='--', alpha=0.4)
+            ax.legend()
             # Use automatic Y-limits for RMSE plot
             fig.tight_layout()
             fig.savefig(os.path.join(fig_dir, "scaling_rmse.png"), dpi=300)
