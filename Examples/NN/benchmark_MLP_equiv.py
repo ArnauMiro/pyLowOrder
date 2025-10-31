@@ -15,7 +15,7 @@ COL_DDP = 'tab:blue'
 COL_EQUIV = 'tab:orange'
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-EXAMPLE = os.path.join(THIS_DIR, "example_MLP_DLR_airfoil.py")
+EXAMPLE = os.path.join(THIS_DIR, "mlp_train_pipeline.py")
 
 
 def _run(cmd: List[str]) -> int:
@@ -411,9 +411,11 @@ def main():
         rm = [e.get("rmse_mean") for e in entries]
         rm_std = [e.get("rmse_std") for e in entries]
         rm_e = [e.get("rmse_mean") for e in entries_equiv]
+        rm_e_std = [e.get("rmse_std") for e in entries_equiv]
         rm_arr = np.asarray([float(v) if v is not None else np.nan for v in rm], dtype=float)
         rm_std_arr = np.asarray([float(v) if v is not None else np.nan for v in rm_std], dtype=float)
         rm_e_arr = np.asarray([float(v) if v is not None else np.nan for v in rm_e], dtype=float)
+        rm_e_std_arr = np.asarray([float(v) if v is not None else np.nan for v in rm_e_std], dtype=float)
         gp_arr = np.asarray(gp, dtype=int)
         mask = np.isfinite(rm_arr)
         if np.any(mask):
@@ -422,7 +424,8 @@ def main():
                         color=COL_DDP, ecolor=COL_DDP, label='DDP')
             mask_e = np.isfinite(rm_e_arr)
             if np.any(mask_e):
-                ax.errorbar(gp_arr[mask_e], rm_e_arr[mask_e], yerr=None, fmt='-o', capsize=4,
+                yerr_e = rm_e_std_arr[mask_e] if np.any(np.isfinite(rm_e_std_arr)) else None
+                ax.errorbar(gp_arr[mask_e], rm_e_arr[mask_e], yerr=yerr_e, fmt='-o', capsize=4,
                             color=COL_EQUIV, ecolor=COL_EQUIV, label='1GPU (b×g)')
             ax.set_title("RMSE vs GPUs")
             ax.set_xlabel("GPUs")

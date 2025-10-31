@@ -17,7 +17,7 @@ COL_EQUIV = 'tab:orange'
 
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-EXAMPLE = os.path.join(THIS_DIR, "example_MLP_DLR_airfoil.py")
+EXAMPLE = os.path.join(THIS_DIR, "mlp_train_pipeline.py")
 
 
 def _run(cmd: List[str], env: Dict[str, str] = None) -> int:
