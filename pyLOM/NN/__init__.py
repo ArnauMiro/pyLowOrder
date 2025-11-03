@@ -27,7 +27,7 @@ from .aerodynamics import global_coeff, jacobians_pressure
 from .architectures.mlp               import MLP
 from .architectures.kan               import KAN, KAN_SIN, ChebyshevLayer, JacobiLayer, SineLayer
 from .architectures.autoencoders      import Autoencoder, VariationalAutoencoder
-from .architectures.encoders_decoders import Encoder2D, Decoder2D, Encoder3D, Decoder3D, ShallowDecoder
+from .architectures.encoders_decoders import Encoder1D, Decoder1D, Encoder2D, Decoder2D, Encoder3D, Decoder3D, ShallowDecoder
 from .architectures.pinn              import PINN, BurgersPINN, Euler2DPINN, NavierStokesIncompressible2DPINN, BoundaryCondition
 from .architectures.shred             import SHRED
 
