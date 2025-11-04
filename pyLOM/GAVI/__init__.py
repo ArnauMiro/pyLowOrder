@@ -6,5 +6,7 @@
 #
 # Last rev: 27/10/2025
 
-from .utils        import save, load
+
+from .wrapper      import vae_R
+from .utils        import save, load, create_dataset
 
