@@ -138,6 +138,34 @@ class MinMaxScaler:
             inverse_scaled_variables = torch.hstack(inverse_scaled_variables)
         return inverse_scaled_variables.T if self._column else inverse_scaled_variables
 
+    def drop_columns(self, indices):
+        """
+        Remove scaling parameters for the columns at the given 0-based indices.
+        Accepts an int or an iterable of ints.
+        """
+        if not self.is_fitted:
+            raiseError("Scaler must be fitted before dropping columns.")
+        if isinstance(indices, int):
+            indices = [indices]
+        idx_set = set(indices)
+        kept = [p for i, p in enumerate(self.variable_scaling_params) if i not in idx_set]
+        if len(kept) == len(self.variable_scaling_params):
+            raiseError(f"No matching indices to drop: {indices}")
+        self.variable_scaling_params = kept
+
+    def keep_columns(self, indices):
+        """
+        Keep only the columns at the given 0-based indices (drops all others).
+        Accepts an iterable of ints.
+        """
+        if not self.is_fitted:
+            raiseError("Scaler must be fitted before keeping columns.")
+        idx_set = set(indices)
+        kept = [p for i, p in enumerate(self.variable_scaling_params) if i in idx_set]
+        if not kept:
+            raiseError("Keeping zero columns would leave the scaler unusable.")
+        self.variable_scaling_params = kept
+
     def save(self, filepath: str) -> None:
         """
         Save the fitted scaler parameters to a JSON file.
