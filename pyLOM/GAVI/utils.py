@@ -11,10 +11,12 @@
 # Last rev: 24/10/2025
 
 import numpy as np
+import torch
 
 from ..utils   import cr
 from ..utils   import gpu_to_cpu
 from ..inp_out import h5_save_QR, h5_load_QR
+from ..NN      import Dataset, select_device
 from ..        import PartitionTable
 
 @cr('GAVI.save_QR')
@@ -54,3 +56,17 @@ def load(fname:str,vars:list=['Q','B'],ptable:PartitionTable=None):
 ## Save the autoencoder weights and latent space
 
 ## Load the autoencoder weights and latent space
+
+## Create dataset
+def create_dataset(matrix, scale='max'):
+	if scale == 'max':
+		matmax = np.max(np.abs(matrix))
+		matsca = matrix/matmax
+		scaler = matmax
+	elif scale == 'meanstd':
+		matmean = np.mean(matrix, axis=1)
+		matstd  = np.std(matrix, axis=1)
+		matsca  = (matrix-matmean[:,np.newaxis])/matstd
+		scaler  = np.array([matmean,matstd])
+	matsca = torch.tensor((matsca).astype(np.float32), device=select_device())
+	return Dataset(matsca), scaler
