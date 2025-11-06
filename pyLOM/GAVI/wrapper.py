@@ -22,9 +22,9 @@ from   ..NN import Encoder1D, Decoder1D, VariationalAutoencoder, silu, select_de
 
 ## Autoencoder on the R
 def vae_R(data, latent_dim, device=select_device(), nepochs=2500, nlayers=3, conv_chan=64, hid_dim=32, kernel=4, padding=1, func=silu()):
-    nmod       = data.shape[1]
+    nmod       = data.shape[2]
     nt         = data.shape[0]
-    input_chan = 1 if len(data.shape) == 2 else data.shape[2]
+    input_chan = data.shape[1]
     activation = [func for _ in range(nlayers + 2)]
     encoder    = Encoder1D(nlayers, latent_dim, nmod, input_chan, conv_chan, kernel, padding, activation, hid_dim, batch_norm=True)
     decoder    = Decoder1D(nlayers, latent_dim, nmod, input_chan, conv_chan, kernel, padding, activation, hid_dim, batch_norm=True)
