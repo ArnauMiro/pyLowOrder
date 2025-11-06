@@ -13,7 +13,7 @@
 import torch
 import numpy as np
 
-from   ..NN import Encoder1D, Decoder1D, VariationalAutoencoder, silu, select_device
+from   ..NN import Encoder1D, Decoder1D, VariationalAutoencoder, silu, select_device, betaLinearScheduler
 
 
 ## Compute the randomized QR factorization
@@ -21,14 +21,13 @@ from   ..NN import Encoder1D, Decoder1D, VariationalAutoencoder, silu, select_de
 ## Compress the randomized QR factorization
 
 ## Autoencoder on the R
-def vae_R(data, latent_dim, device=select_device(), nepochs=500, nlayers=3, conv_chan=16, kernel=4, padding=1, func=silu()):
+def vae_R(data, latent_dim, device=select_device(), nepochs=2500, nlayers=3, conv_chan=64, hid_dim=32, kernel=4, padding=1, func=silu()):
     nmod       = data.shape[1]
     nt         = data.shape[0]
     input_chan = 1 if len(data.shape) == 2 else data.shape[2]
     activation = [func for _ in range(nlayers + 2)]
-    hid_dim    = latent_dim*3
-    encoder    = Encoder1D(nlayers, latent_dim, nmod, input_chan, conv_chan, kernel, padding, activation, hid_dim)
-    decoder    = Decoder1D(nlayers, latent_dim, nmod, input_chan, conv_chan, kernel, padding, activation, hid_dim)
+    encoder    = Encoder1D(nlayers, latent_dim, nmod, input_chan, conv_chan, kernel, padding, activation, hid_dim, batch_norm=True)
+    decoder    = Decoder1D(nlayers, latent_dim, nmod, input_chan, conv_chan, kernel, padding, activation, hid_dim, batch_norm=True)
     vae        = VariationalAutoencoder(latent_dim, (nmod,), input_chan, encoder, decoder, device)
-    vae.fit(data, eval_dataset=data, batch_size=int(nt/4), epochs=nepochs, lr=5e-3, BASEDIR='./', pin_memory=False)
+    vae.fit(data, eval_dataset=data, batch_size=64, epochs=nepochs, lr=5e-4, BASEDIR='./', pin_memory=False)
     return vae
