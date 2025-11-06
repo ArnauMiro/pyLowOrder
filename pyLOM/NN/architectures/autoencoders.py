@@ -324,15 +324,15 @@ class VariationalAutoencoder(Autoencoder):
             tr_loss = 0
             mse     = 0
             kld     = 0
-            beta    = betasch.getBeta(epoch) if betasch is not None else 0
+            beta    = betasch.getBeta(epoch) if betasch is not None else 1
             for batch0 in train_data:
                 batch = batch0.to(self._device)
                 optimizer.zero_grad()
                 with autocast(device_type=self._device):
                     recon, mu, logvar, _ = self(batch)
-                    mse_i = self._lossfunc(batch, recon, reduction='mean')
+                    mse_i = self._lossfunc(batch, recon, reduction='sum')
                     kld_i = self._kld(mu,logvar)
-                    loss  = mse_i - beta*kld_i
+                    loss  = mse_i - beta/2*kld_i
                 scaler.scale(loss).backward()
                 scaler.step(optimizer)
                 scaler.update()
@@ -352,7 +352,7 @@ class VariationalAutoencoder(Autoencoder):
                     val_batch = val_batch0.to(self._device)
                     with autocast(device_type=self._device):
                         val_recon, val_mu, val_logvar, _ = self(val_batch)
-                        mse_i     = self._lossfunc(val_batch, val_recon, reduction='mean')
+                        mse_i     = self._lossfunc(val_batch, val_recon, reduction='sum')
                         kld_i     = self._kld(val_mu,val_logvar)
                         vali_loss = mse_i - beta*kld_i
                     va_loss  += vali_loss.item()
@@ -478,7 +478,6 @@ class VariationalAutoencoder(Autoencoder):
             instant  = iter(loader)
             batch    = next(instant)
             batch    = batch.to(self._device)
-            batch    = batch.unsqueeze(1)
             _,_,_, z = self(batch)
         return z
 
