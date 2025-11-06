@@ -8,8 +8,7 @@ FILE       = 'QR.h5'
 latent_dim = 4
 
 # Load data
-#R = pyLOM.GAVI.load(FILE, vars=['B'])[0][:1600,:]
-R = np.load('../gavi/POD/R.npy')
+R = pyLOM.GAVI.load(FILE, vars=['B'])[0][:1600,:]
 
 data,_ = pyLOM.GAVI.create_dataset(R, scale='max')
 
