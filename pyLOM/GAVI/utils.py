@@ -69,4 +69,4 @@ def create_dataset(matrix, scale='max', device=select_device()):
 		matsca  = (matrix-matmean[:,np.newaxis])/matstd[:,np.newaxis]
 		scaler  = np.array([matmean,matstd])
 	matsca = torch.tensor((matsca).astype(np.float32), device=device)
-	return Dataset(matsca), scaler
+	return Dataset((matsca,), mesh_shape=(1600,), snapshots_by_column=True), scaler
