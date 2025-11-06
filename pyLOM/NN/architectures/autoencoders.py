@@ -145,10 +145,10 @@ class Autoencoder(nn.Module):
             writer.add_scalar("Loss/vali", va_loss, epoch + 1)
             # Early stopping
             if callback and callback.early_stop(va_loss, prev_train_loss, tr_loss):
-                print(f'Early Stopper Activated at epoch {epoch}', flush=True)
+                pprint(0, f'Early Stopper Activated at epoch {epoch}', flush=True)
                 break
             prev_train_loss = tr_loss
-            print(f'Epoch [{epoch+1} / {epochs}] average training loss: {tr_loss:.5e} | average validation loss: {va_loss:.5e}', flush=True)            
+            pprint(0, f'Epoch [{epoch+1} / {epochs}] average training loss: {tr_loss:.5e} | average validation loss: {va_loss:.5e}', flush=True)            
             # Learning rate scheduling
             scheduler.step()
 
@@ -194,9 +194,9 @@ class Autoencoder(nn.Module):
                     si[i] = 2 * torch.std(x) * torch.std(xr) / (torch.std(x) ** 2 + torch.std(xr) ** 2)
 
         energy = (1 - np.mean(ek)) * 100
-        print('Recovered energy %.2f' % energy)
-        print('Recovered mean %.2f' % (np.mean(mu) * 100))
-        print('Recovered fluct %.2f' % (np.mean(si) * 100))
+        pprint(0,'Recovered energy %.2f' % energy, flush=True)
+        pprint(0,'Recovered mean %.2f' % (np.mean(mu) * 100), flush=True)
+        pprint(0,'Recovered fluct %.2f' % (np.mean(si) * 100), flush=True)
 
         return rec.cpu().numpy()
     
@@ -330,7 +330,7 @@ class VariationalAutoencoder(Autoencoder):
                 optimizer.zero_grad()
                 with autocast(device_type=self._device):
                     recon, mu, logvar, _ = self(batch)
-                    mse_i = self._lossfunc(batch, recon, reduction='sum')
+                    mse_i = self._lossfunc(batch, recon, reduction='mean')
                     kld_i = self._kld(mu,logvar)
                     loss  = mse_i - beta*kld_i
                 scaler.scale(loss).backward()
@@ -352,7 +352,7 @@ class VariationalAutoencoder(Autoencoder):
                     val_batch = val_batch0.to(self._device)
                     with autocast(device_type=self._device):
                         val_recon, val_mu, val_logvar, _ = self(val_batch)
-                        mse_i     = self._lossfunc(val_batch, val_recon, reduction='sum')
+                        mse_i     = self._lossfunc(val_batch, val_recon, reduction='mean')
                         kld_i     = self._kld(val_mu,val_logvar)
                         vali_loss = mse_i - beta*kld_i
                     va_loss  += vali_loss.item()
@@ -415,9 +415,9 @@ class VariationalAutoencoder(Autoencoder):
                     si[i] = 2 * torch.std(x) * torch.std(xr) / (torch.std(x) ** 2 + torch.std(xr) ** 2)
 
         energy = (1 - np.mean(ek)) * 100
-        print('Recovered energy %.2f' % energy)
-        print('Recovered mean %.2f' % (np.mean(mu) * 100))
-        print('Recovered fluct %.2f' % (np.mean(si) * 100))
+        pprint(0,'Recovered energy %.2f' % energy, flush=True)
+        pprint(0,'Recovered mean %.2f' % (np.mean(mu) * 100), flush=True)
+        pprint(0,'Recovered fluct %.2f' % (np.mean(si) * 100), flush=True)
 
         return rec.cpu().numpy()
   
@@ -441,7 +441,7 @@ class VariationalAutoencoder(Autoencoder):
             np.save('z.npy',z.cpu())
             corr = np.corrcoef(z.cpu(),rowvar=False)
         detR = np.linalg.det(corr)*100
-        print('Orthogonality between modes %.2f' % (detR))
+        pprint(0,'Orthogonality between modes %.2f' % (detR), flush=True)
         return corr, detR#.reshape((self.lat_dim*self.lat_dim,))
     
     def modes(self):
@@ -478,6 +478,7 @@ class VariationalAutoencoder(Autoencoder):
             instant  = iter(loader)
             batch    = next(instant)
             batch    = batch.to(self._device)
+            batch    = batch.unsqueeze(1)
             _,_,_, z = self(batch)
         return z
 
@@ -501,7 +502,7 @@ class VariationalAutoencoder(Autoencoder):
                 with autocast(device_type=self._device):
                     in_data = batch[:, :self.lat_dim]
                     recon   = decoder_model(in_data)
-                    loss    = self._lossfunc(torch.reshape(batch[:, self.lat_dim:], recon.shape), recon, reduction='sum')
+                    loss    = self._lossfunc(torch.reshape(batch[:, self.lat_dim:], recon.shape), recon, reduction='mean')
                     
                 scaler.scale(loss).backward()
                 scaler.step(optimizer)
@@ -520,7 +521,7 @@ class VariationalAutoencoder(Autoencoder):
                     with autocast(device_type=self._device):
                         val_in_data   = val_batch[:, :self.lat_dim]
                         val_recon     = decoder_model(val_in_data)
-                        vali_loss     = self._lossfunc(torch.reshape(batch[:, self.lat_dim:], val_recon.shape), val_recon, reduction='sum')
+                        vali_loss     = self._lossfunc(torch.reshape(batch[:, self.lat_dim:], val_recon.shape), val_recon, reduction='mean')
                         
                     va_loss  += vali_loss.item()
 
