@@ -58,7 +58,7 @@ def load(fname:str,vars:list=['Q','B'],ptable:PartitionTable=None):
 ## Load the autoencoder weights and latent space
 
 ## Create dataset
-def create_dataset(matrix, scale='max'):
+def create_dataset(matrix, scale='max', device=select_device()):
 	if scale == 'max':
 		matmax = np.max(np.abs(matrix))
 		matsca = matrix/matmax
@@ -66,7 +66,7 @@ def create_dataset(matrix, scale='max'):
 	elif scale == 'meanstd':
 		matmean = np.mean(matrix, axis=1)
 		matstd  = np.std(matrix, axis=1)
-		matsca  = (matrix-matmean[:,np.newaxis])/matstd
+		matsca  = (matrix-matmean[:,np.newaxis])/matstd[:,np.newaxis]
 		scaler  = np.array([matmean,matstd])
-	matsca = torch.tensor((matsca).astype(np.float32), device=select_device())
+	matsca = torch.tensor((matsca).astype(np.float32), device=device)
 	return Dataset(matsca), scaler
