@@ -10,7 +10,7 @@
 #
 # Last rev: 24/10/2025
 
-from   ..NN import Encoder1D, Decoder1D, VariationalAutoencoder, silu, select_device, betaLinearScheduler
+from .. import Encoder1D, Decoder1D, VariationalAutoencoder, silu, select_device, betaLinearScheduler
 
 
 ## Compute the randomized QR factorization

@@ -31,8 +31,6 @@ from .architectures.encoders_decoders import Encoder1D, Decoder1D, Encoder2D, De
 from .architectures.pinn              import PINN, BurgersPINN, Euler2DPINN, NavierStokesIncompressible2DPINN, BoundaryCondition
 from .architectures.shred             import SHRED
 
-
-
 # Wrapper of the activation functions
 def tanh():      return nn.Tanh()
 def relu():      return nn.ReLU()
@@ -40,5 +38,7 @@ def elu():       return nn.ELU()
 def sigmoid():   return nn.Sigmoid()
 def leakyRelu(): return nn.LeakyReLU()
 def silu():      return nn.SiLU()
+
+from .GAVI                            import vae_R
 
 del os, torch
