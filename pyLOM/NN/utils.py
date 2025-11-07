@@ -18,9 +18,6 @@ from .                import DEVICE
 from ..utils.cr       import cr
 from ..utils.errors   import raiseWarning, raiseError
 from ..dataset        import Dataset as pyLOMDataset
-from ..               import PartitionTable
-from ..utils.gpu      import gpu_to_cpu
-from ..inp_out        import h5_save_QR, h5_load_QR
 
 
 class MinMaxScaler:

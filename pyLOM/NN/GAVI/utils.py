@@ -14,10 +14,10 @@ import numpy as np
 import torch
 
 from ..utils   import cr
-from ..utils   import gpu_to_cpu
-from ..utils   import h5_save_QR, h5_load_QR
+from ..        import gpu_to_cpu
+from ..        import h5_save_QR, h5_load_QR
 from ..        import Dataset, select_device
-from ..utils   import PartitionTable
+from ..        import PartitionTable
 
 @cr('GAVI.save_QR')
 def save(fname:str,Q:np.ndarray,B:np.ndarray,ptable:PartitionTable,pointData:bool=True,mode:str='w'):
