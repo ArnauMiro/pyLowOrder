@@ -36,5 +36,5 @@ def vae_R(data, latent_dim, device=select_device(), nepochs=2500, nlayers=3, con
     encoder    = Encoder1D(nlayers, latent_dim, nmod, input_chan, conv_chan, kernel, padding, activation, hid_dim, batch_norm=False)
     decoder    = Decoder1D(nlayers, latent_dim, nmod, input_chan, conv_chan, kernel, padding, activation, hid_dim, batch_norm=False)
     vae        = VariationalAutoencoder(latent_dim, (nmod,), input_chan, encoder, decoder, device)
-    vae.fit(data, eval_dataset=data, betasch=betaLinearScheduler(0,2.5e-2,500,1000), batch_size=64, epochs=nepochs, lr=7.5e-4, BASEDIR='./', pin_memory=False)
+    vae.fit(data, eval_dataset=data, betasch=betaLinearScheduler(0,2.5e-2,500,1000), batch_size=64, epochs=nepochs, lr=5e-4, BASEDIR='./', pin_memory=False)
     return vae
