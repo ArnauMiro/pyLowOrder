@@ -10,6 +10,11 @@
 import os, torch, torch.nn as nn
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+torch.backends.cudnn.enabled = True
+torch.backends.cudnn.benchmark = True
+torch.set_float32_matmul_precision('high')
+torch.cuda.empty_cache()
+ALLOW_TF32=True
 
 from ..utils.plots  import plotSnapshot, plotModalErrorBars, plotTimeSeries
 from ..vmmath       import temporal_mean, subtract_mean, randomized_qr2
