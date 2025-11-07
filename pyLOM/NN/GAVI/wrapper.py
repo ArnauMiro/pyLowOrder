@@ -10,17 +10,27 @@
 #
 # Last rev: 24/10/2025
 
-from .. import Encoder1D, Decoder1D, VariationalAutoencoder, silu, select_device, betaLinearScheduler
+from ..      import Encoder1D, Decoder1D, VariationalAutoencoder, betaLinearScheduler
+from ..      import silu, select_device
+from ..      import temporal_mean, subtract_mean, randomized_qr2
+from ..utils import cr
 
 
 ## Compute the randomized QR factorization
+@cr('GAVI.QR')
+def QR(X, k, q=1, osampl=10):
+    r   = k+osampl if k+osampl < X.shape[1] else X.shape[1]
+    Xm  = temporal_mean(X)
+    X   = subtract_mean(X, Xm)
+    Q,B = randomized_qr2(X,r,q)
+    
+    return Q[:,:k].copy(), B[:k,:].copy()
 
 ## Compress the randomized QR factorization
 
 ## Autoencoder on the R
 def vae_R(data, latent_dim, device=select_device(), nepochs=2500, nlayers=3, conv_chan=64, hid_dim=32, kernel=4, padding=1, func=silu()):
     nmod       = data.shape[2]
-    nt         = data.shape[0]
     input_chan = data.shape[1]
     activation = [func for _ in range(nlayers + 2)]
     encoder    = Encoder1D(nlayers, latent_dim, nmod, input_chan, conv_chan, kernel, padding, activation, hid_dim, batch_norm=False)

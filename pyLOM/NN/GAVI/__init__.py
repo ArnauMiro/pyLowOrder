@@ -7,6 +7,6 @@
 # Last rev: 27/10/2025
 
 
-from .wrapper      import vae_R
+from .wrapper      import vae_R, QR
 from .utils        import save, load, create_dataset
 
