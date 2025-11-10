@@ -13,7 +13,7 @@ import pyLOM, pyLOM.NN
 
 
 ## Set device
-device = pyLOM.NN.select_device("cuda") # Force CPU for this example, if left in blank it will automatically select the device
+device = pyLOM.NN.select_device("cpu") # Force CPU for this example, if left in blank it will automatically select the device
 
 
 ## Specify autoencoder parameters
@@ -52,9 +52,9 @@ td   = pyLOM.NN.Dataset((u_xm,), (in_size,))
 
 ## Set and train the variational autoencoder
 betasch    = pyLOM.NN.betaLinearScheduler(0., beta, beta_start, beta_wmup)
-encoder    = pyLOM.NN.Encoder2Dfc(hidden_layer_sizes=hidden_layer_sizes_enc, lat_dim=lat_dim, in_size=in_size, activation_funcs=activations, vae=True)
-decoder    = pyLOM.NN.Decoder2Dfc(hidden_layer_sizes=hidden_layer_sizes_dec, lat_dim=lat_dim, out_size=in_size, activation_funcs=activations)
-model      = pyLOM.NN.VariationalAutoencoderFully(latent_dim=lat_dim, in_size=in_size, encoder=encoder, decoder=decoder, device=device)
+encoder    = pyLOM.NN.FullyConnectedEncoder2D(hidden_layer_sizes=hidden_layer_sizes_enc, lat_dim=lat_dim, in_size=in_size, activation_funcs=activations, vae=True)
+decoder    = pyLOM.NN.FullyConnectedDecoder2D(hidden_layer_sizes=hidden_layer_sizes_dec, lat_dim=lat_dim, out_size=in_size, activation_funcs=activations)
+model      = pyLOM.NN.FullyConnectedVariationalAutoencoder(latent_dim=lat_dim, in_size=in_size, encoder=encoder, decoder=decoder, device=device)
 early_stop = pyLOM.NN.EarlyStopper(patience=5, min_delta=0.02)
 
 pipeline = pyLOM.NN.Pipeline(
@@ -63,7 +63,7 @@ pipeline = pyLOM.NN.Pipeline(
     model=model,
     training_params={
         "batch_size": 4,
-        "epochs": 500,
+        "epochs": 10,
         "lr": 1e-4,
         "betasch": betasch,
         "BASEDIR": RESUDIR
@@ -92,13 +92,12 @@ dataloader_params = {
             "pin_memory": True,
         }
 
-model.fine_tune(train_dataset=dataset_train, eval_dataset=dataset_train, epochs=100, shape_=td_ft.shape, BASEDIR=RESUDIR_FT, **dataloader_params)
+model.fine_tune(train_dataset=dataset_train, eval_dataset=dataset_train, epochs=10, shape_=td_ft.shape, BASEDIR=RESUDIR_FT, **dataloader_params)
 
 ls = model.latent_space(td)
 rec_ft = model.decode(ls)
 
-print(np.abs(td[0].numpy()-rec[:, :, 0]).mean())
-print(np.abs(td[0].numpy()-rec_ft[0]).mean())
+pyLOM.pprint(0, np.abs(td[0].numpy()-rec[:, :, 0]).mean())
+pyLOM.pprint(0, np.abs(td[0].numpy()-rec_ft[0]).mean())
 
-breakpoint()
 pyLOM.cr_info()

@@ -115,9 +115,9 @@ class Encoder2D(nn.Module):
             return self.z(out)
 
 
-class Encoder2Dfc(nn.Module):
+class FullyConnectedEncoder2D(nn.Module):
     r"""
-    Encoder2Dfc class for the 2D fully-connected Autoencoder.
+    FullyConnectedEncoder2D class for the 2D fully-connected Autoencoder.
 
     Args:
         hidden_layer_sizes (list): Layer sizes in the encoder.
@@ -134,7 +134,7 @@ class Encoder2Dfc(nn.Module):
         activation_funcs: list,
         vae: bool = False,
     ):
-        super(Encoder2Dfc, self).__init__()
+        super(FullyConnectedEncoder2D, self).__init__()
 
         self.hidden_layer_sizes    = hidden_layer_sizes
         self.lat_dim               = lat_dim
@@ -144,8 +144,9 @@ class Encoder2Dfc(nn.Module):
         
         self.encoding_layers = nn.ModuleList()
 
-        assert len(self.hidden_layer_sizes) == len(self.funcs), "Incorrect number of layers!"
-
+        if len(self.hidden_layer_sizes) != len(self.funcs):
+            raise ValueError("Incorrect number of layers! 'hidden_layer_sizes' and 'funcs' must have the same length.")
+        
         current_dim = self.in_size
         for idx, hidden_dim in enumerate(self.hidden_layer_sizes):
             self.encoding_layers.append(nn.Linear(current_dim, hidden_dim))
@@ -285,9 +286,9 @@ class Decoder2D(nn.Module):
         return self.deconv_layers[-1](out)
 
 
-class Decoder2Dfc(nn.Module):
+class FullyConnectedDecoder2D(nn.Module):
     r"""
-    Decoder2Dfc class for the 2D fully-connected Autoencoder.
+    FullyConnectedDecoder2D class for the 2D fully-connected Autoencoder.
 
     Args:
         hidden_layer_sizes (list): Layer sizes in the encoder.
@@ -302,7 +303,7 @@ class Decoder2Dfc(nn.Module):
         out_size: int,
         activation_funcs: list,
     ):
-        super(Decoder2Dfc, self).__init__()
+        super(FullyConnectedDecoder2D, self).__init__()
 
         self.hidden_layer_sizes = hidden_layer_sizes
         self.lat_dim            = lat_dim
@@ -311,7 +312,8 @@ class Decoder2Dfc(nn.Module):
         
         self.decoding_layers = nn.ModuleList()
 
-        assert len(self.hidden_layer_sizes) == len(self.funcs), "Incorrect number of layers!"
+        if len(self.hidden_layer_sizes) != len(self.funcs):
+            raise ValueError("Incorrect number of layers! 'hidden_layer_sizes' and 'funcs' must have the same length.")
 
         current_dim = self.lat_dim
         for idx, hidden_dim in enumerate(self.hidden_layer_sizes):

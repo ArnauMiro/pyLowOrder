@@ -239,7 +239,7 @@ class Autoencoder(nn.Module):
         return varr 
 
 
-class AutoencoderFully(nn.Module):
+class FullyConnectedAutoencoder(nn.Module):
     r"""
     Autoencoder class for neural network module. The model is based on the PyTorch.
 
@@ -259,7 +259,7 @@ class AutoencoderFully(nn.Module):
         decoder: nn.Module,
         device: torch.device = DEVICE,
     ):
-        super(AutoencoderFully, self).__init__()
+        super(FullyConnectedAutoencoder, self).__init__()
         self.lat_dim  = latent_dim
         self.in_size  = in_size
         self.encoder  = encoder
@@ -356,10 +356,10 @@ class AutoencoderFully(nn.Module):
             writer.add_scalar("Loss/vali", va_loss, epoch + 1)
             # Early stopping
             if callback and callback.early_stop(va_loss, prev_train_loss, tr_loss):
-                print(f'Early Stopper Activated at epoch {epoch}', flush=True)
+                pprint(0, f'Early Stopper Activated at epoch {epoch}', flush=True)
                 break
             prev_train_loss = tr_loss
-            print(f'Epoch [{epoch+1} / {epochs}] average training loss: {tr_loss:.5e} | average validation loss: {va_loss:.5e}', flush=True)            
+            pprint(0, f'Epoch [{epoch+1} / {epochs}] average training loss: {tr_loss:.5e} | average validation loss: {va_loss:.5e}', flush=True)            
             # Learning rate scheduling
             scheduler.step()
 
@@ -406,9 +406,9 @@ class AutoencoderFully(nn.Module):
                     si[i] = 2 * torch.std(x) * torch.std(xr) / (torch.std(x) ** 2 + torch.std(xr) ** 2)
                     
         energy = (1 - np.mean(ek)) * 100
-        print('Recovered energy %.2f' % energy)
-        print('Recovered mean %.2f' % (np.mean(mu) * 100))
-        print('Recovered fluct %.2f' % (np.mean(si) * 100))
+        pprint(0, 'Recovered energy %.2f' % energy)
+        pprint(0, 'Recovered mean %.2f' % (np.mean(mu) * 100))
+        pprint(0, 'Recovered fluct %.2f' % (np.mean(si) * 100))
 
         return rec.cpu().numpy()
     
@@ -774,7 +774,7 @@ class VariationalAutoencoder(Autoencoder):
         return varr 
 
 
-class VariationalAutoencoderFully(AutoencoderFully):
+class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
     r"""
     Variational Autoencoder class for neural network module. The model is based on the PyTorch.
 
@@ -786,7 +786,7 @@ class VariationalAutoencoderFully(AutoencoderFully):
         device (str): Device to run the model. Default is 'cuda' if available, otherwise 'cpu'.
     """
     def __init__(self, latent_dim, in_size, encoder, decoder, device=DEVICE):
-        super(VariationalAutoencoderFully, self).__init__(latent_dim, in_size, encoder, decoder, device)
+        super(FullyConnectedVariationalAutoencoder, self).__init__(latent_dim, in_size, encoder, decoder, device)
         return None
 
     def _reparamatrizate(self, mu, logvar):
@@ -927,9 +927,7 @@ class VariationalAutoencoderFully(AutoencoderFully):
         mu = np.zeros(num_samples)
         si = np.zeros(num_samples)
         rec = torch.zeros((self.in_size, 1, num_samples), device=self._device)
-        
         loader = torch.utils.data.DataLoader(dataset, batch_size=num_samples, shuffle=False)
-
         with torch.no_grad():
             ## Energy recovered in reconstruction
             for energy_batch in loader:
@@ -949,9 +947,9 @@ class VariationalAutoencoderFully(AutoencoderFully):
                     si[i] = 2 * torch.std(x) * torch.std(xr) / (torch.std(x) ** 2 + torch.std(xr) ** 2)
                     
         energy = (1 - np.mean(ek)) * 100
-        print('Recovered energy %.2f' % energy)
-        print('Recovered mean %.2f' % (np.mean(mu) * 100))
-        print('Recovered fluct %.2f' % (np.mean(si) * 100))
+        pprint(0, 'Recovered energy %.2f' % energy)
+        pprint(0, 'Recovered mean %.2f' % (np.mean(mu) * 100))
+        pprint(0, 'Recovered fluct %.2f' % (np.mean(si) * 100))
 
         return rec.cpu().numpy()
           

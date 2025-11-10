@@ -45,9 +45,9 @@ u_x  = pyLOM.math.subtract_mean(u, um).T
 td   = pyLOM.NN.Dataset((u_x,), (in_size,))  # Flat the data
 
 ## Set and train the variational autoencoder
-encoder    = pyLOM.NN.Encoder2Dfc(hidden_layer_sizes=hidden_layer_sizes_enc, lat_dim=lat_dim, in_size=in_size, activation_funcs=activations)
-decoder    = pyLOM.NN.Decoder2Dfc(hidden_layer_sizes=hidden_layer_sizes_dec, lat_dim=lat_dim, out_size=in_size, activation_funcs=activations)
-model      = pyLOM.NN.AutoencoderFully(latent_dim=lat_dim, in_size=in_size, encoder=encoder, decoder=decoder, device=device)
+encoder    = pyLOM.NN.FullyConnectedEncoder2D(hidden_layer_sizes=hidden_layer_sizes_enc, lat_dim=lat_dim, in_size=in_size, activation_funcs=activations)
+decoder    = pyLOM.NN.FullyConnectedDecoder2D(hidden_layer_sizes=hidden_layer_sizes_dec, lat_dim=lat_dim, out_size=in_size, activation_funcs=activations)
+model      = pyLOM.NN.FullyConnectedAutoencoder(latent_dim=lat_dim, in_size=in_size, encoder=encoder, decoder=decoder, device=device)
 early_stop = pyLOM.NN.EarlyStopper(patience=5, min_delta=0.02)
 
 pipeline = pyLOM.NN.Pipeline(
@@ -56,7 +56,7 @@ pipeline = pyLOM.NN.Pipeline(
    model           = model,
    training_params = {
        "batch_size": 16,
-       "epochs": 100,
+       "epochs": 10,
        "lr": 1e-4,
        "callback":early_stop,
        'BASEDIR':RESUDIR,
