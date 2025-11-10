@@ -115,6 +115,80 @@ class Encoder2D(nn.Module):
             return self.z(out)
 
 
+class FullyConnectedEncoder2D(nn.Module):
+    r"""
+    FullyConnectedEncoder2D class for the 2D fully-connected Autoencoder.
+
+    Args:
+        hidden_layer_sizes (list): Layer sizes in the encoder.
+        latent_dim (int): Latent dimension of the encoder.
+        in_size (int): input size.
+        activation_funcs (list): List of activation functions.
+        vae (bool): Wheather the encoder is going to be used on a VAE or not. Default is ``False``.
+    """
+    def __init__(
+        self,
+        hidden_layer_sizes: list,
+        lat_dim: int,
+        in_size: int,
+        activation_funcs: list,
+        vae: bool = False,
+    ):
+        super(FullyConnectedEncoder2D, self).__init__()
+
+        self.hidden_layer_sizes    = hidden_layer_sizes
+        self.lat_dim               = lat_dim
+        self.in_size               = in_size
+        self.isvae                 = vae
+        self.funcs                 = activation_funcs
+        
+        self.encoding_layers = nn.ModuleList()
+
+        if len(self.hidden_layer_sizes) != len(self.funcs):
+            raise ValueError("Incorrect number of layers! 'hidden_layer_sizes' and 'funcs' must have the same length.")
+        
+        current_dim = self.in_size
+        for idx, hidden_dim in enumerate(self.hidden_layer_sizes):
+            self.encoding_layers.append(nn.Linear(current_dim, hidden_dim))
+            self.encoding_layers.append(self.funcs[idx])
+            current_dim = hidden_dim
+
+        if self.isvae:
+            self.encoding_layers.append(nn.Linear(current_dim, self.lat_dim*2))
+        else:
+            self.encoding_layers.append(nn.Linear(current_dim, self.lat_dim))
+
+        self._reset_parameters()
+        return None
+    
+    def _reset_parameters(self):
+        for layer in self.modules():
+            if isinstance(layer, nn.Linear):
+                nn.init.xavier_uniform_(layer.weight)
+            else:
+                pass
+        return None
+
+    def forward(self, x:torch.Tensor): 
+        r'''
+		Do a forward evaluation of the data.
+
+		Args:
+			x (torch.Tensor): input data to the neural network.
+
+		Returns:
+		    (torch.Tensor): Prediction of the neural network.
+		''' 
+        out = x
+        for ilayer, layer in  enumerate(self.encoding_layers):
+            out = layer(out)
+        if self.isvae:
+            mu, logvar = torch.chunk(input=out, chunks=2, dim=-1)
+            return mu, logvar
+        else:
+            return out
+
+
 class Decoder2D(nn.Module):
     r"""
     Decoder2D class for the 2D Convolutional Autoencoder.
@@ -210,6 +284,68 @@ class Decoder2D(nn.Module):
                 out = self.norm_layers[ilayer](out)
             out = self.funcs[self.nlayers-ilayer-1](deconv_layer(out))
         return self.deconv_layers[-1](out)
+
+
+class FullyConnectedDecoder2D(nn.Module):
+    r"""
+    FullyConnectedDecoder2D class for the 2D fully-connected Autoencoder.
+
+    Args:
+        hidden_layer_sizes (list): Layer sizes in the encoder.
+        latent_dim (int): Latent dimension of the encoder.
+        out_size (int): output size.
+        activation_funcs (list): List of activation functions.
+    """
+    def __init__(
+        self,
+        hidden_layer_sizes: list,
+        lat_dim: int,
+        out_size: int,
+        activation_funcs: list,
+    ):
+        super(FullyConnectedDecoder2D, self).__init__()
+
+        self.hidden_layer_sizes = hidden_layer_sizes
+        self.lat_dim            = lat_dim
+        self.out_size           = out_size
+        self.funcs              = activation_funcs
+        
+        self.decoding_layers = nn.ModuleList()
+
+        if len(self.hidden_layer_sizes) != len(self.funcs):
+            raise ValueError("Incorrect number of layers! 'hidden_layer_sizes' and 'funcs' must have the same length.")
+
+        current_dim = self.lat_dim
+        for idx, hidden_dim in enumerate(self.hidden_layer_sizes):
+            self.decoding_layers.append(nn.Linear(current_dim, hidden_dim))
+            self.decoding_layers.append(self.funcs[idx])
+            current_dim = hidden_dim
+        self.decoding_layers.append(nn.Linear(current_dim, out_size))
+        self._reset_parameters()
+        return None
+    
+    def _reset_parameters(self):
+        for layer in self.modules():
+            if isinstance(layer, nn.Linear):
+                nn.init.xavier_uniform_(layer.weight)
+            else:
+                pass
+        return None
+
+    def forward(self, x:torch.Tensor): 
+        r'''
+		Do a forward evaluation of the data.
+
+		Args:
+			x (torch.Tensor): input data to the neural network.
+
+		Returns:
+		    (torch.Tensor): Prediction of the neural network.
+		''' 
+        out = x
+        for ilayer, layer in  enumerate(self.decoding_layers):
+            out = layer(out)
+        return out
 
 
 class Encoder3D(nn.Module):
