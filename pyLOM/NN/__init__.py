@@ -10,6 +10,8 @@
 import os, torch, torch.nn as nn
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+## Flags to enchance performance when using torch compiled with cuda in the backend
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = True
 torch.set_float32_matmul_precision('high')
@@ -17,10 +19,6 @@ torch.cuda.empty_cache()
 ALLOW_TF32=True
 
 from ..utils.plots  import plotSnapshot, plotModalErrorBars, plotTimeSeries
-from ..vmmath       import temporal_mean, subtract_mean, randomized_qr2
-from ..             import PartitionTable
-from ..utils.gpu    import gpu_to_cpu
-from ..inp_out      import h5_save_QR, h5_load_QR
 
 from .pipeline      import Pipeline
 from .utils         import Dataset, MinMaxScaler, select_device, betaLinearScheduler, create_results_folder, set_seed
@@ -36,7 +34,7 @@ from .aerodynamics import global_coeff, jacobians_pressure
 from .architectures.mlp               import MLP
 from .architectures.kan               import KAN, KAN_SIN, ChebyshevLayer, JacobiLayer, SineLayer
 from .architectures.autoencoders      import Autoencoder, VariationalAutoencoder
-from .architectures.encoders_decoders import Encoder1D, Decoder1D, Encoder2D, Decoder2D, Encoder3D, Decoder3D, ShallowDecoder
+from .architectures.encoders_decoders import Encoder1D, Decoder1D, Encoder2D, Decoder2D, Encoder3D, Decoder3D, ShallowDecoder, Encoder1DNoLatent, Decoder1DNoLatent
 from .architectures.pinn              import PINN, BurgersPINN, Euler2DPINN, NavierStokesIncompressible2DPINN, BoundaryCondition
 from .architectures.shred             import SHRED
 

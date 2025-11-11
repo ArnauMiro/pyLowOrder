@@ -13,11 +13,11 @@
 import numpy as np
 import torch
 
-from ..utils   import cr
-from ..        import gpu_to_cpu
-from ..        import h5_save_QR, h5_load_QR
-from ..        import Dataset, select_device
-from ..        import PartitionTable
+from pyLOM.utils   import cr
+from pyLOM.utils   import gpu_to_cpu, pprint
+from pyLOM.inp_out import h5_save_QR, h5_load_QR
+from pyLOM         import PartitionTable
+from ..            import Dataset, select_device
 
 @cr('GAVI.save_QR')
 def save(fname:str,Q:np.ndarray,B:np.ndarray,ptable:PartitionTable,pointData:bool=True,mode:str='w'):
@@ -64,9 +64,11 @@ def create_dataset(matrix, scale='max', device=select_device()):
 		matsca = matrix/matmax
 		scaler = matmax
 	elif scale == 'meanstd':
-		matmean = np.mean(matrix, axis=1)
-		matstd  = np.std(matrix, axis=1)
-		matsca  = (matrix-matmean[:,np.newaxis])/matstd[:,np.newaxis]
+		matmean = np.mean(matrix)
+		matstd  = np.std(matrix)
+		matsca  = (matrix-matmean)/matstd
 		scaler  = np.array([matmean,matstd])
+	else:
+		matsca = matrix
 	matsca = torch.tensor((matsca).astype(np.float32), device=device)
-	return Dataset((matsca,), mesh_shape=(1600,), snapshots_by_column=True), scaler
+	return Dataset((matsca,), mesh_shape=(matsca.shape[0],), snapshots_by_column=True), scaler

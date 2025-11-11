@@ -10,10 +10,10 @@
 #
 # Last rev: 24/10/2025
 
-from ..      import Encoder1D, Decoder1D, VariationalAutoencoder, betaLinearScheduler
-from ..      import silu, select_device
-from ..      import temporal_mean, subtract_mean, randomized_qr2
-from ..utils import cr
+from ..            import Encoder1D, Decoder1D, VariationalAutoencoder, betaLinearScheduler
+from ..            import silu, select_device
+from pyLOM.vmmath  import temporal_mean, subtract_mean, randomized_qr2
+from pyLOM.utils   import cr
 
 
 ## Compute the randomized QR factorization
