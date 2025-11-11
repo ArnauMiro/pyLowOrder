@@ -9,7 +9,7 @@ from ...                import pprint, cr # pyLOM/__init__.py
 from ...utils.errors    import raiseWarning, raiseError
 
 
-class XGBClassifier:
+class BinaryClassifier:
     r"""
     Gradient-boosted decision trees binary classifier (XGBoost).
     The model is based on `xgboost.XGBClassifier <https://xgboost.readthedocs.io/en/stable/python/python_api.html#xgboost.XGBClassifier>`_.
@@ -120,7 +120,7 @@ class XGBClassifier:
         neg = (y == 0).sum()
         return float(neg / max(1, pos)) if pos > 0 else 1.0
 
-    @cr('XGBClassifier.fit')
+    @cr('BinaryClassifier.fit')
     def fit(
         self,
         train_dataset: torch.utils.data.Dataset,
@@ -132,7 +132,7 @@ class XGBClassifier:
         **kwargs,
     ) -> Dict[str, List[float]]:
         r""""
-        Fit the XGBClassifier model. If eval_dataset is provided, uses it for early stopping.
+        Fit the BinaryClassifier model. If eval_dataset is provided, uses it for early stopping.
 
         Args:
             train_dataset (torch.utils.data.Dataset): Training dataset to fit the model.
@@ -229,7 +229,7 @@ class XGBClassifier:
 
         return results
 
-    @cr('XGBClassifier.predict')
+    @cr('BinaryClassifier.predict')
     def predict(
         self,
         X: torch.utils.data.Dataset,
@@ -322,14 +322,14 @@ class XGBClassifier:
         return model
 
     @classmethod
-    @cr('XGBClassifier.create_optimized_model')
+    @cr('BinaryClassifier.create_optimized_model')
     def create_optimized_model(
         cls,
         train_dataset: torch.utils.data.Dataset,
         eval_dataset: torch.utils.data.Dataset,
         optuna_optimizer: OptunaOptimizer,
         **kwargs,
-    ) -> Tuple["XGBClassifier", Dict]:
+    ) -> Tuple["BinaryClassifier", Dict]:
         r"""
         Create an optimized model using Optuna. The model is trained on the training dataset and evaluated on the validation dataset.
 
@@ -340,7 +340,7 @@ class XGBClassifier:
             kwargs: Additional keyword arguments.
 
         Returns:
-            Tuple[XGBClassifierModel, Dict]: The optimized model and the optimization parameters.
+            Tuple[BinaryClassifier, Dict]: The optimized model and the optimization parameters.
         """
         optimization_params = optuna_optimizer.optimization_params
         input_dim = train_dataset[0][0].shape[0]
