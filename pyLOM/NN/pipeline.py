@@ -30,9 +30,6 @@ class Pipeline:
         optimizer (OptunaOptimizer, optional): The optimizer to use for optimization. Default is ``None``.
         model_class (Model, optional): The model class to use for optimization. Default is ``None``.
         evaluators (List, optional): The evaluators to use for evaluating the model. Default is ``[]``.
-
-    Raises:
-        AssertionError: If neither model and training_params nor optimizer and model_class are provided.
     """
 
     def __init__(
@@ -55,9 +52,12 @@ class Pipeline:
         self.model_class = model_class
         self.evaluators = evaluators
 
-        assert (self.optimizer is not None and self.model_class is not None) or (
-            self._model is not None and self.training_params is not None
-        ), "Either model and training_params or optimizer and model_class must be provided"
+        ok_opt_pipeline = (self.optimizer is not None) and (self.model_class is not None)
+        ok_fixed_train = (self._model is not None) and (self.training_params is not None)
+        if not (ok_opt_pipeline or ok_fixed_train):
+            raiseError("Either model and training_params or optimizer and model_class must be provided")
+        if ok_opt_pipeline and ok_fixed_train:
+            raiseError("Provide either model and training_params or optimizer and model_class, not both")
 
     @property
     def model(self):
@@ -105,13 +105,6 @@ class ClusteredPipeline:
         training_params_dict (Dict, optional): the dictionary of training parameters for each cluster. Default is ``{}``.
         optimizers_dict (Dict[OptunaOptimizer], optional): the dictionary of optimizers to use for each cluster. Default is ``{}``.
         model_classes_dict (Dict, optional): the dictionary of model classes to use for each cluster. Default is ``{}``.
-
-    Raises:
-        AssertionError: If neither models_dict and training_params_dict nor optimizers_dict and model_classes_dict are provided.
-
-    Returns:
-        model_outputs_dict (Dict): the dictionary of outputs of the model's fit method for each cluster.
-
     """
     def __init__(
         self,
@@ -128,10 +121,13 @@ class ClusteredPipeline:
         self.test_dataset = test_dataset
         self.valid_dataset = valid_dataset
 
-        assert (optimizers_dict is not None and model_classes_dict is not None) or (
-            models_dict is not None and training_params_dict is not None
-        ), "Either models_dict and training_params_dict or optimizers_dict and model_classes_dict must be provided"
-
+        ok_opt_pipeline = (optimizers_dict is not None) and (model_classes_dict is not None)
+        ok_fixed_train = (models_dict is not None) and (training_params_dict is not None)
+        if not (ok_opt_pipeline or ok_fixed_train):
+            raiseError(f"Either models_dict and training_params_dict or optimizers_dict and model_classes_dict must be provided.")
+        if ok_opt_pipeline and ok_fixed_train:
+            raiseError(f"Provide either models_dict and training_params_dict or optimizers_dict and model_classes_dict, not both.")
+        
         self.cluster_col_idx = cluster_col_idx
         self.n_clusters = self._get_n_clusters()
 
@@ -140,29 +136,37 @@ class ClusteredPipeline:
         self.train_dataset_dict, self.valid_dataset_dict, self.test_dataset_dict = self._create_dataset_dict()
 
         if models_dict is not None:
-            assert all(k in models_dict.keys() for k in self.dict_keys), "models_dict must contain keys: " + ", ".join(self.dict_keys)
-            assert (len(models_dict)-1) == self.n_clusters, "Number of models must match number of clusters"
+            if not all(k in models_dict.keys() for k in self.dict_keys):
+                raiseError("models_dict must contain keys: " + ", ".join(self.dict_keys))
+            if (len(models_dict)-1) != self.n_clusters:
+                raiseError("Number of models must match number of clusters")
             self._models = models_dict
         else:
             self._models = {k: None for k in self.dict_keys}
 
         if training_params_dict is not None:
-            assert all(k in training_params_dict.keys() for k in self.dict_keys), "training_params_dict must contain keys: " + ", ".join(self.dict_keys)
-            assert (len(training_params_dict)-1) == self.n_clusters, "Number of training_params must match number of clusters"
+            if not all(k in training_params_dict.keys() for k in self.dict_keys):
+                raiseError("training_params_dict must contain keys: " + ", ".join(self.dict_keys))
+            if (len(training_params_dict)-1) != self.n_clusters:
+                raiseError("Number of training_params must match number of clusters")
             self.training_params_dict = training_params_dict
         else:
             self.training_params_dict = {k: None for k in self.dict_keys}
 
         if optimizers_dict is not None:
-            assert all(k in optimizers_dict.keys() for k in self.dict_keys), "optimizers_dict must contain keys: " + ", ".join(self.dict_keys[1:])
-            assert (len(optimizers_dict)-1) == self.n_clusters, "Number of optimizers must match number of clusters"
+            if not all(k in optimizers_dict.keys() for k in self.dict_keys):
+                raiseError("optimizers_dict must contain keys: " + ", ".join(self.dict_keys))
+            if (len(optimizers_dict)-1) != self.n_clusters:
+                raiseError("Number of optimizers must match number of clusters")
             self.optimizers_dict = optimizers_dict
         else:
             self.optimizers_dict = {k: None for k in self.dict_keys}
 
         if model_classes_dict is not None:
-            assert all(k in model_classes_dict.keys() for k in self.dict_keys), "model_classes_dict must contain keys: " + ", ".join(self.dict_keys[1:])
-            assert (len(model_classes_dict)-1) == self.n_clusters, "Number of model_classes must match number of clusters"
+            if not all(k in model_classes_dict.keys() for k in self.dict_keys):
+                raiseError("model_classes_dict must contain keys: " + ", ".join(self.dict_keys))
+            if (len(model_classes_dict)-1) != self.n_clusters:
+                raiseError("Number of model_classes must match number of clusters")
             self.model_classes_dict = model_classes_dict
         else:
             self.model_classes_dict = {k: None for k in self.dict_keys}
@@ -327,7 +331,8 @@ class ClusteredPipeline:
             raiseError("Training parameters not available, cannot evaluate models")
 
         if scalers is not None:
-            assert len(scalers) == 2, "scalers must be a list of two elements: [input_scaler, output_scaler]"
+            if len(scalers) != 2:
+                raiseError("scalers must be a list of two elements: [input_scaler, output_scaler]")
             input_scaler, output_scaler = scalers
             output_scaler_classifier = copy.deepcopy(output_scaler)
             output_scaler_classifier.keep_columns([self.cluster_col_idx])
