@@ -72,12 +72,10 @@ try:
 
                 for i in count():
                     file_path = save_dir / f"best_params_{i}.json"
-                    try:
+                    if not file_path.exists():
                         with open(file_path, "x") as f:
                             json.dump(study.best_params, f, indent=2, sort_keys=True)
                         break
-                    except FileExistsError:
-                        continue
 
             self._print_optimization_report(study)
             
