@@ -272,34 +272,43 @@ class ClassificationEvaluator:
         y_prob = self._to_1d(y_prob)
         y_true = self._to_1d(y_true).astype(int)
 
+        if len(np.unique(y_true)) < 2:
+            raiseError(f"y_true must contain at least two classes to choose threshold.")
+        if np.any((y_true != 0) & (y_true != 1)):
+            raiseError("y_true must contain only binary labels {0, 1}.")
+        if len(y_prob) != len(y_true):
+            raiseError(f"y_prob and y_true must have the same length.")
+        if np.any(y_prob < 0) or np.any(y_prob > 1):
+            raiseError("y_prob must contain valid probabilities in [0, 1].")
+
         # precision_recall_curve gives thresholds spanning (0,1) where decisions change
-        try:
-            p, r, th = precision_recall_curve(y_true, y_prob, pos_label=self.pos_label)
-            candidates = list(th) + [0.5, 0.0, 1.0]
-        except Exception:
-            # If something goes wrong, fall back to a small grid
-            candidates = [0.0, 0.25, 0.5, 0.75, 1.0]
+        p, r, th = precision_recall_curve(y_true, y_prob, pos_label=self.pos_label)
+        candidates = list(th) + [0.5, 0.0, 1.0]
+
+        # Pick scorer
+        metric = self.threshold_metric
+        if metric == "f1":
+            def scorer(y_true, y_pred):
+                return f1_score(y_true, y_pred, pos_label=self.pos_label)
+        elif metric == "accuracy":
+            def scorer(y_true, y_pred):
+                return accuracy_score(y_true, y_pred)
+        elif metric == "balanced_accuracy":
+            def scorer(y_true, y_pred):
+                return balanced_accuracy_score(y_true, y_pred)
+        elif metric == "youden":
+            def scorer(y_true, y_pred):
+                tn, fp, fn, tp = self._confmat_counts(y_true, y_pred)
+                sens = tp / max(1, tp + fn)
+                spec = tn / max(1, tn + fp)
+                return sens + spec - 1.0
 
         best_val = -np.inf
         best_th = 0.5
 
         for t in candidates:
-            y_pred = (y_prob >= t).astype(int)
-            if self.threshold_metric == "f1":
-                val = f1_score(y_true, y_pred, pos_label=self.pos_label)
-            elif self.threshold_metric == "accuracy":
-                val = accuracy_score(y_true, y_pred)
-            elif self.threshold_metric == "balanced_accuracy":
-                val = balanced_accuracy_score(y_true, y_pred)
-            elif self.threshold_metric == "youden":
-                tn, fp, fn, tp = self._confmat_counts(y_true, y_pred)
-                # sensitivity (TPR) + specificity (TNR) - 1
-                sens = tp / max(1, tp + fn)
-                spec = tn / max(1, tn + fp)
-                val = sens + spec - 1.0
-            else:
-                val = -np.inf
-
+            y_pred = (y_prob >= t)
+            val = scorer(y_true, y_pred)
             if val > best_val:
                 best_val, best_th = val, float(t)
 
