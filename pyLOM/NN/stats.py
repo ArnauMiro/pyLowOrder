@@ -188,11 +188,8 @@ class RegressionEvaluator():
         Returns:
             dict: A dictionary containing the calculated regression metrics.
         """
-        try:
-            y_true = np.array(y_true)
-            y_pred = np.array(y_pred)
-        except AttributeError:
-            raise raiseError(f"could not create numpy arrays from object with type {type(y_true)}")
+        y_true = np.array(y_true)
+        y_pred = np.array(y_pred)
         
         mse = self.mean_squared_error(y_true, y_pred)
         rmse = np.sqrt(mse)
@@ -268,19 +265,6 @@ class ClassificationEvaluator:
         Pick threshold that maximizes the configured metric on validation.
         Uses precision_recall_curve thresholds (plus a couple of extras).
         """
-        # Ensure 1D probabilities
-        y_prob = self._to_1d(y_prob)
-        y_true = self._to_1d(y_true).astype(int)
-
-        if len(np.unique(y_true)) < 2:
-            raiseError(f"y_true must contain at least two classes to choose threshold.")
-        if np.any((y_true != 0) & (y_true != 1)):
-            raiseError("y_true must contain only binary labels {0, 1}.")
-        if len(y_prob) != len(y_true):
-            raiseError(f"y_prob and y_true must have the same length.")
-        if np.any(y_prob < 0) or np.any(y_prob > 1):
-            raiseError("y_prob must contain valid probabilities in [0, 1].")
-
         # precision_recall_curve gives thresholds spanning (0,1) where decisions change
         p, r, th = precision_recall_curve(y_true, y_prob, pos_label=self.pos_label)
         candidates = list(th) + [0.5, 0.0, 1.0]
@@ -387,11 +371,18 @@ class ClassificationEvaluator:
             dict with metrics and chosen threshold.
         """
         # Ensure arrays
-        try:
-            y_true = self._to_1d(np.array(y_true)).astype(int)
-            y_in = np.array(y_pred)
-        except Exception:
-            raiseError(f"could not create numpy arrays from types {type(y_true)} / {type(y_pred)}")
+        y_true = self._to_1d(np.array(y_true)).astype(int)
+        y_in = np.array(y_pred)
+
+        # Validate inputs
+        if len(np.unique(y_true)) < 2:
+            raiseError(f"y_true must contain two classes to choose threshold.")
+        if np.any((y_true != 0) & (y_true != 1)):
+            raiseError("y_true must contain only binary labels {0, 1}.")
+        if len(y_in) != len(y_true):
+            raiseError(f"y_pred and y_true must have the same length.")
+        if np.any(y_in < 0) or np.any(y_in > 1):
+            raiseError("y_pred must contain valid probabilities in [0, 1].")
 
         # Detect if y_pred are probabilities or labels
         if is_probability is None:
@@ -427,25 +418,12 @@ class ClassificationEvaluator:
         f1 = f1_score(y_true, y_hat, zero_division=0, pos_label=self.pos_label)
         mcc = matthews_corrcoef(y_true, y_hat) if (tp+tn+fp+fn) > 0 else np.nan
 
-        # Prob-based metrics (may be NaN if not computable)
+        # Prob-based metrics
         if y_prob is not None:
-            # Handle degenerate cases where AUC/AP are undefined
-            try:
-                roc_auc = roc_auc_score(y_true, y_prob)
-            except Exception:
-                roc_auc = np.nan
-            try:
-                pr_auc = average_precision_score(y_true, y_prob)
-            except Exception:
-                pr_auc = np.nan
-            try:
-                ce = log_loss(y_true, y_prob, labels=[0, 1])
-            except Exception:
-                ce = np.nan
-            try:
-                brier = brier_score_loss(y_true, y_prob, pos_label=self.pos_label)
-            except Exception:
-                brier = np.nan
+            roc_auc = roc_auc_score(y_true, y_prob)
+            pr_auc = average_precision_score(y_true, y_prob)
+            ce = log_loss(y_true, y_prob, labels=[0, 1])
+            brier = brier_score_loss(y_true, y_prob, pos_label=self.pos_label)
             threshold_used = self.threshold_
         else:
             roc_auc = pr_auc = ce = brier = np.nan
