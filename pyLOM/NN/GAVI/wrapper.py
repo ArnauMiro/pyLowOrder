@@ -54,7 +54,7 @@ def QR(X:np.ndarray,k:int,q:int=1,osampl:int=10):
 	return Q[:,:k].copy(), B[:k,:].copy()
 
 ## Compress the randomized QR factorization
-@cr('GAVI.vae_R')
+@cr('GAVI.vae_Q')
 def vae_Q(fname,Q,mesh,porder,r,nvars,nlayers=1,conv_chan=4,kernel=4,padding=1,func=silu(),epochs=1000,learning_r=5e-3,basedir='./',dtype=np.float32):
 	r"""
 	Function to compress the Q matrix from the randomized QR factorization following the strategy from CITA PROCEEDINGS MADRID and keeping the same partition as in the running mesh
