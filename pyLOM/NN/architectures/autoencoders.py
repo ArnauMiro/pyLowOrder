@@ -29,36 +29,39 @@ class Autoencoder(nn.Module):
     Autoencoder class for neural network module. The model is based on the PyTorch.
 
     Args:
-        latent_dim (int): Dimension of the latent space.
         in_shape (tuple): Shape of the input data.
         input_channels (int): Number of input channels.
         encoder (torch.nn.Module): Encoder model.
         decoder (torch.nn.Module): Decoder model.
         device (str): Device to run the model. Default is 'cuda' if available, otherwise 'cpu'.
-    
+        verbose (bool, optional): print outputs and save torch events for the losses (default=``True``)
+        save (bool, optional): save the model weights when finishing the training (default=``True``)
     """
 
     def __init__(
         self,
-        latent_dim: int,
         in_shape: tuple,
         input_channels: int,
         encoder: nn.Module,
         decoder: nn.Module,
         device: torch.device = DEVICE,
+        verbose: bool = True,
+        save: bool = True
     ):
         super(Autoencoder, self).__init__()
-        self.lat_dim  = latent_dim
         self.in_shape = in_shape
         self.inp_chan = input_channels
         self.N        = reduce(mul, in_shape)
         self.encoder  = encoder
         self.decoder  = decoder
         self._device  = device
+        self._verb    = verbose
+        self._save    = save
         encoder.to(self._device)
         decoder.to(self._device)
         self.to(self._device)
-        summary(self, input_size=(self.inp_chan, *self.in_shape),device=device)
+        if self._verb:
+            summary(self, input_size=(self.inp_chan, *self.in_shape),device=device)
       
     def _lossfunc(self, x, recon_x, reduction):
         return  F.mse_loss(recon_x.view(-1, self.N), x.view(-1, self.N),reduction=reduction)
@@ -68,6 +71,7 @@ class Autoencoder(nn.Module):
         recon = self.decoder(z)
         return recon, z
 
+    @cr('AE.fit')
     def fit(
         self,
         train_dataset: torch.utils.data.Dataset,
@@ -82,6 +86,7 @@ class Autoencoder(nn.Module):
         shuffle: bool = True,
         num_workers: int = 0,
         pin_memory: bool = True,
+        conv_loss: float = 1e-8
     ):
         r"""
         Train the autoencoder model. The logs are stored in the directory specified by BASEDIR with tensorboard format.
@@ -99,6 +104,7 @@ class Autoencoder(nn.Module):
             shuffle (bool): Whether to shuffle the dataset or not. Default is ``True``.
             num_workers (int): Number of workers for the Dataloader. Default is ``0``.
             pin_memory (bool): Pin memory for Dataloader. Default is ``True``.
+            conv_loss (float): Training loss at which we consider the training is converged enough. Default is ``1e-8``.
         """
         dataloader_params = {
             "batch_size": batch_size,
@@ -110,7 +116,7 @@ class Autoencoder(nn.Module):
         eval_data  = DataLoader(eval_dataset, **dataloader_params)
         # Initialization
         prev_train_loss = 1e99
-        writer = SummaryWriter(BASEDIR)
+        writer = SummaryWriter(BASEDIR) if self._verb else None
         optimizer = torch.optim.AdamW(self.parameters(), lr=lr)
         scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=lr_decay)
         # Training loop
@@ -128,6 +134,8 @@ class Autoencoder(nn.Module):
                 tr_loss += loss.item()
                 num_batches += 1
             tr_loss /= num_batches
+            if tr_loss < conv_loss:
+                break
             # Validation phase
             if eval_dataset is not None:
                 with torch.no_grad():
@@ -141,21 +149,25 @@ class Autoencoder(nn.Module):
                         val_batches += 1
                     va_loss /= val_batches
             # Logging
-            writer.add_scalar("Loss/train", tr_loss, epoch + 1)
-            writer.add_scalar("Loss/vali", va_loss, epoch + 1)
+            if self._verb:
+                writer.add_scalar("Loss/train", tr_loss, epoch + 1)
+                writer.add_scalar("Loss/vali", va_loss, epoch + 1)
             # Early stopping
             if callback and callback.early_stop(va_loss, prev_train_loss, tr_loss):
                 pprint(0, f'Early Stopper Activated at epoch {epoch}', flush=True)
                 break
             prev_train_loss = tr_loss
-            pprint(0, f'Epoch [{epoch+1} / {epochs}] average training loss: {tr_loss:.5e} | average validation loss: {va_loss:.5e}', flush=True)            
+            if self._verb:
+                pprint(0, f'Epoch [{epoch+1} / {epochs}] average training loss: {tr_loss:.5e} | average validation loss: {va_loss:.5e}', flush=True)            
             # Learning rate scheduling
             scheduler.step()
 
         # Cleanup
-        writer.flush()
-        writer.close()
-        torch.save(self.state_dict(), f'{BASEDIR}/model_state.pth')
+        if self._verb:
+            writer.flush()
+            writer.close()
+        if self._save:
+            torch.save(self.state_dict(), f'{BASEDIR}/model_state.pth')
 
     def reconstruct(self, dataset: torch.utils.data.Dataset):
         r"""
@@ -253,7 +265,8 @@ class VariationalAutoencoder(Autoencoder):
 
     """
     def __init__(self, latent_dim, in_shape, input_channels, encoder, decoder, device=DEVICE):
-        super(VariationalAutoencoder, self).__init__(latent_dim, in_shape, input_channels, encoder, decoder, device)
+        super(VariationalAutoencoder, self).__init__(in_shape, input_channels, encoder, decoder, device)
+        self.lat_dim = latent_dim
 
     def _reparamatrizate(self, mu, logvar):
         std = torch.exp(0.5*logvar)
