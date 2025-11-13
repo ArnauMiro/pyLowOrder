@@ -13,11 +13,11 @@
 import numpy as np
 import torch
 
-from pyLOM.utils   import cr
-from pyLOM.utils   import gpu_to_cpu, pprint
-from pyLOM.inp_out import h5_save_QR, h5_load_QR
-from pyLOM         import PartitionTable
-from ..            import Dataset, select_device
+from ..         import Dataset, DEVICE
+from ...utils   import cr, raiseWarning
+from ...utils   import gpu_to_cpu
+from ...inp_out import h5_save_QR, h5_load_QR
+from ...        import PartitionTable
 
 @cr('GAVI.save_QR')
 def save(fname:str,Q:np.ndarray,B:np.ndarray,ptable:PartitionTable,pointData:bool=True,mode:str='w'):
@@ -53,12 +53,20 @@ def load(fname:str,vars:list=['Q','B'],ptable:PartitionTable=None):
 	
 	return h5_load_QR(fname,vars,ptable=ptable)
 
-## Save the autoencoder weights and latent space
-
-## Load the autoencoder weights and latent space
-
 ## Create dataset
-def create_dataset(matrix, scale='max', device=select_device()):
+@cr('GAVI.create_NNdataset')
+def create_dataset(matrix:np.ndarray, scale:str='max', device:torch.device=DEVICE):
+	r'''
+	Create the pyLOM.NN dataset for neural network training of the GAVI autoencoders
+	
+	Args:
+		matrix (np.ndarray): data matrix that will be added to the dataset with shape (number of modes, number of variables, number of samples).
+		scale (str, optional): type of scaler applied to the data, 'max' is recommended for the autoencoder on the R matrix and 'meanstd' is recommended for the autoencoder on the Q matrix (default ``'max'``).
+		device (torch.device, optional): device in which the data will be loaded (default: CUDA if available)
+
+	Returns:
+		[Dataset, np.ndarray]: pyLOM.NN.Dataset with the scaled data and the scalers used to scale it
+	'''
 	if scale == 'max':
 		matmax = np.max(np.abs(matrix))
 		matsca = matrix/matmax
@@ -70,5 +78,7 @@ def create_dataset(matrix, scale='max', device=select_device()):
 		scaler  = np.array([matmean,matstd])
 	else:
 		matsca = matrix
+		scaler = None
+		raiseWarning('Scaling method not implemented, setting scaler to None and adding the non-scaled data to the dataset')
 	matsca = torch.tensor((matsca).astype(np.float32), device=device)
 	return Dataset((matsca,), mesh_shape=(matsca.shape[0],), snapshots_by_column=True), scaler
