@@ -38,6 +38,23 @@ def compute_truncation_residual(S, r):
 			if accumulative > r: break
 	return N
 
+@cr('math.local_energy')
+def local_energy(original, rec):
+	'''
+	Compute reconstruction energy considering that the data is only in one processor and there's no data sharing between cores. Energy defined as as in :
+	Eivazi, H., Le Clainche, S., Hoyas, S., & Vinuesa, R. (2022). 
+	Towards extraction of orthogonal and parsimonious non-linear modes from turbulent flows. 
+	Expert Systems with Applications, 202, 117038.
+	https://doi.org/10.1016
+	'''
+	p = cp if type(original) is cp.ndarray else np
+	# Compute local sums
+	local_num = p.sum((original - rec) ** 2)
+	local_den = p.sum(original ** 2)
+
+	# Compute Ek (this will be identical on all ranks)
+	return 1 - local_num / local_den
+
 @cr('math.energy')
 def energy(original, rec):
 	'''

@@ -140,10 +140,12 @@ cdef extern from "truncation.h" nogil:
 	cdef int    c_scompute_truncation_residual "scompute_truncation_residual"(float *S, float res, const int n)
 	cdef void   c_scompute_truncation          "scompute_truncation"(float *Ur, float *Sr, float *VTr, float *U, float *S, float *VT, const int m, const int n, const int nmod, const int N)
 	cdef float  c_senergy                      "senergy"(float *A, float *B, const int m, const int n)
+	cdef float  c_slocal_energy                "slocal_energy"(float *A, float *B, const int m, const int n)
 	# Double precision
 	cdef int    c_dcompute_truncation_residual "dcompute_truncation_residual"(double *S, double res, const int n)
 	cdef void   c_dcompute_truncation          "dcompute_truncation"(double *Ur, double *Sr, double *VTr, double *U, double *S, double *VT, const int m, const int n, const int nmod, const int N)
 	cdef double c_denergy                      "denergy"(double *A, double *B, const int m, const int n)
+	cdef double c_dlocal_energy                "dlocal_energy"(double *A, double *B, const int m, const int n)
 cdef extern from "regression.h" nogil:
 	# Float version
 	cdef void c_sleast_squares    "sleast_squares"(float *out, float *A, float *b, const int m, const int n)

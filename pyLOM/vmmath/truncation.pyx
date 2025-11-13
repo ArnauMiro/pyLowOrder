@@ -12,7 +12,7 @@ cimport numpy as np
 import numpy as np
 
 from libc.math  cimport fabs
-from .cfuncs    cimport real, c_svector_norm, c_dvector_norm, c_senergy, c_denergy
+from .cfuncs    cimport real, c_svector_norm, c_dvector_norm, c_senergy, c_denergy, c_slocal_energy, c_dlocal_energy
 from ..utils.cr  import cr
 
 
@@ -135,3 +135,46 @@ def energy(real[:,:] A, real[:,:] B):
 		return _denergy(A,B)
 	else:
 		return _senergy(A,B)
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef float _slocal_energy(float[:,:] A, float[:,:] B):
+	'''
+	Compute RMSE between X_POD and X
+	'''
+	cdef int m = A.shape[0], n = B.shape[1]
+	cdef float Ek = 0.
+	Ek = c_slocal_energy(&A[0,0],&B[0,0],m,n)
+	return Ek
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef double _dlocal_energy(double[:,:] A, double[:,:] B):
+	'''
+	Compute RMSE between X_POD and X
+	'''
+	cdef int m = A.shape[0], n = B.shape[1]
+	cdef double Ek = 0.
+	Ek = c_dlocal_energy(&A[0,0],&B[0,0],m,n)
+	return Ek
+
+@cr('math.energy')
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def local_energy(real[:,:] A, real[:,:] B):
+	'''
+	Compute RMSE between X_POD and X
+	'''
+	if real is double:
+		return _dlocal_energy(A,B)
+	else:
+		return _slocal_energy(A,B)
