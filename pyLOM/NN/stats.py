@@ -1,4 +1,4 @@
-import numpy as np
+import numpy as np, torch
 
 from typing import Optional, Dict
 
@@ -188,8 +188,15 @@ class RegressionEvaluator():
         Returns:
             dict: A dictionary containing the calculated regression metrics.
         """
-        y_true = np.array(y_true)
-        y_pred = np.array(y_pred)
+        if type(y_true) != np.ndarray and type(y_true) == torch.Tensor:
+            y_true = y_true.cpu().numpy()
+        elif type(y_true) != np.ndarray and type(y_true) != torch.Tensor:
+            raise raiseError("y_true must be a numpy array.")
+        
+        if type(y_pred) != np.ndarray and type(y_pred) == torch.Tensor:
+            y_pred = y_pred.cpu().numpy()
+        elif type(y_pred) != np.ndarray and type(y_pred) != torch.Tensor:
+            raise raiseError("y_pred must be a numpy array.")
         
         mse = self.mean_squared_error(y_true, y_pred)
         rmse = np.sqrt(mse)
@@ -371,8 +378,17 @@ class ClassificationEvaluator:
             dict with metrics and chosen threshold.
         """
         # Ensure arrays
-        y_true = self._to_1d(np.array(y_true)).astype(int)
-        y_in = np.array(y_pred)
+        if type(y_true) != np.ndarray and type(y_true) == torch.Tensor:
+            y_true = self._to_1d(np.array(y_true)).astype(int)
+        elif type(y_true) != np.ndarray and type(y_true) != torch.Tensor:
+            raise raiseError("y_true must be a numpy array.")
+        
+        if type(y_pred) == np.ndarray:
+            y_in = y_pred
+        elif type(y_pred) != np.ndarray and type(y_pred) == torch.Tensor:
+            y_in = np.array(y_pred)
+        elif type(y_pred) != np.ndarray and type(y_pred) != torch.Tensor:
+            raise raiseError("y_pred must be a numpy array.")
 
         # Validate inputs
         if len(np.unique(y_true)) < 2:
