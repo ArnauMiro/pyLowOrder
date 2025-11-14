@@ -20,7 +20,7 @@ import cupy  as cp
 # General pyLOM inputs
 from .utils        import create_dataset
 from ..            import Encoder1D, Decoder1D, Encoder1DNoLatent, Decoder1DNoLatent, Autoencoder, VariationalAutoencoder, betaLinearScheduler
-from ..            import silu, DEVICE
+from ..            import silu, DEVICE, Dataset
 from ...           import Mesh
 from ...vmmath     import temporal_mean, subtract_mean, randomized_qr2, local_randomized_qr, matmul, local_energy
 from ...utils      import cr, cr_start, cr_stop
@@ -55,7 +55,7 @@ def QR(X:np.ndarray,k:int,q:int=1,osampl:int=10):
 
 ## Compress the randomized QR factorization
 @cr('GAVI.vae_Q')
-def vae_Q(fname,Q,mesh,porder,r,nvars,nlayers=1,conv_chan=4,kernel=4,padding=1,func=silu(),epochs=1000,learning_r=5e-3,basedir='./',dtype=np.float32):
+def vae_Q(fname:str,Q:np.ndaray,mesh:Mesh,porder:int,r:int,nvars:int,nlayers:int=1,conv_chan:int=4,kernel:int=4,padding:int=1,func:object=silu(),epochs:int=1000,learning_r:float=5e-3,basedir:str='./',dtype:dtype=np.float32):
 	r"""
 	Function to compress the Q matrix from the randomized QR factorization following the strategy from CITA PROCEEDINGS MADRID and keeping the same partition as in the running mesh
 
@@ -119,7 +119,27 @@ def vae_Q(fname,Q,mesh,porder,r,nvars,nlayers=1,conv_chan=4,kernel=4,padding=1,f
 
 ## Reconstruct_Q
 @cr('GAVI.reconstruct_Q')
-def reconstruct_Q(mesh,nelxAE,nmod,Qmeans,Qstds,weights,biases,Qs,Bs,ivar=0,padding=1,func=silu()):
+def reconstruct_Q(mesh:Mesh,nelxAE:int,nmod:int,Qmeans:np.ndarray,Qstds:np.ndarray,weights:torch.tensor,biases:torch.tensor,Qs:cp.ndarray,Bs:cp.ndarray,ivar:int=0,padding:int=1,func:object=silu()):
+	r"""
+	Function to reconstruct the compressed data of Q
+	
+	Args:
+		mesh (Mesh): mesh in which we will represent the reconstructed data
+		nelxAE (int): number of elements learnt by each autoencoder
+		nmod (int): number of modes
+		Qmeans (np.ndarray): mean Q value of the input data of each autoencoder. Has as many columns as compressed variables
+		Qstds (np.ndarray): standard deviation of Q value of the input data of each autoencoder. Has as many columns as compressed variables.
+		weights (torch.tensor): weights of the decoder
+		biases (torch.tensor): biases of the decoder
+		Qs (cp.ndarray): orthogonal matrix of the factorized latent vectors at each autoencoder
+		Bs (cp.ndarray): reduced matrix of the factorized latent vectors at each autoencoder
+		ivar (int, optional): index of the decompressed variable, the output channel that we'll get (default ``0``)
+		padding (int, optional): amount of padding in the convolutions (default ``1``)
+		func (object, optional): activation function of the decoder layers (default ``silu()``)
+		
+	Returns:
+		np.ndarray: reconstructed Q of the variable stored in the ivar channel.	
+	"""
 	nAEs      = Qmeans.shape[0]
 	nvars     = Qmeans.shape[1]
 	conv_chan = weights.shape[1]
@@ -149,7 +169,7 @@ def reconstruct_Q(mesh,nelxAE,nmod,Qmeans,Qstds,weights,biases,Qs,Bs,ivar=0,padd
 
 ## Autoencoder on the R
 @cr('GAVI.vae_R')
-def vae_R(data, latent_dim, nepochs=2500, nlayers=3, conv_chan=64, hid_dim=32, kernel=4, padding=1, func=silu()):
+def vae_R(data:Dataset, latent_dim:int, nepochs:int=2500, nlayers:int=3, conv_chan:int=64, hid_dim:int=32, kernel:int=4, padding:int=1, func:object=silu()):
 	r"""
 	Function to get a disentangled latent representation of the B matrix from the randomized QR factorization:
 
@@ -158,7 +178,7 @@ def vae_R(data, latent_dim, nepochs=2500, nlayers=3, conv_chan=64, hid_dim=32, k
 	Computers & Fluids, 302, 106797. https://doi.org/10.1016/j.compfluid.2025.106797
 
 	Args:
-		data (np.ndarray): R matrix to compress
+		data (Dataset): R matrix to compress
 		latent_dim (int): number of latent vectors
 		nepochs (int, optional): number of epochs to do the training (default ``1000``)
 		nlayers (int, optional): number of convolutional layers in the autoencoders (default ``1``)

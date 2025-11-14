@@ -1089,6 +1089,20 @@ def h5_flush_compressed(file:str,ist:int,iAE:int,scaler:np.ndarray,vae:object,Q:
 
 @cr('io.load_compressed')
 def h5_load_compressed(fname:str, basedir:str, ptable:PartitionTable, nelxAE:int):
+	r"""
+	Load the necessary information to decompress the Q matrix atre using GAVI:
+	
+	CITA PROCEEDINGS MADRID
+	
+	Args:
+		fname (str): name of the file to load
+		basedir (str): directory where the file is located
+		ptable (PartitionTable): partition of the mesh in which the data will be represented after decompression:
+		nelxAE (int): number of elements in each autoencoder
+		
+	Returns:
+		[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray] The 6 arrays saved in the compressed file: the mean and standard deviation of the inputs, the decoder parameters and the factorized latent spaces	
+	"""
 	ist,ien = ptable.partition_bounds(MPI_RANK,points=False)
 	ist,ien = int(ist/nelxAE), int(ien/nelxAE)
 	file    = h5py.File('%s/%s' % (basedir,fname), mode="r", driver='mpio', comm=MPI_COMM)

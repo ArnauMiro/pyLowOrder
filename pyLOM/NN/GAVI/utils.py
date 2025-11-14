@@ -55,7 +55,18 @@ def load(fname:str,vars:list=['Q','B'],ptable:PartitionTable=None):
 
 @cr('GAVI.load_compressed')
 def load_compressed(fname:str, ptable:PartitionTable, nelxAE:int=1, basedir:str='./'):
-
+	r"""
+	Function to load the compressed data from Q arrays and move the necessary values to the GPU if available
+	
+	Args:
+		fname (str): name of the file to load
+		ptable (PartitionTable): partition table that we are using to decompress (should be the one of the visualizing mesh)
+		nelxAE (int, optional): how many elements of the mesh are compressed per autoencoder (default is ``1``)
+		basedir (str, optional): folder where the compressed file is located (default ``"./``)
+		
+	Returns:
+		[np.ndarray, np.ndarray, torch.tensor, torch.tensor, cp.ndarray, cp.ndarray]: arrays of the mean and standard deviation values on the CPU, tensors of the weight and biases of the decoder on the GPU and arrays of the Q and B of the latent spaces in the GPU (if available)	
+	"""
 	Qmeans, Qstds, weights, biases, Q, B = h5_load_compressed(fname, basedir, ptable, nelxAE)
 
 	return Qmeans, Qstds, torch.tensor(weights, device=DEVICE), torch.tensor(biases, device=DEVICE), cpu_to_gpu(Q), cpu_to_gpu(B)
