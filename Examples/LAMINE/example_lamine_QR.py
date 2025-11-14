@@ -1,19 +1,25 @@
 #!/bin/env python
 #
-# Example how to perform in-situ postprocessing
-# with Lamine module
+# Example how to perform in-situ QR factorization with LAMINE module
+# In this case the data is being transferred from SOD2D through its SmartRedis setup, known as SMARTSOD2D.
+# Any data transfer and I/O operation regarding the CFD inputs is done through pyQvarsi
+# For more info check the following useful links:
 #
-# Last rev: 24/10/2025
+# Insitu postprocess with SOD2D: https://gitlab.com/bsc_sod2d/sod2d_gitlab/-/wikis/Documentation/Smartsim/SmartSim-Installation
+# LAMINE for SOD2D visualization: https://gitlab.com/bsc_sod2d/sod2d_gitlab/-/wikis/Documentation/Smartsim/Online-Visualization
+#
+# Last rev: 14/11/2025
 
 import pyQvarsi
 import pyLOM
 import numpy as np
+import os
 
 from   pyQvarsi.utils import MPI_SIZE
 
 ## Case parameters
-BASEDIR = '/gpfs/scratch/bsc21/bsc021893/tests/lamine_vishal'
-CASJSON = "BluffBodySolverIncomp"
+BASEDIR = os.environ['BASEDIR']
+CASJSON = os.environ['CASJSON']
 nGPUpn  = 4
 nCPUpn  = 76
 
@@ -63,6 +69,7 @@ del meshpost
 istep = -1 # initialize the simulation step number to -1
 step_list = []     # initialize an empty list containing all the steps sent
 counter   = 0
+# As an example we only work with u and v but any other variable could be used and/or added
 uu = np.zeros((m.xyz.shape[0],nmodes),dtype=np.float32)
 vv = np.zeros((m.xyz.shape[0],nmodes),dtype=np.float32)
 while True:
@@ -83,9 +90,9 @@ while True:
 	else:
 		continue
 		
-	## Use field as wished to do any postprocessing!!!
+	## We have filled the snapshots matrix, now it's time to do the decompositions!!!
 	if(len(step_list) == nmodes):
-		dataDict = {'u':uu, 'v':vv}
+		dataDict = {'u':uu, 'v':vv} # Add any needed variable here
 		loadQBY, iiload, iisave = pyLOM.LAMINE.QR(dataDict, nmodes, p, loadQBY, iiload, iisave, basedir=BASEDIR)
 		
 		counter = 0
