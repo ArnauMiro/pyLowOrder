@@ -1086,3 +1086,18 @@ def h5_flush_compressed(file:str,ist:int,iAE:int,scaler:np.ndarray,vae:object,Q:
 	file['LATENTS/B'][ist+iAE,:,:] = B[:r,:].get()
 	
 	return file
+
+@cr('io.load_compressed')
+def h5_load_compressed(fname:str, basedir:str, ptable:PartitionTable, nelxAE:int):
+	ist,ien = ptable.partition_bounds(MPI_RANK,points=False)
+	ist,ien = int(ist/nelxAE), int(ien/nelxAE)
+	file    = h5py.File('%s/%s' % (basedir,fname), mode="r", driver='mpio', comm=MPI_COMM)
+	Qmeans  = np.array(file['/STATS/mean'][ist:ien,:])
+	Qstds   = np.array(file['/STATS/std'][ist:ien,:])
+	weights = np.array(file['/DECODER/weights'][ist:ien,:,:,:])
+	biases  = np.array(file['/DECODER/biases'][ist:ien,:])
+	Q       = np.array(file['/LATENTS/Q'][ist:ien,:,:])
+	B       = np.array(file['/LATENTS/B'][ist:ien,:,:])
+	file.close()
+
+	return Qmeans, Qstds, weights, biases, Q, B

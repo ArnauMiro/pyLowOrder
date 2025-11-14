@@ -23,7 +23,7 @@ from ..            import Encoder1D, Decoder1D, Encoder1DNoLatent, Decoder1DNoLa
 from ..            import silu, DEVICE
 from ...           import Mesh
 from ...vmmath     import temporal_mean, subtract_mean, randomized_qr2, local_randomized_qr, matmul, local_energy
-from ...utils      import cr
+from ...utils      import cr, cr_start, cr_stop
 from ...utils      import mpi_reduce, pprint, MPI_RANK
 from ...inp_out    import h5_create_compressed, h5_flush_compressed
 
@@ -117,6 +117,35 @@ def vae_Q(fname,Q,mesh,porder,r,nvars,nlayers=1,conv_chan=4,kernel=4,padding=1,f
 	
 	file.close()
 
+## Reconstruct_Q
+@cr('GAVI.reconstruct_Q')
+def reconstruct_Q(mesh,nelxAE,nmod,Qmeans,Qstds,weights,biases,Qs,Bs,ivar=0,padding=1,func=silu()):
+	nAEs      = Qmeans.shape[0]
+	nvars     = Qmeans.shape[1]
+	conv_chan = weights.shape[1]
+	kernel    = weights.shape[3]
+	nlayers   = int(np.log2(Qs.shape[1]/nmod))
+	activ     = [func for _ in range(nlayers)]
+	decoder = Decoder1DNoLatent(nlayers, nmod, nvars, conv_chan, kernel, padding, activ)
+	decoder.to(DEVICE)
+	Q = np.zeros((mesh.xyz.shape[0],nmod))
+	for iel in range(nAEs):
+		# Get global node numbering
+		conecE = mesh.connectivity[iel*nelxAE:(iel+1)*nelxAE]
+		_,idx  = np.unique(conecE.flatten(), return_index=True)
+		nodes  = conecE.flatten()[np.sort(idx)]
+		lat = matmul(Qs[iel,:,:], Bs[iel,:,:])
+		lat = torch.tensor(lat).T
+		cr_start('GAVI.decode', 0)
+		with torch.no_grad():
+			decoder.deconv_layers[0].weight.copy_(weights[iel])
+			decoder.deconv_layers[0].bias.copy_(biases[iel])
+			out = decoder(lat)
+		cr_stop('GAVI.decode', 0)
+
+		Q[nodes] = (out[:,ivar,:].detach().cpu().numpy()*Qstds[iel,ivar]+Qmeans[iel,ivar])
+	
+	return Q
 
 ## Autoencoder on the R
 @cr('GAVI.vae_R')

@@ -15,8 +15,8 @@ import torch
 
 from ..         import Dataset, DEVICE
 from ...utils   import cr, raiseWarning
-from ...utils   import gpu_to_cpu
-from ...inp_out import h5_save_QR, h5_load_QR
+from ...utils   import gpu_to_cpu, cpu_to_gpu
+from ...inp_out import h5_save_QR, h5_load_QR, h5_load_compressed
 from ...        import PartitionTable
 
 @cr('GAVI.save_QR')
@@ -52,6 +52,13 @@ def load(fname:str,vars:list=['Q','B'],ptable:PartitionTable=None):
 	'''
 	
 	return h5_load_QR(fname,vars,ptable=ptable)
+
+@cr('GAVI.load_compressed')
+def load_compressed(fname:str, ptable:PartitionTable, nelxAE:int=1, basedir:str='./'):
+
+	Qmeans, Qstds, weights, biases, Q, B = h5_load_compressed(fname, basedir, ptable, nelxAE)
+
+	return Qmeans, Qstds, torch.tensor(weights, device=DEVICE), torch.tensor(biases, device=DEVICE), cpu_to_gpu(Q), cpu_to_gpu(B)
 
 ## Create dataset
 @cr('GAVI.create_NNdataset')
