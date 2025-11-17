@@ -16,4 +16,7 @@ from .io_vtkh5 import vtkh5_save_mesh, vtkh5_link_mesh, vtkh5_save_field
 # Output to paraview
 from .io_paraview import pv_writer
 
+## File name formats
+FMT_QR_FILE = 'QR_%s-%i.h5' # Live QR factorization
+
 del io_pkl, io_h5, io_paraview

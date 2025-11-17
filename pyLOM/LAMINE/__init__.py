@@ -8,5 +8,4 @@
 
 from .wrapper      import QR, QR2POD
 
-
 del wrapper
