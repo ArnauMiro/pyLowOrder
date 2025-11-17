@@ -13,12 +13,12 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 from ..utils.plots  import plotSnapshot, plotModalErrorBars, plotTimeSeries
 
-from .pipeline      import Pipeline
+from .pipeline      import Pipeline, ClusteredPipeline
 from .utils         import Dataset, MinMaxScaler, select_device, betaLinearScheduler, create_results_folder, set_seed
 
 from .optimizer     import OptunaOptimizer
 
-from .stats         import RegressionEvaluator
+from .stats         import RegressionEvaluator, ClassificationEvaluator
 from .callbacks     import EarlyStopper
 
 from .interpolator import Interpolator
@@ -30,7 +30,7 @@ from .architectures.autoencoders      import Autoencoder, FullyConnectedAutoenco
 from .architectures.encoders_decoders import Encoder2D, FullyConnectedEncoder2D, Decoder2D, FullyConnectedDecoder2D, Encoder3D, Decoder3D, ShallowDecoder
 from .architectures.pinn              import PINN, BurgersPINN, Euler2DPINN, NavierStokesIncompressible2DPINN, BoundaryCondition
 from .architectures.shred             import SHRED
-
+from .architectures.binary_classifier import BinaryClassifier
 
 
 # Wrapper of the activation functions
