@@ -6,7 +6,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from typing import Dict, List, Tuple, Callable
 from ..optimizer import OptunaOptimizer, TrialPruned
-from .. import DEVICE, set_seed  # pyLOM/NN/__init__.py
+from .. import DEVICE, PIN_MEMORY, set_seed  # pyLOM/NN/__init__.py
 from ... import pprint, cr  # pyLOM/__init__.py
 from ...utils.errors import raiseWarning, raiseError
 
@@ -180,7 +180,7 @@ class MLP(nn.Module):
             "batch_size": batch_size,
             "shuffle": True,
             "num_workers": 0,
-            "pin_memory": True,
+            "pin_memory": PIN_MEMORY,
         }
 
         if not hasattr(self, "train_dataloader"):
@@ -349,7 +349,7 @@ class MLP(nn.Module):
             "batch_size": 256,
             "shuffle": False,
             "num_workers": 0,
-            "pin_memory": True,
+            "pin_memory": PIN_MEMORY,
         }
         
         for key in dataloader_params.keys():

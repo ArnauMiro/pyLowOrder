@@ -8,7 +8,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from ... import cr, pprint  # pyLOM/__init__.py
-from .. import DEVICE  # pyLOM/NN/__init__.py
+from .. import DEVICE, PIN_MEMORY  # pyLOM/NN/__init__.py
 from ...utils.errors import raiseError, raiseWarning
 from ..optimizer import OptunaOptimizer
 
@@ -186,7 +186,7 @@ class KAN(nn.Module):
             "batch_size": batch_size,
             "shuffle": True,
             "num_workers": 0,
-            "pin_memory": True,
+            "pin_memory": PIN_MEMORY,
         }
         for key in dataloader_params.keys():
             if key in kwargs:
@@ -373,7 +373,7 @@ class KAN(nn.Module):
             "batch_size": 32,
             "shuffle": False,
             "num_workers": 0,
-            "pin_memory": True,
+            "pin_memory": PIN_MEMORY,
         }
 
         for key in dataloader_params.keys():

@@ -9,7 +9,8 @@
 # Supress prints from tensorflow
 import os, torch, torch.nn as nn
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+DEVICE     = "cuda" if torch.cuda.is_available() else "cpu"
+PIN_MEMORY = True if torch.cuda.is_available() else False
 
 from ..utils.plots  import plotSnapshot, plotModalErrorBars, plotTimeSeries
 

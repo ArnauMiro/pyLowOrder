@@ -19,7 +19,7 @@ from   torchsummary            import summary
 from   functools               import reduce
 from   operator                import mul
 
-from   ..                      import DEVICE
+from   ..                      import DEVICE, PIN_MEMORY
 from   ...utils                import cr, pprint
 
 
@@ -81,7 +81,7 @@ class Autoencoder(nn.Module):
         batch_size: int = 32,
         shuffle: bool = True,
         num_workers: int = 0,
-        pin_memory: bool = True,
+        pin_memory: bool = PIN_MEMORY,
     ):
         r"""
         Train the autoencoder model. The logs are stored in the directory specified by BASEDIR with tensorboard format.
@@ -293,7 +293,7 @@ class FullyConnectedAutoencoder(nn.Module):
         batch_size: int = 32,
         shuffle: bool = True,
         num_workers: int = 0,
-        pin_memory: bool = True,
+        pin_memory: bool = PIN_MEMORY,
     ):
         r"""
         Train the autoencoder model. The logs are stored in the directory specified by BASEDIR with tensorboard format.
@@ -495,7 +495,7 @@ class VariationalAutoencoder(Autoencoder):
         batch_size=32,
         shuffle=True,
         num_workers=0,
-        pin_memory=True,
+        pin_memory=PIN_MEMORY,
     ):
         r"""
         Train the variational autoencoder model. The logs are stored in the directory specified by BASEDIR with tensorboard format.
@@ -821,7 +821,7 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
         batch_size=32,
         shuffle=True,
         num_workers=0,
-        pin_memory=True,
+        pin_memory=PIN_MEMORY,
     ):
         r"""
         Train the variational autoencoder model. The logs are stored in the directory specified by BASEDIR with tensorboard format.
