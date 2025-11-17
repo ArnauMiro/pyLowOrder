@@ -566,8 +566,8 @@ class VariationalAutoencoder(Autoencoder):
                             vali_loss = mse_i - beta*kld_i
                         va_loss  += vali_loss.item()
 
-            num_batches = len(eval_data)
-            va_loss    /=num_batches
+                num_batches = len(eval_data)
+                va_loss    /=num_batches
             writer.add_scalar("Loss/train",tr_loss,epoch+1)
             writer.add_scalar("Loss/vali", va_loss,epoch+1)
             writer.add_scalar("Loss/mse",  mse,    epoch+1)
