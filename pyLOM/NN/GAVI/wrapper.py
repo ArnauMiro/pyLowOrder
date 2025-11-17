@@ -110,7 +110,7 @@ def vae_Q(fname:str,Q:np.ndarray,mesh:Mesh,porder:int,r:int,nvars:int,nlayers:in
 		Qtrain[:,0,:] = Q[nodes,:].T
 		vae.train()
 		datatra, scaler = create_dataset(Qtrain, scale='meanstd')
-		vae.fit(datatra, eval_dataset=datatra, batch_size=nptxAE, epochs=epochs, lr=learning_r, BASEDIR='./', pin_memory=False, shuffle=False, conv_loss=1e-2)
+		vae.fit(datatra, eval_dataset=None, batch_size=nptxAE, epochs=epochs, lr=learning_r, BASEDIR='./', pin_memory=False, shuffle=False, conv_loss=1e-2)
 		vae.eval()
 		latent  = vae.latent_space(datatra)
 		Q2, B2  = local_randomized_qr(cp.from_dlpack(latent.T), r+10, 1)
