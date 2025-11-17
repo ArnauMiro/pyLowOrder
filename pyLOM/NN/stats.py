@@ -188,15 +188,15 @@ class RegressionEvaluator():
         Returns:
             dict: A dictionary containing the calculated regression metrics.
         """
-        if type(y_true) != np.ndarray and type(y_true) == torch.Tensor:
-            y_true = y_true.cpu().numpy()
-        elif type(y_true) != np.ndarray and type(y_true) != torch.Tensor:
-            raise raiseError("y_true must be a numpy array.")
+        if isinstance(y_true, torch.Tensor):
+            y_true = y_true.detach().cpu().numpy()
+        elif not isinstance(y_true, np.ndarray):
+            raiseError("y_true must be a numpy array.")
         
-        if type(y_pred) != np.ndarray and type(y_pred) == torch.Tensor:
-            y_pred = y_pred.cpu().numpy()
-        elif type(y_pred) != np.ndarray and type(y_pred) != torch.Tensor:
-            raise raiseError("y_pred must be a numpy array.")
+        if isinstance(y_pred, torch.Tensor):
+            y_pred = y_pred.detach().cpu().numpy()
+        elif not isinstance(y_pred, np.ndarray):
+            raiseError("y_pred must be a numpy array.")
         
         mse = self.mean_squared_error(y_true, y_pred)
         rmse = np.sqrt(mse)
@@ -378,17 +378,17 @@ class ClassificationEvaluator:
             dict with metrics and chosen threshold.
         """
         # Ensure arrays
-        if type(y_true) != np.ndarray and type(y_true) == torch.Tensor:
-            y_true = self._to_1d(np.array(y_true)).astype(int)
-        elif type(y_true) != np.ndarray and type(y_true) != torch.Tensor:
-            raise raiseError("y_true must be a numpy array.")
+        if isinstance(y_true, torch.Tensor):
+            y_true = self._to_1d(y_true.detach().cpu().numpy()).astype(int)
+        elif not isinstance(y_true, np.ndarray):
+            raiseError("y_true must be a numpy array.")
         
-        if type(y_pred) == np.ndarray:
+        if isinstance(y_pred, np.ndarray):
             y_in = y_pred
-        elif type(y_pred) != np.ndarray and type(y_pred) == torch.Tensor:
-            y_in = np.array(y_pred)
-        elif type(y_pred) != np.ndarray and type(y_pred) != torch.Tensor:
-            raise raiseError("y_pred must be a numpy array.")
+        elif isinstance(y_pred, torch.Tensor):
+            y_in = y_pred.detach().cpu().numpy()
+        else:
+            raiseError("y_pred must be a numpy array.")
 
         # Validate inputs
         if len(np.unique(y_true)) < 2:
