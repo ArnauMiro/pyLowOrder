@@ -319,10 +319,11 @@ class FullyConnectedAutoencoder(nn.Module):
             "pin_memory": pin_memory,
         }
         train_data = DataLoader(train_dataset, **dataloader_params)
-        eval_data  = DataLoader(eval_dataset, **dataloader_params)
+        eval_data  = DataLoader(eval_dataset, **dataloader_params) if eval_dataset is not None else None
         # Initialization
         prev_train_loss = 1e99
-        writer = SummaryWriter(BASEDIR)
+        va_loss   = 0
+        writer    = SummaryWriter(BASEDIR)
         optimizer = torch.optim.AdamW(self.parameters(), lr=lr)
         scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=lr_decay)
         # Training loop
@@ -521,7 +522,7 @@ class VariationalAutoencoder(Autoencoder):
             "pin_memory": pin_memory,
         }
         train_data = DataLoader(train_dataset, **dataloader_params)
-        eval_data  = DataLoader(eval_dataset, **dataloader_params)
+        eval_data  = DataLoader(eval_dataset, **dataloader_params) if eval_dataset is not None else None
         prev_train_loss = 1e99
         writer    = SummaryWriter(BASEDIR)
         optimizer = torch.optim.Adam(self.parameters(), lr=lr, weight_decay=0, amsgrad=False if self._device == "cpu" else True, fused=False if self._device == "cpu" else True)
@@ -847,7 +848,7 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
             "pin_memory": pin_memory,
         }
         train_data = DataLoader(train_dataset, **dataloader_params)
-        eval_data  = DataLoader(eval_dataset, **dataloader_params)
+        eval_data  = DataLoader(eval_dataset, **dataloader_params) if eval_dataset is not None else None
         prev_train_loss = 1e99
         writer    = SummaryWriter(BASEDIR)
         optimizer = torch.optim.Adam(self.parameters(), lr=lr, weight_decay=0, amsgrad=False if self._device == "cpu" else True, fused=False if self._device == "cpu" else True)
