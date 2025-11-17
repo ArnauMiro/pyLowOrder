@@ -1059,7 +1059,7 @@ def h5_create_compressed(fname:str,basedir:str,r:int,nmod:int,nvars:int,nlayers:
 	return file
 
 @cr('io.flush_compressed')
-def h5_flush_compressed(file:str,ist:int,iAE:int,scaler:np.ndarray,vae:object,Q:np.ndarray,B:np.ndarray,r:int):
+def h5_flush_compressed(file:str,ist:int,ien:int,means:np.ndarray,stds:np.ndarray,weights:np.ndarray,biases:np.ndarray,Q:np.ndarray,B:np.ndarray):
 	r'''
 	Function to save the data into the hdf5 file created with the h5_create_compressed function so that at every compression iteration the scalers, decoder parameters and the factorization of the latent space are properly saved
 
@@ -1068,9 +1068,11 @@ def h5_flush_compressed(file:str,ist:int,iAE:int,scaler:np.ndarray,vae:object,Q:
 	Args:
 		file (h5py.File): file in which the data has to be saved
 		ist (int): ID of the first element to be compressed by the current core
-		iAE (int): ID of the compressed element
-		scaler (np.ndarray): array containing the mean and the std of the compressed data
-		vae (Autoencoder): autoencoder compressed in the data
+		ien (int): ID of the last element
+		means (np.ndarray): array containing the mean of the compressed data
+		stds (np.ndarray): array containing the std of the compressed data
+		weights (np.ndarray): array containing the weights of the decoders
+		biases (np.ndarray): array containing the biases of the decoders
 		Q (np.ndarray): Q matrix of the factorization of the latent vectors
 		B (np.ndarray): B matrix of the factorization of the latent vectors
 		r (int): truncation value of the factorized latent vectors
@@ -1078,14 +1080,15 @@ def h5_flush_compressed(file:str,ist:int,iAE:int,scaler:np.ndarray,vae:object,Q:
 	Returns;
 		h5py.File file in which the data has been saved. It must be closed when all cores finish compressing their data
 	'''
-	file['STATS/mean'][ist+iAE,:] = scaler[0]
-	file['STATS/std'][ist+iAE,:]  = scaler[1]
-	file['DECODER/weights'][ist+iAE,:,:,:] = vae.state_dict()['decoder.deconv_layers.0.weight'].detach().cpu().numpy()
-	file['DECODER/biases'][ist+iAE,:]      = vae.state_dict()['decoder.deconv_layers.0.bias'].detach().cpu().numpy()
-	file['LATENTS/Q'][ist+iAE,:,:]  = Q[:,:r].get()
-	file['LATENTS/B'][ist+iAE,:,:] = B[:r,:].get()
+	file['STATS/mean'][ist:ien,:] = means
+	file['STATS/std'][ist:ien,:]  = stds
+	file['DECODER/weights'][ist:ien,:,:,:] = weights
+	file['DECODER/biases'][ist:ien,:]      = biases
+	file['LATENTS/Q'][ist:ien,:,:]  = Q
+	file['LATENTS/B'][ist:ien,:,:] = B
+
+	file.close()
 	
-	return file
 
 @cr('io.load_compressed')
 def h5_load_compressed(fname:str, basedir:str, ptable:PartitionTable, nelxAE:int):

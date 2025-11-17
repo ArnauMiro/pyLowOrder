@@ -25,6 +25,7 @@ from ...           import Mesh
 from ...vmmath     import temporal_mean, subtract_mean, randomized_qr2, local_randomized_qr, matmul, local_energy
 from ...utils      import cr, cr_start, cr_stop
 from ...utils      import mpi_reduce, pprint, MPI_RANK
+from ...utils      import cpu_to_gpu, gpu_to_cpu
 from ...inp_out    import h5_create_compressed, h5_flush_compressed
 
 
@@ -55,7 +56,7 @@ def QR(X:np.ndarray,k:int,q:int=1,osampl:int=10):
 
 ## Compress the randomized QR factorization
 @cr('GAVI.vae_Q')
-def vae_Q(fname:str,Q:np.ndaray,mesh:Mesh,porder:int,r:int,nvars:int,nlayers:int=1,conv_chan:int=4,kernel:int=4,padding:int=1,func:object=silu(),epochs:int=1000,learning_r:float=5e-3,basedir:str='./',dtype:dtype=np.float32):
+def vae_Q(fname:str,Q:np.ndarray,mesh:Mesh,porder:int,r:int,nvars:int,nlayers:int=1,conv_chan:int=4,kernel:int=4,padding:int=1,func:object=silu(),epochs:int=1000,learning_r:float=5e-3,basedir:str='./',dtype:np.dtype=np.float32):
 	r"""
 	Function to compress the Q matrix from the randomized QR factorization following the strategy from CITA PROCEEDINGS MADRID and keeping the same partition as in the running mesh
 
@@ -93,10 +94,16 @@ def vae_Q(fname:str,Q:np.ndaray,mesh:Mesh,porder:int,r:int,nvars:int,nlayers:int
 	vae     = Autoencoder((nmod,), nvars, encoder, decoder, verbose=False)
 	## Create the file where the AEs parameters and latents will be saved
 	file    = h5_create_compressed(fname, basedir, r, nmod, nvars, nlayers, conv_chan, kernel, nAEsG, nptxAE, dtype)
-	Qtrain = np.zeros((nmod,nvars,nptxAE), dtype=np.float32)
-	iAE    = 0
-	ener_x = 0
-	while iAE < nAEs:
+	means   = np.zeros((nAEs,nvars), dtype=dtype)
+	stds    = np.zeros((nAEs,nvars), dtype=dtype)
+	weights = torch.zeros((nAEs,conv_chan,nvars,kernel), device=DEVICE)
+	biases  = torch.zeros((nAEs,nvars), device=DEVICE)
+	Qs      = cpu_to_gpu(np.zeros((nAEs,int(nmod/2**nlayers)*conv_chan,r), dtype=dtype))
+	Bs      = cpu_to_gpu(np.zeros((nAEs,r,nptxAE), dtype=dtype))
+	Qtrain  = np.zeros((nmod,nvars,nptxAE), dtype=np.float32)
+	iAE     = 0
+	ener_x  = 0
+	for iAE in range(nAEs):
 		conecE        = mesh.connectivity[iAE*nelxAE:(iAE+1)*nelxAE].flatten()
 		_,idx         = np.unique(conecE, return_index=True)
 		nodes         = conecE[np.sort(idx)]
@@ -105,17 +112,22 @@ def vae_Q(fname:str,Q:np.ndaray,mesh:Mesh,porder:int,r:int,nvars:int,nlayers:int
 		datatra, scaler = create_dataset(Qtrain, scale='meanstd')
 		vae.fit(datatra, eval_dataset=datatra, batch_size=nptxAE, epochs=epochs, lr=learning_r, BASEDIR='./', pin_memory=False, shuffle=False, conv_loss=1e-2)
 		vae.eval()
-		latent = vae.latent_space(datatra)
-		Q2, B2 = local_randomized_qr(cp.from_dlpack(latent.T), r+10, 1)
-		latr   = torch.tensor(matmul(Q2[:,:r],B2[:r,:])).T
-		rectrL = vae.decoder(latr)
+		latent  = vae.latent_space(datatra)
+		Q2, B2  = local_randomized_qr(cp.from_dlpack(latent.T), r+10, 1)
+		latr    = torch.tensor(matmul(Q2[:,:r],B2[:r,:])).T
+		rectrL  = vae.decoder(latr)
 		ener_x += local_energy(rectrL[:,0,:].T.cpu().detach().numpy()*scaler[1]+scaler[0], Qtrain[:,0,:])
-		file   = h5_flush_compressed(file, ist, iAE, scaler, vae, Q2, B2, r)
-		iAE += 1
 		if np.mod(iAE,1000)==0:
 			pprint(0, iAE, ener_x/iAE, flush=True)
+		means[iAE] = scaler[0]
+		stds[iAE]  = scaler[1]
+		weights[iAE,:,:,:] = vae.state_dict()['decoder.deconv_layers.0.weight'].detach().clone()
+		biases[iAE,:]      = vae.state_dict()['decoder.deconv_layers.0.bias'].detach().clone()
+		Qs[iAE] = Q2[:,:r]
+		Bs[iAE] = B2[:r,:]
 	
-	file.close()
+	h5_flush_compressed(file, ist, ien, means, stds, weights.detach().cpu().numpy(), biases.detach().cpu().numpy(), gpu_to_cpu(Qs.get()), gpu_to_cpu(Bs.get()))
+	
 
 ## Reconstruct_Q
 @cr('GAVI.reconstruct_Q')
