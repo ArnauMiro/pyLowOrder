@@ -107,7 +107,7 @@ class Autoencoder(nn.Module):
             "pin_memory": pin_memory,
         }
         train_data = DataLoader(train_dataset, **dataloader_params)
-        eval_data  = DataLoader(eval_dataset, **dataloader_params)
+        eval_data  = DataLoader(eval_dataset, **dataloader_params) if eval_dataset is not None else None
         # Initialization
         prev_train_loss = 1e99
         writer = SummaryWriter(BASEDIR)
