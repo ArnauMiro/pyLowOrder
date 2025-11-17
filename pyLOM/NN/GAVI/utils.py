@@ -99,4 +99,4 @@ def create_dataset(matrix:np.ndarray, scale:str='max', device:torch.device=DEVIC
 		scaler = None
 		raiseWarning('Scaling method not implemented, setting scaler to None and adding the non-scaled data to the dataset')
 	matsca = torch.tensor((matsca).astype(np.float32), device=device)
-	return Dataset((matsca,), mesh_shape=(matsca.shape[0],), snapshots_by_column=True), scaler
+	return Dataset((matsca[:,0,:],matsca[:,1,:]), mesh_shape=(matsca.shape[0],), snapshots_by_column=True), scaler

@@ -9,21 +9,17 @@ import torch
 import pyLOM, pyLOM.NN
 
 ## Architecture Parameters
-FILE       = 'QR.h5'
 r          = 10  ## Number of modes of the latent vectors that we'll retain
 porder     = 4   ## Input the pOrder of the original mesh to group the rest of elements
-vlist      = ['velox']
 out_file   = 'compressed_data_array'
 
 ## Load data
 mesh    = pyLOM.Mesh.load('../pylom_mesh.h5')
-Q       = pyLOM.NN.GAVI.load(FILE, vars=['Q'], ptable=mesh.partition_table)[0]
-
-## Get the data shape
-nvars   = len(vlist)
+Qx      = pyLOM.NN.GAVI.load('QR_velox.h5', vars=['Q'], ptable=mesh.partition_table)[0]
+Qy      = pyLOM.NN.GAVI.load('QR_veloy.h5', vars=['Q'], ptable=mesh.partition_table)[0]
 
 ## Compres the Q represented in the loaded mesh
-pyLOM.NN.GAVI.vae_Q(out_file,Q,mesh,porder,r,nvars)
+pyLOM.NN.GAVI.vae_Q(out_file,(Qx,Qy),mesh,porder,r)
 
 ## Print timings
 pyLOM.cr_info()

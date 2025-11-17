@@ -56,13 +56,13 @@ def QR(X:np.ndarray,k:int,q:int=1,osampl:int=10):
 
 ## Compress the randomized QR factorization
 @cr('GAVI.vae_Q')
-def vae_Q(fname:str,Q:np.ndarray,mesh:Mesh,porder:int,r:int,nvars:int,nlayers:int=1,conv_chan:int=4,kernel:int=4,padding:int=1,func:object=silu(),epochs:int=1000,learning_r:float=5e-3,basedir:str='./',dtype:np.dtype=np.float32):
+def vae_Q(fname:str,Q:tuple,mesh:Mesh,porder:int,r:int,nlayers:int=1,conv_chan:int=4,kernel:int=4,padding:int=1,func:object=silu(),epochs:int=1000,learning_r:float=5e-3,basedir:str='./',dtype:np.dtype=np.float32):
 	r"""
 	Function to compress the Q matrix from the randomized QR factorization following the strategy from CITA PROCEEDINGS MADRID and keeping the same partition as in the running mesh
 
 	Args:
 		fname (str): file name where the compressed data will be saved
-		Q (np.ndarray): Q matrix to compress
+		Q (tuple): Q matrices to compress
 		mesh (Mesh): mesh in which the data is represented
 		porder (int): pOrder of the original CFD mesh
 		r (int): number of modes to retain from the latent space
@@ -79,7 +79,8 @@ def vae_Q(fname:str,Q:np.ndarray,mesh:Mesh,porder:int,r:int,nvars:int,nlayers:in
 
 	"""
 	## Get Q dimensions
-	nmod    = Q.shape[1]
+	nmod    = Q[0].shape[1]
+	nvars   = len(Q)
 	## Compute number of AEs to train and points per AE
 	nelxAE  = 1*porder**3                             # Compute how many cells we load per autoencoder
 	nptxAE  = (porder+1)**3                           # Compute how many points we train in each autoencoder
@@ -107,7 +108,8 @@ def vae_Q(fname:str,Q:np.ndarray,mesh:Mesh,porder:int,r:int,nvars:int,nlayers:in
 		conecE        = mesh.connectivity[iAE*nelxAE:(iAE+1)*nelxAE].flatten()
 		_,idx         = np.unique(conecE, return_index=True)
 		nodes         = conecE[np.sort(idx)]
-		Qtrain[:,0,:] = Q[nodes,:].T
+		for ivar in range(nvars):
+			Qtrain[:,ivar,:] = Q[ivar][nodes,:].T
 		vae.train()
 		datatra, scaler = create_dataset(Qtrain, scale='meanstd')
 		vae.fit(datatra, eval_dataset=None, batch_size=nptxAE, epochs=epochs, lr=learning_r, BASEDIR='./', pin_memory=False, shuffle=False, conv_loss=1e-2)

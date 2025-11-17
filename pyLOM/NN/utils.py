@@ -269,6 +269,7 @@ class Dataset(torch.utils.data.Dataset):
 
         if variables_out_stacked.shape[-1] == 1:  # (N, C, 1) -> (N, C)
             variables_out_stacked = variables_out_stacked.squeeze(-1)
+
         return variables_out_stacked.float()
 
     def _process_parameters(self, parameters, combine_parameters_with_cartesian_prod):
