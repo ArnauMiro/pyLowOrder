@@ -142,6 +142,7 @@ NN = [
   "torchvision",
   "torchsummary",
   "tensorflow",
+  "xgboost",
   "optuna",
 ]
 # Dependencies to work with the GPR module
