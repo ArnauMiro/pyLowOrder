@@ -110,7 +110,6 @@ class Autoencoder(nn.Module):
         eval_data  = DataLoader(eval_dataset, **dataloader_params) if eval_dataset is not None else None
         # Initialization
         prev_train_loss = 1e99
-        va_loss   = 0
         writer    = SummaryWriter(BASEDIR)
         optimizer = torch.optim.AdamW(self.parameters(), lr=lr)
         scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=lr_decay)
@@ -130,10 +129,10 @@ class Autoencoder(nn.Module):
                 num_batches += 1
             tr_loss /= num_batches
             # Validation phase
+            va_loss = 0
             if eval_dataset is not None:
                 with torch.no_grad():
                     val_batches = 0
-                    va_loss = 0
                     for val_batch0 in eval_data:
                         val_batch = val_batch0.to(self._device)
                         val_recon, _ = self(val_batch)
@@ -322,7 +321,6 @@ class FullyConnectedAutoencoder(nn.Module):
         eval_data  = DataLoader(eval_dataset, **dataloader_params) if eval_dataset is not None else None
         # Initialization
         prev_train_loss = 1e99
-        va_loss   = 0
         writer    = SummaryWriter(BASEDIR)
         optimizer = torch.optim.AdamW(self.parameters(), lr=lr)
         scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=lr_decay)
@@ -342,10 +340,10 @@ class FullyConnectedAutoencoder(nn.Module):
                 num_batches += 1
             tr_loss /= num_batches
             # Validation phase
+            va_loss = 0
             if eval_dataset is not None:
                 with torch.no_grad():
                     val_batches = 0
-                    va_loss = 0
                     for val_batch0 in eval_data:
                         val_batch = val_batch0.to(self._device)
                         val_recon, _ = self(val_batch)
@@ -557,15 +555,16 @@ class VariationalAutoencoder(Autoencoder):
             ## Validation
             self.eval()
             va_loss     = 0
-            with torch.no_grad():
-                for val_batch0 in eval_data:
-                    val_batch = val_batch0.to(self._device)
-                    with autocast(device_type=self._device):
-                        val_recon, val_mu, val_logvar, _ = self(val_batch)
-                        mse_i     = self._lossfunc(val_batch, val_recon, reduction='sum')
-                        kld_i     = self._kld(val_mu,val_logvar)
-                        vali_loss = mse_i - beta*kld_i
-                    va_loss  += vali_loss.item()
+            if eval_dataset is not None:
+                with torch.no_grad():
+                    for val_batch0 in eval_data:
+                        val_batch = val_batch0.to(self._device)
+                        with autocast(device_type=self._device):
+                            val_recon, val_mu, val_logvar, _ = self(val_batch)
+                            mse_i     = self._lossfunc(val_batch, val_recon, reduction='sum')
+                            kld_i     = self._kld(val_mu,val_logvar)
+                            vali_loss = mse_i - beta*kld_i
+                        va_loss  += vali_loss.item()
 
             num_batches = len(eval_data)
             va_loss    /=num_batches
@@ -883,18 +882,19 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
             ## Validation
             self.eval()
             va_loss     = 0
-            with torch.no_grad():
-                for val_batch0 in eval_data:
-                    val_batch = val_batch0.to(self._device)
-                    with autocast(device_type=self._device):
-                        val_recon, val_mu, val_logvar, _ = self(val_batch)
-                        mse_i     = self._lossfunc(val_batch, val_recon, reduction='sum')
-                        kld_i     = self._kld(val_mu,val_logvar)
-                        vali_loss = mse_i - beta*kld_i
-                    va_loss  += vali_loss.item()
+            if eval_dataset is not None:
+                with torch.no_grad():
+                    for val_batch0 in eval_data:
+                        val_batch = val_batch0.to(self._device)
+                        with autocast(device_type=self._device):
+                            val_recon, val_mu, val_logvar, _ = self(val_batch)
+                            mse_i     = self._lossfunc(val_batch, val_recon, reduction='sum')
+                            kld_i     = self._kld(val_mu,val_logvar)
+                            vali_loss = mse_i - beta*kld_i
+                        va_loss  += vali_loss.item()
 
-            num_batches = len(eval_data)
-            va_loss    /=num_batches
+                num_batches = len(eval_data)
+                va_loss    /=num_batches
             writer.add_scalar("Loss/train",tr_loss,epoch+1)
             writer.add_scalar("Loss/vali", va_loss,epoch+1)
             writer.add_scalar("Loss/mse",  mse,    epoch+1)
