@@ -13,14 +13,16 @@ from __future__ import print_function
 from ..              import PartitionTable
 from ..vmmath        import update_qr_streaming, init_qr_streaming, svd, matmul
 from ..inp_out.io_h5 import h5_load_QR, h5_save_QR
-from ..inp_out       import FMT_QR_FILE
 from ..utils.cr      import cr_nvtx as cr
 
 import os
 
+## File name formats
+FMT_QR_FILE = 'QR_%s-%i.h5' # Live QR factorization
+
 ## Live QR
 @cr('LAMINE.qr')
-def QR(vardict:dict, nmodes:int, ptable:PartitionTable, restart:bool, iiload:int, iisave:int, basedir:str='.'):
+def QR(vardict:dict, nmodes:int, ptable:PartitionTable, iiload:int, iisave:int, restart:bool=False, basedir:str='.'):
 	r"""
 	Function to compute the randomized QR factorization on data which is being generated runtime. Once the of each variable is computed, it is saved in a .h5 file. Only 2 .h5 files are written, *-1.h5 and *-2.h5, as they get overwritten every odd or even QR computation, respectively.
 	The saved QR results can be used to compute POD or GAVI.
@@ -29,9 +31,9 @@ def QR(vardict:dict, nmodes:int, ptable:PartitionTable, restart:bool, iiload:int
 		vardict (dict): dictionary containing all the variables to decompose. It has the following structure: {'varname1':valuesvar1, 'varname2':valuesvar2}
 		nmodes (int): how many modes should be recovered by the QR factorization
 		ptable (PartitionTable): partition in which the data has to be saved (should be the one from the original dataset)
-		restart (bool): if we need to load previous QR data. Might be false on the first iteration of the code but then will always be True
 		iiload (int): previous QR iteration to load
 		iisave (int): which QR iteration we compute now
+		restart (bool, optional): if we need to load previous QR data. Might be false on the first iteration of the code but then will always be True (default is ``False``)
 		basedir (str, optional): directory where the QR results are saved and loaded from (default: ``'.'``)
 
 	Returns:
