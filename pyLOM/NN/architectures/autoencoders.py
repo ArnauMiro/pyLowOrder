@@ -110,7 +110,8 @@ class Autoencoder(nn.Module):
         eval_data  = DataLoader(eval_dataset, **dataloader_params) if eval_dataset is not None else None
         # Initialization
         prev_train_loss = 1e99
-        writer = SummaryWriter(BASEDIR)
+        va_loss   = 0
+        writer    = SummaryWriter(BASEDIR)
         optimizer = torch.optim.AdamW(self.parameters(), lr=lr)
         scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=lr_decay)
         # Training loop
@@ -142,7 +143,7 @@ class Autoencoder(nn.Module):
                     va_loss /= val_batches
             # Logging
             writer.add_scalar("Loss/train", tr_loss, epoch + 1)
-            writer.add_scalar("Loss/vali", va_loss, epoch + 1)
+            writer.add_scalar("Loss/vali",  va_loss, epoch + 1)
             # Early stopping
             if callback and callback.early_stop(va_loss, prev_train_loss, tr_loss):
                 print(f'Early Stopper Activated at epoch {epoch}', flush=True)
