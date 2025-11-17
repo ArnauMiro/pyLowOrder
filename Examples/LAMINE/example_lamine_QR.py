@@ -22,7 +22,7 @@ BASEDIR = os.environ['BASEDIR']
 CASJSON = os.environ['CASJSON']
 nGPUpn  = 4
 nCPUpn  = 76
-
+restart = False ## Whether we restart QR or not
 
 ## Checking that the size matches the one declared
 nnodes = int(MPI_SIZE/nCPUpn)
@@ -42,7 +42,6 @@ rerank, CPUlist, data_key = pyQvarsi.lamine.cpu_renumbering(nCPUpn, nGPUpn, nGPU
 CASESTR, ntime, nsend, isrest, iiload = pyQvarsi.lamine.read_json(CASJSON, basedir=BASEDIR)
 nmodes = int(ntime/nsend)
 iisave  = 1 if iiload == 2 else 1
-loadQBY = False
 
 ## Read postprocessing mesh
 meshpost = pyQvarsi.MeshSOD2D.read(CASESTR, basedir=BASEDIR)
@@ -93,7 +92,7 @@ while True:
 	## We have filled the snapshots matrix, now it's time to do the decompositions!!!
 	if(len(step_list) == nmodes):
 		dataDict = {'u':uu, 'v':vv} # Add any needed variable here
-		loadQBY, iiload, iisave = pyLOM.LAMINE.QR(dataDict, nmodes, p, loadQBY, iiload, iisave, basedir=BASEDIR)
+		pyLOM.LAMINE.QR(dataDict, nmodes, p, iiload, iisave, restart=restart, basedir=BASEDIR)
 		
 		counter = 0
 		step_list = []

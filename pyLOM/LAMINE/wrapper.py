@@ -43,6 +43,10 @@ def QR(vardict:dict, nmodes:int, ptable:PartitionTable, iiload:int, iisave:int, 
 	if not hasattr(QR,'load_QBY'):
 		# load_QBY might be set to True if we are restarting, else should be False when defined
 		QR.load_QBY = True if restart else False
+	if not hasattr(QR, 'iiload'):
+		QR.iiload = iiload
+	if not hasattr(QR, 'iisave'):
+		QR.iisave = iisave
 	for var in vardict:
 		if QR.load_QBY:
 			Qvars = h5_load_QR(os.path.join(basedir,FMT_QR_FILE % (var,iiload)), ['Q','B','Y'], ptable=ptable)
@@ -54,10 +58,8 @@ def QR(vardict:dict, nmodes:int, ptable:PartitionTable, iiload:int, iisave:int, 
 		del Q, B, Y
 
 	QR.load_QBY = True
-	iiload  = 2 if iiload == 1 else 1
-	iisave  = 2 if iisave == 1 else 1
-
-	return iiload, iisave
+	QR.iiload  = 2 if QR.iiload == 1 else 1
+	QR.iisave  = 2 if QR.iisave == 1 else 1
 
 ## Recover POD modes
 @cr('LAMINE.POD')
