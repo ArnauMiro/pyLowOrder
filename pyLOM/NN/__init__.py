@@ -7,9 +7,12 @@
 # Last rev: 09/10/2024
 
 # Supress prints from tensorflow
-import os, torch, torch.nn as nn
+import os, torch, torch.nn as nn, numpy as np
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  
+from ..utils import MPI_RANK
+
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+torch.cuda.set_device(int(np.mod(MPI_RANK,torch.cuda.device_count()))) ## Set the correct device number according to MPI_RANK, if not it is only the cuda:0 working
 
 ## Flags to enchance performance when using torch compiled with cuda in the backend
 torch.backends.cudnn.enabled = True
