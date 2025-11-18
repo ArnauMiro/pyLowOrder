@@ -32,7 +32,6 @@ def save(fname:str,Q:np.ndarray,B:np.ndarray,ptable:PartitionTable,pointData:boo
 		pointData (bool, optional): bool to specify if the POD was performed either on point data or cell data (default ``True``)
 		mode (str, optional): mode in which the HDF5 file is opened, 'w' stands for write mode and 'a' stands for append mode. Write mode will overwrite the file and append mode will add the informaiton at the end of the current file, choose with great care what to do in your case (default ``w``).
 	'''
-	
 	h5_save_QR(fname,gpu_to_cpu(Q),None,gpu_to_cpu(B),ptable,nvars=1,pointData=pointData,mode=mode)
 
 ## Load the QR factorization
@@ -50,7 +49,6 @@ def load(fname:str,vars:list=['Q','B'],ptable:PartitionTable=None):
 	Returns:
 		list: list of the np.ndarray requested to load.
 	'''
-	
 	return h5_load_QR(fname,vars,ptable=ptable)
 
 @cr('GAVI.load_compressed')
@@ -68,7 +66,6 @@ def load_compressed(fname:str, ptable:PartitionTable, nelxAE:int=1, basedir:str=
 		[np.ndarray, np.ndarray, torch.tensor, torch.tensor, cp.ndarray, cp.ndarray]: arrays of the mean and standard deviation values on the CPU, tensors of the weight and biases of the decoder on the GPU and arrays of the Q and B of the latent spaces in the GPU (if available)	
 	"""
 	Qmeans, Qstds, weights, biases, Q, B = h5_load_compressed(fname, basedir, ptable, nelxAE)
-
 	return Qmeans, Qstds, torch.tensor(weights, device=DEVICE), torch.tensor(biases, device=DEVICE), cpu_to_gpu(Q), cpu_to_gpu(B)
 
 ## Create dataset

@@ -1036,7 +1036,6 @@ int slocal_randomized_qr(float *Qi, float *B, float *Ai, const int m, const int 
 	stranspose(Ai,At,m,n);
 
 	// Do power iterations
-	
 	float *R, *Q2;
 	R  = (float*)malloc(r*r*sizeof(float));
 	Q2 = (float*)malloc(n*r*sizeof(float));
@@ -1399,7 +1398,6 @@ int dlocal_randomized_qr(double *Qi, double *B, double *Ai, const int m, const i
 	dtranspose(Ai,At,m,n);
 
 	// Do power iterations
-	
 	double *R, *Q2;
 	R  = (double*)malloc(r*r*sizeof(double));
 	Q2 = (double*)malloc(n*r*sizeof(double));

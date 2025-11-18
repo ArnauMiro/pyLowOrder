@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+#
+# Example on how to reconstruct the Q matrix compressed using GAVI.
+#
+# ADD CITATION AFTER PUBLICATION OF MADRID PROCEEDINGS
+#
+# Last revision: 17/11/2025
 import torch
 import numpy as np
 import pyLOM, pyLOM.NN

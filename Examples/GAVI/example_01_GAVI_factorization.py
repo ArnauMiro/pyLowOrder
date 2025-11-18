@@ -17,7 +17,7 @@ import pyLOM, pyLOM.NN
 pyLOM.gpu_device(gpu_per_node=4) # Detect GPU configuration
 
 ## Parameters
-DATAFILE = '../cylin_velox_train.h5'
+DATAFILE = './DATA/CYLINDER.h5'
 VARLIST  = ['velox']
 
 k = 1600 ## Final number of modes we want to retain
