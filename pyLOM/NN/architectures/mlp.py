@@ -412,7 +412,8 @@ class MLP(nn.Module):
 
         if not save_only_model:
             self.checkpoint["optimizer"] = self.optimizer.state_dict()
-            self.checkpoint["scheduler"] = self.scheduler.state_dict()
+            if self.scheduler is not None:
+                self.checkpoint["scheduler"] = self.scheduler.state_dict()
         
         if os.path.isdir(path):
             filename = "/" + str(self.mname) + ".pth"
