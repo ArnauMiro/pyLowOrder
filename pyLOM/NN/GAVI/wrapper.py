@@ -24,7 +24,7 @@ from ..            import silu, DEVICE, Dataset
 from ...           import Mesh
 from ...vmmath     import temporal_mean, subtract_mean, randomized_qr2, local_randomized_qr, matmul, local_energy
 from ...utils      import cr, cr_start, cr_stop
-from ...utils      import mpi_reduce, pprint, MPI_RANK
+from ...utils      import mpi_reduce, pprint, mpi_barrier, MPI_RANK
 from ...utils      import cpu_to_gpu, gpu_to_cpu
 from ...inp_out    import h5_create_compressed, h5_flush_compressed
 
@@ -94,7 +94,7 @@ def vae_Q(fname:str,Q:tuple,mesh:Mesh,porder:int,r:int,nlayers:int=1,conv_chan:i
 	decoder = Decoder1DNoLatent(nlayers, nmod, nvars, conv_chan, kernel, padding, activ)
 	vae     = Autoencoder((nmod,), nvars, encoder, decoder, verbose=False)
 	## Create the file where the AEs parameters and latents will be saved
-	file    = h5_create_compressed(fname, basedir, r, nmod, nvars, nlayers, conv_chan, kernel, nAEsG, nptxAE, dtype)
+	h5_create_compressed(fname, basedir, r, nmod, nvars, nlayers, conv_chan, kernel, nAEsG, nptxAE, dtype)
 	means   = np.zeros((nAEs,nvars), dtype=dtype)
 	stds    = np.zeros((nAEs,nvars), dtype=dtype)
 	weights = torch.zeros((nAEs,conv_chan,nvars,kernel), device=DEVICE)
@@ -102,8 +102,7 @@ def vae_Q(fname:str,Q:tuple,mesh:Mesh,porder:int,r:int,nlayers:int=1,conv_chan:i
 	Qs      = cpu_to_gpu(np.zeros((nAEs,int(nmod/2**nlayers)*conv_chan,r), dtype=dtype))
 	Bs      = cpu_to_gpu(np.zeros((nAEs,r,nptxAE), dtype=dtype))
 	Qtrain  = np.zeros((nmod,nvars,nptxAE), dtype=np.float32)
-	iAE     = 0
-	ener_x  = 0
+	ener    = np.zeros((nvars,), dtype=np.float32)
 	for iAE in range(nAEs):
 		conecE        = mesh.connectivity[iAE*nelxAE:(iAE+1)*nelxAE].flatten()
 		_,idx         = np.unique(conecE, return_index=True)
@@ -118,17 +117,19 @@ def vae_Q(fname:str,Q:tuple,mesh:Mesh,porder:int,r:int,nlayers:int=1,conv_chan:i
 		Q2, B2  = local_randomized_qr(cp.from_dlpack(latent.T), r+10, 1)
 		latr    = torch.tensor(matmul(Q2[:,:r],B2[:r,:])).T
 		rectrL  = vae.decoder(latr)
-		ener_x += local_energy(rectrL[:,0,:].T.cpu().detach().numpy()*scaler[1]+scaler[0], Qtrain[:,0,:])
+		for ivar in range(nvars):
+			ener[ivar] += local_energy(rectrL[:,ivar,:].T.cpu().detach().numpy()*scaler[ivar,1]+scaler[ivar,0], Qtrain[:,ivar,:])
 		if np.mod(iAE,1000)==0:
-			pprint(0, iAE, ener_x/iAE, flush=True)
-		means[iAE] = scaler[0]
-		stds[iAE]  = scaler[1]
+			pprint(0, iAE, ener/iAE, flush=True)
+		means[iAE] = scaler[:,0]
+		stds[iAE]  = scaler[:,1]
 		weights[iAE,:,:,:] = vae.state_dict()['decoder.deconv_layers.0.weight'].detach().clone()
 		biases[iAE,:]      = vae.state_dict()['decoder.deconv_layers.0.bias'].detach().clone()
 		Qs[iAE] = Q2[:,:r]
 		Bs[iAE] = B2[:r,:]
 	
-	h5_flush_compressed(file, ist, ien, means, stds, weights.detach().cpu().numpy(), biases.detach().cpu().numpy(), gpu_to_cpu(Qs.get()), gpu_to_cpu(Bs.get()))
+	mpi_barrier()
+	h5_flush_compressed(fname, basedir, ist, ien, means, stds, weights.detach().cpu().numpy(), biases.detach().cpu().numpy(), gpu_to_cpu(Qs.get()), gpu_to_cpu(Bs.get()))
 	
 
 ## Reconstruct_Q
@@ -176,7 +177,6 @@ def reconstruct_Q(mesh:Mesh,nelxAE:int,nmod:int,Qmeans:np.ndarray,Qstds:np.ndarr
 			decoder.deconv_layers[0].bias.copy_(biases[iel])
 			out = decoder(lat)
 		cr_stop('GAVI.decode', 0)
-
 		Q[nodes] = (out[:,ivar,:].detach().cpu().numpy()*Qstds[iel,ivar]+Qmeans[iel,ivar])
 	
 	return Q
