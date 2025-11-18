@@ -260,12 +260,8 @@ class KAN(nn.Module):
                     current_lr_vec.append(current_lr)
 
             train_loss /= len(train_loader)
-            train_losses = torch.cat(
-                (
-                    train_losses,
-                    torch.tensor([train_loss], dtype=torch.float64, device=self.device),
-                )
-            )
+            train_losses.append(train_loss)
+
             if scheduler_type == "ReduceLROnPlateau":
                 self.scheduler.step(train_loss)
 
@@ -285,18 +281,11 @@ class KAN(nn.Module):
                             test_loss += loss.item()
 
                     test_loss /= len(test_loader)
-                    test_losses = torch.cat(
-                        (
-                            test_losses,
-                            torch.tensor(
-                                [test_loss], dtype=torch.float64, device=self.device
-                            ),
-                        )
-                    )
+                    test_losses.append(test_loss)
 
             current_lr = self.optimizer.param_groups[0]["lr"]
             current_lr_vec.append(current_lr)
-            
+
             if torch.cuda.is_available():
                 mem_used = torch.cuda.memory_allocated() / (1024**2)  # Memory usage in MB
                 memory_usage_str = f", MEM: {mem_used:.2f} MB"
