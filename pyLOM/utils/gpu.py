@@ -41,8 +41,14 @@ try:
 			[1 , 5, 3, 4]], 
 		cp.float32, order = 'C')
 		C = cp.matmul(A,B)
-		# SVD and QR
+		# QR and SVD
 		A = cp.array([[1,2],[3,4],[5,6],[7,8]],dtype=cp.float32,order='C')
+		Q,R   = cp.linalg.qr(A)
+		U,S,V = cp.linalg.svd(A)
+		# matmul, QR and SVD - bigger size
+		A = cp.random.rand(1000,100).astype(np.float32)
+		B = cp.random.rand(100,1000).astype(np.float32)
+		C = cp.matmul(A,B)
 		Q,R   = cp.linalg.qr(A)
 		U,S,V = cp.linalg.svd(A)
 

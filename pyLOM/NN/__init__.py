@@ -20,15 +20,16 @@ torch.backends.cudnn.benchmark = True
 torch.set_float32_matmul_precision('high')
 torch.cuda.empty_cache()
 ALLOW_TF32=True
+PIN_MEMORY = True if torch.cuda.is_available() else False
 
 from ..utils.plots  import plotSnapshot, plotModalErrorBars, plotTimeSeries
 
-from .pipeline      import Pipeline
+from .pipeline      import Pipeline, ClusteredPipeline
 from .utils         import Dataset, MinMaxScaler, select_device, betaLinearScheduler, create_results_folder, set_seed
 
 from .optimizer     import OptunaOptimizer
 
-from .stats         import RegressionEvaluator
+from .stats         import RegressionEvaluator, ClassificationEvaluator
 from .callbacks     import EarlyStopper
 
 from .interpolator import Interpolator
@@ -40,6 +41,8 @@ from .architectures.autoencoders      import Autoencoder, VariationalAutoencoder
 from .architectures.encoders_decoders import Encoder1D, Decoder1D, Encoder2D, Decoder2D, Encoder3D, Decoder3D, ShallowDecoder, Encoder1DNoLatent, Decoder1DNoLatent
 from .architectures.pinn              import PINN, BurgersPINN, Euler2DPINN, NavierStokesIncompressible2DPINN, BoundaryCondition
 from .architectures.shred             import SHRED
+from .architectures.binary_classifier import BinaryClassifier
+
 
 # Wrapper of the activation functions
 def tanh():      return nn.Tanh()

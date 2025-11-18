@@ -142,6 +142,7 @@ NN = [
   "torchvision",
   "torchsummary",
   "tensorflow",
+  "xgboost",
   "optuna",
 ]
 # Dependencies to work with the GPR module
@@ -190,7 +191,7 @@ package-data = {}
 version = {attr = "pyLOM.__version__"}  
 
 [tool.setuptools.packages.find]
-exclude = ["Converters", "DATA","Deps","Examples","Testsuite","Tools"]
+exclude = ["Converters", "DATA","Deps*","docs","Examples*","Testsuite*","Tools"]
 
 [build-system]
 # These are the assumed default build requirements from pip:

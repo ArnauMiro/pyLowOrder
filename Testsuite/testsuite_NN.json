@@ -11,10 +11,32 @@
 		"reset"  : false,
 		"active" : true
 	},
+	"AE_Cylinder_2D_fully": {
+		"name"   : "AE Cylinder 2D Fully",
+		"module" : "NN",
+		"file"   : "runs/tsuite_AE2D_fully.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
 	"VAE_Cylinder_2D": {
 		"name"   : "VAE Cylinder 2D",
 		"module" : "NN",
 		"file"   : "runs/tsuite_VAE2D.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
+	"VAE_Cylinder_2D_fully": {
+		"name"   : "VAE Cylinder 2D Fully",
+		"module" : "NN",
+		"file"   : "runs/tsuite_VAE2D_fully.py",
 		"data"   : "DATA/CYLINDER.h5",
 		"var"    : ["VELOX"],
 		"params" : {},
@@ -42,7 +64,7 @@
 		"params" : {"nx":96,"ny":32,"nz":64},
 		"nprocs" : 1,
 		"reset"  : false,
-		"active" : true
+		"active" : false
 	},
 	"VAE_Channel_3D": {
 		"name"   : "VAE Channel 3D",
