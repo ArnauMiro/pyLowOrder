@@ -90,10 +90,13 @@ def create_dataset(matrix:np.ndarray, scale:str='max', device:torch.device=DEVIC
 		matsca = matrix/matmax
 		scaler = matmax
 	elif scale == 'meanstd':
-		matmean = np.mean(matrix)
-		matstd  = np.std(matrix)
-		matsca  = (matrix-matmean)/matstd
-		scaler  = np.array([matmean,matstd])
+		scaler = np.zeros((matrix.shape[1], 2), dtype=np.float32)
+		matsca = np.zeros(matrix.shape, dtype=np.float32)
+		for ivar in range(matrix.shape[1]):
+			matstd  = np.std(matrix[:,ivar,:])
+			matmean = np.mean(matrix[:,ivar,:])
+			matsca[:,ivar,:] = (matrix[:,ivar,:]-matmean)/matstd
+			scaler[ivar]     = np.array([matmean,matstd])
 	else:
 		matsca = matrix
 		scaler = None
