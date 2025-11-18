@@ -4,12 +4,12 @@
 #
 # ADD CITATION AFTER PUBLICATION OF MADRID PROCEEDINGS
 #
-# Last revision: 13/11/2025
+# Last revision: 17/11/2025
 import torch
 import pyLOM, pyLOM.NN
 
 ## Architecture Parameters
-r          = 10  ## Number of modes of the latent vectors that we'll retain
+r          = 15  ## Number of modes of the latent vectors that we'll retain
 porder     = 4   ## Input the pOrder of the original mesh to group the rest of elements
 out_file   = 'compressed_data_array'
 
