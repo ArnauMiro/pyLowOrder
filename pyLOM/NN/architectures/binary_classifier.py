@@ -105,7 +105,7 @@ class BinaryClassifier:
     @staticmethod
     def _dataset_to_numpy(dataset: torch.utils.data.Dataset) -> Tuple[np.ndarray, np.ndarray]:
         """Load the whole dataset into NumPy arrays (X, y)."""
-        loader = DataLoader(dataset, batch_size=len(dataset), shuffle=False, num_workers=0, pin_memory=True)
+        loader = DataLoader(dataset, batch_size=len(dataset), shuffle=False, num_workers=0, pin_memory=PIN_MEMORY)
         xs, ys = [], []
         for x, y in loader:
             xs.append(x.detach().cpu().numpy())
