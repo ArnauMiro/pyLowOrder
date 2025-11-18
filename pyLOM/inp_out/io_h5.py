@@ -1056,17 +1056,18 @@ def h5_create_compressed(fname:str,basedir:str,r:int,nmod:int,nvars:int,nlayers:
 	lats.create_dataset("Q",  shape=(nAEsG,int(nmod/2**nlayers)*conv_chan,r), dtype=dtype)
 	lats.create_dataset("B", shape=(nAEsG,r,nptxAE), dtype=dtype)
 
-	return file
+	file.close()
 
 @cr('io.flush_compressed')
-def h5_flush_compressed(file:str,ist:int,ien:int,means:np.ndarray,stds:np.ndarray,weights:np.ndarray,biases:np.ndarray,Q:np.ndarray,B:np.ndarray):
+def h5_flush_compressed(fname:str,basedir:str,ist:int,ien:int,means:np.ndarray,stds:np.ndarray,weights:np.ndarray,biases:np.ndarray,Q:np.ndarray,B:np.ndarray):
 	r'''
 	Function to save the data into the hdf5 file created with the h5_create_compressed function so that at every compression iteration the scalers, decoder parameters and the factorization of the latent space are properly saved
 
 	AFEGIR LA CITA DELS PROCEEDINGS DE MADRID
 
 	Args:
-		file (h5py.File): file in which the data has to be saved
+		fname (str): file in which the data has to be saved
+		basedir (str): folder in which the file will be saved
 		ist (int): ID of the first element to be compressed by the current core
 		ien (int): ID of the last element
 		means (np.ndarray): array containing the mean of the compressed data
@@ -1080,6 +1081,7 @@ def h5_flush_compressed(file:str,ist:int,ien:int,means:np.ndarray,stds:np.ndarra
 	Returns;
 		h5py.File file in which the data has been saved. It must be closed when all cores finish compressing their data
 	'''
+	file  = h5py.File('%s/%s.h5' % (basedir, fname), mode="a", driver='mpio', comm=MPI_COMM)
 	file['STATS/mean'][ist:ien,:] = means
 	file['STATS/std'][ist:ien,:]  = stds
 	file['DECODER/weights'][ist:ien,:,:,:] = weights
