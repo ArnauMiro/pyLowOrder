@@ -110,7 +110,7 @@ class KAN(nn.Module):
     def fit(
         self,
         train_dataset: torch.utils.data.Dataset,
-        eval_dataset: torch.utils.data.Dataset,
+        eval_dataset: torch.utils.data.Dataset = None,
         batch_size: int = 32,
         epochs: int = 100,
         lr: float = 0.001,
@@ -192,7 +192,8 @@ class KAN(nn.Module):
             if key in kwargs:
                 dataloader_params[key] = kwargs[key]
         train_loader = DataLoader(train_dataset, **dataloader_params)
-        test_loader = DataLoader(eval_dataset, **dataloader_params)
+        if eval_dataset is not None:
+            test_loader = DataLoader(eval_dataset, **dataloader_params)
 
         train_losses = []
         test_losses = []
@@ -259,57 +260,49 @@ class KAN(nn.Module):
                     current_lr_vec.append(current_lr)
 
             train_loss /= len(train_loader)
-            train_losses = torch.cat(
-                (
-                    train_losses,
-                    torch.tensor([train_loss], dtype=torch.float64, device=self.device),
-                )
-            )
+            train_losses.append(train_loss)
+
             if scheduler_type == "ReduceLROnPlateau":
                 self.scheduler.step(train_loss)
 
-            if (epoch + 1) % print_eval_rate == 0:
-                self.eval()
-                test_loss = 0.0
-                with torch.no_grad():
-                    for inputs, targets in test_loader:
-                        inputs, targets = (
-                            inputs.float().to(self.device),
-                            targets.float().to(self.device),
-                        )
-                        outputs = self(inputs)
-                        loss = loss_fn(outputs, targets)
-                        loss_iterations_test.append(loss.item())
-                        test_loss += loss.item()
+            test_loss = 0.0
+            if eval_dataset is not None:
+                if (epoch + 1) % print_eval_rate == 0:
+                    self.eval()
+                    with torch.no_grad():
+                        for inputs, targets in test_loader:
+                            inputs, targets = (
+                                inputs.float().to(self.device),
+                                targets.float().to(self.device),
+                            )
+                            outputs = self(inputs)
+                            loss = loss_fn(outputs, targets)
+                            loss_iterations_test.append(loss.item())
+                            test_loss += loss.item()
 
-                test_loss /= len(test_loader)
-                test_losses = torch.cat(
-                    (
-                        test_losses,
-                        torch.tensor(
-                            [test_loss], dtype=torch.float64, device=self.device
-                        ),
-                    )
+                    test_loss /= len(test_loader)
+                    test_losses.append(test_loss)
+
+            current_lr = self.optimizer.param_groups[0]["lr"]
+            current_lr_vec.append(current_lr)
+
+            if torch.cuda.is_available():
+                mem_used = torch.cuda.memory_allocated() / (1024**2)  # Memory usage in MB
+                memory_usage_str = f", MEM: {mem_used:.2f} MB"
+            else:
+                memory_usage_str = ""
+
+            if verbose:
+                pprint(
+                    0,
+                    f"Epoch {epoch + 1}/{epochs}, Train Loss: {train_loss:.4e}, Test Loss: {test_loss:.4e}, "
+                    f"LR: {current_lr:.2e}{memory_usage_str}",
                 )
-                current_lr = self.optimizer.param_groups[0]["lr"]
-                current_lr_vec.append(current_lr)
-                if torch.cuda.is_available():
-                    mem_used = torch.cuda.memory_allocated() / (1024**2)  # Memory usage in MB
-                    memory_usage_str = f", MEM: {mem_used:.2f} MB"
-                else:
-                    memory_usage_str = ""
-
+            # check if the loss is NaN and stop training
+            if torch.isnan(torch.tensor(test_loss)):
                 if verbose:
-                    pprint(
-                        0,
-                        f"Epoch {epoch + 1}/{epochs}, Train Loss: {train_loss:.4e}, Test Loss: {test_loss:.4e}, "
-                        f"LR: {current_lr:.2e}{memory_usage_str}",
-                    )
-                # check if the loss is NaN and stop training
-                if torch.isnan(torch.tensor(test_loss)):
-                    if verbose:
-                        pprint(0, f"Stopping training at epoch {epoch + 1} due to NaN in test loss.")
-                    break
+                    pprint(0, f"Stopping training at epoch {epoch + 1} due to NaN in test loss.")
+                break
 
         results = {
             "train_loss": np.array(train_losses),
