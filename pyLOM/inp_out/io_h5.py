@@ -1019,3 +1019,104 @@ def h5_load_SPOD(fname,vars,nmod,ptable=None):
 	# Return
 	file.close()
 	return varList
+
+@cr('io.create_compressed')
+def h5_create_compressed(fname:str,basedir:str,r:int,nmod:int,nvars:int,nlayers:int,conv_chan:int,kernel:int,nAEsG:int,nptxAE:int,dtype:np.dtype):
+	r'''
+	Function to create the groups of the decoders, the latent spaces and the scalers when the Q matrix from a randomized QR factorization is compressed using GAVI:
+
+	AFEGIR LA CITA DELS PROCEEDINGS DE MADRID
+
+	Args:
+		fname (str): name of the file
+		basedir (str): folder in which the file will be saved
+		r (int): truncation modes of the latent space
+		nmod (int): number of modes being compressed
+		nvars (int): number of variables being compressed
+		nlayers (int): number of convolutional layers in the decoder
+		conv_channels (int): number of convolutional channels that has each layer of the decoder
+		kernel (int): kernel size of the convolutions
+		nAEsG (int): total number of autoencoders used to compress the matrix
+		nptxAE (int): number of points per autoencoder in the matrix
+		dtype (np.dtype): precision in which to save the arrays
+
+	Returns
+		h5py.File the file is not closed and once this function creates it, it returns its pointer to be used during the compression. 
+		Note: The file must be closed at the end of the compression using file.close()
+
+	'''
+	file  = h5py.File('%s/%s.h5' % (basedir, fname), mode="w", driver='mpio', comm=MPI_COMM)
+	stats = file.create_group("STATS")
+	stats.create_dataset("mean", shape=(nAEsG,nvars), dtype=dtype)
+	stats.create_dataset("std",  shape=(nAEsG,nvars), dtype=dtype)
+	decod = file.create_group("DECODER")
+	decod.create_dataset("weights", shape=(nAEsG,conv_chan,nvars,kernel), dtype=dtype)
+	decod.create_dataset("biases", shape=(nAEsG,nvars), dtype=dtype)
+	lats  = file.create_group("LATENTS")
+	lats.create_dataset("Q",  shape=(nAEsG,int(nmod/2**nlayers)*conv_chan,r), dtype=dtype)
+	lats.create_dataset("B", shape=(nAEsG,r,nptxAE), dtype=dtype)
+
+	file.close()
+
+@cr('io.flush_compressed')
+def h5_flush_compressed(fname:str,basedir:str,ist:int,ien:int,means:np.ndarray,stds:np.ndarray,weights:np.ndarray,biases:np.ndarray,Q:np.ndarray,B:np.ndarray):
+	r'''
+	Function to save the data into the hdf5 file created with the h5_create_compressed function so that at every compression iteration the scalers, decoder parameters and the factorization of the latent space are properly saved
+
+	AFEGIR LA CITA DELS PROCEEDINGS DE MADRID
+
+	Args:
+		fname (str): file in which the data has to be saved
+		basedir (str): folder in which the file will be saved
+		ist (int): ID of the first element to be compressed by the current core
+		ien (int): ID of the last element
+		means (np.ndarray): array containing the mean of the compressed data
+		stds (np.ndarray): array containing the std of the compressed data
+		weights (np.ndarray): array containing the weights of the decoders
+		biases (np.ndarray): array containing the biases of the decoders
+		Q (np.ndarray): Q matrix of the factorization of the latent vectors
+		B (np.ndarray): B matrix of the factorization of the latent vectors
+		r (int): truncation value of the factorized latent vectors
+
+	Returns;
+		h5py.File file in which the data has been saved. It must be closed when all cores finish compressing their data
+	'''
+	file  = h5py.File('%s/%s.h5' % (basedir, fname), mode="a", driver='mpio', comm=MPI_COMM)
+	file['STATS/mean'][ist:ien,:] = means
+	file['STATS/std'][ist:ien,:]  = stds
+	file['DECODER/weights'][ist:ien,:,:,:] = weights
+	file['DECODER/biases'][ist:ien,:]      = biases
+	file['LATENTS/Q'][ist:ien,:,:]  = Q
+	file['LATENTS/B'][ist:ien,:,:] = B
+
+	file.close()
+	
+
+@cr('io.load_compressed')
+def h5_load_compressed(fname:str, basedir:str, ptable:PartitionTable, nelxAE:int):
+	r"""
+	Load the necessary information to decompress the Q matrix atre using GAVI:
+	
+	CITA PROCEEDINGS MADRID
+	
+	Args:
+		fname (str): name of the file to load
+		basedir (str): directory where the file is located
+		ptable (PartitionTable): partition of the mesh in which the data will be represented after decompression:
+		nelxAE (int): number of elements in each autoencoder
+		
+	Returns:
+		[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray] The 6 arrays saved in the compressed file: the mean and standard deviation of the inputs, the decoder parameters and the factorized latent spaces	
+	"""
+	ist,ien = ptable.partition_bounds(MPI_RANK,points=False)
+	ist,ien = int(ist/nelxAE), int(ien/nelxAE)
+	file    = h5py.File('%s/%s' % (basedir,fname), mode="r", driver='mpio', comm=MPI_COMM)
+	Qmeans  = np.array(file['/STATS/mean'][ist:ien,:])
+	Qstds   = np.array(file['/STATS/std'][ist:ien,:])
+	weights = np.array(file['/DECODER/weights'][ist:ien,:,:,:])
+	biases  = np.array(file['/DECODER/biases'][ist:ien,:])
+	Q       = np.array(file['/LATENTS/Q'][ist:ien,:,:])
+	B       = np.array(file['/LATENTS/B'][ist:ien,:,:])
+	file.close()
+
+	return Qmeans, Qstds, weights, biases, Q, B

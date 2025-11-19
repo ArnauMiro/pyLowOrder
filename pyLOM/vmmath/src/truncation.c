@@ -185,3 +185,59 @@ double denergy(double *A, double *B, const int m, const int n) {
 	// Return
 	return 1 - sum1g/sum2g;
 }
+
+float slocal_energy(float *A, float *B, const int m, const int n) {
+	/*
+		Compute reconstruction energy considering that the data is only in one processor and there's no data sharing between cores. Energy defined as as in :
+		Eivazi, H., Le Clainche, S., Hoyas, S., & Vinuesa, R. (2022). 
+		Towards extraction of orthogonal and parsimonious non-linear modes from turbulent flows. 
+		Expert Systems with Applications, 202, 117038.
+		https://doi.org/10.1016
+	*/
+	int ii, jj;
+	float sum1 = 0., norm1 = 0., sum1g = 0.;
+	float sum2 = 0., norm2 = 0., sum2g = 0.;
+	#ifdef USE_OMP
+	#pragma omp parallel for private(ii,jj) shared(A,B) firstprivate(m,n)
+	#endif
+	for(ii = 0; ii < m; ++ii) {
+		norm1 = 0.;
+		norm2 = 0.;
+		for(jj = 0; jj < n; ++jj){
+			norm1 += POW2(AC_MAT(A,n,ii,jj) - AC_MAT(B,n,ii,jj));
+			norm2 += POW2(AC_MAT(A,n,ii,jj));
+		}
+		sum1 += norm1;
+		sum2 += norm2;
+	}
+	// Return
+	return 1 - sum1/sum2;
+}
+
+double dlocal_energy(double *A, double *B, const int m, const int n) {
+	/*
+		Compute reconstruction energy considering that the data is only in one processor and there's no data sharing between cores. Energy defined as as in :
+		Eivazi, H., Le Clainche, S., Hoyas, S., & Vinuesa, R. (2022). 
+		Towards extraction of orthogonal and parsimonious non-linear modes from turbulent flows. 
+		Expert Systems with Applications, 202, 117038.
+		https://doi.org/10.1016
+	*/
+	int ii, jj;
+	double sum1 = 0., norm1 = 0., sum1g = 0.;
+	double sum2 = 0., norm2 = 0., sum2g = 0.;
+	#ifdef USE_OMP
+	#pragma omp parallel for private(ii,jj) shared(A,B) firstprivate(m,n)
+	#endif
+	for(ii = 0; ii < m; ++ii) {
+		norm1 = 0.;
+		norm2 = 0.;
+		for(jj = 0; jj < n; ++jj){
+			norm1 += POW2(AC_MAT(A,n,ii,jj) - AC_MAT(B,n,ii,jj));
+			norm2 += POW2(AC_MAT(A,n,ii,jj));
+		}
+		sum1 += norm1;
+		sum2 += norm2;
+	}
+	// Return
+	return 1 - sum1/sum2;
+}

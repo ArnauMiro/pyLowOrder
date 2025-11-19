@@ -15,8 +15,8 @@ from libc.time     cimport time
 from libc.stdlib   cimport malloc, free
 from libc.string   cimport memcpy, memset
 from .cfuncs       cimport real, real_complex, real_full
-from .cfuncs       cimport c_sqr, c_ssvd, c_stsqr, c_stsqr_svd, c_srandomized_qr, c_sinit_randomized_qr, c_supdate_randomized_qr, c_srandomized_svd
-from .cfuncs       cimport c_dqr, c_dsvd, c_dtsqr, c_dtsqr_svd, c_drandomized_qr, c_dinit_randomized_qr, c_dupdate_randomized_qr, c_drandomized_svd
+from .cfuncs       cimport c_sqr, c_ssvd, c_stsqr, c_stsqr_svd, c_srandomized_qr, c_slocal_randomized_qr, c_sinit_randomized_qr, c_supdate_randomized_qr, c_srandomized_svd
+from .cfuncs       cimport c_dqr, c_dsvd, c_dtsqr, c_dtsqr_svd, c_drandomized_qr, c_dlocal_randomized_qr, c_dinit_randomized_qr, c_dupdate_randomized_qr, c_drandomized_svd
 from .cfuncs       cimport c_cqr, c_csvd, c_ctsqr, c_ctsqr_svd
 from .cfuncs       cimport c_zqr, c_zsvd, c_ztsqr, c_ztsqr_svd
 from ..utils.cr     import cr
@@ -464,6 +464,64 @@ def tsqr_svd(real_full[:,:] A):
 		return _dtsqr_svd(A)
 	else:
 		return _stsqr_svd(A)
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def _slocal_randomized_qr(float[:,:] A, int r, int q, int seed):
+	'''
+	Parallel Randomized QR factorization using Lapack.
+		Q(m,r)   
+		B(r,n)  
+	'''
+	cdef int retval
+	cdef int m = A.shape[0], n = A.shape[1]
+	cdef np.ndarray[np.float32_t,ndim=2] Q = np.zeros((m,r),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=2] B = np.zeros((r,n),dtype=np.float32)
+	# Compute SVD using randomized algorithm
+	retval = c_slocal_randomized_qr(&Q[0,0],&B[0,0],&A[0,0],m,n,r,q,seed)
+	if not retval == 0: raiseError('Problems computing Randomized SVD!')
+	return Q,B
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def _dlocal_randomized_qr(double[:,:] A, int r, int q, int seed):
+	'''
+	Parallel Randomized QR factorization using Lapack.
+		Q(m,r)   
+		B(n,n)    
+	'''
+	cdef int retval
+	cdef int m = A.shape[0], n = A.shape[1]
+	cdef np.ndarray[np.double_t,ndim=2] Q = np.zeros((m,r),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] B = np.zeros((r,n),dtype=np.double)
+	# Compute SVD using randomized algorithm
+	retval = c_dlocal_randomized_qr(&Q[0,0],&B[0,0],&A[0,0],m,n,r,q,seed)
+	if not retval == 0: raiseError('Problems computing Randomized SVD!')
+	return Q,B
+
+@cr('math.randomized_qr')
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def local_randomized_qr(real[:,:] A, const int r, const int q, const int seed=-1):
+	'''
+	Parallel Single value decomposition (SVD) using Lapack.
+		Q(m,r)   
+		B(n,r)   
+	'''
+	seed = <int>time(NULL) if seed < 0 else seed
+	if real is double:
+		return _dlocal_randomized_qr(A,r,q,seed)
+	else:
+		return _slocal_randomized_qr(A,r,q,seed)
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function

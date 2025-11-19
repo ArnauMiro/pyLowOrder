@@ -9,6 +9,173 @@
 import torch.nn as nn
 import torch
 
+class Encoder1D(nn.Module):
+    r"""
+    Encoder1D class for the 1D Convolutional Autoencoder.
+
+    Args:
+        nlayers (int): Number of layers in the encoder.
+        latent_dim (int): Latent dimension of the encoder.
+        nh (int): Height of the input.
+        input_channels (int): Number of input channels.
+        filter_channels (int): Number of filter channels.
+        kernel_size (int): Kernel size for the convolutional layers.
+        padding (int): Padding for the convolutional layers.
+        activation_funcs (list): List of activation functions.
+        nlinear (int): Number of neurons in the linear layer.
+        batch_norm (bool): Whether to use batch normalization. Default is ``False``.
+        stride (int): Stride for the convolutional layers. Default is ``2``.
+        dropout (float): Dropout probability. Default is ``0``.
+        vae (bool): Wheather the encoder is going to be used on a VAE or not. Default is ``False``.
+    """
+
+    def __init__(self, nlayers, latent_dim, input_length, input_channels,
+                 filter_channels, kernel_size, padding, activation_funcs,
+                 nlinear, batch_norm=True, stride=2, dropout=0, vae=True):
+        super(Encoder1D, self).__init__()
+
+        self.nlayers    = nlayers
+        self.filt_chan  = filter_channels
+        self.in_chan    = input_channels
+        self.lat_dim    = latent_dim
+        self.input_len  = input_length
+        self.isvae      = vae
+        self.funcs      = activation_funcs
+        self.nlinear    = nlinear
+        self.batch_norm = batch_norm
+        self.dropout    = nn.Dropout(p=dropout)
+
+        self.conv_layers = nn.ModuleList()
+        self.norm_layers = nn.ModuleList()
+        in_channels = self.in_chan
+
+        for ilayer in range(self.nlayers):
+            out_channels = self.filt_chan * (1 << ilayer)
+            conv_layer = nn.Conv1d(in_channels, out_channels, kernel_size, stride, padding)
+            self.conv_layers.append(conv_layer)
+            if self.batch_norm:
+                self.norm_layers.append(nn.GroupNorm(out_channels, out_channels))
+            in_channels = out_channels
+
+        # Compute the length after all downsampling
+        conv_length = self.input_len
+        for _ in range(self.nlayers):
+            conv_length = (conv_length + 2 * padding - kernel_size) // stride + 1
+
+        self.flat     = nn.Flatten()
+        fc_input_size = out_channels * conv_length
+        self.fc1      = nn.Linear(fc_input_size, self.nlinear)
+        
+        if self.isvae:
+            self.mu     = nn.Linear(self.nlinear, self.lat_dim)
+            self.logvar = nn.Linear(self.nlinear, self.lat_dim)
+        else:
+            self.z = nn.Linear(self.nlinear, self.lat_dim)
+
+        self._reset_parameters()
+    
+    def _reset_parameters(self):
+        for layer in self.modules():
+            if isinstance(layer, (nn.Conv1d, nn.Linear)):
+                nn.init.xavier_uniform_(layer.weight)
+
+    def forward(self, x):
+        out = x
+        for ilayer, conv_layer in enumerate(self.conv_layers):
+            out = conv_layer(out)
+            if self.batch_norm:
+                out = self.norm_layers[ilayer](out)
+            out = self.funcs[ilayer](out)
+        out = self.funcs[ilayer + 1](self.flat(out))
+        out = self.funcs[ilayer + 2](self.fc1(out))
+        if self.isvae:
+            return self.mu(out), self.logvar(out)
+        else:
+            return self.z(out)
+
+class Decoder1D(nn.Module):
+    r"""
+    Decoder1D class for the 1D Convolutional Autoencoder.
+
+    Args:
+        nlayers (int): Number of layers in the encoder.
+        latent_dim (int): Latent dimension of the encoder.
+        nh (int): Height of the input mesh/image.
+        input_channels (int): Number of input channels.
+        filter_channels (int): Number of filter channels.
+        kernel_size (int): Kernel size for the convolutional layers.
+        padding (int): Padding for the convolutional layers.
+        activation_funcs (list): List of activation functions.
+        nlinear (int): Number of neurons in the linear layer.
+        batch_norm (bool): Whether to use batch normalization. Default is ``False``.
+        stride (int): Stride for the convolutional layers. Default is ``2``.
+        dropout (float): Dropout probability. Default is ``0``.
+    """
+    def __init__(self, nlayers, latent_dim, input_length, input_channels,
+                 filter_channels, kernel_size, padding, activation_funcs,
+                 nlinear, batch_norm=True, stride=2, dropout=0):
+        super(Decoder1D, self).__init__()
+
+        self.nlayers    = nlayers
+        self.filt_chan  = filter_channels
+        self.in_chan    = input_channels
+        self.lat_dim    = latent_dim
+        self.input_len  = input_length
+        self.funcs      = activation_funcs
+        self.nlinear    = nlinear
+        self.batch_norm = batch_norm
+        self.dropout    = nn.Dropout(p=dropout)
+
+        self.fc1 = nn.Linear(self.lat_dim, self.nlinear)
+
+        # Compute the length after deconvolutions (in reverse)
+        deconv_length = self.input_len
+        for _ in range(self.nlayers):
+            deconv_length = (deconv_length - 1) // stride + 1
+
+        conv1d_channels = self.filt_chan * (1 << (self.nlayers - 1))
+        self.fc2 = nn.Linear(self.nlinear, conv1d_channels * deconv_length)
+
+        self.deconv_layers = nn.ModuleList()
+        self.norm_layers   = nn.ModuleList()
+        in_channels = conv1d_channels
+
+        for i in range(self.nlayers - 1, 0, -1):
+            out_channels = self.filt_chan * (1 << (i - 1))
+            deconv = nn.ConvTranspose1d(in_channels, out_channels, kernel_size, stride, padding)
+            self.deconv_layers.append(deconv)
+            if self.batch_norm:
+                self.norm_layers.append(nn.GroupNorm(in_channels,in_channels))
+            in_channels = out_channels
+
+        # Final layer: back to input channels
+        deconv_final = nn.ConvTranspose1d(in_channels, self.in_chan, kernel_size, stride, padding)
+        self.deconv_layers.append(deconv_final)
+        if self.batch_norm:
+            self.norm_layers.append(nn.GroupNorm(in_channels,in_channels))
+
+        self._reset_parameters()
+
+    def _reset_parameters(self):
+        for layer in self.modules():
+            if isinstance(layer, (nn.ConvTranspose1d, nn.Linear)):
+                nn.init.xavier_uniform_(layer.weight)
+
+    def forward(self, x):
+        out = self.funcs[self.nlayers + 1](self.fc1(x))
+        out = self.funcs[self.nlayers](self.fc2(out))
+
+        conv1d_channels = self.filt_chan * (1 << (self.nlayers - 1))
+        deconv_length = out.shape[1] // conv1d_channels
+        out = out.view(out.size(0), conv1d_channels, deconv_length)
+
+        for ilayer, deconv_layer in enumerate(self.deconv_layers[:-1]):
+            if self.batch_norm:
+                out = self.norm_layers[ilayer](out)
+            out = self.funcs[self.nlayers - ilayer - 1](deconv_layer(out))
+
+        return self.deconv_layers[-1](out)
+
 
 class Encoder2D(nn.Module):
     r"""
@@ -592,3 +759,146 @@ class ShallowDecoder(nn.Module):
 		for layer in self.layers:
 			output = layer(output)
 		return output
+    
+class Encoder1DNoLatent(nn.Module):
+    r"""
+    Encoder1D class for the 1D Convolutional Autoencoder without linear layers to compress the latent space, useful for data compression.
+
+    Args:
+        nlayers (int): Number of layers in the encoder.
+        input_channels (int): Number of input channels.
+        filter_channels (int): Number of filter channels.
+        kernel_size (int): Kernel size for the convolutional layers.
+        padding (int): Padding for the convolutional layers.
+        activation_funcs (list): List of activation functions.
+        batch_norm (bool): Whether to use batch normalization. Default is ``False``.
+        stride (int): Stride for the convolutional layers. Default is ``2``.
+        dropout (float): Dropout probability. Default is ``0``.
+        vae (bool): Wheather the encoder is going to be used on a VAE or not. Default is ``False``.
+    """
+    def __init__(self, nlayers, input_length, input_channels,
+                 filter_channels, kernel_size, padding, activation_funcs,
+                 batch_norm=False, stride=2, dropout=0, vae=False):
+        super(Encoder1DNoLatent, self).__init__()
+
+        self.nlayers    = nlayers
+        self.filt_chan  = filter_channels
+        self.in_chan    = input_channels
+        self.input_len  = input_length
+        self.isvae      = vae
+        self.funcs      = activation_funcs
+        self.batch_norm = batch_norm
+        self.dropout    = nn.Dropout(p=dropout)
+
+        self.conv_layers = nn.ModuleList()
+        self.norm_layers = nn.ModuleList()
+        in_channels = self.in_chan
+
+        for ilayer in range(self.nlayers):
+            out_channels = self.filt_chan * (1 << ilayer)
+            conv_layer = nn.Conv1d(in_channels, out_channels, kernel_size, stride, padding)
+            self.conv_layers.append(conv_layer)
+            if self.batch_norm:
+                self.norm_layers.append(nn.GroupNorm(out_channels, out_channels))
+            in_channels = out_channels
+
+        # Compute the length after all downsampling
+        conv_length = self.input_len
+        for _ in range(self.nlayers):
+            conv_length = (conv_length + 2 * padding - kernel_size) // stride + 1
+
+        self.flat     = nn.Flatten()
+        
+        self._reset_parameters()
+    
+    def _reset_parameters(self):
+        for layer in self.modules():
+            if isinstance(layer, (nn.Conv1d, nn.Linear)):
+                nn.init.xavier_uniform_(layer.weight)
+
+    def forward(self, x):
+        out = x
+        for ilayer, conv_layer in enumerate(self.conv_layers):
+            #print(out.shape)
+            out = conv_layer(out)
+            if self.batch_norm:
+                out = self.norm_layers[ilayer](out)
+            out = self.funcs[ilayer](out)
+        out = self.funcs[self.nlayers - ilayer - 1](self.flat(out))
+        return out
+
+class Decoder1DNoLatent(nn.Module):
+    r"""
+    Decoder1D class for the 1D Convolutional Autoencoder without linear layers for latent space compression.
+
+    Args:
+        nlayers (int): Number of layers in the encoder.
+        input_channels (int): Number of input channels.
+        filter_channels (int): Number of filter channels.
+        kernel_size (int): Kernel size for the convolutional layers.
+        padding (int): Padding for the convolutional layers.
+        activation_funcs (list): List of activation functions.
+        batch_norm (bool): Whether to use batch normalization. Default is ``False``.
+        stride (int): Stride for the convolutional layers. Default is ``2``.
+        dropout (float): Dropout probability. Default is ``0``.
+    """
+    def __init__(self, nlayers, input_length, input_channels,
+                 filter_channels, kernel_size, padding, activation_funcs,
+                batch_norm=False, stride=2, dropout=0):
+        super(Decoder1DNoLatent, self).__init__()
+
+        self.nlayers    = nlayers
+        self.filt_chan  = filter_channels
+        self.in_chan    = input_channels
+        self.input_len  = input_length
+        self.funcs      = activation_funcs
+        self.batch_norm = batch_norm
+        self.dropout    = nn.Dropout(p=dropout)
+
+
+        # Compute the length after deconvolutions (in reverse)
+        deconv_length = self.input_len
+
+        for _ in range(self.nlayers):
+            deconv_length = (deconv_length - 1) // stride + 1
+
+        conv1d_channels = self.filt_chan * (1 << (self.nlayers - 1))
+        #self.fc1 = nn.Linear(128, deconv_length*conv1d_channels)
+
+        self.deconv_layers = nn.ModuleList()
+        self.norm_layers   = nn.ModuleList()
+        in_channels = conv1d_channels
+
+        for i in range(self.nlayers - 1, 0, -1):
+            out_channels = self.filt_chan * (1 << (i - 1))
+            deconv = nn.ConvTranspose1d(in_channels, out_channels, kernel_size, stride, padding)
+            self.deconv_layers.append(deconv)
+            if self.batch_norm:
+                self.norm_layers.append(nn.GroupNorm(in_channels,in_channels))
+            in_channels = out_channels
+
+        # Final layer: back to input channels
+        deconv_final = nn.ConvTranspose1d(in_channels, self.in_chan, kernel_size, stride, padding)
+        self.deconv_layers.append(deconv_final)
+        if self.batch_norm:
+            self.norm_layers.append(nn.GroupNorm(in_channels,in_channels))
+
+        self._reset_parameters()
+
+    def _reset_parameters(self):
+        for layer in self.modules():
+            if isinstance(layer, (nn.ConvTranspose1d, nn.Linear)):
+                nn.init.xavier_uniform_(layer.weight)
+
+    def forward(self, x):
+        conv1d_channels = self.filt_chan * (1 << (self.nlayers - 1))
+        #x   = self.funcs[self.nlayers - 1](self.fc1(x))
+        deconv_length = x.shape[1] // conv1d_channels
+        out = x.view(x.size(0), conv1d_channels, deconv_length)
+
+        for ilayer, deconv_layer in enumerate(self.deconv_layers[:-1]):
+            if self.batch_norm:
+                out = self.norm_layers[ilayer](out)
+            out = self.funcs[self.nlayers - ilayer - 1](deconv_layer(out))
+
+        return self.deconv_layers[-1](out)

@@ -117,6 +117,33 @@ def tsqr(Ai):
 	Qi = matmul(Q1i, QW)
 	return Qi,R
 
+@cr('math.local_randomized_qr')
+def local_randomized_qr(Ai, r, q, seed=-1):
+	r'''
+	Randomized QR factorization locally done in each processor. No data is communicated to other cores!
+	Ai(m,n)  data matrix dispersed on each processor.
+	r        target number of modes
+
+	Qi(m,r)  
+	B (r,n) 
+	'''
+	p = cp if type(Ai) is cp.ndarray else np
+	_, n  = Ai.shape
+	seed = int(time.time()) if seed < 0 else seed
+	p.random.seed(seed=seed)
+	omega = p.random.rand(n, r).astype(Ai.dtype)
+	Yi = matmul(Ai,omega)
+	# QR factorization on A
+	for j in range(q):
+		Qi,_ = qr(Yi)
+		Q2i  = matmul(Ai.T,Qi)
+		Yi   = matmul(Ai,Q2i)
+
+	Qi,_ = qr(Yi)
+	B    = matmul(Qi.T,Ai)
+
+	return Qi, B
+
 @cr('math.randomized_qr')
 def randomized_qr(Ai, r, q, seed=-1):
 	'''
