@@ -53,7 +53,7 @@ td   = pyLOM.NN.Dataset((u_x,), (in_size,))  # Flat the data
 ## Set and train the fully connected autoencoder
 encoder    = pyLOM.NN.FullyConnectedEncoder2D(hidden_layer_sizes=hidden_layer_sizes_enc, lat_dim=lat_dim, in_size=in_size, activation_funcs=activations)
 decoder    = pyLOM.NN.FullyConnectedDecoder2D(hidden_layer_sizes=hidden_layer_sizes_dec, lat_dim=lat_dim, out_size=in_size, activation_funcs=activations)
-model      = pyLOM.NN.FullyConnectedAutoencoder(latent_dim=lat_dim, in_size=in_size, encoder=encoder, decoder=decoder, device=device)
+model      = pyLOM.NN.FullyConnectedAutoencoder(in_size=in_size, encoder=encoder, decoder=decoder, device=device)
 early_stop = pyLOM.NN.EarlyStopper(patience=5, min_delta=0.02)
 
 pipeline = pyLOM.NN.Pipeline(

@@ -256,7 +256,6 @@ class FullyConnectedAutoencoder(nn.Module):
     Autoencoder class for neural network module. The model is based on the PyTorch.
 
     Args:
-        latent_dim (int): Dimension of the latent space.
         in_size (int): Size of the input data.
         encoder (torch.nn.Module): Encoder model.
         decoder (torch.nn.Module): Decoder model.
@@ -265,14 +264,12 @@ class FullyConnectedAutoencoder(nn.Module):
 
     def __init__(
         self,
-        latent_dim: int,
         in_size: int,
         encoder: nn.Module,
         decoder: nn.Module,
         device: torch.device = DEVICE,
     ):
         super(FullyConnectedAutoencoder, self).__init__()
-        self.lat_dim  = latent_dim
         self.in_size  = in_size
         self.encoder  = encoder
         self.decoder  = decoder
