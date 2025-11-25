@@ -12,7 +12,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from ..utils import MPI_RANK
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-torch.cuda.set_device(int(MPI_RANK % torch.cuda.device_count())) ## Set the correct device number according to MPI_RANK, if not it is only the cuda:0 working
+# Set the correct device number according to MPI_RANK, if not it is only the cuda:0 working
+if torch.cuda.is_available(): torch.cuda.set_device(int(MPI_RANK % torch.cuda.device_count())) 
 
 ## Flags to enchance performance when using torch compiled with cuda in the backend
 torch.backends.cudnn.enabled = True
