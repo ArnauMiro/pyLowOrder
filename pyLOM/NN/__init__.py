@@ -20,21 +20,21 @@ torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = True
 torch.set_float32_matmul_precision('high')
 torch.cuda.empty_cache()
-ALLOW_TF32=True
+ALLOW_TF32 = True
 PIN_MEMORY = True if torch.cuda.is_available() else False
 
-from ..utils.plots  import plotSnapshot, plotModalErrorBars, plotTimeSeries
+from ..utils.plots                    import plotSnapshot, plotModalErrorBars, plotTimeSeries
 
-from .pipeline      import Pipeline, ClusteredPipeline
-from .utils         import Dataset, MinMaxScaler, select_device, betaLinearScheduler, create_results_folder, set_seed
+from .pipeline                        import Pipeline, ClusteredPipeline
+from .utils                           import Dataset, MinMaxScaler, select_device, betaLinearScheduler, create_results_folder, set_seed
 
-from .optimizer     import OptunaOptimizer
+from .optimizer                       import OptunaOptimizer
 
-from .stats         import RegressionEvaluator, ClassificationEvaluator
-from .callbacks     import EarlyStopper
+from .stats                           import RegressionEvaluator, ClassificationEvaluator
+from .callbacks                       import EarlyStopper
 
-from .interpolator import Interpolator
-from .aerodynamics import global_coeff, jacobians_pressure
+from .interpolator                    import Interpolator
+from .aerodynamics                    import global_coeff, jacobians_pressure
 
 from .architectures.mlp               import MLP
 from .architectures.kan               import KAN, KAN_SIN, ChebyshevLayer, JacobiLayer, SineLayer
@@ -44,6 +44,7 @@ from .architectures.pinn              import PINN, BurgersPINN, Euler2DPINN, Nav
 from .architectures.shred             import SHRED
 from .architectures.binary_classifier import BinaryClassifier
 
+from .                                import GAVI
 
 # Wrapper of the activation functions
 def tanh():      return nn.Tanh()
@@ -53,6 +54,4 @@ def sigmoid():   return nn.Sigmoid()
 def leakyRelu(): return nn.LeakyReLU()
 def silu():      return nn.SiLU()
 
-from .                            import GAVI
-
-del os, torch, nn, utils
+del os, torch, utils
