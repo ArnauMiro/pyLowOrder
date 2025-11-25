@@ -6,7 +6,7 @@
 #
 # Last rev: 02/10/2024
 
-import os, random, json, numpy as np, torch
+import os, random, json, numpy as np, torch, torch.nn as nn
 import torch.nn.functional as F
 
 from torch.utils.data import Subset
@@ -18,6 +18,15 @@ from .                import DEVICE
 from ..utils.cr       import cr
 from ..utils.errors   import raiseWarning, raiseError
 from ..dataset        import Dataset as pyLOMDataset
+
+
+# Wrapper of the activation functions
+def tanh():      return nn.Tanh()
+def relu():      return nn.ReLU()
+def elu():       return nn.ELU()
+def sigmoid():   return nn.Sigmoid()
+def leakyRelu(): return nn.LeakyReLU()
+def silu():      return nn.SiLU()
 
 
 class MinMaxScaler:

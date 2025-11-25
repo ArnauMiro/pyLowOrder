@@ -18,9 +18,10 @@ import torch
 
 # General pyLOM inputs
 from .utils           import create_dataset
-from ..               import Encoder1D, Decoder1D, Encoder1DNoLatent, Decoder1DNoLatent, Autoencoder, VariationalAutoencoder, betaLinearScheduler
-from ..               import silu, DEVICE, Dataset
-from ...              import Mesh
+from ..architectures  import Encoder1D, Decoder1D, Encoder1DNoLatent, Decoder1DNoLatent, Autoencoder, VariationalAutoencoder, betaLinearScheduler
+from ..               import DEVICE
+from ..utils          import silu, Dataset
+from ...mesh          import Mesh
 from ...vmmath        import temporal_mean, subtract_mean, randomized_qr2, local_randomized_qr, matmul, local_energy
 from ...utils.cr      import cr, cr_start, cr_stop
 from ...utils.parall  import pprint
