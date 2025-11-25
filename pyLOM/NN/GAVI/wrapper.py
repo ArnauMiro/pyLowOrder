@@ -15,18 +15,17 @@
 # General python imports
 import numpy as np
 import torch
-import cupy  as cp
 
 # General pyLOM inputs
-from .utils        import create_dataset
-from ..            import Encoder1D, Decoder1D, Encoder1DNoLatent, Decoder1DNoLatent, Autoencoder, VariationalAutoencoder, betaLinearScheduler
-from ..            import silu, DEVICE, Dataset
-from ...           import Mesh
-from ...vmmath     import temporal_mean, subtract_mean, randomized_qr2, local_randomized_qr, matmul, local_energy
-from ...utils      import cr, cr_start, cr_stop
-from ...utils      import mpi_reduce, pprint, mpi_barrier, MPI_RANK
-from ...utils      import cpu_to_gpu, gpu_to_cpu
-from ...inp_out    import h5_create_compressed, h5_flush_compressed
+from .utils           import create_dataset
+from ..               import Encoder1D, Decoder1D, Encoder1DNoLatent, Decoder1DNoLatent, Autoencoder, VariationalAutoencoder, betaLinearScheduler
+from ..               import silu, DEVICE, Dataset
+from ...              import Mesh
+from ...vmmath        import temporal_mean, subtract_mean, randomized_qr2, local_randomized_qr, matmul, local_energy
+from ...utils.cr      import cr, cr_start, cr_stop
+from ...utils.parall  import mpi_reduce, pprint, mpi_barrier, MPI_RANK
+from ...utils.gpu     import cpu_to_gpu, gpu_to_cpu, from_dlpack
+from ...inp_out.io_h5 import h5_create_compressed, h5_flush_compressed
 
 
 ## Compute the randomized QR factorization
@@ -114,7 +113,7 @@ def vae_Q(fname:str,Q:tuple,mesh:Mesh,porder:int,r:int,nlayers:int=1,conv_chan:i
 		vae.fit(datatra, eval_dataset=None, batch_size=nptxAE, epochs=epochs, lr=learning_r, BASEDIR='./', pin_memory=False, shuffle=False, conv_loss=1e-2)
 		vae.eval()
 		latent  = vae.latent_space(datatra)
-		Q2, B2  = local_randomized_qr(cp.from_dlpack(latent.T), r+10, 1)
+		Q2, B2  = local_randomized_qr(from_dlpack(latent.T), r+10, 1)
 		latr    = torch.tensor(matmul(Q2[:,:r],B2[:r,:])).T
 		rectrL  = vae.decoder(latr)
 		for ivar in range(nvars):
@@ -134,7 +133,7 @@ def vae_Q(fname:str,Q:tuple,mesh:Mesh,porder:int,r:int,nlayers:int=1,conv_chan:i
 
 ## Reconstruct_Q
 @cr('GAVI.reconstruct_Q')
-def reconstruct_Q(mesh:Mesh,nelxAE:int,nmod:int,Qmeans:np.ndarray,Qstds:np.ndarray,weights:torch.tensor,biases:torch.tensor,Qs:cp.ndarray,Bs:cp.ndarray,ivar:int=0,padding:int=1,func:object=silu()):
+def reconstruct_Q(mesh:Mesh,nelxAE:int,nmod:int,Qmeans:np.ndarray,Qstds:np.ndarray,weights:torch.tensor,biases:torch.tensor,Qs:np.ndarray,Bs:np.ndarray,ivar:int=0,padding:int=1,func:object=silu()):
 	r"""
 	Function to reconstruct the compressed data of Q
 	
@@ -146,8 +145,8 @@ def reconstruct_Q(mesh:Mesh,nelxAE:int,nmod:int,Qmeans:np.ndarray,Qstds:np.ndarr
 		Qstds (np.ndarray): standard deviation of Q value of the input data of each autoencoder. Has as many columns as compressed variables.
 		weights (torch.tensor): weights of the decoder
 		biases (torch.tensor): biases of the decoder
-		Qs (cp.ndarray): orthogonal matrix of the factorized latent vectors at each autoencoder
-		Bs (cp.ndarray): reduced matrix of the factorized latent vectors at each autoencoder
+		Qs (np.ndarray): orthogonal matrix of the factorized latent vectors at each autoencoder
+		Bs (np.ndarray): reduced matrix of the factorized latent vectors at each autoencoder
 		ivar (int, optional): index of the decompressed variable, the output channel that we'll get (default ``0``)
 		padding (int, optional): amount of padding in the convolutions (default ``1``)
 		func (object, optional): activation function of the decoder layers (default ``silu()``)

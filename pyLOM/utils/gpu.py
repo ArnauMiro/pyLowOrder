@@ -67,6 +67,9 @@ try:
 	def ascontiguousarray(X):
 		p = cp if type(X) is cp.ndarray else np
 		return p.ascontiguousarray(X)
+	
+	def from_dlpack(X):
+		return cp.from_dlpack(X)
 
 except:
 	import numpy as cp
@@ -98,3 +101,6 @@ except:
 
 	def ascontiguousarray(X):
 		return np.ascontiguousarray(X)
+
+	def from_dlpack(X):
+		return X
