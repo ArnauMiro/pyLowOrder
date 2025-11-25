@@ -797,8 +797,8 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
         device (str): Device to run the model. Default is 'cuda' if available, otherwise 'cpu'.
     """
     def __init__(self, latent_dim, in_size, encoder, decoder, device=DEVICE):
-        super(FullyConnectedVariationalAutoencoder, self).__init__(latent_dim, in_size, encoder, decoder, device)
-        return None
+        super(FullyConnectedVariationalAutoencoder, self).__init__(in_size, encoder, decoder, device)
+        self.lat_dim = latent_dim
 
     def _reparamatrizate(self, mu, logvar):
         std = torch.exp(0.5*logvar)
