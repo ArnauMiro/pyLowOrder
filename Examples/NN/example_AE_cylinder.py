@@ -52,7 +52,7 @@ td.crop(nh, nw)
 ## Set and train the variational autoencoder
 encoder    = pyLOM.NN.Encoder2D(nlayers, lat_dim, nh, nw, td.num_channels, channels, kernel_size, padding, activations, nlinear)
 decoder    = pyLOM.NN.Decoder2D(nlayers, lat_dim, nh, nw, td.num_channels, channels, kernel_size, padding, activations, nlinear)
-model      = pyLOM.NN.Autoencoder(lat_dim, (nh, nw), td.num_channels, encoder, decoder, device=device)
+model      = pyLOM.NN.Autoencoder((nh, nw), td.num_channels, encoder, decoder, device=device)
 early_stop = pyLOM.NN.EarlyStopper(patience=5, min_delta=0.02)
 
 pipeline = pyLOM.NN.Pipeline(
