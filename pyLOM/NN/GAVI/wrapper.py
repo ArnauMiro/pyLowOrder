@@ -17,17 +17,18 @@ import numpy as np
 import torch
 
 # General pyLOM inputs
-from .utils           import create_dataset
-from ..architectures  import Encoder1D, Decoder1D, Encoder1DNoLatent, Decoder1DNoLatent, Autoencoder, VariationalAutoencoder, betaLinearScheduler
-from ..               import DEVICE
-from ..utils          import silu, Dataset
-from ...mesh          import Mesh
-from ...vmmath        import temporal_mean, subtract_mean, randomized_qr2, local_randomized_qr, matmul, local_energy
-from ...utils.cr      import cr, cr_start, cr_stop
-from ...utils.parall  import pprint
-from ...utils.mpi     import mpi_reduce, mpi_barrier, MPI_RANK
-from ...utils.gpu     import cpu_to_gpu, gpu_to_cpu, from_dlpack
-from ...inp_out.io_h5 import h5_create_compressed, h5_flush_compressed
+from .utils                            import create_dataset
+from ..                                import DEVICE
+from ..architectures.encoders_decoders import Encoder1D, Decoder1D, Encoder1DNoLatent, Decoder1DNoLatent
+from ..architectures.autoencoders      import Autoencoder, VariationalAutoencoder
+from ..utils                           import silu, Dataset, betaLinearScheduler
+from ...mesh                           import Mesh
+from ...vmmath                         import temporal_mean, subtract_mean, randomized_qr2, local_randomized_qr, matmul, local_energy
+from ...utils.cr                       import cr, cr_start, cr_stop
+from ...utils.parall                   import pprint
+from ...utils.mpi                      import mpi_reduce, mpi_barrier, MPI_RANK
+from ...utils.gpu                      import cpu_to_gpu, gpu_to_cpu, from_dlpack
+from ...inp_out.io_h5                  import h5_create_compressed, h5_flush_compressed
 
 
 ## Compute the randomized QR factorization
