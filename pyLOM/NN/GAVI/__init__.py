@@ -7,7 +7,7 @@
 # Last rev: 27/10/2025
 
 
-from .wrapper      import vae_R, vae_Q, QR, reconstruct_Q
-from .utils        import save, load, load_compressed, create_dataset
+from .wrapper import vae_R, vae_Q, QR, reconstruct_Q
+from .utils   import save, load, load_compressed, create_dataset
 
 del wrapper, utils

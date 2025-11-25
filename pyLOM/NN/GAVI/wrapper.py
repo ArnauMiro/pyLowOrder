@@ -24,7 +24,7 @@ from ...              import Mesh
 from ...vmmath        import temporal_mean, subtract_mean, randomized_qr2, local_randomized_qr, matmul, local_energy
 from ...utils.cr      import cr, cr_start, cr_stop
 from ...utils.parall  import pprint
-from ...utils.mpi     import mpi_reduce, pprint, mpi_barrier, MPI_RANK
+from ...utils.mpi     import mpi_reduce, mpi_barrier, MPI_RANK
 from ...utils.gpu     import cpu_to_gpu, gpu_to_cpu, from_dlpack
 from ...inp_out.io_h5 import h5_create_compressed, h5_flush_compressed
 
