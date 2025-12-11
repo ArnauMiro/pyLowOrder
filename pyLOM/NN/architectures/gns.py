@@ -436,7 +436,7 @@ class GNS(torch.nn.Module):
                 val_dl_cfg,
                 generator=None,
             )
-            val_sg_cfg = replace(config.subgraph_loader, shuffle=False)
+            val_sg_cfg = replace(config.subgraph_loader, shuffle=False, input_nodes=None)
             eval_subgraph_loader = self._helpers.init_subgraph_loader(
                 val_sg_cfg,
                 generator=None,

@@ -450,6 +450,20 @@ def save_experiment_artifacts(
         "graph_spec": asdict(model.graph_spec),
         "graph_fingerprint": getattr(model, "graph_fingerprint", None),
     }
+
+    # Compact very long fields for human-readable YAML and store full content separately.
+    full_input_nodes = None
+    if train_cfg_dict and isinstance(train_cfg_dict.get("subgraph_loader"), dict):
+        input_nodes = train_cfg_dict["subgraph_loader"].get("input_nodes")
+        if isinstance(input_nodes, list):
+            full_input_nodes = input_nodes
+            preview = input_nodes[:5] + input_nodes[-5:]
+            train_cfg_dict["subgraph_loader"]["input_nodes"] = {
+                "count": len(input_nodes),
+                "preview_first_last": preview,
+                "stored_in": "input_nodes_full.json",
+            }
+
     config_doc = {
         "model": model_cfg_dict,
         "training": train_cfg_dict,
@@ -464,6 +478,9 @@ def save_experiment_artifacts(
     yaml_config_path = out_dir / "config.yaml"
     with yaml_config_path.open("w") as f:
         yaml.safe_dump(config_doc, f, sort_keys=False)
+    if full_input_nodes is not None:
+        with (out_dir / "input_nodes_full.json").open("w") as f:
+            json.dump(full_input_nodes, f)
 
     meta_info = {
         "saved_at": datetime.datetime.now().isoformat(),

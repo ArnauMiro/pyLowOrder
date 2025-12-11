@@ -24,6 +24,8 @@ class _GNSTrainingLoop:
 
     def __init__(self, model: "GNS") -> None:
         self.model = model
+        # Simple weight factor to penalize targets lejos de 0
+        self.weight_alpha = 0.1
 
     def train(
         self,
@@ -139,6 +141,8 @@ class _GNSTrainingLoop:
 
         outputs = []
         total_loss = 0.0
+        input_batches = 0
+        seed_batches_total = 0
         model._debug_print("Initializing context manager...")
         context = torch.enable_grad() if is_train else torch.no_grad()
         model._debug_print("Initialized context manager.")
@@ -148,11 +152,13 @@ class _GNSTrainingLoop:
         last_targets = None
         last_loss = None
         num_losses = 0
+        logged_first_batch_stats = False
 
         model._debug_print("Starting main loop over input batches...")
         with context:
             model._debug_print("Entering input dataloader loop...")
             for batch in input_dataloader:
+                input_batches += 1
                 model._debug_print("Processing new input batch...")
                 inputs_batch = batch[0].to(model.device)
                 try:
@@ -165,6 +171,7 @@ class _GNSTrainingLoop:
                 )
 
                 for seed_batch in subgraph_loader:
+                    seed_batches_total += 1
                     if isinstance(seed_batch, Data):
                         subgraph = seed_batch
                     else:
@@ -203,6 +210,22 @@ class _GNSTrainingLoop:
                         last_output = out
                         last_targets = targets
                         last_loss = loss
+                        if not logged_first_batch_stats and out is not None and targets is not None:
+                            logged_first_batch_stats = True
+                            try:
+                                pred_mean = float(out.mean().item())
+                                pred_std = float(out.std().item())
+                                targ_mean = float(targets.mean().item())
+                                targ_std = float(targets.std().item())
+                                pprint(
+                                    0,
+                                    f"[diag] {'train' if is_train else 'eval'} batch stats: "
+                                    f"pred_mean={pred_mean:.4f}, pred_std={pred_std:.4f}, "
+                                    f"targ_mean={targ_mean:.4f}, targ_std={targ_std:.4f}",
+                                    flush=True,
+                                )
+                            except Exception:
+                                pass
 
                     num_losses += 1
 
@@ -216,7 +239,14 @@ class _GNSTrainingLoop:
                 "targets": last_targets,
                 "loss": last_loss,
             })
-            return total_loss / max(1, num_losses)
+            avg_loss = total_loss / max(1, num_losses)
+            pprint(
+                0,
+                f"[diag] {'train' if is_train else 'eval'} epoch: input_batches={input_batches}, "
+                f"seed_batches={seed_batches_total}, num_losses={num_losses}, avg_loss={avg_loss:.4e}",
+                flush=True,
+            )
+            return avg_loss
 
         outputs_numpy = torch.cat(outputs, dim=0).cpu().numpy()
         outputs_numpy = outputs_numpy.reshape(-1, model.graph.num_nodes, model.model_config.output_dim)
@@ -261,7 +291,9 @@ class _GNSTrainingLoop:
         assert output.shape == targets.shape, f"Output shape {output.shape} != target shape {targets.shape}"
         if model._counter % 100 == 0:
             model._debug_print(f" - Training batch {model._counter}: output.shape={output.shape}, targets.shape={targets.shape}")
-        loss = loss_fn(output, targets)
+        residual = output - targets
+        weights = 1.0 + self.weight_alpha * torch.abs(targets)
+        loss = torch.mean(weights * residual * residual)
         model._debug_print(f" - Computed loss: {loss.item():.4e}. Backpropagating...")
         loss.backward()
         model.optimizer.step()
@@ -285,8 +317,9 @@ class _GNSTrainingLoop:
             model._debug_print("Computing evaluation loss...")
             targets = G.y[G.seed_mask]
             assert output.shape == targets.shape, f"Output shape {output.shape} != target shape {targets.shape}"
-            loss = loss_fn(output, targets)
+            residual = output - targets
+            weights = 1.0 + self.weight_alpha * torch.abs(targets)
+            loss = torch.mean(weights * residual * residual)
             return loss.item(), G, output, targets, loss
 
         return output
-
