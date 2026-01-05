@@ -92,8 +92,8 @@ def run(X, r, remove_mean = True):
 	cr_start('DMD.modes',0)
 	muReal, muImag, w = eigen(Atilde)
 	muReal = cp.asarray(muReal) if type(Atilde) is cp.ndarray else muReal
-	muImag = cp.asarray(muImag) if type(Atilde) is cp.ndarray else muReal
-	w      = cp.asarray(w)      if type(Atilde) is cp.ndarray else muReal
+	muImag = cp.asarray(muImag) if type(Atilde) is cp.ndarray else muImag
+	w      = cp.asarray(w)      if type(Atilde) is cp.ndarray else w
 
 	# Mode computation
 	Phi =  matmul(matmul(matmul(Y[:, 1:], transpose(VT)), diag(1/S)), w)/(muReal + muImag*1J)
