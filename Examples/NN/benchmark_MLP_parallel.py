@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# # Benchmark script to compare DDP training with equivalent single-GPU training
 
 import os
 import sys
@@ -385,18 +386,23 @@ def main():
             return out_s, out_e
         spv, spv_err = _sp_err2(t0, s0, tt, tt_std)
         spv_e, spv_e_err = _sp_err2(t0, s0, tt_e, tt_e_std)
+        def _clean_yerr(err_list):
+            arr = np.asarray([np.nan if e is None else e for e in err_list], dtype=float)
+            return arr if np.any(np.isfinite(arr)) else None
+        spv_err_clean = _clean_yerr(spv_err)
+        spv_e_err_clean = _clean_yerr(spv_e_err)
         fig, ax = plt.subplots(figsize=(6, 4))
         if len(gp) <= 4:
             x = np.arange(len(gp)); w = 0.35
             ax.bar(x - w/2, spv, width=w, label='DDP', color=COL_DDP,
-                   yerr=(spv_err if any(e is not None for e in spv_err) else None), capsize=4)
+                   yerr=spv_err_clean, capsize=4)
             ax.bar(x + w/2, spv_e, width=w, label='1GPU (b×g)', color=COL_EQUIV,
-                   yerr=(spv_e_err if any(e is not None for e in spv_e_err) else None), capsize=4)
+                   yerr=spv_e_err_clean, capsize=4)
             ax.set_xticks(x, [str(g) for g in gp])
         else:
-            ax.errorbar(gp, spv, yerr=spv_err if any(e is not None for e in spv_err) else None,
+            ax.errorbar(gp, spv, yerr=spv_err_clean,
                         fmt='-o', label='DDP', color=COL_DDP, capsize=4)
-            ax.errorbar(gp, spv_e, yerr=spv_e_err if any(e is not None for e in spv_e_err) else None,
+            ax.errorbar(gp, spv_e, yerr=spv_e_err_clean,
                         fmt='-o', label='1GPU (b×g)', color=COL_EQUIV, capsize=4)
         ax.set_title(f"Speedup vs {gp[0]} GPU(s)")
         ax.set_xlabel("GPUs")
