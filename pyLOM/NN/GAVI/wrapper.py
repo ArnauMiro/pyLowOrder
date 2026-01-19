@@ -23,7 +23,7 @@ from ..architectures.encoders_decoders import Encoder1D, Decoder1D, Encoder1DNoL
 from ..architectures.autoencoders      import Autoencoder, VariationalAutoencoder
 from ..utils                           import silu, Dataset, betaLinearScheduler
 from ...mesh                           import Mesh
-from ...vmmath                         import temporal_mean, subtract_mean, randomized_qr2, local_randomized_qr, matmul, local_energy
+from ...vmmath                         import temporal_mean, subtract_mean, randomized_qr, matmul, local_energy
 from ...utils.cr                       import cr, cr_start, cr_stop
 from ...utils.parall                   import pprint
 from ...utils.mpi                      import mpi_reduce, mpi_barrier, MPI_RANK
@@ -52,7 +52,7 @@ def QR(X:np.ndarray,k:int,q:int=1,osampl:int=10):
 	r   = k+osampl if k+osampl < X.shape[1] else X.shape[1]
 	Xm  = temporal_mean(X)
 	X   = subtract_mean(X, Xm)
-	Q,B = randomized_qr2(X,r,q)
+	Q,B = randomized_qr(X,r,q,hybrid=True)
 	
 	return Q[:,:k].copy(), B[:k,:].copy()
 
@@ -116,7 +116,7 @@ def vae_Q(fname:str,Q:tuple,mesh:Mesh,porder:int,r:int,nlayers:int=1,conv_chan:i
 		vae.fit(datatra, eval_dataset=None, batch_size=nptxAE, epochs=epochs, lr=learning_r, BASEDIR='./', pin_memory=False, shuffle=False, conv_loss=1e-2)
 		vae.eval()
 		latent  = vae.latent_space(datatra)
-		Q2, B2  = local_randomized_qr(from_dlpack(latent.T), r+10, 1)
+		Q2, B2  = randomized_qr(from_dlpack(latent.T), r+10, 1,local=True)
 		latr    = torch.tensor(matmul(Q2[:,:r],B2[:r,:])).T
 		rectrL  = vae.decoder(latr)
 		for ivar in range(nvars):
