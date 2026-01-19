@@ -15,7 +15,7 @@ from .truncation     import compute_truncation_residual, energy, local_energy
 # Statistics routines
 from .stats          import RMSE, MAE, r2, MRE_array
 # QR routines
-from .svd            import qr, tsqr, randomized_qr, init_qr_streaming, update_qr_streaming
+from .qr             import qr, tsqr, randomized_qr, init_qr_streaming, update_qr_streaming
 # SVD routines
 from .svd            import svd, tsqr_svd, randomized_svd
 # FFT routines
