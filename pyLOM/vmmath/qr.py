@@ -106,7 +106,6 @@ def tsqr(Ai):
 	Qi = matmul(Q1i, QW)
 	return Qi,R
 
-@cr('math.qr_streaming')
 def qr_streaming(Ai, r, q, seed, local):
 	'''
 	Internal function
@@ -135,7 +134,6 @@ def qr_streaming(Ai, r, q, seed, local):
 
 	return Qi, B, Yi
 
-@cr('math.qr_streaming2')
 def qr_streaming2(Ai, r, q, seed, local):
 	'''
 	Internal function
