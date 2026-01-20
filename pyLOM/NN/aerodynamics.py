@@ -19,10 +19,10 @@ def global_coeff(
     alpha: torch.Tensor = 0,
     coordinates: torch.Tensor = None,
     normals: torch.Tensor = None,
-    components: set[str] = {"CL", "CD", "CM"},
+    components: tuple[str, ...] = ("CL", "CD", "CMx", "CMy", "CMz") ,
 ) -> dict[str, torch.Tensor]:
     r"""
-    Calculate selected aerodynamic coefficients (CL, CD, CM) from pressure and skin friction coefficients.
+    Calculate selected aerodynamic coefficients (CL, CD, CMx, CMy, CMz) from pressure and skin friction coefficients.
 
     Args:
         CoefPressure (torch.Tensor): Tensor of shape (n,) or (n,1) with the pressure coefficients of the surface.
@@ -33,7 +33,7 @@ def global_coeff(
         alpha (torch.Tensor): Angle of attack in deg.
         coordinates (torch.Tensor): Tensor of shape (n,3) with the coordinates of the surface points.
         normals (torch.Tensor): Tensor of shape (n,3) with the normal vectors of the surface.
-        components (set[str]): Set containing any combination of "CL", "CD", "CM" indicating what to compute.
+        components (set[str]): Set containing any combination of "CL", "CD", "CMx", "CMy", "CMz" indicating what to compute.
 
     Returns:
         set[torch.Tensor]: A set of tensors containing the requested aerodynamic coefficients.
@@ -85,10 +85,20 @@ def global_coeff(
         CDf = torch.sum(ForceFriction[:, 2] * torch.sin(alpha) + ForceFriction[:, 0] * torch.cos(alpha)) if CoefSkinFriction is not None else 0
         results["CD"] = (CDp + CDf) / SRef
 
-    if "CM" in components:
+    if "CMx" in components:
+        Mxp = torch.sum(torch.linalg.cross(r, ForcePressure)[:, 0]) if CoefPressure is not None else 0
+        Mxf = torch.sum(torch.linalg.cross(r, ForceFriction)[:, 0]) if CoefSkinFriction is not None else 0
+        results["CMx"] = (Mxp + Mxf) / (SRef * cRef)
+
+    if "CMy" in components:
         Mp = torch.sum(torch.linalg.cross(r, ForcePressure)[:, 1]) if CoefPressure is not None else 0
         Mf = torch.sum(torch.linalg.cross(r, ForceFriction)[:, 1]) if CoefSkinFriction is not None else 0
-        results["CM"] = (Mp + Mf) / (SRef * cRef)
+        results["CMy"] = (Mp + Mf) / (SRef * cRef)
+
+    if "CMz" in components:
+        Mzp = torch.sum(torch.linalg.cross(r, ForcePressure)[:, 2]) if CoefPressure is not None else 0
+        Mzf = torch.sum(torch.linalg.cross(r, ForceFriction)[:, 2]) if CoefSkinFriction is not None else 0
+        results["CMz"] = (Mzp + Mzf) / (SRef * cRef)
 
     return tuple(results[key] for key in components)
 
@@ -99,10 +109,10 @@ def jacobians_pressure(
     alpha: torch.Tensor = 0,
     coordinates: torch.Tensor = None,
     normals: torch.Tensor = None,
-    components: set[str] = {"CL", "CD", "CM"},
+    components: tuple[str, ...] = ("CL", "CD", "CMx", "CMy", "CMz"),
 ) -> dict[str, torch.Tensor]:
     r"""
-    Calculate the Jacobians of selected aerodynamic coefficients (CL, CD, CM)
+    Calculate the Jacobians of selected aerodynamic coefficients (CL, CD, CMx, CMy, CMz)
 
     Args:
         SRef (float): Reference area.
@@ -111,7 +121,7 @@ def jacobians_pressure(
         alpha (torch.Tensor): Angle of attack in deg.
         coordinates (torch.Tensor): Tensor of shape (n,3) with the coordinates of the surface points.
         normals (torch.Tensor): Tensor of shape (n,3) with the normal vectors of the surface.
-        components (set[str]): Set containing any combination of "CL", "CD", "CM" indicating what to compute.
+        components (set[str]): Set containing any combination of "CL", "CD", "CMx", "CMy", "CMz" indicating what to compute.
     
     Returns:
         set[torch.Tensor]: A set of tensors containing the requested aerodynamic coefficient Jacobians.
@@ -139,7 +149,13 @@ def jacobians_pressure(
     if "CD" in components:
         results["CD"] = (1.0 / SRef) * (-normals[:, 0] * torch.cos(alpha) - normals[:, 2] * torch.sin(alpha))
 
-    if "CM" in components:
-        results["CM"] = (1.0 / (SRef * cRef)) * (r[:, 0] * normals[:, 2] - r[:, 2] * normals[:, 0])
+    if "CMx" in components:
+        results["CMx"] = (1.0 / (SRef * cRef)) * (r[:, 2] * normals[:, 1] - r[:, 1] * normals[:, 2])
+    
+    if "CMy" in components:
+        results["CMy"] = (1.0 / (SRef * cRef)) * (r[:, 0] * normals[:, 2] - r[:, 2] * normals[:, 0])
+    
+    if "CMz" in components:
+        results["CMz"] = (1.0 / (SRef * cRef)) * (r[:, 1] * normals[:, 0] - r[:, 0] * normals[:, 1])
 
     return tuple(results[key] for key in components)
