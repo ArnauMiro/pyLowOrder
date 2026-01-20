@@ -18,19 +18,55 @@ from ..utils.errors     import raiseError
 from ..                 import pprint
 
 class BaseObjective(ABC):
+    r"""
+    Base class for objective functions used in field optimization.
+    It defines the interface for the objective function, its gradient,
+    and the Hessian-vector product, as required by second-order optimizers.
+
+    Args:
+        field_ref (np.ndarray): Reference field.
+    """
     def __init__(self, field_ref: np.ndarray, **kwargs):
         self.field_ref = field_ref
 
     @abstractmethod
     def fun(self, x: np.ndarray) -> float:
+        r"""
+        Evaluate the objective function.
+
+        Args:
+            x (np.ndarray): Modified field.
+        
+        Returns:
+            float: The value of the objective function.
+        """
         pass
 
     @abstractmethod
     def jac(self, x: np.ndarray) -> np.ndarray:
+        r"""
+        Evaluate the gradient of the objective function.
+
+        Args:
+            x (np.ndarray): Modified field.
+
+        Returns:
+            np.ndarray: The gradient of the objective function.
+        """
         pass
 
     @abstractmethod
     def hessp(self, x: np.ndarray, v: np.ndarray) -> np.ndarray:
+        r"""
+        Compute the Hessian-vector product of the objective function.
+
+        Args:
+            x (np.ndarray): Modified field.
+            v (np.ndarray): Direction tensor.
+
+        Returns:
+            np.ndarray: The Hessian-vector product H(x) @ v of the objective function.
+        """
         pass
 
 class MSEObjective(BaseObjective):
@@ -87,14 +123,14 @@ class MSEObjective(BaseObjective):
         **kwargs: dict,
     ) -> np.ndarray:
         r"""
-        Hessian of the objective function to minimize the difference between the modified and original field.
+        Hessian-vector product of the objective function to minimize the difference between the modified and original field.
 
         Args:
             x (np.ndarray): Current point.
             v (np.ndarray): Direction tensor.
 
         Returns:
-            np.ndarray: The Hessian of the sum of squared differences between the modified and original field.
+            np.ndarray: The Hessian-vector product of the sum of squared differences between the modified and original field.
         """
         return 2.0 * v
 
@@ -165,14 +201,14 @@ class AreaWeightedObjective(BaseObjective):
         **kwargs: dict,
     ) -> np.ndarray:
         r"""
-        Hessian of the area-weighted objective function.
+        Hessian-vector product of the area-weighted objective function.
 
         Args:
-            x (np.ndarray): Current point.
+            x (np.ndarray): Modified field.
             v (np.ndarray): Direction tensor.
 
         Returns:
-            np.ndarray: Hessian-vector product.
+            np.ndarray: Hessian-vector product of the area-weighted squared error.
         """
         if self.normalize:
             return 2.0 * self.areas * v / np.sum(self.areas)
