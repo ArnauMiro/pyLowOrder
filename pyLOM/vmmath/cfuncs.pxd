@@ -70,36 +70,41 @@ cdef extern from "averaging.h" nogil:
 	cdef void c_dsubtract_mean       "dsubtract_mean"(double *out, double *X, double *X_mean, const int m, const int n)
 	cdef void c_dtemporal_variance   "dtemporal_variance"(double *out, double *X, double *X_mean, const int m, const int n)
 	cdef void c_dnorm_variance       "dnorm_variance"(double *out, double *Xnomean, double *X_var, const int m, const int n)
-cdef extern from "svd.h" nogil:
+cdef extern from "qr.h" nogil:
 	# Single precision
 	cdef int c_sqr                   "sqr"(float *Q, float *R, float *A,  const int m, const int n)
-	cdef int c_ssvd                  "ssvd"(float *U, float *S, float *V, float *Y, const int m, const int n)
 	cdef int c_stsqr                 "stsqr"(float *Qi, float *R, float *Ai, const int m, const int n)
-	cdef int c_stsqr_svd             "stsqr_svd"(float *Ui, float *S, float *VT, float *Ai, const int m, const int n)
 	cdef int c_srandomized_qr        "srandomized_qr"(float *Qi, float *B, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed)
 	cdef int c_slocal_randomized_qr  "slocal_randomized_qr"(float *Qi, float *B, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed)
 	cdef int c_sinit_randomized_qr   "sinit_randomized_qr"(float *Qi, float *B, float *Y, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed)
 	cdef int c_supdate_randomized_qr "supdate_randomized_qr"(float *Q2, float *B2, float *Yn, float *Q1, float *B1, float *Yo, float *Ai, const int m, const int n, const int n1, const int n2, const int r, const int q, unsigned int seed)
-	cdef int c_srandomized_svd       "srandomized_svd"(float *Ui, float *S, float *VT, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed)
 	# Double precision
 	cdef int c_dqr                   "dqr"(double *Q, double *R, double *A, const int m, const int n)
-	cdef int c_dsvd                  "dsvd"(double *U, double *S, double *V, double *Y, const int m, const int n)
 	cdef int c_dtsqr                 "dtsqr"(double *Qi, double *R, double *Ai, const int m, const int n)
-	cdef int c_dtsqr_svd             "dtsqr_svd"(double *Ui, double *S, double *VT, double *Ai, const int m, const int n)
 	cdef int c_drandomized_qr        "drandomized_qr" (double *Qi, double *R, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed)
 	cdef int c_dlocal_randomized_qr  "dlocal_randomized_qr" (double *Qi, double *R, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed)
 	cdef int c_dinit_randomized_qr   "dinit_randomized_qr"(double *Qi, double *R, double *Y, double *Ai, const int m, const int n, const int r, const int q, unsigned int seed)
 	cdef int c_dupdate_randomized_qr "dupdate_randomized_qr"(double *Q2, double *B2, double *Yn, double *Q1, double *B1, double *Yo, double *Ai, const int m, const int n, const int n1, const int n2, const int r, const int q, unsigned int seed)
-	cdef int c_drandomized_svd       "drandomized_svd"(double *Ui, double *S, double *VT, double *Ai,  const int m, const int n, const int r, const int q, unsigned int seed)
 	# Single complex precision
 	cdef int c_cqr                   "cqr"(np.complex64_t *Q, np.complex64_t *R, np.complex64_t *A, const int m, const int n)
-	cdef int c_csvd                  "csvd"(np.complex64_t *U, float *S, np.complex64_t *V, np.complex64_t *Y, const int m, const int n)
 	cdef int c_ctsqr                 "ctsqr"(np.complex64_t *Qi, np.complex64_t *R, np.complex64_t *Ai, const int m, const int n)
-	cdef int c_ctsqr_svd             "ctsqr_svd"(np.complex64_t *Ui, float *S, np.complex64_t *VT, np.complex64_t *Ai, const int m, const int n)
 	# Double complex precision
 	cdef int c_zqr                   "zqr"(np.complex128_t *Q,  np.complex128_t *R, np.complex128_t *A,  const int m, const int n)
-	cdef int c_zsvd                  "zsvd"(np.complex128_t *U,  double *S, np.complex128_t *V,  np.complex128_t *Y,  const int m, const int n)
 	cdef int c_ztsqr                 "ztsqr"(np.complex128_t *Qi, np.complex128_t *R, np.complex128_t *Ai, const int m, const int n)
+cdef extern from "svd.h" nogil:
+	# Single precision
+	cdef int c_ssvd                  "ssvd"(float *U, float *S, float *V, float *Y, const int m, const int n)
+	cdef int c_stsqr_svd             "stsqr_svd"(float *Ui, float *S, float *VT, float *Ai, const int m, const int n)
+	cdef int c_srandomized_svd       "srandomized_svd"(float *Ui, float *S, float *VT, float *Ai, const int m, const int n, const int r, const int q, unsigned int seed)
+	# Double precision
+	cdef int c_dsvd                  "dsvd"(double *U, double *S, double *V, double *Y, const int m, const int n)
+	cdef int c_dtsqr_svd             "dtsqr_svd"(double *Ui, double *S, double *VT, double *Ai, const int m, const int n)
+	cdef int c_drandomized_svd       "drandomized_svd"(double *Ui, double *S, double *VT, double *Ai,  const int m, const int n, const int r, const int q, unsigned int seed)
+	# Single complex precision
+	cdef int c_csvd                  "csvd"(np.complex64_t *U, float *S, np.complex64_t *V, np.complex64_t *Y, const int m, const int n)
+	cdef int c_ctsqr_svd             "ctsqr_svd"(np.complex64_t *Ui, float *S, np.complex64_t *VT, np.complex64_t *Ai, const int m, const int n)
+	# Double complex precision
+	cdef int c_zsvd                  "zsvd"(np.complex128_t *U,  double *S, np.complex128_t *V,  np.complex128_t *Y,  const int m, const int n)
 	cdef int c_ztsqr_svd             "ztsqr_svd"(np.complex128_t *Ui, double *S, np.complex128_t *VT, np.complex128_t *Ai, const int m, const int n)
 cdef extern from "stats.h" nogil:
 	# Single precision

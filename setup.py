@@ -170,6 +170,7 @@ Module_cfuncs     = Extension('pyLOM.vmmath.cfuncs',
 						sources       = ['pyLOM/vmmath/cfuncs.pyx',
 										 'pyLOM/vmmath/src/vector_matrix.c',
 										 'pyLOM/vmmath/src/averaging.c',
+										 'pyLOM/vmmath/src/qr.c',
 										 'pyLOM/vmmath/src/svd.c',
 										 'pyLOM/vmmath/src/fft.c',
 										 'pyLOM/vmmath/src/geometric.c',
@@ -200,9 +201,20 @@ Module_averaging = Extension('pyLOM.vmmath.averaging',
 						extra_objects = extra_objects,
 						libraries     = libraries,
 					   )
+Module_qr       = Extension('pyLOM.vmmath.qr',
+						sources       = ['pyLOM/vmmath/qr.pyx',
+										 'pyLOM/vmmath/src/vector_matrix.c',
+										 'pyLOM/vmmath/src/qr.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
 Module_svd       = Extension('pyLOM.vmmath.svd',
 						sources       = ['pyLOM/vmmath/svd.pyx',
 										 'pyLOM/vmmath/src/vector_matrix.c',
+										 'pyLOM/vmmath/src/qr.c',
 										 'pyLOM/vmmath/src/svd.c',
 									    ],
 						language      = 'c',
@@ -301,6 +313,7 @@ Module_SPOD = Extension('pyLOM.SPOD.wrapper',
 Module_Math  = [Module_cfuncs]
 Module_Math += [Module_maths]      if 'math.maths'      in options['MODULES_COMPILED'] else []
 Module_Math += [Module_averaging]  if 'math.averaging'  in options['MODULES_COMPILED'] else []
+Module_Math += [Module_qr]         if 'math.qr'         in options['MODULES_COMPILED'] else []
 Module_Math += [Module_svd]        if 'math.svd'        in options['MODULES_COMPILED'] else []
 Module_Math += [Module_fft]        if 'math.fft'        in options['MODULES_COMPILED'] else []
 Module_Math += [Module_geometric]  if 'math.geometric'  in options['MODULES_COMPILED'] else []
