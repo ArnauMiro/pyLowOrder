@@ -18,6 +18,7 @@ from .                import DEVICE
 from ..utils.cr       import cr
 from ..utils.errors   import raiseWarning, raiseError
 from ..dataset        import Dataset as pyLOMDataset
+from ..               import pprint
 
 
 # Wrapper of the activation functions
@@ -830,6 +831,33 @@ class Dataset(torch.utils.data.Dataset):
             )
         else:
             raiseError(f"Invalid column index {column_idx}, there are only {self.variables_in.shape[1]} columns in variables_in and {self.parameters.shape[1]} columns in parameters")
+    
+    def print_stats(self, dataset_name="Dataset"):
+        '''
+        Auxiliary function to print the statistics of the dataset.
+        '''
+        x, y = self[:]
+        inputs_min = x.min(dim=0).values
+        inputs_max = x.max(dim=0).values
+        outputs_min = y.min(dim=0).values
+        outputs_max = y.max(dim=0).values
+
+        # Format the values to 2 decimal places
+        inputs_min_str = ', '.join([f'{val:.2f}' for val in inputs_min])
+        inputs_max_str = ', '.join([f'{val:.2f}' for val in inputs_max])
+        outputs_min_str = f'{outputs_min[0]:.2f}'
+        outputs_max_str = f'{outputs_max[0]:.2f}'
+
+        pprint(
+            0,
+            f'{dataset_name} \n'
+            f'  Inputs shape : {x.shape} \n'
+            f'  Inputs min   : {inputs_min_str} \n'
+            f'  Inputs max   : {inputs_max_str} \n'
+            f'  Outputs shape: {y.shape} \n'
+            f'  Outputs min  : {outputs_min_str} \n'
+            f'  Outputs max  : {outputs_max_str} \n'
+        )
 
 def set_seed(seed: int = 42, deterministic: bool = True):
     random.seed(seed)
