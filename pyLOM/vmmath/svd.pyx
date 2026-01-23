@@ -40,7 +40,7 @@ def _ssvd(float[:,:] A, int do_copy):
 	cdef float *Y_copy
 	cdef np.ndarray[np.float32_t,ndim=2] U = np.zeros((m,mn),dtype=np.float32)
 	cdef np.ndarray[np.float32_t,ndim=1] S = np.zeros((mn,) ,dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=2] V = np.zeros((n,mn),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=2] V = np.zeros((mn,n),dtype=np.float32)
 	# Compute SVD
 	if do_copy:
 		Y_copy = <float*>malloc(m*n*sizeof(float))
