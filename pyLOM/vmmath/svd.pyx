@@ -69,7 +69,7 @@ def _dsvd(double[:,:] A, int do_copy):
 	cdef double *Y_copy
 	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,mn),dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((mn,) ,dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((n,mn),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((mn,n),dtype=np.double)
 	# Compute SVD
 	if do_copy:
 		Y_copy = <double*>malloc(m*n*sizeof(double))
@@ -98,7 +98,7 @@ def _csvd(np.complex64_t[:,:] A, int do_copy):
 	cdef np.complex64_t *Y_copy
 	cdef np.ndarray[np.complex64_t,ndim=2] U = np.zeros((m,mn),dtype=np.complex64)
 	cdef np.ndarray[np.float32_t,ndim=1]   S = np.zeros((mn,) ,dtype=np.float32)
-	cdef np.ndarray[np.complex64_t,ndim=2] V = np.zeros((n,mn),dtype=np.complex64)
+	cdef np.ndarray[np.complex64_t,ndim=2] V = np.zeros((mn,n),dtype=np.complex64)
 	# Compute SVD
 	if do_copy:
 		Y_copy = <np.complex64_t*>malloc(m*n*sizeof(np.complex64_t))
@@ -127,7 +127,7 @@ def _zsvd(np.complex128_t[:,:] A, int do_copy):
 	cdef np.complex128_t *Y_copy
 	cdef np.ndarray[np.complex128_t,ndim=2] U = np.zeros((m,mn),dtype=np.complex128)
 	cdef np.ndarray[np.double_t,ndim=1]     S = np.zeros((mn,) ,dtype=np.double)
-	cdef np.ndarray[np.complex128_t,ndim=2] V = np.zeros((n,mn),dtype=np.complex128)
+	cdef np.ndarray[np.complex128_t,ndim=2] V = np.zeros((mn,n),dtype=np.complex128)
 	# Compute SVD
 	if do_copy:
 		Y_copy = <np.complex128_t*>malloc(m*n*sizeof(np.complex128_t))
@@ -177,7 +177,7 @@ def _stsqr_svd(float[:,:] A):
 	cdef int m = A.shape[0], n = A.shape[1], mn = min(m,n)
 	cdef np.ndarray[np.float32_t,ndim=2] U = np.zeros((m,mn),dtype=np.float32)
 	cdef np.ndarray[np.float32_t,ndim=1] S = np.zeros((mn,) ,dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=2] V = np.zeros((n,mn),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=2] V = np.zeros((mn,n),dtype=np.float32)
 	# Compute SVD using TSQR algorithm
 	retval = c_stsqr_svd(&U[0,0],&S[0],&V[0,0],&A[0,0],m,n)
 	if not retval == 0: raiseError('Problems computing TSQR SVD!')
@@ -199,7 +199,7 @@ def _dtsqr_svd(double[:,:] A):
 	cdef int m = A.shape[0], n = A.shape[1], mn = min(m,n)
 	cdef np.ndarray[np.double_t,ndim=2] U = np.zeros((m,mn),dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((mn,) ,dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((n,mn),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((mn,n),dtype=np.double)
 	# Compute SVD using TSQR algorithm
 	retval = c_dtsqr_svd(&U[0,0],&S[0],&V[0,0],&A[0,0],m,n)
 	if not retval == 0: raiseError('Problems computing TSQR SVD!')
@@ -221,7 +221,7 @@ def _ctsqr_svd(np.complex64_t[:,:] A):
 	cdef int m = A.shape[0], n = A.shape[1], mn = min(m,n)
 	cdef np.ndarray[np.complex64_t,ndim=2] U = np.zeros((m,mn),dtype=np.complex64)
 	cdef np.ndarray[np.float32_t,ndim=1]   S = np.zeros((mn,) ,dtype=np.float32)
-	cdef np.ndarray[np.complex64_t,ndim=2] V = np.zeros((n,mn),dtype=np.complex64)
+	cdef np.ndarray[np.complex64_t,ndim=2] V = np.zeros((mn,n),dtype=np.complex64)
 	# Compute SVD using TSQR algorithm
 	retval = c_ctsqr_svd(&U[0,0],&S[0],&V[0,0],&A[0,0],m,n)
 	if not retval == 0: raiseError('Problems computing TSQR SVD!')
@@ -243,7 +243,7 @@ def _ztsqr_svd(np.complex128_t[:,:] A):
 	cdef int m = A.shape[0], n = A.shape[1], mn = min(m,n)
 	cdef np.ndarray[np.complex128_t,ndim=2] U = np.zeros((m,mn),dtype=np.complex128)
 	cdef np.ndarray[np.double_t,ndim=1]     S = np.zeros((mn,) ,dtype=np.double)
-	cdef np.ndarray[np.complex128_t,ndim=2] V = np.zeros((n,mn),dtype=np.complex128)
+	cdef np.ndarray[np.complex128_t,ndim=2] V = np.zeros((mn,n),dtype=np.complex128)
 	# Compute SVD using TSQR algorithm
 	retval = c_ztsqr_svd(&U[0,0],&S[0],&V[0,0],&A[0,0],m,n)
 	if not retval == 0: raiseError('Problems computing TSQR SVD!')
