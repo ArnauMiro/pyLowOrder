@@ -14,8 +14,10 @@ from .averaging      import temporal_mean, subtract_mean, temporal_variance, nor
 from .truncation     import compute_truncation_residual, energy, local_energy
 # Statistics routines
 from .stats          import RMSE, MAE, r2, MRE_array
+# QR routines
+from .qr             import qr, tsqr, randomized_qr, init_qr_streaming, update_qr_streaming
 # SVD routines
-from .svd            import qr, svd, tsqr, local_randomized_qr, randomized_qr, randomized_qr2, init_qr_streaming, update_qr_streaming, tsqr_svd, randomized_svd
+from .svd            import svd, tsqr_svd, randomized_svd
 # FFT routines
 from .fft            import hammwin, fft
 # Geometry and mesh routines
