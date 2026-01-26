@@ -69,7 +69,7 @@ def _srun(float[:,:] X, int remove_mean, int divide_variance, int randomized, in
 			c_snorm_variance(Y,Z,X_var,m,n)
 			free(X_var)
 		else:
-			memcpy(Y,Z,m*n*sizeof(double))
+			memcpy(Y,Z,m*n*sizeof(float))
 		free(X_mean)
 		free(Z)
 		cr_stop('POD.temporal_mean',0)
