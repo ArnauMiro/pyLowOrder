@@ -55,14 +55,14 @@ def _srun(float[:,:] X, int remove_mean, int divide_variance, int randomized, in
 	cdef np.ndarray[np.float32_t,ndim=2] V = np.zeros((r,n),dtype=np.float32) 
 	# Allocate memory
 	Y = <float*>malloc(m*n*sizeof(float))
-	Z = <float*>malloc(m*n*sizeof(float))
 	if remove_mean:
 		cr_start('POD.temporal_mean',0)
+		Z      = <float*>malloc(m*n*sizeof(float))
 		X_mean = <float*>malloc(m*sizeof(float))
 		# Compute temporal mean
 		c_stemporal_mean(X_mean,&X[0,0],m,n)
 		# Compute substract temporal mean
-		c_ssubtract_mean(Y,&X[0,0],X_mean,m,n)
+		c_ssubtract_mean(Z,&X[0,0],X_mean,m,n)
 		if divide_variance:
 			X_var = <float*>malloc(m*sizeof(float))
 			c_stemporal_variance(X_var,&X[0,0],X_mean,m,n)
@@ -118,9 +118,9 @@ def _drun(double[:,:] X, int remove_mean, int divide_variance, int randomized, i
 	cdef np.ndarray[np.double_t,ndim=2] V = np.zeros((r,n),dtype=np.double) 
 	# Allocate memory
 	Y = <double*>malloc(m*n*sizeof(double))
-	Z = <double*>malloc(m*n*sizeof(double))
 	if remove_mean:
 		cr_start('POD.temporal_mean',0)
+		Z      = <double*>malloc(m*n*sizeof(double))
 		X_mean = <double*>malloc(m*sizeof(double))
 		# Compute temporal mean
 		c_dtemporal_mean(X_mean,&X[0,0],m,n)
