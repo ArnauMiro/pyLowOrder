@@ -29,7 +29,7 @@ from ..utils.errors   import raiseError
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _srun(float[:,:] X, int remove_mean, int divide_variance, int randomized, int r, int q, int seed):
+def _srun(float[:,:] X, bint remove_mean, bint divide_variance, bint randomized, int r, int q, int seed):
 	'''
 	Run POD analysis of a matrix X.
 
@@ -92,7 +92,7 @@ def _srun(float[:,:] X, int remove_mean, int divide_variance, int randomized, in
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _drun(double[:,:] X, int remove_mean, int divide_variance, int randomized, int r, int q, int seed):
+def _drun(double[:,:] X, bint remove_mean, bint divide_variance, bint randomized, const int r, const int q, const int seed):
 	'''
 	Run POD analysis of a matrix X.
 
@@ -156,7 +156,7 @@ def _drun(double[:,:] X, int remove_mean, int divide_variance, int randomized, i
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def run(real[:,:] X, int remove_mean=True, int divide_variance=False, int randomized=False, const int r=1, const int q=3, const int seed=-1):
+def run(real[:,:] X, bint remove_mean=True, bint divide_variance=False, bint randomized=False, const int r=1, const int q=3, const int seed=-1):
 	r'''
 	Run POD analysis of a matrix.
 
