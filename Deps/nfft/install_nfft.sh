@@ -35,7 +35,7 @@ else
 
 	# Clone repository and checkout version tag
 	cd Deps/
-	if [ ! -f "$${TAR}" ]; then
+	if [ ! -f "${TAR}" ]; then
 		wget --no-check-certificate -O ${TAR} ${SRC}
 	fi
 	tar xvzf ${TAR}
