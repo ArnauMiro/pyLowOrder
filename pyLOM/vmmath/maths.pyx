@@ -861,11 +861,9 @@ cdef np.ndarray[np.float32_t,ndim=1] _sdiag(float[:,:] A):
 	'''
 	cdef int m = A.shape[0]
 	cdef int ii
-	cdef int jj
 	cdef np.ndarray[np.float32_t,ndim=1] B = np.zeros((m,),dtype=np.float32)
 	for ii in range(m):
-		for jj in range(m):
-			B[ii] = A[ii][jj]
+			B[ii] = A[ii][ii]
 	return B
 
 @cython.initializedcheck(False)
@@ -879,11 +877,42 @@ cdef np.ndarray[np.double_t,ndim=1] _ddiag(double[:,:] A):
 	'''
 	cdef int m = A.shape[0]
 	cdef int ii
-	cdef int jj
 	cdef np.ndarray[np.double_t,ndim=1] B = np.zeros((m,),dtype=np.double)
 	for ii in range(m):
-		for jj in range(m):
-			B[ii] = A[ii][jj]
+			B[ii] = A[ii][ii]
+	return B
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.float32_t,ndim=2] _sdiag2(float[:] A):
+	'''
+	Returns a matrix with A in its diagonal
+	'''
+	cdef int m = A.shape[0]
+	cdef int ii
+	cdef int jj
+	cdef np.ndarray[np.float32_t,ndim=2] B = np.zeros((m,m),dtype=np.float32)
+	for ii in range(m):
+			B[ii,ii] = A[ii]
+	return B
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.double_t,ndim=2] _ddiag2(double[:] A):
+	'''
+	Returns a matrix with A in its diagonal
+	'''
+	cdef int m = A.shape[0]
+	cdef int ii
+	cdef np.ndarray[np.double_t,ndim=2] B = np.zeros((m,m),dtype=np.double)
+	for ii in range(m):
+			B[ii,ii] = A[ii]
 	return B
 
 @cr('math.diag')
@@ -892,10 +921,9 @@ cdef np.ndarray[np.double_t,ndim=1] _ddiag(double[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def diag(real[:,:] A):
+def diag(np.ndarray A):
 	r'''
-	If A is a matrix it returns its diagonal, if its a vector it returns
-	a diagonal matrix with A in its diagonal
+	If A is a matrix it returns its diagonal
 
 	Args:
 		A (np.ndarray): Matrix A (M,N)
@@ -903,10 +931,16 @@ def diag(real[:,:] A):
 	Result:
 		np.ndarray: Diagonal of A (M,)
 	'''
-	if real is double:
-		return _ddiag(A)
+	if A.ndim == 1:
+		if A.dtype in [np.float64,np.double]:
+			return _ddiag2(A)
+		else:
+			return _sdiag2(A)
 	else:
-		return _sdiag(A)
+		if A.dtype in [np.float64,np.double]:
+			return _ddiag(A)
+		else:
+			return _sdiag(A)		
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
