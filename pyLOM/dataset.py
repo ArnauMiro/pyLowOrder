@@ -59,10 +59,11 @@ class Dataset(object):
 		for key in self.fieldnames:
 			field  = self.fields[key]['value']
 			nanstr = ' (has NaNs) ' if np.any(np.isnan(field)) else ' '
-			s     += '  > ' +  key + nanstr + '- max = ' + str(np.nanmax(field)) \
-											+ ', min = ' + str(np.nanmin(field)) \
-											+ ', avg = ' + str(np.nanmean(field)) \
-											+ '\n'
+			fstr   = nanstr + '- max = ' + str(np.nanmax(field)) \
+										 + ', min = ' + str(np.nanmin(field)) \
+										 + ', avg = ' + str(np.nanmean(field)) \
+					if len(field) > 0 else 'empty!'
+			s     += '  > ' +  key + fstr + '\n'
 		return s
 		
 	# Set and get functions
