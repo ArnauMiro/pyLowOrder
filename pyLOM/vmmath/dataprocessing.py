@@ -1,6 +1,6 @@
 import numpy as np
 
-from ..utils.mpi import mpi_bcast, mpi_reduce
+from ..utils.mpi import MPI_RANK, mpi_bcast, mpi_reduce
 from ..utils     import raiseError, is_rank_or_serial 
 
 
@@ -83,7 +83,7 @@ def find_random_sensors(bounds:np.ndarray, xyz:np.ndarray, nsensors:int, root:in
 		dist2      = np.sum((xyz_sensor-xyz)**2,axis=1) if xyz.shape[0] > 0 else 1e99
 		mindist    = np.min(dist2)
 		# Now find which rank has the minimum distance
-		_,minrank  = mpi_reduce((mindist, MPI_RANK),all=True,op='argmin')
+		_,minrank  = mpi_reduce((mindist,MPI_RANK),all=True,op='argmin')
 		if is_rank_or_serial(minrank):
 			ranklist.append(minrank)
 			idxlist.append(np.argmin(dist2))
