@@ -236,7 +236,7 @@ class Mesh(object):
 
 	@classmethod
 	@cr('Mesh.load')
-	def load(cls,fname:str,**kwargs):
+	def load(cls,fname:str,**kwargs) -> "Mesh":
 		r'''
 		Load a mesh from various formats
 		'''

@@ -315,7 +315,7 @@ class Dataset(object):
 
 	@classmethod
 	@cr('Dataset.load')
-	def load(cls,fname,**kwargs):
+	def load(cls,fname,**kwargs) -> "Dataset":
 		'''
 		Load a field from various formats
 		'''
