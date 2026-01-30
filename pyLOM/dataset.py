@@ -12,7 +12,7 @@ import os, numpy as np
 from .partition_table import PartitionTable
 from .                import inp_out as io
 from .utils.mpi       import MPI_RANK, MPI_SIZE, mpi_gather
-from .utils           import cr_nvtx as cr, raiseError, raiseWarning, gpu_to_cpu, cpu_to_gpu, pprint, 
+from .utils           import cr_nvtx as cr, raiseError, raiseWarning, gpu_to_cpu, cpu_to_gpu, pprint
 from .vmmath          import data_splitting, find_random_sensors
 
 
