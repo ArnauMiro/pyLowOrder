@@ -232,7 +232,7 @@ class Dataset(object):
 
 		# Find which indices belong to the current rank
 		myidx    = idxsensors[ranksensors == MPI_RANK]
-		myxyz    = self.xyz[myidx] if len(myidx) > 0 else np.empty((0,3),self.xyz.dtype)
+		myxyz    = self.xyz[myidx] if len(myidx) > 0 else np.empty((0,self.xyz.shape[1]),self.xyz.dtype)
 
 		# Initialize new dataset
 		sp, ep   = ptable.partition_bounds(MPI_RANK)
