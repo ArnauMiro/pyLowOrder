@@ -232,7 +232,7 @@ class Dataset(object):
 
 		# Find which indices belong to the current rank
 		myidx    = idxsensors[ranksensors == MPI_RANK]
-		myxyz    = self.xyz[myidx] if len(myidx) > 0 else np.empty((1,3),self.xyz.dtype)
+		myxyz    = self.xyz[myidx] if len(myidx) > 0 else np.empty((0,3),self.xyz.dtype)
 
 		# Initialize new dataset
 		sp, ep   = ptable.partition_bounds(MPI_RANK)
@@ -248,7 +248,7 @@ class Dataset(object):
 				raiseWarning("Multidimensional variables are skipped as sensor datasets must be saved in nopartition mode. Separate each dimension of your variable")
 				continue
 			# Add field
-			f = self[name][myidx] if len(myidx) > 0 else np.empty((1,self[name].shape[1]),self[name].dtype)
+			f = self[name][myidx] if len(myidx) > 0 else np.empty((0,self[name].shape[1]),self[name].dtype)
 			sd.add_field(name,1,f)
 		return sd
 
