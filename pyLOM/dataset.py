@@ -224,7 +224,7 @@ class Dataset(object):
 		# Create a new partition table
 		nparts   = MPI_SIZE
 		Nsensors = len(idxsensors)
-		points   = mpi_gather(myNsensors, all=True) if MPI_SIZE > 1 else np.array([myNsensors],dtype=np.int32)
+		points   = mpi_gather(Nsensors, all=True) if MPI_SIZE > 1 else np.array([Nsensors],dtype=np.int32)
 		ids      = np.arange(1,nparts+1,dtype=np.int32)
 		elements = np.zeros((MPI_SIZE,),dtype=np.int32)
 		ptable   = PartitionTable(nparts,ids,elements,points,has_master=False)
