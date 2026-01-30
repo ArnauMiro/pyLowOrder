@@ -3,4 +3,4 @@ torchvision
 torchsummary
 tensorflow
 xgboost
-optuna
+scikit-learn
