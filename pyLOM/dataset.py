@@ -239,7 +239,7 @@ class Dataset(object):
 		order    = np.linspace(start=sp,stop=ep-1,num=ep-sp,dtype=np.int32)
 		sd       = self.__class__(xyz=myxyz,ptable=ptable,order=order,point=True,vars=self._vardict)
 	
-		# Fill in the fields		
+		# Fill in the fields
 		for name in self.fieldnames:
 			# Skip field that is not in the list
 			if name not in VARLIST: continue
@@ -248,7 +248,7 @@ class Dataset(object):
 				raiseWarning("Multidimensional variables are skipped as sensor datasets must be saved in nopartition mode. Separate each dimension of your variable")
 				continue
 			# Add field
-			f = self[name][myidx] if len(myidx) > 0 else np.empty((1,),self[name].dtype)
+			f = self[name][myidx] if len(myidx) > 0 else np.empty((1,self[name].shape[1]),self[name].dtype)
 			sd.add_field(name,1,f)
 		return sd
 
