@@ -11,7 +11,8 @@ import os, numpy as np
 
 from .partition_table import PartitionTable
 from .                import inp_out as io
-from .utils           import cr_nvtx as cr, raiseError, gpu_to_cpu, cpu_to_gpu, pprint, mpi_gather, MPI_RANK, MPI_SIZE
+from .utils.mpi       import MPI_RANK, MPI_SIZE, mpi_gather
+from .utils           import cr_nvtx as cr, raiseError, raiseWarning, gpu_to_cpu, cpu_to_gpu, pprint, 
 from .vmmath          import data_splitting, find_random_sensors
 
 
@@ -213,28 +214,41 @@ class Dataset(object):
 		Then for each sensor finds the nearest point from the dataset to get its coordinates and dataset value.
 		It creates a new dataset containing all the sensor coordinates and values
 		'''
-		np.random.seed(0) if seed == -1 else np.random.seed(seed)
+		# Fix seed if user requested
+		if seed > 0: np.random.seed(seed)
 
-		mysensors = find_random_sensors(bounds, self.xyz, nsensors)
+		# Obtain the indices of the sensors and to which rank
+		# this index has been found
+		idxsensors, ranksensors = find_random_sensors(bounds,self.xyz,nsensors)
+
+		# Create a new partition table
+		nparts   = MPI_SIZE
+		Nsensors = len(idxsensors)
+		points   = mpi_gather(myNsensors, all=True) if MPI_SIZE > 1 else np.array([myNsensors],dtype=np.int32)
+		ids      = np.arange(1,nparts+1,dtype=np.int32)
+		elements = np.zeros((MPI_SIZE,),dtype=np.int32)
+		ptable   = PartitionTable(nparts,ids,elements,points,has_master=False)
+
+		# Find which indices belong to the current rank
+		myidx    = idxsensors[ranksensors == MPI_RANK]
+		myxyz    = self.xyz[myidx] if len(myidx) > 0 else np.array([[]],self.xyz.dtype)
 
 		# Initialize new dataset
-		myNsensors = len(mysensors)
-		time       = self.get_variable('time')
-		nparts     = MPI_SIZE
-		ids        = np.arange(1,nparts+1,dtype=np.int32)
-		points     = mpi_gather(myNsensors, all=True) if MPI_SIZE > 1 else np.array([myNsensors])
-		elements   = np.zeros((MPI_SIZE,), dtype=int)
-		ptable     = PartitionTable(nparts, ids, elements, points, has_master=False)
-		sp, ep     = ptable.partition_bounds(MPI_RANK)
-		order      = np.linspace(start=sp, stop=ep-1, num=ep-sp, dtype=int)
-		sd         = self.__class__(xyz=self.xyz[mysensors], ptable=ptable, order=order, point=True, vars=self._vardict)#{'time':{'idim':0,'value':time}})
-		for field in self.fieldnames:
-			if field not in VARLIST:
+		sp, ep   = ptable.partition_bounds(MPI_RANK)
+		order    = np.linspace(start=sp,stop=ep-1,num=ep-sp,dtype=np.int32)
+		sd       = self.__class__(xyz=myxyz,ptable=ptable,order=order,point=True,vars=self._vardict)
+	
+		# Fill in the fields		
+		for name in self.fieldnames:
+			# Skip field that is not in the list
+			if name not in VARLIST: continue
+			# Skip multi-dimensional fields
+			if self.fields[name]["ndim"] > 1:
+				raiseWarning("Multidimensional variables are skipped as sensor datasets must be saved in nopartition mode. Separate each dimension of your variable")
 				continue
-			if self.fields[field]["ndim"] > 1:
-				pprint(0, "WARNING!! Multidimensional variables are skipped as sensor datasets must be saved in nopartition mode. Separate each dimension of your variable", flush=True)
-				continue
-			sd.add_field(field,1,self[field][mysensors])
+			# Add field
+			f = self[name][myidx] if len(myidx) > 0 else np.array([],self[name].dtype)
+			sd.add_field(name,1,f)
 		return sd
 
 	@cr('Dataset.reshape')
