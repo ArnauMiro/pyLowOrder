@@ -64,6 +64,7 @@ def find_random_sensors(bounds:np.ndarray, xyz:np.ndarray, nsensors:int, root:in
 	# Generate random points using numpy's uniform distribution
 	# Here we build the random points at a global domain box in a single processor
 	# that is later broadcasted to every rank
+	xyz_sensors = []
 	if is_rank_or_serial(root):
 		x = np.random.uniform(bounds[0], bounds[1], nsensors)
 		y = np.random.uniform(bounds[2], bounds[3], nsensors)
