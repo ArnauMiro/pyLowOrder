@@ -56,7 +56,7 @@ td   = pyLOM.NN.Dataset((u_xm,), (n0h, n0w))
 
 td.crop(nh, nw)
 
-print(len(td.variables_out), type(td.variables_out), flush=True)
+print(td.variables_out.shape, type(td.variables_out), flush=True)
 
 ## Set and train the variational autoencoder
 betasch    = pyLOM.NN.betaLinearScheduler(0., beta, beta_start, beta_wmup)
