@@ -13,6 +13,17 @@ import os, numpy as np
 import pyLOM, pyLOM.NN
 
 
+import torch
+
+print("CUDA available:", torch.cuda.is_available())
+print("CUDA version:", torch.version.cuda)
+print("PyTorch build:", torch.__version__)
+
+if torch.cuda.is_available():
+    print("GPU count:", torch.cuda.device_count())
+    print("Current device index:", torch.cuda.current_device())
+    print("Current device name:", torch.cuda.get_device_name(torch.cuda.current_device()))
+
 ## Set device
 device = pyLOM.NN.select_device() # Force CPU for this example, if left in blank it will automatically select the device
 
