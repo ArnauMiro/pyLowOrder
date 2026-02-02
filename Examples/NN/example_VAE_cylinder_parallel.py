@@ -5,12 +5,12 @@
 # Last revision: 24/09/2024
 from __future__ import print_function, division
 
-import mpi4py
-mpi4py.rc.recv_mprobe = False
+#import mpi4py
+#mpi4py.rc.recv_mprobe = False
 
 import os, numpy as np
 
-#import pyLOM, pyLOM.NN
+import pyLOM, pyLOM.NN
 import torch
 
 from physicsnemo.distributed  import DistributedManager
