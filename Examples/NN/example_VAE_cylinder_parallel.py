@@ -10,7 +10,7 @@ from __future__ import print_function, division
 
 import os, numpy as np
 
-import pyLOM#, pyLOM.NN
+import pyLOM.NN
 import torch
 
 from physicsnemo.distributed  import DistributedManager
