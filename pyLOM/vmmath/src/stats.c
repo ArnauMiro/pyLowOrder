@@ -257,7 +257,7 @@ void sMRE_array(float *MRE, float *A, float *B, const int m, const int n, const 
 
 		A(m,n), B(m,n) -> MRE(m or n depending on axis)
 	*/
-	int ii, jj, ldim = (axis==0) ? m : n;
+	int ii, jj, ldim = (axis==0) ? n : m;
 	// Auxiliar array
 	float *aux;
 	aux = (float*)malloc(ldim*sizeof(float));
@@ -265,21 +265,6 @@ void sMRE_array(float *MRE, float *A, float *B, const int m, const int n, const 
 	switch (axis)
 	{
 	case 0:
-		#ifdef USE_OMP
-		#pragma omp parallel for private(ii,jj) shared(A,B) firstprivate(m,n)
-		#endif
-		for(ii = 0; ii < m; ++ii) {
-			// Set to zero
-			MRE[ii] = 0.;
-			aux[ii] = 0.;
-			for(jj = 0; jj < n; ++jj) {
-				// Store numerator in MRE
-				MRE[ii] += POW2(AC_MAT(A,n,ii,jj) - AC_MAT(B,n,ii,jj));
-				aux[ii] += POW2(AC_MAT(B,n,ii,jj));
-			}
-		}
-		break;
-	case 1:
 		#ifdef USE_OMP
 		#pragma omp parallel for private(ii,jj) shared(A,B) firstprivate(m,n)
 		#endif
@@ -291,6 +276,21 @@ void sMRE_array(float *MRE, float *A, float *B, const int m, const int n, const 
 				// Store numerator in MRE
 				MRE[jj] += POW2(AC_MAT(A,n,ii,jj) - AC_MAT(B,n,ii,jj));
 				aux[jj] += POW2(AC_MAT(B,n,ii,jj));
+			}
+		}
+		break;
+	case 1:
+		#ifdef USE_OMP
+		#pragma omp parallel for private(ii,jj) shared(A,B) firstprivate(m,n)
+		#endif
+		for(ii = 0; ii < m; ++ii) {
+			// Set to zero
+			MRE[ii] = 0.;
+			aux[ii] = 0.;
+			for(jj = 0; jj < n; ++jj) {
+				// Store numerator in MRE
+				MRE[ii] += POW2(AC_MAT(A,n,ii,jj) - AC_MAT(B,n,ii,jj));
+				aux[ii] += POW2(AC_MAT(B,n,ii,jj));
 			}
 		}
 		break;
@@ -313,7 +313,7 @@ void dMRE_array(double *MRE, double *A, double *B, const int m, const int n, con
 
 		A(m,n), B(m,n) -> MRE(m or n depending on axis)
 	*/
-	int ii, jj, ldim = (axis==0) ? m : n;
+	int ii, jj, ldim = (axis==0) ? n : m;
 	// Auxiliar array
 	double *aux;
 	aux = (double*)malloc(ldim*sizeof(double));
@@ -321,21 +321,6 @@ void dMRE_array(double *MRE, double *A, double *B, const int m, const int n, con
 	switch (axis)
 	{
 	case 0:
-		#ifdef USE_OMP
-		#pragma omp parallel for private(ii,jj) shared(A,B) firstprivate(m,n)
-		#endif
-		for(ii = 0; ii < m; ++ii) {
-			// Set to zero
-			MRE[ii] = 0.;
-			aux[ii] = 0.;
-			for(jj = 0; jj < n; ++jj) {
-				// Store numerator in MRE
-				MRE[ii] += POW2(AC_MAT(A,n,ii,jj) - AC_MAT(B,n,ii,jj));
-				aux[ii] += POW2(AC_MAT(B,n,ii,jj));
-			}
-		}
-		break;
-	case 1:
 		#ifdef USE_OMP
 		#pragma omp parallel for private(ii,jj) shared(A,B) firstprivate(m,n)
 		#endif
@@ -347,6 +332,21 @@ void dMRE_array(double *MRE, double *A, double *B, const int m, const int n, con
 				// Store numerator in MRE
 				MRE[jj] += POW2(AC_MAT(A,n,ii,jj) - AC_MAT(B,n,ii,jj));
 				aux[jj] += POW2(AC_MAT(B,n,ii,jj));
+			}
+		}
+		break;
+	case 1:
+		#ifdef USE_OMP
+		#pragma omp parallel for private(ii,jj) shared(A,B) firstprivate(m,n)
+		#endif
+		for(ii = 0; ii < m; ++ii) {
+			// Set to zero
+			MRE[ii] = 0.;
+			aux[ii] = 0.;
+			for(jj = 0; jj < n; ++jj) {
+				// Store numerator in MRE
+				MRE[ii] += POW2(AC_MAT(A,n,ii,jj) - AC_MAT(B,n,ii,jj));
+				aux[ii] += POW2(AC_MAT(B,n,ii,jj));
 			}
 		}
 		break;
