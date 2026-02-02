@@ -21,7 +21,7 @@ import pyLOM, pyLOM.NN
 #from torch.distributed.tensor.placement_types import Shard
 
 ## Set device
-#device = pyLOM.NN.select_device() # Force CPU for this example, if left in blank it will automatically select the device
+device = pyLOM.NN.select_device() # Force CPU for this example, if left in blank it will automatically select the device
 #DistributedManager.initialize()
 #dist = DistributedManager()
 #rank = dist.rank
