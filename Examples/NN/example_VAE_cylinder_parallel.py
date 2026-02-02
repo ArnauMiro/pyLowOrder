@@ -10,7 +10,7 @@ from __future__ import print_function, division
 
 import os, numpy as np
 
-import pyLOM.NN
+from pyLOM.NN import relu, Encoder2D, Decoder2D, VariationalAutoencoder
 import torch
 
 from physicsnemo.distributed  import DistributedManager
