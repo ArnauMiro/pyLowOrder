@@ -11,9 +11,22 @@ mpi4py.rc.recv_mprobe = False
 import os, numpy as np
 
 import pyLOM, pyLOM.NN
+import torch
+
+from physicsnemo.distributed  import DistributedManager
+from torch.distributed.tensor import distribute_module
+from physicsnemo.domain_parallel              import ShardTensor, scatter_tensor
+from torch.distributed.tensor.placement_types import Shard
 
 ## Set device
 device = pyLOM.NN.select_device() # Force CPU for this example, if left in blank it will automatically select the device
+DistributedManager.initialize()
+dist = DistributedManager()
+rank = dist.rank
+size = dist.world_size
+local_rank = dist.local_rank
+dev_mesh = dist.initialize_mesh((2,1), mesh_dim_names=["x", "y"])
+torch.manual_seed(0)
 
 
 ## Specify autoencoder parameters
@@ -46,17 +59,16 @@ nw  = 192
 
 ## Create a torch dataset
 m    = pyLOM.Mesh.load(DSETDIR)
+print(m)
 d    = pyLOM.Dataset.load(DSETDIR,ptable=m.partition_table)
 u_x  = d['VELOX']
+print(u_x.shape)
 u_m  = pyLOM.math.temporal_mean(u_x)
 u_xm = pyLOM.math.subtract_mean(u_x, u_m)
 time = d.get_variable('time')
 td   = pyLOM.NN.Dataset((u_xm,), (n0h, n0w))
-
-
 td.crop(nh, nw)
 
-print(td.variables_out.shape, type(td.variables_out), flush=True)
 
 ## Set and train the variational autoencoder
 betasch    = pyLOM.NN.betaLinearScheduler(0., beta, beta_start, beta_wmup)
@@ -65,31 +77,32 @@ decoder    = pyLOM.NN.Decoder2D(nlayers, lat_dim, nh, nw, td.num_channels, chann
 model      = pyLOM.NN.VariationalAutoencoder(lat_dim, (nh, nw), td.num_channels, encoder, decoder, device=device)
 early_stop = pyLOM.NN.EarlyStopper(patience=5, min_delta=0.02)
 
-pipeline = pyLOM.NN.Pipeline(
-    train_dataset = td,
-    test_dataset  = td,
-    model=model,
-    training_params={
-        "batch_size": 4,
-        "epochs": 100,
-        "lr": 1e-4,
-        "betasch": betasch,
-        "BASEDIR": RESUDIR
-    },
-)
-pipeline.run()
+
+#pipeline = pyLOM.NN.Pipeline(
+#    train_dataset = td,
+#    test_dataset  = td,
+#    model=model,
+#    training_params={
+#        "batch_size": 4,
+#        "epochs": 100,
+#        "lr": 1e-4,
+#        "betasch": betasch,
+#        "BASEDIR": RESUDIR
+#    },
+#)
+#pipeline.run()
 
 
 ## Reconstruct dataset and compute accuracy
-rec = model.reconstruct(td)
-rd  = pyLOM.NN.Dataset((rec,), (nh, nw))
-rd.pad(n0h, n0w)
-td.pad(n0h, n0w)
-d.add_field('urec',1,rd[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
-d.add_field('utra',1,td[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
-pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec', 'VELOX', 'utra'],fmt='vtkh5')
-pyLOM.NN.plotSnapshot(m,d,vars=['urec'],instant=0,component=0,cmap='jet',cpos='xy')
-pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet',cpos='xy')
+#rec = model.reconstruct(td)
+#rd  = pyLOM.NN.Dataset((rec,), (nh, nw))
+#rd.pad(n0h, n0w)
+#td.pad(n0h, n0w)
+#d.add_field('urec',1,rd[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
+#d.add_field('utra',1,td[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
+#pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec', 'VELOX', 'utra'],fmt='vtkh5')
+#pyLOM.NN.plotSnapshot(m,d,vars=['urec'],instant=0,component=0,cmap='jet',cpos='xy')
+#pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet',cpos='xy')
 
 
 pyLOM.cr_info()
