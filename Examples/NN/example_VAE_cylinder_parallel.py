@@ -10,7 +10,7 @@ mpi4py.rc.recv_mprobe = False
 
 import os, numpy as np
 
-import pyLOM, pyLOM.NN
+#import pyLOM, pyLOM.NN
 import torch
 
 from physicsnemo.distributed  import DistributedManager
@@ -19,7 +19,7 @@ from physicsnemo.domain_parallel              import ShardTensor, scatter_tensor
 from torch.distributed.tensor.placement_types import Shard
 
 ## Set device
-device = pyLOM.NN.select_device() # Force CPU for this example, if left in blank it will automatically select the device
+#device = pyLOM.NN.select_device() # Force CPU for this example, if left in blank it will automatically select the device
 DistributedManager.initialize()
 dist = DistributedManager()
 rank = dist.rank
@@ -30,24 +30,24 @@ torch.manual_seed(0)
 
 
 ## Specify autoencoder parameters
-nlayers     = 5
-channels    = 64
-lat_dim     = 5
-beta        = 0
-beta_start  = 0
-beta_wmup   = 0
-kernel_size = 4
-nlinear     = 512
-padding     = 1
-activations = [pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu()]
+#nlayers     = 5
+#channels    = 64
+#lat_dim     = 5
+#beta        = 0
+#beta_start  = 0
+#beta_wmup   = 0
+#kernel_size = 4
+#nlinear     = 512
+#padding     = 1
+#activations = [pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu()]
 
 
 ## Load pyLOM dataset and set up results output
 BASEDIR = './'
 CASESTR = 'CYLINDER'
 DSETDIR = os.path.join(BASEDIR,f'{CASESTR}.h5')
-RESUDIR = 'vae_beta_%.2e_ld_%i' % (beta, lat_dim)
-pyLOM.NN.create_results_folder(RESUDIR)
+#RESUDIR = 'vae_beta_%.2e_ld_%i' % (beta, lat_dim)
+#pyLOM.NN.create_results_folder(RESUDIR)
 
 
 ## Mesh size (HARDCODED BUT MUST BE INCLUDED IN PYLOM DATASET)
@@ -58,6 +58,7 @@ nw  = 192
 
 
 ## Create a torch dataset
+'''
 m    = pyLOM.Mesh.load(DSETDIR)
 print(m)
 d    = pyLOM.Dataset.load(DSETDIR,ptable=m.partition_table)
@@ -106,3 +107,4 @@ early_stop = pyLOM.NN.EarlyStopper(patience=5, min_delta=0.02)
 
 
 pyLOM.cr_info()
+'''
