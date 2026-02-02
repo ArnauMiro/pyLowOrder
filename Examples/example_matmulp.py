@@ -18,7 +18,7 @@ B = np.array([
     [8, 6, 1, 7]], order = 'C', dtype = np.double)
 
 Ai = pyLOM.utils.mpi_scatter(A, root = 0, do_split = True)
-Ai = np.transpose(Ai)
+Ai = np.transpose(Ai).copy() # This is needed, otherwise only order=F is modified
 Bi = pyLOM.utils.mpi_scatter(B, root = 0, do_split = True)
 
 # NumPy matmul
