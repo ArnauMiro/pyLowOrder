@@ -117,7 +117,7 @@ def _sMRE_array(float[:,:] A, float[:,:] B, int axis=1):
 	'''
 	Mean relative error computed along a certain axis of the array.
 	'''
-	cdef int m = A.shape[0], n = A.shape[1], ldim = m if axis == 0 else n
+	cdef int m = A.shape[0], n = A.shape[1], ldim = n if axis == 0 else m
 	cdef np.ndarray[np.float32_t,ndim=1] out = np.zeros((ldim,),dtype=np.float32)
 	c_sMRE_array(&out[0],&A[0,0],&B[0,0],m,n,axis)
 	return out
@@ -131,7 +131,7 @@ def _dMRE_array(double[:,:] A, double[:,:] B, int axis=1):
 	'''
 	Mean relative error computed along a certain axis of the array.
 	'''
-	cdef int m = A.shape[0], n = A.shape[1], ldim = m if axis == 0 else n
+	cdef int m = A.shape[0], n = A.shape[1], ldim = n if axis == 0 else m
 	cdef np.ndarray[np.double_t,ndim=1] out = np.zeros((ldim,),dtype=np.double)
 	c_dMRE_array(&out[0],&A[0,0],&B[0,0],m,n,axis)
 	return out
