@@ -10,7 +10,9 @@ from __future__ import print_function, division
 
 import os, numpy as np
 
-from pyLOM.NN import relu, Encoder2D, Decoder2D, VariationalAutoencoder
+import pyLOM, pyLOM.NN
+# from pyLOM.NN import relu, Encoder2D, Decoder2D, VariationalAutoencoder
+
 import torch
 
 from physicsnemo.distributed  import DistributedManager
@@ -19,7 +21,7 @@ from physicsnemo.domain_parallel              import ShardTensor, scatter_tensor
 from torch.distributed.tensor.placement_types import Shard
 
 ## Set device
-#device = pyLOM.NN.select_device() # Force CPU for this example, if left in blank it will automatically select the device
+device = pyLOM.NN.select_device() # Force CPU for this example, if left in blank it will automatically select the device
 DistributedManager.initialize()
 dist = DistributedManager()
 rank = dist.rank
@@ -30,24 +32,24 @@ torch.manual_seed(0)
 
 
 ## Specify autoencoder parameters
-#nlayers     = 5
-#channels    = 64
-#lat_dim     = 5
-#beta        = 0
-#beta_start  = 0
-#beta_wmup   = 0
-#kernel_size = 4
-#nlinear     = 512
-#padding     = 1
-#activations = [pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu()]
+nlayers     = 5
+channels    = 64
+lat_dim     = 5
+beta        = 0
+beta_start  = 0
+beta_wmup   = 0
+kernel_size = 4
+nlinear     = 512
+padding     = 1
+activations = [pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu(), pyLOM.NN.relu()]
 
 
 ## Load pyLOM dataset and set up results output
 BASEDIR = './'
 CASESTR = 'CYLINDER'
 DSETDIR = os.path.join(BASEDIR,f'{CASESTR}.h5')
-#RESUDIR = 'vae_beta_%.2e_ld_%i' % (beta, lat_dim)
-#pyLOM.NN.create_results_folder(RESUDIR)
+RESUDIR = 'vae_beta_%.2e_ld_%i' % (beta, lat_dim)
+pyLOM.NN.create_results_folder(RESUDIR)
 
 
 ## Mesh size (HARDCODED BUT MUST BE INCLUDED IN PYLOM DATASET)
@@ -58,7 +60,6 @@ nw  = 192
 
 
 ## Create a torch dataset
-'''
 m    = pyLOM.Mesh.load(DSETDIR)
 print(m)
 d    = pyLOM.Dataset.load(DSETDIR,ptable=m.partition_table)
@@ -79,32 +80,31 @@ model      = pyLOM.NN.VariationalAutoencoder(lat_dim, (nh, nw), td.num_channels,
 early_stop = pyLOM.NN.EarlyStopper(patience=5, min_delta=0.02)
 
 
-#pipeline = pyLOM.NN.Pipeline(
-#    train_dataset = td,
-#    test_dataset  = td,
-#    model=model,
-#    training_params={
-#        "batch_size": 4,
-#        "epochs": 100,
-#        "lr": 1e-4,
-#        "betasch": betasch,
-#        "BASEDIR": RESUDIR
-#    },
-#)
-#pipeline.run()
+pipeline = pyLOM.NN.Pipeline(
+    train_dataset = td,
+    test_dataset  = td,
+    model=model,
+    training_params={
+        "batch_size": 4,
+        "epochs": 100,
+        "lr": 1e-4,
+        "betasch": betasch,
+        "BASEDIR": RESUDIR
+    },
+)
+pipeline.run()
 
 
 ## Reconstruct dataset and compute accuracy
-#rec = model.reconstruct(td)
-#rd  = pyLOM.NN.Dataset((rec,), (nh, nw))
-#rd.pad(n0h, n0w)
-#td.pad(n0h, n0w)
-#d.add_field('urec',1,rd[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
-#d.add_field('utra',1,td[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
-#pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec', 'VELOX', 'utra'],fmt='vtkh5')
-#pyLOM.NN.plotSnapshot(m,d,vars=['urec'],instant=0,component=0,cmap='jet',cpos='xy')
-#pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet',cpos='xy')
+rec = model.reconstruct(td)
+rd  = pyLOM.NN.Dataset((rec,), (nh, nw))
+rd.pad(n0h, n0w)
+td.pad(n0h, n0w)
+d.add_field('urec',1,rd[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
+d.add_field('utra',1,td[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
+pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],dtype=np.int32),times=time,vars=['urec', 'VELOX', 'utra'],fmt='vtkh5')
+pyLOM.NN.plotSnapshot(m,d,vars=['urec'],instant=0,component=0,cmap='jet',cpos='xy')
+pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet',cpos='xy')
 
 
 pyLOM.cr_info()
-'''
