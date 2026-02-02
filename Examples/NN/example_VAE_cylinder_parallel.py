@@ -52,9 +52,11 @@ u_m  = pyLOM.math.temporal_mean(u_x)
 u_xm = pyLOM.math.subtract_mean(u_x, u_m)
 time = d.get_variable('time')
 td   = pyLOM.NN.Dataset((u_xm,), (n0h, n0w))
+
+
 td.crop(nh, nw)
 
-print(td.shape, flush=True)
+print(td.shape, type(td), flush=True)
 
 ## Set and train the variational autoencoder
 betasch    = pyLOM.NN.betaLinearScheduler(0., beta, beta_start, beta_wmup)
