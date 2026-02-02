@@ -544,6 +544,7 @@ class VariationalAutoencoder(Autoencoder):
             kld     = 0
             beta    = betasch.getBeta(epoch) if betasch is not None else 1
             for batch0 in train_data:
+                print(type(train_dataset), type(train_data), type(batch0))
                 batch = batch0.to(self._device)
                 optimizer.zero_grad()
                 with autocast(device_type=self._device):
