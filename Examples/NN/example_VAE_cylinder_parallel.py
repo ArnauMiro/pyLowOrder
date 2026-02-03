@@ -15,14 +15,17 @@ import pyLOM, pyLOM.NN
 
 #import torch
 
-#from physicsnemo.distributed  import DistributedManager
+from physicsnemo.distributed  import DistributedManager
 #from torch.distributed.tensor import distribute_module
 #from physicsnemo.domain_parallel              import ShardTensor, scatter_tensor
 #from torch.distributed.tensor.placement_types import Shard
 
 ## Set device
 device = pyLOM.NN.select_device() # Force CPU for this example, if left in blank it will automatically select the device
-#DistributedManager.initialize()
+addr   = os.environ.get("RDZV_HOST")
+port   = os.environ.get("RDZV_PORT")
+dist = DistributedManager.initialize_open_mpi(addr,port)
+print(dist)
 #dist = DistributedManager()
 #rank = dist.rank
 #size = dist.world_size
@@ -32,6 +35,7 @@ device = pyLOM.NN.select_device() # Force CPU for this example, if left in blank
 
 
 ## Specify autoencoder parameters
+'''
 nlayers     = 5
 channels    = 64
 lat_dim     = 5
@@ -108,3 +112,4 @@ pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet',cpos='x
 
 
 pyLOM.cr_info()
+'''
