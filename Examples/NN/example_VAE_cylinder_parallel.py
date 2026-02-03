@@ -24,6 +24,8 @@ from physicsnemo.distributed  import DistributedManager
 device = pyLOM.NN.select_device() # Force CPU for this example, if left in blank it will automatically select the device
 addr   = os.environ.get("RDZV_HOST")
 port   = os.environ.get("RDZV_PORT")
+print(addr, type(addr))
+print(port, type(port))
 dist = DistributedManager.initialize_open_mpi(addr,port)
 print(dist)
 #dist = DistributedManager()
