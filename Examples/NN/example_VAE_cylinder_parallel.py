@@ -26,13 +26,15 @@ addr   = os.environ.get("RDZV_HOST")
 port   = os.environ.get("RDZV_PORT")
 print(addr, type(addr))
 print(port, type(port))
-dist = DistributedManager.initialize_open_mpi(addr,port)
+DistributedManager.initialize_open_mpi(addr,port)
+dist = DistributedManager()
 print(dist)
-#dist = DistributedManager()
-#rank = dist.rank
-#size = dist.world_size
-#local_rank = dist.local_rank
-#dev_mesh = dist.initialize_mesh((2,1), mesh_dim_names=["x", "y"])
+rank = dist.rank
+size = dist.world_size
+local_rank = dist.local_rank
+dev_mesh = dist.initialize_mesh((1,1), mesh_dim_names=["x", "y"])
+
+print(rank, size, local_rank, dev_mesh)
 #torch.manual_seed(0)
 
 
