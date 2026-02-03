@@ -9,16 +9,14 @@ import mpi4py
 mpi4py.rc.recv_mprobe = False
 
 import os, numpy as np
-
 import pyLOM, pyLOM.NN
-# from pyLOM.NN import relu, Encoder2D, Decoder2D, VariationalAutoencoder
 
-#import torch
+import torch
 
 from physicsnemo.distributed  import DistributedManager
-#from torch.distributed.tensor import distribute_module
-#from physicsnemo.domain_parallel              import ShardTensor, scatter_tensor
-#from torch.distributed.tensor.placement_types import Shard
+from torch.distributed.tensor import distribute_module
+from physicsnemo.domain_parallel              import ShardTensor, scatter_tensor
+from torch.distributed.tensor.placement_types import Shard
 
 ## Set device
 device = pyLOM.NN.select_device() # Force CPU for this example, if left in blank it will automatically select the device
@@ -32,14 +30,13 @@ print(dist)
 rank = dist.rank
 size = dist.world_size
 local_rank = dist.local_rank
-dev_mesh = dist.initialize_mesh((1,1), mesh_dim_names=["x", "y"])
+dev_mesh = dist.initialize_mesh((2,1), mesh_dim_names=["x", "y"])
 
 print(rank, size, local_rank, dev_mesh)
-#torch.manual_seed(0)
+torch.manual_seed(0)
 
 
 ## Specify autoencoder parameters
-'''
 nlayers     = 5
 channels    = 64
 lat_dim     = 5
@@ -116,4 +113,3 @@ pyLOM.NN.plotSnapshot(m,d,vars=['utra'],instant=0,component=0,cmap='jet',cpos='x
 
 
 pyLOM.cr_info()
-'''
