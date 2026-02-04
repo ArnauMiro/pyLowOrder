@@ -192,7 +192,7 @@ class Dataset(object):
 		Mask a field over a defined variable
 		'''
 		mask = mask if mask is not str else self.get_variable(mask)
-		return self[key][:,mask]
+		return self[key][:,mask].copy()
 
 	def append_variable(self,varname,var,**fieldict):
 		'''
