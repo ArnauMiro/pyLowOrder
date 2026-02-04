@@ -1,5 +1,12 @@
-import numpy as np
-import torch
+#!/usr/bin/env python
+#
+# Example of POD to reduce dimensionality for SHRED architecture.
+# This example must be run in serial, preferably on GPUs.
+#
+# Last revision: 04/02/2026
+from __future__ import print_function, division
+
+import os, numpy as np, torch
 import pyLOM, pyLOM.NN
 
 pyLOM.style_plots()
@@ -18,6 +25,8 @@ podvar   = 'VELOX'      # Variable from the POD we'll be working with
 inscaler = 'out/scalers/config_'
 outscale = 'out/scalers/pod.json'
 shreds   = 'out/shreds/config_'
+os.makedirs('out/scalers/', exist_ok=True)
+os.makedirs('out/shreds/',  exist_ok=True)
 
 # SHRED sensor configurations for uncertainty quantification
 nconfigs = 20

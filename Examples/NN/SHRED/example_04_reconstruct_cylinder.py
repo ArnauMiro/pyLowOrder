@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 #
-# Example of POD.
+# Example of POD to reduce dimensionality for SHRED architecture.
+# This example can be run in parallel with any number of processors.
 #
-# Last revision: 19/07/2021
+# Last revision: 04/02/2026
 from __future__ import print_function, division
 
 import mpi4py
@@ -13,7 +14,7 @@ import pyLOM
 
 
 ## Parameters
-DATAFILE = '/gpfs/scratch/bsc21/bsc021828/DATA_PYLOM/CYLINDER.h5'
+DATAFILE = './DATA/CYLINDER.h5'
 VARIABLE = 'VELOX'
 
 
@@ -29,7 +30,9 @@ PSI, S = pyLOM.POD.load('POD_trai_%s.h5' % VARIABLE, vars=['U','S'])
 
 
 ## Load the predicted POD coefficients from SHRED
-V = pyLOM.POD.load('POD_predicted_%s.h5' % VARIABLE, vars='V')[0]
+# Note, V could have a different type from PSI and S should the training happen in
+# GPU and not in CPU. We thus ensure that the types agree before reconstructing
+V = pyLOM.POD.load('POD_predicted_%s.h5' % VARIABLE, vars='V')[0].astype(PSI.dtype)
 
 
 ## Reconstruct the flow and readd the temporal mean (SHRED was trained without)

@@ -1,5 +1,12 @@
-import numpy as np
-import torch
+#!/usr/bin/env python
+#
+# Example of POD to reduce dimensionality for SHRED architecture.
+# This example must be run in serial, preferably on GPUs.
+#
+# Last revision: 04/02/2026
+from __future__ import print_function, division
+
+import numpy as np, torch
 import pyLOM, pyLOM.NN
 
 pyLOM.style_plots()
@@ -63,7 +70,7 @@ outres = np.zeros((output_size, ntimeG, nconfigs), dtype=full_pod.dtype)
 MRE    = np.zeros((output_size, nconfigs), dtype=full_pod.dtype)
 for kk in range(nconfigs):
     # Load the SHRED model for this configuration
-    load_dict = torch.load('%s%i.pth' % (shreds, kk))
+    load_dict = torch.load('%s%i.pth' % (shreds, kk), weights_only=False)
     mysensors = load_dict['sensors']
     shred.load_state_dict(load_dict['model_state_dict'])
     # Get the sensor values for the training, validation and test
