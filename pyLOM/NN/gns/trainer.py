@@ -24,8 +24,8 @@ class _GNSTrainingLoop:
 
     def __init__(self, model: "GNS") -> None:
         self.model = model
-        # Simple weight factor to penalize targets lejos de 0
-        self.weight_alpha = 0.1
+        # Optional weighted MSE: enable by setting model.loss_weight_alpha > 0
+        self.weight_alpha = float(getattr(model, "loss_weight_alpha", 0.0) or 0.0)
 
     def train(
         self,
@@ -48,6 +48,9 @@ class _GNSTrainingLoop:
         best_epoch = state.get("best_epoch")
         best_checkpoint = None
 
+        # Metric used to select best checkpoint on validation
+        best_metric = getattr(model, "best_metric", "loss")
+
         for epoch in range(1 + len(epoch_list), 1 + total_epochs):
             train_loss = self.run_epoch(
                 input_dataloader=train_input_dl,
@@ -60,17 +63,23 @@ class _GNSTrainingLoop:
 
             test_loss = None
             if eval_input_dl is not None:
-                test_loss = self.run_epoch(
+                eval_result = self.run_epoch(
                     input_dataloader=eval_input_dl,
                     subgraph_loader=eval_subgraph_dl,
                     loss_fn=loss_fn,
                     return_loss=True,
+                    metric=best_metric,
                     is_train=False,
                 )
+                if isinstance(eval_result, tuple):
+                    test_loss, test_metric = eval_result
+                else:
+                    test_loss = eval_result
+                    test_metric = test_loss
                 test_loss_list.append(test_loss)
 
-                if test_loss < best_val_loss:
-                    best_val_loss = test_loss
+                if test_metric < best_val_loss:
+                    best_val_loss = test_metric
                     best_epoch = epoch
                     best_checkpoint = {
                         "model_state_dict": copy.deepcopy(model.state_dict()),
@@ -82,7 +91,10 @@ class _GNSTrainingLoop:
                 config.print_every is not None and config.print_every > 0 and epoch % config.print_every == 0
             )
             if log_this_epoch:
-                test_log = f" | Eval loss: {test_loss:.4e}" if test_loss is not None else ""
+                if test_loss is not None and best_metric != "loss":
+                    test_log = f" | Eval loss: {test_loss:.4e} | Eval {best_metric}: {best_val_loss:.4e}"
+                else:
+                    test_log = f" | Eval loss: {test_loss:.4e}" if test_loss is not None else ""
                 pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss: {train_loss:.4e}{test_log}", flush=True)
                 if model.device.type == "cuda":
                     allocated = torch.cuda.memory_allocated(model.device) / 1024 ** 2
@@ -98,6 +110,7 @@ class _GNSTrainingLoop:
                 "train_loss_list": train_loss_list,
                 "test_loss_list": test_loss_list,
                 "best_val_loss": best_val_loss,
+                "best_metric": best_metric,
                 "best_epoch": best_epoch,
             }
             model.last_training_config = config
@@ -131,6 +144,7 @@ class _GNSTrainingLoop:
         *,
         loss_fn: Optional[torch.nn.Module] = None,
         return_loss: bool = False,
+        metric: Optional[str] = None,
         is_train: bool = False,
     ) -> Union[float, Tensor]:
         model = self.model
@@ -141,6 +155,7 @@ class _GNSTrainingLoop:
 
         outputs = []
         total_loss = 0.0
+        total_metric = 0.0
         input_batches = 0
         seed_batches_total = 0
         model._debug_print("Initializing context manager...")
@@ -206,6 +221,8 @@ class _GNSTrainingLoop:
 
                     if return_loss:
                         total_loss += loss_val
+                        if metric == "mae" and out is not None and targets is not None:
+                            total_metric += torch.mean(torch.abs(out - targets)).item()
                         last_graph = G
                         last_output = out
                         last_targets = targets
@@ -246,6 +263,9 @@ class _GNSTrainingLoop:
                 f"seed_batches={seed_batches_total}, num_losses={num_losses}, avg_loss={avg_loss:.4e}",
                 flush=True,
             )
+            if metric == "mae":
+                avg_metric = total_metric / max(1, num_losses)
+                return avg_loss, avg_metric
             return avg_loss
 
         outputs_numpy = torch.cat(outputs, dim=0).cpu().numpy()
@@ -291,9 +311,7 @@ class _GNSTrainingLoop:
         assert output.shape == targets.shape, f"Output shape {output.shape} != target shape {targets.shape}"
         if model._counter % 100 == 0:
             model._debug_print(f" - Training batch {model._counter}: output.shape={output.shape}, targets.shape={targets.shape}")
-        residual = output - targets
-        weights = 1.0 + self.weight_alpha * torch.abs(targets)
-        loss = torch.mean(weights * residual * residual)
+        loss = self._compute_loss(output, targets, loss_fn)
         model._debug_print(f" - Computed loss: {loss.item():.4e}. Backpropagating...")
         loss.backward()
         model.optimizer.step()
@@ -317,9 +335,20 @@ class _GNSTrainingLoop:
             model._debug_print("Computing evaluation loss...")
             targets = G.y[G.seed_mask]
             assert output.shape == targets.shape, f"Output shape {output.shape} != target shape {targets.shape}"
-            residual = output - targets
-            weights = 1.0 + self.weight_alpha * torch.abs(targets)
-            loss = torch.mean(weights * residual * residual)
+            loss = self._compute_loss(output, targets, loss_fn)
             return loss.item(), G, output, targets, loss
 
         return output
+
+    def _compute_loss(self, output: Tensor, targets: Tensor, loss_fn: Optional[torch.nn.Module]) -> Tensor:
+        """
+        Compute loss with optional weighted MSE.
+        If self.weight_alpha > 0, use weighted MSE. Otherwise use loss_fn if provided.
+        """
+        if self.weight_alpha > 0.0:
+            residual = output - targets
+            weights = 1.0 + self.weight_alpha * torch.abs(targets)
+            return torch.mean(weights * residual * residual)
+        if loss_fn is not None:
+            return loss_fn(output, targets)
+        return torch.mean((output - targets) ** 2)
