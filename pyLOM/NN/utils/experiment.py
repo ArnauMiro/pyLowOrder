@@ -423,6 +423,7 @@ def save_experiment_artifacts(
     metrics_dict: dict[str, float],
     inputs_scaler: any = None,
     outputs_scaler: any = None,
+    full_run_config: dict[str, Any] | None = None,
     extra_files: dict[str, any] | None = None,
     return_path: bool = False,
 ) -> Path | None:
@@ -469,6 +470,8 @@ def save_experiment_artifacts(
         "training": train_cfg_dict,
         "provenance": prov_dict,
     }
+    if full_run_config is not None:
+        config_doc["run_config"] = to_native(full_run_config)
 
     # 3) Stable hash from canonical JSON (independent of YAML formatting)
     canonical = json.dumps(config_doc, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -501,7 +504,6 @@ def save_experiment_artifacts(
     if inputs_scaler is not None:
         if not getattr(inputs_scaler, "is_fitted", True):
             raiseError("inputs_scaler must be fitted before saving.")
-        inputs_scaler.save(str(out_dir / "inputs_scaler.json"))
         if hasattr(inputs_scaler, "save"):
             inputs_scaler.save(str(out_dir / "inputs_scaler.json"))
         else:
