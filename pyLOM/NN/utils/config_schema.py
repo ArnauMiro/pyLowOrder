@@ -81,12 +81,21 @@ class TorchDataloaderConfig:
 
 
 @dataclass(frozen=True, kw_only=True)
+class SeedSelectorConfig:
+    """One-of selector for seed-node definition in subgraph sampling."""
+    type: str = "all"  # all | auto_frac | explicit_list
+    frac: Optional[float] = None
+    nodes_path: Optional[str] = None
+
+
+@dataclass(frozen=True, kw_only=True)
 class SubgraphDataloaderConfig:
     """DTO for the subgraph/seed-node DataLoader settings."""
     batch_size: int = 256
     shuffle: bool = True
     input_nodes: Optional[Union[Tensor, Sequence[int]]] = None
     mode: str = "nodes"  # "nodes" uses node DataLoader + build_subgraph; "manual" uses ManualNeighborLoader
+    seed_selector: SeedSelectorConfig = field(default_factory=SeedSelectorConfig)
 
 
 @dataclass(frozen=True, kw_only=True)

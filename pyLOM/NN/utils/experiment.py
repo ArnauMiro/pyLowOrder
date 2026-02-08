@@ -428,11 +428,12 @@ def save_experiment_artifacts(
     return_path: bool = False,
 ) -> Path | None:
     """
-    Save model checkpoint + DTO configs + provenance + scalers + metrics.
+    Save model checkpoint + reproducibility config + scalers + metrics.
 
     Notes
     -----
-    - The written config.yaml mirrors what the checkpoint stores (DTOs + provenance).
+    - The written config.yaml contains a single `repro_config` block
+      with effective values used during training.
     - A stable SHA256 is computed from a canonical JSON dump of that config document.
     """
     # 1) Decide output directory (timestamped subfolder if 'base_path' is a dir)
@@ -444,7 +445,7 @@ def save_experiment_artifacts(
         out_dir = base_path
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # 2) Build the DTO/provenance document we’ll save AND hash
+    # 2) Build the resolved reproducibility document we’ll save AND hash
     model_cfg_dict  = asdict(model.model_config)
     train_cfg_dict  = asdict(model.last_training_config) if getattr(model, "last_training_config", None) else None
     prov_dict       = {
@@ -466,12 +467,15 @@ def save_experiment_artifacts(
             }
 
     config_doc = {
-        "model": model_cfg_dict,
-        "training": train_cfg_dict,
-        "provenance": prov_dict,
+        "repro_config": to_native(
+            _build_repro_config(
+                full_run_config=(full_run_config or {}),
+                model_cfg=model_cfg_dict,
+                training_cfg=train_cfg_dict or {},
+                provenance=prov_dict,
+            )
+        )
     }
-    if full_run_config is not None:
-        config_doc["run_config"] = to_native(full_run_config)
 
     # 3) Stable hash from canonical JSON (independent of YAML formatting)
     canonical = json.dumps(config_doc, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -529,6 +533,72 @@ def save_experiment_artifacts(
 
     pprint(0, f"Experiment artifacts saved to: {out_dir}")
     return out_dir if return_path else None
+
+
+def _resolved_value(cfg: Mapping[str, Any], key: str, default: Any = None) -> Any:
+    eff_key = f"{key}_effective"
+    if eff_key in cfg:
+        return cfg.get(eff_key)
+    return cfg.get(key, default)
+
+
+def _resolve_dataset_config(dataset_cfg: Mapping[str, Any]) -> Dict[str, Any]:
+    # Minimal set required to reproduce dataset construction and scaling behavior.
+    resolved: Dict[str, Any] = {
+        "field_names": dataset_cfg.get("field_names"),
+        "variables_names": dataset_cfg.get("variables_names"),
+        "mesh_shape": dataset_cfg.get("mesh_shape"),
+        "scale_inputs": bool(_resolved_value(dataset_cfg, "scale_inputs", True)),
+        "scale_outputs": bool(_resolved_value(dataset_cfg, "scale_outputs", True)),
+        "input_scaler_type": _resolved_value(dataset_cfg, "input_scaler_type", "minmax"),
+        "output_scaler_type": _resolved_value(dataset_cfg, "output_scaler_type", "minmax"),
+    }
+
+    # Remove null entries to keep config compact and readable.
+    return {k: v for k, v in resolved.items() if v is not None}
+
+
+def _build_repro_config(
+    *,
+    full_run_config: Mapping[str, Any],
+    model_cfg: Mapping[str, Any],
+    training_cfg: Mapping[str, Any],
+    provenance: Mapping[str, Any],
+) -> Dict[str, Any]:
+    dataset_cfg_raw = full_run_config.get("dataset_config", {}) or {}
+    graph_spec = provenance.get("graph_spec", {}) if isinstance(provenance, Mapping) else {}
+    graph_path = None
+    if isinstance(graph_spec, Mapping):
+        graph_path = graph_spec.get("path")
+
+    training_out = dict(training_cfg)
+    sg = training_out.get("subgraph_loader")
+    if isinstance(sg, dict):
+        input_nodes = sg.get("input_nodes")
+        seed_selector = sg.get("seed_selector")
+        if isinstance(input_nodes, dict) and input_nodes.get("stored_in"):
+            sg["seed_selector"] = {
+                "type": "explicit_list",
+                "frac": None,
+                "nodes_path": input_nodes.get("stored_in"),
+            }
+            sg["input_nodes"] = None
+        elif isinstance(seed_selector, dict):
+            st = str(seed_selector.get("type", "all")).strip().lower()
+            if st == "all":
+                sg["input_nodes"] = None
+
+    repro: Dict[str, Any] = {
+        "experiment": full_run_config.get("experiment", {}) or {},
+        "datasets": full_run_config.get("datasets", {}) or {},
+        "dataset_config": _resolve_dataset_config(dataset_cfg_raw),
+        "model": {
+            "graph_path": graph_path,
+            "config": dict(model_cfg),
+        },
+        "training": training_out,
+    }
+    return repro
 
 
 # ----------------------------- core metrics ----------------------------- #

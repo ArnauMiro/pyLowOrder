@@ -401,6 +401,8 @@ class _GNSHelpers:
         )
 
         mode = getattr(config, "mode", "nodes")
+        if mode not in {"nodes", "manual"}:
+            raiseError(f"Invalid subgraph_loader.mode='{mode}'. Allowed values: 'nodes', 'manual'.")
         if mode == "manual":
             return ManualNeighborLoader(
                 device=self.device,

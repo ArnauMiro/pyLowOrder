@@ -51,6 +51,20 @@ class _GNSTrainingLoop:
         # Metric used to select best checkpoint on validation
         best_metric = getattr(model, "best_metric", "loss")
 
+        # Optional epoch-0 diagnostics: evaluate losses before any optimizer step.
+        # This is only recorded once for fresh runs (no previous trained epochs).
+        self._maybe_record_epoch_zero_losses(
+            train_input_dl=train_input_dl,
+            train_subgraph_dl=train_subgraph_dl,
+            eval_input_dl=eval_input_dl,
+            eval_subgraph_dl=eval_subgraph_dl,
+            loss_fn=loss_fn,
+            best_metric=best_metric,
+            epoch_list=epoch_list,
+            train_loss_list=train_loss_list,
+            test_loss_list=test_loss_list,
+        )
+
         for epoch in range(1 + len(epoch_list), 1 + total_epochs):
             train_loss = self.run_epoch(
                 input_dataloader=train_input_dl,
@@ -136,6 +150,54 @@ class _GNSTrainingLoop:
             "best_val_loss": best_val_loss,
             "best_epoch": best_epoch,
         }
+
+    def _maybe_record_epoch_zero_losses(
+        self,
+        *,
+        train_input_dl,
+        train_subgraph_dl,
+        eval_input_dl,
+        eval_subgraph_dl,
+        loss_fn: torch.nn.Module,
+        best_metric: str,
+        epoch_list: list,
+        train_loss_list: list,
+        test_loss_list: list,
+    ) -> None:
+        # Keep backward compatibility for resumed runs: do not prepend again.
+        if len(epoch_list) > 0 or len(train_loss_list) > 0 or len(test_loss_list) > 0:
+            return
+
+        train_loss0 = self.run_epoch(
+            input_dataloader=train_input_dl,
+            subgraph_loader=train_subgraph_dl,
+            loss_fn=loss_fn,
+            return_loss=True,
+            is_train=False,
+        )
+        train_loss_list.insert(0, train_loss0)
+
+        if eval_input_dl is not None:
+            eval_result0 = self.run_epoch(
+                input_dataloader=eval_input_dl,
+                subgraph_loader=eval_subgraph_dl,
+                loss_fn=loss_fn,
+                return_loss=True,
+                metric=best_metric,
+                is_train=False,
+            )
+            if isinstance(eval_result0, tuple):
+                eval_loss0, _ = eval_result0
+            else:
+                eval_loss0 = eval_result0
+            test_loss_list.insert(0, eval_loss0)
+
+        pprint(
+            0,
+            f"[diag] Epoch 0 (no training) | Train loss: {train_loss_list[0]:.4e}" +
+            (f" | Eval loss: {test_loss_list[0]:.4e}" if len(test_loss_list) > 0 else ""),
+            flush=True,
+        )
 
     def run_epoch(
         self,
