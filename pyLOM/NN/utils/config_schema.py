@@ -102,6 +102,7 @@ class SubgraphDataloaderConfig:
 class GNSTrainingConfig(TrainingConfigBase):
     """Full training configuration for GNS (DTO) with nested dataloaders."""
     best_metric: str = "mae"
+    best_metric_space: str = "scaled"  # scaled | physical
     weighted_loss_alpha: float = 0.0
     nan_guard_enabled: bool = True
     grad_clip_enabled: bool = False

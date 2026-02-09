@@ -30,6 +30,7 @@ class _GNSTrainingLoop:
         self.grad_clip_enabled = False
         self.grad_clip_max_norm = 1.0
         self.grad_clip_norm_type = 2.0
+        self.best_metric_space = "scaled"
 
     def train(
         self,
@@ -54,6 +55,11 @@ class _GNSTrainingLoop:
 
         # Metric used to select best checkpoint on validation
         best_metric = getattr(model, "best_metric", "loss")
+        self.best_metric_space = str(getattr(model, "best_metric_space", "scaled")).strip().lower()
+        if self.best_metric_space not in {"scaled", "physical"}:
+            raise RuntimeError(
+                f"Invalid best_metric_space='{self.best_metric_space}'. Allowed: 'scaled', 'physical'."
+            )
         self.nan_guard_enabled = bool(getattr(config, "nan_guard_enabled", True))
         self.grad_clip_enabled = bool(getattr(config, "grad_clip_enabled", False))
         self.grad_clip_max_norm = float(getattr(config, "grad_clip_max_norm", 1.0))
@@ -114,7 +120,10 @@ class _GNSTrainingLoop:
             )
             if log_this_epoch:
                 if test_loss is not None and best_metric != "loss":
-                    test_log = f" | Eval loss: {test_loss:.4e} | Eval {best_metric}: {best_val_loss:.4e}"
+                    test_log = (
+                        f" | Eval loss: {test_loss:.4e} | Eval {best_metric}"
+                        f"({self.best_metric_space}): {best_val_loss:.4e}"
+                    )
                 else:
                     test_log = f" | Eval loss: {test_loss:.4e}" if test_loss is not None else ""
                 pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss: {train_loss:.4e}{test_log}", flush=True)
@@ -133,6 +142,7 @@ class _GNSTrainingLoop:
                 "test_loss_list": test_loss_list,
                 "best_val_loss": best_val_loss,
                 "best_metric": best_metric,
+                "best_metric_space": self.best_metric_space,
                 "best_epoch": best_epoch,
             }
             model.last_training_config = config
@@ -292,7 +302,9 @@ class _GNSTrainingLoop:
                     if return_loss:
                         total_loss += loss_val
                         if metric == "mae" and out is not None and targets is not None:
-                            total_metric += torch.mean(torch.abs(out - targets)).item()
+                            out_metric = self._to_metric_space(out)
+                            tgt_metric = self._to_metric_space(targets)
+                            total_metric += torch.mean(torch.abs(out_metric - tgt_metric)).item()
                         last_graph = G
                         last_output = out
                         last_targets = targets
@@ -341,6 +353,20 @@ class _GNSTrainingLoop:
         outputs_numpy = torch.cat(outputs, dim=0).cpu().numpy()
         outputs_numpy = outputs_numpy.reshape(-1, model.graph.num_nodes, model.model_config.output_dim)
         return outputs_numpy
+
+    def _to_metric_space(self, tensor: Tensor) -> Tensor:
+        if self.best_metric_space == "scaled":
+            return tensor
+        model = self.model
+        inverse_fn = getattr(model, "inverse_output_fn", None)
+        if inverse_fn is None:
+            raise RuntimeError(
+                "best_metric_space='physical' requires model.inverse_output_fn to be set."
+            )
+        out = inverse_fn(tensor)
+        if isinstance(out, torch.Tensor):
+            return out.to(tensor.device)
+        return torch.as_tensor(out, dtype=tensor.dtype, device=tensor.device)
 
     def _train_one_batch(
         self,
