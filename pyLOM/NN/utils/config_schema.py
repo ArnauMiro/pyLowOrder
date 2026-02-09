@@ -101,5 +101,11 @@ class SubgraphDataloaderConfig:
 @dataclass(frozen=True, kw_only=True)
 class GNSTrainingConfig(TrainingConfigBase):
     """Full training configuration for GNS (DTO) with nested dataloaders."""
+    best_metric: str = "mae"
+    weighted_loss_alpha: float = 0.0
+    nan_guard_enabled: bool = True
+    grad_clip_enabled: bool = False
+    grad_clip_max_norm: float = 1.0
+    grad_clip_norm_type: float = 2.0
     dataloader: TorchDataloaderConfig = field(default_factory=TorchDataloaderConfig)
     subgraph_loader: SubgraphDataloaderConfig = field(default_factory=SubgraphDataloaderConfig)

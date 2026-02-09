@@ -26,6 +26,10 @@ class _GNSTrainingLoop:
         self.model = model
         # Optional weighted MSE: enable by setting model.loss_weight_alpha > 0
         self.weight_alpha = float(getattr(model, "loss_weight_alpha", 0.0) or 0.0)
+        self.nan_guard_enabled = True
+        self.grad_clip_enabled = False
+        self.grad_clip_max_norm = 1.0
+        self.grad_clip_norm_type = 2.0
 
     def train(
         self,
@@ -50,6 +54,10 @@ class _GNSTrainingLoop:
 
         # Metric used to select best checkpoint on validation
         best_metric = getattr(model, "best_metric", "loss")
+        self.nan_guard_enabled = bool(getattr(config, "nan_guard_enabled", True))
+        self.grad_clip_enabled = bool(getattr(config, "grad_clip_enabled", False))
+        self.grad_clip_max_norm = float(getattr(config, "grad_clip_max_norm", 1.0))
+        self.grad_clip_norm_type = float(getattr(config, "grad_clip_norm_type", 2.0))
 
         # Optional epoch-0 diagnostics: evaluate losses before any optimizer step.
         # This is only recorded once for fresh runs (no previous trained epochs).
@@ -371,11 +379,37 @@ class _GNSTrainingLoop:
             model._debug_print(f"[GNS] Shape mismatch detected in _train_one_batch: {debug_info}")
 
         assert output.shape == targets.shape, f"Output shape {output.shape} != target shape {targets.shape}"
+        if self.nan_guard_enabled:
+            if not torch.isfinite(output).all():
+                raise RuntimeError("Non-finite values detected in model outputs during training.")
+            if not torch.isfinite(targets).all():
+                raise RuntimeError("Non-finite values detected in targets during training.")
         if model._counter % 100 == 0:
             model._debug_print(f" - Training batch {model._counter}: output.shape={output.shape}, targets.shape={targets.shape}")
         loss = self._compute_loss(output, targets, loss_fn)
+        if self.nan_guard_enabled and not torch.isfinite(loss):
+            raise RuntimeError(
+                f"Non-finite training loss detected at batch {model._counter}. "
+                "Aborting to prevent NaN propagation."
+            )
         model._debug_print(f" - Computed loss: {loss.item():.4e}. Backpropagating...")
         loss.backward()
+
+        if self.nan_guard_enabled:
+            for name, param in model.named_parameters():
+                grad = param.grad
+                if grad is not None and not torch.isfinite(grad).all():
+                    raise RuntimeError(f"Non-finite gradients detected in parameter '{name}'.")
+
+        if self.grad_clip_enabled:
+            total_norm = torch.nn.utils.clip_grad_norm_(
+                model.parameters(),
+                max_norm=self.grad_clip_max_norm,
+                norm_type=self.grad_clip_norm_type,
+            )
+            if self.nan_guard_enabled and not torch.isfinite(total_norm):
+                raise RuntimeError("Non-finite gradient norm after clipping.")
+
         model.optimizer.step()
 
         return loss.item(), G, output, targets, loss
@@ -397,7 +431,14 @@ class _GNSTrainingLoop:
             model._debug_print("Computing evaluation loss...")
             targets = G.y[G.seed_mask]
             assert output.shape == targets.shape, f"Output shape {output.shape} != target shape {targets.shape}"
+            if self.nan_guard_enabled:
+                if not torch.isfinite(output).all():
+                    raise RuntimeError("Non-finite values detected in model outputs during evaluation.")
+                if not torch.isfinite(targets).all():
+                    raise RuntimeError("Non-finite values detected in targets during evaluation.")
             loss = self._compute_loss(output, targets, loss_fn)
+            if self.nan_guard_enabled and not torch.isfinite(loss):
+                raise RuntimeError("Non-finite evaluation loss detected.")
             return loss.item(), G, output, targets, loss
 
         return output
