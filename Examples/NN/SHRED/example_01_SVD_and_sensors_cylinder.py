@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 #
 # Example of POD to reduce dimensionality for SHRED architecture.
+# This example can be run in parallel with any number of processors.
 #
-# Last revision: 19/07/2021
+# Last revision: 04/02/2026
 from __future__ import print_function, division
 
 import mpi4py
@@ -13,9 +14,9 @@ import pyLOM
 
 
 ## Parameters
-DATAFILE  = '/gpfs/scratch/bsc21/bsc021828/DATA_PYLOM/CYLINDER.h5'
+DATAFILE  = './DATA/CYLINDER.h5'
 DATAFIL2  = './CYLINDER.h5'
-VARLIST  = ['VELOX', 'VORTI']
+VARLIST   = ['VELOX', 'VORTI']
 
 
 ## Data loading
@@ -23,6 +24,13 @@ m = pyLOM.Mesh.load(DATAFILE)
 d = pyLOM.Dataset.load(DATAFILE,ptable=m.partition_table)
 t = d.get_variable('time')
 N = t.shape[0]
+
+
+## Delete any variable that is not a scalar field
+# Note that this workflow only applies to scalar field, thus any multi-component
+# field should be split and deleted from the dataset
+for f in d.fieldnames:
+    if d.info(f)['ndim'] > 1: d.delete(f)
 
 
 ## Divide in training, validation and test and append mask to current dataset
@@ -53,13 +61,13 @@ for var in VARLIST:
     pyLOM.POD.save('POD_trai_%s.h5'%var,PSI,S,V,d.partition_table,nvars=1,pointData=d.point)
     ## Fetch validation dataset and project POD modes
     Xvali   = d.mask_field(var, vaidx)
-    proj    = pyLOM.math.matmulp(PSI.T, Xvali)
+    proj    = pyLOM.math.matmulp(pyLOM.math.transpose(PSI), Xvali)
     Vvali   = pyLOM.math.matmul(pyLOM.math.diag(1/S), proj)
     ## Save POD projection of validation data of each variable
     pyLOM.POD.save('POD_vali_%s.h5'%var,None,None,Vvali,d.partition_table,nvars=1,pointData=d.point)
     ## Fetch test dataset and project POD modes
     Xtest   = d.mask_field(var, teidx)
-    proj    = pyLOM.math.matmulp(PSI.T, Xtest)
+    proj    = pyLOM.math.matmulp(pyLOM.math.transpose(PSI), Xtest)
     Vtest   = pyLOM.math.matmul(pyLOM.math.diag(1/S), proj)
     ## Save POD projection of validation data of each variable
     pyLOM.POD.save('POD_test_%s.h5'%var,None,None,Vtest,d.partition_table,nvars=1,pointData=d.point)     
