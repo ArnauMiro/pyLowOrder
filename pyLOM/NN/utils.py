@@ -706,7 +706,7 @@ class Dataset(torch.utils.data.Dataset):
     
     @cr("NN.Dataset.map")
     def map(self, function: Callable, fn_kwargs: dict = {}, batched: bool = False, batch_size: int = 1000):
-        '''
+        r'''
         Apply a function to the dataset.
 
         Args:
@@ -746,7 +746,7 @@ class Dataset(torch.utils.data.Dataset):
         batch_size: int = 1000,
         return_views: bool = True,
     ):
-        """
+        r"""
         Filter the dataset using a function.
 
         Args:
