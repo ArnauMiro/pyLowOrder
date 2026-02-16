@@ -22,7 +22,7 @@ def h5_save_partition(file,ptable):
 	Save a partition table inside an HDF5 file.
 
 	Args:
-		file (string): file name
+		file (h5py.File): file name
 		ptable (PartitionTable): partition table to be saved
 	'''
 	# Create a group for the mesh
@@ -37,7 +37,7 @@ def h5_load_partition(file):
 	Load a partition table inside an HDF5 file.
 
 	Args:
-		file (string): file name to load the partition from
+		file (h5py.File): file name to load the partition from
 
 	Returns:
 		PartitionTable
@@ -50,6 +50,30 @@ def h5_load_partition(file):
 	points   = np.array(file['PARTITIONS']['Points'][:])
 	# Return partition class
 	return PartitionTable(nparts,ids,elements,points)
+
+def h5_save_partition_table(fname,ptable,*,mode='w'):
+	r'''
+	Save a partition table inside an HDF5 file.
+
+	Args:
+		fname (string): file name
+		ptable (PartitionTable): partition table to be saved
+	'''
+	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,mode)
+	h5_save_partition(file,ptable)
+
+def h5_load_partition_table(fname):
+	r'''
+	Load a partition table from an HDF5 file.
+
+	Args:
+		fname (string): file name to load the partition from
+
+	Returns:
+		PartitionTable
+	'''
+	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,'r')
+	return h5_load_partition(file)
 
 def h5_save_meshes(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	r'''
