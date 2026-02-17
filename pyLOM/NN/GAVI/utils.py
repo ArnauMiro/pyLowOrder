@@ -86,7 +86,7 @@ def create_dataset(matrix:np.ndarray, scale:str='max', device:torch.device=DEVIC
 		[Dataset, np.ndarray]: pyLOM.NN.Dataset with the scaled data and the scalers used to scale it
 	'''
 	if scale == 'max':
-		matmax = np.max(np.abs(matrix))
+		matmax = np.max(np.abs(matrix)) if isinstance(matrix, np.ndarray) else torch.max(torch.abs(matrix))
 		matsca = matrix/matmax
 		scaler = matmax
 	elif scale == 'meanstd':
@@ -101,5 +101,5 @@ def create_dataset(matrix:np.ndarray, scale:str='max', device:torch.device=DEVIC
 		matsca = matrix
 		scaler = None
 		raiseWarning('Scaling method not implemented, setting scaler to None and adding the non-scaled data to the dataset')
-	matsca = torch.tensor((matsca).astype(np.float32), device=device)
+	matsca = torch.tensor((matsca).astype(np.float32), device=device) if isinstance(matsca, np.ndarray) else matsca
 	return Dataset(tuple(matsca[:, i, :] for i in range(matsca.shape[1])), mesh_shape=(matsca.shape[0],), snapshots_by_column=True), scaler
