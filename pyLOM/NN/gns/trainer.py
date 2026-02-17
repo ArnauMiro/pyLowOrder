@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import copy
+import json
+from pathlib import Path
 from typing import Optional, Callable, Tuple, Dict, Union
 
 import torch
@@ -31,6 +33,12 @@ class _GNSTrainingLoop:
         self.grad_clip_max_norm = 1.0
         self.grad_clip_norm_type = 2.0
         self.best_metric_space = "scaled"
+        self.debug_numerics = False
+        self.debug_log_path = Path("gns_debug_numerics.jsonl")
+        self.debug_every_n_steps = 200
+        self.debug_overwrite_each_epoch = True
+        self.debug_max_param_tensors = 12
+        self._train_step_counter = 0
 
     def train(
         self,
@@ -64,6 +72,13 @@ class _GNSTrainingLoop:
         self.grad_clip_enabled = bool(getattr(config, "grad_clip_enabled", False))
         self.grad_clip_max_norm = float(getattr(config, "grad_clip_max_norm", 1.0))
         self.grad_clip_norm_type = float(getattr(config, "grad_clip_norm_type", 2.0))
+        self.debug_numerics = bool(getattr(config, "debug_numerics", False))
+        dbg_path = getattr(config, "debug_log_path", None)
+        self.debug_log_path = Path(dbg_path) if dbg_path else Path("gns_debug_numerics.jsonl")
+        self.debug_every_n_steps = max(1, int(getattr(config, "debug_every_n_steps", 200)))
+        self.debug_overwrite_each_epoch = bool(getattr(config, "debug_overwrite_each_epoch", True))
+        self.debug_max_param_tensors = max(1, int(getattr(config, "debug_max_param_tensors", 12)))
+        self._train_step_counter = 0
 
         # Optional epoch-0 diagnostics: evaluate losses before any optimizer step.
         # This is only recorded once for fresh runs (no previous trained epochs).
@@ -80,6 +95,10 @@ class _GNSTrainingLoop:
         )
 
         for epoch in range(1 + len(epoch_list), 1 + total_epochs):
+            if self.debug_numerics and self.debug_overwrite_each_epoch:
+                self.debug_log_path.parent.mkdir(parents=True, exist_ok=True)
+                with self.debug_log_path.open("w") as f:
+                    f.write("")
             train_loss = self.run_epoch(
                 input_dataloader=train_input_dl,
                 subgraph_loader=train_subgraph_dl,
@@ -368,6 +387,58 @@ class _GNSTrainingLoop:
             return out.to(tensor.device)
         return torch.as_tensor(out, dtype=tensor.dtype, device=tensor.device)
 
+    def _extract_seeded_output_targets(
+        self,
+        *,
+        subgraph: Data,
+        inputs_batch: Tensor,
+        output_full: Tensor,
+        targets_batch: Optional[Tensor],
+        G: Data,
+    ) -> Tuple[Tensor, Optional[Tensor]]:
+        """
+        Build seeded output/target tensors from structured [B, N, *] views.
+
+        This avoids relying on potentially inconsistent flattened masks in `G`
+        and guarantees output/target alignment on the same seed selection.
+        """
+        if inputs_batch.ndim == 1:
+            B = 1
+        else:
+            B = int(inputs_batch.size(0))
+
+        N = int(subgraph.num_nodes)
+        if output_full.ndim != 2:
+            raise RuntimeError(f"Unexpected output_full.ndim={output_full.ndim}; expected 2.")
+        if output_full.size(0) != B * N:
+            raise RuntimeError(
+                f"Unexpected output length {int(output_full.size(0))}; expected B*N={B}*{N}={B*N}."
+            )
+
+        seed_mask_local = getattr(subgraph, "seed_mask", None)
+        if seed_mask_local is None:
+            seed_mask_local = torch.ones(N, dtype=torch.bool, device=output_full.device)
+        else:
+            seed_mask_local = seed_mask_local.to(device=output_full.device, dtype=torch.bool)
+
+        out_view = output_full.view(B, N, output_full.size(-1))
+        output = out_view[:, seed_mask_local, :].reshape(-1, output_full.size(-1))
+
+        targets: Optional[Tensor] = None
+        if targets_batch is not None:
+            tb = targets_batch
+            if tb.ndim == 2:
+                tb = tb.unsqueeze(0)
+            subset = getattr(subgraph, "subset", None)
+            if subset is not None:
+                subset = subset.to(device=tb.device, dtype=torch.long)
+                tb = tb.index_select(1, subset)
+            targets = tb[:, seed_mask_local.to(tb.device), :].reshape(-1, tb.size(-1))
+        elif getattr(G, "y", None) is not None and getattr(G, "seed_mask", None) is not None:
+            targets = G.y[G.seed_mask]
+
+        return output, targets
+
     def _train_one_batch(
         self,
         *,
@@ -380,11 +451,20 @@ class _GNSTrainingLoop:
         if not hasattr(model, "_counter"):
             model._counter = 0
         model._counter += 1
+        self._train_step_counter += 1
         G = model.injector.replicate_inject(subgraph, inputs_batch, targets_batch)
 
         model.optimizer.zero_grad()
-        output = model.forward(G)[G.seed_mask]
-        targets = G.y[G.seed_mask]
+        output_full = model.forward(G)
+        output, targets = self._extract_seeded_output_targets(
+            subgraph=subgraph,
+            inputs_batch=inputs_batch,
+            output_full=output_full,
+            targets_batch=targets_batch,
+            G=G,
+        )
+        if targets is None:
+            raise RuntimeError("Targets are required in training but were not provided.")
 
         if output.shape != targets.shape:
             subgraph_seed_count = int(getattr(subgraph, "seed_mask", torch.tensor([])).sum().item()) if getattr(subgraph, "seed_mask", None) is not None else None
@@ -399,12 +479,12 @@ class _GNSTrainingLoop:
                 "G.y.shape": tuple(G.y.shape) if getattr(G, "y", None) is not None else None,
                 "G.seed_mask.shape": tuple(G.seed_mask.shape) if getattr(G, "seed_mask", None) is not None else None,
                 "G.seed_mask.sum": G_seed_count,
+                "output_full.shape": tuple(output_full.shape),
                 "output.shape": tuple(output.shape),
                 "targets.shape": tuple(targets.shape),
             }
-            model._debug_print(f"[GNS] Shape mismatch detected in _train_one_batch: {debug_info}")
+            raise RuntimeError(f"Shape mismatch detected in _train_one_batch: {debug_info}")
 
-        assert output.shape == targets.shape, f"Output shape {output.shape} != target shape {targets.shape}"
         if self.nan_guard_enabled:
             if not torch.isfinite(output).all():
                 raise RuntimeError("Non-finite values detected in model outputs during training.")
@@ -413,7 +493,27 @@ class _GNSTrainingLoop:
         if model._counter % 100 == 0:
             model._debug_print(f" - Training batch {model._counter}: output.shape={output.shape}, targets.shape={targets.shape}")
         loss = self._compute_loss(output, targets, loss_fn)
+        if self.debug_numerics and (self._train_step_counter % self.debug_every_n_steps == 0):
+            self._debug_log(
+                event="train_step",
+                step=self._train_step_counter,
+                payload={
+                    "loss": self._tensor_stats(loss),
+                    "output": self._tensor_stats(output),
+                    "targets": self._tensor_stats(targets),
+                },
+            )
         if self.nan_guard_enabled and not torch.isfinite(loss):
+            if self.debug_numerics:
+                self._debug_log(
+                    event="nonfinite_loss",
+                    step=self._train_step_counter,
+                    payload={
+                        "loss": self._tensor_stats(loss),
+                        "output": self._tensor_stats(output),
+                        "targets": self._tensor_stats(targets),
+                    },
+                )
             raise RuntimeError(
                 f"Non-finite training loss detected at batch {model._counter}. "
                 "Aborting to prevent NaN propagation."
@@ -422,10 +522,38 @@ class _GNSTrainingLoop:
         loss.backward()
 
         if self.nan_guard_enabled:
+            grad_snapshots = []
+            grad_nonfinite_name = None
             for name, param in model.named_parameters():
                 grad = param.grad
+                if self.debug_numerics and grad is not None and len(grad_snapshots) < self.debug_max_param_tensors:
+                    grad_snapshots.append({
+                        "name": name,
+                        "grad": self._tensor_stats(grad),
+                    })
                 if grad is not None and not torch.isfinite(grad).all():
-                    raise RuntimeError(f"Non-finite gradients detected in parameter '{name}'.")
+                    grad_nonfinite_name = name
+                    break
+            if grad_nonfinite_name is not None:
+                if self.debug_numerics:
+                    self._debug_log(
+                        event="nonfinite_grad",
+                        step=self._train_step_counter,
+                        payload={
+                            "parameter": grad_nonfinite_name,
+                            "loss": self._tensor_stats(loss),
+                            "output": self._tensor_stats(output),
+                            "targets": self._tensor_stats(targets),
+                            "grads": grad_snapshots,
+                        },
+                    )
+                raise RuntimeError(f"Non-finite gradients detected in parameter '{grad_nonfinite_name}'.")
+            if self.debug_numerics and (self._train_step_counter % self.debug_every_n_steps == 0):
+                self._debug_log(
+                    event="grad_snapshot",
+                    step=self._train_step_counter,
+                    payload={"grads": grad_snapshots},
+                )
 
         if self.grad_clip_enabled:
             total_norm = torch.nn.utils.clip_grad_norm_(
@@ -440,6 +568,39 @@ class _GNSTrainingLoop:
 
         return loss.item(), G, output, targets, loss
 
+    def _tensor_stats(self, t: Tensor) -> Dict[str, Union[str, float, int, list]]:
+        td = t.detach()
+        finite = torch.isfinite(td)
+        finite_count = int(finite.sum().item())
+        total = int(td.numel())
+        out: Dict[str, Union[str, float, int, list]] = {
+            "shape": list(td.shape),
+            "dtype": str(td.dtype),
+            "numel": total,
+            "finite_count": finite_count,
+            "nonfinite_count": total - finite_count,
+        }
+        if finite_count > 0:
+            tf = td[finite]
+            out.update({
+                "min": float(tf.min().item()),
+                "max": float(tf.max().item()),
+                "mean": float(tf.mean().item()),
+                "std": float(tf.std().item()) if tf.numel() > 1 else 0.0,
+                "absmax": float(tf.abs().max().item()),
+            })
+        return out
+
+    def _debug_log(self, *, event: str, step: int, payload: Dict[str, Union[dict, list, str, float, int]]) -> None:
+        try:
+            record = {"event": event, "step": step, **payload}
+            self.debug_log_path.parent.mkdir(parents=True, exist_ok=True)
+            with self.debug_log_path.open("a") as f:
+                f.write(json.dumps(record) + "\n")
+        except Exception:
+            # Debug logging must not break training flow.
+            pass
+
     def _eval_one_batch(
         self,
         *,
@@ -451,11 +612,19 @@ class _GNSTrainingLoop:
         model = self.model
         model._debug_print("Evaluating on new batch...")
         G = model.injector.replicate_inject(subgraph, inputs_batch, targets_batch)
-        output = model.forward(G)[G.seed_mask]
+        output_full = model.forward(G)
+        output, targets = self._extract_seeded_output_targets(
+            subgraph=subgraph,
+            inputs_batch=inputs_batch,
+            output_full=output_full,
+            targets_batch=targets_batch,
+            G=G,
+        )
 
         if loss_fn is not None:
             model._debug_print("Computing evaluation loss...")
-            targets = G.y[G.seed_mask]
+            if targets is None:
+                raise RuntimeError("Targets are required for evaluation loss but were not provided.")
             assert output.shape == targets.shape, f"Output shape {output.shape} != target shape {targets.shape}"
             if self.nan_guard_enabled:
                 if not torch.isfinite(output).all():
