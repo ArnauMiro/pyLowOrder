@@ -419,21 +419,37 @@ class _GNSTrainingLoop:
         if seed_mask_local is None:
             seed_mask_local = torch.ones(N, dtype=torch.bool, device=output_full.device)
         else:
-            seed_mask_local = seed_mask_local.to(device=output_full.device, dtype=torch.bool)
+            seed_mask_local = seed_mask_local.to(device=output_full.device)
+            seed_mask_local = seed_mask_local.reshape(-1).to(dtype=torch.bool).contiguous()
+            if int(seed_mask_local.numel()) != N:
+                raise RuntimeError(
+                    f"Invalid subgraph.seed_mask length {int(seed_mask_local.numel())}; expected N={N}."
+                )
+        seed_idx = torch.nonzero(seed_mask_local, as_tuple=False).reshape(-1)
+        if int(seed_idx.numel()) == 0:
+            raise RuntimeError("Empty seed selection in subgraph.seed_mask; cannot compute loss.")
 
         out_view = output_full.view(B, N, output_full.size(-1))
-        output = out_view[:, seed_mask_local, :].reshape(-1, output_full.size(-1))
+        output = out_view.index_select(1, seed_idx).reshape(-1, output_full.size(-1))
 
         targets: Optional[Tensor] = None
         if targets_batch is not None:
             tb = targets_batch
             if tb.ndim == 2:
                 tb = tb.unsqueeze(0)
+            if int(tb.size(0)) != B:
+                raise RuntimeError(
+                    f"Unexpected targets batch size {int(tb.size(0))}; expected B={B}."
+                )
             subset = getattr(subgraph, "subset", None)
             if subset is not None:
                 subset = subset.to(device=tb.device, dtype=torch.long)
                 tb = tb.index_select(1, subset)
-            targets = tb[:, seed_mask_local.to(tb.device), :].reshape(-1, tb.size(-1))
+            if int(tb.size(1)) != N:
+                raise RuntimeError(
+                    f"Unexpected targets node dimension {int(tb.size(1))}; expected N={N}."
+                )
+            targets = tb.index_select(1, seed_idx.to(tb.device)).reshape(-1, tb.size(-1))
         elif getattr(G, "y", None) is not None and getattr(G, "seed_mask", None) is not None:
             targets = G.y[G.seed_mask]
 
