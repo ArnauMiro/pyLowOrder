@@ -216,7 +216,7 @@ class Dataset(object):
 		It creates a new dataset containing all the sensor coordinates and values
 		'''
 		# Fix seed if user requested
-		if seed > 0: np.random.seed(seed)
+		if seed >= 0: np.random.seed(seed)
 
 		# Obtain the indices of the sensors and to which rank
 		# this index has been found
