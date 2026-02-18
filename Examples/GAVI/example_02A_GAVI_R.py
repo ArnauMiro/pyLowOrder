@@ -7,7 +7,6 @@
 # Computers & Fluids, 302, 106797. https://doi.org/10.1016/j.compfluid.2025.106797
 #
 # Last revision: 07/11/2025
-import torch
 import pyLOM.NN
 
 
