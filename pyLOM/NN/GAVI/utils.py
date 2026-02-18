@@ -20,7 +20,7 @@ from ...utils.cr          import cr
 from ...utils.errors      import raiseWarning
 from ...utils.gpu         import gpu_to_cpu, cpu_to_gpu
 from ...inp_out.io_h5     import h5_save_QR, h5_load_QR, h5_load_compressed
-from ...vmmath.truncation import energy
+from ...vmmath.truncation import energy as math_energy
 
 
 @cr('GAVI.save_QR')
@@ -119,5 +119,8 @@ def energy(dataset:Dataset,reconstructed:np.array,channel:int):
 		dataset (Dataset): pyLOM.NN.Dataset containing the original data
 		reconstructed (np.array): reconstructed data
 		channel (int): channel to compute energy from
+
+	Returns:
+		energy: energy kept on the reconstruction 
 	'''
-	return energy(dataset.variables_out[:,channel,:].cpu().numpy().T,reconstructed[channel])
+	return math_energy(dataset.variables_out[:,channel,:].cpu().numpy().T,reconstructed[channel])

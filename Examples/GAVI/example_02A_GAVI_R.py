@@ -30,8 +30,8 @@ _,detR = vae.correlation(data)
 latent = vae.latent_space(data)
 
 energyX = pyLOM.NN.GAVI.energy(data,rectra,0)
-print("Recovered energy X: {:.2f}%".format(energyX*100))
+pyLOM.pprint(0,"Recovered energy X: {:.2f}%".format(energyX*100),flush=True)
 energyY = pyLOM.NN.GAVI.energy(data,rectra,1)
-print("Recovered energy Y: {:.2f}%".format(energyY*100))
+pyLOM.pprint(0,"Recovered energy Y: {:.2f}%".format(energyY*100),flush=True)
 
 pyLOM.cr_info()
