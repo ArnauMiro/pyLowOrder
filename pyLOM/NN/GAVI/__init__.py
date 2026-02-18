@@ -8,6 +8,6 @@
 
 
 from .wrapper import vae_R, vae_Q, QR, reconstruct_Q
-from .utils   import save, load, load_compressed, create_dataset
+from .utils   import save, load, load_compressed, create_dataset, energy
 
 del wrapper, utils

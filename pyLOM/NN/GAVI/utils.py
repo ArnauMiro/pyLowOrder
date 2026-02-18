@@ -13,13 +13,14 @@
 import numpy as np
 import torch
 
-from ..                 import DEVICE
-from ..utils            import Dataset
-from ...partition_table import PartitionTable
-from ...utils.cr        import cr
-from ...utils.errors    import raiseWarning
-from ...utils.gpu       import gpu_to_cpu, cpu_to_gpu
-from ...inp_out.io_h5   import h5_save_QR, h5_load_QR, h5_load_compressed
+from ..                   import DEVICE
+from ..utils              import Dataset
+from ...partition_table   import PartitionTable
+from ...utils.cr          import cr
+from ...utils.errors      import raiseWarning
+from ...utils.gpu         import gpu_to_cpu, cpu_to_gpu
+from ...inp_out.io_h5     import h5_save_QR, h5_load_QR, h5_load_compressed
+from ...vmmath.truncation import energy
 
 
 @cr('GAVI.save_QR')
@@ -37,7 +38,6 @@ def save(fname:str,Q:np.ndarray,B:np.ndarray,ptable:PartitionTable,pointData:boo
 	'''
 	h5_save_QR(fname,gpu_to_cpu(Q),None,gpu_to_cpu(B),ptable,nvars=1,pointData=pointData,mode=mode)
 
-## Load the QR factorization
 @cr('GAVI.load_QR')
 def load(fname:str,vars:list=['Q','B'],ptable:PartitionTable=None):
 	r'''
@@ -71,20 +71,26 @@ def load_compressed(fname:str, ptable:PartitionTable, nelxAE:int=1, basedir:str=
 	Qmeans, Qstds, weights, biases, Q, B = h5_load_compressed(fname, basedir, ptable, nelxAE)
 	return Qmeans, Qstds, torch.tensor(weights, device=DEVICE), torch.tensor(biases, device=DEVICE), cpu_to_gpu(Q), cpu_to_gpu(B)
 
-## Create dataset
-@cr('GAVI.create_NNdataset')
-def create_dataset(matrix:np.ndarray, scale:str='max', device:torch.device=DEVICE):
+@cr('GAVI.create_dataset')
+def create_dataset(data:tuple, scale:str='max', device:torch.device=DEVICE):
 	r'''
 	Create the pyLOM.NN dataset for neural network training of the GAVI autoencoders
 	
 	Args:
-		matrix (np.ndarray): data matrix that will be added to the dataset with shape (number of modes, number of variables, number of samples).
+		data (tuple): data matrix that will be added to the dataset with shape (number of modes, number of samples) and tupled in (number of variables)
 		scale (str, optional): type of scaler applied to the data, 'max' is recommended for the autoencoder on the R matrix and 'meanstd' is recommended for the autoencoder on the Q matrix (default ``'max'``).
 		device (torch.device, optional): device in which the data will be loaded (default: CUDA if available)
 
 	Returns:
 		[Dataset, np.ndarray]: pyLOM.NN.Dataset with the scaled data and the scalers used to scale it
 	'''
+	# Generate a matrix from tupled data
+	nchannel = len(data)
+	# matrix (np.ndarray): data matrix that will be added to the dataset with shape (number of modes, number of variables, number of samples).
+	matrix   = torch.zeros((data[0].shape[0],nchannel,data[0].shape[1]), dtype=torch.float32, device=device)
+	for ichannel in range(nchannel):
+		matrix[:,ichannel,:] = torch.tensor(data[ichannel], dtype=torch.float32, device=device)
+	# Saling
 	if scale == 'max':
 		matmax = np.max(np.abs(matrix)) if isinstance(matrix, np.ndarray) else torch.max(torch.abs(matrix))
 		matsca = matrix/matmax
@@ -101,5 +107,17 @@ def create_dataset(matrix:np.ndarray, scale:str='max', device:torch.device=DEVIC
 		matsca = matrix
 		scaler = None
 		raiseWarning('Scaling method not implemented, setting scaler to None and adding the non-scaled data to the dataset')
-	matsca = torch.tensor((matsca).astype(np.float32), device=device) if isinstance(matsca, np.ndarray) else matsca
-	return Dataset(tuple(matsca[:, i, :] for i in range(matsca.shape[1])), mesh_shape=(matsca.shape[0],), snapshots_by_column=True), scaler
+	# Generate dataset
+	return Dataset(tuple(matsca[:, i, :] for i in range(nchannel)), mesh_shape=(matsca.shape[0],), snapshots_by_column=True), scaler
+
+@cr('GAVI.energy')
+def energy(dataset:Dataset,reconstructed:np.array,channel:int):
+	r'''
+	Compute recovered energy from reconstructed data 
+	
+	Args:
+		dataset (Dataset): pyLOM.NN.Dataset containing the original data
+		reconstructed (np.array): reconstructed data
+		channel (int): channel to compute energy from
+	'''
+	return energy(dataset.variables_out[:,channel,:].cpu().numpy().T,reconstructed[channel])
