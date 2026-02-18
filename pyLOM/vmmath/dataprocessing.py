@@ -4,7 +4,7 @@ from ..utils.mpi import MPI_RANK, mpi_bcast, mpi_reduce
 from ..utils     import raiseError, is_rank_or_serial 
 
 
-def data_splitting(Nt:int, mode:str, seed:int=-1):
+def data_splitting(Nt:int, mode:str, seed:int=-1, root:int=0):
 	r'''
 	Generate random training, validation and test masks for a dataset of Nt samples.
 
@@ -16,19 +16,28 @@ def data_splitting(Nt:int, mode:str, seed:int=-1):
 	Returns:
 		[(np.ndarray), (np.ndarray), (np.ndarray)]: List of arrays containing the identifiers of the training, validation and test samples.
 	'''
-	np.random.seed(0) if seed < 0 else np.random.seed(seed)
+	# Setup seed
+	if seed >= 0: np.random.seed(seed)
+	
+	# Mask should be the same for all ranks, we thus generate it at rank=0
 	if mode =='reconstruct':
-		tridx       = np.sort(np.random.choice(Nt, size=int(0.7*(Nt)), replace=False))
-		mask        = np.ones(Nt)
-		mask[tridx] = 0
-		mask[0]     = 0
-		mask[-1]    = 0
-		tridx       = np.argwhere(mask==0)[:,0]
-		vate_idx    = np.arange(0, Nt)[np.where(mask!=0)[0]]
-		vaidx       = vate_idx[::2]
-		teidx       = vate_idx[1::2]
+		if is_rank_or_serial(root):
+			tridx       = np.sort(np.random.choice(Nt, size=int(0.7*(Nt)), replace=False))
+			mask        = np.ones(Nt)
+			mask[tridx] = 0
+			mask[0]     = 0
+			mask[-1]    = 0
+			tridx       = np.argwhere(mask==0)[:,0]
+			vate_idx    = np.arange(0, Nt)[np.where(mask!=0)[0]]
+			vaidx       = vate_idx[::2]
+			teidx       = vate_idx[1::2]
+		# Broadcast to all ranks
+		tridx = mpi_bcast(tridx,root=root)
+		vaidx = mpi_bcast(vaidx,root=root)
+		teidx = mpi_bcast(teidx,root=root)
 	else:
 		raiseError('Data split mode not implemented yet')
+
 	return tridx, vaidx, teidx
 
 def time_delay_embedding(X, dimension=50):
