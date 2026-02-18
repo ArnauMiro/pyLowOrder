@@ -22,9 +22,11 @@ def data_splitting(Nt:int, mode:str, seed:int=-1, root:int=0):
 
 	# Mask should be the same for all ranks, we thus generate it at rank=0
 	if mode =='reconstruct':
+		tridx, vaidx, teidx = [], [], []
 		if is_rank_or_serial(root):
-			tridx       = np.sort(np.random.choice(Nt, size=int(0.7*(Nt)), replace=False))
-			mask        = np.ones(Nt)
+			# Here we explicitly avoid the start and end of the mask
+			tridx       = np.sort(np.random.choice(Nt-2, size=int(0.7*(Nt))-2, replace=False)+1)
+			mask        = np.ones(Nt,dtype=bool)
 			mask[tridx] = 0
 			mask[0]     = 0
 			mask[-1]    = 0
