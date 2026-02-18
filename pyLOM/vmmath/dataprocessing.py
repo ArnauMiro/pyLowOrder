@@ -12,13 +12,14 @@ def data_splitting(Nt:int, mode:str, seed:int=-1, root:int=0):
 		Nt (int): number of data samples.
 		mode (str): type of splitting to perform. In reconstruct mode all three datasets have samples along all the data range.
 		seed (int, optional): (default: ``-1``).
+		root (int,optional): (default: ``0``).
 
 	Returns:
 		[(np.ndarray), (np.ndarray), (np.ndarray)]: List of arrays containing the identifiers of the training, validation and test samples.
 	'''
 	# Setup seed
 	if seed >= 0: np.random.seed(seed)
-	
+
 	# Mask should be the same for all ranks, we thus generate it at rank=0
 	if mode =='reconstruct':
 		if is_rank_or_serial(root):
