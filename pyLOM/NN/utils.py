@@ -300,7 +300,7 @@ class Dataset(torch.utils.data.Dataset):
     def _process_variables_out(self, variables_out):
         variables_out_stacked = []
         for variable in variables_out:
-            variable = torch.tensor(variable)
+            variable = variable.clone().detach() #torch.tensor(variable)
             variable = variable.reshape(-1, *self.mesh_shape)
             variables_out_stacked.append(variable)
         variables_out_stacked = torch.stack(variables_out_stacked, dim=1)
