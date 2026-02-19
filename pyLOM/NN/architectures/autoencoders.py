@@ -500,6 +500,7 @@ class VariationalAutoencoder(Autoencoder):
         callback=None,
         lr=1e-4,
         BASEDIR="./",
+        MODELSTR="model_state",
         batch_size=32,
         shuffle=True,
         num_workers=0,
@@ -594,7 +595,7 @@ class VariationalAutoencoder(Autoencoder):
 
         writer.flush()
         writer.close()
-        torch.save(self.state_dict(), '%s/model_state' % BASEDIR)
+        torch.save(self.state_dict(), '%s/%s.pth' % (BASEDIR, MODELSTR))
 
     @cr('VAE.reconstruct')
     def reconstruct(self, dataset):

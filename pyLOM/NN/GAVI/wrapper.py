@@ -214,5 +214,5 @@ def vae_R(data:Dataset, latent_dim:int, nepochs:int=2500, nlayers:int=3, conv_ch
 	encoder    = Encoder1D(nlayers, latent_dim, nmod, input_chan, conv_chan, kernel, padding, activation, hid_dim, batch_norm=False)
 	decoder    = Decoder1D(nlayers, latent_dim, nmod, input_chan, conv_chan, kernel, padding, activation, hid_dim, batch_norm=False)
 	vae        = VariationalAutoencoder(latent_dim, (nmod,), input_chan, encoder, decoder)
-	vae.fit(data, eval_dataset=data, betasch=betaLinearScheduler(0,2.5e-2,500,1000), batch_size=64, epochs=nepochs, lr=5e-4, BASEDIR='./', pin_memory=False)
+	vae.fit(data, eval_dataset=data, betasch=betaLinearScheduler(0,2.5e-2,500,1000), batch_size=64, epochs=nepochs, lr=5e-4, BASEDIR='./', pin_memory=False, MODELSTR="gavi_R_latent_%i_nepochs_%i" % (latent_dim, nepochs))
 	return vae
