@@ -185,7 +185,7 @@ def reconstruct_Q(mesh:Mesh,nelxAE:int,nmod:int,Qmeans:np.ndarray,Qstds:np.ndarr
 
 ## Autoencoder on the R
 @cr('GAVI.vae_R')
-def vae_R(data:Dataset, latent_dim:int, nepochs:int=2500, nlayers:int=3, conv_chan:int=64, hid_dim:int=32, kernel:int=4, padding:int=1, func:object=silu()):
+def vae_R(data:Dataset, latent_dim:int, nepochs:int=2500, nlayers:int=3, conv_chan:int=64, hid_dim:int=32, kernel:int=4, padding:int=1, func:object=silu(), BASEDIR:str='./'):
 	r"""
 	Function to get a disentangled latent representation of the B matrix from the randomized QR factorization:
 
@@ -214,5 +214,40 @@ def vae_R(data:Dataset, latent_dim:int, nepochs:int=2500, nlayers:int=3, conv_ch
 	encoder    = Encoder1D(nlayers, latent_dim, nmod, input_chan, conv_chan, kernel, padding, activation, hid_dim, batch_norm=False)
 	decoder    = Decoder1D(nlayers, latent_dim, nmod, input_chan, conv_chan, kernel, padding, activation, hid_dim, batch_norm=False)
 	vae        = VariationalAutoencoder(latent_dim, (nmod,), input_chan, encoder, decoder)
-	vae.fit(data, eval_dataset=data, betasch=betaLinearScheduler(0,2.5e-2,500,1000), batch_size=64, epochs=nepochs, lr=5e-4, BASEDIR='./', pin_memory=False)
+	vae.fit(data, eval_dataset=data, betasch=betaLinearScheduler(0,2.5e-2,500,1000), batch_size=64, epochs=nepochs, lr=5e-4, BASEDIR=BASEDIR, pin_memory=False, MODELSTR="gavi_R_latent_%i" % (latent_dim))
+	return vae
+
+
+@cr('GAVI.load_vae_R')
+def load_vae_R(data:Dataset, latent_dim:int, nlayers:int=3, conv_chan:int=64, hid_dim:int=32, kernel:int=4, padding:int=1, func:object=silu(), BASEDIR:str='./'):
+	r"""
+	Load a trained GAVI R-VAE from a saved state_dict (same architecture as vae_R, no training).
+
+	Eiximeno, B., A., Miró, A., Kutz, J. N., Rodriguez, I., & Lehmkuhl, O. (2025).
+	On the integration of geometry agnostic variational-autoencoders into large-scale SVD based models.
+	Computers & Fluids, 302, 106797. https://doi.org/10.1016/j.compfluid.2025.106797
+
+	Args:
+		data (Dataset): Dataset with same shape as used for training (used only for nmod, input_chan).
+		latent_dim (int): number of latent vectors (must match the saved model).
+		nlayers (int, optional): number of convolutional layers (default ``3``).
+		conv_chan (int, optional): number of convolutional channels (default ``64``).
+		hid_dim (int, optional): hidden dimension (default ``32``).
+		kernel (int, optional): kernel size (default ``4``).
+		padding (int, optional): padding (default ``1``).
+		func (object, optional): activation function (default ``silu()``).
+		BASEDIR (str, optional): directory containing ``gavi_R_latent_<latent_dim>.pth`` (default ``"./"``).
+
+	Returns:
+		VariationalAutoencoder: VAE with loaded state_dict, in eval mode.
+	"""
+	nmod       = data.shape[2]
+	input_chan = data.shape[1]
+	activation = [func for _ in range(nlayers + 2)]
+	encoder    = Encoder1D(nlayers, latent_dim, nmod, input_chan, conv_chan, kernel, padding, activation, hid_dim, batch_norm=False)
+	decoder    = Decoder1D(nlayers, latent_dim, nmod, input_chan, conv_chan, kernel, padding, activation, hid_dim, batch_norm=False)
+	vae        = VariationalAutoencoder(latent_dim, (nmod,), input_chan, encoder, decoder)
+	ckpt_path  = '%s/gavi_R_latent_%i.pth' % (BASEDIR.rstrip('/'), latent_dim)
+	vae.load_state_dict(torch.load(ckpt_path, map_location=DEVICE, weights_only=True))
+	vae.eval()
 	return vae

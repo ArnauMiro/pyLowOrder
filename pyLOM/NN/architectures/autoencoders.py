@@ -500,6 +500,7 @@ class VariationalAutoencoder(Autoencoder):
         callback=None,
         lr=1e-4,
         BASEDIR="./",
+        MODELSTR="model_state",
         batch_size=32,
         shuffle=True,
         num_workers=0,
@@ -594,7 +595,7 @@ class VariationalAutoencoder(Autoencoder):
 
         writer.flush()
         writer.close()
-        torch.save(self.state_dict(), '%s/model_state' % BASEDIR)
+        torch.save(self.state_dict(), '%s/%s.pth' % (BASEDIR, MODELSTR))
 
     @cr('VAE.reconstruct')
     def reconstruct(self, dataset):
@@ -768,21 +769,21 @@ class VariationalAutoencoder(Autoencoder):
     def decode(self, z):
         r"""
         Decode a latent space element to the original space.
+        Output shape matches ``reconstruct``: (inp_chan, N, num_samples).
 
         Args:
-            z (np.ndarray): Element of the latent space.
+            z (np.ndarray): Element(s) of the latent space, shape (num_samples, latent_dim).
 
         Returns:
-            np.ndarray: Decoded latent space.
+            np.ndarray: Decoded data, shape (inp_chan, N, num_samples).
         """
-        zt  = torch.tensor(z, dtype=torch.float32)
-        var = self.decoder(zt)
-        var = var.cpu()
-        varr = np.zeros((self.N,var.shape[0]),dtype=float)
-        for it in range(var.shape[0]):
-            varaux = var[it,0,:,:].detach().numpy()
-            varr[:,it] = varaux.reshape((self.N,), order='C')
-        return varr 
+        zt = torch.tensor(z, dtype=torch.float32, device=self._device)
+        with torch.no_grad():
+            var = self.decoder(zt)
+        var_np = var.cpu().detach().numpy()
+        # Reshape to (num_samples, inp_chan, N) then transpose to (inp_chan, N, num_samples)
+        var_flat = var_np.reshape(var_np.shape[0], self.inp_chan, self.N)
+        return np.transpose(var_flat, (1, 2, 0)) 
 
 
 class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
