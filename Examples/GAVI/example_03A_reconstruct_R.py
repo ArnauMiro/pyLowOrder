@@ -13,20 +13,18 @@ import os
 import numpy as np
 import torch
 import pyLOM.NN
-from pyLOM.NN.GAVI.utils import create_dataset, load as gavi_load, energy as gavi_energy
-from pyLOM.NN.GAVI.wrapper import load_vae_R
 
 # Match training setup from example_02A_GAVI_R.py
 BASEDIR    = 'gavi_reconstruct_R/'
 latent_dim = 6
 
 # Load original R data and create dataset
-Rx = gavi_load('QR_velox.h5', vars=['B'])[0]
-Ry = gavi_load('QR_veloy.h5', vars=['B'])[0]
-data, scaler = create_dataset((Rx, Ry), scale='max')
+Rx = pyLOM.NN.GAVI.load('QR_velox.h5', vars=['B'])[0]
+Ry = pyLOM.NN.GAVI.load('QR_veloy.h5', vars=['B'])[0]
+data, _ = pyLOM.NN.GAVI.create_dataset((Rx, Ry), scale='max')
 
 # Load trained VAE (same architecture as vae_R)
-vae = load_vae_R(data, latent_dim, BASEDIR=BASEDIR)
+vae = pyLOM.NN.GAVI.load_vae_R(data, latent_dim, BASEDIR=BASEDIR)
 
 # Load latent vectors
 latent = np.load(os.path.join(BASEDIR, 'latent_%i.npy' % latent_dim))
@@ -37,8 +35,8 @@ with torch.no_grad():
     dec = vae.decode(z)  # raw shape (num_samples, inp_chan, N)
 
 # Recovered energy on X and Y
-energy_x = gavi_energy(data, dec, 0)
-energy_y = gavi_energy(data, dec, 1)
+energy_x = pyLOM.NN.GAVI.energy(data, dec, 0)
+energy_y = pyLOM.NN.GAVI.energy(data, dec, 1)
 pyLOM.pprint(0, 'Recovered energy X: {:.2f}%'.format(energy_x * 100), flush=True)
 pyLOM.pprint(0, 'Recovered energy Y: {:.2f}%'.format(energy_y * 100), flush=True)
 
