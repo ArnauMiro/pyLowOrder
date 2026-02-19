@@ -14,23 +14,32 @@ import pyLOM.NN
 device = pyLOM.NN.select_device() # Automatically select the device
 
 
-# Parameters
+# Architecture Parameters
 latent_dim = 8
 
 # Load data
+BASEDIR = './'
 Rx = pyLOM.NN.GAVI.load('QR_velox.h5', vars=['B'])[0]
 Ry = pyLOM.NN.GAVI.load('QR_veloy.h5', vars=['B'])[0]
 
+# Create NN dataset
 data,_ = pyLOM.NN.GAVI.create_dataset((Rx,Ry), scale='max')
 
-vae    = pyLOM.NN.GAVI.vae_R(data, latent_dim, nepochs=1000)
+# Create and train the autoencoder
+vae    = pyLOM.NN.GAVI.vae_R(data, latent_dim, nepochs=1000, BASEDIR=BASEDIR)
+
+# Postprocess trained autoencoder
 rectra = vae.reconstruct(data)
 _,detR = vae.correlation(data)
-latent = vae.latent_space(data)
 
+# Compute energy of the recovered data for each variable
 energyX = pyLOM.NN.GAVI.energy(data,rectra,0)
 pyLOM.pprint(0,"Recovered energy X: {:.2f}%".format(energyX*100),flush=True)
 energyY = pyLOM.NN.GAVI.energy(data,rectra,1)
 pyLOM.pprint(0,"Recovered energy Y: {:.2f}%".format(energyY*100),flush=True)
+
+# Project and save latent space
+latent = vae.latent_space(data)
+np.save(os.path.join(BASEDIR, "latent_%i.npy" % latent_dim), latent.cpu().numpy())
 
 pyLOM.cr_info()
