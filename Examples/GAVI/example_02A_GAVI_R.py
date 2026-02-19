@@ -8,17 +8,18 @@
 #
 # Last revision: 07/11/2025
 import pyLOM.NN
-
+import os
+import numpy as np
 
 ## Set device
 device = pyLOM.NN.select_device() # Automatically select the device
 
 
 # Architecture Parameters
-latent_dim = 8
+latent_dim = 6
 
 # Load data
-BASEDIR = './'
+BASEDIR = 'gavi_reconstruct_R/'
 Rx = pyLOM.NN.GAVI.load('QR_velox.h5', vars=['B'])[0]
 Ry = pyLOM.NN.GAVI.load('QR_veloy.h5', vars=['B'])[0]
 

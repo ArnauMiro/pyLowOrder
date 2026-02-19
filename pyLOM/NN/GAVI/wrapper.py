@@ -185,7 +185,7 @@ def reconstruct_Q(mesh:Mesh,nelxAE:int,nmod:int,Qmeans:np.ndarray,Qstds:np.ndarr
 
 ## Autoencoder on the R
 @cr('GAVI.vae_R')
-def vae_R(data:Dataset, latent_dim:int, nepochs:int=2500, nlayers:int=3, conv_chan:int=64, hid_dim:int=32, kernel:int=4, padding:int=1, func:object=silu()):
+def vae_R(data:Dataset, latent_dim:int, nepochs:int=2500, nlayers:int=3, conv_chan:int=64, hid_dim:int=32, kernel:int=4, padding:int=1, func:object=silu(), BASEDIR:str='./'):
 	r"""
 	Function to get a disentangled latent representation of the B matrix from the randomized QR factorization:
 
@@ -214,5 +214,5 @@ def vae_R(data:Dataset, latent_dim:int, nepochs:int=2500, nlayers:int=3, conv_ch
 	encoder    = Encoder1D(nlayers, latent_dim, nmod, input_chan, conv_chan, kernel, padding, activation, hid_dim, batch_norm=False)
 	decoder    = Decoder1D(nlayers, latent_dim, nmod, input_chan, conv_chan, kernel, padding, activation, hid_dim, batch_norm=False)
 	vae        = VariationalAutoencoder(latent_dim, (nmod,), input_chan, encoder, decoder)
-	vae.fit(data, eval_dataset=data, betasch=betaLinearScheduler(0,2.5e-2,500,1000), batch_size=64, epochs=nepochs, lr=5e-4, BASEDIR='./', pin_memory=False, MODELSTR="gavi_R_latent_%i" % (latent_dim))
+	vae.fit(data, eval_dataset=data, betasch=betaLinearScheduler(0,2.5e-2,500,1000), batch_size=64, epochs=nepochs, lr=5e-4, BASEDIR=BASEDIR, pin_memory=False, MODELSTR="gavi_R_latent_%i" % (latent_dim))
 	return vae
