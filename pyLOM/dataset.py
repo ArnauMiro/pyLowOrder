@@ -166,13 +166,18 @@ class Dataset(object):
 			'value' : var, 
 		}
 
-	def split_data(self,var,mode='reconstruct'):
+	def split_data(self,var,ptrain=0.7,mode='reconstruct'):
 		r'''
 		Generate random training, validation and test masks for a dataset of Nt samples.
 
 		Args:
 			variable (str): variable which will be splitted in different samples
-			mode (str, optional): type of splitting to perform (default, ``'reconstruct'``). In reconstruct mode all three datasets have samples along all the data range.
+			ptrain (int, optional): percentage of training data (default, ``0.7``).
+			mode (str, optional): type of splitting to perform (default, ``'reconstruct'``).
+
+		Available modes are:
+			reconstruct: In reconstruct mode all three datasets have samples along all the data range.
+			latest: In latest mode the testing dataset samples the last 20% of the data range.
 	
 		Returns:
 			[(np.ndarray), (np.ndarray), (np.ndarray)]: List of arrays containing the identifiers of the training, validation and test samples.
@@ -180,7 +185,7 @@ class Dataset(object):
 		
 		N    = len(self.vars[var]["value"])
 		idim = self.vars[var]["idim"]
-		trid, vaid, teid = data_splitting(N, mode)
+		trid, vaid, teid = data_splitting(N,ptrain,mode)
 		self.add_variable('training_%s'%var,idim,trid)
 		self.add_variable('validation_%s'%var,idim,vaid)
 		self.add_variable('test_%s'%var,idim,teid)

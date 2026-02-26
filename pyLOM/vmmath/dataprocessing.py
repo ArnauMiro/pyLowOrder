@@ -4,28 +4,35 @@ from ..utils.mpi import MPI_RANK, mpi_bcast, mpi_reduce
 from ..utils     import raiseError, is_rank_or_serial 
 
 
-def data_splitting(Nt:int, mode:str, seed:int=-1, root:int=0):
+def data_splitting(Nt:int, ptrain:int, mode:str, seed:int=-1, root:int=0):
 	r'''
 	Generate random training, validation and test masks for a dataset of Nt samples.
 
 	Args:
 		Nt (int): number of data samples.
-		mode (str): type of splitting to perform. In reconstruct mode all three datasets have samples along all the data range.
+		ptrain (int): percentage of training dataset. 
+		mode (str): type of splitting to perform. 
 		seed (int, optional): (default: ``-1``).
 		root (int,optional): (default: ``0``).
+
+	Available modes are:
+		reconstruct: In reconstruct mode all three datasets have samples along all the data range.
+		latest: In latest mode the testing dataset samples the last 20% of the data range.
 
 	Returns:
 		[(np.ndarray), (np.ndarray), (np.ndarray)]: List of arrays containing the identifiers of the training, validation and test samples.
 	'''
+	pval = (1. - ptrain)/2.
+	ptes = (1. - ptrain)/2.
 	# Setup seed
 	if seed >= 0: np.random.seed(seed)
 
 	# Mask should be the same for all ranks, we thus generate it at rank=0
+	tridx, vaidx, teidx = [], [], []
 	if mode =='reconstruct':
-		tridx, vaidx, teidx = [], [], []
 		if is_rank_or_serial(root):
 			# Here we explicitly avoid the start and end of the mask
-			tridx       = np.sort(np.random.choice(Nt-2, size=int(0.7*(Nt))-2, replace=False)+1)
+			tridx       = np.sort(np.random.choice(Nt-2, size=int(ptrain*Nt)-2, replace=False)+1)
 			mask        = np.ones(Nt,dtype=bool)
 			mask[tridx] = 0
 			mask[0]     = 0
@@ -34,13 +41,26 @@ def data_splitting(Nt:int, mode:str, seed:int=-1, root:int=0):
 			vate_idx    = np.arange(0, Nt)[np.where(mask!=0)[0]]
 			vaidx       = vate_idx[::2]
 			teidx       = vate_idx[1::2]
-		# Broadcast to all ranks
-		tridx = mpi_bcast(tridx,root=root)
-		vaidx = mpi_bcast(vaidx,root=root)
-		teidx = mpi_bcast(teidx,root=root)
+	elif mode =='latest':
+		if is_rank_or_serial(root):
+			Ntest       = int(ptes*Nt)
+			Nother      = Nt - Ntest
+			# Here we explicitly avoid the start and end of the mask
+			tridx       = np.sort(np.random.choice(Nother-2, size=int(ptrain*Nt)-2, replace=False)+1)
+			mask        = np.ones(Nother,dtype=bool)
+			mask[tridx] = 0
+			mask[0]     = 0
+			mask[-1]    = 0
+			tridx       = np.argwhere(mask==0)[:,0]
+			vaidx    	= np.arange(0, Nt)[np.where(mask!=0)[0]]
+			teidx       = np.arange(Nother, Nt)
 	else:
-		raiseError('Data split mode not implemented yet')
-
+		raiseError(f'Data split mode <{mode}> not implemented yet!')
+	# Broadcast to all ranks
+	tridx = mpi_bcast(tridx,root=root)
+	vaidx = mpi_bcast(vaidx,root=root)
+	teidx = mpi_bcast(teidx,root=root)
+	# Return
 	return tridx, vaidx, teidx
 
 def time_delay_embedding(X, dimension=50):
