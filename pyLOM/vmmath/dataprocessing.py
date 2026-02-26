@@ -43,17 +43,17 @@ def data_splitting(Nt:int, ptrain:int, mode:str, seed:int=-1, root:int=0):
 			teidx       = vate_idx[1::2]
 	elif mode =='latest':
 		if is_rank_or_serial(root):
-			Ntest       = int(ptes*Nt)
-			Nother      = Nt - Ntest
+			Ntest          = int(ptes*Nt)
+			Nother         = Nt - Ntest
 			# Here we explicitly avoid the start and end of the mask
-			tridx       = np.sort(np.random.choice(Nother-2, size=int(ptrain*Nt)-2, replace=False)+1)
-			mask        = np.ones(Nother,dtype=bool)
-			mask[tridx] = 0
-			mask[0]     = 0
-			mask[-1]    = 0
-			tridx       = np.argwhere(mask==0)[:,0]
-			vaidx    	= np.arange(0, Nt)[np.where(mask!=0)[0]]
-			teidx       = np.arange(Nother, Nt)
+			tridx          = np.sort(np.random.choice(Nother-2, size=int(ptrain*Nt)-2, replace=False)+1)
+			mask           = np.ones(Nt,dtype=bool)
+			mask[tridx]    = 0
+			mask[0]        = 0
+			mask[Nother-1] = 0
+			tridx          = np.argwhere(mask==0)[:,0]
+			vaidx          = np.argwhere(mask!=0)[:Ntest,0]
+			teidx          = np.argwhere(mask!=0)[Ntest:,0]
 	else:
 		raiseError(f'Data split mode <{mode}> not implemented yet!')
 	# Broadcast to all ranks
