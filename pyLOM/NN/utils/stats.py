@@ -9,8 +9,8 @@ from sklearn.metrics import (
     balanced_accuracy_score, brier_score_loss
 )
 
-from .. import pprint
-from ..utils import raiseError
+from ... import pprint
+from ...utils import raiseError
 
 class RegressionEvaluator():
     r"""

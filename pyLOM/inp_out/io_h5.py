@@ -9,6 +9,9 @@ from __future__ import print_function, division
 
 import os, numpy as np, h5py
 
+from typing import Optional, Mapping, Union
+from collections import OrderedDict
+
 from ..partition_table import PartitionTable
 from ..mesh            import MTYPE2ID, ID2MTYPE
 from ..utils           import cr, MPI_COMM, MPI_RANK, MPI_SIZE, worksplit, writesplit, is_rank_or_serial, mpi_reduce, mpi_gather, raiseError
@@ -387,6 +390,7 @@ def h5_load_fields_single(file,npoints,ptable,varDict,point):
 			# Use the partition bounds to recover the array
 			istart, iend = ptable.partition_bounds(MPI_RANK,ndim=ndim,points=False)
 			inods = np.arange(istart,iend,dtype=np.int32)
+
 		# Read the values
 		value[:] = np.array(fieldgroup['value'][inods])
 		# Generate dictionary
@@ -1120,3 +1124,332 @@ def h5_load_compressed(fname:str, basedir:str, ptable:PartitionTable, nelxAE:int
 	file.close()
 
 	return Qmeans, Qstds, weights, biases, Q, B
+
+def h5_save_graph_serial_legacy(fname, num_nodes, num_edges, edge_index,
+                         nodeFeatrDict, edgeFeatrDict, mode='w'):
+    """
+    Save a Graph in HDF5 (serial mode), persisting feature ordering.
+
+    Parameters
+    ----------
+    fname : str
+        Output HDF5 path.
+    num_nodes : int
+        Number of nodes.
+    num_edges : int
+        Number of (directed) edges.
+    edge_index : np.ndarray, shape (2, E) or (E, 2)
+        Edge index array. Will be stored as int32.
+    nodeFeatrDict : Mapping[str, np.ndarray]
+        Node-level features; each entry is shape (N,) or (N,k_i).
+    edgeFeatrDict : Mapping[str, np.ndarray]
+        Edge-level features; each entry is shape (E,) or (E,k_i).
+    mode : {'w','a'}
+        HDF5 file mode.
+    """
+    import h5py, numpy as np
+
+    # Normalize edge_index shape and dtype
+    edge_index = np.asarray(edge_index)
+    if edge_index.ndim == 2 and edge_index.shape[0] != 2 and edge_index.shape[1] == 2:
+        edge_index = edge_index.T  # Ensure shape (2, E)
+    edge_index = edge_index.astype('int32', copy=False)
+
+    with h5py.File(fname, mode) as f:
+        f.attrs['Version'] = PYLOM_H5_VERSION
+
+        # Fresh graph group
+        if 'GRAPH' in f:
+            del f['GRAPH']
+        g = f.create_group('GRAPH')
+
+        g.create_dataset('numNodes', (1,), dtype='i4', data=int(num_nodes))
+        g.create_dataset('numEdges', (1,), dtype='i4', data=int(num_edges))
+        g.create_dataset('edgeIndex', data=edge_index, dtype='i4')
+
+        # Node features
+        node_grp = g.create_group('NODEFEATRS')
+        node_names = list(nodeFeatrDict.keys())
+        node_grp.attrs['feature_names'] = np.array(node_names, dtype='S')
+
+        for name in node_names:
+            arr = np.asarray(nodeFeatrDict[name])
+            node_grp.create_dataset(name, data=arr)
+
+        # Edge features
+        edge_grp = g.create_group('EDGEFEATRS')
+        edge_names = list(edgeFeatrDict.keys())
+        edge_grp.attrs['feature_names'] = np.array(edge_names, dtype='S')
+
+        for name in edge_names:
+            arr = np.asarray(edgeFeatrDict[name])
+            edge_grp.create_dataset(name, data=arr)
+
+def h5_save_graph_serial(
+    fname,
+    num_nodes,
+    num_edges,
+    edge_index,
+    node_features_dict=None,
+    edge_features_dict=None,
+    mode='w',
+    *,
+    nodeFeatrDict=None,
+    edgeFeatrDict=None,
+):
+    """
+    Save a Graph in HDF5 (serial mode), strict flat schema with ordering.
+
+    Schema
+    ------
+    /GRAPH
+      attrs['schema']     = "graph_flat_v2"
+      numNodes            : i4[1]
+      numEdges            : i4[1]
+      edgeIndex           : i4[2,E]
+      NODEFEATRS (group)
+        attrs['feature_names'] : S[]
+        <feat_name>            : float32[N, k_i]
+      EDGEFEATRS (group)
+        attrs['feature_names'] : S[]
+        <feat_name>            : float32[E, k_i]
+    """
+    import h5py, numpy as np
+
+    if node_features_dict is None:
+        node_features_dict = nodeFeatrDict
+    elif nodeFeatrDict is not None:
+        raiseError("Provide either 'node_features_dict' or legacy 'nodeFeatrDict', not both.")
+
+    if edge_features_dict is None:
+        edge_features_dict = edgeFeatrDict
+    elif edgeFeatrDict is not None:
+        raiseError("Provide either 'edge_features_dict' or legacy 'edgeFeatrDict', not both.")
+
+    if node_features_dict is None or edge_features_dict is None:
+        raiseError("Both node and edge feature dictionaries are required.")
+
+    # Normalize edge_index shape and dtype -> int32 on disk
+    edge_index = np.asarray(edge_index)
+    if edge_index.ndim == 2 and edge_index.shape[0] != 2 and edge_index.shape[1] == 2:
+        edge_index = edge_index.T  # Ensure shape (2, E)
+    edge_index = edge_index.astype('int32', copy=False)
+
+    # Validate that features are numeric and cast to float32
+    def _prep_feats(d):
+        out = {}
+        for name, arr in d.items():
+            a = np.asarray(arr)
+            if a.dtype == np.dtype('O') or a.dtype.kind in ('U', 'S'):
+                raiseError(f"Feature '{name}' has non-numeric dtype={a.dtype}. Move it to METADATA or drop it.")
+            if a.dtype.kind not in ('f', 'c'):
+                a = a.astype('float32', copy=False)
+            else:
+                a = a.astype('float32', copy=False)
+            out[name] = a
+        return out
+
+    node_features_dict = _prep_feats(node_features_dict)
+    edge_features_dict = _prep_feats(edge_features_dict)
+
+    with h5py.File(fname, mode) as f:
+        f.attrs['Version'] = PYLOM_H5_VERSION
+
+        if 'GRAPH' in f:
+            del f['GRAPH']
+        g = f.create_group('GRAPH')
+        g.attrs['schema'] = 'graph_flat_v2'  # ✅ usa str (compatible con NumPy 2.0)
+
+        g.create_dataset('numNodes', (1,), dtype='i4', data=int(num_nodes))
+        g.create_dataset('numEdges', (1,), dtype='i4', data=int(num_edges))
+        g.create_dataset('edgeIndex', data=edge_index, dtype='i4')
+
+        # Node features
+        node_grp = g.create_group('NODEFEATRS')
+        node_names = list(node_features_dict.keys())
+        node_grp.attrs['feature_names'] = np.array(node_names, dtype='S')
+
+        for name in node_names:
+            node_grp.create_dataset(name, data=node_features_dict[name])
+
+        # Edge features
+        edge_grp = g.create_group('EDGEFEATRS')
+        edge_names = list(edge_features_dict.keys())
+        edge_grp.attrs['feature_names'] = np.array(edge_names, dtype='S')
+
+        for name in edge_names:
+            edge_grp.create_dataset(name, data=edge_features_dict[name])
+
+
+
+def h5_load_graph_serial_legacy(fname):
+    """
+    Load a Graph from HDF5 (serial mode), preserving feature ordering.
+
+    Returns
+    -------
+    num_nodes : int
+    num_edges : int
+    edge_index : np.ndarray, shape (2, E), dtype=int64
+    nodeFeatrDict : OrderedDict[str, np.ndarray]
+    edgeFeatrDict : OrderedDict[str, np.ndarray]
+    """
+    import h5py, numpy as np
+
+    def _decode_bytes_list(x):
+        return [xi.decode('utf8') if isinstance(xi, (bytes, bytearray)) else str(xi) for xi in x]
+
+    with h5py.File(fname, 'r') as f:
+        g = f['GRAPH']
+        num_nodes = int(np.array(g['numNodes'])[0])
+        num_edges = int(np.array(g['numEdges'])[0])
+
+        edge_index = np.array(g['edgeIndex'])
+        # Normalize to (2, E) int64
+        if edge_index.ndim == 2 and edge_index.shape[0] != 2 and edge_index.shape[1] == 2:
+            edge_index = edge_index.T
+        edge_index = edge_index.astype('int64', copy=False)
+
+        # Node features in stored order (fallback: lexicographic)
+        node_grp = g['NODEFEATRS']
+        if 'feature_names' in node_grp.attrs:
+            node_names = _decode_bytes_list(node_grp.attrs['feature_names'])
+        else:
+            node_names = sorted(list(node_grp.keys()))
+        nodeFeatrDict = OrderedDict()
+        for name in node_names:
+            nodeFeatrDict[name] = np.array(node_grp[name])
+
+        # Edge features in stored order (fallback: lexicographic)
+        edge_grp = g['EDGEFEATRS']
+        if 'feature_names' in edge_grp.attrs:
+            edge_names = _decode_bytes_list(edge_grp.attrs['feature_names'])
+        else:
+            edge_names = sorted(list(edge_grp.keys()))
+        edgeFeatrDict = OrderedDict()
+        for name in edge_names:
+            edgeFeatrDict[name] = np.array(edge_grp[name])
+
+    return num_nodes, num_edges, edge_index, nodeFeatrDict, edgeFeatrDict
+
+
+def h5_load_graph_serial(fname):
+    """
+    Load a Graph from HDF5 (serial mode), strict flat schema.
+
+    Returns
+    -------
+    num_nodes : int
+    num_edges : int
+    edge_index : np.ndarray, shape (2, E), dtype=int64
+    node_features_dict : OrderedDict[str, np.ndarray]  # float32 arrays
+    edge_features_dict : OrderedDict[str, np.ndarray]  # float32 arrays
+    """
+    import h5py, numpy as np
+    from collections import OrderedDict
+
+    def _decode_bytes_list(x):
+        return [xi.decode('utf8') if isinstance(xi, (bytes, bytearray)) else str(xi) for xi in x]
+
+    with h5py.File(fname, 'r') as f:
+        if 'GRAPH' not in f:
+            raiseError("Missing /GRAPH group in HDF5 file.")
+        g = f['GRAPH']
+
+        # Strict schema check
+        schema = g.attrs.get('schema', None)
+        if schema is None:
+            raiseError("Missing /GRAPH.attrs['schema']. Expected 'graph_flat_v2'.")
+        if isinstance(schema, (bytes, bytearray)):
+            schema = schema.decode('utf8')
+        if str(schema) != 'graph_flat_v2':
+            raiseError(f"Unsupported graph schema '{schema}'. Expected 'graph_flat_v2'.")
+
+        num_nodes = int(np.array(g['numNodes'])[0])
+        num_edges = int(np.array(g['numEdges'])[0])
+
+        edge_index = np.array(g['edgeIndex'])
+        # Normalize to (2, E) int64 for in-memory usage
+        if edge_index.ndim == 2 and edge_index.shape[0] != 2 and edge_index.shape[1] == 2:
+            edge_index = edge_index.T
+        edge_index = edge_index.astype('int64', copy=False)
+
+        # Node features in stored order
+        if 'NODEFEATRS' not in g:
+            raiseError("Missing /GRAPH/NODEFEATRS group.")
+        node_grp = g['NODEFEATRS']
+        if 'feature_names' not in node_grp.attrs:
+            raiseError("Missing feature_names attribute in /GRAPH/NODEFEATRS.")
+
+        node_names = _decode_bytes_list(node_grp.attrs['feature_names'])
+        node_features_dict = OrderedDict()
+        for name in node_names:
+            arr = np.array(node_grp[name])
+            # Enforce numeric and float32
+            if arr.dtype == np.dtype('O') or arr.dtype.kind in ('U', 'S'):
+                raiseError(f"Node feature '{name}' has non-numeric dtype={arr.dtype}.")
+            if arr.dtype.kind not in ('f', 'c'):
+                arr = arr.astype('float32', copy=False)
+            else:
+                arr = arr.astype('float32', copy=False)
+            node_features_dict[name] = arr
+
+        # Edge features in stored order
+        if 'EDGEFEATRS' not in g:
+            raiseError("Missing /GRAPH/EDGEFEATRS group.")
+        edge_grp = g['EDGEFEATRS']
+        if 'feature_names' not in edge_grp.attrs:
+            raiseError("Missing feature_names attribute in /GRAPH/EDGEFEATRS.")
+
+        edge_names = _decode_bytes_list(edge_grp.attrs['feature_names'])
+        edge_features_dict = OrderedDict()
+        for name in edge_names:
+            arr = np.array(edge_grp[name])
+            if arr.dtype == np.dtype('O') or arr.dtype.kind in ('U', 'S'):
+                raiseError(f"Edge feature '{name}' has non-numeric dtype={arr.dtype}.")
+            if arr.dtype.kind not in ('f', 'c'):
+                arr = arr.astype('float32', copy=False)
+            else:
+                arr = arr.astype('float32', copy=False)
+            edge_features_dict[name] = arr
+
+    return num_nodes, num_edges, edge_index, node_features_dict, edge_features_dict
+
+
+def h5_create_graph_datasets(group,varDict):
+	'''
+	Create the variable datasets inside an HDF5 file
+	'''
+	dsetDict = {}
+	for var in varDict.keys():
+		vargroup = group.create_group(var)
+		dims = varDict[var]['value'].shape
+		dsetDict[var] = {
+			'ndim'  : vargroup.create_dataset('ndim' ,(1,),dtype='i4'),
+			'value' : vargroup.create_dataset('value',dims,dtype=varDict[var]['value'].dtype),
+		}
+	return dsetDict
+
+def h5_fill_graph_datasets(dsetDict,varDict):
+	'''
+	Fill in the variable datasets inside an HDF5 file
+	'''
+	for var in dsetDict.keys():
+		# Fill dataset
+		dsetDict[var]['ndim'][:]  = varDict[var]['ndim']
+		# Fill value
+		dsetDict[var]['value'][:] = varDict[var]['value']
+
+def h5_load_graph_variables(group):
+	'''
+	Load the graph variables inside the HDF5 file
+	'''
+	varDict = {}
+	for v in group.keys():
+		vargroup = group[v]
+		varDict[v] = {
+			'ndim'  : int(vargroup['ndim'][0]),
+			'value' : np.array(vargroup['value']),
+		}
+	# Return
+	return varDict

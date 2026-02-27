@@ -19,30 +19,28 @@ try:
     import optuna
     from optuna.trial      import TrialState
     from optuna.exceptions import TrialPruned
+    from optuna.samplers import TPESampler
 
-
-    class OptunaOptimizer():
-        """
-        Args:
-            optimization_params (Dict): A dictionary containing the parameters to optimize.
-            n_trials (int): The number of trials to run. Default is ``100``.
-            direction (str): The direction to optimize. Can be 'minimize' or 'maximize'. Default is ``'minimize'``.
-            pruner (optuna.pruners.BasePruner): The pruner to use. Default is ``None``.
-            save_dir (str): The directory to save the best parameters. Default is ``None``.
-        """
+    class OptunaOptimizer:
         def __init__(
             self,
             optimization_params: Dict,
             n_trials: int = 100,
             direction: str = 'minimize',
             pruner: optuna.pruners.BasePruner = None,
-            save_dir: str = None
+            sampler: optuna.samplers.BaseSampler = None,
+            seed: int = 42,
+            save_dir: str = None,
         ):
             self.num_trials = n_trials
             self.direction = direction
             self.pruner = pruner
             self._optimization_params = optimization_params
             self.save_dir = save_dir
+            self.seed = seed
+
+            # If no sampler is provided, use default TPE with seed
+            self.sampler = sampler or TPESampler(seed=self.seed)
 
         @property
         def optimization_params(self) -> Dict:
@@ -64,7 +62,7 @@ try:
             Returns:
                 Dict: The best parameters obtained from the optimization.
             """
-            study = optuna.create_study(direction=self.direction, pruner=self.pruner)
+            study = optuna.create_study(direction=self.direction, pruner=self.pruner, sampler=self.sampler)
             study.optimize(objective_function, n_trials=self.num_trials)
             if self.save_dir is not None:
                 save_dir = Path(self.save_dir)
