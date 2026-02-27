@@ -95,32 +95,6 @@ def normals(xyz:np.ndarray,conec:np.ndarray) -> np.ndarray:
 	return normals
 
 
-@cr('math.edge_to_cells_legacy')
-def edge_to_cells_legacy(conec:np.ndarray) -> dict:
-	r'''
-	Build a dictionary that maps each edge to the cells that share it.
-
-	Args:
-		conec (np.ndarray): connectivity array
-
-	Returns:
-		dict: edges to cells connectivity dictionary
-	'''
-	ncells = conec.shape[0]
-	edge_to_cells = defaultdict(set)
-
-	for cell_id in range(ncells):
-		# Get the nodes of the cell
-		cell_nodes = conec[cell_id]
-		for i in range(len(cell_nodes)):
-			# We are assuming the nodes are ciclically ordered.
-			v1, v2 = sorted([cell_nodes[i], cell_nodes[(i+1) % len(cell_nodes)]]) # Sort IDs
-			# Edges are undirected (v1, v2) == (v2, v1)
-			edge_to_cells[(v1, v2)].add(cell_id)  # Associate the cell with the edge
-			edge_to_cells[(v2, v1)].add(cell_id)  # Associate the cell with the edge
-	return edge_to_cells
-
-
 @cr('math.edge_to_cells')
 def edge_to_cells(conec: np.ndarray) -> Dict[Tuple[int, int], Set[int]]:
     """

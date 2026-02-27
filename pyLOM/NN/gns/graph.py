@@ -37,10 +37,6 @@ class Graph(Data):
         edge_features_dict: Optional[Dict[str, torch.Tensor]] = None,
         *,
         device: Union[str, torch.device] = None,
-        x_dict: Optional[Dict[str, torch.Tensor]] = None,
-        edge_attr_dict: Optional[Dict[str, torch.Tensor]] = None,
-        nodeFeatrDict: Optional[Dict[str, torch.Tensor]] = None,
-        edgeFeatrDict: Optional[Dict[str, torch.Tensor]] = None,
         # **custom_attr_dict: Any # Not yet implemented.
     ):
         r'''
@@ -51,28 +47,11 @@ class Graph(Data):
             node_features_dict (Dict[str, torch.Tensor], optional): Preferred name for the node-feature dictionary. Shape per entry [num_nodes, feature_dim].
             edge_features_dict (Dict[str, torch.Tensor], optional): Preferred name for the edge-feature dictionary. Shape per entry [num_edges, feature_dim].
             device (Union[str, torch.device], optional): Computation device. Defaults to global DEVICE.
-
-        Legacy aliases:
-            x_dict / nodeFeatrDict and edge_attr_dict / edgeFeatrDict remain supported but will raise if mixed with the new names.
         '''
-        node_features_dict = self._select_feature_dict(
-            {
-                "node_features_dict": node_features_dict,
-                "x_dict": x_dict,
-                "nodeFeatrDict": nodeFeatrDict,
-            },
-            required=True,
-            kind="node",
-        )
-        edge_features_dict = self._select_feature_dict(
-            {
-                "edge_features_dict": edge_features_dict,
-                "edge_attr_dict": edge_attr_dict,
-                "edgeFeatrDict": edgeFeatrDict,
-            },
-            required=True,
-            kind="edge",
-        )
+        if node_features_dict is None:
+            raiseError("Missing node feature dictionary. Expected 'node_features_dict'.")
+        if edge_features_dict is None:
+            raiseError("Missing edge feature dictionary. Expected 'edge_features_dict'.")
 
         if device is None:
             device = torch.device(DEVICE)  # Default to global DEVICE constant
@@ -116,35 +95,9 @@ class Graph(Data):
         # store raw attribute dicts (for i/o operations)
         self.node_features_dict = node_features_dict
         self.edge_features_dict = edge_features_dict
-        # Backward compatible aliases
-        self.x_dict = self.node_features_dict
-        self.edge_attr_dict = self.edge_features_dict
         # self.custom_attr_dict = custom_attr_dict # Not yet implemented.
 
         self.validate()
-
-    @staticmethod
-    def _select_feature_dict(
-        candidates: Dict[str, Optional[Dict[str, torch.Tensor]]],
-        *,
-        required: bool,
-        kind: str,
-    ) -> Dict[str, torch.Tensor]:
-        """Resolve the preferred feature dictionary, guarding against conflicting aliases."""
-        provided = {name: value for name, value in candidates.items() if value is not None}
-
-        if not provided:
-            if required:
-                raiseError(f"Missing {kind} feature dictionary. Expected one of {', '.join(candidates.keys())}.")
-            return {}
-
-        if len(provided) > 1:
-            raiseError(
-                f"Received multiple {kind} feature dictionaries ({', '.join(provided.keys())})."
-                " Please specify only one naming convention."
-            )
-
-        return next(iter(provided.values()))
 
     def validate(self) -> "Graph":
         """
@@ -392,23 +345,9 @@ class Graph(Data):
     ) -> Dict:
         """
         Convert pyLOM HDF5 format back to constructor arguments.
-
-        Compatibility
-        -------------
-        - Accepts both *flat* dicts {name: ndarray} and *nested* dicts
-        {name: {'value': ndarray, 'ndim': int}} for backward compatibility.
         """
         def to_tensor_dict(d: Dict[str, Any]) -> Dict[str, torch.Tensor]:
-            out: Dict[str, torch.Tensor] = {}
-            for k, v in d.items():
-                # Nested format: {'value': np.ndarray, ...}
-                if isinstance(v, dict) and 'value' in v:
-                    arr = v['value']
-                else:
-                    arr = v
-                t = torch.as_tensor(arr)
-                out[k] = t
-            return out
+            return {k: torch.as_tensor(v) for k, v in d.items()}
 
         node_features_dict = to_tensor_dict(node_features)
         edge_features_dict = to_tensor_dict(edge_features)
@@ -417,9 +356,6 @@ class Graph(Data):
             "edge_index": torch.as_tensor(edge_index, dtype=torch.long),
             "node_features_dict": node_features_dict,
             "edge_features_dict": edge_features_dict,
-            # Backward compatible aliases (will be deprecated in future release)
-            "x_dict": node_features_dict,
-            "edge_attr_dict": edge_features_dict,
         }
 
 
@@ -622,28 +558,6 @@ class Graph(Data):
 
 
 
-
-
-    def node_attr(self):
-        """
-        [DEPRECATED] Use `node_features_dict` instead.
-
-        This method is retained for backward compatibility. It returns the dictionary of node attributes,
-        where each entry corresponds to a named tensor of shape [num_nodes, feature_dim].
-
-        Note:
-            This method will be removed in a future version. Please use `graph.node_features_dict` instead.
-
-        Example:
-            >>> g.node_attr()  # Deprecated
-            >>> g.node_features_dict['xyz']  # Preferred
-        """
-        warnings.warn(
-            "`node_attr()` is deprecated. Use `graph.node_features_dict` instead.",
-            DeprecationWarning,
-            stacklevel=2
-        )
-        return self.node_features_dict
 
 
     @cr('Graph.filter')

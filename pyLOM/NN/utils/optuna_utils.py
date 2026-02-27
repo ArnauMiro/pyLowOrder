@@ -77,24 +77,6 @@ def set_seed(seed: int = 42) -> None:
     torch.backends.cudnn.allow_tf32 = False
 
 
-def set_seed_legacy(seed: int = 42) -> None:
-    """Set the random seed for reproducibility.
-    Args:
-        seed (int): The seed value to set for random number generation.
-    """
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-    try:
-        torch.use_deterministic_algorithms(True)
-    except Exception:
-        # Backwards compatible for older PyTorch versions
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-
 def _worker_init_fn(_):
     """Seed Python & NumPy per worker, derived from PyTorch worker seed.
 
@@ -244,6 +226,5 @@ def _materialize_space(space: dict, flat: dict, prefix: str = "") -> dict:
         else:
             out[k] = flat.get(path, v)
     return out
-
 
 
