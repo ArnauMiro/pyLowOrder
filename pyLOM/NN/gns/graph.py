@@ -543,9 +543,19 @@ class Graph(Data):
         d_ij = c_j - c_i
 
         r = np.linalg.norm(d_ij, axis=1)
-        with np.errstate(invalid='ignore', divide='ignore'):
-            theta = np.arccos(np.clip(d_ij[:, 2] / np.where(r == 0.0, 1.0, r), -1.0, 1.0))
-        phi = np.arctan2(d_ij[:, 1], d_ij[:, 0])
+        if d_ij.shape[1] == 2:
+            # 2D meshes: keep spherical contract [r, theta, phi] with theta=pi/2.
+            theta = np.full(r.shape, np.pi / 2.0, dtype=r.dtype)
+            phi = np.arctan2(d_ij[:, 1], d_ij[:, 0])
+        elif d_ij.shape[1] == 3:
+            with np.errstate(invalid='ignore', divide='ignore'):
+                theta = np.arccos(np.clip(d_ij[:, 2] / np.where(r == 0.0, 1.0, r), -1.0, 1.0))
+            phi = np.arctan2(d_ij[:, 1], d_ij[:, 0])
+        else:
+            raiseError(
+                f"Unsupported mesh center dimensionality for edges_spherical: {d_ij.shape[1]}. "
+                "Expected 2 or 3."
+            )
 
         edge_index = torch.tensor(edge_index_np, dtype=torch.int64)
         edge_features_dict = {

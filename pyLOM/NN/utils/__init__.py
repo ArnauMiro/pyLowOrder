@@ -26,7 +26,7 @@ from .optuna_utils import (
 
 from .scalers import MinMaxScaler, StandardScaler, RobustScaler
 from .schedulers import betaLinearScheduler
-from .stats import RegressionEvaluator
+from .stats import RegressionEvaluator, ClassificationEvaluator
 from .callbacks import EarlyStopper
 
 
@@ -50,5 +50,6 @@ __all__ = [
     "RobustScaler",
     "betaLinearScheduler",
     "RegressionEvaluator",
+    "ClassificationEvaluator",
     "EarlyStopper",
 ]

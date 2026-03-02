@@ -37,12 +37,9 @@ from .                                import GAVI
 from .pipeline                        import Pipeline, ClusteredPipeline
 from .dataset                         import Dataset
 from .gns                             import Graph
-from .utils                           import RegressionEvaluator, EarlyStopper, MinMaxScaler, StandardScaler, RobustScaler, select_device, betaLinearScheduler, create_results_folder, set_seed
+from .utils                           import RegressionEvaluator, ClassificationEvaluator, EarlyStopper, MinMaxScaler, StandardScaler, RobustScaler, select_device, betaLinearScheduler, create_results_folder, set_seed
 from .optimizer                       import OptunaOptimizer
 
-
-from .utils.stats                      import RegressionEvaluator, ClassificationEvaluator
-from .utils.callbacks                  import EarlyStopper
 
 from .interpolator                    import Interpolator
 from .aerodynamics                    import global_coeff, jacobians_pressure
@@ -58,6 +55,4 @@ from .architectures.gns               import GNS
 from .architectures.shred             import SHRED
 from .architectures.binary_classifier import BinaryClassifier
 
-from ..utils.plots                    import plotSnapshot, plotModalErrorBars, plotTimeSeries
-
-del os, torch, utils
+del os, torch
