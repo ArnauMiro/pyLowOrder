@@ -163,10 +163,11 @@ class ClusteredPipeline:
         cluster_col_idx (int): the index of the column containing the cluster labels.
         valid_dataset (optional): the validation dataset. Default is ``None``.
         test_dataset (optional): the test dataset. Default is ``None``.
-        models_dict (Dict, optional): the dictionary of models to train for each cluster. Default is ``{}``.
-        training_params_dict (Dict, optional): the dictionary of training parameters for each cluster. Default is ``{}``.
-        optimizers_dict (Dict[OptunaOptimizer], optional): the dictionary of optimizers to use for each cluster. Default is ``{}``.
-        model_classes_dict (Dict, optional): the dictionary of model classes to use for each cluster. Default is ``{}``.
+        models_dict (Dict, optional): the dictionary of models to train for each cluster. Default is ``None``.
+        training_params_dict (Dict, optional): the dictionary of training parameters for each cluster. Default is ``None``.
+        optimizers_dict (Dict[OptunaOptimizer], optional): the dictionary of optimizers to use for each cluster. Default is ``None``.
+        model_classes_dict (Dict, optional): the dictionary of model classes to use for each cluster. Default is ``None``.
+        models_outputs_dict (Dict, optional): the dictionary to store the outputs of each model's fit method. Default is ``None``.
     """
     def __init__(
         self,
@@ -178,6 +179,7 @@ class ClusteredPipeline:
         training_params_dict: Dict = None,
         optimizers_dict: Dict = None,
         model_classes_dict: Dict = None,
+        models_outputs_dict: Dict = None,
     ):
         self.train_dataset = train_dataset
         self.test_dataset = test_dataset
@@ -233,7 +235,14 @@ class ClusteredPipeline:
         else:
             self.model_classes_dict = {k: None for k in self.dict_keys}
 
-        self.model_outputs_dict = {k: None for k in self.dict_keys}
+        if models_outputs_dict is not None:
+            if not all(k in models_outputs_dict.keys() for k in self.dict_keys):
+                raiseError("models_outputs_dict must contain keys: " + ", ".join(self.dict_keys))
+            if (len(models_outputs_dict)-1) != self.n_clusters:
+                raiseError("Number of model outputs must match number of clusters")
+            self.model_outputs_dict = models_outputs_dict
+        else:
+            self.model_outputs_dict = {k: None for k in self.dict_keys}
 
     def _get_n_clusters(self):
         return len(self._get_cluster_ids())
@@ -317,55 +326,64 @@ class ClusteredPipeline:
         pprint(0, f"Found {len(cluster_ids)} clusters: {cluster_ids}")
 
         # Train the classifier to predict the cluster from the inputs
-        if self.optimizers_dict["classifier"] is not None:
-            if self.valid_dataset_dict["classifier"] is None:
-                self.valid_dataset_dict["classifier"] = self.train_dataset_dict["classifier"]
-                raiseWarning("Validation dataset not provided, using train dataset for evaluation on optimization")
+        pprint(0, "\n--- Classifier ---")
+        if self.model_outputs_dict["classifier"] is None:
+            if self.optimizers_dict["classifier"] is not None:
+                if self.valid_dataset_dict["classifier"] is None:
+                    self.valid_dataset_dict["classifier"] = self.train_dataset_dict["classifier"]
+                    raiseWarning("Validation dataset not provided, using train dataset for evaluation on optimization")
 
-            pprint(0, "Optimizing classifier hyperparameters")
-            model_classifier, training_params_classifier = self.model_classes_dict["classifier"].create_optimized_model(
-                train_dataset = self.train_dataset_dict["classifier"],
-                eval_dataset = self.valid_dataset_dict["classifier"],
-                optuna_optimizer = self.optimizers_dict["classifier"],
+                pprint(0, "Optimizing classifier hyperparameters")
+                model_classifier, training_params_classifier = self.model_classes_dict["classifier"].create_optimized_model(
+                    train_dataset = self.train_dataset_dict["classifier"],
+                    eval_dataset = self.valid_dataset_dict["classifier"],
+                    optuna_optimizer = self.optimizers_dict["classifier"],
+                )
+
+                self._models["classifier"] = model_classifier
+                self.training_params_dict["classifier"] = training_params_classifier
+            
+            pprint(0, "Training the classifier with optimized parameters")
+            model_output_classifier = self._models["classifier"].fit(
+                self.train_dataset_dict["classifier"], 
+                eval_dataset=self.valid_dataset_dict["classifier"], 
+                **self.training_params_dict["classifier"],
             )
-
-            self._models["classifier"] = model_classifier
-            self.training_params_dict["classifier"] = training_params_classifier
+            self.model_outputs_dict["classifier"] = model_output_classifier
         
-        pprint(0, "Training the classifier with optimized parameters")
-        model_output_classifier = self._models["classifier"].fit(
-            self.train_dataset_dict["classifier"], 
-            eval_dataset=self.valid_dataset_dict["classifier"], 
-            **self.training_params_dict["classifier"],
-        )
-        self.model_outputs_dict["classifier"] = model_output_classifier
+        else:
+            pprint(0, "Classifier model already trained, skipping training")
 
         # Train one model per cluster
         for idx, cid in enumerate(cluster_ids):
             pprint(0, f"\n--- Cluster {cid} ---")
-            if self.optimizers_dict[f"regressor_{cid}"] is not None:
-                if self.valid_dataset_dict[f"regressor_{cid}"] is None:
-                    self.valid_dataset_dict[f"regressor_{cid}"] = self.train_dataset_dict[f"regressor_{cid}"]
-                    raiseWarning("Validation dataset not provided, using train dataset for evaluation on optimization")
+            if self.model_outputs_dict[f"regressor_{cid}"] is None:
+                if self.optimizers_dict[f"regressor_{cid}"] is not None:
+                    if self.valid_dataset_dict[f"regressor_{cid}"] is None:
+                        self.valid_dataset_dict[f"regressor_{cid}"] = self.train_dataset_dict[f"regressor_{cid}"]
+                        raiseWarning("Validation dataset not provided, using train dataset for evaluation on optimization")
 
-                pprint(0, "Optimizing model hyperparameters for this cluster")
-                model_c, training_params_c = self.model_classes_dict[f"regressor_{cid}"].create_optimized_model(
-                    train_dataset = self.train_dataset_dict[f"regressor_{cid}"],
-                    eval_dataset = self.valid_dataset_dict[f"regressor_{cid}"],
-                    optuna_optimizer = self.optimizers_dict[f"regressor_{cid}"],
+                    pprint(0, "Optimizing model hyperparameters for this cluster")
+                    model_c, training_params_c = self.model_classes_dict[f"regressor_{cid}"].create_optimized_model(
+                        train_dataset = self.train_dataset_dict[f"regressor_{cid}"],
+                        eval_dataset = self.valid_dataset_dict[f"regressor_{cid}"],
+                        optuna_optimizer = self.optimizers_dict[f"regressor_{cid}"],
+                    )
+
+                    self._models[f"regressor_{cid}"] = model_c
+                    self.training_params_dict[f"regressor_{cid}"] = training_params_c
+
+                pprint(0, "Training a model with optimized parameters")
+                model_output_c = self._models[f"regressor_{cid}"].fit(
+                    train_dataset=self.train_dataset_dict[f"regressor_{cid}"], 
+                    eval_dataset=self.valid_dataset_dict[f"regressor_{cid}"], 
+                    **self.training_params_dict[f"regressor_{cid}"],
                 )
 
-                self._models[f"regressor_{cid}"] = model_c
-                self.training_params_dict[f"regressor_{cid}"] = training_params_c
+                self.model_outputs_dict[f"regressor_{cid}"] = model_output_c
 
-            pprint(0, "Training a model with optimized parameters")
-            model_output_c = self._models[f"regressor_{cid}"].fit(
-                train_dataset=self.train_dataset_dict[f"regressor_{cid}"], 
-                eval_dataset=self.valid_dataset_dict[f"regressor_{cid}"], 
-                **self.training_params_dict[f"regressor_{cid}"],
-            )
-
-            self.model_outputs_dict[f"regressor_{cid}"] = model_output_c
+            else:
+                pprint(0, f"Model for cluster {cid} already trained, skipping training")
 
         return self.model_outputs_dict
 
