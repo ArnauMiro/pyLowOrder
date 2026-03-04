@@ -387,7 +387,7 @@ class ClusteredPipeline:
 
         return self.model_outputs_dict
 
-    def evaluate(self, evaluators_dict, scalers: List = [None, None], threshold: float = 0.5, set_to_use: str = "test", deep: bool = False) -> Dict:
+    def evaluate(self, evaluators_dict, scalers: List = [None, None], threshold: float = 0.5, set_to_use: str = "test", deep: bool = False, verbose: bool = True) -> Dict:
         r"""
         Evaluate the models on the test datasets.
         """
@@ -421,8 +421,8 @@ class ClusteredPipeline:
 
         cluster_ids = self._get_cluster_ids()
 
-        def _evaluate_model(model, training_params, dataset, evaluators, inputs_scaler, outputs_scaler, kwargs={}):
-            y_pred = model.predict(dataset, rescale_output=True, **training_params)
+        def _evaluate_model(model, training_params, dataset, evaluators, inputs_scaler, outputs_scaler, verbose=True, kwargs={}):
+            y_pred = model.predict(dataset, **training_params)
             x_true, y_true = dataset[:]
             if inputs_scaler is not None:
                 x_true = inputs_scaler.inverse_transform(x_true)
@@ -432,82 +432,94 @@ class ClusteredPipeline:
             metrics = {}
             for evaluator in evaluators:
                 metrics.update(evaluator(y_true, y_pred, **kwargs))
-                evaluator.print_metrics()
+                if verbose:
+                    evaluator.print_metrics()
             return metrics, [x_true, y_true, y_pred]
 
         metrics_dict = {}
 
-        pprint(0, "\nEvaluation of the classifier:")
-        metrics_dict["classifier"] = _evaluate_model(
-            self._models["classifier"],
-            self.training_params_dict["classifier"],
-            self.evaluation_dataset_dict["classifier"],
-            evaluators_dict["classifier"],
-            inputs_scaler = input_scaler,
-            outputs_scaler = output_scaler_classifier,
-            kwargs={"given_threshold": threshold},
-        )
-
-        pprint(0, "\nEvaluation of the regressors:")
-        for idx, cid in enumerate(cluster_ids):
-            pprint(0, f"\n--- Cluster {cid} ---")
-            metrics_dict[f"regressor_{cid}"] = _evaluate_model(
-                self._models[f"regressor_{cid}"],
-                self.training_params_dict[f"regressor_{cid}"],
-                self.evaluation_dataset_dict[f"regressor_{cid}"],
-                evaluators_dict[f"regressor_{cid}"],
+        if evaluators_dict["classifier"] is not None:
+            if verbose:
+                pprint(0, "\nEvaluation of the classifier:")
+            metrics_dict["classifier"] = _evaluate_model(
+                self._models["classifier"],
+                self.training_params_dict["classifier"],
+                self.evaluation_dataset_dict["classifier"],
+                evaluators_dict["classifier"],
                 inputs_scaler = input_scaler,
-                outputs_scaler = output_scaler_regressors,
+                outputs_scaler = output_scaler_classifier,
+                kwargs={"given_threshold": threshold},
+                verbose = verbose,
             )
 
-        pprint(0, "\nEvaluation of the full clustered model:")
-        probs = self._models["classifier"].predict(self.evaluation_dataset, rescale_output=True, **self.training_params_dict["classifier"])
-        x_true , y_true = self._drop_cluster_column(self.evaluation_dataset)[:]
-        y_pred = np.zeros_like(y_true)
+        if any(evaluators_dict[f"regressor_{cid}"] is not None for cid in cluster_ids):
+            if verbose:
+                pprint(0, "\nEvaluation of the regressors per cluster:")
         for idx, cid in enumerate(cluster_ids):
+            if evaluators_dict[f"regressor_{cid}"] is not None:
+                if verbose:
+                    pprint(0, f"\n--- Cluster {cid} ---")
+                metrics_dict[f"regressor_{cid}"] = _evaluate_model(
+                    self._models[f"regressor_{cid}"],
+                    self.training_params_dict[f"regressor_{cid}"],
+                    self.evaluation_dataset_dict[f"regressor_{cid}"],
+                    evaluators_dict[f"regressor_{cid}"],
+                    inputs_scaler = input_scaler,
+                    outputs_scaler = output_scaler_regressors,
+                    verbose = verbose,
+                )
 
-            def _mask_filter_fn(inputs, outputs, mask_np):
-                return mask_np.tolist()
+        if evaluators_dict["full_model"] is not None:
+            if verbose:
+                pprint(0, "\nEvaluation of the full clustered model:")
+            probs = self._models["classifier"].predict(self.evaluation_dataset, **self.training_params_dict["classifier"])
+            x_true , y_true = self._drop_cluster_column(self.evaluation_dataset)[:]
+            y_pred = np.zeros_like(y_true)
+            for idx, cid in enumerate(cluster_ids):
 
-            mask = (probs.flatten() < threshold) if cid == 0 else (probs.flatten() >= threshold)
-            if isinstance(mask, torch.Tensor):
-                mask_np = mask.detach().cpu().numpy().astype(bool)
-            else:
-                mask_np = np.asarray(mask, dtype=bool)
+                def _mask_filter_fn(inputs, outputs, mask_np):
+                    return mask_np.tolist()
 
-            if mask_np.ndim != 1:
-                mask_np = mask_np.reshape(-1)
-            if mask_np.size != len(self.evaluation_dataset):
-                raiseError(f"Mask length {mask_np.size} != dataset length {len(self.evaluation_dataset)}")
+                mask = (probs.flatten() < threshold) if cid == 0 else (probs.flatten() >= threshold)
+                if isinstance(mask, torch.Tensor):
+                    mask_np = mask.detach().cpu().numpy().astype(bool)
+                else:
+                    mask_np = np.asarray(mask, dtype=bool)
 
-            evaluation_dataset_c = self.evaluation_dataset.filter(
-                function=_mask_filter_fn,
-                fn_kwargs={"mask_np": mask_np},
-                batched=True,
-                batch_size=len(self.evaluation_dataset),
-                return_views=False,
-            )
+                if mask_np.ndim != 1:
+                    mask_np = mask_np.reshape(-1)
+                if mask_np.size != len(self.evaluation_dataset):
+                    raiseError(f"Mask length {mask_np.size} != dataset length {len(self.evaluation_dataset)}")
 
-            evaluation_dataset_c = self._drop_cluster_column(evaluation_dataset_c)
-            y_pred[np.flatnonzero(mask_np)] = self._models[f"regressor_{cid}"].predict(evaluation_dataset_c, rescale_output=True, **self.training_params_dict[f"regressor_{cid}"])
+                evaluation_dataset_c = self.evaluation_dataset.filter(
+                    function=_mask_filter_fn,
+                    fn_kwargs={"mask_np": mask_np},
+                    batched=True,
+                    batch_size=len(self.evaluation_dataset),
+                    return_views=False,
+                )
 
-        if input_scaler is not None:
-            x_true = input_scaler.inverse_transform(x_true)
-        if output_scaler_regressors is not None:
-            y_true = output_scaler_regressors.inverse_transform(y_true)
-            y_pred = output_scaler_regressors.inverse_transform(y_pred)
-        
-        metrics = {}
-        for evaluator in evaluators_dict["full_model"]:
-            metrics.update(evaluator(y_true, y_pred))
-            evaluator.print_metrics()
+                evaluation_dataset_c = self._drop_cluster_column(evaluation_dataset_c)
+                y_pred[np.flatnonzero(mask_np)] = self._models[f"regressor_{cid}"].predict(evaluation_dataset_c, **self.training_params_dict[f"regressor_{cid}"])
 
-        metrics_dict["full_model"] = metrics, [x_true, y_true, y_pred]
-
-        if deep:
+            if input_scaler is not None:
+                x_true = input_scaler.inverse_transform(x_true)
+            if output_scaler_regressors is not None:
+                y_true = output_scaler_regressors.inverse_transform(y_true)
+                y_pred = output_scaler_regressors.inverse_transform(y_pred)
             
-            # Error of the models conditioned to the classifier output
-            pprint(0, "\nDeep evaluation of the full clustered model:")
+            metrics = {}
+            for evaluator in evaluators_dict["full_model"]:
+                metrics.update(evaluator(y_true, y_pred))
+                if verbose:
+                    evaluator.print_metrics()
+
+            metrics_dict["full_model"] = metrics, [x_true, y_true, y_pred]
+
+        # Error of the models conditioned to the classifier output
+        if deep:
+            if verbose:
+                pprint(0, "\nDeep evaluation of the full clustered model:")
             y_true_classifier = metrics_dict["classifier"][1][1]
             y_pred_probs_classifier = metrics_dict["classifier"][1][2]
             y_pred_classifier = torch.Tensor([0 if p < threshold else 1 for p in y_pred_probs_classifier.flatten()])
@@ -529,8 +541,6 @@ class ClusteredPipeline:
                 else:
                     mask_np = np.asarray(mask, dtype=bool)
 
-                # if mask_np.ndim != 1:
-                #     mask_np = mask_np.reshape(-1)
                 if mask_np.size != len(self.evaluation_dataset):
                     raiseError(f"Mask length {mask_np.size} != dataset length {len(self.evaluation_dataset)}")
 
@@ -541,8 +551,9 @@ class ClusteredPipeline:
                 metrics_cond = {}
                 for evaluator in evaluators_dict["full_model"]:
                     metrics_cond.update(evaluator(y_true_cond, y_pred_cond))
-                    pprint(0, f"\nConditioned on {names[midx]}:")
-                    evaluator.print_metrics()
+                    if verbose:
+                        pprint(0, f"\nConditioned on {names[midx]}:")
+                        evaluator.print_metrics()
 
                 key_suffix = ""
                 if np.all(mask_np == (mask_tp.detach().cpu().numpy().astype(bool))):
