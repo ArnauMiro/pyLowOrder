@@ -1,4 +1,4 @@
-import os
+import os, math
 import torch
 import numpy as np
 import torch.nn as nn
@@ -514,14 +514,37 @@ class MLP(nn.Module):
         input_dim, output_dim = train_dataset[0][0].shape[0], train_dataset[0][1].shape[0]
         
         def suggest_value(name, space, trial):
+            if isinstance(space, dict):
+                suggested_dict = {}
+                for key, subspace in space.items():
+                    full_name = f"{name}.{key}"
+                    suggested_dict[key] = suggest_value(full_name, subspace, trial)
+                return suggested_dict
+            
             if isinstance(space, (tuple, list)):
-                use_log = (space[1] / max(1e-12, space[0])) >= 1000 if isinstance(space[0], (int, float)) else False
-                if isinstance(space[0], int):
-                    return trial.suggest_int(name, int(space[0]), int(space[1]), log=use_log)
-                elif isinstance(space[0], float):
-                    return trial.suggest_float(name, float(space[0]), float(space[1]), log=use_log)
-            else:
-                return space
+                low, high = space
+                if isinstance(low, int) and isinstance(high, int):
+                    
+                    def is_power_of_2(n):
+                        return n > 0 and (n & (n - 1)) == 0
+                    
+                    if is_power_of_2(low) and is_power_of_2(high):
+                        power_low = int(math.log2(low))
+                        power_high = int(math.log2(high))
+                        power_diff = power_high - power_low
+                        
+                        if power_diff > 3:
+                            power = trial.suggest_int(name, power_low, power_high, step=1)
+                            return 2 ** power
+                    
+                    use_log = (high / max(1, low)) >= 1000
+                    return trial.suggest_int(name, low, high, log=use_log)
+
+                if isinstance(low, float) and isinstance(high, float):
+                    use_log = (high / max(1e-12, low)) >= 1000
+                    return trial.suggest_float(name, low, high, log=use_log)
+
+            return space
         
         def optimization_function(trial) -> float:
             training_params = {}       
