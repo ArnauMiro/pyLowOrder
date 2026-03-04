@@ -102,7 +102,7 @@ class MLP(nn.Module):
                 pprint(0, f"\t{key}: {value}")
             pprint(
                 0,
-                f"\ttotal_size (trainable parameters): {sum(p.numel() for p in self.parameters() if p.requires_grad)}\n"
+                f"\ttotal_size (trainable parameters): {self._count_n_parameters()}\n"
             )
     
     def forward(self, x):
@@ -124,6 +124,10 @@ class MLP(nn.Module):
         if not value:
             raiseError("model_name cannot be empty")
         self._model_name = value
+
+    def _count_n_parameters(self) -> int:
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+
     
     @cr('MLP.fit')
     def fit(
@@ -425,6 +429,7 @@ class MLP(nn.Module):
         cls, 
         path: str,
         device: torch.device = DEVICE,
+        verbose: bool = True,
     ):
         r"""
         Load the model from a checkpoint file. Does not require the model to be instantiated.
@@ -432,6 +437,7 @@ class MLP(nn.Module):
         Args:
             path (str): Path to the file to load the model from.
             device (torch.device, optional): Device to use (default: ``torch.device("cpu")``).
+            verbose (bool, optional): If ``True``, prints the model parameters and total size after loading (default: ``True``).
 
         Returns:
             model (MLP): The loaded model with the trained weights.
@@ -450,7 +456,8 @@ class MLP(nn.Module):
             checkpoint["initialization"],
             checkpoint["initialization_kwargs"],
             checkpoint["seed"],
-            checkpoint["model_name"]
+            checkpoint["model_name"],
+            verbose=verbose,
         )
         
         model.load_state_dict(checkpoint["state_dict"])
