@@ -8,7 +8,7 @@
 
 import numpy as np, copy, torch
 
-from typing         import List, Dict, Any
+from typing         import List, Dict, Any, Tuple
 from .optimizer     import OptunaOptimizer
 from ..utils.errors import raiseWarning, raiseError
 from ..             import pprint
@@ -91,6 +91,68 @@ class Pipeline:
 
         return model_output
     
+    def evaluate(self, evaluators, scalers: List = [None, None], set_to_use: str = "test", verbose: bool = True) -> Tuple[Dict, List]:
+        r"""
+        Evaluate the model on the test dataset.
+
+        Args:
+            evaluators (List): The list of evaluators to use for evaluation.
+            scalers (List, optional): The list of scalers to use for rescaling the inputs and outputs (default: ``[None, None]``).
+            set_to_use (str, optional): The dataset to use for evaluation, must be one of "train", "valid" or "test" (default: ``"test"``).
+
+        Returns:
+            Tuple[Dict, List]: A tuple containing the dictionary of metrics and the list of [x_true, y_true, y_pred].
+            
+        """
+        if set_to_use == "train":
+            if self.train_dataset is None:
+                raiseError("Train dataset not provided, cannot evaluate model")
+            self.evaluation_dataset = self.train_dataset
+        elif set_to_use == "valid":
+            if self.valid_dataset is None:
+                raiseError("Validation dataset not provided, cannot evaluate model")
+            self.evaluation_dataset = self.valid_dataset
+        else:
+            if self.test_dataset is None:
+                raiseError("Test dataset not provided, cannot evaluate model")
+            self.evaluation_dataset = self.test_dataset
+
+        if self.training_params is None:
+            raiseError("Training parameters not available, cannot evaluate model")
+        if scalers is not None:
+            if len(scalers) != 2:
+                raiseError("scalers must be a list of two elements: [input_scaler, output_scaler]")
+            input_scaler, output_scaler = scalers
+
+        def _evaluate_model(model, training_params, dataset, evaluators, inputs_scaler, outputs_scaler, verbose=True, kwargs={}):
+            y_pred = model.predict(dataset, **training_params)
+            x_true, y_true = dataset[:]
+            if inputs_scaler is not None:
+                x_true = inputs_scaler.inverse_transform(x_true)
+            if outputs_scaler is not None:
+                y_true = outputs_scaler.inverse_transform(y_true)
+                y_pred = outputs_scaler.inverse_transform(y_pred)
+            metrics = {}
+            for evaluator in evaluators:
+                metrics.update(evaluator(y_true, y_pred, **kwargs))
+                if verbose:
+                    evaluator.print_metrics()
+            return metrics, [x_true, y_true, y_pred]
+        
+        if verbose:
+            pprint(0, "\nEvaluation of the model:")
+        metrics, predictions = _evaluate_model(
+            self._model,
+            self.training_params,
+            self.evaluation_dataset,
+            evaluators,
+            inputs_scaler = input_scaler,
+            outputs_scaler = output_scaler,
+            verbose = verbose,
+        )
+
+        return metrics, predictions
+
 
 class ClusteredPipeline:
     r"""
