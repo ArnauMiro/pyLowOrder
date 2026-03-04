@@ -30,7 +30,7 @@ from .pipeline                        import Pipeline, ClusteredPipeline
 from .utils                           import Dataset, MinMaxScaler, select_device, betaLinearScheduler, create_results_folder, set_seed
 from .utils                           import tanh, relu, elu, sigmoid, leakyRelu, silu
 
-from .optimizer                       import OptunaOptimizer
+from .optimizer                       import OptunaOptimizer, OptunaStudyManager
 
 from .stats                           import RegressionEvaluator, ClassificationEvaluator
 from .callbacks                       import EarlyStopper
