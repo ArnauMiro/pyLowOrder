@@ -9,6 +9,7 @@ from ..optimizer import OptunaOptimizer, TrialPruned
 from .. import DEVICE, PIN_MEMORY, set_seed  # pyLOM/NN/__init__.py
 from ... import pprint, cr  # pyLOM/__init__.py
 from ...utils.errors import raiseWarning, raiseError
+from ..loss import BaseLossFunction, TorchLossAdapter
 
 
 class MLP(nn.Module):
@@ -128,6 +129,15 @@ class MLP(nn.Module):
     def _count_n_parameters(self) -> int:
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
+    def unpack_batch(self, batch):
+        if len(batch) == 2:
+            x, y = batch
+            return {"x": x,"x_neighbors": None, "y": y, "y_neighbors": None}
+        elif len(batch) == 4:
+            x, x_neighbors, y, y_neighbors = batch
+            return {"x": x, "x_neighbors": x_neighbors, "y": y, "y_neighbors": y_neighbors}
+        else:
+            raiseError("Unexpected batch format")
     
     @cr('MLP.fit')
     def fit(
@@ -137,7 +147,8 @@ class MLP(nn.Module):
         epochs: int = 100,
         batch_size: int = 32,
         lr: float = 0.001,
-        loss_fn: torch.nn.Module = torch.nn.MSELoss(),
+        loss_fn: BaseLossFunction | torch.nn.Module = torch.nn.MSELoss(),
+        loss_fn_kwargs: dict = {},
         optimizer_class: torch.optim.Optimizer = torch.optim.Adam,
         scheduler_class: torch.optim.lr_scheduler.LRScheduler = None,
         optimizer_kwargs: dict = {},
@@ -157,7 +168,8 @@ class MLP(nn.Module):
             epochs (int, optional): Number of epochs to train the model (default: ``100``).
             batch_size (int, optional): Batch size for training (default: ``32``).
             lr (float, optional): Learning rate for the optimizer (default: ``0.001``).
-            loss_fn (torch.nn.Module, optional): Loss function to optimize (default: ``torch.nn.MSELoss()``).
+            loss_fn (torch.nn.Module, optional): Loss function class to train with (default: ``torch.nn.MSELoss()``).
+            loss_fn_kwargs (dict, optional): Additional keyword arguments to pass to the loss function (default: ``{}``).
             optimizer_class (torch.optim.Optimizer, optional): Optimizer class to use (default: ``torch.optim.Adam``).
             scheduler_class (torch.optim.lr_scheduler._LRScheduler, optional): Learning rate scheduler class to use. If ``None``, no scheduler will be used (default: ``None``).
             optimizer_kwargs (dict, optional): Additional keyword arguments to pass to the optimizer (default: ``{}``).
@@ -238,20 +250,41 @@ class MLP(nn.Module):
 
         total_epochs = len(train_losses) + epochs
         self.mname = f"{self._model_name}_{total_epochs:05d}"
+
+        if isinstance(loss_fn, BaseLossFunction):
+            pass
+        elif isinstance(loss_fn, torch.nn.Module):
+            loss_fn = TorchLossAdapter(loss_fn)
+        elif callable(loss_fn) and issubclass(loss_fn, BaseLossFunction):
+            loss_fn = loss_fn(**loss_fn_kwargs)
+        else:
+            raiseError("loss_fn must be either a BaseLossFunction, a torch.nn.Module, or a BaseLossFunction callable class")
+
+        def compute_loss(batch, mode="train"):
+            batch = self.unpack_batch(batch)
+            if mode == "train":
+                return loss_fn(self, batch)
+            elif mode == "eval":
+                preds = self(batch["x"])
+                return torch.nn.functional.mse_loss(preds, batch["y"])
+            else:
+                raiseError(f"Unknown mode: {mode}")
+
         for epoch in range(1+len(train_losses), 1+total_epochs):
             train_loss = 0.0
             self.train()
+            if hasattr(self.train_dataloader.dataset, "train"):
+                self.train_dataloader.dataset.train()
 
             def closure():
                 self.optimizer.zero_grad()
-                oupt = self(x_train)
-                loss_val = loss_fn(oupt, y_train)
+                loss_val = compute_loss(batch, mode="train")
                 loss_val.backward()
                 loss_iterations_train.append(loss_val.item())
                 return loss_val
 
             for b_idx, batch in enumerate(self.train_dataloader):
-                x_train, y_train = batch[0].to(self.device), batch[1].to(self.device)
+                batch = tuple(b.to(self.device) for b in batch)
                 train_loss += self.optimizer.step(closure).item()
                 total_norm = torch.norm(torch.stack([p.grad.norm() for p in self.parameters() if p.grad is not None]))
                 grad_norms.append(total_norm.item())
@@ -272,11 +305,12 @@ class MLP(nn.Module):
             test_loss = 0.0
             if eval_dataset is not None:
                 self.eval()
+                if hasattr(self.eval_dataloader.dataset, "eval"):
+                    self.eval_dataloader.dataset.eval()
                 with torch.no_grad():
                     for n_idx, sample in enumerate(self.eval_dataloader):
-                        x_test, y_test = sample[0].to(self.device), sample[1].to(self.device)
-                        test_output = self(x_test)
-                        loss_val = loss_fn(test_output, y_test)
+                        sample = tuple(s.to(self.device) for s in sample)
+                        loss_val = compute_loss(sample, mode="eval")
                         loss_iterations_test.append(loss_val.item())
                         test_loss += loss_val.item()
 
@@ -361,6 +395,8 @@ class MLP(nn.Module):
                 dataloader_params[key] = kwargs[key]
 
         predict_dataloader = DataLoader(X, **dataloader_params)
+        if hasattr(predict_dataloader.dataset, "eval"):
+            predict_dataloader.dataset.eval()
 
         total_rows = len(predict_dataloader.dataset)
         num_columns = self.output_size
