@@ -216,6 +216,8 @@ class BinaryClassifier:
             # early_stopping_rounds=self.early_stopping_rounds if eval_set is not None else None,
         )
 
+        self.n_param_like_ = self._count_xgb_leaf_values(include_intercept=False, only_used_trees=True)
+
         train_losses = []
         test_losses = []
 
@@ -312,7 +314,7 @@ class BinaryClassifier:
         torch.save(self.checkpoint, path)
 
     @classmethod
-    def load(cls, path: str, device: torch.device = DEVICE):
+    def load(cls, path: str, device: torch.device = DEVICE, verbose: bool = True):
         checkpoint = torch.load(path, map_location="cpu", weights_only=False)
         raiseWarning("The model has been loaded with weights_only set to False. According with torch documentation, this is not recommended if you do not trust the source of your saved model, as it could lead to arbitrary code execution.")
         checkpoint["device"] = device
@@ -332,7 +334,7 @@ class BinaryClassifier:
             seed=checkpoint["seed"],
             model_name=checkpoint["model_name"],
             device=checkpoint["device"],
-            verbose=False,
+            verbose=verbose,
         )
         model.model = pickle.loads(checkpoint["xgb_pickle"])
         model.checkpoint = checkpoint
