@@ -593,8 +593,6 @@ class MLP(nn.Module):
         best_params = optuna_optimizer.optimize(objective_function=optimization_function)
 
         # Update params with best ones
-        for param in best_params.keys():
-            if param in optimization_params:
-                optimization_params[param] = best_params[param]
+        OptunaOptimizer.apply_to(optimization_params, optimized_params=best_params)
         
         return cls(input_dim, output_dim, **optimization_params), optimization_params
