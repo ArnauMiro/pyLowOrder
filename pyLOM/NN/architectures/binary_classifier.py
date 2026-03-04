@@ -119,6 +119,23 @@ class BinaryClassifier:
         pos = (y == 1).sum()
         neg = (y == 0).sum()
         return float(neg / max(1, pos)) if pos > 0 else 1.0
+    
+    def _count_xgb_leaf_values(
+        self,
+        include_intercept: bool = False,
+        only_used_trees: bool = True,
+    ) -> int:
+        booster = self.model.get_booster()
+        df = booster.trees_to_dataframe()
+
+        if only_used_trees:
+            best_it = getattr(self.model, "best_iteration", None)
+            if best_it is not None:
+                df = df[df["Tree"] <= int(best_it)]
+
+        n_leaves = int((df["Feature"] == "Leaf").sum())
+        return n_leaves + (1 if include_intercept else 0)
+
 
     @cr('BinaryClassifier.fit')
     def fit(
