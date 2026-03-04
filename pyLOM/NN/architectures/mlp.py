@@ -547,28 +547,48 @@ class MLP(nn.Module):
             return space
         
         def optimization_function(trial) -> float:
-            training_params = {}       
-            for key, params in optimization_params.items():
-                training_params[key] = suggest_value(key, params, trial)
-            training_params["save_logs_path"] = None
-            
-            model = cls(input_dim, output_dim, verbose=False, **training_params)
-            if optuna_optimizer.pruner is not None:
-                epochs = training_params["epochs"]
-                training_params["epochs"] = 1
-                for epoch in range(epochs):
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+            model = None
+
+            try: 
+                training_params = {}       
+                for key, params in optimization_params.items():
+                    training_params[key] = suggest_value(key, params, trial)
+                training_params["save_logs_path"] = None
+                
+                model = cls(input_dim, output_dim, verbose=False, **training_params)
+                if optuna_optimizer.pruner is not None:
+                    epochs = training_params["epochs"]
+                    training_params["epochs"] = 1
+                    for epoch in range(epochs):
+                        model.fit(train_dataset, **training_params)
+                        y_pred, y_true = model.predict(eval_dataset, return_targets=True)
+                        loss_val = ((y_pred - y_true)**2).mean()
+                        trial.report(loss_val, epoch)
+                        if trial.should_prune(): 
+                            raise TrialPruned()
+                else:
                     model.fit(train_dataset, **training_params)
                     y_pred, y_true = model.predict(eval_dataset, return_targets=True)
                     loss_val = ((y_pred - y_true)**2).mean()
-                    trial.report(loss_val, epoch)
-                    if trial.should_prune(): 
-                        raise TrialPruned()
-            else:
-                model.fit(train_dataset, **training_params)
-                y_pred, y_true = model.predict(eval_dataset, return_targets=True)
-                loss_val = ((y_pred - y_true)**2).mean()
+                
+                return loss_val
             
-            return loss_val
+            except RuntimeError as e:
+                if "out of memory" in str(e) or "MEMORY" in str(e).upper():
+                    print(f"Trial {trial.number} failed due to out of memory error. Pruning the trial.")
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                    raise TrialPruned()
+                raise
+
+            finally:
+                if model is not None:
+                    del model
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
         
         best_params = optuna_optimizer.optimize(objective_function=optimization_function)
 
