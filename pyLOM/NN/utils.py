@@ -475,6 +475,9 @@ class Dataset(torch.utils.data.Dataset):
         else:
             raiseError(f'Invalid number of dimensions {len(args)} for mesh {self.mesh_shape}')
 
+    def _build_new(self, **kwargs):
+        return Dataset(**kwargs)
+
     def get_splits(
         self,
         sizes: Sequence[int],
@@ -630,7 +633,7 @@ class Dataset(torch.utils.data.Dataset):
                 split_variables_out = self.variables_out[new_indices]
 
                 # Create a new dataset instance with the split data
-                split_dataset = Dataset(
+                split_dataset = self._build_new(
                     variables_out=tuple([split_variables_out[:, i].reshape(-1, *self.mesh_shape).numpy()
                                     for i in range(self.num_channels)]),
                     mesh_shape=self.mesh_shape,
@@ -786,7 +789,7 @@ class Dataset(torch.utils.data.Dataset):
         if not return_views:
             data = self[indices]
             if self.variables_in is None:
-                dataset = Dataset(
+                dataset = self._build_new(
                     variables_out=tuple([data[:, i].reshape(-1, *self.mesh_shape).numpy()
                                 for i in range(self.num_channels)]),
                     mesh_shape=self.mesh_shape,
@@ -795,7 +798,7 @@ class Dataset(torch.utils.data.Dataset):
                     snapshots_by_column=False  # Since the data is already reshaped
                 )
             else:
-                dataset = Dataset(
+                dataset = self._build_new(
                     variables_out=tuple([data[1][:, i].reshape(-1, *self.mesh_shape).numpy()
                                 for i in range(self.num_channels)]),
                     mesh_shape=self.mesh_shape,
