@@ -20,7 +20,7 @@ from .utils.plots  import show_plots, close_plots, style_plots
 from .utils.gpu    import gpu_device
 
 # Import Low Order Models
-from . import POD, PCA, DMD, SPOD, MANIFOLD, GPOD, LAMINE
+from . import POD, PCA, DMD, SPOD, MANIFOLD, GPOD, RES
 
 # Import AI Models
 # The NN module overloads the memory when loaded

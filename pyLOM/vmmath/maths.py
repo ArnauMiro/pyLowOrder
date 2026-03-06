@@ -28,7 +28,7 @@ def transpose(A:np.ndarray) -> np.ndarray:
 	p = cp if type(A) is cp.ndarray else np
 	return p.transpose(A)
 
-@cr('math.vector_norm')
+@cr('math.vector_sum')
 def vector_sum(v:np.ndarray,start:int=0) -> float:
 	r'''
 	Sum of a vector
