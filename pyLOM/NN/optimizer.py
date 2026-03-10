@@ -153,7 +153,7 @@ try:
         def _save_best_params(self, best_params_flat: Dict):
             """
             Save the best parameters to a JSON file in the specified directory. 
-            The filename is determined by the study name if provided, or a unique name based on the number of existing files in the directory.
+            If a study name is provided, the file is saved using that name and overwritten if it already exists. Otherwise, a unique numbered filename is generated.
             
             Args:
                 best_params_flat (Dict): The best parameters in flat format to save.
@@ -161,16 +161,17 @@ try:
             save_dir = Path(self.save_dir)
             save_dir.mkdir(parents=True, exist_ok=True)
 
-            for i in count():
-                if self.study_name is None:
+            if self.study_name is not None:
+                file_path = save_dir / f"{self.study_name}.json"
+                with open(file_path, "w") as f:
+                    json.dump(best_params_flat, f, indent=2, sort_keys=True)
+            else:
+                for i in count():
                     file_path = save_dir / f"best_params_{i}.json"
-                else:
-                    file_path = save_dir / f"{self.study_name}.json"
-                
-                if not file_path.exists():
-                    with open(file_path, "x") as f:
-                        json.dump(best_params_flat, f, indent=2, sort_keys=True)
-                    break
+                    if not file_path.exists():
+                        with open(file_path, "x") as f:
+                            json.dump(best_params_flat, f, indent=2, sort_keys=True)
+                        break
         
         @staticmethod
         def _deep_update(base, updates):
