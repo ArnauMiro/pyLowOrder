@@ -92,3 +92,52 @@ class GradientWeightedMSE(BaseLossFunction):
         weighted_mse = (1.0 + self.alpha * grad_weight.unsqueeze(-1)) * mse_pointwise
         return weighted_mse.mean()
 
+class NeighborDifferenceMSELoss(BaseLossFunction):
+    r"""
+    Neighbor Difference Mean Squared Error loss function.
+    The loss computes the standard MSE between predictions and targets, but also considers the differences between neighboring points.
+    This encourages the model to not only fit the target values at each point but also to match the differences between neighboring points, which can help in learning smoother and more physically consistent models.
+
+    Args:
+        alpha: Weighting factor for the neighbor difference term. Higher values give more importance to matching the differences between neighbors (default: ``1.0``).
+        eps: Small constant to prevent division by zero when normalizing the neighbor differences (default: ``1e-8``).
+    """
+    def __init__(
+        self,
+        alpha: float = 1.0,
+        eps: float = 1e-8
+    ):
+        super().__init__()
+        self.alpha = alpha
+        self.eps = eps
+
+    def forward(
+        self,
+        model: torch.nn.Module,
+        batch
+    ) -> torch.Tensor:
+
+        center_x, neighbor_x, center_y, neighbor_y = batch["x"], batch["x_neighbors"], batch["y"], batch["y_neighbors"]
+        B, K, input_dim = neighbor_x.shape
+
+        # Predict center and neighbor outputs
+        pred_center = model(center_x)
+
+        pred_neighbors = model(neighbor_x.view(-1, input_dim))
+        pred_neighbors = pred_neighbors.view(B, K, -1)
+
+        # Standard MSE on center points
+        mse_loss = torch.mean((pred_center - center_y) ** 2)
+
+        # Neighbor differences
+        diff_true = neighbor_y - center_y.unsqueeze(1)
+        diff_pred = pred_neighbors - pred_center.unsqueeze(1)
+
+        diff_weight = torch.norm(diff_true, dim=-1)
+        diff_weight = diff_weight / (diff_weight.mean() + self.eps)
+
+        loss_diff = torch.mean(diff_weight.unsqueeze(-1) * (diff_pred - diff_true) ** 2)
+
+        # Total loss
+        return mse_loss + self.alpha * loss_diff
+
