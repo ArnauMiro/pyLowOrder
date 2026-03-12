@@ -147,7 +147,7 @@ class AreaWeightedObjective(BaseObjective):
         Args:
             field_ref (np.ndarray): Reference field.
             areas (np.ndarray): Area associated with each surface element.
-            normalize (bool): Whether to normalize by total area.
+            normalize (bool): Whether to normalize by total area (default: ``True``).
         """
         self.field_ref = field_ref
         self.areas = areas
@@ -214,6 +214,89 @@ class AreaWeightedObjective(BaseObjective):
             return 2.0 * self.areas * v / np.sum(self.areas)
         else:
             return 2.0 * self.areas * v
+
+class AreaWeightedRelativeMSEObjective(BaseObjective):
+    r"""
+    Area-weighted relative mean squared error objective function.
+    Penalizes relative deviations with respect to the reference field.
+
+    Args:
+        field_ref (np.ndarray): Reference field.
+        areas (np.ndarray): Area associated with each surface element.
+        eps (float): Regularization parameter to avoid division by zero (default: ``1e-6``).
+        normalize (bool): Whether to normalize by total weighted area (default: ``True``).
+    """
+
+    def __init__(
+        self,
+        field_ref: np.ndarray,
+        areas: np.ndarray,
+        eps: float = 1e-6,
+        normalize: bool = True,
+    ):
+        self.field_ref = field_ref
+        self.areas = areas
+        self.eps = eps
+        self.normalize = normalize
+
+        self._denom = np.abs(self.field_ref) + self.eps
+        self._weights = self.areas / (self._denom ** 2)
+
+        if self.normalize:
+            self._norm_factor = np.sum(self.areas)
+        else:
+            self._norm_factor = 1.0
+
+    def fun(
+        self,
+        x: np.ndarray,
+        **kwargs: dict,
+    ) -> float:
+        r"""
+        Area-weighted relative mean squared error objective function.
+
+        Args:
+            x (np.ndarray): Modified field.
+
+        Returns:
+            float: Value of the objective function.
+        """
+        diff = x - self.field_ref
+        return np.sum(self._weights * diff ** 2) / self._norm_factor
+
+    def jac(
+        self,
+        x: np.ndarray,
+        **kwargs: dict,
+    ) -> np.ndarray:
+        r"""
+        Gradient of the area-weighted relative objective function.
+
+        Args:
+            x (np.ndarray): Modified field.
+
+        Returns:
+            np.ndarray: Gradient of the objective function.
+        """
+        return 2.0 * self._weights * (x - self.field_ref) / self._norm_factor
+
+    def hessp(
+        self,
+        x: np.ndarray,
+        v: np.ndarray,
+        **kwargs: dict,
+    ) -> np.ndarray:
+        r"""
+        Hessian-vector product of the area-weighted relative objective function.
+
+        Args:
+            x (np.ndarray): Modified field.
+            v (np.ndarray): Direction tensor.
+
+        Returns:
+            np.ndarray: Hessian-vector product H(x) @ v.
+        """
+        return 2.0 * self._weights * v / self._norm_factor
 
 class Interpolator():
     def __init__(
@@ -471,7 +554,7 @@ class Interpolator():
                 method='trust-constr',
                 constraints=[lin_con],
                 options={"verbose": 3, "sparse_jacobian": True},
-                tol=1e-9,
+                tol=1e-8,
             )
 
             field_mod[:, i] = res.x
