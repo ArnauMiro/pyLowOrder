@@ -637,8 +637,8 @@ class Dataset(torch.utils.data.Dataset):
         # Format the values to 2 decimal places
         inputs_min_str = ', '.join([f'{val:.2f}' for val in inputs_min])
         inputs_max_str = ', '.join([f'{val:.2f}' for val in inputs_max])
-        outputs_min_str = f'{outputs_min[0]:.2f}'
-        outputs_max_str = f'{outputs_max[0]:.2f}'
+        outputs_min_str = ', '.join([f'{val:.2f}' for val in outputs_min])
+        outputs_max_str = ', '.join([f'{val:.2f}' for val in outputs_max])
 
         pprint(
             0,
