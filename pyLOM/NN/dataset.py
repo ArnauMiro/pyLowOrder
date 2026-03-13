@@ -8,15 +8,16 @@
 
 import numpy as np, torch, torch.nn.functional as F
 
-from torch.utils.data import Subset
-from torch            import Generator, randperm, default_generator
-from itertools        import product, accumulate
-from typing           import List, Optional, Tuple, cast, Sequence, Union, Callable
+from torch.utils.data   import Subset
+from torch              import Generator, randperm, default_generator
+from itertools          import product, accumulate
+from typing             import List, Optional, Tuple, cast, Sequence, Union, Callable
+from sklearn.neighbors  import NearestNeighbors
 
-from ..utils.cr       import cr
-from ..utils.errors   import raiseWarning, raiseError
-from ..dataset        import Dataset as pyLOMDataset
-from ..               import pprint
+from ..utils.cr         import cr
+from ..utils.errors     import raiseWarning, raiseError
+from ..dataset          import Dataset as pyLOMDataset
+from ..                 import pprint
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -649,4 +650,135 @@ class Dataset(torch.utils.data.Dataset):
             f'  Outputs shape: {y.shape} \n'
             f'  Outputs min  : {outputs_min_str} \n'
             f'  Outputs max  : {outputs_max_str} \n'
+        )
+
+class NeighborhoodDataset(Dataset):
+    def __init__(
+        self,
+        *args,
+        n_neighbors: int = 6,
+        geom_dim: int = None,
+        neighbors: torch.Tensor = None,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+
+        if self.variables_in is None:
+            raise ValueError("NeighborhoodDataset requires input variables (coordinates).")
+
+        input_dim = self.variables_in.shape[1]
+
+        if geom_dim is None:
+            if input_dim < 2:
+                raise ValueError("At least 2 input columns are required for geometry.")
+            self.geom_dim = min(3, input_dim)
+        else:
+            if geom_dim not in (2, 3):
+                raise ValueError("geom_dim must be 2 or 3.")
+            if input_dim < geom_dim:
+                raise ValueError(
+                    f"geom_dim={geom_dim} but only {input_dim} input columns available."
+                )
+            self.geom_dim = geom_dim
+
+        self.n_neighbors = n_neighbors
+        self.neighbors = neighbors if neighbors is not None else self._build_neighbors()
+        self.use_neighbors = False
+
+    def __getitem__(self, idx: Union[int, slice]):
+        if self.use_neighbors:
+            return self.get_with_neighbors(idx)
+        else:
+            return super().__getitem__(idx)
+        
+    def _build_neighbors(self):
+        """
+        Precompute geometric neighbors using only geometric coordinates.
+        """
+        coords = self.variables_in[:, :self.geom_dim].cpu().numpy()
+
+        nbrs = NearestNeighbors(n_neighbors=self.n_neighbors + 1, algorithm="ball_tree")
+        nbrs.fit(coords)
+
+        _, indices = nbrs.kneighbors(coords)
+        return torch.tensor(indices[:, 1:], dtype=torch.long)
+
+    def _build_new(self, **kwargs):
+        return NeighborhoodDataset(
+            n_neighbors=self.n_neighbors,
+            geom_dim=self.geom_dim,
+            neighbors=self.neighbors,
+            **kwargs,
+        )
+
+    def train(self):
+        self.use_neighbors = True
+
+    def eval(self):
+        self.use_neighbors = False
+
+    def get_with_neighbors(self, idx: Union[int, slice, List[int], torch.Tensor]):
+
+        # Normalize idx
+        if isinstance(idx, slice):
+            idx = torch.arange(
+                idx.start if idx.start is not None else 0,
+                idx.stop if idx.stop is not None else len(self),
+                idx.step if idx.step is not None else 1,
+                dtype=torch.long,
+            )
+        elif isinstance(idx, int):
+            idx = torch.tensor([idx], dtype=torch.long)
+        elif isinstance(idx, (list, tuple)):
+            idx = torch.tensor(idx, dtype=torch.long)
+        elif isinstance(idx, torch.Tensor):
+            idx = idx.long()
+        else:
+            idx = torch.tensor(idx, dtype=torch.long)
+
+        if idx.dim() == 0:
+            idx = idx.unsqueeze(0)
+
+        single_index = idx.numel() == 1
+
+        # Obtain center data (vectorized)
+        center_input, center_output = super().__getitem__(idx)
+
+        # Obtain neighbor data (vectorized)
+        batch_size = idx.shape[0]
+        mesh_length = len(self.neighbors)
+        neighbor_idx = idx % mesh_length
+        parameters_idx = idx // mesh_length
+
+        neighbor_indices = (self.neighbors[neighbor_idx] + mesh_length * parameters_idx.unsqueeze(-1))
+        n_neighbors = neighbor_indices.shape[1]
+        flat_neighbor_indices = neighbor_indices.reshape(-1)
+
+        neighbor_inputs_flat, neighbor_outputs_flat = super().__getitem__(
+            flat_neighbor_indices
+        )
+
+        # Reshape back
+        input_dim = neighbor_inputs_flat.shape[-1]
+        output_dim = neighbor_outputs_flat.shape[-1]
+
+        neighbor_inputs = neighbor_inputs_flat.view(
+            batch_size, n_neighbors, input_dim
+        )
+        neighbor_outputs = neighbor_outputs_flat.view(
+            batch_size, n_neighbors, output_dim
+        )
+
+        # Single index case
+        if single_index:
+            center_input = center_input.squeeze(0)
+            center_output = center_output.squeeze(0)
+            neighbor_inputs = neighbor_inputs.squeeze(0)
+            neighbor_outputs = neighbor_outputs.squeeze(0)
+
+        return (
+            center_input,
+            neighbor_inputs,
+            center_output,
+            neighbor_outputs,
         )
