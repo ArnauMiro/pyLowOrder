@@ -21,7 +21,7 @@ from torch_geometric.data import Data
 from .. import DEVICE
 from ... import io, cr
 from ...mesh import Mesh
-from ...vmmath.geometric import edge_to_cells, wall_normals
+from ...vmmath.geometric import wall_normals
 from ...utils import raiseError
 
 
