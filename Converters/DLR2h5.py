@@ -8,6 +8,7 @@ import os
 import glob
 import numpy as np
 import netCDF4 as NC4
+import h5py
 import matplotlib.pyplot as plt
 import torch
 from tqdm import tqdm
@@ -62,6 +63,15 @@ def convert_dataset(dset: str, datapath: str, npoints: int, ptable: pyLOM.Partit
     )
     out_path = os.path.join(datapath, f"{dset.upper()}_converter.h5")
     d.save(out_path, append=False)
+    # pyLOM serial Dataset.save currently does not persist /PARTITIONS in this path.
+    # Inject an artificial single-partition table so pyLOM.Dataset.load can read it.
+    with h5py.File(out_path, "a") as f:
+        if "PARTITIONS" not in f:
+            g = f.create_group("PARTITIONS")
+            g.create_dataset("NSubD", (1,), dtype="i4", data=np.array([1], dtype=np.int32))
+            g.create_dataset("Ids", (1,), dtype="i4", data=np.array([1], dtype=np.int32))
+            g.create_dataset("Elements", (1,), dtype="i4", data=np.array([ptable.Elements[0]], dtype=np.int32))
+            g.create_dataset("Points", (1,), dtype="i4", data=np.array([ptable.Points[0]], dtype=np.int32))
     print(f"[{dset.upper()}] Saved to {out_path}\n")
     return d
 

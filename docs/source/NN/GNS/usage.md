@@ -1,126 +1,121 @@
-# GNS Module Usage Guide
+# GNS Usage
 
-This guide walks through how to train, optimize, evaluate, and use a GNS model using the `pyLOM` framework.
+This page shows the current workflow used in this repository for GNS training.
 
----
+## 1) Prepare inputs
 
-## 1. Prepare Configuration File
+You need:
 
-Create a YAML configuration file (`config.yaml`) that includes the following sections:
+- a graph file (`.h5`, `.pt`, or `.pkl`) serialized with `Graph.save`
+- train/test datasets in pyLOM dataset format (`.h5`)
+- a YAML config with the sections expected by the training script
+
+Minimal example files in this repository:
+
+- `Examples/NN/example_GNS_minimal.py`
+- `Examples/NN/configs/example_GNS_config.yaml`
+
+## 2) Configuration layout
+
+Current scripts use this top-level structure:
 
 ```yaml
+experiment:
+  name: "gns_cylinder_minimal"
+  results_path: "..."
+  show_plots: true
+
+datasets:
+  train_ds: "..."
+  test_ds: "..."
+  val_ds: null
+
+dataset_config:
+  field_names: ["VELOX"]
+  variables_names: ["time"]
+  add_variables: true
+  add_mesh_coordinates: false
+  mesh_shape: [89351]
+  scale_inputs: false
+  scale_outputs: false
+
 model:
-  name: GNS
-  input_dim: 2
-  output_dim: 1
-  hidden_dim: 64
-  message_passing_steps: 10
-  graph_path: /path/to/graph.pth
+  graph_path: "..."
+  config:
+    input_dim: 1
+    output_dim: 1
+    hidden_size: 128
+    latent_dim: 16
+    num_msg_passing_layers: 1
+    encoder_hidden_layers: 2
+    decoder_hidden_layers: 1
+    message_hidden_layers: 1
+    update_hidden_layers: 1
+    groupnorm_groups: 1
+    activation: "torch.nn.ELU"
+    p_dropout: 0.0
+    seed: 42
+    device: "cpu"
 
 training:
-  optimizer: adam
-  lr: 0.001
-  batch_size: 128
-  epochs: 200
-
-resources:
-  train_ds: /path/to/train_dataset.pkl
-  val_ds: /path/to/val_dataset.pkl
-  test_ds: /path/to/test_dataset.pkl
-  graph_path: /path/to/graph.pth
-
-execution:
-  mode: train  # or 'optuna'
-  results_dir: ./results/gns_run_01
-
-optuna:
-  search_space:
-    hidden_dim: [32, 64, 128]
-    lr: [1e-4, 5e-4, 1e-3]
-  study:
-    n_trials: 20
-    direction: minimize
-    pruner:
-      n_startup_trials: 5
-      n_warmup_steps: 10
-      interval_steps: 5
+  loss_fn: "torch.nn.MSELoss"
+  optimizer: "torch.optim.Adam"
+  scheduler: "torch.optim.lr_scheduler.StepLR"
+  epochs: 20
+  lr: 1.0e-3
+  weight_decay: 0.0
+  lr_gamma: 0.98
+  lr_scheduler_step: 1
+  print_every: 1
+  dataloader:
+    batch_size: 4
+    shuffle: true
+    num_workers: 0
+    pin_memory: false
+  subgraph_loader:
+    batch_size: 2048
+    shuffle: true
+    input_nodes: null
+    mode: "nodes"
+    seed_selector:
+      type: "all"
+      frac: null
+      nodes_path: null
 ```
 
----
+## 3) Train
 
-## 2. Run Training
-
-Use the command-line entry point to train the model:
+Example command:
 
 ```bash
-python run_gns.py --config config.yaml
+python Examples/NN/example_GNS_minimal.py
 ```
 
-This will:
+The script:
 
-* Load datasets and graph
-* Initialize the model
-* Train using the `Pipeline` abstraction
-* Evaluate and save metrics
-* Export plots and model checkpoint
+- loads config with `load_yaml`
+- builds `Dataset` objects with `Dataset.load`
+- creates model with `GNS.from_graph_path`
+- trains with `Pipeline(...).run()`
+- evaluates with `RegressionEvaluator`
+- saves artifacts through `save_experiment_artifacts`
 
----
+## 4) Validation dataset behavior
 
-## 3. Run Hyperparameter Optimization
+`Pipeline` does not automatically reuse test as validation in normal training mode.
 
-Change `execution.mode` in the YAML to `optuna`, then execute:
+- If `valid_dataset=None`, `GNS.fit(..., eval_dataset=None)` runs without validation loss.
+- In Optuna mode, when validation is missing, `Pipeline` falls back to the training dataset and emits a warning.
 
-```bash
-python run_gns.py --config config.yaml
-```
+## 5) Artifacts
 
-This runs Optuna trials, logs results, and saves the best-performing model.
+`save_experiment_artifacts` writes (at least):
 
----
+- `model.pth`
+- `config.yaml` (`repro_config` block)
+- `meta.yaml` (including config SHA256 and git commit)
+- `metrics.yaml`
+- optional scalers (`inputs_scaler.json`, `outputs_scaler.json`)
+- any extra files passed via `extra_files`
 
-## 4. Inference Example
-
-After training, a GNS model checkpoint is saved to `results_dir/model.pth`. To perform inference:
-
-```python
-from pyLOM.NN import GNS
-import torch
-import numpy as np
-
-model = GNS.load("results/gns_run_01/model.pth")
-model.eval()
-
-# Example input: AoA=4.0, Mach=0.7
-input_np = np.array([[4.0, 0.7]], dtype=np.float32)
-input_tensor = torch.tensor(input_np)
-output = model.predict(input_tensor)
-
-print("Prediction shape:", output.shape)
-print("Prediction values:", output.detach().cpu().numpy())
-```
-
----
-
-## 5. Output Artifacts
-
-Each run produces the following outputs in `results_dir`:
-
-* `model.pth`: Model weights + config + state
-* `training_config.yaml`: The config used for training
-* `metrics.json`: Evaluation metrics (MSE, MAE, R², etc.)
-* `input_scaler.pkl`, `output_scaler.pkl`: Scaling objects (if used)
-* `train_test_loss.png`: Training vs validation loss
-* `true_vs_pred.png`: Scatter plots of predictions vs ground truth
-
----
-
-## 6. Notes
-
-* Ensure that all required paths in the YAML config are valid.
-* The graph must be saved to disk and referenced via `graph_path`.
-* Use `MinMaxScaler` or other scaler classes for consistent preprocessing.
-* For continued training, load the model via `GNS.load()` and pass to a new `Pipeline`.
-
----
-
-Continue to [`config_reference.md`](config_reference.md) for details on all supported config fields.
+See also: `config_reference.md` and `api.md`.

@@ -1,0 +1,69 @@
+repro_config:
+  experiment:
+    name: gns_cylinder_dataset
+    results_path: ../GNS_cylinder_dataset
+    show_plots: true
+  datasets:
+    train_ds: ../../../Testsuite/DATA/CYLINDER_TRAIN.h5
+    test_ds: ../../../Testsuite/DATA/CYLINDER_TEST.h5
+    val_ds: null
+  dataset_config:
+    field_names:
+    - VELOX
+    variables_names:
+    - time
+    mesh_shape:
+    - 89351
+    scale_inputs: false
+    scale_outputs: false
+    input_scaler_type: none
+    output_scaler_type: none
+  model:
+    graph_path: /home/p.yeste/pyLowOrder/Testsuite/DATA/CYLINDER_TRAIN.h5
+    config:
+      input_dim: 1
+      output_dim: 1
+      hidden_size: 128
+      activation: torch.nn.ELU
+      p_dropout: 0.0
+      seed: 42
+      device: cpu
+      latent_dim: 16
+      num_msg_passing_layers: 1
+      encoder_hidden_layers: 2
+      decoder_hidden_layers: 1
+      message_hidden_layers: 1
+      update_hidden_layers: 1
+      groupnorm_groups: 1
+      debug: false
+  training:
+    loss_fn: torch.nn.MSELoss
+    optimizer: torch.optim.Adam
+    scheduler: torch.optim.lr_scheduler.StepLR
+    epochs: 2
+    lr: 0.001
+    weight_decay: 0.0
+    lr_gamma: 0.98
+    lr_scheduler_step: 1
+    print_every: 1
+    best_metric: mae
+    best_metric_space: scaled
+    weighted_loss_alpha: 0.0
+    nan_guard_enabled: true
+    grad_clip_enabled: false
+    grad_clip_max_norm: 1.0
+    grad_clip_norm_type: 2.0
+    dataloader:
+      batch_size: 4
+      shuffle: true
+      num_workers: 0
+      pin_memory: false
+    subgraph_loader:
+      batch_size: 2048
+      shuffle: true
+      input_nodes: null
+      mode: nodes
+      seed_selector:
+        type: all
+        frac: null
+        nodes_path: null

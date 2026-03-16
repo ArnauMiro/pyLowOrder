@@ -1,143 +1,104 @@
 # GNS Configuration Reference
 
-This document describes the full structure and options available in the GNS YAML configuration file.
+This reference describes the configuration schema currently used by GNS scripts in this repository.
 
-Each training or optimization run requires a configuration file structured into five main sections:
+## Top-level sections
 
----
+Expected top-level keys:
 
-## 1. `model`
+- `experiment`
+- `datasets`
+- `dataset_config`
+- `model`
+- `training`
+- `optuna` (optional)
 
-Defines the model architecture and graph dependencies.
+## `experiment`
 
-```yaml
-model:
-  name: GNS                # Model class identifier (required)
-  input_dim: 2             # Number of input features per node (e.g., AoA, Mach)
-  output_dim: 1            # Number of output features per node (e.g., CP)
-  hidden_dim: 64           # Size of hidden representations
-  message_passing_steps: 10  # Number of message passing iterations
-  graph_path: /path/to/graph.pth  # Required: path to the graph file
-```
+Typical fields:
 
-**Notes:**
+- `name`: run name
+- `results_path`: output directory
+- `show_plots`: whether to display plots in interactive scripts
+- `mode`: optional, commonly `train` or `optuna` in larger scripts
 
-* `graph_path` must point to a serialized `Graph` object created with `pyLOM`.
+## `datasets`
 
----
+Paths to dataset files:
 
-## 2. `training`
+- `train_ds`: required
+- `test_ds`: required for evaluation scripts
+- `val_ds`: optional (`null` allowed)
 
-Specifies hyperparameters for model training.
+## `dataset_config`
 
-```yaml
-training:
-  optimizer: adam      # Optimizer name ('adam', 'sgd', etc.)
-  lr: 0.001             # Learning rate
-  batch_size: 128       # Batch size
-  epochs: 200           # Number of training epochs
-  weight_decay: 0.0     # Optional L2 regularization
-  scheduler: null       # Optional learning rate scheduler
-```
+Used to build `Dataset.load(...)` arguments.
 
-**Optional fields:**
+Common fields:
 
-* `weight_decay` (float): L2 regularization term
-* `scheduler`: Learning rate schedule (not yet implemented)
+- `field_names` (list[str]): output fields to learn
+- `variables_names` (list[str]): variable names used as inputs/parameters
+- `add_variables` (bool)
+- `add_mesh_coordinates` (bool)
+- `mesh_shape` (list[int])
+- `scale_inputs` / `scale_outputs` (bool)
+- optional scaler type controls in advanced scripts
 
----
-
-## 3. `resources`
-
-Paths to required data and graph assets.
-
-```yaml
-resources:
-  train_ds: /path/to/train.pkl     # Required
-  val_ds: /path/to/val.pkl         # Required
-  test_ds: /path/to/test.pkl       # Required
-  graph_path: /path/to/graph.pth   # Required
-```
-
-**Important:**
-
-* All datasets must be compatible with `pyLOM.NN.Dataset.load()`
-* Graph is required and must be serialized
-
----
-
-## 4. `execution`
-
-Controls execution behavior of the experiment.
-
-```yaml
-execution:
-  mode: train                # "train" or "optuna"
-  results_dir: ./results/    # Output folder for artifacts
-```
-
-**Options:**
-
-* `mode`: Selects whether to run a fixed training (`train`) or hyperparameter optimization (`optuna`).
-* `results_dir`: Destination for outputs
-
----
-
-## 5. `optuna`
-
-Optional. Defines hyperparameter optimization strategy using Optuna.
-Only used when `execution.mode: optuna`.
-
-```yaml
-optuna:
-  search_space:
-    hidden_dim: [32, 64, 128]  # Integer categorical values
-    lr: [1e-4, 1e-3, 5e-3]     # Learning rates to try
-  study:
-    n_trials: 20              # Number of Optuna trials
-    direction: minimize       # Objective to minimize (usually loss)
-    pruner:
-      n_startup_trials: 5
-      n_warmup_steps: 10
-      interval_steps: 5
-```
-
-**Tips:**
-
-* `search_space` keys must match arguments in the model constructor or training config
-* Use `optuna.trial.suggest_categorical()` internally
-
----
-
-## Example Minimal Configuration
+## `model`
 
 ```yaml
 model:
-  name: GNS
-  input_dim: 2
-  output_dim: 1
-  hidden_dim: 64
-  message_passing_steps: 10
-  graph_path: ./assets/graph.pth
-
-training:
-  optimizer: adam
-  lr: 0.001
-  batch_size: 128
-  epochs: 100
-
-resources:
-  train_ds: ./data/train.pkl
-  val_ds: ./data/val.pkl
-  test_ds: ./data/test.pkl
-  graph_path: ./assets/graph.pth
-
-execution:
-  mode: train
-  results_dir: ./results/demo_run
+  graph_path: /path/to/graph.h5
+  config:
+    input_dim: 1
+    output_dim: 1
+    hidden_size: 128
+    latent_dim: 16
+    num_msg_passing_layers: 1
+    encoder_hidden_layers: 2
+    decoder_hidden_layers: 1
+    message_hidden_layers: 1
+    update_hidden_layers: 1
+    groupnorm_groups: 1
+    activation: "torch.nn.ELU"
+    p_dropout: 0.0
+    seed: 42
+    device: "cpu"
+    debug: false
 ```
 
----
+`model.config` maps to `GNSModelConfig`.
 
-For a step-by-step walkthrough, continue to [`usage.md`](usage.md).
-To learn about key interfaces, visit [`api.md`](api.md).
+## `training`
+
+`training` maps to `GNSTrainingConfig`.
+
+Core fields:
+
+- `loss_fn`, `optimizer`, `scheduler` (import path strings)
+- `epochs`, `lr`, `weight_decay`, `lr_gamma`, `lr_scheduler_step`
+- `print_every`
+- `best_metric`, `best_metric_space`
+- `weighted_loss_alpha`
+- `nan_guard_enabled`
+- gradient clipping fields
+
+Nested sections:
+
+- `dataloader`
+  - `batch_size`, `shuffle`, `num_workers`, `pin_memory`
+- `subgraph_loader`
+  - `batch_size`, `shuffle`, `input_nodes`, `mode`
+  - `seed_selector` with:
+    - `type`: `all` | `auto_frac` | `explicit_list`
+    - `frac`
+    - `nodes_path`
+
+## `optuna` (optional)
+
+For optimization scripts, an optional `optuna` section may include:
+
+- `study` settings (`n_trials`, `direction`, sampler/pruner config)
+- `optimization_params` search space
+
+The exact structure is script-defined, while model/training DTO validation still applies to instantiated configs.

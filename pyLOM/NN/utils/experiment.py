@@ -387,34 +387,34 @@ def plot_true_vs_pred(y_true: np.ndarray,
                       y_pred: np.ndarray,
                       save_path: Path | None = None) -> None:
     """
-    Plot predicted vs. true values with sensible figsize for many outputs.
+    Plot predicted vs. true values with equal axis limits and 1:1 scale.
     """
     if y_true.shape != y_pred.shape:
         raise ValueError("Shapes of y_true and y_pred must match.")
 
     num_outputs = y_true.shape[1]
+    fig, axs = plt.subplots(num_outputs, 1, figsize=(6, 6 * num_outputs), squeeze=False)
 
-    # Limit figure size growth
-    height_per_plot = 3
-    max_height = 20
-    fig_height = min(height_per_plot * num_outputs, max_height)
+    for i, ax in enumerate(axs[:, 0]):
+        ax.scatter(y_true[:, i], y_pred[:, i], s=1, alpha=0.5)
+        min_val = float(min(y_true[:, i].min(), y_pred[:, i].min()))
+        max_val = float(max(y_true[:, i].max(), y_pred[:, i].max()))
+        ax.plot([min_val, max_val], [min_val, max_val], "r--")
+        # Same limits and same scale in both axes.
+        ax.set_xlim(min_val, max_val)
+        ax.set_ylim(min_val, max_val)
+        ax.set_aspect("equal", adjustable="box")
+        # Keep each subplot square.
+        if hasattr(ax, "set_box_aspect"):
+            ax.set_box_aspect(1)
+        ax.set_xlabel("True")
+        ax.set_ylabel("Predicted")
+        ax.grid()
 
-    plt.figure(figsize=(8, fig_height))
-
-    for i in range(num_outputs):
-        plt.subplot(num_outputs, 1, i + 1)
-        plt.scatter(y_true[:, i], y_pred[:, i], s=1, alpha=0.5)
-        min_val = min(y_true[:, i].min(), y_pred[:, i].min())
-        max_val = max(y_true[:, i].max(), y_pred[:, i].max())
-        plt.plot([min_val, max_val], [min_val, max_val], 'r--')
-        plt.xlabel("True")
-        plt.ylabel("Predicted")
-        plt.grid()
-
-    plt.tight_layout()
+    fig.tight_layout()
     if save_path:
-        plt.savefig(save_path, dpi=300)
-        plt.close()
+        fig.savefig(save_path, dpi=300)
+        plt.close(fig)
 
 
 def save_experiment_artifacts(
@@ -741,159 +741,6 @@ def evaluate_model(model, training_params, dataset, evaluators) -> Tuple[Dict[st
 
     payload = {"x_true": x_true, "y_true": y_true_col, "y_pred": y_pred_col}
     return metrics, payload
-
-
-# ------------------------------ plotting ------------------------------- #
-
-def plot_true_vs_pred(
-    ax: plt.Axes,
-    y_true_col: ArrayLike,
-    y_pred_col: ArrayLike,
-    title: str = "True vs. Predicted",
-    *,
-    identity_line: bool = True,
-    fit_line: bool = True,
-    equal_limits: bool = True,
-    sample: Optional[int] = None,
-    random_state: Optional[int] = None,
-    s: float = 8.0,
-    alpha: float = 0.5,
-    show_metrics_on_figure: bool = True,
-    metrics: Optional[Dict[str, float]] = None,
-    metrics_to_show: Optional[Sequence[str]] = None,
-) -> Dict[str, float]:
-    """
-    Plot a scatter of y_true vs. y_pred with optional identity/regression lines and
-    optionally annotate metrics on the figure.
-
-    Parameters
-    ----------
-    ax : matplotlib.axes.Axes
-        Target axes to draw on.
-    y_true_col, y_pred_col : array-like
-        Column vectors (N, 1) or 1D arrays (N,). Accept numpy arrays or torch tensors.
-    title : str
-        Plot title.
-    identity_line : bool
-        Draw the y = x identity line.
-    fit_line : bool
-        Draw an OLS fit line y = a*x + b and report (a, b) in the return dict.
-    equal_limits : bool
-        Apply equal x/y limits for visual comparability.
-    sample : int or None
-        If smaller than N, randomly subsample that many points for plotting (metrics are computed on full data).
-    random_state : int or None
-        RNG seed for subsampling.
-    s, alpha : float
-        Marker size and transparency for the scatter.
-    show_metrics_on_figure : bool
-        If True, annotate selected metrics inside the plot. If False, produce a clean figure.
-    metrics : dict or None
-        Optional precomputed metrics (e.g., from `compute_regression_metrics`). If None, they are computed here.
-    metrics_to_show : sequence of str or None
-        Which metrics to annotate. Defaults to ('mae','rmse','bias','r2','pearson_r','n').
-
-    Returns
-    -------
-    Dict[str, float]
-        The metrics dict (computed or the one provided), extended with 'slope' and 'intercept'.
-    """
-    def _to_numpy_1d(a: ArrayLike) -> np.ndarray:
-        return np.ravel(to_numpy(a))
-
-    y_true = _to_numpy_1d(y_true_col)
-    y_pred = _to_numpy_1d(y_pred_col)
-    mask = np.isfinite(y_true) & np.isfinite(y_pred)
-    y_true, y_pred = y_true[mask], y_pred[mask]
-
-    n = y_true.size
-    if n == 0:
-        raise ValueError("No finite pairs remain after filtering.")
-
-    # Compute metrics once (full data)
-    if metrics is None:
-        metrics = compute_regression_metrics(y_pred, y_true)
-    if metrics_to_show is None:
-        metrics_to_show = ("mae", "rmse", "bias", "r2", "pearson_r", "n")
-
-    # Fit line (for visualization)
-    slope = np.nan
-    intercept = np.nan
-    if fit_line and n >= 2:
-        slope, intercept = np.polyfit(y_true, y_pred, deg=1)
-
-    # Subsample for visualization only
-    idx = np.arange(n)
-    if sample is not None and 0 < sample < n:
-        rng = np.random.default_rng(random_state)
-        idx = rng.choice(idx, size=sample, replace=False)
-
-    xs = y_true[idx]
-    ys = y_pred[idx]
-
-    # Limits with margin
-    xy_min = float(min(y_true.min(), y_pred.min()))
-    xy_max = float(max(y_true.max(), y_pred.max()))
-    span = xy_max - xy_min
-    margin = 0.05 * (span if span > 0 else 1.0)
-    lo, hi = xy_min - margin, xy_max + margin
-
-    # Scatter
-    ax.scatter(xs, ys, s=s, alpha=alpha)
-
-    # Identity line
-    if identity_line:
-        ax.plot([lo, hi], [lo, hi], linestyle="--", linewidth=1.0, label="y = x")
-
-    # Fit line
-    if fit_line and np.isfinite(slope) and np.isfinite(intercept):
-        ax.plot([lo, hi], [slope * lo + intercept, slope * hi + intercept],
-                linestyle="-.", linewidth=1.0,
-                label=f"fit: y = {slope:.3f}x + {intercept:.3f}")
-
-    # Cosmetics
-    ax.set_title(title)
-    ax.set_xlabel("True")
-    ax.set_ylabel("Predicted")
-
-    if equal_limits:
-        ax.set_xlim(lo, hi)
-        ax.set_ylim(lo, hi)
-        ax.set_aspect("equal", adjustable="box")
-
-    ax.grid(True, linestyle=":", linewidth=0.8)
-    ax.legend(loc="best", frameon=True)
-
-    # Annotate metrics (optional)
-    if show_metrics_on_figure:
-        # Build compact label with the chosen metrics
-        kv = []
-        for k in metrics_to_show:
-            if k not in metrics:
-                continue
-            val = metrics[k]
-            if k in ("n",):
-                kv.append(f"{k}={int(val)}")
-            elif k in ("r2", "pearson_r"):
-                kv.append(f"{k}={val:.4f}")
-            else:
-                kv.append(f"{k}={val:.4g}")
-        text = "\n".join(kv)
-        ax.text(
-            0.02, 0.98, text,
-            transform=ax.transAxes, va="top", ha="left", fontsize=9,
-            bbox=dict(boxstyle="round,pad=0.3", fc="w", ec="0.5", alpha=0.85),
-        )
-
-    # Return metrics extended with fit params
-    out = dict(metrics)
-    out["slope"] = float(slope)
-    out["intercept"] = float(intercept)
-    out["x_min"] = float(lo)
-    out["x_max"] = float(hi)
-    return out
-
-
 
 
 def plot_train_test_loss(

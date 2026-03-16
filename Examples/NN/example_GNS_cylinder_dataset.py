@@ -1,22 +1,21 @@
 #!/usr/bin/env python
 """
-Example of GNS for DLR/NLR-style airfoil datasets.
+Example of GNS for a cylinder dataset.
 
-Parallel to example_MLP_DLR_airfoil.py and example_KAN_DLR_airfoil.py,
-but using the config-driven GNS interface.
+Parallel to example_MLP_xfoil_dataset.py / example_KAN_xfoil_dataset.py,
+using cylinder train/test graph-ready files and the config-driven GNS interface.
 
-Dataset prerequisite
---------------------
-This example expects the DLR/NLR HDF5 files already preprocessed with:
-`Converters/DLR2h5.py`
+Preprocessing assumptions
+-------------------------
+1) Dataset split is expected to be done beforehand with:
+   `Converters/split_cylinder_train_test.py`
+   producing `CYLINDER_TRAIN.h5` and `CYLINDER_TEST.h5`.
 
-Expected files:
-  - /home/p.yeste/CETACEO_DATA/nlr7301/TRAIN_converter.h5
-  - /home/p.yeste/CETACEO_DATA/nlr7301/TEST_converter.h5
-  - /home/p.yeste/CETACEO_DATA/nlr7301/VAL_converter.h5
-
-The converter stores a `GRAPH` group in each file. This script reads the graph
-from `TRAIN_converter.h5`.
+2) Graph handling in this example:
+   - The graph is read from group `/GRAPH` inside `CYLINDER_TRAIN.h5`.
+   - If `/GRAPH` does not exist there, the script creates the graph online
+     from `CYLINDER.h5` using `Graph.from_pyLOM_mesh(...)`, stores it inside
+     `CYLINDER_TRAIN.h5`, then continues.
 """
 
 from __future__ import annotations
@@ -30,9 +29,11 @@ import h5py
 from dacite import Config as DaciteConfig, from_dict
 
 import pyLOM
+from pyLOM import Mesh
 from pyLOM.NN import (
     Dataset,
     GNS,
+    Graph,
     Pipeline,
     RegressionEvaluator,
     MinMaxScaler,
@@ -69,59 +70,51 @@ def _build_scaler(enabled: bool, scaler_type: str):
     raiseError(f"Unsupported scaler_type='{scaler_type}'. Use: none|minmax|standard|robust")
 
 
-def _infer_mesh_shape_from_h5(train_ds_path: Path) -> tuple[int]:
-    with h5py.File(str(train_ds_path), "r") as f:
-        if "/DATASET/npoints" in f:
-            npoints = int(f["/DATASET/npoints"][0])
-        else:
-            npoints = int(f["/DATASET/xyz"].shape[0])
-    return (npoints,)
+def _infer_mesh_shape(train_ds_path: Path) -> tuple[int]:
+    mesh = Mesh.load(str(train_ds_path), mpio=False)
+    return (int(mesh.ncells),)
 
 
-def _load_converter_dataset(
-    fname: Path,
-    *,
-    field_names: list[str],
-    variables_names: list[str],
-    mesh_shape: tuple[int],
-    inputs_scaler,
-    outputs_scaler,
-) -> Dataset:
-    with h5py.File(str(fname), "r") as f:
-        fields_group = f["/DATASET/FIELDS"]
-        vars_group = f["/DATASET/VARIABLES"]
-
-        missing_fields = [name for name in field_names if name not in fields_group]
-        if missing_fields:
-            raiseError(f"Missing field(s) {missing_fields} in {fname}")
-
-        missing_vars = [name for name in variables_names if name not in vars_group]
-        if missing_vars:
-            raiseError(f"Missing variable(s) {missing_vars} in {fname}")
-
-        variables_out = tuple(
-            np.asarray(fields_group[name]["value"][:], dtype=np.float32) for name in field_names
-        )
-        variables_in = None
-        if len(variables_names) > 0:
-            variables_in = np.stack(
-                [np.asarray(vars_group[name]["value"][:], dtype=np.float32) for name in variables_names],
-                axis=1,
+def _ensure_dataset_splits(train_ds_path: Path, test_ds_path: Path, val_ds_path: Path | None) -> None:
+    required = [train_ds_path, test_ds_path]
+    if val_ds_path is not None:
+        required.append(val_ds_path)
+    for p in required:
+        if not p.exists():
+            raiseError(
+                f"Required dataset file not found: {p}\n"
+                "For cylinder examples, generate split files first with:\n"
+                "  Converters/split_cylinder_train_test.py"
             )
 
-    return Dataset(
-        variables_out=variables_out,
-        variables_in=variables_in,
-        mesh_shape=mesh_shape,
-        inputs_scaler=inputs_scaler,
-        outputs_scaler=outputs_scaler,
-        snapshots_by_column=True,
-        squeeze_last_dim=False,
-    )
+
+def _ensure_graph_in_train_dataset(train_ds_path: Path) -> None:
+    # Do not call Graph.load() here: missing /GRAPH triggers MPI_ABORT in pyLOM.
+    with h5py.File(str(train_ds_path), "r") as f:
+        if "GRAPH" in f:
+            return
+
+    source_dataset = train_ds_path.with_name("CYLINDER.h5")
+    if not source_dataset.exists():
+        raiseError(
+            f"Graph group /GRAPH not found in: {train_ds_path}\n"
+            f"Automatic graph creation requires base dataset: {source_dataset}\n"
+            "Create/keep CYLINDER.h5 and re-run this example."
+        )
+
+    pprint(0, f"Graph group /GRAPH not found. Building graph from mesh in: {source_dataset}")
+    mesh = Mesh.load(str(source_dataset), mpio=False)
+    graph = Graph.from_pyLOM_mesh(mesh=mesh, device="cpu")
+    # Append /GRAPH to TRAIN file, preserving existing root groups.
+    graph.save(str(train_ds_path), mode="a")
+    with h5py.File(str(train_ds_path), "r") as f:
+        if "GRAPH" not in f:
+            raiseError(f"Failed to store /GRAPH in {train_ds_path}")
+    pprint(0, f"Graph created and stored in /GRAPH inside: {train_ds_path}")
 
 
 def main() -> None:
-    cfg_path = (Path(__file__).resolve().parent / "configs" / "example_GNS_DLR_airfoil_config.yaml").resolve()
+    cfg_path = (Path(__file__).resolve().parent / "configs" / "example_GNS_cylinder_dataset_config.yaml").resolve()
     cfg = load_yaml(cfg_path)
 
     exp_cfg = cfg["experiment"]
@@ -135,52 +128,32 @@ def main() -> None:
     val_ds_raw = dset_cfg.get("val_ds")
     val_ds_path = None if val_ds_raw in (None, "") else _resolve(val_ds_raw, cfg_path)
 
-    graph_path = _resolve(model_section["graph_path"], cfg_path)
+    # For this example, graph provenance lives inside TRAIN dataset (/GRAPH group).
+    graph_path = train_ds_path
     results_path = _resolve(exp_cfg["results_path"], cfg_path)
 
-    required_paths = [train_ds_path, test_ds_path, graph_path]
-    if val_ds_path is not None:
-        required_paths.append(val_ds_path)
-    for p in required_paths:
-        if not p.exists():
-            raiseError(f"Required input file not found: {p}")
+    _ensure_dataset_splits(train_ds_path, test_ds_path, val_ds_path)
+    _ensure_graph_in_train_dataset(train_ds_path)
 
-    mesh_shape = tuple(data_cfg["mesh_shape"]) if data_cfg.get("mesh_shape") is not None else _infer_mesh_shape_from_h5(train_ds_path)
+    mesh_shape = tuple(data_cfg["mesh_shape"]) if data_cfg.get("mesh_shape") is not None else _infer_mesh_shape(train_ds_path)
 
     inputs_scaler = _build_scaler(bool(data_cfg.get("scale_inputs", False)), data_cfg.get("input_scaler_type", "none"))
     outputs_scaler = _build_scaler(bool(data_cfg.get("scale_outputs", False)), data_cfg.get("output_scaler_type", "none"))
 
-    field_names = list(data_cfg["field_names"])
-    variables_names = list(data_cfg.get("variables_names", []))
+    ds_kwargs = {
+        "field_names": data_cfg["field_names"],
+        "variables_names": data_cfg.get("variables_names", ["all"]),
+        "add_variables": bool(data_cfg.get("add_variables", True)),
+        "add_mesh_coordinates": bool(data_cfg.get("add_mesh_coordinates", False)),
+        "mesh_shape": mesh_shape,
+        "inputs_scaler": inputs_scaler,
+        "outputs_scaler": outputs_scaler,
+        "squeeze_last_dim": False,
+    }
 
-    td_train = _load_converter_dataset(
-        train_ds_path,
-        field_names=field_names,
-        variables_names=variables_names,
-        mesh_shape=mesh_shape,
-        inputs_scaler=inputs_scaler,
-        outputs_scaler=outputs_scaler,
-    )
-    td_test = _load_converter_dataset(
-        test_ds_path,
-        field_names=field_names,
-        variables_names=variables_names,
-        mesh_shape=mesh_shape,
-        inputs_scaler=inputs_scaler,
-        outputs_scaler=outputs_scaler,
-    )
-    td_val = (
-        _load_converter_dataset(
-            val_ds_path,
-            field_names=field_names,
-            variables_names=variables_names,
-            mesh_shape=mesh_shape,
-            inputs_scaler=inputs_scaler,
-            outputs_scaler=outputs_scaler,
-        )
-        if val_ds_path is not None
-        else None
-    )
+    td_train = Dataset.load(str(train_ds_path), **ds_kwargs)
+    td_test = Dataset.load(str(test_ds_path), **ds_kwargs)
+    td_val = Dataset.load(str(val_ds_path), **ds_kwargs) if val_ds_path is not None else None
 
     dcfg = DaciteConfig(strict=True)
     model_cfg = from_dict(GNSModelConfig, model_section["config"], config=dcfg)

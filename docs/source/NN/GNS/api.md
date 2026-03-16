@@ -1,153 +1,88 @@
-# GNS API Reference
+# GNS API Reference (Practical)
 
-This reference covers the key classes and functions involved in training, optimizing, evaluating, and saving Graph Neural Networks (GNS) using `pyLOM.NN`.
+This page summarizes the public interfaces used by current repository scripts.
 
----
+## `pyLOM.NN.architectures.gns.GNS`
 
-## 1. `GNS`
+Main constructors:
 
-**Module:** `pyLOM.NN.GNS`
+- `GNS.from_graph(config: GNSModelConfig, graph: Graph)`
+- `GNS.from_graph_path(config: GNSModelConfig, graph_path: str | Path)`
 
-Main class implementing a Graph Neural Network for regression over CFD fields.
+Main methods:
 
-### Constructor
+- `fit(train_dataset, eval_dataset=None, config: GNSTrainingConfig, reset_state=True, ...)`
+- `predict(X, config: GNSTrainingConfig | None = None, ...)`
+- `save(path)`
+- `load(path, device=...)`
 
-```python
-GNS(config: GNSConfig)
-```
+Notes:
 
-### Key methods
+- The model stores graph provenance via `graph_spec`.
+- `fit` returns logs including `train_loss` and `test_loss`.
 
-* `predict(input: torch.Tensor | Dataset) -> np.ndarray`
-* `save(path: str) -> None`
-* `load(path: str) -> GNS` *(classmethod)*
+## `pyLOM.NN.gns.graph.Graph`
 
-### Description
+Key constructors/methods:
 
-A GNS takes node-level input (e.g., AoA, Mach) and predicts quantities like pressure coefficient (`CP`) by propagating through a fixed mesh graph.
+- `Graph.from_pyLOM_mesh(mesh, device=None)`
+- `Graph.save(fname, mode=None)`
+- `Graph.load(fname, device=...)`
 
-**Notes:** The graph is not saved within the model checkpoint — the `graph_path` must always be valid in `config.graph_path`.
+Feature storage:
 
----
+- `node_features_dict`
+- `edge_features_dict`
+- concatenated `x` / `edge_attr`
 
-## 2. `Graph`
+## `pyLOM.NN.pipeline.Pipeline`
 
-**Module:** `pyLOM.NN.Graph`
-
-Graph data structure representing mesh topology.
-
-### Key methods
-
-* `Graph.load(path: str) -> Graph`
-* `Graph.save(path: str) -> None`
-
-The graph is required at model initialization and must be created externally.
-
----
-
-## 3. `Dataset`
-
-**Module:** `pyLOM.NN.Dataset`
-
-Wrapper around CFD datasets that allows:
-
-* Preprocessing (mesh variables, scalers, etc.)
-* Batching for training
-* Compatibility with the GNS model
-
-### Load Method
-
-```python
-Dataset.load(path: str, *, field_names, variables_names, add_variables, add_mesh_coordinates, inputs_scaler, outputs_scaler, squeeze_last_dim) -> Dataset
-```
-
----
-
-## 4. `Pipeline`
-
-**Module:** `pyLOM.NN.Pipeline`
-
-Unifies training or optimization logic for GNS.
-
-### Constructor
+Constructor:
 
 ```python
 Pipeline(
-    train_dataset: Dataset,
-    valid_dataset: Dataset,
-    test_dataset: Dataset,
-    model: Optional[GNS] = None,
-    training_params: Optional[TrainingConfig] = None,
-    optimizer: Optional[OptunaOptimizer] = None,
-    model_class: Optional[Callable] = None,
+    train_dataset,
+    valid_dataset=None,
+    test_dataset=None,
+    model=None,
+    training_params=None,
+    optimizer=None,
+    model_class=None,
 )
 ```
 
-### Method
+Behavior:
 
-* `run() -> dict`
+- fixed-training mode: requires `model` + `training_params`
+- optuna mode: requires `optimizer` + `model_class`
+- in optuna mode, if `valid_dataset` is missing, it falls back to `train_dataset`
 
-  * Runs training loop or Optuna optimization depending on context
+## Config DTOs (`pyLOM.NN.utils.config_schema`)
 
----
+Relevant dataclasses:
 
-## 5. `OptunaOptimizer`
+- `GNSModelConfig`
+- `GNSTrainingConfig`
+- `TorchDataloaderConfig`
+- `SubgraphDataloaderConfig`
+- `SeedSelectorConfig`
+- `GraphSpec`
 
-**Module:** `pyLOM.NN.OptunaOptimizer`
+## Experiment helpers (`pyLOM.NN.utils.experiment`)
 
-Hyperparameter tuner for GNS via Optuna.
+Most-used function:
 
-### Constructor
+- `save_experiment_artifacts(...)`
 
-```python
-OptunaOptimizer(
-    optimization_params: dict,
-    n_trials: int,
-    direction: str,
-    pruner: optuna.pruners.BasePruner,
-    save_dir: Union[str, Path]
-)
-```
+Companion plotting utilities commonly used in scripts:
 
-Used inside `Pipeline` when running in optimization mode.
+- `plot_training_and_validation_loss(...)`
+- `plot_train_test_loss(...)`
+- `plot_true_vs_pred(...)`
 
----
+## Evaluators and datasets
 
-## 6. `RegressionEvaluator`
+- `pyLOM.NN.Dataset.load(...)`
+- `pyLOM.NN.utils.RegressionEvaluator`
 
-**Module:** `pyLOM.NN.utils`
-
-Provides regression metrics and plots for model validation.
-
-### Methods
-
-* `__call__(y_true, y_pred)`
-* `print_metrics()`
-* `metrics_dict: dict`
-
----
-
-## 7. `save_experiment`
-
-**Module:** `pyLOM.NN.utils`
-
-Saves auxiliary experiment artifacts.
-
-```python
-def save_experiment(
-    base_path: Union[str, Path],
-    model: GNS,
-    train_config: Optional[dict] = None,
-    metrics_dict: Optional[dict] = None,
-    input_scaler: Optional[Any] = None,
-    output_scaler: Optional[Any] = None,
-    extra_files: Optional[Dict[str, Callable[[str], None]]] = None,
-) -> None
-```
-
-Used after `model.save()` to persist config, metrics, scalers, and plots.
-
----
-
-For full example usage, see [`usage.md`](usage.md).
-For config structure, refer to [`config_reference.md`](config_reference.md).
+For generated API docs with full signatures, see `docs/source/api/pyLOM.NN*.rst` pages.

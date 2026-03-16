@@ -1,0 +1,5 @@
+saved_at: '2026-03-16T15:51:22.684948'
+config_sha256: 42509439b074eb2d09e394283f7e075e2f5ff55d321dce5bc5f8aff1106841dd
+torch_version: 2.5.1+rocm6.2
+user: p.yeste
+git_commit: 7a8ad21cf151ca86bafb8882e19668f4c3522909

@@ -1,111 +1,61 @@
-# GNS Architecture Overview
+# GNS Architecture
 
-This document provides an overview of the internal architecture and modular structure used in the GNS (Graph Neural Simulator) pipeline within `pyLOM`.
+## Runtime components
 
----
+The GNS training stack is split into these components:
 
-## Overview
+- `Graph` (`pyLOM.NN.gns.graph.Graph`): graph topology and feature dictionaries.
+- `GNS` (`pyLOM.NN.architectures.gns.GNS`): message-passing model.
+- `Dataset` (`pyLOM.NN.dataset.Dataset`): input/output tensors for training.
+- `Pipeline` (`pyLOM.NN.pipeline.Pipeline`): orchestration layer for fixed training or Optuna.
+- `GNSTrainingConfig` and nested DTOs: immutable training/runtime configuration.
 
-The GNS pipeline is designed for modular training, evaluation, and deployment of graph-based surrogate models for CFD simulations.
+## Construction path
 
-The system is split into the following logical components:
+Typical model construction in scripts:
 
-```
-                      +---------------------+
-                      |   YAML Config File  |
-                      +----------+----------+
-                                 |
-                      +----------v----------+
-                      |   Experiment Script |
-                      |    (run_gns.py)     |
-                      +----------+----------+
-                                 |
-          +----------------------+----------------------+
-          |                                             |
-+---------v--------+                         +----------v----------+
-|   Pipeline       |                         |      Graph          |
-| (Training/Optuna)|                         | (Topology & Edges) |
-+--------+---------+                         +----------+----------+
-         |                                              |
-+--------v---------+                          +---------v----------+
-|      Model       |<------------------------>|   GNSConfig        |
-|      (GNS)       |                          +--------------------+
-+--------+---------+
-         |
-+--------v---------+
-|     Dataset       |
-| (pyLOM Dataset)   |
-+------------------+
-```
+1. Parse YAML into DTOs via `dacite.from_dict`.
+2. Load graph with `GNS.from_graph_path(config=..., graph_path=...)`.
+3. Build datasets with `Dataset.load(...)`.
+4. Run `Pipeline(...).run()`.
 
----
+`GNS.__init__` resolves string config entries to runtime objects:
 
-## Components
+- device from `config.device`
+- activation from `config.activation`
+- loss/optimizer/scheduler from training config during `fit`
 
-### 1. **Experiment Script** (`run_gns.py`)
+## Graph representation
 
-* Entry point for launching training or hyperparameter search
-* Loads configs, builds model, runs pipeline
-* Also performs evaluation and checkpoint saving
+`Graph` extends `torch_geometric.data.Data` and stores:
 
-### 2. **YAML Config**
+- `edge_index` (`[2, E]`)
+- `node_features_dict` (named node features)
+- `edge_features_dict` (named edge features)
+- concatenated tensors `x` and `edge_attr`
 
-* Encodes all training, model, graph, and dataset parameters
-* Passed to all subsystems for reproducibility
+`Graph.from_pyLOM_mesh(mesh)` derives features and connectivity from a `pyLOM.Mesh`.
 
-### 3. **Pipeline** (`pyLOM.NN.Pipeline`)
+## Training loop
 
-* Abstraction over training loop and/or Optuna search
-* Encapsulates all logic for training and evaluation
+`GNS.fit(train_dataset, eval_dataset, config=...)`:
 
-### 4. **GNS Model** (`pyLOM.NN.GNS`)
+- validates dataset shape compatibility
+- builds input dataloader from `config.dataloader`
+- builds subgraph loader from `config.subgraph_loader`
+- optionally builds eval loaders when `eval_dataset` is provided
+- runs epochs through `_GNSTrainingLoop`
+- returns logs including `train_loss` and `test_loss`
 
-* Implements the graph-based neural network
-* Fully driven by a `GNSConfig`
-* Contains prediction and checkpoint logic
+When `eval_dataset=None`, no validation loss is produced.
 
-### 5. **Graph** (`pyLOM.NN.Graph`)
+## Reproducibility and persistence
 
-* Stores mesh connectivity: edges, senders, receivers
-* Used as fixed structure in GNS
-* Must be created externally (e.g., from mesh or preprocessing tool)
+`save_experiment_artifacts(...)` persists:
 
-### 6. **Dataset** (`pyLOM.NN.Dataset`)
+- model checkpoint (`model.pth`)
+- reproducibility config (`config.yaml`)
+- metadata (`meta.yaml` with SHA256 fingerprint and git commit)
+- metrics and optional extra outputs
 
-* Handles input/output tensor construction
-* Applies scalers, includes mesh/field variables, batching support
-
----
-
-## Design Notes
-
-* **Separation of Concerns:**
-
-  * Dataset, model, and graph are modular and interchangeable
-  * Config-driven execution enables reproducibility and scalability
-
-* **Persistence:**
-
-  * Model and training artifacts are saved using `model.save()` and `save_experiment()`
-  * Graph must be saved separately and referenced via `graph_path`
-
-* **Extensibility:**
-
-  * New models, datasets, or optimization strategies can be added by implementing matching interfaces
-
----
-
-## Training Flow
-
-1. Parse YAML
-2. Load Dataset(s) and Graph
-3. Build Model from `config["model"]`
-4. Run `Pipeline.run()`
-5. Evaluate model
-6. Save model + logs + artifacts
-7. Optionally reload and run inference
-
----
-
-See [`api.md`](api.md) for full class references.
-See [`usage.md`](usage.md) for example usage.
+For graph persistence, use `Graph.save` / `Graph.load`.
