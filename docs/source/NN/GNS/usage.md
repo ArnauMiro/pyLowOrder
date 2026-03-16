@@ -12,8 +12,10 @@ You need:
 
 Minimal example files in this repository:
 
-- `Examples/NN/example_GNS_minimal.py`
-- `Examples/NN/configs/example_GNS_config.yaml`
+- `Examples/NN/example_GNS_DLR_airfoil.py`
+- `Examples/NN/example_GNS_cylinder_dataset.py`
+- `Examples/NN/configs/example_GNS_DLR_airfoil_config.yaml`
+- `Examples/NN/configs/example_GNS_cylinder_dataset_config.yaml`
 
 ## 2) Configuration layout
 
@@ -88,7 +90,7 @@ training:
 Example command:
 
 ```bash
-python Examples/NN/example_GNS_minimal.py
+python Examples/NN/example_GNS_DLR_airfoil.py
 ```
 
 The script:
