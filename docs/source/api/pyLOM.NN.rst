@@ -16,7 +16,6 @@ Guides
    :maxdepth: 2
 
    ../NN/GNS/index
-   ../NN/notation
 
 Module contents
 ---------------

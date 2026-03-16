@@ -776,14 +776,10 @@ class Dataset(torch.utils.data.Dataset):
         was_numpy = isinstance(x, np.ndarray)
         X = torch.as_tensor(x)
         if X.ndim != 2:
-            print(f"Warning: expected 2D inputs matrix, got shape {X.shape}, reshaping to 2D")
             X = X.reshape(-1, X.shape[-1])
 
-        print(f"x.shape: {x.shape}")
         X_inv = sc.inverse_transform(X)               # protocol guarantees this
-        print(f"X_inv type: {type(X_inv)}, length: {len(X_inv)}")
         X_inv_t = torch.as_tensor(X_inv, dtype=X.dtype)
-        print(f"X_inv_t shape: {X_inv_t.shape}")
         return X_inv_t.detach().cpu().numpy() if was_numpy else X_inv_t
 
     def filter_by_spatial_mask(self, mask, *, inplace: bool = False, keep_scalers: bool = False) -> "Dataset":

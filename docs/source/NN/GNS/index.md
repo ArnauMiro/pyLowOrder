@@ -23,8 +23,5 @@ The documented modules are:
 :maxdepth: 2
 
 usage
-architecture
-config_reference
 api
-../notation
 ```

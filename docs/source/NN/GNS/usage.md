@@ -120,4 +120,4 @@ The script:
 - optional scalers (`inputs_scaler.json`, `outputs_scaler.json`)
 - any extra files passed via `extra_files`
 
-See also: `config_reference.md` and `api.md`.
+See also: `api.md`.
