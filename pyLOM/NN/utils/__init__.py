@@ -8,8 +8,6 @@ Keep imports lightweight; avoid importing heavy third-party libs here.
 """
 
 from .experiment import (
-    evaluate_model,
-    compute_regression_metrics,
     plot_true_vs_pred,
 )
 
@@ -33,8 +31,6 @@ from ..dataset import Dataset
 
 __all__ = [
     # experiment
-    "evaluate_model",
-    "compute_regression_metrics",
     "plot_true_vs_pred",
     # optuna_utils
     "set_seed",

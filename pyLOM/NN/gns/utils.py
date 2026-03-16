@@ -1,4 +1,6 @@
 # --- batchers used by gns.py ---
+import json
+from pathlib import Path
 from typing import Optional, Union, Sequence
 import torch
 from torch import Tensor
@@ -403,19 +405,24 @@ class _GNSHelpers:
         mode = getattr(config, "mode", "nodes")
         if mode not in {"nodes", "manual"}:
             raiseError(f"Invalid subgraph_loader.mode='{mode}'. Allowed values: 'nodes', 'manual'.")
+
+        input_nodes = config.input_nodes
+        if input_nodes is None:
+            input_nodes = self._resolve_seed_selector(config, generator=generator)
+
         if mode == "manual":
             return ManualNeighborLoader(
                 device=self.device,
                 base_graph=self.graph,
                 num_hops=self.num_msg_passing_layers,
                 batch_size=config.batch_size,
-                input_nodes=config.input_nodes,
+                input_nodes=input_nodes,
                 shuffle=config.shuffle,
                 generator=generator,
             )
 
         # Default: nodes mode
-        node_indices = self._resolve_input_nodes(config.input_nodes)
+        node_indices = self._resolve_input_nodes(input_nodes)
         return DataLoader(
             node_indices,
             batch_size=config.batch_size,
@@ -489,3 +496,54 @@ class _GNSHelpers:
             return input_nodes.to(torch.long)
 
         raiseError("input_nodes must be LongTensor, BoolTensor, or list of ints.")
+
+    def _resolve_seed_selector(
+        self,
+        config: SubgraphDataloaderConfig,
+        *,
+        generator: Optional[torch.Generator] = None,
+    ) -> Optional[Tensor]:
+        seed_selector = getattr(config, "seed_selector", None)
+        if seed_selector is None:
+            return None
+
+        selector_type = str(getattr(seed_selector, "type", "all")).strip().lower()
+        if selector_type == "all":
+            return None
+
+        if selector_type == "auto_frac":
+            frac = getattr(seed_selector, "frac", None)
+            if frac is None:
+                raiseError("seed_selector.type='auto_frac' requires 'frac'.")
+            frac = float(frac)
+            if frac <= 0.0 or frac > 1.0:
+                raiseError("seed_selector.frac must be in (0, 1].")
+            n = int(self.graph.num_nodes)
+            k = max(1, int(round(frac * n)))
+            if generator is None:
+                # deterministic minimal fallback when shuffle=False
+                return torch.arange(k, dtype=torch.long, device="cpu")
+            return torch.randperm(n, generator=generator, device="cpu")[:k].to(torch.long)
+
+        if selector_type == "explicit_list":
+            nodes_path = getattr(seed_selector, "nodes_path", None)
+            if nodes_path in (None, ""):
+                raiseError("seed_selector.type='explicit_list' requires 'nodes_path'.")
+            path = Path(str(nodes_path))
+            if not path.exists():
+                raiseError(f"seed_selector.nodes_path not found: {path}")
+
+            if path.suffix.lower() == ".json":
+                with open(path, "r", encoding="utf-8") as f:
+                    node_ids = json.load(f)
+            else:
+                with open(path, "r", encoding="utf-8") as f:
+                    node_ids = [int(line.strip()) for line in f if line.strip()]
+            if len(node_ids) == 0:
+                raiseError(f"seed_selector.nodes_path is empty: {path}")
+            return torch.as_tensor(node_ids, dtype=torch.long, device="cpu")
+
+        raiseError(
+            f"Invalid seed_selector.type='{selector_type}'. "
+            "Allowed values: 'all', 'auto_frac', 'explicit_list'."
+        )

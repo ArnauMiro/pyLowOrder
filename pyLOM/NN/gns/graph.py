@@ -315,50 +315,6 @@ class Graph(Data):
         else:
             raiseError(f"Unsupported file format: {fmt}")
 
-
-
-    @staticmethod
-    def _to_pyLOM_format(features_dict: Dict[str, torch.Tensor]) -> Dict[str, Dict[str, Union[int, np.ndarray]]]:
-        """
-        Convert a feature dictionary to the pyLOM HDF5-compatible format.
-
-        Args:
-            features_dict (Dict[str, torch.Tensor]): Dictionary of named feature tensors.
-
-        Returns:
-            Dict[str, Dict]: pyLOM format dictionary.
-        """
-        return {
-            key: {
-                'ndim': value.shape[1] if value.ndim > 1 else 1,
-                'value': value.cpu().numpy()
-            }
-            for key, value in features_dict.items()
-        }
-
-
-    @staticmethod
-    def _from_pyLOM_format(
-        edge_index: np.ndarray,
-        node_features: Dict[str, Any],
-        edge_features: Dict[str, Any]
-    ) -> Dict:
-        """
-        Convert pyLOM HDF5 format back to constructor arguments.
-        """
-        def to_tensor_dict(d: Dict[str, Any]) -> Dict[str, torch.Tensor]:
-            return {k: torch.as_tensor(v) for k, v in d.items()}
-
-        node_features_dict = to_tensor_dict(node_features)
-        edge_features_dict = to_tensor_dict(edge_features)
-
-        return {
-            "edge_index": torch.as_tensor(edge_index, dtype=torch.long),
-            "node_features_dict": node_features_dict,
-            "edge_features_dict": edge_features_dict,
-        }
-
-
     @staticmethod
     def _canonical_edge(edge: Union[np.ndarray, list, tuple]) -> tuple[int, ...]:
         """
@@ -569,72 +525,6 @@ class Graph(Data):
 
 
 
-
-    @cr('Graph.filter')
-    def filter(
-        self,
-        node_mask: Optional[Union[list, torch.Tensor, np.ndarray]] = None,
-        node_indices: Optional[Union[list, torch.Tensor, np.ndarray]] = None
-    ) -> "Graph":
-        """
-        ⚠️ Experimental: This method is still under development and has not been thoroughly tested.
-        Use with caution and validate outputs manually.
-
-        Return a filtered copy of the graph, keeping only the specified nodes
-        and their corresponding edges.
-
-        You can specify either:
-            - `node_mask`: a boolean mask of shape [num_nodes]
-            - `node_indices`: a list or tensor of node indices to keep
-
-        Args:
-            node_mask (Union[list, torch.Tensor, np.ndarray], optional):
-                Boolean mask indicating which nodes to keep.
-            node_indices (Union[list, torch.Tensor, np.ndarray], optional):
-                List of node indices to keep.
-
-        Returns:
-            Graph: A new Graph instance containing only the selected nodes and edges.
-
-        Raises:
-            ValueError: If neither or both of `node_mask` and `node_indices` are provided.
-        """
-        if node_mask is None and node_indices is None:
-            raiseError("Either node_mask or node_indices must be provided.")
-        if node_mask is not None and node_indices is not None:
-            raiseError("Only one of node_mask or node_indices must be provided.")
-
-        if node_indices is not None:
-            node_mask = torch.zeros(self.num_nodes, dtype=torch.bool)
-            node_mask[node_indices] = True
-        else:
-            node_mask = torch.as_tensor(node_mask, dtype=torch.bool)
-
-        # Mapping from old node index to new index
-        idx_map = torch.full((self.num_nodes,), -1, dtype=torch.long)
-        idx_map[node_mask] = torch.arange(node_mask.sum())
-
-        # Filter node features
-        new_node_features_dict = {
-            k: v[node_mask] for k, v in self.node_features_dict.items()
-        }
-
-        # Identify edges where both source and target nodes are kept
-        src, dst = self.edge_index
-        edge_mask = node_mask[src] & node_mask[dst]
-        new_edge_index = idx_map[self.edge_index[:, edge_mask]]
-
-        # Filter edge features
-        new_edge_features_dict = {
-            k: v[edge_mask] for k, v in self.edge_features_dict.items()
-        }
-
-        return Graph(
-            edge_index=new_edge_index,
-            node_features_dict=new_node_features_dict,
-            edge_features_dict=new_edge_features_dict,
-            device=self.edge_index.device
-        )
 
     def fingerprint(self) -> Dict[str, Any]:
         """

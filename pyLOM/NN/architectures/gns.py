@@ -421,8 +421,21 @@ class GNS(torch.nn.Module):
             config.dataloader,
             generator=self._generator if config.dataloader.shuffle else None,
         )
+        sg_generator = self._sg_generator_train if config.subgraph_loader.shuffle else None
+        # Materialize effective seed nodes once (input_nodes or seed_selector-derived)
+        # so they are persisted in last_training_config and can be reproduced exactly.
+        effective_input_nodes = config.subgraph_loader.input_nodes
+        if effective_input_nodes is None:
+            effective_input_nodes = self._helpers._resolve_seed_selector(
+                config.subgraph_loader,
+                generator=sg_generator,
+            )
+        effective_input_nodes = self._helpers._resolve_input_nodes(effective_input_nodes)
+        train_sg_cfg = replace(config.subgraph_loader, input_nodes=effective_input_nodes.tolist())
+        config = replace(config, subgraph_loader=train_sg_cfg)
+
         train_sg_loader = self._helpers.init_subgraph_loader(
-            config.subgraph_loader,
+            train_sg_cfg,
             generator=self._sg_generator_train if config.subgraph_loader.shuffle else None,
         )
 
@@ -467,6 +480,12 @@ class GNS(torch.nn.Module):
         epoch_list      = state.get("epoch_list", [])
         train_loss_list = state.get("train_loss_list", [])
         test_loss_list  = state.get("test_loss_list", [])
+
+        # --- Propagate config knobs consumed by the training loop via model attrs ---
+        # Keep this explicit to avoid silent fallback to runner defaults.
+        self.best_metric = config.best_metric
+        self.best_metric_space = config.best_metric_space
+        self.loss_weight_alpha = config.weighted_loss_alpha
 
         # Delegate epoch loop to the training runner (encapsulates train/val and best-checkpoint logic)
         runner = _GNSTrainingLoop(self)
@@ -790,19 +809,6 @@ class GNS(torch.nn.Module):
             "model": model_cfg,
             "training": training_cfg
         }
-
-    def _dprint(self, *args, rank: int = -1, **kwargs) -> None:
-        """
-        Debug print with MPI support.
-        Only prints if debugging is enabled.
-        
-        Args:
-            *args: Positional arguments to forward to pprint.
-            rank (int): Target rank. Default -1 means all ranks.
-            **kwargs: Additional keyword arguments for pprint.
-        """
-        if self.debug:
-            pprint(rank, *args, **kwargs, flush=True)
 
     def __repr__(self):
         return (
