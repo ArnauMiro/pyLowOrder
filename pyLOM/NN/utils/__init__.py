@@ -28,6 +28,7 @@ from .scalers import MinMaxScaler, StandardScaler, RobustScaler
 from .schedulers import betaLinearScheduler
 from .stats import RegressionEvaluator, ClassificationEvaluator
 from .callbacks import EarlyStopper
+from ..dataset import Dataset
 
 
 __all__ = [
@@ -52,4 +53,5 @@ __all__ = [
     "RegressionEvaluator",
     "ClassificationEvaluator",
     "EarlyStopper",
+    "Dataset",
 ]

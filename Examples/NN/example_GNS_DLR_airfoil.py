@@ -101,6 +101,7 @@ def _load_converter_dataset(
         outputs_scaler=outputs_scaler,
         snapshots_by_column=True,
         squeeze_last_dim=False,
+        channels_last=True,
     )
 
 

@@ -150,6 +150,7 @@ ds_kwargs = {
     "inputs_scaler": inputs_scaler,
     "outputs_scaler": outputs_scaler,
     "squeeze_last_dim": False,
+    "channels_last": True,
 }
 
 td_train = Dataset.load(str(train_ds_path), **ds_kwargs)

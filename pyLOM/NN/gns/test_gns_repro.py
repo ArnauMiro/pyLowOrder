@@ -121,6 +121,7 @@ def world(cfg_paths):
         inputs_scaler=inputs_scaler,
         outputs_scaler=None,
         squeeze_last_dim=False,
+        channels_last=True,
     )
     ds_train = Dataset.load(cfg["datasets"]["train_ds"], **ds_kwargs)
     ds_val   = Dataset.load(cfg["datasets"]["val_ds"],   **ds_kwargs)

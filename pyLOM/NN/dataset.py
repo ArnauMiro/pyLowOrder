@@ -78,6 +78,7 @@ class Dataset(torch.utils.data.Dataset):
         outputs_scaler: ScalerProtocol = None,
         snapshots_by_column: bool = True,
         squeeze_last_dim: bool = True,
+        channels_last: bool = False,
     ):
         """
         See class docstring for argument semantics.
@@ -86,6 +87,7 @@ class Dataset(torch.utils.data.Dataset):
         self.parameters = parameters
         self.num_channels = len(variables_out)
         self.mesh_shape = mesh_shape
+        self.channels_last = channels_last
 
         # Attach scalers on the instance
         self.inputs_scaler = inputs_scaler
@@ -96,7 +98,7 @@ class Dataset(torch.utils.data.Dataset):
             variables_out = [variable.T for variable in variables_out]
 
         self.variables_out = self._process_variables_out(
-            variables_out, self.outputs_scaler, squeeze_last_dim
+            variables_out, self.outputs_scaler, squeeze_last_dim, channels_last
         )
 
         # --- inputs / parameters ---
@@ -126,14 +128,21 @@ class Dataset(torch.utils.data.Dataset):
             self.parameters = None
 
 
-    def _process_variables_out(self, variables_out, outputs_scaler: ScalerProtocol, squeeze_last_dim: bool = True):
+    def _process_variables_out(
+        self,
+        variables_out,
+        outputs_scaler: ScalerProtocol,
+        squeeze_last_dim: bool = True,
+        channels_last: bool = False,
+    ):
         """
         Scale and reshape output variables consistently across channels.
 
         - Accepts a tuple/list of per-channel arrays with original shapes like (N, *mesh_shape).
         - Flattens each channel to 2D ([-1, 1]) and, if a scaler is provided, fits once with a list
         (one block per channel) and transforms accordingly (per-channel min/max).
-        - Rebuilds a torch.Tensor with shape (N, *mesh_shape, C) and optionally squeezes the last dim.
+        - Rebuilds a torch.Tensor with shape (N, C, *mesh_shape) by default.
+          If ``channels_last=True`` it returns (N, *mesh_shape, C).
         """
         # 1) Prepare flattened list (one 2D block per channel)
         np_vars = [np.asarray(v) for v in variables_out]
@@ -155,9 +164,12 @@ class Dataset(torch.utils.data.Dataset):
             t = t.reshape(-1, *self.mesh_shape)
             stacked.append(t)
 
-        out = torch.stack(stacked, dim=-1)                 # (N, *mesh_shape, C)
-        if squeeze_last_dim and out.shape[-1] == 1:
-            out = out.squeeze(-1)
+        out = torch.stack(stacked, dim=-1 if channels_last else 1)
+        if squeeze_last_dim:
+            if channels_last and out.shape[-1] == 1:
+                out = out.squeeze(-1)
+            if (not channels_last) and out.shape[1] == 1:
+                out = out.squeeze(1)
         return out.float()
 
 
@@ -559,12 +571,13 @@ class Dataset(torch.utils.data.Dataset):
         variables_in = None
         parameters = None
         if add_variables:
-            # print("adding variables")
-            variables_in = [original_dataset.get_variable(var_name) for var_name in variables_names]
-            # print("stacking")
-            variables_in = np.stack(variables_in, axis=1) if len(variables_in) > 0 else None
+            variables_cols = [original_dataset.get_variable(var_name) for var_name in variables_names]
+            variables_in = np.stack(variables_cols, axis=1) if len(variables_cols) > 0 else None
             if add_mesh_coordinates:
-                variables_in.append(original_dataset.xyz)
+                if variables_in is None:
+                    variables_in = original_dataset.xyz
+                else:
+                    variables_in = np.hstack([variables_in, original_dataset.xyz])
         else:
             parameters = [original_dataset.get_variable(var_name) for var_name in variables_names]
             parameters = parameters if len(parameters) > 0 else None
@@ -855,7 +868,8 @@ class Dataset(torch.utils.data.Dataset):
     ):
         """
         Inverse-scale an output tensor using the provided scaler or self.outputs_scaler.
-        Accepts (N, *mesh_shape, C) or (N, *mesh_shape) and returns the same container type.
+        Accepts channel-first (N, C, *mesh_shape), channel-last (N, *mesh_shape, C),
+        or no-explicit-channel (N, *mesh_shape), and returns the same container type.
         """
         sc = scaler or self.outputs_scaler
         if sc is None or not sc.is_fitted:
@@ -864,21 +878,34 @@ class Dataset(torch.utils.data.Dataset):
         mshape = mesh_shape or self.mesh_shape
         was_numpy = isinstance(y, np.ndarray)
         t = torch.as_tensor(y)
+        ndim_expected_no_channel = len(mshape) + 1
+        ndim_expected_with_channel = len(mshape) + 2
 
-        # Normalize to explicit channel dimension
-        squeezed = False
-        if t.ndim == len(mshape) + 1:  # (N, *mesh_shape)
-            t = t.unsqueeze(-1)        # -> (N, *mesh_shape, 1)
-            squeezed = True
-
-        C = t.shape[-1]
-        flat_list = [t[..., i].reshape(-1, 1) for i in range(C)]
-
-        inv_list = sc.inverse_transform(flat_list)    # protocol guarantees list-mode
-        restored = [torch.as_tensor(inv).reshape(t.shape[:-1]) for inv in inv_list]
-        out = torch.stack(restored, dim=-1)
-        if squeezed:
-            out = out.squeeze(-1)
+        if t.ndim == ndim_expected_no_channel:
+            # (N, *mesh_shape)
+            flat_list = [t.reshape(-1, 1)]
+            inv_list = sc.inverse_transform(flat_list)
+            out = torch.as_tensor(inv_list[0]).reshape(t.shape)
+        elif t.ndim == ndim_expected_with_channel:
+            # (N, C, *mesh_shape) or (N, *mesh_shape, C)
+            channels_last = bool(getattr(self, "channels_last", False))
+            if channels_last:
+                C = t.shape[-1]
+                flat_list = [t[..., i].reshape(-1, 1) for i in range(C)]
+                inv_list = sc.inverse_transform(flat_list)
+                restored = [torch.as_tensor(inv).reshape(t.shape[:-1]) for inv in inv_list]
+                out = torch.stack(restored, dim=-1)
+            else:
+                C = t.shape[1]
+                flat_list = [t[:, i, ...].reshape(-1, 1) for i in range(C)]
+                inv_list = sc.inverse_transform(flat_list)
+                restored = [torch.as_tensor(inv).reshape((t.shape[0],) + tuple(t.shape[2:])) for inv in inv_list]
+                out = torch.stack(restored, dim=1)
+        else:
+            raiseError(
+                f"Unsupported output shape {tuple(t.shape)} for mesh_shape {mshape}. "
+                "Expected (N, *mesh_shape), (N, C, *mesh_shape), or (N, *mesh_shape, C)."
+            )
 
         return out.detach().cpu().numpy() if was_numpy else out
 
@@ -892,4 +919,3 @@ class Dataset(torch.utils.data.Dataset):
             self.inputs_scaler.save(f"{prefix}_inputs_scaler.json")
         if self.outputs_scaler is not None and hasattr(self.outputs_scaler, "save") and self.outputs_scaler.is_fitted:
             self.outputs_scaler.save(f"{prefix}_outputs_scaler.json")
-
