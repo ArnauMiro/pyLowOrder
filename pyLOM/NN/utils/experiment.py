@@ -250,9 +250,7 @@ def export_predictions_to_paraview(
     if instants.shape[0] != nsnaps or times.shape[0] != nsnaps:
         raise ValueError("Instants/times length must match number of snapshots")
 
-    cell_fields: Dict[str, np.ndarray] = {
-        "target": _sample_to_cell_major(true_samples),
-    }
+    cell_fields: Dict[str, np.ndarray] = {}
 
     metric_items = list(metrics) if metrics else [("prediction", lambda yp, yt: yp)]
     for name, fn in metric_items:
@@ -305,7 +303,31 @@ def export_predictions_to_paraview(
             fmt="vtkh5",
             mode="w",
         )
-        written.append(output_dir / f"{casestr_base}.vtk.hdf")
+        written_file = output_dir / f"{casestr_base}.vtk.hdf"
+        written.append(written_file)
+
+        # VTK-HDF stores instant/time as numeric values, not arbitrary per-snapshot names.
+        # For reproducible human-readable identification in single-file mode, emit a sidecar map.
+        if metadata_arrays:
+            labels = []
+            for idx in range(nsnaps):
+                slice_metadata = {
+                    name: metadata_arrays[name][idx : idx + 1]
+                    for name in metadata_arrays
+                }
+                suffix = _format_metadata_suffix(slice_metadata)
+                labels.append(
+                    {
+                        "snapshot_index": int(idx),
+                        "instant": int(instants[idx]),
+                        "time": float(times[idx]),
+                        "name": f"{casestr_base}_{idx:04d}" + (f"__{suffix}" if suffix else ""),
+                    }
+                )
+            labels_path = output_dir / f"{casestr_base}__snapshot_labels.json"
+            with labels_path.open("w", encoding="utf-8") as f:
+                json.dump({"snapshots": labels}, f, indent=2, ensure_ascii=False)
+            written.append(labels_path)
     elif mode == "per_snapshot":
         for idx in range(nsnaps):
             slice_fields = {
