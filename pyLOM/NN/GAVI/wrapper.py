@@ -21,9 +21,7 @@ from .utils                            import create_dataset
 from ..                                import DEVICE
 from ..architectures.encoders_decoders import Encoder1D, Decoder1D, Encoder1DNoLatent, Decoder1DNoLatent
 from ..architectures.autoencoders      import Autoencoder, VariationalAutoencoder
-from ..                                import silu
-from ..dataset                         import Dataset
-from ..utils                           import betaLinearScheduler
+from ..utils                           import silu, Dataset, betaLinearScheduler
 from ...mesh                           import Mesh
 from ...vmmath                         import temporal_mean, subtract_mean, randomized_qr, matmul, local_energy
 from ...utils.cr                       import cr, cr_start, cr_stop
