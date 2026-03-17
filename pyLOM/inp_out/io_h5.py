@@ -848,21 +848,7 @@ def h5_load_QR(fname,vars,ptable=None):
 	file.close()
 	return varList
 
-@cr('h5IO.save_POD')
-def h5_save_POD(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
-	'''
-	Store POD variables into an HDF5 file.
-	Can be appended to another HDF by setting the
-	mode to 'a'. Then no partition table will be saved.
-	'''
-	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,mode)
-	# Store attributes and partition table
-	if not mode == 'a':
-		file.attrs['Version'] = PYLOM_H5_VERSION
-		# Store partition table
-		h5_save_partition(file,ptable)
-	# Now create a POD group
-	group = file.create_group('POD')
+def h5_save_usv(U,S,V,ptable,nvars,pointData,group):
 	# Create the datasets for U, S and V
 	group.create_dataset('pointData',(1,),dtype='u1',data=pointData)
 	group.create_dataset('n_variables',(1,),dtype='u1',data=nvars)
@@ -878,6 +864,24 @@ def h5_save_POD(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
 	# Store U in parallel
 	istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=pointData)
 	if dsetU is not None: dsetU[istart:iend,:] = U
+
+@cr('h5IO.save_POD')
+def h5_save_POD(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
+	'''
+	Store POD variables into an HDF5 file.
+	Can be appended to another HDF by setting the
+	mode to 'a'. Then no partition table will be saved.
+	'''
+	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,mode)
+	# Store attributes and partition table
+	if not mode == 'a':
+		file.attrs['Version'] = PYLOM_H5_VERSION
+		# Store partition table
+		h5_save_partition(file,ptable)
+	# Now create a POD group
+	group = file.create_group('POD')
+	# Create and store de datsets
+	h5_save_usv(U,S,V,ptable,nvars,pointData,group)
 	file.close()
 
 @cr('h5IO.load_POD')
@@ -1043,6 +1047,51 @@ def h5_load_SPOD(fname,vars,nmod,ptable=None):
 		varList.append( np.array(file['SPOD']['L'][:,:]) )
 	if 'f' in vars: 
 		varList.append( np.array(file['SPOD']['f'][:]) )
+	# Return
+	file.close()
+	return varList
+
+@cr('h5IO.save_RES')
+def h5_save_RES(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
+	'''
+	Store RES variables into an HDF5 file.
+	Can be appended to another HDF by setting the
+	mode to 'a'. Then no partition table will be saved.
+	'''
+	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,mode)
+	# Store attributes and partition table
+	if not mode == 'a':
+		file.attrs['Version'] = PYLOM_H5_VERSION
+		# Store partition table
+		h5_save_partition(file,ptable)
+	# Now create a POD group
+	group = file.create_group('RES')
+	# Create and store de datsets
+	h5_save_usv(U,S,V,ptable,nvars,pointData,group)
+	file.close()
+
+@cr('h5IO.load_RES')
+def h5_load_RES(fname,vars,nmod,ptable=None):
+	'''
+	Load RES variables from an HDF5 file.
+	'''
+	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,'r')
+	# Check the file version
+	version = tuple(file.attrs['Version'])
+	if not version == PYLOM_H5_VERSION:
+		raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
+	# Read the requested variables S, V
+	varList = []
+	if 'U' in vars:
+		# Check if we need to read the partition table
+		if ptable is None: ptable = h5_load_partition(file)
+		# Read
+		nvars = int(file['RES']['n_variables'][0])
+		point = bool(file['RES']['pointData'][0])
+		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=point)
+		varList.append(np.array(file['RES']['U'][istart:iend,:]) if nmod < 0 else np.array(file['RES']['U'][istart:iend,:nmod]))
+	if 'S' in vars: varList.append( np.array(file['RES']['S'][:]) if nmod < 0 else  np.array(file['RES']['S'][:nmod]) )
+	if 'V' in vars: varList.append( np.array(file['RES']['V'][:,:]) if nmod < 0 else np.array(file['RES']['V'][:nmod,:]) )
 	# Return
 	file.close()
 	return varList

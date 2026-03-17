@@ -13,8 +13,9 @@ from ..utils.gpu import cp
 from ..          import inp_out as io, PartitionTable
 from ..utils     import cr_nvtx as cr, gpu_to_cpu
 
+
 @cr('RES.extract_modes')
-def extract_modes(U:np.ndarray,V:np.ndarray,ivar:int,npoints:int,modes:list=[],reshape:bool=True):
+def extract_modes(U:np.ndarray,V:np.ndarray,ivar:int,npoints:int,modes:list=[],reshape:bool=True,kind:str="abs"):
 	r'''
 	When performing POD of several variables simultaneously, this function separates the spatial modes from each of the variables.
 
@@ -25,6 +26,11 @@ def extract_modes(U:np.ndarray,V:np.ndarray,ivar:int,npoints:int,modes:list=[],r
 		npoints (int): number of points in the domain per variable
 		modes (list, optional): list containing the id of the modes to separate (default ``[]``).
 		reshape (bool, optional): if true the output will be given as (len(modes)*npoints,) if not it the result will be (npoints, len(modes)) (default `` True ``)
+		kind (str): The aspect of the number to return. 
+            Options are:
+            * 'real': Returns the real part.
+            * 'imag': Returns the imaginary part.
+            * 'abs': Returns the magnitude (absolute value).
 
 	Returns:
 		np.ndarray: modes of the variable ivar
@@ -34,13 +40,25 @@ def extract_modes(U:np.ndarray,V:np.ndarray,ivar:int,npoints:int,modes:list=[],r
 	# Define modes to extract
 	if len(modes) == 0: modes = p.arange(1,U.shape[1]+1,dtype=p.int32)
 	# Allocate output array
-	out_U =p.zeros((npoints,len(modes)),U.dtype)
-	out_V =p.zeros((npoints,len(modes)),U.dtype)
-	for i,m in enumerate(modes):
-		out_U[:,i] = U[ivar-1:nvars*npoints:nvars,m-1]
-		out_V[:,i] = V[ivar-1:nvars*npoints:nvars,m-1]
+	out_U =p.zeros((npoints,len(modes)),p.double if U.dtype == p.complex128 else p.float32)
+	out_V =p.zeros((npoints,len(modes)),p.double if V.dtype == p.complex128 else p.float32)
+	if kind == "real":
+		for i,m in enumerate(modes):
+			out_U[:,i] = (U[ivar-1:nvars*npoints:nvars,m-1].real)
+			out_V[:,i] = (V[ivar-1:nvars*npoints:nvars,m-1].real)
+	elif kind == "imag":
+		for i,m in enumerate(modes):
+			out_U[:,i] = (U[ivar-1:nvars*npoints:nvars,m-1].imag)
+			out_V[:,i] = (V[ivar-1:nvars*npoints:nvars,m-1].imag)
+	elif kind == "abs":
+		for i,m in enumerate(modes):
+			out_U[:,i] = (U[ivar-1:nvars*npoints:nvars,m-1].abs)
+			out_V[:,i] = (V[ivar-1:nvars*npoints:nvars,m-1].abs)
+	else:
+		raise ValueError("kind must be: real, imag, abs")
 	# Return reshaped output
 	return out_U.reshape((len(modes)*npoints,),order='C') if reshape else out_U, out_V.reshape((len(modes)*npoints,),order='C') if reshape else out_V
+
 
 @cr('RES.save')
 def save(fname:str,U:np.ndarray,S:np.ndarray,V:np.ndarray,ptable:PartitionTable,nvars:int=1,pointData:bool=True,mode:str='w'):
@@ -58,7 +76,7 @@ def save(fname:str,U:np.ndarray,S:np.ndarray,V:np.ndarray,ptable:PartitionTable,
 		mode (str, optional): mode in which the HDF5 file is opened, 'w' stands for write mode and 'a' stands for append mode. Write mode will overwrite the file and append mode will add the informaiton at the end of the current file, choose with great care what to do in your case (default ``w``).
 
 	'''
-	io.h5_save_POD(fname,gpu_to_cpu(U),gpu_to_cpu(S),gpu_to_cpu(V),ptable,nvars=nvars,pointData=pointData,mode=mode)
+	io.h5_save_RES(fname,gpu_to_cpu(U),gpu_to_cpu(S),gpu_to_cpu(V),ptable,nvars=nvars,pointData=pointData,mode=mode)
 
 
 @cr('RES.load')
@@ -76,4 +94,4 @@ def load(fname:str,vars:list=['U','S','V'],nmod:int=-1,ptable:PartitionTable=Non
 		nmod (int, optional): number of modes to load. By default it will load all the saved modes (default, ``-1``)
 		ptable (PartitionTable, optional): partition table to use when loading the data (default ``None``).
 	'''
-	return io.h5_load_POD(fname,vars,nmod,ptable)
+	return io.h5_load_RES(fname,vars,nmod,ptable)
