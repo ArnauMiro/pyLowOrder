@@ -16,7 +16,7 @@ The documented modules are:
 - `pyLOM.NN.architectures.gns.GNS`
 - `pyLOM.NN.gns.graph.Graph`
 - `pyLOM.NN.pipeline.Pipeline`
-- `pyLOM.NN.utils.config_schema` (DTO configs)
+- `pyLOM.NN.utils.config_schema` (internal config schema)
 - `pyLOM.NN.utils.experiment` (artifacts and plotting helpers)
 
 ```{toctree}

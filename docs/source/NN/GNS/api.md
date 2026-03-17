@@ -6,13 +6,13 @@ This page summarizes the public interfaces used by current repository scripts.
 
 Main constructors:
 
-- `GNS.from_graph(config: GNSModelConfig, graph: Graph)`
-- `GNS.from_graph_path(config: GNSModelConfig, graph_path: str | Path)`
+- `GNS.from_graph(config, graph: Graph)`
+- `GNS.from_graph_path(config, graph_path: str | Path)`
 
 Main methods:
 
-- `fit(train_dataset, eval_dataset=None, config: GNSTrainingConfig, reset_state=True, ...)`
-- `predict(X, config: GNSTrainingConfig | None = None, ...)`
+- `fit(train_dataset, eval_dataset=None, config, reset_state=True, ...)`
+- `predict(X, config=None, ...)`
 - `save(path)`
 - `load(path, device=...)`
 
@@ -56,17 +56,6 @@ Behavior:
 - fixed-training mode: requires `model` + `training_params`
 - optuna mode: requires `optimizer` + `model_class`
 - in optuna mode, if `valid_dataset` is missing, it falls back to `train_dataset`
-
-## Config DTOs (`pyLOM.NN.utils.config_schema`)
-
-Relevant dataclasses:
-
-- `GNSModelConfig`
-- `GNSTrainingConfig`
-- `TorchDataloaderConfig`
-- `SubgraphDataloaderConfig`
-- `SeedSelectorConfig`
-- `GraphSpec`
 
 ## Experiment helpers (`pyLOM.NN.utils.experiment`)
 

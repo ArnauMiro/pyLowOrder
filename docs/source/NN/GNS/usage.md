@@ -21,6 +21,8 @@ Minimal example files in this repository:
 
 Current scripts use this top-level structure:
 
+> Note: examples are configured with plain YAML/dicts (same user-facing style as MLP/KAN). Internal typed config conversion is handled inside the script.
+
 ```yaml
 experiment:
   name: "gns_cylinder_minimal"
