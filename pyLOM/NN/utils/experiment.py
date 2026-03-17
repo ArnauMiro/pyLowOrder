@@ -373,38 +373,6 @@ def export_predictions_to_paraview(
 # UTILITIES: PLOTTING AND SAVING
 # ─────────────────────────────────────────────────────
 
-def plot_training_and_validation_loss(train_loss: list[float],
-                                      val_loss: list[float],
-                                      save_path: Path) -> None:
-    """
-    Plot and save training and validation loss curves.
-
-    Args:
-        train_loss (list[float]): Training loss values per iteration.
-        val_loss (list[float]): Validation loss values per epoch.
-        save_path (Path): File path where the plot will be saved.
-    """
-    if not train_loss or not val_loss:
-        raise ValueError("Both train_loss and val_loss must be non-empty.")
-
-    plt.figure()
-    plt.plot(range(1, len(train_loss) + 1), train_loss, label="Training Loss")
-
-    num_epochs = len(val_loss)
-    # Map validation epochs to iteration axis robustly even if not divisible
-    val_iters = np.linspace(1, len(train_loss), num_epochs)
-    plt.plot(val_iters, val_loss, label="Validation Loss")
-
-    plt.yscale("log")
-    plt.xlabel("Iterations")
-    plt.ylabel("Loss")
-    plt.grid()
-    plt.legend()
-    plt.savefig(save_path, dpi=300)
-    plt.close()
-
-
-
 def plot_true_vs_pred(y_true: np.ndarray,
                       y_pred: np.ndarray,
                       save_path: Path | None = None) -> None:

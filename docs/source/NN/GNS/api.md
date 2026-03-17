@@ -65,7 +65,6 @@ Most-used function:
 
 Companion plotting utilities commonly used in scripts:
 
-- `plot_training_and_validation_loss(...)`
 - `plot_train_test_loss(...)`
 - `plot_true_vs_pred(...)`
 
