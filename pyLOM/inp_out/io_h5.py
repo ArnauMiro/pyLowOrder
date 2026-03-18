@@ -174,8 +174,9 @@ def h5_load_meshes(file,ptable,repart):
 		_, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray: mesh type, coordinates, connectivity, element type, cell order and point order
 	'''
 	# Check how the mesh was stored
-	if not bool(file.attrs['NOPARTITION']) and MPI_SIZE != int(file.attrs['PARTS']):
-		raiseWarning(f'Loading a mesh saved in nopartition=False with different parts (orig: {int(file.attrs['PARTS'])}, actual: {MPI_SIZE})')
+	if 'NOPARTITION' in file.attrs.keys():
+		if not bool(file.attrs['NOPARTITION']) and MPI_SIZE != int(file.attrs['PARTS']):
+			raiseWarning(f'Loading a mesh saved in nopartition=False with different parts (orig: {int(file.attrs['PARTS'])}, actual: {MPI_SIZE})')
 	# Read mesh type
 	mtype  = ID2MTYPE[int(file['type'][0])]
 	# Read cell related variables
