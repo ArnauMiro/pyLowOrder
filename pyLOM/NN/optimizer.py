@@ -161,16 +161,18 @@ try:
             save_dir = Path(self.save_dir)
             save_dir.mkdir(parents=True, exist_ok=True)
 
-            for i in count():
-                if self.study_name is None:
+            if self.study_name is not None:
+                file_path = save_dir / f"{self.study_name}.json"
+                with open(file_path, "w") as f:
+                    json.dump(best_params_flat, f, indent=2, sort_keys=True)
+            else:
+                for i in count():
                     file_path = save_dir / f"best_params_{i}.json"
-                else:
-                    file_path = save_dir / f"{self.study_name}.json"
-                
-                if not file_path.exists():
-                    with open(file_path, "x") as f:
-                        json.dump(best_params_flat, f, indent=2, sort_keys=True)
-                    break
+                    if not file_path.exists():
+                        with open(file_path, "x") as f:
+                            json.dump(best_params_flat, f, indent=2, sort_keys=True)
+                        break
+
         
         @staticmethod
         def _deep_update(base, updates):
