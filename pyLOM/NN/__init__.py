@@ -35,6 +35,8 @@ def silu():      return torch.nn.SiLU()
 from .                                import GAVI
 
 from .pipeline                        import Pipeline, ClusteredPipeline
+from .loss                            import BaseLossFunction, TorchLossAdapter, GradientWeightedMSE, NeighborDifferenceMSELoss, HybridGradientNeighborMSELoss
+from .losses                          import FocalMSELoss
 from .dataset                         import Dataset
 from .gns                             import Graph
 from .utils                           import RegressionEvaluator, ClassificationEvaluator, EarlyStopper, MinMaxScaler, StandardScaler, RobustScaler, select_device, betaLinearScheduler, create_results_folder, set_seed
