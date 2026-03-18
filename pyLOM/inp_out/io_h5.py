@@ -96,7 +96,7 @@ def h5_save_meshes(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	dpoinO[istartp:iend]  = pointO
 	# Compute start and end of read, cell data
 	istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
-	dconec[istart:iend,:] = conec #pointO[conec] if pointO.shape[0] > 0 else conec
+	dconec[istart:iend,:] = conec
 	deltyp[istart:iend]   = eltype
 	dcellO[istart:iend]   = cellO
 
@@ -177,16 +177,16 @@ def h5_load_meshes(file,ptable,repart):
 	nopartition = file.attrs.get('NOPARTITION',True)
 	nparts      = file.attrs.get('PARTS',MPI_RANK)
 	if not nopartition and nparts != MPI_SIZE:
-			raiseWarning(f'Loading a mesh saved in nopartition={nopartition} with different parts (orig: {nparts}, actual: {MPI_SIZE})')
+			raiseError(f'Loading a mesh saved in nopartition={nopartition} with different parts (orig: {nparts}, actual: {MPI_SIZE})')
 	# Read mesh type
 	mtype  = ID2MTYPE[int(file['type'][0])]
 	# Read cell related variables
 	istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
 	conec  = np.array(file['connectivity'][istart:iend,:],np.int32)
 	eltype = np.array(file['eltype'][istart:iend],np.int32) 
-	cellO  = np.array(file['cellOrder'][istart:iend],np.int32)
-	cellO  = np.arange(istart, iend, 1) # Fix IO for clipped datasets in pyQvarsi
-	#TODO: FIX AND MAKE THIS GLOBAL!!!
+	# Build cell order from zero using the partition table
+	# so that we generate a global array
+	cellO  = np.arange(istart,iend,1,dtype=np.int32) 
 	# Read point related variables
 	if repart:
 		# Warning! Repartition will only work if the input file is serial
@@ -199,10 +199,11 @@ def h5_load_meshes(file,ptable,repart):
 		inods = np.arange(istart,iend,dtype=np.int32)
 	xyz    = np.array(file['xyz'][inods,:],file['xyz'].dtype) 
 	pointO = np.array(file['pointOrder'][inods],np.int32)
-#	# Fix the connectivity to start at zero
-#	conec2 = -np.ones_like(conec).flatten()# This is a 1D array of -1 of the size of our connectivity
-#	conec2[conec.flatten() >= 0] = np.searchsorted(pointO, conec[conec >= 0].flatten()) # Search only the positive values
-#	conec = conec2.reshape(conec.shape).astype(np.int32) # Reshape the connectivity to its original format
+	# Fix the connectivity to start at zero
+	if nopartition == True:
+		conec2 = -np.ones_like(conec).flatten()# This is a 1D array of -1 of the size of our connectivity
+		conec2[conec.flatten() >= 0] = np.searchsorted(pointO, conec[conec >= 0].flatten()) # Search only the positive values
+		conec = conec2.reshape(conec.shape).astype(np.int32) # Reshape the connectivity to its original format
 	# Return
 	return mtype, xyz, conec, eltype, cellO, pointO
 
