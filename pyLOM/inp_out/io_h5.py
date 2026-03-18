@@ -96,7 +96,7 @@ def h5_save_meshes(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	dpoinO[istartp:iend]  = pointO
 	# Compute start and end of read, cell data
 	istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
-	dconec[istart:iend,:] = conec + istartp
+	dconec[istart:iend,:] = conec #+ istartp
 	deltyp[istart:iend]   = eltype
 	dcellO[istart:iend]   = cellO
 
@@ -177,7 +177,7 @@ def h5_load_meshes(file,ptable,repart):
 	nopartition = file.attrs.get('NOPARTITION',True)
 	nparts      = file.attrs.get('NOPARTITION',MPI_RANK)
 	if not nopartition and nparts != MPI_SIZE:
-			raiseWarning(f'Loading a mesh saved in nopartition=False with different parts (orig: {int(file.attrs['PARTS'])}, actual: {MPI_SIZE})')
+			raiseWarning(f'Loading a mesh saved in nopartition={nopartition} with different parts (orig: {nparts}, actual: {MPI_SIZE})')
 	# Read mesh type
 	mtype  = ID2MTYPE[int(file['type'][0])]
 	# Read cell related variables
@@ -198,10 +198,10 @@ def h5_load_meshes(file,ptable,repart):
 		inods = np.arange(istart,iend,dtype=np.int32)
 	xyz    = np.array(file['xyz'][inods,:],file['xyz'].dtype) 
 	pointO = np.array(file['pointOrder'][inods],np.int32)
-	# Fix the connectivity to start at zero
-	conec2 = -np.ones_like(conec).flatten()# This is a 1D array of -1 of the size of our connectivity
-	conec2[conec.flatten() >= 0] = np.searchsorted(pointO, conec[conec >= 0].flatten()) # Search only the positive values
-	conec = conec2.reshape(conec.shape).astype(np.int32) # Reshape the connectivity to its original format
+#	# Fix the connectivity to start at zero
+#	conec2 = -np.ones_like(conec).flatten()# This is a 1D array of -1 of the size of our connectivity
+#	conec2[conec.flatten() >= 0] = np.searchsorted(pointO, conec[conec >= 0].flatten()) # Search only the positive values
+#	conec = conec2.reshape(conec.shape).astype(np.int32) # Reshape the connectivity to its original format
 	# Return
 	return mtype, xyz, conec, eltype, cellO, pointO
 
