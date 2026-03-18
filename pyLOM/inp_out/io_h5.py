@@ -115,7 +115,7 @@ def h5_save_meshes_nopartition(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 		ptable (PartitionTable): partition table
 	'''
 	# Save attributes
-	file.attrs['NOPARTITION'] = True # Either nopartition=False or serial
+	file.attrs['NOPARTITION'] = True
 	file.attrs['PARTS']       = ptable.n_partitions
 	# Save the mesh type
 	file.create_dataset('type',(1,),dtype='i4',data=MTYPE2ID[mtype])
@@ -193,7 +193,7 @@ def h5_load_meshes(file,ptable,repart):
 		# i.e., it does not have any repeated nodes, otherwise it wont work
 		ptable.create_partition_points(conec)
 		inods  = ptable.partition_points(1)
-		if not nopartition: raiseWarning(f'Repartition will only work if the input file is serial!')
+		if not nopartition: raiseWarning(f'Repartition of mesh will only work if the input file is serial!')
 	else:
 		istart, iend = ptable.partition_bounds(MPI_RANK,points=True)
 		inods = np.arange(istart,iend,dtype=np.int32)
@@ -203,7 +203,7 @@ def h5_load_meshes(file,ptable,repart):
 	if nopartition == True:
 		conec2 = -np.ones_like(conec).flatten()# This is a 1D array of -1 of the size of our connectivity
 		conec2[conec.flatten() >= 0] = np.searchsorted(pointO, conec[conec >= 0].flatten()) # Search only the positive values
-		conec = conec2.reshape(conec.shape).astype(np.int32) # Reshape the connectivity to its original format
+		conec  = conec2.reshape(conec.shape).astype(np.int32) # Reshape the connectivity to its original format
 	# Return
 	return mtype, xyz, conec, eltype, cellO, pointO
 
@@ -211,6 +211,10 @@ def h5_save_points(file,xyz,order,ptable,point):
 	'''
 	Save the points inside the HDF5 file
 	'''
+	# Save attributes
+	file.attrs['NOPARTITION'] = False # Either nopartition=False or serial
+	file.attrs['PARTS']       = ptable.n_partitions
+	# Obtain number of points
 	npointG = mpi_reduce(xyz.shape[0] if not np.any(np.isnan(xyz)) else 0,op='sum',all=True)
 	ndim    = xyz.shape[1]
 	if ptable.has_master: npointG -= 1
@@ -232,6 +236,9 @@ def h5_save_points_nopartition(file,xyz,order,ptable,point):
 	'''
 	Save the points inside the HDF5 file
 	'''
+	# Save attributes
+	file.attrs['NOPARTITION'] = True
+	file.attrs['PARTS']       = ptable.n_partitions
 	# Assume we might be dealing with a parallel mesh
 	npointG = mpi_reduce(order.max() if order.shape[0] > 0 else 0,op='max',all=True) + 1
 	ndim    = xyz.shape[1]
@@ -267,11 +274,13 @@ def h5_load_points(file,ptable,point):
 	'''
 	Load the mesh inside the HDF5 file
 	'''
+	nopartition = file.attrs.get('NOPARTITION',True)
 	if ptable.nodes is None or not point:
 		# Warning! Repartition will only work if the input file is serial
 		# i.e., it does not have any repeated nodes, otherwise it wont work
 		istart, iend = ptable.partition_bounds(MPI_RANK,points=point)
 		ptable.nodes = np.arange(istart,iend,dtype=np.int32)
+		if not nopartition: raiseWarning(f'Repartition of dataset will only work if the input file is serial!')
 	inods = ptable.nodes
 	xyz   = np.array(file['xyz'][inods,:]) 
 	order = np.array(file['order'][inods])
