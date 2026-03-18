@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """
-Split CYLINDER.h5 into train/test files by snapshot index.
+Split selected Testsuite HDF5 files into train/test files by snapshot index.
 
-Behavior:
-- Copies the full input file twice.
+Behavior (same as previous script):
+- Copies each input file twice.
 - Replaces only DATASET/FIELDS/*/value datasets:
   - train: first 12 snapshots
   - test: last 4 snapshots
@@ -60,33 +60,37 @@ def _split_file_values(path: Path, train: bool, n_train: int, n_test: int) -> No
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Create CYLINDER_TRAIN.h5 and CYLINDER_TEST.h5.")
+    parser = argparse.ArgumentParser(description="Create *_TRAIN.h5 and *_TEST.h5 for selected Testsuite files.")
     parser.add_argument(
-        "--input",
+        "--data-dir",
         type=Path,
-        default=Path("Testsuite/DATA/CYLINDER.h5"),
-        help="Input HDF5 file (default: Testsuite/DATA/CYLINDER.h5)",
+        default=Path("../Testsuite/DATA"),
+        help="Directory with testsuite HDF5 files (default: ../Testsuite/DATA)",
     )
     parser.add_argument("--n-train", type=int, default=12, help="Number of training snapshots (default: 12)")
     parser.add_argument("--n-test", type=int, default=4, help="Number of test snapshots (default: 4)")
     args = parser.parse_args()
 
-    input_path = args.input.resolve()
-    if not input_path.exists():
-        raise FileNotFoundError(f"Input file not found: {input_path}")
+    data_dir = args.data_dir.resolve()
+    fnames = ["CHANNEL.h5", "CYLINDER.h5", "JET.h5", "TENSOR280.h5"]
 
-    train_path = input_path.with_name("CYLINDER_TRAIN.h5")
-    test_path = input_path.with_name("CYLINDER_TEST.h5")
+    for fname in fnames:
+        input_path = data_dir / fname
+        if not input_path.exists():
+            raise FileNotFoundError(f"Input file not found: {input_path}")
 
-    shutil.copy2(input_path, train_path)
-    shutil.copy2(input_path, test_path)
+        train_path = input_path.with_name(f"{input_path.stem}_TRAIN.h5")
+        test_path = input_path.with_name(f"{input_path.stem}_TEST.h5")
 
-    _split_file_values(train_path, train=True, n_train=args.n_train, n_test=args.n_test)
-    _split_file_values(test_path, train=False, n_train=args.n_train, n_test=args.n_test)
+        shutil.copy2(input_path, train_path)
+        shutil.copy2(input_path, test_path)
 
-    print(f"Input : {input_path}")
-    print(f"Train : {train_path} ({args.n_train} snapshots)")
-    print(f"Test  : {test_path} ({args.n_test} snapshots)")
+        _split_file_values(train_path, train=True, n_train=args.n_train, n_test=args.n_test)
+        _split_file_values(test_path, train=False, n_train=args.n_train, n_test=args.n_test)
+
+        print(f"Input : {input_path}")
+        print(f"Train : {train_path} ({args.n_train} snapshots)")
+        print(f"Test  : {test_path} ({args.n_test} snapshots)")
 
 
 if __name__ == "__main__":
