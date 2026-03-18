@@ -527,8 +527,8 @@ class MLP(nn.Module):
                         power_diff = power_high - power_low
                         
                         if power_diff > 3:
-                            power = trial.suggest_int(name, power_low, power_high, step=1)
-                            return 2 ** power
+                            choices = [2**p for p in range(power_low, power_high + 1)]
+                            return trial.suggest_categorical(name, choices)
                     
                     use_log = (high / max(1, low)) >= 1000
                     return trial.suggest_int(name, low, high, log=use_log)
