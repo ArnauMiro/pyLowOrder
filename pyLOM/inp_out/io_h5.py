@@ -11,7 +11,7 @@ import os, numpy as np, h5py
 
 from ..partition_table import PartitionTable
 from ..mesh            import MTYPE2ID, ID2MTYPE
-from ..utils           import cr, MPI_COMM, MPI_RANK, MPI_SIZE, is_rank_or_serial, mpi_reduce, raiseError
+from ..utils           import cr, MPI_COMM, MPI_RANK, MPI_SIZE, is_rank_or_serial, mpi_reduce, raiseError, raiseWarning
 
 
 PYLOM_H5_VERSION = (3,0)
@@ -96,7 +96,7 @@ def h5_save_meshes(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	dpoinO[istartp:iend]  = pointO
 	# Compute start and end of read, cell data
 	istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
-	dconec[istart:iend,:] = conec #+ istartp
+	dconec[istart:iend,:] = conec + istartp
 	deltyp[istart:iend]   = eltype
 	dcellO[istart:iend]   = cellO
 
@@ -114,6 +114,9 @@ def h5_save_meshes_nopartition(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 		pointO (np.ndarray): point order
 		ptable (PartitionTable): partition table
 	'''
+	# Save attributes
+	file.attrs['NOPARTITION'] = True # Either nopartition=False or serial
+	file.attrs['PARTS']       = ptable.n_partitions
 	# Save the mesh type
 	file.create_dataset('type',(1,),dtype='i4',data=MTYPE2ID[mtype])
 	# Write the total number of cells and the total number of points
@@ -172,7 +175,7 @@ def h5_load_meshes(file,ptable,repart):
 	'''
 	# Check how the mesh was stored
 	if not bool(file.attrs['NOPARTITION']) and MPI_SIZE != int(file.attrs['PARTS']):
-		raiseError(f'Loading a mesh saved in nopartition=False with different parts (orig: {int(file.attrs['PARTS'])}, actual: {MPI_SIZE})')
+		raiseWarning(f'Loading a mesh saved in nopartition=False with different parts (orig: {int(file.attrs['PARTS'])}, actual: {MPI_SIZE})')
 	# Read mesh type
 	mtype  = ID2MTYPE[int(file['type'][0])]
 	# Read cell related variables
@@ -193,9 +196,9 @@ def h5_load_meshes(file,ptable,repart):
 	xyz    = np.array(file['xyz'][inods,:],file['xyz'].dtype) 
 	pointO = np.array(file['pointOrder'][inods],np.int32)
 	# Fix the connectivity to start at zero
-#	conec2 = -np.ones_like(conec).flatten()# This is a 1D array of -1 of the size of our connectivity
-#	conec2[conec.flatten() >= 0] = np.searchsorted(pointO, conec[conec >= 0].flatten()) # Search only the positive values
-#	conec = conec2.reshape(conec.shape).astype(np.int32) # Reshape the connectivity to its original format
+	conec2 = -np.ones_like(conec).flatten()# This is a 1D array of -1 of the size of our connectivity
+	conec2[conec.flatten() >= 0] = np.searchsorted(pointO, conec[conec >= 0].flatten()) # Search only the positive values
+	conec = conec2.reshape(conec.shape).astype(np.int32) # Reshape the connectivity to its original format
 	# Return
 	return mtype, xyz, conec, eltype, cellO, pointO
 
