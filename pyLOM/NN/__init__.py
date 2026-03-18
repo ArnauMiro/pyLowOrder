@@ -39,7 +39,7 @@ from .loss                            import BaseLossFunction, TorchLossAdapter,
 from .dataset                         import Dataset
 from .gns                             import Graph
 from .utils                           import RegressionEvaluator, ClassificationEvaluator, EarlyStopper, MinMaxScaler, StandardScaler, RobustScaler, select_device, betaLinearScheduler, create_results_folder, set_seed
-from .optimizer                       import OptunaOptimizer
+from .optimizer                       import OptunaOptimizer, OptunaStudyManager
 
 
 from .interpolator                    import Interpolator
