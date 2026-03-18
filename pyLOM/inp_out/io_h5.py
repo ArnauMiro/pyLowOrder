@@ -96,7 +96,7 @@ def h5_save_meshes(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	dpoinO[istartp:iend]  = pointO
 	# Compute start and end of read, cell data
 	istart, iend = ptable.partition_bounds(MPI_RANK,points=False)
-	dconec[istart:iend,:] = conec #+ istartp
+	dconec[istart:iend,:] = conec + istartp
 	deltyp[istart:iend]   = eltype
 	dcellO[istart:iend]   = cellO
 
@@ -174,8 +174,9 @@ def h5_load_meshes(file,ptable,repart):
 		_, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray: mesh type, coordinates, connectivity, element type, cell order and point order
 	'''
 	# Check how the mesh was stored
-	if 'NOPARTITION' in file.attrs.keys():
-		if not bool(file.attrs['NOPARTITION']) and MPI_SIZE != int(file.attrs['PARTS']):
+	nopartition = file.attrs.get('NOPARTITION',True)
+	nparts      = file.attrs.get('NOPARTITION',MPI_RANK)
+	if not nopartition and nparts != MPI_SIZE:
 			raiseWarning(f'Loading a mesh saved in nopartition=False with different parts (orig: {int(file.attrs['PARTS'])}, actual: {MPI_SIZE})')
 	# Read mesh type
 	mtype  = ID2MTYPE[int(file['type'][0])]
@@ -191,6 +192,7 @@ def h5_load_meshes(file,ptable,repart):
 		# i.e., it does not have any repeated nodes, otherwise it wont work
 		ptable.create_partition_points(conec)
 		inods  = ptable.partition_points(1)
+		if not nopartition: raiseWarning(f'Repartition will only work if the input file is serial!')
 	else:
 		istart, iend = ptable.partition_bounds(MPI_RANK,points=True)
 		inods = np.arange(istart,iend,dtype=np.int32)
