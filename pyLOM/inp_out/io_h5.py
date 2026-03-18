@@ -175,7 +175,7 @@ def h5_load_meshes(file,ptable,repart):
 	'''
 	# Check how the mesh was stored
 	nopartition = file.attrs.get('NOPARTITION',True)
-	nparts      = file.attrs.get('NOPARTITION',MPI_RANK)
+	nparts      = file.attrs.get('PARTS',MPI_RANK)
 	if not nopartition and nparts != MPI_SIZE:
 			raiseWarning(f'Loading a mesh saved in nopartition={nopartition} with different parts (orig: {nparts}, actual: {MPI_SIZE})')
 	# Read mesh type
