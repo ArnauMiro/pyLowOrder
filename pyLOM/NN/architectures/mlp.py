@@ -1,4 +1,4 @@
-import os, math
+import os
 import torch
 import numpy as np
 import torch.nn as nn
@@ -572,8 +572,8 @@ class MLP(nn.Module):
                         return n > 0 and (n & (n - 1)) == 0
                     
                     if is_power_of_2(low) and is_power_of_2(high):
-                        power_low = int(math.log2(low))
-                        power_high = int(math.log2(high))
+                        power_low = int(np.log2(low))
+                        power_high = int(np.log2(high))
                         power_diff = power_high - power_low
                         
                         if power_diff > 3:
