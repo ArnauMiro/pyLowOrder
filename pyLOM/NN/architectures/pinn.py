@@ -8,7 +8,7 @@ import torch.utils
 from torch.utils.data import DataLoader
 
 from ... import pprint, cr # pyLOM/__init__.py
-from ..utils import Dataset
+from ..dataset import Dataset
 
 
 class PINN(ABC):

@@ -14,7 +14,7 @@ import numpy as np
 import torch
 
 from ..                 import DEVICE
-from ..utils            import Dataset
+from ..dataset          import Dataset
 from ...partition_table import PartitionTable
 from ...utils.cr        import cr
 from ...utils.errors    import raiseWarning
