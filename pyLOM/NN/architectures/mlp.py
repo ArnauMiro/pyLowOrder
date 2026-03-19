@@ -48,6 +48,10 @@ class MLP(nn.Module):
         verbose: bool = True,
         **kwargs: Dict,
     ):
+        super().__init__()
+        if seed is not None:
+            set_seed(seed)
+        
         self.input_size = input_size
         self.output_size = output_size
         self.n_layers = n_layers
@@ -60,10 +64,6 @@ class MLP(nn.Module):
         self.seed = seed
         self.model_name = model_name
 
-        super().__init__()
-        if seed is not None:
-            set_seed(seed)
-        
         self.layers = nn.ModuleList()
         for i in range(n_layers):
             in_size = input_size if i == 0 else hidden_size
