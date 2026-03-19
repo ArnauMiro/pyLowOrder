@@ -2,41 +2,22 @@
 #
 # pyLOM - Python Low Order Modeling.
 #
-# NN utility routines.
+# NN datasets 
 #
-# Last rev:
+# Last rev: 05/03/2026
 
-import os
-import random
-import json
-import numpy as np
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import Subset
-from torch import Generator, randperm, default_generator
-# Built-in modules
-import copy
-from itertools import product, accumulate
-from typing import List, Optional, Tuple, Union, Callable, Sequence, cast
+import numpy as np, torch, torch.nn.functional as F
 
-from .utils.scalers import ScalerProtocol
+from torch.utils.data   import Subset
+from torch              import Generator, randperm, default_generator
+from itertools          import product, accumulate
+from typing             import List, Optional, Tuple, cast, Sequence, Union, Callable
+from sklearn.neighbors  import NearestNeighbors
 
-from .                import DEVICE
-from ..utils.cr       import cr
-from ..utils.errors   import raiseWarning, raiseError
-from ..dataset        import Dataset as pyLOMDataset
-from ..               import pprint
-
-# Wrapper of the activation functions
-def tanh():      return nn.Tanh()
-def relu():      return nn.ReLU()
-def elu():       return nn.ELU()
-def sigmoid():   return nn.Sigmoid()
-def leakyRelu(): return nn.LeakyReLU()
-def silu():      return nn.SiLU()
-
-
+from ..utils.cr         import cr
+from ..utils.errors     import raiseWarning, raiseError
+from ..dataset          import Dataset as pyLOMDataset
+from ..                 import pprint
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -74,105 +55,50 @@ class Dataset(torch.utils.data.Dataset):
         variables_in: np.ndarray = None,
         parameters: List[List[float]] = None,
         combine_parameters_with_cartesian_prod: bool = False,
-        inputs_scaler: ScalerProtocol = None,
-        outputs_scaler: ScalerProtocol = None,
-        snapshots_by_column: bool = True,
-        squeeze_last_dim: bool = True,
-        channels_last: bool = False,
+        inputs_scaler=None,
+        outputs_scaler=None,
+        snapshots_by_column=True, 
     ):
-        """
-        See class docstring for argument semantics.
-        """
-        # --- metadata ---
         self.parameters = parameters
         self.num_channels = len(variables_out)
         self.mesh_shape = mesh_shape
-        self.channels_last = channels_last
-
-        # Attach scalers on the instance
-        self.inputs_scaler = inputs_scaler
-        self.outputs_scaler = outputs_scaler
-
-        # --- outputs ---
         if snapshots_by_column:
             variables_out = [variable.T for variable in variables_out]
-
-        self.variables_out = self._process_variables_out(
-            variables_out, self.outputs_scaler, squeeze_last_dim, channels_last
-        )
-
-        # --- inputs / parameters ---
+        if outputs_scaler is not None:
+            if not outputs_scaler.is_fitted:
+                outputs_scaler.fit(variables_out)
+            variables_out = outputs_scaler.transform(variables_out)
+        self.variables_out = self._process_variables_out(variables_out)
         if variables_in is not None:
             self.parameters = self._process_parameters(parameters, combine_parameters_with_cartesian_prod)
             self.variables_in = torch.tensor(variables_in, dtype=torch.float32)
-
-            if self.inputs_scaler is not None:
-                # Build column-wise list: [variables_in columns] + [parameters columns]
+            if inputs_scaler is not None:
                 variables_in_columns = [self.variables_in[:, i] for i in range(self.variables_in.shape[1])]
                 parameters_columns = [self.parameters[:, i] for i in range(self.parameters.shape[1])] if self.parameters is not None else []
-                cols = variables_in_columns + parameters_columns  # list of 2D tensors (n, 1) after scaler handling
-
-                # Fit once if needed and transform (list-mode by protocol)
-                if not self.inputs_scaler.is_fitted:
-                    self.inputs_scaler.fit(cols)
-                transformed = self.inputs_scaler.transform(cols)
-
-                # Reconstruct tensors
-                self.variables_in = torch.cat(transformed[: self.variables_in.shape[1]], dim=1).float()
+                if not inputs_scaler.is_fitted:
+                    inputs_scaler.fit(variables_in_columns + parameters_columns)
+                input_data_transformed = inputs_scaler.transform(variables_in_columns + parameters_columns)
+                self.variables_in = torch.stack(input_data_transformed[:self.variables_in.shape[1]], dim=1).float()
                 if self.parameters is not None:
-                    self.parameters = torch.cat(transformed[self.variables_in.shape[1] :], dim=1).float()
+                    self.parameters = torch.stack(input_data_transformed[self.variables_in.shape[1]:], dim=1)
         else:
             self.variables_in = None
             if parameters is not None:
                 raiseWarning("Parameters were passed but no input variables were passed. Parameters will be ignored.")
             self.parameters = None
 
+    def _process_variables_out(self, variables_out):
+        variables_out_stacked = []
+        for variable in variables_out:
+            variable = torch.tensor(variable)
+            variable = variable.reshape(-1, *self.mesh_shape)
+            variables_out_stacked.append(variable)
+        variables_out_stacked = torch.stack(variables_out_stacked, dim=1)
 
-    def _process_variables_out(
-        self,
-        variables_out,
-        outputs_scaler: ScalerProtocol,
-        squeeze_last_dim: bool = True,
-        channels_last: bool = False,
-    ):
-        """
-        Scale and reshape output variables consistently across channels.
+        if variables_out_stacked.shape[-1] == 1:  # (N, C, 1) -> (N, C)
+            variables_out_stacked = variables_out_stacked.squeeze(-1)
 
-        - Accepts a tuple/list of per-channel arrays with original shapes like (N, *mesh_shape).
-        - Flattens each channel to 2D ([-1, 1]) and, if a scaler is provided, fits once with a list
-        (one block per channel) and transforms accordingly (per-channel min/max).
-        - Rebuilds a torch.Tensor with shape (N, C, *mesh_shape) by default.
-          If ``channels_last=True`` it returns (N, *mesh_shape, C).
-        """
-        # 1) Prepare flattened list (one 2D block per channel)
-        np_vars = [np.asarray(v) for v in variables_out]
-        flat_list = [arr.reshape(-1, 1) for arr in np_vars]
-
-        # 2) Fit (once) and transform using list-mode (as required by the protocol)
-        if outputs_scaler is not None:
-            if not outputs_scaler.is_fitted:
-                outputs_scaler.fit(flat_list)
-            flat_scaled = outputs_scaler.transform(flat_list)
-        else:
-            flat_scaled = flat_list  # pass-through
-
-        # 3) Rebuild tensors and stack along the channel axis
-        stacked = []
-        for scaled, orig in zip(flat_scaled, np_vars):
-            s = np.asarray(scaled).reshape(orig.shape)     # back to (N, *mesh_shape)
-            t = torch.as_tensor(s)
-            t = t.reshape(-1, *self.mesh_shape)
-            stacked.append(t)
-
-        out = torch.stack(stacked, dim=-1 if channels_last else 1)
-        if squeeze_last_dim:
-            if channels_last and out.shape[-1] == 1:
-                out = out.squeeze(-1)
-            if (not channels_last) and out.shape[1] == 1:
-                out = out.squeeze(1)
-        return out.float()
-
-
+        return variables_out_stacked.float()
 
     def _process_parameters(self, parameters, combine_parameters_with_cartesian_prod):
         if parameters is None:
@@ -197,17 +123,6 @@ class Dataset(torch.utils.data.Dataset):
     @property
     def num_parameters(self):
         return self.parameters.shape[1] if self.parameters is not None else 0
-    
-    @property
-    def has_input_scaler(self) -> bool:
-        """True if an input scaler is attached and fitted."""
-        return self.inputs_scaler is not None and self.inputs_scaler.is_fitted
-
-    @property
-    def has_output_scaler(self) -> bool:
-        """True if an output scaler is attached and fitted."""
-        return self.outputs_scaler is not None and self.outputs_scaler.is_fitted
-
 
     def __len__(self):
         return len(self.variables_out)
@@ -349,6 +264,9 @@ class Dataset(torch.utils.data.Dataset):
             self._pad3D(*args)
         else:
             raiseError(f'Invalid number of dimensions {len(args)} for mesh {self.mesh_shape}')
+
+    def _build_new(self, **kwargs):
+        return Dataset(**kwargs)
 
     def get_splits(
         self,
@@ -505,7 +423,7 @@ class Dataset(torch.utils.data.Dataset):
                 split_variables_out = self.variables_out[new_indices]
 
                 # Create a new dataset instance with the split data
-                split_dataset = Dataset(
+                split_dataset = self._build_new(
                     variables_out=tuple([split_variables_out[:, i].reshape(-1, *self.mesh_shape).numpy()
                                     for i in range(self.num_channels)]),
                     mesh_shape=self.mesh_shape,
@@ -527,7 +445,6 @@ class Dataset(torch.utils.data.Dataset):
         file_path,
         field_names: List[str],
         variables_names: List[str] = ['all'],
-        add_variables: bool = False,
         add_mesh_coordinates: bool = True,
         **kwargs,
     ):
@@ -537,7 +454,7 @@ class Dataset(torch.utils.data.Dataset):
         Args:
             file_path (str): Path to the HDF5 file.
             variables_out_names (List[str]): Names of the fields to be used as output. E.g. ``["CP"]``.
-            add_variables (bool): Whether to add the variables as input variables. Default is ``False``.
+            add_variables (bool): Whether to add the variables as input variables. Default is ``True``.
             variables_names (List[str]): Names of the variables from pyLOM.Dataset.varnames to be used as input. If ``["all"]`` is passed, all variables will be used. Default is ``["all"]``.
             kwargs: Additional arguments to be passed to the pyLOM.NN.Dataset constructor.
 
@@ -548,12 +465,13 @@ class Dataset(torch.utils.data.Dataset):
             >>> dataset = pyLOM.NN.Dataset.load(
             ...     file_path,
             ...     field_names=["CP"],
-            ...     add_variables=False,
+            ...     add_variables=True,
             ...     add_mesh_coordinates=True,
             ...     inputs_scaler=inputs_scaler,
             ...     outputs_scaler=outputs_scaler,
             ... )
         """
+        
         original_dataset = pyLOMDataset.load(file_path)
         if (len(variables_names) >= 0 and "combine_parameters_with_cartesian_prod" in kwargs):
             raiseWarning(
@@ -568,44 +486,14 @@ class Dataset(torch.utils.data.Dataset):
                 raiseError("No variabele found in the dataset")
             variables_names = original_dataset.varnames
 
-        variables_in = None
-        parameters = None
-        if add_variables:
-            variables_cols = [original_dataset.get_variable(var_name) for var_name in variables_names]
-            variables_in = np.stack(variables_cols, axis=1) if len(variables_cols) > 0 else None
-            if add_mesh_coordinates:
-                if variables_in is None:
-                    variables_in = original_dataset.xyz
-                else:
-                    variables_in = np.hstack([variables_in, original_dataset.xyz])
-        else:
-            parameters = [original_dataset.get_variable(var_name) for var_name in variables_names]
-            parameters = parameters if len(parameters) > 0 else None
-            if add_mesh_coordinates:
-                variables_in = original_dataset.xyz
-            else:
-                variables_in = None
-        
-        variables_out = tuple(
-            [original_dataset[var_name] for var_name in field_names]
-        )
+        parameters = [original_dataset.get_variable(var_name) for var_name in variables_names]
 
-        # if add_variables:
-        #     print("stacking variables_out")
-        #     variables_out = np.stack(variables_out, axis=2) if len(variables_out) > 0 else None
-        #     variables_out_tuple = (variables_out,)
-        # else:
-        #     variables_out_tuple = variables_out
-
-        variables_out_tuple = variables_out
-        # for i, var_name in enumerate(field_names):
-        #     print(f"Loaded output variable '{var_name}' with shape {original_dataset[var_name].shape}")
-        #     print(f"Variable {i}-th in variables_out shape: {variables_out_tuple[i].shape}")
-        #     print(f"Variable {i}-th in variables_out_tuple shape: {variables_out_tuple[i].shape}")
         return cls(
-            variables_out=variables_out_tuple,
-            parameters=parameters,
-            variables_in=variables_in,
+            variables_out=tuple(
+                [original_dataset[var_name] for var_name in field_names]
+            ),
+            parameters=parameters if len(parameters) > 0 else None,
+            variables_in=original_dataset.xyz if add_mesh_coordinates else None,
             **kwargs,
         )
     
@@ -691,7 +579,7 @@ class Dataset(torch.utils.data.Dataset):
         if not return_views:
             data = self[indices]
             if self.variables_in is None:
-                dataset = Dataset(
+                dataset = self._build_new(
                     variables_out=tuple([data[:, i].reshape(-1, *self.mesh_shape).numpy()
                                 for i in range(self.num_channels)]),
                     mesh_shape=self.mesh_shape,
@@ -700,7 +588,7 @@ class Dataset(torch.utils.data.Dataset):
                     snapshots_by_column=False  # Since the data is already reshaped
                 )
             else:
-                dataset = Dataset(
+                dataset = self._build_new(
                     variables_out=tuple([data[1][:, i].reshape(-1, *self.mesh_shape).numpy()
                                 for i in range(self.num_channels)]),
                     mesh_shape=self.mesh_shape,
@@ -750,8 +638,8 @@ class Dataset(torch.utils.data.Dataset):
         # Format the values to 2 decimal places
         inputs_min_str = ', '.join([f'{val:.2f}' for val in inputs_min])
         inputs_max_str = ', '.join([f'{val:.2f}' for val in inputs_max])
-        outputs_min_str = f'{outputs_min[0]:.2f}'
-        outputs_max_str = f'{outputs_max[0]:.2f}'
+        outputs_min_str = ', '.join([f'{val:.2f}' for val in outputs_min])
+        outputs_max_str = ', '.join([f'{val:.2f}' for val in outputs_max])
 
         pprint(
             0,
@@ -764,154 +652,133 @@ class Dataset(torch.utils.data.Dataset):
             f'  Outputs max  : {outputs_max_str} \n'
         )
 
-    def inverse_scale_inputs(self, x: Union[np.ndarray, torch.Tensor], scaler: ScalerProtocol = None):
-        """
-        Inverse-scale a 2D inputs matrix using the provided scaler or self.inputs_scaler.
-        Accepts numpy or torch and returns the same container type.
-        """
-        sc = scaler or self.inputs_scaler
-        if sc is None or not sc.is_fitted:
-            return x
-
-        was_numpy = isinstance(x, np.ndarray)
-        X = torch.as_tensor(x)
-        if X.ndim != 2:
-            X = X.reshape(-1, X.shape[-1])
-
-        X_inv = sc.inverse_transform(X)               # protocol guarantees this
-        X_inv_t = torch.as_tensor(X_inv, dtype=X.dtype)
-        return X_inv_t.detach().cpu().numpy() if was_numpy else X_inv_t
-
-    def filter_by_spatial_mask(self, mask, *, inplace: bool = False, keep_scalers: bool = False) -> "Dataset":
-        """Return a dataset filtered along the spatial/mesh dimension.
-
-        The mask must flag the mesh cells/points to keep. When ``variables_in`` is present,
-        the mask length must match the number of input coordinates. Otherwise it must match
-        ``np.prod(mesh_shape)``.
-
-        Args:
-            mask: Boolean-like 1D array/tensor selecting the spatial positions to keep.
-            inplace: If True, modify the current dataset and return it. Defaults to False.
-            keep_scalers: If False, drop attached scalers in the filtered dataset so they can
-                be re-fitted on the reduced data. Defaults to False.
-        """
-        target = self if inplace else copy.deepcopy(self)
-
-        mask_tensor = torch.as_tensor(mask, dtype=torch.bool)
-        mask_flat = mask_tensor.reshape(-1)
-        if mask_flat.numel() == 0 or mask_flat.sum() == 0:
-            raiseError("Spatial mask is empty; nothing to keep.")
-
-        spatial_size = int(np.prod(target.mesh_shape))
-
-        def _filter_outputs(size_to_match: int):
-            mask_for_out = mask_flat.to(target.variables_out.device)
-            rest_shape = target.variables_out.shape[1 + len(target.mesh_shape) :]
-            reshaped = target.variables_out.reshape(
-                target.variables_out.shape[0], size_to_match, *rest_shape
-            )
-            filtered = reshaped[:, mask_for_out, ...]
-            kept = int(mask_flat.sum().item())
-            target.variables_out = filtered.reshape(
-                target.variables_out.shape[0], kept, *rest_shape
-            )
-            target.mesh_shape = (kept,) if len(target.mesh_shape) == 1 else target.mesh_shape
-
-        if target.variables_in is None:
-            if mask_flat.numel() != spatial_size:
-                raiseError(
-                    f"Mask length {mask_flat.numel()} does not match mesh size {spatial_size}."
-                )
-            _filter_outputs(spatial_size)
-        else:
-            n_points = target.variables_in.shape[0]
-
-            if mask_flat.numel() == spatial_size and spatial_size != n_points:
-                _filter_outputs(spatial_size)
-            elif mask_flat.numel() == n_points:
-                mask_for_in = mask_flat.to(target.variables_in.device)
-                target.variables_in = target.variables_in[mask_for_in]
-                if spatial_size == n_points:
-                    target.mesh_shape = (int(mask_flat.sum().item()),)
-
-                total_samples = target.variables_out.shape[0]
-                rest_shape = target.variables_out.shape[1:]
-                if total_samples % n_points != 0:
-                    raiseError(
-                        "Cannot reshape outputs with the provided mask; dataset length is not a multiple of the number of input points."
-                    )
-                blocks = total_samples // n_points
-                mask_for_out = mask_flat.to(target.variables_out.device)
-                reshaped = target.variables_out.reshape(blocks, n_points, *rest_shape)
-                filtered = reshaped[:, mask_for_out, ...]
-                target.variables_out = filtered.reshape(-1, *rest_shape)
-            else:
-                raiseError(
-                    f"Mask length {mask_flat.numel()} does not match mesh size {spatial_size} or number of input points {n_points}."
-                )
-
-        if not keep_scalers:
-            target.inputs_scaler = None
-            target.outputs_scaler = None
-
-        return target
-
-    def inverse_scale_outputs(
+class NeighborhoodDataset(Dataset):
+    def __init__(
         self,
-        y: Union[np.ndarray, torch.Tensor],
-        scaler: ScalerProtocol = None,
-        mesh_shape: Optional[Tuple[int, ...]] = None,
+        *args,
+        n_neighbors: int = 6,
+        geom_dim: int = None,
+        neighbors: torch.Tensor = None,
+        **kwargs,
     ):
-        """
-        Inverse-scale an output tensor using the provided scaler or self.outputs_scaler.
-        Accepts channel-first (N, C, *mesh_shape), channel-last (N, *mesh_shape, C),
-        or no-explicit-channel (N, *mesh_shape), and returns the same container type.
-        """
-        sc = scaler or self.outputs_scaler
-        if sc is None or not sc.is_fitted:
-            return y
+        super().__init__(*args, **kwargs)
 
-        mshape = mesh_shape or self.mesh_shape
-        was_numpy = isinstance(y, np.ndarray)
-        t = torch.as_tensor(y)
-        ndim_expected_no_channel = len(mshape) + 1
-        ndim_expected_with_channel = len(mshape) + 2
+        if self.variables_in is None:
+            raise ValueError("NeighborhoodDataset requires input variables (coordinates).")
 
-        if t.ndim == ndim_expected_no_channel:
-            # (N, *mesh_shape)
-            flat_list = [t.reshape(-1, 1)]
-            inv_list = sc.inverse_transform(flat_list)
-            out = torch.as_tensor(inv_list[0]).reshape(t.shape)
-        elif t.ndim == ndim_expected_with_channel:
-            # (N, C, *mesh_shape) or (N, *mesh_shape, C)
-            channels_last = bool(getattr(self, "channels_last", False))
-            if channels_last:
-                C = t.shape[-1]
-                flat_list = [t[..., i].reshape(-1, 1) for i in range(C)]
-                inv_list = sc.inverse_transform(flat_list)
-                restored = [torch.as_tensor(inv).reshape(t.shape[:-1]) for inv in inv_list]
-                out = torch.stack(restored, dim=-1)
-            else:
-                C = t.shape[1]
-                flat_list = [t[:, i, ...].reshape(-1, 1) for i in range(C)]
-                inv_list = sc.inverse_transform(flat_list)
-                restored = [torch.as_tensor(inv).reshape((t.shape[0],) + tuple(t.shape[2:])) for inv in inv_list]
-                out = torch.stack(restored, dim=1)
+        input_dim = self.variables_in.shape[1]
+
+        if geom_dim is None:
+            if input_dim < 2:
+                raise ValueError("At least 2 input columns are required for geometry.")
+            self.geom_dim = min(3, input_dim)
         else:
-            raiseError(
-                f"Unsupported output shape {tuple(t.shape)} for mesh_shape {mshape}. "
-                "Expected (N, *mesh_shape), (N, C, *mesh_shape), or (N, *mesh_shape, C)."
+            if geom_dim not in (2, 3):
+                raise ValueError("geom_dim must be 2 or 3.")
+            if input_dim < geom_dim:
+                raise ValueError(
+                    f"geom_dim={geom_dim} but only {input_dim} input columns available."
+                )
+            self.geom_dim = geom_dim
+
+        self.n_neighbors = n_neighbors
+        self.neighbors = neighbors if neighbors is not None else self._build_neighbors()
+        self.use_neighbors = False
+
+    def __getitem__(self, idx: Union[int, slice]):
+        if self.use_neighbors:
+            return self.get_with_neighbors(idx)
+        else:
+            return super().__getitem__(idx)
+        
+    def _build_neighbors(self):
+        """
+        Precompute geometric neighbors using only geometric coordinates.
+        """
+        coords = self.variables_in[:, :self.geom_dim].cpu().numpy()
+
+        nbrs = NearestNeighbors(n_neighbors=self.n_neighbors + 1, algorithm="ball_tree")
+        nbrs.fit(coords)
+
+        _, indices = nbrs.kneighbors(coords)
+        return torch.tensor(indices[:, 1:], dtype=torch.long)
+
+    def _build_new(self, **kwargs):
+        return NeighborhoodDataset(
+            n_neighbors=self.n_neighbors,
+            geom_dim=self.geom_dim,
+            neighbors=self.neighbors,
+            **kwargs,
+        )
+
+    def train(self):
+        self.use_neighbors = True
+
+    def eval(self):
+        self.use_neighbors = False
+
+    def get_with_neighbors(self, idx: Union[int, slice, List[int], torch.Tensor]):
+
+        # Normalize idx
+        if isinstance(idx, slice):
+            idx = torch.arange(
+                idx.start if idx.start is not None else 0,
+                idx.stop if idx.stop is not None else len(self),
+                idx.step if idx.step is not None else 1,
+                dtype=torch.long,
             )
+        elif isinstance(idx, int):
+            idx = torch.tensor([idx], dtype=torch.long)
+        elif isinstance(idx, (list, tuple)):
+            idx = torch.tensor(idx, dtype=torch.long)
+        elif isinstance(idx, torch.Tensor):
+            idx = idx.long()
+        else:
+            idx = torch.tensor(idx, dtype=torch.long)
 
-        return out.detach().cpu().numpy() if was_numpy else out
+        if idx.dim() == 0:
+            idx = idx.unsqueeze(0)
 
-    
-    def save_scalers(self, prefix: str):
-        """
-        Persist attached scalers to JSON files if they provide a 'save' method and are fitted.
-        Files produced: f"{prefix}_inputs_scaler.json" and f"{prefix}_outputs_scaler.json".
-        """
-        if self.inputs_scaler is not None and hasattr(self.inputs_scaler, "save") and self.inputs_scaler.is_fitted:
-            self.inputs_scaler.save(f"{prefix}_inputs_scaler.json")
-        if self.outputs_scaler is not None and hasattr(self.outputs_scaler, "save") and self.outputs_scaler.is_fitted:
-            self.outputs_scaler.save(f"{prefix}_outputs_scaler.json")
+        single_index = idx.numel() == 1
+
+        # Obtain center data (vectorized)
+        center_input, center_output = super().__getitem__(idx)
+
+        # Obtain neighbor data (vectorized)
+        batch_size = idx.shape[0]
+        mesh_length = len(self.neighbors)
+        neighbor_idx = idx % mesh_length
+        parameters_idx = idx // mesh_length
+
+        neighbor_indices = (self.neighbors[neighbor_idx] + mesh_length * parameters_idx.unsqueeze(-1))
+        n_neighbors = neighbor_indices.shape[1]
+        flat_neighbor_indices = neighbor_indices.reshape(-1)
+
+        neighbor_inputs_flat, neighbor_outputs_flat = super().__getitem__(
+            flat_neighbor_indices
+        )
+
+        # Reshape back
+        input_dim = neighbor_inputs_flat.shape[-1]
+        output_dim = neighbor_outputs_flat.shape[-1]
+
+        neighbor_inputs = neighbor_inputs_flat.view(
+            batch_size, n_neighbors, input_dim
+        )
+        neighbor_outputs = neighbor_outputs_flat.view(
+            batch_size, n_neighbors, output_dim
+        )
+
+        # Single index case
+        if single_index:
+            center_input = center_input.squeeze(0)
+            center_output = center_output.squeeze(0)
+            neighbor_inputs = neighbor_inputs.squeeze(0)
+            neighbor_outputs = neighbor_outputs.squeeze(0)
+
+        return (
+            center_input,
+            neighbor_inputs,
+            center_output,
+            neighbor_outputs,
+        )

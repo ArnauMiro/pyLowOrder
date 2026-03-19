@@ -9,6 +9,7 @@ from ..optimizer import OptunaOptimizer, TrialPruned
 from .. import DEVICE, PIN_MEMORY, set_seed  # pyLOM/NN/__init__.py
 from ... import pprint, cr  # pyLOM/__init__.py
 from ...utils.errors import raiseWarning, raiseError
+from ..loss import BaseLossFunction, TorchLossAdapter
 
 
 class MLP(nn.Module):
@@ -47,6 +48,10 @@ class MLP(nn.Module):
         verbose: bool = True,
         **kwargs: Dict,
     ):
+        super().__init__()
+        if seed is not None:
+            set_seed(seed)
+        
         self.input_size = input_size
         self.output_size = output_size
         self.n_layers = n_layers
@@ -59,10 +64,6 @@ class MLP(nn.Module):
         self.seed = seed
         self.model_name = model_name
 
-        super().__init__()
-        if seed is not None:
-            set_seed(seed)
-        
         self.layers = nn.ModuleList()
         for i in range(n_layers):
             in_size = input_size if i == 0 else hidden_size
@@ -102,7 +103,7 @@ class MLP(nn.Module):
                 pprint(0, f"\t{key}: {value}")
             pprint(
                 0,
-                f"\ttotal_size (trainable parameters): {sum(p.numel() for p in self.parameters() if p.requires_grad)}\n"
+                f"\ttotal_size (trainable parameters): {self._count_n_parameters()}\n"
             )
     
     def forward(self, x):
@@ -124,6 +125,19 @@ class MLP(nn.Module):
         if not value:
             raiseError("model_name cannot be empty")
         self._model_name = value
+
+    def _count_n_parameters(self) -> int:
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+
+    def unpack_batch(self, batch):
+        if len(batch) == 2:
+            x, y = batch
+            return {"x": x,"x_neighbors": None, "y": y, "y_neighbors": None}
+        elif len(batch) == 4:
+            x, x_neighbors, y, y_neighbors = batch
+            return {"x": x, "x_neighbors": x_neighbors, "y": y, "y_neighbors": y_neighbors}
+        else:
+            raiseError("Unexpected batch format")
     
     @cr('MLP.fit')
     def fit(
@@ -133,7 +147,8 @@ class MLP(nn.Module):
         epochs: int = 100,
         batch_size: int = 32,
         lr: float = 0.001,
-        loss_fn: torch.nn.Module = torch.nn.MSELoss(),
+        loss_fn: BaseLossFunction | torch.nn.Module = torch.nn.MSELoss(),
+        loss_fn_kwargs: dict = {},
         optimizer_class: torch.optim.Optimizer = torch.optim.Adam,
         scheduler_class: torch.optim.lr_scheduler.LRScheduler = None,
         optimizer_kwargs: dict = {},
@@ -153,7 +168,8 @@ class MLP(nn.Module):
             epochs (int, optional): Number of epochs to train the model (default: ``100``).
             batch_size (int, optional): Batch size for training (default: ``32``).
             lr (float, optional): Learning rate for the optimizer (default: ``0.001``).
-            loss_fn (torch.nn.Module, optional): Loss function to optimize (default: ``torch.nn.MSELoss()``).
+            loss_fn (torch.nn.Module, optional): Loss function class to train with (default: ``torch.nn.MSELoss()``).
+            loss_fn_kwargs (dict, optional): Additional keyword arguments to pass to the loss function (default: ``{}``).
             optimizer_class (torch.optim.Optimizer, optional): Optimizer class to use (default: ``torch.optim.Adam``).
             scheduler_class (torch.optim.lr_scheduler._LRScheduler, optional): Learning rate scheduler class to use. If ``None``, no scheduler will be used (default: ``None``).
             optimizer_kwargs (dict, optional): Additional keyword arguments to pass to the optimizer (default: ``{}``).
@@ -234,20 +250,41 @@ class MLP(nn.Module):
 
         total_epochs = len(train_losses) + epochs
         self.mname = f"{self._model_name}_{total_epochs:05d}"
+
+        if isinstance(loss_fn, BaseLossFunction):
+            pass
+        elif isinstance(loss_fn, torch.nn.Module):
+            loss_fn = TorchLossAdapter(loss_fn)
+        elif callable(loss_fn) and issubclass(loss_fn, BaseLossFunction):
+            loss_fn = loss_fn(**loss_fn_kwargs)
+        else:
+            raiseError("loss_fn must be either a BaseLossFunction, a torch.nn.Module, or a BaseLossFunction callable class")
+
+        def compute_loss(batch, mode="train"):
+            batch = self.unpack_batch(batch)
+            if mode == "train":
+                return loss_fn(self, batch)
+            elif mode == "eval":
+                preds = self(batch["x"])
+                return torch.nn.functional.mse_loss(preds, batch["y"])
+            else:
+                raiseError(f"Unknown mode: {mode}")
+
         for epoch in range(1+len(train_losses), 1+total_epochs):
             train_loss = 0.0
             self.train()
+            if hasattr(self.train_dataloader.dataset, "train"):
+                self.train_dataloader.dataset.train()
 
             def closure():
                 self.optimizer.zero_grad()
-                oupt = self(x_train)
-                loss_val = loss_fn(oupt, y_train)
+                loss_val = compute_loss(batch, mode="train")
                 loss_val.backward()
                 loss_iterations_train.append(loss_val.item())
                 return loss_val
 
             for b_idx, batch in enumerate(self.train_dataloader):
-                x_train, y_train = batch[0].to(self.device), batch[1].to(self.device)
+                batch = tuple(b.to(self.device) for b in batch)
                 train_loss += self.optimizer.step(closure).item()
                 total_norm = torch.norm(torch.stack([p.grad.norm() for p in self.parameters() if p.grad is not None]))
                 grad_norms.append(total_norm.item())
@@ -268,11 +305,12 @@ class MLP(nn.Module):
             test_loss = 0.0
             if eval_dataset is not None:
                 self.eval()
+                if hasattr(self.eval_dataloader.dataset, "eval"):
+                    self.eval_dataloader.dataset.eval()
                 with torch.no_grad():
                     for n_idx, sample in enumerate(self.eval_dataloader):
-                        x_test, y_test = sample[0].to(self.device), sample[1].to(self.device)
-                        test_output = self(x_test)
-                        loss_val = loss_fn(test_output, y_test)
+                        sample = tuple(s.to(self.device) for s in sample)
+                        loss_val = compute_loss(sample, mode="eval")
                         loss_iterations_test.append(loss_val.item())
                         test_loss += loss_val.item()
 
@@ -357,6 +395,8 @@ class MLP(nn.Module):
                 dataloader_params[key] = kwargs[key]
 
         predict_dataloader = DataLoader(X, **dataloader_params)
+        if hasattr(predict_dataloader.dataset, "eval"):
+            predict_dataloader.dataset.eval()
 
         total_rows = len(predict_dataloader.dataset)
         num_columns = self.output_size
@@ -425,6 +465,7 @@ class MLP(nn.Module):
         cls, 
         path: str,
         device: torch.device = DEVICE,
+        verbose: bool = True,
     ):
         r"""
         Load the model from a checkpoint file. Does not require the model to be instantiated.
@@ -432,6 +473,7 @@ class MLP(nn.Module):
         Args:
             path (str): Path to the file to load the model from.
             device (torch.device, optional): Device to use (default: ``torch.device("cpu")``).
+            verbose (bool, optional): If ``True``, prints the model parameters and total size after loading (default: ``True``).
 
         Returns:
             model (MLP): The loaded model with the trained weights.
@@ -450,7 +492,8 @@ class MLP(nn.Module):
             checkpoint["initialization"],
             checkpoint["initialization_kwargs"],
             checkpoint["seed"],
-            checkpoint["model_name"]
+            checkpoint["model_name"],
+            verbose=verbose,
         )
         
         model.load_state_dict(checkpoint["state_dict"])
@@ -514,44 +557,85 @@ class MLP(nn.Module):
         input_dim, output_dim = train_dataset[0][0].shape[0], train_dataset[0][1].shape[0]
         
         def suggest_value(name, space, trial):
+            if isinstance(space, dict):
+                suggested_dict = {}
+                for key, subspace in space.items():
+                    full_name = f"{name}.{key}"
+                    suggested_dict[key] = suggest_value(full_name, subspace, trial)
+                return suggested_dict
+            
             if isinstance(space, (tuple, list)):
-                use_log = (space[1] / max(1e-12, space[0])) >= 1000 if isinstance(space[0], (int, float)) else False
-                if isinstance(space[0], int):
-                    return trial.suggest_int(name, int(space[0]), int(space[1]), log=use_log)
-                elif isinstance(space[0], float):
-                    return trial.suggest_float(name, float(space[0]), float(space[1]), log=use_log)
-            else:
-                return space
+                low, high = space
+                if isinstance(low, int) and isinstance(high, int):
+                    
+                    def is_power_of_2(n):
+                        return n > 0 and (n & (n - 1)) == 0
+                    
+                    if is_power_of_2(low) and is_power_of_2(high):
+                        power_low = int(np.log2(low))
+                        power_high = int(np.log2(high))
+                        power_diff = power_high - power_low
+                        
+                        if power_diff > 3:
+                            choices = [2**p for p in range(power_low, power_high + 1)]
+                            return trial.suggest_categorical(name, choices)
+                    
+                    use_log = (high / max(1, low)) >= 1000
+                    return trial.suggest_int(name, low, high, log=use_log)
+
+                if isinstance(low, float) and isinstance(high, float):
+                    use_log = (high / max(1e-12, low)) >= 1000
+                    return trial.suggest_float(name, low, high, log=use_log)
+
+            return space
         
         def optimization_function(trial) -> float:
-            training_params = {}       
-            for key, params in optimization_params.items():
-                training_params[key] = suggest_value(key, params, trial)
-            training_params["save_logs_path"] = None
-            
-            model = cls(input_dim, output_dim, verbose=False, **training_params)
-            if optuna_optimizer.pruner is not None:
-                epochs = training_params["epochs"]
-                training_params["epochs"] = 1
-                for epoch in range(epochs):
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+            model = None
+
+            try: 
+                training_params = {}       
+                for key, params in optimization_params.items():
+                    training_params[key] = suggest_value(key, params, trial)
+                training_params["save_logs_path"] = None
+                
+                model = cls(input_dim, output_dim, verbose=False, **training_params)
+                if optuna_optimizer.pruner is not None:
+                    epochs = training_params["epochs"]
+                    training_params["epochs"] = 1
+                    for epoch in range(epochs):
+                        model.fit(train_dataset, **training_params)
+                        y_pred, y_true = model.predict(eval_dataset, return_targets=True)
+                        loss_val = ((y_pred - y_true)**2).mean()
+                        trial.report(loss_val, epoch)
+                        if trial.should_prune(): 
+                            raise TrialPruned()
+                else:
                     model.fit(train_dataset, **training_params)
                     y_pred, y_true = model.predict(eval_dataset, return_targets=True)
                     loss_val = ((y_pred - y_true)**2).mean()
-                    trial.report(loss_val, epoch)
-                    if trial.should_prune(): 
-                        raise TrialPruned()
-            else:
-                model.fit(train_dataset, **training_params)
-                y_pred, y_true = model.predict(eval_dataset, return_targets=True)
-                loss_val = ((y_pred - y_true)**2).mean()
+                
+                return loss_val
             
-            return loss_val
+            except RuntimeError as e:
+                if "out of memory" in str(e) or "MEMORY" in str(e).upper():
+                    print(f"Trial {trial.number} failed due to out of memory error. Pruning the trial.")
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                    raise TrialPruned()
+                raise
+
+            finally:
+                if model is not None:
+                    del model
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
         
         best_params = optuna_optimizer.optimize(objective_function=optimization_function)
 
         # Update params with best ones
-        for param in best_params.keys():
-            if param in optimization_params:
-                optimization_params[param] = best_params[param]
+        OptunaOptimizer.apply_to(optimization_params, optimized_params=best_params)
         
         return cls(input_dim, output_dim, **optimization_params), optimization_params

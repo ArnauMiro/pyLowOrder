@@ -142,6 +142,7 @@ NN = [
   "torchvision",
   "torchsummary",
   "tensorflow",
+  "tensorboard",
   "xgboost",
   "scikit-learn",
 ]
