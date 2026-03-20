@@ -22,7 +22,7 @@ class Dataset(object):
 	with the number of variables and relates them so that the operations 
 	in parallel are easier.
 	'''
-	def __init__(self, xyz=None, ptable=None, vars=None, order=None, point=True, **kwargs):
+	def __init__(self, xyz=None, ptable=None, vars={}, order=None, point=True, **kwargs):
 		'''
 		Class constructor
 
