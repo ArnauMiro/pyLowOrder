@@ -39,6 +39,20 @@ def silu():      return nn.SiLU()
 
 
 
+def _filter_outputs_by_spatial_mask(target, mask_flat: torch.Tensor, size_to_match: int) -> None:
+    mask_for_out = mask_flat.to(target.variables_out.device)
+    rest_shape = target.variables_out.shape[1 + len(target.mesh_shape) :]
+    reshaped = target.variables_out.reshape(
+        target.variables_out.shape[0], size_to_match, *rest_shape
+    )
+    filtered = reshaped[:, mask_for_out, ...]
+    kept = int(mask_flat.sum().item())
+    target.variables_out = filtered.reshape(
+        target.variables_out.shape[0], kept, *rest_shape
+    )
+    target.mesh_shape = (kept,) if len(target.mesh_shape) == 1 else target.mesh_shape
+
+
 
 class Dataset(torch.utils.data.Dataset):
     r"""
@@ -109,19 +123,34 @@ class Dataset(torch.utils.data.Dataset):
 
             if self.inputs_scaler is not None:
                 # Build column-wise list: [variables_in columns] + [parameters columns]
-                variables_in_columns = [self.variables_in[:, i] for i in range(self.variables_in.shape[1])]
-                parameters_columns = [self.parameters[:, i] for i in range(self.parameters.shape[1])] if self.parameters is not None else []
-                cols = variables_in_columns + parameters_columns  # list of 2D tensors (n, 1) after scaler handling
+                # Keep each block 2D (n, 1) for compatibility with both legacy and new scalers.
+                variables_in_columns = [self.variables_in[:, i : i + 1] for i in range(self.variables_in.shape[1])]
+                parameters_columns = [self.parameters[:, i : i + 1] for i in range(self.parameters.shape[1])] if self.parameters is not None else []
+                cols = variables_in_columns + parameters_columns
 
-                # Fit once if needed and transform (list-mode by protocol)
+                # Fit once if needed and transform.
                 if not self.inputs_scaler.is_fitted:
                     self.inputs_scaler.fit(cols)
                 transformed = self.inputs_scaler.transform(cols)
 
-                # Reconstruct tensors
-                self.variables_in = torch.cat(transformed[: self.variables_in.shape[1]], dim=1).float()
+                # Some legacy scalers may return a single 2D matrix or 1D blocks.
+                if isinstance(transformed, (np.ndarray, torch.Tensor)):
+                    t2 = torch.as_tensor(transformed)
+                    if t2.ndim == 1:
+                        t2 = t2.unsqueeze(1)
+                    transformed = [t2[:, i : i + 1] for i in range(t2.shape[1])]
+
+                transformed_tensors = []
+                for block in transformed:
+                    tb = torch.as_tensor(block)
+                    if tb.ndim == 1:
+                        tb = tb.unsqueeze(1)
+                    transformed_tensors.append(tb)
+
+                n_in_cols = self.variables_in.shape[1]
+                self.variables_in = torch.cat(transformed_tensors[:n_in_cols], dim=1).float()
                 if self.parameters is not None:
-                    self.parameters = torch.cat(transformed[self.variables_in.shape[1] :], dim=1).float()
+                    self.parameters = torch.cat(transformed_tensors[n_in_cols:], dim=1).float()
         else:
             self.variables_in = None
             if parameters is not None:
@@ -807,31 +836,17 @@ class Dataset(torch.utils.data.Dataset):
             raiseError("Spatial mask is empty; nothing to keep.")
 
         spatial_size = int(np.prod(target.mesh_shape))
-
-        def _filter_outputs(size_to_match: int):
-            mask_for_out = mask_flat.to(target.variables_out.device)
-            rest_shape = target.variables_out.shape[1 + len(target.mesh_shape) :]
-            reshaped = target.variables_out.reshape(
-                target.variables_out.shape[0], size_to_match, *rest_shape
-            )
-            filtered = reshaped[:, mask_for_out, ...]
-            kept = int(mask_flat.sum().item())
-            target.variables_out = filtered.reshape(
-                target.variables_out.shape[0], kept, *rest_shape
-            )
-            target.mesh_shape = (kept,) if len(target.mesh_shape) == 1 else target.mesh_shape
-
         if target.variables_in is None:
             if mask_flat.numel() != spatial_size:
                 raiseError(
                     f"Mask length {mask_flat.numel()} does not match mesh size {spatial_size}."
                 )
-            _filter_outputs(spatial_size)
+            _filter_outputs_by_spatial_mask(target, mask_flat, spatial_size)
         else:
             n_points = target.variables_in.shape[0]
 
             if mask_flat.numel() == spatial_size and spatial_size != n_points:
-                _filter_outputs(spatial_size)
+                _filter_outputs_by_spatial_mask(target, mask_flat, spatial_size)
             elif mask_flat.numel() == n_points:
                 mask_for_in = mask_flat.to(target.variables_in.device)
                 target.variables_in = target.variables_in[mask_for_in]

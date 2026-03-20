@@ -30,15 +30,12 @@ from .pipeline                        import Pipeline, ClusteredPipeline
 from .loss                            import BaseLossFunction, TorchLossAdapter, GradientWeightedMSE, NeighborDifferenceMSELoss, HybridGradientNeighborMSELoss, FocalMSELoss
 from .dataset                         import Dataset
 from .gns                             import Graph
-from .scalers                         import MinMaxScaler
-from .utils                           import StandardScaler, RobustScaler
+from .utils.scalers                   import MinMaxScaler, StandardScaler, RobustScaler
+from .utils                           import RegressionEvaluator, ClassificationEvaluator, EarlyStopper
 from .utils                           import select_device, betaLinearScheduler, create_results_folder, set_seed
 from .utils                           import tanh, relu, elu, sigmoid, leakyRelu, silu
 
 from .optimizer                       import OptunaOptimizer, OptunaStudyManager
-
-from .stats                           import RegressionEvaluator, ClassificationEvaluator
-from .callbacks                       import EarlyStopper
 
 from .interpolator                    import Interpolator
 from .aerodynamics                    import global_coeff, jacobians_pressure

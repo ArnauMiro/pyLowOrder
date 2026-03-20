@@ -26,7 +26,19 @@ from ...utils import raiseError
 
 
 
+def _to_tensor_dict_strict(features: Dict[str, Any]) -> Dict[str, torch.Tensor]:
+    out: Dict[str, torch.Tensor] = {}
+    for key, arr in features.items():
+        a = np.asarray(arr)
+        if a.dtype == np.dtype('O') or a.dtype.kind in ('U', 'S'):
+            raiseError(f"Non-numeric feature '{key}' with dtype={a.dtype} found in HDF5.")
+        a = a.astype(np.float32, copy=False)
+        out[key] = torch.as_tensor(a)
+    return out
 
+
+def _canon_pair(u: int, v: int) -> tuple[int, int]:
+    return (u, v) if u < v else (v, u)
 
 
 class Graph(Data):
@@ -270,23 +282,7 @@ class Graph(Data):
 
         if fmt == 'h5':
             from ... import io
-            import numpy as _np
-
             num_nodes, num_edges, edge_index, node_features_np, edge_features_np = io.h5_load_graph_serial(fname)
-
-            def _to_tensor_dict_strict(d):
-                out = {}
-                for k, arr in d.items():
-                    a = _np.asarray(arr)
-                    if a.dtype == _np.dtype('O') or a.dtype.kind in ('U', 'S'):
-                        raiseError(f"Non-numeric feature '{k}' with dtype={a.dtype} found in HDF5.")
-                    # Enforce float32 on features
-                    if a.dtype.kind not in ('f', 'c'):
-                        a = a.astype(_np.float32, copy=False)
-                    else:
-                        a = a.astype(_np.float32, copy=False)
-                    out[k] = torch.as_tensor(a)
-                return out
 
             node_features_dict = _to_tensor_dict_strict(node_features_np)
             edge_features_dict = _to_tensor_dict_strict(edge_features_np)
@@ -401,7 +397,6 @@ class Graph(Data):
 
         Robustness:
         - Enforce Cython dtypes/contiguity (intc/float64).
-        - Resolve local vs. global edge ambiguity by trying both interpretations.
         """
         import numpy as np
         import torch
@@ -410,39 +405,13 @@ class Graph(Data):
         # --- guards
         if not np.all(np.isin(mesh.eltype, [2, 3, 4, 5])):
             raiseError("The mesh must contain only 2D cells to compute wall normals.")
-
-        def canon(u: int, v: int) -> tuple[int, int]:
-            return (u, v) if u < v else (v, u)
-
-        def resolve_global_edge(edge, cell_nodes, incidence) -> Optional[tuple[int, int]]:
-            """Return a canonical GLOBAL (u,v) for a raw edge that may be global or local.
-            Try global first; if not found, try local→global mapping.
-            """
-            e = np.asarray(edge, dtype=np.int64).ravel()
-            if e.size < 2:
-                return None
-
-            # A) assume global
-            a = canon(int(e[0]), int(e[1]))
-            if a in incidence:
-                return a
-
-            # B) assume local positions
-            cn = np.asarray(cell_nodes, dtype=np.int64).ravel()
-            if int(e.max(initial=-1)) < len(cn):
-                b = canon(int(cn[int(e[0])]), int(cn[int(e[1])]))
-                if b in incidence:
-                    return b
-
-            return None
-
         # --- 1) topology: build incidence from connectivity (GLOBAL ids)
         incidence: dict[tuple[int, int], set[int]] = defaultdict(set)
         for cell_id, cnodes in enumerate(mesh.connectivity):
             cn = np.asarray(cnodes, dtype=np.int64).ravel()
             # polygon ring (assumes cyclic order)
             for a, b in zip(cn, np.roll(cn, -1)):
-                incidence[canon(int(a), int(b))].add(cell_id)
+                incidence[_canon_pair(int(a), int(b))].add(cell_id)
 
         n_interior = sum(1 for s in incidence.values() if len(s) == 2)
         if n_interior == 0:
@@ -466,7 +435,7 @@ class Graph(Data):
             for i, wn in enumerate(cell_wall_normals):
                 u = int(cell_nodes_global[i])
                 v = int(cell_nodes_global[(i + 1) % n])
-                gk = (u, v) if u < v else (v, u)  # clave canónica global
+                gk = _canon_pair(u, v)  # clave canónica global
                 # Solo guardamos si la arista existe en la incidencia (interior o borde)
                 if gk in incidence:
                     wall_normal_map[(cell_id, gk)] = np.asarray(wn, dtype=float)

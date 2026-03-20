@@ -231,7 +231,7 @@ class _GNSTrainingLoop:
 
         pprint(
             0,
-            f"[diag] Epoch 0 (no training) | Train loss: {train_loss_list[0]:.4e}" +
+            f"Epoch 0 (no training) | Train loss: {train_loss_list[0]:.4e}" +
             (f" | Eval loss: {test_loss_list[0]:.4e}" if len(test_loss_list) > 0 else ""),
             flush=True,
         )
@@ -328,22 +328,6 @@ class _GNSTrainingLoop:
                         last_output = out
                         last_targets = targets
                         last_loss = loss
-                        if not logged_first_batch_stats and out is not None and targets is not None:
-                            logged_first_batch_stats = True
-                            try:
-                                pred_mean = float(out.mean().item())
-                                pred_std = float(out.std().item())
-                                targ_mean = float(targets.mean().item())
-                                targ_std = float(targets.std().item())
-                                pprint(
-                                    0,
-                                    f"[diag] {'train' if is_train else 'eval'} batch stats: "
-                                    f"pred_mean={pred_mean:.4f}, pred_std={pred_std:.4f}, "
-                                    f"targ_mean={targ_mean:.4f}, targ_std={targ_std:.4f}",
-                                    flush=True,
-                                )
-                            except Exception:
-                                pass
 
                     num_losses += 1
 
@@ -358,12 +342,6 @@ class _GNSTrainingLoop:
                 "loss": last_loss,
             })
             avg_loss = total_loss / max(1, num_losses)
-            pprint(
-                0,
-                f"[diag] {'train' if is_train else 'eval'} epoch: input_batches={input_batches}, "
-                f"seed_batches={seed_batches_total}, num_losses={num_losses}, avg_loss={avg_loss:.4e}",
-                flush=True,
-            )
             if metric == "mae":
                 avg_metric = total_metric / max(1, num_losses)
                 return avg_loss, avg_metric

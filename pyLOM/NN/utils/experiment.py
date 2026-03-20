@@ -90,6 +90,52 @@ def to_numpy(value: ArrayLike | Sequence[Any], *, dtype: np.dtype | type | None 
     return array
 
 
+def _asdict_safe(obj: Any) -> Dict[str, Any]:
+    if obj is None:
+        return {}
+    try:
+        return asdict(obj)
+    except Exception:
+        if isinstance(obj, Mapping):
+            return dict(obj)
+        return {}
+
+
+def _to_1d_float_array(x: Union[Sequence[Any], np.ndarray, torch.Tensor]) -> np.ndarray:
+    """Convert various inputs to a 1D float numpy array."""
+    arr = to_numpy(x)
+    if isinstance(x, (list, tuple)) and len(x) > 0 and isinstance(x[0], torch.Tensor):
+        arr = np.asarray([float(t.detach().cpu().item()) for t in x], dtype=float)
+    return np.asarray(arr, dtype=float).reshape(-1)
+
+
+def _smooth_series(
+    y: np.ndarray,
+    *,
+    smoothing: Optional[str],
+    ema_alpha: float,
+    moving_avg_window: int,
+) -> np.ndarray:
+    """Apply optional smoothing to a 1D array for plotting only."""
+    if smoothing is None:
+        return y
+    if smoothing == "ema":
+        if not (0.0 < ema_alpha <= 1.0):
+            raise ValueError("ema_alpha must be in (0, 1].")
+        out = np.empty_like(y)
+        out[0] = y[0]
+        for i in range(1, len(y)):
+            out[i] = ema_alpha * y[i] + (1.0 - ema_alpha) * out[i - 1]
+        return out
+    if smoothing == "moving_avg":
+        w = int(moving_avg_window)
+        if w <= 1:
+            return y
+        kernel = np.ones(w, dtype=float) / float(w)
+        return np.convolve(y, kernel, mode="same")
+    raise ValueError(f"Unknown smoothing mode: {smoothing}")
+
+
 # ─────────────────────────────────────────────────────
 # PARAVIEW EXPORT UTILITIES
 # ─────────────────────────────────────────────────────
@@ -436,10 +482,11 @@ def save_experiment_artifacts(
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # 2) Build the resolved reproducibility document we’ll save AND hash
-    model_cfg_dict  = asdict(model.model_config)
-    train_cfg_dict  = asdict(model.last_training_config) if getattr(model, "last_training_config", None) else None
-    prov_dict       = {
-        "graph_spec": asdict(model.graph_spec),
+    model_cfg_dict = _asdict_safe(getattr(model, "model_config", None))
+    train_cfg_dict = _asdict_safe(getattr(model, "last_training_config", None)) if getattr(model, "last_training_config", None) else None
+    graph_spec_obj = getattr(model, "graph_spec", None)
+    prov_dict = {
+        "graph_spec": _asdict_safe(graph_spec_obj) if graph_spec_obj is not None else {},
         "graph_fingerprint": getattr(model, "graph_fingerprint", None),
     }
 
@@ -661,34 +708,6 @@ def plot_train_test_loss(
     - When `save=True` and `save_path is None`, the file is saved to "./plots/train_test_losses.png".
     """
 
-    def _to_1d_float_array(x: Union[Sequence[Any], np.ndarray, torch.Tensor]) -> np.ndarray:
-        """Convert various inputs to a 1D float numpy array."""
-        arr = to_numpy(x)
-        if isinstance(x, (list, tuple)) and len(x) > 0 and isinstance(x[0], torch.Tensor):
-            arr = np.asarray([float(t.detach().cpu().item()) for t in x], dtype=float)
-        return np.asarray(arr, dtype=float).reshape(-1)
-
-    def _smooth(y: np.ndarray) -> np.ndarray:
-        """Apply optional smoothing to a 1D array for plotting only."""
-        if smoothing is None:
-            return y
-        if smoothing == "ema":
-            if not (0.0 < ema_alpha <= 1.0):
-                raise ValueError("ema_alpha must be in (0, 1].")
-            out = np.empty_like(y)
-            out[0] = y[0]
-            for i in range(1, len(y)):
-                out[i] = ema_alpha * y[i] + (1.0 - ema_alpha) * out[i - 1]
-            return out
-        if smoothing == "moving_avg":
-            w = int(moving_avg_window)
-            if w <= 1:
-                return y
-            kernel = np.ones(w, dtype=float) / float(w)
-            # 'same' to keep the same length; edges are averaged with fewer points
-            return np.convolve(y, kernel, mode="same")
-        raise ValueError(f"Unknown smoothing mode: {smoothing}")
-
     # Prepare figure/axes
     created_fig = False
     if ax is None:
@@ -713,7 +732,7 @@ def plot_train_test_loss(
             for split_name, split_series in series.items():
                 y_raw = _to_1d_float_array(split_series)
                 epochs = np.arange(1, len(y_raw) + 1)
-                y_vis = _smooth(y_raw)
+                y_vis = _smooth_series(y_raw, smoothing=smoothing, ema_alpha=ema_alpha, moving_avg_window=moving_avg_window)
 
                 ax.plot(epochs, y_vis, label=f"{model_name} ({split_name})")
 
@@ -740,7 +759,7 @@ def plot_train_test_loss(
             # flat: single series per model_name
             y_raw = _to_1d_float_array(series)
             epochs = np.arange(1, len(y_raw) + 1)
-            y_vis = _smooth(y_raw)
+            y_vis = _smooth_series(y_raw, smoothing=smoothing, ema_alpha=ema_alpha, moving_avg_window=moving_avg_window)
 
             ax.plot(epochs, y_vis, label=f"{model_name}")
 

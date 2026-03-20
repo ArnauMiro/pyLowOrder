@@ -112,11 +112,6 @@ class GNS(torch.nn.Module):
         self.p_dropout = config.p_dropout
         self.activation = resolve_activation(config.activation)
         self.debug = config.debug
-        # Stage 5: stable debug print helper (closure), to avoid attribute lookup issues
-        def _debug_print(*args, rank: int = -1, **kwargs):
-            if self.debug:
-                pprint(rank, *args, **kwargs, flush=True)
-        self._debug_print = _debug_print
 
         # --- Graph & provenance ---
         self.graph_spec = graph_spec or GraphSpec()
@@ -176,6 +171,10 @@ class GNS(torch.nn.Module):
             self._sg_generator_train = None
             self._sg_generator_eval = None
 
+
+    def _debug_print(self, *args, rank: int = -1, **kwargs) -> None:
+        if self.debug:
+            pprint(rank, *args, **kwargs, flush=True)
 
     @classmethod
     # @config_from_kwargs(GNSModelConfig)

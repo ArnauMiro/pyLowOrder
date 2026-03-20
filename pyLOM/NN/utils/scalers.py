@@ -23,6 +23,67 @@ ArrayLike = Union[np.ndarray, torch.Tensor]
 BlockList = List[ArrayLike]
 InputLike = Union[ArrayLike, BlockList]
 
+
+def _take_cols(a, cols, is_tensor: bool):
+    if is_tensor:
+        if isinstance(cols, slice):
+            block = a[:, cols]
+        elif isinstance(cols, torch.Tensor):
+            block = a.index_select(dim=1, index=cols.to(dtype=torch.long, device=a.device))
+        elif isinstance(cols, (list, tuple)):
+            idx = torch.tensor(cols, dtype=torch.long, device=a.device)
+            block = a.index_select(dim=1, index=idx)
+        else:
+            idx = torch.tensor([cols], dtype=torch.long, device=a.device)
+            block = a.index_select(dim=1, index=idx)
+        return block if block.ndim > 1 else block.unsqueeze(1)
+
+    block = a[:, cols]
+    return block if block.ndim > 1 else block.reshape(-1, 1)
+
+
+def _scale_block(block, params, feature_range):
+    min_val, max_val = params["min"], params["max"]
+    data_range = max_val - min_val
+    data_range = 1 if data_range == 0 else data_range
+    out = (block - min_val) / data_range
+    out = out * (feature_range[1] - feature_range[0]) + feature_range[0]
+    return out
+
+
+def _inv_block(block, params, feature_range):
+    min_val, max_val = params["min"], params["max"]
+    data_range = max_val - min_val
+    data_range = 1 if data_range == 0 else data_range
+    out = (block - feature_range[0]) / (feature_range[1] - feature_range[0])
+    out = out * data_range + min_val
+    return out
+
+
+def _serialize_blocks(blocks):
+    if blocks is None:
+        return None
+    serial = []
+    for b in blocks:
+        if isinstance(b, slice):
+            serial.append({"type": "slice", "start": b.start, "stop": b.stop, "step": b.step})
+        else:
+            serial.append({"type": "list", "indices": list(b)})
+    return serial
+
+
+def _deserialize_blocks(serial):
+    if serial is None:
+        return None
+    out = []
+    for item in serial:
+        if item["type"] == "slice":
+            out.append(slice(item["start"], item["stop"], item["step"]))
+        else:
+            out.append(list(item["indices"]))
+    return out
+
+
 class ScalerProtocol(Protocol):
     r"""
     Abstract protocol for scalers used in NN pipelines.
@@ -110,32 +171,14 @@ class MinMaxScaler:
         """
         is_tensor = isinstance(X2d, torch.Tensor)
 
-        # Build list of (take_fn, block) safely for np/torch
-        def take_cols(a, cols):
-            if is_tensor:
-                if isinstance(cols, slice):
-                    block = a[:, cols]
-                elif isinstance(cols, torch.Tensor):
-                    block = a.index_select(dim=1, index=cols.to(dtype=torch.long, device=a.device))
-                elif isinstance(cols, (list, tuple)):
-                    idx = torch.tensor(cols, dtype=torch.long, device=a.device)
-                    block = a.index_select(dim=1, index=idx)
-                else:
-                    idx = torch.tensor([cols], dtype=torch.long, device=a.device)
-                    block = a.index_select(dim=1, index=idx)
-                return block if block.ndim > 1 else block.unsqueeze(1)
-            else:
-                block = a[:, cols]
-                return block if block.ndim > 1 else block.reshape(-1, 1)
-
         nfeat = X2d.shape[1]
         if self.blocks is None:
             # one column per variable (old behavior)
-            blocks = [take_cols(X2d, i if is_tensor else slice(i, i+1)) for i in range(nfeat)]
+            blocks = [_take_cols(X2d, i if is_tensor else slice(i, i+1), is_tensor) for i in range(nfeat)]
         else:
             norm_blocks = []
             for b in self.blocks:
-                norm_blocks.append(take_cols(X2d, b))
+                norm_blocks.append(_take_cols(X2d, b, is_tensor))
             blocks = norm_blocks
         return blocks
 
@@ -199,14 +242,6 @@ class MinMaxScaler:
         if not self._is_fitted:
             raiseError("Scaler must be fitted before transform")
 
-        def _scale_block(block, params, feature_range):
-            min_val, max_val = params["min"], params["max"]
-            data_range = max_val - min_val
-            data_range = 1 if data_range == 0 else data_range
-            out = (block - min_val) / data_range
-            out = out * (feature_range[1] - feature_range[0]) + feature_range[0]
-            return out
-
         is_array  = isinstance(variables, np.ndarray)
         is_tensor = isinstance(variables, torch.Tensor)
 
@@ -247,14 +282,6 @@ class MinMaxScaler:
         if not self._is_fitted:
             raiseError("Scaler must be fitted before inverse_transform")
 
-        def _inv_block(block, params, feature_range):
-            min_val, max_val = params["min"], params["max"]
-            data_range = max_val - min_val
-            data_range = 1 if data_range == 0 else data_range
-            out = (block - feature_range[0]) / (feature_range[1] - feature_range[0])
-            out = out * data_range + min_val
-            return out
-
         is_array  = isinstance(variables, np.ndarray)
         is_tensor = isinstance(variables, torch.Tensor)
 
@@ -294,18 +321,6 @@ class MinMaxScaler:
     def save(self, filepath: str) -> None:
         if not self.is_fitted:
             raiseError("Scaler must be fitted before it can be saved")
-        # Normalize blocks to a JSON-serializable form
-        def _serialize_blocks(blocks):
-            if blocks is None:
-                return None
-            serial = []
-            for b in blocks:
-                if isinstance(b, slice):
-                    serial.append({"type": "slice", "start": b.start, "stop": b.stop, "step": b.step})
-                else:
-                    serial.append({"type": "list", "indices": list(b)})
-            return serial
-
         save_dict = {
             "feature_range": self.feature_range,
             "variable_scaling_params": self.variable_scaling_params,
@@ -321,18 +336,6 @@ class MinMaxScaler:
             raiseError(f"No file found at {filepath}")
         with open(filepath, 'r') as f:
             loaded = json.load(f)
-
-        # Reconstruct blocks
-        def _deserialize_blocks(serial):
-            if serial is None:
-                return None
-            out = []
-            for item in serial:
-                if item["type"] == "slice":
-                    out.append(slice(item["start"], item["stop"], item["step"]))
-                else:
-                    out.append(list(item["indices"]))
-            return out
 
         scaler = MinMaxScaler(
             feature_range=tuple(loaded["feature_range"]),
