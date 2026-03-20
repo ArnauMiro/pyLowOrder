@@ -23,7 +23,7 @@ dynamic = ["version"]
 # This is a one-line description or tagline of what your project does. This
 # corresponds to the "Summary" metadata field:
 # https://packaging.python.org/specifications/core-metadata/#summary
-description = "High-performance low-order modeling with Python"
+description = "High-performance reduced-order modeling in Python"
 
 # This is an optional longer description of your project that represents
 # the body of text which users will see when they visit PyPI.
@@ -53,7 +53,7 @@ license-files = ["LICENSE"]
 # Note that this is a list of additional keywords, separated
 # by commas, to be used to assist searching for the distribution in a
 # larger catalog.
-keywords = ["low-order", "modeling", "POD", "DMD"]
+keywords = ["reduced-order modeling", "POD", "DMD", "VAE", "MLP", "GNN"]
 
 # This should be your name or the name of the organization who originally
 # authored the project, and a valid email address corresponding to the name

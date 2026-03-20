@@ -7,7 +7,7 @@
 
 # pyLOM
 
-pyLOM is a high-performance-computing enabled tool for massively parallel reduced order modelling. This tool includes parallel algorithms for the proper orthogonal decomposition (POD), dynamic mode decomposition (DMD) and spectral proper orthogonal decomposition (SPOD) as well as a set of deep learning architectures for model order reduction and surrogate modelling such as variational autoencoders. All pyLOM modules are GPU-enabled.
+pyLOM is a high-performance-computing enabled tool for massively parallel reduced order modelling. This tool includes parallel classical algorithms such as proper orthogonal decomposition (POD), dynamic mode decomposition (DMD) and spectral proper orthogonal decomposition (SPOD) as well as a set of deep learning architectures for model order reduction and surrogate modelling such as variational autoencoders. All pyLOM modules are GPU-enabled.
 Please check the [wiki](https://github.com/ArnauMiro/pyLowOrder/wiki) for instructions on how to deploy and contribute to the tool. [Here](https://arnaumiro.github.io/pyLowOrder/) you can find the code documentation and examples on every module.
 
 ## Cite the repo!
