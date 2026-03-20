@@ -20,7 +20,7 @@ dataset_config:
   output_scaler_type: "none"
 
 model:
-  graph_path: "../../../Testsuite/DATA/CYLINDER_GRAPH.h5"
+  graph_path: "../../../Testsuite/DATA/CYLINDER_TRAIN.h5"
   config:
     input_dim: 1
     output_dim: 1
