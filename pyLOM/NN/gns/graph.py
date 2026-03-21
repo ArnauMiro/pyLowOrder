@@ -185,7 +185,7 @@ class Graph(Data):
 
         return graph
 
-    def save(self, fname: str, mode: Optional[str] = None, **kwargs):
+    def save(self, fname: str, mode: Optional[str] = None, **kwargs: Any) -> None:
         """
         Persist the graph to disk. Supports .h5, .pt, .pkl.
 
@@ -256,7 +256,7 @@ class Graph(Data):
 
 
     @classmethod
-    def load(cls, fname: str, **kwargs) -> "Graph":
+    def load(cls, fname: str, **kwargs: Any) -> "Graph":
         """
         Load a graph from disk (strict HDF5 loader: graph_flat_v2 only).
 

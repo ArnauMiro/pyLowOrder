@@ -31,7 +31,8 @@ class GNSMLP(nn.Module):
         self.dropout = nn.Dropout(p=drop_p)
 
     @cr('GNSMLP.forward')
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
+        """Apply hidden layers with activation/dropout and return last linear output."""
         for layer in self.layers[:-1]:
             x = self.activation(layer(x))
             x = self.dropout(x)
@@ -83,12 +84,15 @@ class MessagePassingLayer(MessagePassing):
 
     @cr('MessagePassingLayer.forward')
     def forward(self, x: Tensor, edge_index: Tensor, edge_attr: Tensor) -> Tensor:
+        """Propagate messages and return updated node embeddings."""
         return self.propagate(edge_index=edge_index, x=x, edge_attr=edge_attr)
 
     @cr('MessagePassingLayer.message')
     def message(self, x_i: Tensor, x_j: Tensor, edge_attr: Tensor) -> Tensor:
+        """Build edge message from source/target node features and edge attributes."""
         return self.phi(torch.cat([x_i, x_j, edge_attr], dim=1))
 
     @cr('MessagePassingLayer.update')
     def update(self, aggr_out: Tensor, x: Tensor) -> Tensor:
+        """Combine previous node state and aggregated messages into next node state."""
         return self.gamma(torch.cat([x, aggr_out], dim=1))

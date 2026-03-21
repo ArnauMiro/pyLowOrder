@@ -557,6 +557,18 @@ class GNS(torch.nn.Module):
         graph_spec: Optional[GraphSpec] = None,
         strict_fingerprint: bool = True,
     ) -> "GNS":
+        """Load a GNS checkpoint and optionally validate graph fingerprint consistency.
+
+        Args:
+            ckpt_path: Path to the ``.pth`` checkpoint file.
+            device: Target device for the loaded model. If ``None``, uses checkpoint config.
+            graph: Optional preloaded graph. If omitted, it is loaded from checkpoint provenance.
+            graph_spec: Optional provenance descriptor for an externally provided graph.
+            strict_fingerprint: If ``True``, fail when graph fingerprint differs from checkpoint.
+
+        Returns:
+            GNS: Loaded model in eval mode.
+        """
         ckpt = torch.load(ckpt_path, map_location="cpu")  # map to CPU first; we will move later
 
         # Rebuild pure DTOs from checkpoint

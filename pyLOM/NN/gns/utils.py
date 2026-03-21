@@ -268,6 +268,7 @@ class ManualNeighborLoader:
 
     @cr('ManualNeighborLoader.sample')
     def sample(self, seed_nodes: Tensor) -> Data:
+        """Build one k-hop subgraph batch from the provided seed nodes."""
         seed_nodes = seed_nodes.to("cpu")
 
         subset, edge_index, mapping, edge_mask = k_hop_subgraph(

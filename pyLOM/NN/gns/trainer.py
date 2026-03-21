@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import copy
-from typing import Optional, Callable, Tuple, Dict, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 from torch import Tensor
@@ -35,17 +35,18 @@ class _GNSTrainingLoop:
     def train(
         self,
         *,
-        train_input_dl,
-        train_subgraph_dl,
-        eval_input_dl,
-        eval_subgraph_dl,
+        train_input_dl: Any,
+        train_subgraph_dl: Any,
+        eval_input_dl: Optional[Any],
+        eval_subgraph_dl: Optional[Any],
         loss_fn: torch.nn.Module,
         config: GNSTrainingConfig,
         on_epoch_end: Optional[Callable[[int, float], None]],
-        epoch_list: list,
-        train_loss_list: list,
-        test_loss_list: list,
-    ) -> Dict[str, list]:
+        epoch_list: List[int],
+        train_loss_list: List[float],
+        test_loss_list: List[float],
+    ) -> Dict[str, List[float]]:
+        """Run full GNS training loop and keep best validation checkpoint state."""
         model = self.model
         total_epochs = len(epoch_list) + config.epochs
         state = model.state
@@ -219,14 +220,15 @@ class _GNSTrainingLoop:
 
     def run_epoch(
         self,
-        input_dataloader,
-        subgraph_loader,
+        input_dataloader: Any,
+        subgraph_loader: Any,
         *,
         loss_fn: Optional[torch.nn.Module] = None,
         return_loss: bool = False,
         metric: Optional[str] = None,
         is_train: bool = False,
     ) -> Union[float, Tensor]:
+        """Execute one train/eval/predict epoch over input and subgraph loaders."""
         model = self.model
         model._debug_print(f"{'Training' if is_train else 'Evaluating/Predicting'} epoch on device {model.device}...")
         model._debug_print(f" - Input dataloader len/batch size: {input_dataloader.__len__()}/{getattr(input_dataloader, 'batch_size', 'N/A')}")
