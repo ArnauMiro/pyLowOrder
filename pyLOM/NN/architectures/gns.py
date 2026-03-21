@@ -46,7 +46,6 @@ from ..gns import (
     _GNSHelpers,
 )
 from ..gns.trainer import _GNSTrainingLoop
-from ..utils.wrappers import config_from_kwargs
 from ..utils.config_schema import (
     GraphSpec,
     GNSModelConfig,
@@ -370,7 +369,6 @@ class GNS(torch.nn.Module):
                 is_train=False,
             )
 
-    @config_from_kwargs(GNSTrainingConfig)
     @cr('GNS.fit')
     def fit(
         self,

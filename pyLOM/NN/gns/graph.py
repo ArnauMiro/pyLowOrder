@@ -19,7 +19,7 @@ from torch_geometric.data import Data
 
 # Local modules
 from .. import DEVICE
-from ... import cr
+from ... import io, cr
 from ...mesh import Mesh
 from ...vmmath.geometric import wall_normals
 from ...utils import raiseError
@@ -222,19 +222,16 @@ class Graph(Data):
         fmt = os.path.splitext(fname)[1][1:].lower()
 
         if fmt == 'h5':
-            import numpy as _np
-            from ... import io
-
             # Flat numeric dicts
-            x_np = {k: v.detach().cpu().numpy().astype(_np.float32, copy=False)
+            x_np = {k: v.detach().cpu().numpy().astype(np.float32, copy=False)
                     for k, v in self.node_features_dict.items()}
-            e_np = {k: v.detach().cpu().numpy().astype(_np.float32, copy=False)
+            e_np = {k: v.detach().cpu().numpy().astype(np.float32, copy=False)
                     for k, v in self.edge_features_dict.items()}
 
             # Early type check (reject objects/strings)
             for name, arr in list(x_np.items()) + list(e_np.items()):
-                dt = _np.asarray(arr).dtype
-                if dt == _np.dtype('O') or dt.kind in ('U', 'S'):
+                dt = np.asarray(arr).dtype
+                if dt == np.dtype('O') or dt.kind in ('U', 'S'):
                     raiseError(f"HDF5 requires numeric arrays; feature '{name}' has dtype={dt}.")
 
             if mode is None:
@@ -275,7 +272,6 @@ class Graph(Data):
         fmt = os.path.splitext(fname)[1][1:].lower()
 
         if fmt == 'h5':
-            from ... import io
             num_nodes, num_edges, edge_index, node_features_np, edge_features_np = io.h5_load_graph_serial(fname)
 
             node_features_dict = _to_tensor_dict_strict(node_features_np)
@@ -345,10 +341,6 @@ class Graph(Data):
         Robustness:
         - Enforce Cython dtypes/contiguity (intc/float64).
         """
-        import numpy as np
-        import torch
-        from collections import defaultdict
-
         # --- guards
         if not np.all(np.isin(mesh.eltype, [2, 3, 4, 5])):
             raiseError("The mesh must contain only 2D cells to compute wall normals.")

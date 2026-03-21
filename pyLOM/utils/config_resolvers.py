@@ -32,14 +32,10 @@ def to_native(obj: Any) -> Any:
         return [to_native(v) for v in obj]
 
     # NumPy
-    try:
-        import numpy as np
-        if isinstance(obj, np.generic):      # np.float32, np.int64, etc.
-            return obj.item()
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-    except Exception:
-        pass
+    if isinstance(obj, np.generic):      # np.float32, np.int64, etc.
+        return obj.item()
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
 
     # PyTorch
     try:

@@ -40,7 +40,11 @@ def silu():      return torch.nn.SiLU()
 
 
 def __getattr__(name):
-    # Lazy legacy export to avoid circular imports with pyLOM.NN.dataset.
+    # Lazy legacy export kept only for backward compatibility after the
+    # Dataset refactor (Dataset now lives in pyLOM.NN.dataset). This preserves
+    # old imports like: from pyLOM.NN.utils import Dataset
+    # Keep this import local on purpose: moving it to module scope reintroduces
+    # the pyLOM.NN.utils <-> pyLOM.NN.dataset circular import.
     if name == "Dataset":
         from ..dataset import Dataset
         return Dataset
