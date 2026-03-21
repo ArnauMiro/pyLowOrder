@@ -19,7 +19,6 @@ from .optuna_utils import (
     select_device,
     count_trainable_params,
     cleanup_tensors,
-    hyperparams_serializer,
     get_optimizing_value,
     sample_params,
 )
@@ -60,7 +59,6 @@ __all__ = [
     "select_device",
     "count_trainable_params",
     "cleanup_tensors",
-    "hyperparams_serializer",
     "get_optimizing_value",
     "sample_params",
     # scalers, schedulers, metrics, callbacks

@@ -139,18 +139,6 @@ def cleanup_tensors(tensors: Union[Tensor, Dict, None, Tuple, List]) -> None:
     gc.collect()
     torch.cuda.empty_cache()
 
-def hyperparams_serializer(obj) -> str:
-        r"""
-        Function used to print hyperparams in JSON format.
-        Args:
-            obj (Any): The object to serialize.
-        Returns:
-            str: The serialized object.
-        """
-
-        if hasattr(obj, "__class__"):  # Verify whether the object has a class
-            return obj.__class__.__name__  # Return the class name
-        raise TypeError(f"Type {type(obj)} not serializable")  # Raise an error if the object is not serializable
 
 def get_optimizing_value(name: str, spec: Any, trial):
     """Suggest a single hyperparameter value from a spec."""
