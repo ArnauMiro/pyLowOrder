@@ -11,7 +11,6 @@ import random
 import json
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Subset
 from torch import Generator, randperm, default_generator
@@ -28,15 +27,6 @@ from ..utils.cr       import cr
 from ..utils.errors   import raiseWarning, raiseError
 from ..dataset        import Dataset as pyLOMDataset
 from ..               import pprint
-
-# Wrapper of the activation functions
-def tanh():      return nn.Tanh()
-def relu():      return nn.ReLU()
-def elu():       return nn.ELU()
-def sigmoid():   return nn.Sigmoid()
-def leakyRelu(): return nn.LeakyReLU()
-def silu():      return nn.SiLU()
-
 
 
 def _filter_outputs_by_spatial_mask(target, mask_flat: torch.Tensor, size_to_match: int) -> None:
