@@ -66,7 +66,7 @@ class _ShapeValidator:
     def _validate_dataset(self, dataset: TorchDataset) -> None:
         try:
             sample = dataset[0]
-        except Exception as e:
+        except Exception:
             raiseError("Failed to access first sample of the dataset for validation.")
         if isinstance(sample, (tuple, list)):
             x_sample, y_sample = sample

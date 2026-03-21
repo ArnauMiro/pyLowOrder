@@ -12,7 +12,6 @@ import datetime
 from pathlib import Path
 from typing import Any, Dict, Tuple, Union, Optional, Callable
 from dataclasses import asdict, replace
-import copy
 import numpy as np
 
 import torch
@@ -31,7 +30,6 @@ from ...utils import (
 )
 from ..utils import (
     count_trainable_params,
-    cleanup_tensors,
 )
 
 from ..utils.optuna_utils import (
@@ -177,7 +175,6 @@ class GNS(torch.nn.Module):
             pprint(rank, *args, **kwargs, flush=True)
 
     @classmethod
-    # @config_from_kwargs(GNSModelConfig)
     def from_graph(cls, *, config: GNSModelConfig, graph: Graph) -> "GNS":
         """
         Construct a GNS model from a loaded Graph and a model config.
@@ -192,8 +189,6 @@ class GNS(torch.nn.Module):
         Returns:
             GNS: Fully constructed model.
 
-        Raises:
-            RuntimeError: If `graph_path` is set in config (to avoid ambiguity).
         """
         return cls(config=config, graph=graph)
 
@@ -756,14 +751,6 @@ class GNS(torch.nn.Module):
         # ---- Reconstruct best dicts for model and training (solo claves buscadas) ----
         best_model_cfg_dict    = _materialize_space(model_space,    best_params_flat)
         best_training_cfg_dict = _materialize_space(training_space, best_params_flat)
-
-        best_model_cfg = from_dict(GNSModelConfig,    best_model_cfg_dict,    config=dacite_cfg)
-        best_training_cfg = from_dict(GNSTrainingConfig, best_training_cfg_dict, config=dacite_cfg)
-
-        # ---- Logging best hyperparameters ---- (Already done by optuna)
-        # pprint(0, "\nBest hyperparameters:")
-        # pprint(0, "  Model params: " + json.dumps(best_model_cfg_dict, indent=4))
-        # pprint(0, "  Training params: " + json.dumps(best_training_cfg_dict, indent=4))
 
         # ---- Build final DTOs & final model ----
         best_model_cfg = from_dict(data_class=GNSModelConfig, data=best_model_cfg_dict, config=dacite_cfg)

@@ -19,7 +19,7 @@ from torch_geometric.data import Data
 
 # Local modules
 from .. import DEVICE
-from ... import io, cr
+from ... import cr
 from ...mesh import Mesh
 from ...vmmath.geometric import wall_normals
 from ...utils import raiseError
@@ -49,7 +49,6 @@ class Graph(Data):
         edge_features_dict: Optional[Dict[str, torch.Tensor]] = None,
         *,
         device: Union[str, torch.device] = None,
-        # **custom_attr_dict: Any # Not yet implemented.
     ):
         r'''
         Initialize the Graph object. Node and edge attributes are stacked separately along dimension 1 for use in GNNs.
@@ -78,7 +77,6 @@ class Graph(Data):
         edge_index = edge_index.to(device)
         node_features_dict = {k: v.to(device) for k, v in node_features_dict.items()}
         edge_features_dict = {k: v.to(device) for k, v in edge_features_dict.items()}
-        # custom_attr_dict = {k: (v.to(device) if isinstance(v, torch.Tensor) else v) for k, v in custom_attr_dict.items()} # Not yet implemented.
 
         # Concatenate node/edge attributes
         x = torch.cat(list(node_features_dict.values()), dim=1) if node_features_dict else None
@@ -90,7 +88,6 @@ class Graph(Data):
             'x': x,
             'edge_attr': edge_attr,
             'num_nodes': next(iter(node_features_dict.values())).shape[0] if node_features_dict else None
-            # **custom_attr_dict,
         }
 
         super().__init__(**data_kwargs)
@@ -107,7 +104,6 @@ class Graph(Data):
         # store raw attribute dicts (for i/o operations)
         self.node_features_dict = node_features_dict
         self.edge_features_dict = edge_features_dict
-        # self.custom_attr_dict = custom_attr_dict # Not yet implemented.
 
         self.validate()
 
@@ -168,7 +164,6 @@ class Graph(Data):
     def from_pyLOM_mesh(cls,
                         mesh: Mesh,
                         device: Optional[Union[str, torch.device]] = None,
-                        # **custom_attr_dict: Dict[str, Any]  # Not yet implemented.
                         ) -> "Graph":
         r"""
         Create a Graph object from a pyLOM Mesh object. This method computes the node attributes and edge index/attributes from the mesh.
@@ -186,7 +181,6 @@ class Graph(Data):
             node_features_dict=node_features_dict,
             edge_features_dict=edge_features_dict,
             device=device,
-            # **custom_attr_dict # Not yet implemented.
             )
 
         return graph
@@ -310,53 +304,6 @@ class Graph(Data):
 
         else:
             raiseError(f"Unsupported file format: {fmt}")
-
-    @staticmethod
-    def _canonical_edge(edge: Union[np.ndarray, list, tuple]) -> tuple[int, ...]:
-        """
-        Return an immutable, undirected, canonical representation of an edge (or face).
-        Converts any array-like into a *deduplicated* sorted tuple of ints, safe as a dict key.
-
-        Notes
-        -----
-        - Dedup is critical because some providers (e.g., wall_normals) may repeat node ids.
-        - For 2D surfaces, edges should reduce to exactly 2 unique nodes.
-        """
-        e = np.asarray(edge).astype(int).ravel()
-        u = np.unique(e)                # <-- remove duplicates
-        return tuple(sorted(u.tolist()))
-
-    @staticmethod
-    def _edge_key_from_local_or_global(
-        edge: Union[np.ndarray, list, tuple],
-        cell_nodes: Optional[np.ndarray] = None,
-    ) -> Optional[tuple[int, int]]:
-        """
-        Build a canonical, hashable, undirected key for an edge using *global* node ids.
-
-        If `cell_nodes` is provided and `edge` looks like local indices (i.e., max(edge) < len(cell_nodes)),
-        the function converts local -> global via `cell_nodes[edge]`. Then it deduplicates and sorts.
-
-        Returns:
-            (u, v) as an increasing tuple of two global node ids, or None if the edge is degenerate.
-        """
-        e = np.asarray(edge).ravel().astype(int)
-
-        # Heuristic: treat as local indices if they fit within the local array bounds
-        if cell_nodes is not None and e.size > 0 and e.max(initial=-1) < len(cell_nodes):
-            # map local -> global
-            g = np.asarray(cell_nodes, dtype=int)[e]
-        else:
-            # assume already global
-            g = e
-
-        # deduplicate and sort to remove orientation ambiguity and repeated ids
-        uniq = np.unique(g)
-        if uniq.size != 2:
-            return None  # degenerate (boundary collapse or malformed edge)
-        u, v = sorted(uniq.tolist())
-        return (u, v)
-
 
     @cr('Graph._compute_node_features_dict')
     @staticmethod

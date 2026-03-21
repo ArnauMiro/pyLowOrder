@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 import copy
-import json
-from pathlib import Path
 from typing import Optional, Callable, Tuple, Dict, Union
 
 import torch
@@ -33,12 +31,6 @@ class _GNSTrainingLoop:
         self.grad_clip_max_norm = 1.0
         self.grad_clip_norm_type = 2.0
         self.best_metric_space = "scaled"
-        self.debug_numerics = False
-        self.debug_log_path = Path("gns_debug_numerics.jsonl")
-        self.debug_every_n_steps = 200
-        self.debug_overwrite_each_epoch = True
-        self.debug_max_param_tensors = 12
-        self._train_step_counter = 0
 
     def train(
         self,
@@ -72,13 +64,6 @@ class _GNSTrainingLoop:
         self.grad_clip_enabled = bool(getattr(config, "grad_clip_enabled", False))
         self.grad_clip_max_norm = float(getattr(config, "grad_clip_max_norm", 1.0))
         self.grad_clip_norm_type = float(getattr(config, "grad_clip_norm_type", 2.0))
-        self.debug_numerics = bool(getattr(config, "debug_numerics", False))
-        dbg_path = getattr(config, "debug_log_path", None)
-        self.debug_log_path = Path(dbg_path) if dbg_path else Path("gns_debug_numerics.jsonl")
-        self.debug_every_n_steps = max(1, int(getattr(config, "debug_every_n_steps", 200)))
-        self.debug_overwrite_each_epoch = bool(getattr(config, "debug_overwrite_each_epoch", True))
-        self.debug_max_param_tensors = max(1, int(getattr(config, "debug_max_param_tensors", 12)))
-        self._train_step_counter = 0
 
         # Optional epoch-0 diagnostics: evaluate losses before any optimizer step.
         # This is only recorded once for fresh runs (no previous trained epochs).
@@ -95,10 +80,6 @@ class _GNSTrainingLoop:
         )
 
         for epoch in range(1 + len(epoch_list), 1 + total_epochs):
-            if self.debug_numerics and self.debug_overwrite_each_epoch:
-                self.debug_log_path.parent.mkdir(parents=True, exist_ok=True)
-                with self.debug_log_path.open("w") as f:
-                    f.write("")
             train_loss = self.run_epoch(
                 input_dataloader=train_input_dl,
                 subgraph_loader=train_subgraph_dl,
@@ -445,7 +426,6 @@ class _GNSTrainingLoop:
         if not hasattr(model, "_counter"):
             model._counter = 0
         model._counter += 1
-        self._train_step_counter += 1
         G = model.injector.replicate_inject(subgraph, inputs_batch, targets_batch)
 
         model.optimizer.zero_grad()
@@ -487,27 +467,7 @@ class _GNSTrainingLoop:
         if model._counter % 100 == 0:
             model._debug_print(f" - Training batch {model._counter}: output.shape={output.shape}, targets.shape={targets.shape}")
         loss = self._compute_loss(output, targets, loss_fn)
-        if self.debug_numerics and (self._train_step_counter % self.debug_every_n_steps == 0):
-            self._debug_log(
-                event="train_step",
-                step=self._train_step_counter,
-                payload={
-                    "loss": self._tensor_stats(loss),
-                    "output": self._tensor_stats(output),
-                    "targets": self._tensor_stats(targets),
-                },
-            )
         if self.nan_guard_enabled and not torch.isfinite(loss):
-            if self.debug_numerics:
-                self._debug_log(
-                    event="nonfinite_loss",
-                    step=self._train_step_counter,
-                    payload={
-                        "loss": self._tensor_stats(loss),
-                        "output": self._tensor_stats(output),
-                        "targets": self._tensor_stats(targets),
-                    },
-                )
             raise RuntimeError(
                 f"Non-finite training loss detected at batch {model._counter}. "
                 "Aborting to prevent NaN propagation."
@@ -516,38 +476,14 @@ class _GNSTrainingLoop:
         loss.backward()
 
         if self.nan_guard_enabled:
-            grad_snapshots = []
             grad_nonfinite_name = None
             for name, param in model.named_parameters():
                 grad = param.grad
-                if self.debug_numerics and grad is not None and len(grad_snapshots) < self.debug_max_param_tensors:
-                    grad_snapshots.append({
-                        "name": name,
-                        "grad": self._tensor_stats(grad),
-                    })
                 if grad is not None and not torch.isfinite(grad).all():
                     grad_nonfinite_name = name
                     break
             if grad_nonfinite_name is not None:
-                if self.debug_numerics:
-                    self._debug_log(
-                        event="nonfinite_grad",
-                        step=self._train_step_counter,
-                        payload={
-                            "parameter": grad_nonfinite_name,
-                            "loss": self._tensor_stats(loss),
-                            "output": self._tensor_stats(output),
-                            "targets": self._tensor_stats(targets),
-                            "grads": grad_snapshots,
-                        },
-                    )
                 raise RuntimeError(f"Non-finite gradients detected in parameter '{grad_nonfinite_name}'.")
-            if self.debug_numerics and (self._train_step_counter % self.debug_every_n_steps == 0):
-                self._debug_log(
-                    event="grad_snapshot",
-                    step=self._train_step_counter,
-                    payload={"grads": grad_snapshots},
-                )
 
         if self.grad_clip_enabled:
             total_norm = torch.nn.utils.clip_grad_norm_(
@@ -562,38 +498,6 @@ class _GNSTrainingLoop:
 
         return loss.item(), G, output, targets, loss
 
-    def _tensor_stats(self, t: Tensor) -> Dict[str, Union[str, float, int, list]]:
-        td = t.detach()
-        finite = torch.isfinite(td)
-        finite_count = int(finite.sum().item())
-        total = int(td.numel())
-        out: Dict[str, Union[str, float, int, list]] = {
-            "shape": list(td.shape),
-            "dtype": str(td.dtype),
-            "numel": total,
-            "finite_count": finite_count,
-            "nonfinite_count": total - finite_count,
-        }
-        if finite_count > 0:
-            tf = td[finite]
-            out.update({
-                "min": float(tf.min().item()),
-                "max": float(tf.max().item()),
-                "mean": float(tf.mean().item()),
-                "std": float(tf.std().item()) if tf.numel() > 1 else 0.0,
-                "absmax": float(tf.abs().max().item()),
-            })
-        return out
-
-    def _debug_log(self, *, event: str, step: int, payload: Dict[str, Union[dict, list, str, float, int]]) -> None:
-        try:
-            record = {"event": event, "step": step, **payload}
-            self.debug_log_path.parent.mkdir(parents=True, exist_ok=True)
-            with self.debug_log_path.open("a") as f:
-                f.write(json.dumps(record) + "\n")
-        except Exception:
-            # Debug logging must not break training flow.
-            pass
 
     def _eval_one_batch(
         self,

@@ -623,18 +623,7 @@ class Dataset(torch.utils.data.Dataset):
             [original_dataset[var_name] for var_name in field_names]
         )
 
-        # if add_variables:
-        #     print("stacking variables_out")
-        #     variables_out = np.stack(variables_out, axis=2) if len(variables_out) > 0 else None
-        #     variables_out_tuple = (variables_out,)
-        # else:
-        #     variables_out_tuple = variables_out
-
         variables_out_tuple = variables_out
-        # for i, var_name in enumerate(field_names):
-        #     print(f"Loaded output variable '{var_name}' with shape {original_dataset[var_name].shape}")
-        #     print(f"Variable {i}-th in variables_out shape: {variables_out_tuple[i].shape}")
-        #     print(f"Variable {i}-th in variables_out_tuple shape: {variables_out_tuple[i].shape}")
         return cls(
             variables_out=variables_out_tuple,
             parameters=parameters,

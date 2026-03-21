@@ -101,41 +101,6 @@ def _asdict_safe(obj: Any) -> Dict[str, Any]:
         return {}
 
 
-def _to_1d_float_array(x: Union[Sequence[Any], np.ndarray, torch.Tensor]) -> np.ndarray:
-    """Convert various inputs to a 1D float numpy array."""
-    arr = to_numpy(x)
-    if isinstance(x, (list, tuple)) and len(x) > 0 and isinstance(x[0], torch.Tensor):
-        arr = np.asarray([float(t.detach().cpu().item()) for t in x], dtype=float)
-    return np.asarray(arr, dtype=float).reshape(-1)
-
-
-def _smooth_series(
-    y: np.ndarray,
-    *,
-    smoothing: Optional[str],
-    ema_alpha: float,
-    moving_avg_window: int,
-) -> np.ndarray:
-    """Apply optional smoothing to a 1D array for plotting only."""
-    if smoothing is None:
-        return y
-    if smoothing == "ema":
-        if not (0.0 < ema_alpha <= 1.0):
-            raise ValueError("ema_alpha must be in (0, 1].")
-        out = np.empty_like(y)
-        out[0] = y[0]
-        for i in range(1, len(y)):
-            out[i] = ema_alpha * y[i] + (1.0 - ema_alpha) * out[i - 1]
-        return out
-    if smoothing == "moving_avg":
-        w = int(moving_avg_window)
-        if w <= 1:
-            return y
-        kernel = np.ones(w, dtype=float) / float(w)
-        return np.convolve(y, kernel, mode="same")
-    raise ValueError(f"Unknown smoothing mode: {smoothing}")
-
-
 # ─────────────────────────────────────────────────────
 # PARAVIEW EXPORT UTILITIES
 # ─────────────────────────────────────────────────────
@@ -645,9 +610,6 @@ def plot_train_test_loss(
     xlabel: str = "Epoch",
     ylabel: str = "Loss",
     yscale: str = "log",             # "log" or "linear"
-    smoothing: Optional[str] = None, # None | "ema" | "moving_avg"
-    ema_alpha: float = 0.2,          # for EMA smoothing
-    moving_avg_window: int = 5,      # for moving average smoothing
     mark_min: bool = True,           # mark the epoch of minimal loss for each series
     grid: bool = True,
     legend_loc: str = "best",
@@ -673,12 +635,6 @@ def plot_train_test_loss(
         Plot labels.
     yscale : {"log", "linear"}
         Y axis scale.
-    smoothing : {None, "ema", "moving_avg"}
-        Optional smoothing to apply for visualization (does not change the raw data).
-    ema_alpha : float
-        EMA smoothing factor in (0,1]. Larger = more smoothing.
-    moving_avg_window : int
-        Window size for moving average; ignored unless smoothing == "moving_avg".
     mark_min : bool
         If True, annotate and mark the epoch of the minimum loss per series.
     grid : bool
@@ -704,7 +660,6 @@ def plot_train_test_loss(
 
     Notes
     -----
-    - Smoothing is only for visualization; reported summary values come from the *raw* series.
     - When `save=True` and `save_path is None`, the file is saved to "./plots/train_test_losses.png".
     """
 
@@ -730,9 +685,9 @@ def plot_train_test_loss(
         if isinstance(series, Mapping):
             # nested: plot each split
             for split_name, split_series in series.items():
-                y_raw = _to_1d_float_array(split_series)
+                y_raw = np.asarray(to_numpy(split_series), dtype=float).reshape(-1)
                 epochs = np.arange(1, len(y_raw) + 1)
-                y_vis = _smooth_series(y_raw, smoothing=smoothing, ema_alpha=ema_alpha, moving_avg_window=moving_avg_window)
+                y_vis = y_raw
 
                 ax.plot(epochs, y_vis, label=f"{model_name} ({split_name})")
 
@@ -757,9 +712,9 @@ def plot_train_test_loss(
                 }
         else:
             # flat: single series per model_name
-            y_raw = _to_1d_float_array(series)
+            y_raw = np.asarray(to_numpy(series), dtype=float).reshape(-1)
             epochs = np.arange(1, len(y_raw) + 1)
-            y_vis = _smooth_series(y_raw, smoothing=smoothing, ema_alpha=ema_alpha, moving_avg_window=moving_avg_window)
+            y_vis = y_raw
 
             ax.plot(epochs, y_vis, label=f"{model_name}")
 
