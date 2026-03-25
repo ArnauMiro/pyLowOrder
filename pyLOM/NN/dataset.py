@@ -6,9 +6,6 @@
 #
 # Last rev:
 
-import os
-import random
-import json
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -22,7 +19,6 @@ from sklearn.neighbors  import NearestNeighbors
 
 from .utils.scalers import ScalerProtocol
 
-from .                import DEVICE
 from ..utils.cr       import cr
 from ..utils.errors   import raiseWarning, raiseError
 from ..dataset        import Dataset as pyLOMDataset
