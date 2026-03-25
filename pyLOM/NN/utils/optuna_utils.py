@@ -1,14 +1,14 @@
-from typing import Union, Dict, Tuple, List, Any
+from typing import Optional, Union, Dict, Tuple, List, Any
 import os
 import random
-import gc
+import time
 import numpy as np
 import torch
 from torch import Tensor
 
 from .. import DEVICE
 
-def set_seed(seed: int = 42) -> None:
+def set_seed(seed: Optional[int] = None) -> None:
     """
     Set the random seed for full reproducibility across Python, NumPy, and PyTorch.
     
@@ -32,11 +32,14 @@ def set_seed(seed: int = 42) -> None:
     Args
     ----
     seed : int, optional
-        The seed value to use for all RNGs (default = 42).
+        The seed value to use for all RNGs. If ``None``, uses current UNIX time.
     """
     # -------------------------------
     # Python & NumPy RNGs
     # -------------------------------
+    if seed is None:
+        seed = int(time.time())
+
     os.environ["PYTHONHASHSEED"] = str(seed)  # enforce deterministic hashing in Python
     random.seed(seed)
     np.random.seed(seed)
@@ -136,8 +139,8 @@ def cleanup_tensors(tensors: Union[Tensor, Dict, None, Tuple, List]) -> None:
     else:
         tensors = None  # Tensor individual
 
-    gc.collect()
-    torch.cuda.empty_cache()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
 
 def get_optimizing_value(name: str, spec: Any, trial):

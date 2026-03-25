@@ -909,6 +909,8 @@ class Dataset(torch.utils.data.Dataset):
             self.inputs_scaler.save(f"{prefix}_inputs_scaler.json")
         if self.outputs_scaler is not None and hasattr(self.outputs_scaler, "save") and self.outputs_scaler.is_fitted:
             self.outputs_scaler.save(f"{prefix}_outputs_scaler.json")
+
+
 class NeighborhoodDataset(Dataset):
     def __init__(
         self,

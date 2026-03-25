@@ -4,8 +4,8 @@ experiment:
   show_plots: true
 
 datasets:
-  train_ds: "../../../../Testsuite/DATA/CYLINDER_TRAIN.h5"
-  test_ds:  "../../../../Testsuite/DATA/CYLINDER_TEST.h5"
+  train_ds: "../../../../DATA/CYLINDER_TRAIN.h5"
+  test_ds:  "../../../../DATA/CYLINDER_TEST.h5"
   val_ds: null
 
 dataset_config:
@@ -18,7 +18,7 @@ dataset_config:
   scale_outputs: false
 
 model:
-  graph_path: "../../../../Testsuite/DATA/CYLINDER_TRAIN.h5"
+  graph_path: "../../../../DATA/CYLINDER_TRAIN.h5"
   config:
     input_dim: 1
     output_dim: 1
