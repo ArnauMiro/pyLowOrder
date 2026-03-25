@@ -51,4 +51,4 @@ from .architectures.binary_classifier import BinaryClassifier
 
 from ..utils.plots                    import plotSnapshot, plotModalErrorBars, plotTimeSeries
 
-del os, torch, utils
+del os, utils

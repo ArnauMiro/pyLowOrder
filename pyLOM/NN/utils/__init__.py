@@ -29,25 +29,27 @@ from .stats import RegressionEvaluator, ClassificationEvaluator
 from .callbacks import EarlyStopper
 
 
-# Backward-compatible activation wrappers (legacy import path: pyLOM.NN.utils)
-def tanh():      return torch.nn.Tanh()
-def relu():      return torch.nn.ReLU()
-def elu():       return torch.nn.ELU()
-def sigmoid():   return torch.nn.Sigmoid()
-def leakyRelu(): return torch.nn.LeakyReLU()
-def silu():      return torch.nn.SiLU()
+# Activation constructors shared across NN modules
+def tanh() -> torch.nn.Module:
+    return torch.nn.Tanh()
+
+def relu() -> torch.nn.Module:
+    return torch.nn.ReLU()
+
+def elu() -> torch.nn.Module:
+    return torch.nn.ELU()
+
+def sigmoid() -> torch.nn.Module:
+    return torch.nn.Sigmoid()
+
+def leakyRelu() -> torch.nn.Module:
+    return torch.nn.LeakyReLU()
+
+def silu() -> torch.nn.Module:
+    return torch.nn.SiLU()
 
 
-def __getattr__(name):
-    # Lazy legacy export kept only for backward compatibility after the
-    # Dataset refactor (Dataset now lives in pyLOM.NN.dataset). This preserves
-    # old imports like: from pyLOM.NN.utils import Dataset
-    # Keep this import local on purpose: moving it to module scope reintroduces
-    # the pyLOM.NN.utils <-> pyLOM.NN.dataset circular import.
-    if name == "Dataset":
-        from ..dataset import Dataset
-        return Dataset
-    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
 
 
 __all__ = [
@@ -69,13 +71,10 @@ __all__ = [
     "RegressionEvaluator",
     "ClassificationEvaluator",
     "EarlyStopper",
-    # activation wrappers
-    "tanh",
-    "relu",
-    "elu",
-    "sigmoid",
     "leakyRelu",
+    "sigmoid",
+    "elu",
+    "relu",
+    "tanh",
     "silu",
-    # lazy legacy export
-    "Dataset",
 ]
