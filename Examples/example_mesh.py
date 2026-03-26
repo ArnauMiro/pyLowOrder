@@ -7,14 +7,13 @@ from __future__ import print_function, division
 
 import numpy as np
 import pyLOM
-from pyLOM import pprint
 
 
 ## Load cylinder mesh
 DATAFILE = './Testsuite/DATA/CYLINDER.h5'
 
 m = pyLOM.Mesh.load(DATAFILE)
-print(m)
+pyLOM.pprint(m)
 
 
 ## Compute geometrical information (this may take a while depending on your mesh size)
@@ -47,17 +46,17 @@ d = pyLOM.Dataset(xyz=xyz_center, ptable=m.partition_table, order=m.cellOrder, p
 	EDGE_NORM_4 = {'ndim': 3,'value':edge_norms[:,9:12].flatten()},
 	CELL_CONEC = {'ndim': 4,'value':cell_conec.flatten()},
 )
-print("SURF_NORMS:", surf_norms.shape, "→", surf_norms.flatten().shape)
-print("ptable:", m.partition_table, "cells:", m.ncells)
+pyLOM.pprint(0, "SURF_NORMS:", surf_norms.shape, "->", surf_norms.flatten().shape)
+pyLOM.pprint(0, "ptable:", m.partition_table, "cells:", m.ncells)
 
-pprint(0, "Dataset created with the following variables:")
-print(d)
+pyLOM.pprint(0, "Dataset created with the following variables:")
+pyLOM.pprint(d)
 d.save('./example_mesh.h5')
-pprint(0, "Dataset saved to ./example_mesh.h5")
+pyLOM.pprint(0, "Dataset saved to ./example_mesh.h5")
 
-pprint(0, "Loading the dataset back to verify")
+pyLOM.pprint(0, "Loading the dataset back to verify")
 d_load = pyLOM.Dataset.load('./example_mesh.h5')
-pprint(d_load)
+pyLOM.pprint(0, d_load)
 pyLOM.io.pv_writer(m,d,'mesh',basedir='./',instants=[0],times=[0.],vars=['SURF_NORMS','EDGE_NORM_1', 'EDGE_NORM_2', 'EDGE_NORM_3', 'EDGE_NORM_4','CELL_CONEC'],fmt='vtkh5')
-pprint(0, "Mesh saved to ./mesh.vtkh5")
+pyLOM.pprint(0, "Mesh saved to ./mesh.vtkh5")
 pyLOM.cr_info()

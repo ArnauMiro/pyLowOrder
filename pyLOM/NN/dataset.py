@@ -2,7 +2,7 @@
 #
 # pyLOM - Python Low Order Modeling.
 #
-# NN utility routines.
+# NN datasets.
 #
 # Last rev:
 
