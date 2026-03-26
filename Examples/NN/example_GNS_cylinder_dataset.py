@@ -8,7 +8,7 @@ using cylinder train/test graph-ready files and the config-driven GNS interface.
 Preprocessing assumptions
 -------------------------
 1) Dataset split is expected to be done beforehand with:
-   `Converters/split_cylinder_train_test.py`
+   `Testsuite/Converters/tsuit_train_test_split.py`
    producing `CYLINDER_TRAIN.h5` and `CYLINDER_TEST.h5`.
 
 2) Graph handling in this example:
@@ -40,7 +40,7 @@ from pyLOM.NN import (
 )
 from pyLOM.NN.utils.config_schema import GNSModelConfig, GNSTrainingConfig
 from pyLOM.NN.utils.experiment import plot_train_test_loss, plot_true_vs_pred, save_experiment_artifacts
-from pyLOM.utils import pprint, raiseError
+from pyLOM.utils import raiseError
 from pyLOM.utils.config_resolvers import load_yaml
 
 # Load configuration
@@ -82,7 +82,7 @@ for p in required_dataset_paths:
         raiseError(
             f"Required dataset file not found: {p}\n"
             "For cylinder examples, generate split files first with:\n"
-            "  Converters/split_cylinder_train_test.py"
+            "  Testsuite/Converters/tsuit_train_test_split.py"
         )
 
 # Build graph online (didactic path), overwrite /GRAPH in TRAIN file, then read it from HDF5.
@@ -93,8 +93,8 @@ if not source_dataset.exists():
         "Create/keep CYLINDER.h5 and re-run this example."
     )
 
-pprint(0, f"overwriting graph group in {train_ds_path}")
-pprint(0, f"Building graph from mesh in: {source_dataset}")
+pyLOM.pprint(0, f"overwriting graph group in {train_ds_path}")
+pyLOM.pprint(0, f"Building graph from mesh in: {source_dataset}")
 mesh = Mesh.load(str(source_dataset), mpio=False)
 graph = Graph.from_pyLOM_mesh(mesh=mesh, device="cpu")
 with h5py.File(str(train_ds_path), "a") as f:
@@ -104,7 +104,7 @@ graph.save(str(train_ds_path), mode="a")
 with h5py.File(str(train_ds_path), "r") as f:
     if "GRAPH" not in f:
         raiseError(f"Failed to store /GRAPH in {train_ds_path}")
-pprint(0, f"Graph stored in /GRAPH inside: {train_ds_path}")
+pyLOM.pprint(0, f"Graph stored in /GRAPH inside: {train_ds_path}")
 
 # Build datasets
 if data_cfg.get("mesh_shape") is not None:
@@ -217,5 +217,5 @@ fig, _, _ = plot_train_test_loss(
 plt.close(fig)
 plot_true_vs_pred(y_true_flat, y_pred_flat, str(out_dir / "true_vs_pred.png"))
 
-pprint(0, f"Artifacts saved in: {out_dir}")
+pyLOM.pprint(0, f"Artifacts saved in: {out_dir}")
 pyLOM.cr_info()

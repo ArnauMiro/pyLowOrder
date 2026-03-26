@@ -11,9 +11,9 @@ This example expects the DLR/NLR HDF5 files already preprocessed with:
 `Converters/DLR2h5.py`
 
 Expected files:
-  - /home/p.yeste/CETACEO_DATA/nlr7301/TRAIN_converter.h5
-  - /home/p.yeste/CETACEO_DATA/nlr7301/TEST_converter.h5
-  - /home/p.yeste/CETACEO_DATA/nlr7301/VAL_converter.h5
+  - ../../../DATA/TRAIN_converter.h5
+  - ../../../DATA/TEST_converter.h5
+  - ../../../DATA/VAL_converter.h5
 
 The converter stores a `GRAPH` group in each file. This script reads the graph
 from `TRAIN_converter.h5`.
@@ -31,7 +31,7 @@ import pyLOM
 from pyLOM.NN import Dataset, GNS, MinMaxScaler, Pipeline, RegressionEvaluator, RobustScaler, StandardScaler
 from pyLOM.NN.utils.config_schema import GNSModelConfig, GNSTrainingConfig
 from pyLOM.NN.utils.experiment import plot_train_test_loss, plot_true_vs_pred, save_experiment_artifacts
-from pyLOM.utils import pprint, raiseError
+from pyLOM.utils import raiseError
 from pyLOM.utils.config_resolvers import load_yaml
 
 
@@ -233,5 +233,5 @@ out_dir = save_experiment_artifacts(
     return_path=True,
 )
 
-pprint(0, f"Artifacts saved in: {out_dir}")
+pyLOM.pprint(0, f"Artifacts saved in: {out_dir}")
 pyLOM.cr_info()
