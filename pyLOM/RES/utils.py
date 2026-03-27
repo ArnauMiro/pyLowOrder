@@ -52,8 +52,8 @@ def extract_modes(U:np.ndarray,V:np.ndarray,ivar:int,npoints:int,modes:list=[],r
 			out_V[:,i] = (V[ivar-1:nvars*npoints:nvars,m-1].imag)
 	elif kind == "abs":
 		for i,m in enumerate(modes):
-			out_U[:,i] = (U[ivar-1:nvars*npoints:nvars,m-1].abs)
-			out_V[:,i] = (V[ivar-1:nvars*npoints:nvars,m-1].abs)
+			out_U[:,i] = (abs(U[ivar-1:nvars*npoints:nvars,m-1]))
+			out_V[:,i] = (abs(V[ivar-1:nvars*npoints:nvars,m-1]))
 	else:
 		raise ValueError("kind must be: real, imag, abs")
 	# Return reshaped output

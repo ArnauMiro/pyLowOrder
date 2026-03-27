@@ -309,3 +309,21 @@ def flip(A:np.ndarray) -> np.ndarray:
 	'''
 	p = cp if type(A) is cp.ndarray else np
 	return p.flip(A)
+
+@cr('math.abs')
+def abs(A:np.ndarray) -> np.ndarray:
+	r'''
+	Returns the pointwise absolute value of complex A
+
+	.. warning::
+	This function is not implemented in the
+	compiled layer and will raise an error if used
+
+	Args:
+		A (np.ndarray): Matrix A (M,N)
+	
+	Result:
+		np.ndarray: Absolute value version of A (M,N)
+	'''
+	p = cp if type(A) is cp.ndarray else np
+	return p.abs(A)

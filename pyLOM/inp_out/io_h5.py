@@ -848,22 +848,31 @@ def h5_load_QR(fname,vars,ptable=None):
 	file.close()
 	return varList
 
-def h5_save_usv(U,S,V,ptable,nvars,pointData,group):
+def h5_save_usv(U,S,V,ptable,nvars,pointData,group,kind):
 	# Create the datasets for U, S and V
 	group.create_dataset('pointData',(1,),dtype='u1',data=pointData)
 	group.create_dataset('n_variables',(1,),dtype='u1',data=nvars)
 	Usize = (mpi_reduce(U.shape[0],op='sum',all=True),U.shape[1]) if U is not None else None
 	dsetU = group.create_dataset('U',Usize,dtype=U.dtype)   if U is not None else None
 	dsetS = group.create_dataset('S',S.shape,dtype=S.dtype) if S is not None else None
-	dsetV = group.create_dataset('V',V.shape,dtype=V.dtype) if V is not None else None
+	if kind == 'POD':
+		dsetV = group.create_dataset('V',V.shape,dtype=V.dtype) if V is not None else None
+	elif kind == 'RES':
+		Vsize = (mpi_reduce(V.shape[0],op='sum',all=True),V.shape[1]) if V is not None else None
+		dsetV = group.create_dataset('V',Vsize,dtype=V.dtype)   if V is not None else None
+	else:
+		raise ValueError("kind must be: POD, RES")
 	# Store S and U that are repeated across the ranks
 	# So it is enough that one rank stores them
 	if is_rank_or_serial(0):
 		if dsetS is not None: dsetS[:] = S
-		if dsetV is not None: dsetV[:] = V 
+		if kind == 'POD':
+			if dsetV is not None: dsetV[:] = V 
 	# Store U in parallel
 	istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=pointData)
 	if dsetU is not None: dsetU[istart:iend,:] = U
+	if kind == 'RES':
+		if dsetV is not None: dsetV[istart:iend,:] = V
 
 @cr('h5IO.save_POD')
 def h5_save_POD(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
@@ -881,7 +890,7 @@ def h5_save_POD(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
 	# Now create a POD group
 	group = file.create_group('POD')
 	# Create and store de datsets
-	h5_save_usv(U,S,V,ptable,nvars,pointData,group)
+	h5_save_usv(U,S,V,ptable,nvars,pointData,group,kind='POD')
 	file.close()
 
 @cr('h5IO.load_POD')
@@ -1067,7 +1076,7 @@ def h5_save_RES(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
 	# Now create a POD group
 	group = file.create_group('RES')
 	# Create and store de datsets
-	h5_save_usv(U,S,V,ptable,nvars,pointData,group)
+	h5_save_usv(U,S,V,ptable,nvars,pointData,group,kind='RES')
 	file.close()
 
 @cr('h5IO.load_RES')
@@ -1091,7 +1100,14 @@ def h5_load_RES(fname,vars,nmod,ptable=None):
 		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=point)
 		varList.append(np.array(file['RES']['U'][istart:iend,:]) if nmod < 0 else np.array(file['RES']['U'][istart:iend,:nmod]))
 	if 'S' in vars: varList.append( np.array(file['RES']['S'][:]) if nmod < 0 else  np.array(file['RES']['S'][:nmod]) )
-	if 'V' in vars: varList.append( np.array(file['RES']['V'][:,:]) if nmod < 0 else np.array(file['RES']['V'][:nmod,:]) )
+	if 'V' in vars: 
+		# Check if we need to read the partition table
+		if ptable is None: ptable = h5_load_partition(file)
+		# Read
+		nvars = int(file['RES']['n_variables'][0])
+		point = bool(file['RES']['pointData'][0])
+		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=point)
+		varList.append(np.array(file['RES']['V'][istart:iend,:]) if nmod < 0 else np.array(file['RES']['V'][istart:iend,:nmod]))
 	# Return
 	file.close()
 	return varList
