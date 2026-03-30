@@ -29,11 +29,20 @@ def next_power_of_2(n):
 def qr(A):
 	'''
 	QR factorization using Lapack
-		Q(m,n) is the Q matrix
-		R(n,n) is the R matrix
+		Q_sp(m,n) is the Q matrix 
+		R_sp(n,n) is the R matrix semipositive
 	'''
 	p = cp if type(A) is cp.ndarray else np
-	return p.linalg.qr(A)
+
+	Q, R = p.linalg.qr(A)
+
+	# Semi-positive solution of the QR
+	d = np.sign(np.diag(R))
+	d[d == 0] = 1 
+	R_sp = d[:, None] * R 
+	Q_sp = Q * d[None, :]
+
+	return Q_sp, R_sp
 
 @cr('math.tsqr')
 def tsqr(Ai):
