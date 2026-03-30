@@ -25,9 +25,11 @@ class KAN(nn.Module):
         n_layers (int): The number of hidden layers.
         hidden_size (int): The number of neurons in the hidden layers.
         layer_type (nn.Module): The type of layer to use in the model. It can be one of the following: ``JacobiLayer``, ``ChebyshevLayer``.
-        model_name (str): The name of the model.
+        degree (int, Optional): The degree of the polynomial for the layers. It is only used if the layer type is ``JacobiLayer`` or ``ChebyshevLayer`` (default: ``5``).
         p_dropouts (float, Optional): The dropout probability (default: ``0.0``).
         device (torch.device, Optional): The device where the model is loaded (default: gpu if available).
+        seed (int, Optional): The random seed for reproducibility (default: ``None``).
+        model_name (str, Optional): The name of the model (default: ``"kan"``).
         verbose (bool, Optional): Whether to print the model information (default: ``True``).
         **layer_kwargs: Additional keyword arguments to pass to the layer type. For example, the order of the Taylor series or the degree of the Chebyshev polynomial.
     """
@@ -39,12 +41,13 @@ class KAN(nn.Module):
         n_layers: int,
         hidden_size: int,
         layer_type,
-        model_name: str = "KAN",
+        degree = 5,
         p_dropouts: float = 0.0,
         device: torch.device = DEVICE,
         seed: int = None, 
+        model_name: str = "kan",
         verbose: bool = True,
-        degree = 5,
+        **kwargs: Dict,
     ):
         super().__init__()
         if seed is not None:
@@ -55,22 +58,23 @@ class KAN(nn.Module):
         self.n_layers = n_layers
         self.hidden_size = hidden_size
         self.layer_type = layer_type
-        self.model_name = model_name
+        self.degree = degree
         self.p_dropouts = p_dropouts
         self.device = device
         self.seed = seed
+        self.model_name = model_name
 
         # Hidden layers with dropout
         hidden_layers = []
-        for _ in range(n_layers):
-            hidden_layers.append(layer_type(hidden_size, hidden_size, degree))
-            hidden_layers.append(nn.Dropout(p=p_dropouts))
+        for _ in range(self.n_layers):
+            hidden_layers.append(self.layer_type(self.hidden_size, self.hidden_size, self.degree))
+            hidden_layers.append(nn.Dropout(p=self.p_dropouts))
 
         self.kan_layers = nn.ModuleList(hidden_layers)
 
         # Input and output layers
-        self.input = layer_type(input_size, hidden_size, degree)
-        self.output = layer_type(hidden_size, output_size, degree)
+        self.input = self.layer_type(self.input_size, self.hidden_size, self.degree)
+        self.output = self.layer_type(self.hidden_size, self.output_size, self.degree)
 
         self.to(self.device)
         if verbose:
@@ -94,9 +98,7 @@ class KAN(nn.Module):
         x = self.input(x)
         for layer in self.kan_layers:
             x = layer(x)
-
         x = self.output(x)
-
         return x
 
     @property

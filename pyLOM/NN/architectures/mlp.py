@@ -65,13 +65,13 @@ class MLP(nn.Module):
         self.model_name = model_name
 
         self.layers = nn.ModuleList()
-        for i in range(n_layers):
-            in_size = input_size if i == 0 else hidden_size
-            out_size = hidden_size
+        for i in range(self.n_layers):
+            in_size = self.input_size if i == 0 else self.hidden_size
+            out_size = self.hidden_size
             self.layers.append(nn.Linear(in_size, out_size))
-            if p_dropouts > 0:
-                self.layers.append(nn.Dropout(p_dropouts))
-        self.oupt = nn.Linear(hidden_size, output_size)
+            if self.p_dropouts > 0:
+                self.layers.append(nn.Dropout(self.p_dropouts))
+        self.oupt = nn.Linear(self.hidden_size, self.output_size)
 
         for layer in self.layers:
             if isinstance(layer, nn.Linear):
