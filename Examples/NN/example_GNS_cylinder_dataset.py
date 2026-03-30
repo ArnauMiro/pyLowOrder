@@ -8,7 +8,7 @@ using cylinder train/test graph-ready files and the config-driven GNS interface.
 Preprocessing assumptions
 -------------------------
 1) Dataset split is expected to be done beforehand with:
-   `Testsuite/Converters/tsuit_train_test_split.py`
+   `Converters/tsuite_train_test_split.py`
    producing `CYLINDER_TRAIN.h5` and `CYLINDER_TEST.h5`.
 
 2) Graph handling in this example:
@@ -82,7 +82,7 @@ for p in required_dataset_paths:
         raiseError(
             f"Required dataset file not found: {p}\n"
             "For cylinder examples, generate split files first with:\n"
-            "  Testsuite/Converters/tsuit_train_test_split.py"
+            "  Converters/tsuite_train_test_split.py"
         )
 
 # Build graph online (didactic path), overwrite /GRAPH in TRAIN file, then read it from HDF5.
