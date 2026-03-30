@@ -174,7 +174,7 @@ class KAN(nn.Module):
             pprint(0, "")
             pprint(0, "Conditions:")
             pprint(0, f"\tepochs:     {epochs}")
-            pprint(0, f"\tbatch size: 2**{int(np.log2(batch_size))}")
+            pprint(0, f"\tbatch size: {batch_size}")
             pprint(0, f"\toptimizer class:  {optimizer_class}")
             pprint(0, f"\tscheduler:  {scheduler_type}")
             pprint(0, f"\tloss_fn:  {loss_fn}")
@@ -189,19 +189,24 @@ class KAN(nn.Module):
                 else:
                     pprint(0, f"\t{key}: {value}")
             pprint(0, "   ")
-        
+
         dataloader_params = {
             "batch_size": batch_size,
             "shuffle": True,
             "num_workers": 0,
             "pin_memory": PIN_MEMORY,
         }
-        for key in dataloader_params.keys():
-            if key in kwargs:
-                dataloader_params[key] = kwargs[key]
-        train_loader = DataLoader(train_dataset, **dataloader_params)
-        if eval_dataset is not None:
-            test_loader = DataLoader(eval_dataset, **dataloader_params)
+        if not hasattr(self, "train_loader"):
+            for key in dataloader_params.keys():
+                if key in kwargs:
+                    dataloader_params[key] = kwargs[key]
+            self.train_loader = DataLoader(train_dataset, **dataloader_params)
+        
+        if not hasattr(self, "test_loader") and eval_dataset is not None:
+            for key in dataloader_params.keys():
+                if key in kwargs:
+                    dataloader_params[key] = kwargs[key]
+            self.test_loader = DataLoader(eval_dataset, **dataloader_params)
 
         train_losses = []
         test_losses = []
@@ -210,24 +215,30 @@ class KAN(nn.Module):
         current_lr_vec = []
         grad_norms = []
 
-        self.optimizer = optimizer_class(self.parameters(), lr=lr, **opti_kwargs)
+        if not hasattr(self, "optimizer"):
+            self.optimizer = optimizer_class(
+                self.parameters(),
+                lr=lr,
+                **opti_kwargs
+            )
 
-        if scheduler_type == "StepLR":
-            self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, **lr_kwargs)
-        elif scheduler_type == "ReduceLROnPlateau":
-            self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                self.optimizer, **lr_kwargs
-            )
-        elif scheduler_type == "OneCycleLR":
-            self.scheduler = torch.optim.lr_scheduler.OneCycleLR(
-                self.optimizer,
-                max_lr=lr,
-                steps_per_epoch=len(train_loader),
-                epochs=1,
-                **lr_kwargs,
-            )
-        else:
-            raiseError(f"Invalid scheduler_type: {scheduler_type}. Available options are: 'StepLR', 'ReduceLROnPlateau', 'OneCycleLR'")
+        if not hasattr(self, "scheduler"):
+            if scheduler_type == "StepLR":
+                self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, **lr_kwargs)
+            elif scheduler_type == "ReduceLROnPlateau":
+                self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                    self.optimizer, **lr_kwargs
+                )
+            elif scheduler_type == "OneCycleLR":
+                self.scheduler = torch.optim.lr_scheduler.OneCycleLR(
+                    self.optimizer,
+                    max_lr=lr,
+                    steps_per_epoch=len(self.train_loader),
+                    epochs=1,
+                    **lr_kwargs,
+                )
+            else:
+                raiseError(f"Invalid scheduler_type: {scheduler_type}. Available options are: 'StepLR', 'ReduceLROnPlateau', 'OneCycleLR'")
 
         if hasattr(self, "optimizer_state_dict"):
             self.optimizer.load_state_dict(self.optimizer_state_dict)
@@ -252,7 +263,7 @@ class KAN(nn.Module):
                 loss_iterations_train.append(loss.item())
                 return loss
 
-            for inputs, targets in train_loader:
+            for inputs, targets in self.train_loader:
                 inputs, targets = (
                     inputs.float().to(self.device),
                     targets.float().to(self.device),
@@ -262,23 +273,27 @@ class KAN(nn.Module):
                     torch.stack([p.grad.norm() for p in self.parameters() if p.grad is not None])
                 )
                 grad_norms.append(total_norm.item())
-                if scheduler_type != "ReduceLROnPlateau":
-                    self.scheduler.step()
-                    current_lr = self.optimizer.param_groups[0]["lr"]
-                    current_lr_vec.append(current_lr)
+                # if scheduler_type != "ReduceLROnPlateau":
+                #     self.scheduler.step()
+                #     current_lr = self.optimizer.param_groups[0]["lr"]
+                #     current_lr_vec.append(current_lr)
 
-            train_loss /= len(train_loader)
+            train_loss /= len(self.train_loader)
             train_losses.append(train_loss)
 
-            if scheduler_type == "ReduceLROnPlateau":
-                self.scheduler.step(train_loss)
-
+            # if scheduler_type == "ReduceLROnPlateau":
+            #     self.scheduler.step(train_loss)
+            if scheduler_type == "StepLR":
+                self.scheduler.step()
+                current_lr = self.optimizer.param_groups[0]["lr"]
+                current_lr_vec.append(current_lr)
+                
             test_loss = 0.0
             if eval_dataset is not None:
                 if (epoch + 1) % print_eval_rate == 0:
                     self.eval()
                     with torch.no_grad():
-                        for inputs, targets in test_loader:
+                        for inputs, targets in self.test_loader:
                             inputs, targets = (
                                 inputs.float().to(self.device),
                                 targets.float().to(self.device),
@@ -288,7 +303,7 @@ class KAN(nn.Module):
                             loss_iterations_test.append(loss.item())
                             test_loss += loss.item()
 
-                    test_loss /= len(test_loader)
+                    test_loss /= len(self.test_loader)
                     test_losses.append(test_loss)
 
             current_lr = self.optimizer.param_groups[0]["lr"]
@@ -337,8 +352,8 @@ class KAN(nn.Module):
                         results[key] = results_old[key] + results[key][:]
                 if verbose:
                     pprint(0, "Updating previous data in file" + save_logs_path + f"training_results_{self._model_name}.npy")
-
-            np.save(save_logs_path + f"training_results_{self._model_name}.npy", results)
+            
+            np.save(os.path.join(save_logs_path, f"training_results_{self._model_name}.npy"), results)
             if verbose:
                 pprint(0, f"Training results saved at {save_logs_path}training_results_{self._model_name}.npy")
 
