@@ -7,6 +7,8 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
+from pyLOM.NN.utils import set_seed
+
 from ... import cr, pprint  # pyLOM/__init__.py
 from .. import DEVICE, PIN_MEMORY  # pyLOM/NN/__init__.py
 from ...utils.errors import raiseError, raiseWarning
@@ -40,10 +42,14 @@ class KAN(nn.Module):
         model_name: str = "KAN",
         p_dropouts: float = 0.0,
         device: torch.device = DEVICE,
+        seed: int = None, 
         verbose: bool = True,
         degree = 5,
     ):
         super().__init__()
+        if seed is not None:
+            set_seed(seed)
+        
         self.input_size = input_size
         self.output_size = output_size
         self.n_layers = n_layers
@@ -52,7 +58,7 @@ class KAN(nn.Module):
         self.model_name = model_name
         self.p_dropouts = p_dropouts
         self.device = device
-        self.degree = degree
+        self.seed = seed
 
         # Hidden layers with dropout
         hidden_layers = []
