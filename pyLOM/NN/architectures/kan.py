@@ -561,181 +561,95 @@ class KAN(nn.Module):
             >>> # Fit the model
             >>> model.fit(train_dataset, eval_dataset, **optimization_params)
         """
-        optimizing_parameters = optuna_optimizer.optimization_params
-        input_size, output_size = (
-            train_dataset[0][0].shape[0],
-            train_dataset[0][1].shape[0],
-        )
-
-        def optimization_function(trial) -> float:
-            model_parameters, training_parameters = cls._sample_kan_parameters(
-                trial, optimizing_parameters
-            )
-            model = cls(
-                input_size=input_size,
-                output_size=output_size,
-                **model_parameters,
-            )
-            model_logs = model.fit(train_dataset, eval_dataset, **training_parameters)
-            return model_logs["test_loss"][-1].item()
-
-        best_params = optuna_optimizer.optimize(optimization_function)
-        # Update the optimizing parameters with the best parameters found
-        optimizing_parameters.update(best_params)
-        if "layer_kwargs" in optimizing_parameters:
-            del optimizing_parameters["layer_kwargs"]
-        # Update the learning rate kwargs with the best parameters found
-        if "lr_kwargs" in optimizing_parameters:
-            for key in optimizing_parameters["lr_kwargs"]:
-                if key in best_params:
-                    optimizing_parameters["lr_kwargs"][key] = best_params[key]
-
-        # Separate the model and training parameters from the best parameters found.
-        # Note: now optimizing_parameters contains the best parameters found and does not contain any tuple,
-        # so this is an easy wan to separate the training and model parameters
-        model_parameters, training_parameters = cls._sample_kan_parameters(
-            None, optimizing_parameters
-        )
-        model = cls(input_size=input_size, output_size=output_size, **model_parameters)
-        return model, training_parameters
-
-    @classmethod
-    def _sample_kan_parameters(cls, trial, optimizing_parameters):
-        training_parameters = {}
-        model_parameters = {}
-        mandatory_params = ["n_layers", "hidden_size", "layer_type"]
-        for param in mandatory_params:
-            if param in optimizing_parameters:
-                model_parameters[param] = cls._suggest_value(trial, param, optimizing_parameters)
-            else:
-                raiseError(f"A value or range to optimize for the {param} must be provided")
-        if "p_dropouts" in optimizing_parameters:
-            model_parameters["p_dropouts"] = cls._suggest_float_value(
-            trial, "p_dropouts", optimizing_parameters
-            )
-        else:
-            model_parameters["p_dropouts"] = 0.0
+        optimization_params = optuna_optimizer.optimization_params
+        input_dim, output_dim = train_dataset[0][0].shape[0], train_dataset[0][1].shape[0]
         
-        if "layer_kwargs" in optimizing_parameters:
-            for key in optimizing_parameters["layer_kwargs"]:
-                if key not in ["degree", "a", "b"]:
-                    raiseError(f"Invalid key {key} in layer_kwargs")
-                else:
-                    model_parameters[key] = cls._suggest_value(
-                        trial, key, optimizing_parameters["layer_kwargs"])
-        elif "degree" in optimizing_parameters:
-            model_parameters["degree"] = cls._suggest_int_value(
-                trial, "degree", optimizing_parameters
-            )
-        else:
-            raiseError("Layer kwargs with at least a key for degree must be provided")
-
-        if "epochs" in optimizing_parameters:
-            training_parameters["epochs"] = cls._suggest_int_value(
-                trial, "epochs", optimizing_parameters
-            )
-        else:
-            training_parameters["epochs"] = 100
-        if "batch_size" in optimizing_parameters:
-            training_parameters["batch_size"] = cls._suggest_int_value(
-                trial, "batch_size", optimizing_parameters
-            )
-        else:
-            training_parameters["batch_size"] = 32
-        if "lr" in optimizing_parameters:
-            training_parameters["lr"] = cls._suggest_float_value(
-                trial, "lr", optimizing_parameters, log_scale=True
-            )
-        else:
-            training_parameters["lr"] = 0.001
-
-        if "max_norm_grad" in optimizing_parameters:
-            training_parameters["max_norm_grad"] = cls._suggest_float_value(
-                trial, "max_norm_grad", optimizing_parameters
-            )
-        else:
-            training_parameters["max_norm_grad"] = float("inf")
+        def suggest_value(name, space, trial):
+            if isinstance(space, dict):
+                suggested_dict = {}
+                for key, subspace in space.items():
+                    full_name = f"{name}.{key}"
+                    suggested_dict[key] = suggest_value(full_name, subspace, trial)
+                return suggested_dict
             
-        if "optimizer_class" in optimizing_parameters:
-            training_parameters["optimizer_class"] = cls._suggest_categorical_value(
-                trial, "optimizer_class", optimizing_parameters
-            )
-        else:
-            training_parameters["optimizer_class"] = optim.Adam
+            if isinstance(space, (tuple, list)):
+                if len(space) == 2:
+                    low, high = space
+                    if isinstance(low, int) and isinstance(high, int):
+                        
+                        def is_power_of_2(n):
+                            return n > 0 and (n & (n - 1)) == 0
+                        
+                        if is_power_of_2(low) and is_power_of_2(high):
+                            power_low = int(np.log2(low))
+                            power_high = int(np.log2(high))
+                            power_diff = power_high - power_low
+                            
+                            if power_diff > 3:
+                                choices = [2**p for p in range(power_low, power_high + 1)]
+                                return trial.suggest_categorical(name, choices)
+                        
+                        use_log = (high / max(1, low)) >= 1000
+                        return trial.suggest_int(name, low, high, log=use_log)
 
-        if "lr_kwargs" in optimizing_parameters:
-            training_parameters["lr_kwargs"] = {}
-            for key in optimizing_parameters["lr_kwargs"]:
-                training_parameters["lr_kwargs"][key] = cls._suggest_value(
-                    trial, key, optimizing_parameters["lr_kwargs"]
-                )
-        else:
-            training_parameters["lr_kwargs"] = {}
+                    if isinstance(low, float) and isinstance(high, float):
+                        use_log = (high / max(1e-12, low)) >= 1000
+                        return trial.suggest_float(name, low, high, log=use_log)
+                else:
+                    return trial.suggest_categorical(name, space)
+                
+            return space
+        
+        def optimization_function(trial) -> float:
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
+            model = None
 
-        # non optimizing parameters
-        for no_optimizing_param in ["save_logs_path", "print_eval_rate", "loss_fn", "opti_kwargs", "scheduler_type"]:
-            if no_optimizing_param in optimizing_parameters:
-                training_parameters[no_optimizing_param] = optimizing_parameters[
-                    no_optimizing_param
-                ]
-                if isinstance(training_parameters[no_optimizing_param], tuple):
-                    raiseError(f"Invalid value for {no_optimizing_param}. It is not an optimizable parameter.")
+            try: 
+                training_params = {}       
+                for key, params in optimization_params.items():
+                    training_params[key] = suggest_value(key, params, trial)
+                training_params["save_logs_path"] = None
+                
+                model = cls(input_dim, output_dim, **training_params)
+                if optuna_optimizer.pruner is not None:
+                    epochs = training_params["epochs"]
+                    training_params["epochs"] = 1
+                    for epoch in range(epochs):
+                        model.fit(train_dataset, **training_params)
+                        y_pred, y_true = model.predict(eval_dataset, return_targets=True)
+                        loss_val = ((y_pred - y_true)**2).mean()
+                        trial.report(loss_val, epoch)
+                        if trial.should_prune(): 
+                            raise TrialPruned()
+                else:
+                    model.fit(train_dataset, **training_params)
+                    y_pred, y_true = model.predict(eval_dataset, return_targets=True)
+                    loss_val = ((y_pred - y_true)**2).mean()
+                
+                return loss_val
+            
+            except RuntimeError as e:
+                if "out of memory" in str(e) or "MEMORY" in str(e).upper():
+                    print(f"Trial {trial.number} failed due to out of memory error. Pruning the trial.")
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                    raise TrialPruned()
+                raise
 
-        for no_optimizing_param in ["device", "model_name"]:
-            if no_optimizing_param in optimizing_parameters:
-                model_parameters[no_optimizing_param] = optimizing_parameters[
-                    no_optimizing_param
-                ]
+            finally:
+                if model is not None:
+                    del model
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+        
+        best_params = optuna_optimizer.optimize(objective_function=optimization_function)
 
-        return model_parameters, training_parameters
-    
-    def _suggest_value(
-        trial, parameter_name, optimizing_parameters,
-    ):
-        if isinstance(optimizing_parameters[parameter_name], tuple):
-            if isinstance(optimizing_parameters[parameter_name][0], int):
-                return trial.suggest_int(
-                    parameter_name, *optimizing_parameters[parameter_name]
-                )
-            elif isinstance(optimizing_parameters[parameter_name][0], float):
-                return trial.suggest_float(
-                    parameter_name, *optimizing_parameters[parameter_name]
-                )
-            else:
-                return trial.suggest_categorical(
-                    parameter_name, optimizing_parameters[parameter_name]
-                )
-        else:
-            return optimizing_parameters[parameter_name]
-
-    def _suggest_int_value(
-        trial, parameter_name, optimizing_parameters, log_scale=False
-    ):
-        if isinstance(optimizing_parameters[parameter_name], tuple):
-            return trial.suggest_int(
-                parameter_name, *optimizing_parameters[parameter_name], log=log_scale
-            )
-        else:
-            return optimizing_parameters[parameter_name]
-
-    def _suggest_float_value(
-        trial, parameter_name, optimizing_parameters, log_scale=False
-    ):
-        if isinstance(optimizing_parameters[parameter_name], tuple):
-            return trial.suggest_float(
-                parameter_name, *optimizing_parameters[parameter_name], log=log_scale
-            )
-        else:
-            return optimizing_parameters[parameter_name]
-
-    def _suggest_categorical_value(trial, parameter_name, optimizing_parameters):
-        if isinstance(optimizing_parameters[parameter_name], tuple):
-            return trial.suggest_categorical(
-                parameter_name, optimizing_parameters[parameter_name]
-            )
-        else:
-            return optimizing_parameters[parameter_name]
+        # Update params with best ones
+        OptunaOptimizer.apply_to(optimization_params, optimized_params=best_params)
+        
+        return cls(input_dim, output_dim, **optimization_params), optimization_params
 
 
 class KAN_SIN(KAN):
