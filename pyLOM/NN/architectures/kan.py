@@ -12,7 +12,7 @@ from pyLOM.NN.utils import set_seed
 from ... import cr, pprint  # pyLOM/__init__.py
 from .. import DEVICE, PIN_MEMORY  # pyLOM/NN/__init__.py
 from ...utils.errors import raiseError, raiseWarning
-from ..optimizer import OptunaOptimizer
+from ..optimizer import OptunaOptimizer, TrialPruned
 
 
 class KAN(nn.Module):
@@ -457,7 +457,7 @@ class KAN(nn.Module):
 
     @classmethod
     def load(cls, path: str, device: torch.device = torch.device("cpu")):
-        """
+        r"""
         Loads a model from a checkpoint file.
 
         Args:
@@ -502,13 +502,13 @@ class KAN(nn.Module):
     @classmethod
     @cr("KAN.create_optimized_model")
     def create_optimized_model(
-        cls,
-        train_dataset: torch.utils.data.Dataset,
-        eval_dataset: torch.utils.data.Dataset,
+        cls, 
+        train_dataset: torch.utils.data.Dataset, 
+        eval_dataset: torch.utils.data.Dataset, 
         optuna_optimizer: OptunaOptimizer,
         **kwargs,
     ) -> Tuple[nn.Module, Dict]:
-        """
+        r"""
         Create an optimized KAN model using Optuna. The model is trained on the training dataset and the metric to optimize is computed with the evaluation dataset.
         If the parameters from the optimizer are a tuple, the function will optimize the parameter. If the parameter is a single value, it will be fixed during optimization.
 
