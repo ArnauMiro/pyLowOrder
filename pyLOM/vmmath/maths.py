@@ -118,6 +118,7 @@ def vecmat(v:np.ndarray,A:np.ndarray,transposed:bool=False) -> np.ndarray:
 	Args:
 		v (np.ndarray): Vector v (M,)
 		A (np.ndarray): Matrix A (M,N)
+		transposed (bool): If False, performs row multiplication. Column for True
 	
 	Result:
 		np.ndarray: Resulting matrix C (M,N)
