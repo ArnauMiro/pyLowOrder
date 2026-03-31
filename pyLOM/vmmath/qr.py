@@ -10,7 +10,7 @@ from __future__ import print_function, division
 import time, numpy as np
 
 from ..utils.gpu import cp, gpu_to_cpu, cpu_to_gpu
-from .maths      import matmul, matmulp
+from .maths      import matmul, matmulp, vecmat, transpose
 from ..utils     import cr_nvtx as cr, MPI_RANK, MPI_SIZE, mpi_send, mpi_recv
 
 
@@ -29,8 +29,8 @@ def next_power_of_2(n):
 def qr(A):
 	'''
 	QR factorization using Lapack
-		Q_sp(m,n) is the Q matrix 
-		R_sp(n,n) is the R matrix semipositive
+		Q(m,n) is the Q matrix 
+		R(n,n) is the R matrix semipositive
 	'''
 	p = cp if type(A) is cp.ndarray else np
 
@@ -39,10 +39,10 @@ def qr(A):
 	# Semi-positive solution of the QR
 	d = np.sign(np.diag(R))
 	d[d == 0] = 1 
-	R_sp = d[:, None] * R 
-	Q_sp = Q * d[None, :]
+	R = vecmat(d, R) 
+	Q = transpose(vecmat(d, transpose(Q)))
 
-	return Q_sp, R_sp
+	return Q, R
 
 @cr('math.tsqr')
 def tsqr(Ai):
