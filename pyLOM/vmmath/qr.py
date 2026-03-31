@@ -37,10 +37,11 @@ def qr(A):
 	Q, R = p.linalg.qr(A)
 
 	# Semi-positive solution of the QR
-	d = np.sign(np.diag(R))
+	d = np.sign(np.diag(R.real))
 	d[d == 0] = 1 
+	d = d.astype(A.dtype)
 	R = vecmat(d, R) 
-	Q = transpose(vecmat(d, transpose(Q)))
+	Q = vecmat(d, Q, transposed=True)
 
 	return Q, R
 

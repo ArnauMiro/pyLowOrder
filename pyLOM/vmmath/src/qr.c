@@ -39,7 +39,7 @@ int sqr(float *Q, float *R, float *A, const int m, const int n) {
 		Q(m,n) is the Q matrix and must come preallocated
 		R(n,n) is the R matrix and must come preallocated
 	*/
-	int info = 0, ii, jj, kk;
+	int info = 0, ii, jj;
 	float *tau;
 	// Allocate
 	tau = (float*)malloc(n*n*sizeof(float));
@@ -77,8 +77,8 @@ int sqr(float *Q, float *R, float *A, const int m, const int n) {
 		if(AC_MAT(R,n,ii,ii) < 0){
 			for(jj=ii;jj<n;++jj)
 				AC_MAT(R,n,ii,jj) = -AC_MAT(R,n,ii,jj);
-			for(kk=0;kk<m;++kk)
-				AC_MAT(Q,n,kk,ii) = -AC_MAT(Q,n,kk,ii);
+			for(jj=0;jj<m;++jj)
+				AC_MAT(Q,n,jj,ii) = -AC_MAT(Q,n,jj,ii);
 		}
 	return info;
 }
@@ -123,6 +123,14 @@ int dqr(double *Q, double *R, double *A, const int m, const int n) {
 	);
 	if (!(info==0)) {free(tau); return info;}
 	free(tau);
+	// Find the semi-positive unique solution
+	for(ii=0;ii<n;++ii)
+		if(AC_MAT(R,n,ii,ii) < 0){
+			for(jj=ii;jj<n;++jj)
+				AC_MAT(R,n,ii,jj) = -AC_MAT(R,n,ii,jj);
+			for(jj=0;jj<m;++jj)
+				AC_MAT(Q,n,jj,ii) = -AC_MAT(Q,n,jj,ii);
+		}
 	return info;
 }
 
@@ -134,6 +142,7 @@ int cqr(scomplex_t *Q, scomplex_t *R, scomplex_t *A, const int m, const int n) {
 		R(n,n) is the R matrix and must come preallocated
 	*/
 	int info = 0, ii, jj;
+	float phase;
 	scomplex_t *tau;
 	// Allocate
 	tau = (scomplex_t*)malloc(n*n*sizeof(scomplex_t));
@@ -166,6 +175,14 @@ int cqr(scomplex_t *Q, scomplex_t *R, scomplex_t *A, const int m, const int n) {
 	);
 	if (!(info==0)) {free(tau); return info;}
 	free(tau);
+	// Find the semi-positive unique solution
+	for(ii=0;ii<n;++ii)
+		if(crealf(AC_MAT(R,n,ii,ii)) < 0){
+			for(jj=ii;jj<n;++jj)
+				AC_MAT(R,n,ii,jj) = -AC_MAT(R,n,ii,jj);
+			for(jj=0;jj<m;++jj)
+				AC_MAT(Q,n,jj,ii) = -AC_MAT(Q,n,jj,ii);
+		}
 	return info;
 }
 
@@ -177,6 +194,7 @@ int zqr(dcomplex_t *Q, dcomplex_t *R, dcomplex_t *A, const int m, const int n) {
 		R(n,n) is the R matrix and must come preallocated
 	*/
 	int info = 0, ii, jj;
+	double phase;
 	dcomplex_t *tau;
 	// Allocate
 	tau = (dcomplex_t*)malloc(n*n*sizeof(dcomplex_t));
@@ -209,6 +227,14 @@ int zqr(dcomplex_t *Q, dcomplex_t *R, dcomplex_t *A, const int m, const int n) {
 	);
 	if (!(info==0)) {free(tau); return info;}
 	free(tau);
+	// Find the semi-positive unique solution
+	for(ii=0;ii<n;++ii)
+		if(creal(AC_MAT(R,n,ii,ii)) < 0){
+			for(jj=ii;jj<n;++jj)
+				AC_MAT(R,n,ii,jj) = -AC_MAT(R,n,ii,jj);
+			for(jj=0;jj<m;++jj)
+				AC_MAT(Q,n,jj,ii) = -AC_MAT(Q,n,jj,ii);
+		}
 	return info;
 }
 
