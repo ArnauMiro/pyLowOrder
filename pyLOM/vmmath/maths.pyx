@@ -573,24 +573,14 @@ def vecmat(real_full[:] v, real_full[:,:] A, transposed=False):
 	Result:
 		np.ndarray: Resulting matrix C (M,N)
 	'''
-	if transposed == False:
-		if real_full is np.complex128_t:
-			return _zvecmat(v,A)
-		elif real_full is np.complex64_t:
-			return _cvecmat(v,A)
-		elif real_full is double:
-			return _dvecmat(v,A)
-		else:
-			return _svecmat(v,A)
+	if real_full is np.complex128_t:
+		return _zvecmat(v,A) if not transposed else _zvecmatT(v,A)
+	elif real_full is np.complex64_t:
+		return _cvecmat(v,A) if not transposed else _cvecmatT(v,A)
+	elif real_full is double:
+		return _dvecmat(v,A) if not transposed else _dvecmatT(v,A)
 	else:
-		if real_full is np.complex128_t:
-			return _zvecmatT(v,A)
-		elif real_full is np.complex64_t:
-			return _cvecmatT(v,A)
-		elif real_full is double:
-			return _dvecmatT(v,A)
-		else:
-			return _svecmatT(v,A)
+		return _svecmat(v,A) if not transposed else _svecmatT(v,A)
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function

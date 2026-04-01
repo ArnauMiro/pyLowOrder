@@ -24,10 +24,10 @@ if pyLOM.utils.is_rank_or_serial(0):
 	print(Q.shape,Q)
 	print(R.shape,R)
 
-	# Run SVD from pyLOM - serial algorithm
+	# Run QR from pyLOM - serial algorithm
 	# Semi-positive unique solution: a phase can be added to the numpy solution
 	Q, R = pyLOM.math.qr(A)
-	print('pyLOM SVD:')
+	print('pyLOM QR:')
 	print(Q.shape,Q)
 	print(R.shape,R)
 else:

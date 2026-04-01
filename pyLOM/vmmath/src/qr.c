@@ -142,7 +142,6 @@ int cqr(scomplex_t *Q, scomplex_t *R, scomplex_t *A, const int m, const int n) {
 		R(n,n) is the R matrix and must come preallocated
 	*/
 	int info = 0, ii, jj;
-	float phase;
 	scomplex_t *tau;
 	// Allocate
 	tau = (scomplex_t*)malloc(n*n*sizeof(scomplex_t));
@@ -194,7 +193,6 @@ int zqr(dcomplex_t *Q, dcomplex_t *R, dcomplex_t *A, const int m, const int n) {
 		R(n,n) is the R matrix and must come preallocated
 	*/
 	int info = 0, ii, jj;
-	double phase;
 	dcomplex_t *tau;
 	// Allocate
 	tau = (dcomplex_t*)malloc(n*n*sizeof(dcomplex_t));
