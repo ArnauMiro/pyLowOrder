@@ -110,7 +110,7 @@ def matmulp(A:np.ndarray,B:np.ndarray) -> np.ndarray:
 	return mpi_reduce(aux, root = 0, op = 'sum', all = True)
 
 @cr('math.vecmat')
-def vecmat(v:np.ndarray,A:np.ndarray) -> np.ndarray:
+def vecmat(v:np.ndarray,A:np.ndarray,transposed:bool=False) -> np.ndarray:
 	r'''
 	Vector times a matrix 
 	C = v x A
@@ -118,14 +118,19 @@ def vecmat(v:np.ndarray,A:np.ndarray) -> np.ndarray:
 	Args:
 		v (np.ndarray): Vector v (M,)
 		A (np.ndarray): Matrix A (M,N)
+		transposed (bool): If False, performs row multiplication. Column for True
 	
 	Result:
 		np.ndarray: Resulting matrix C (M,N)
 	'''
 	p = cp if type(v) is cp.ndarray else np
 	C = p.zeros_like(A)
-	for ii in range(v.shape[0]):
-		C[ii,:] = v[ii]*A[ii,:]
+	if transposed == False:
+		for ii in range(v.shape[0]):
+			C[ii,:] = v[ii]*A[ii,:]
+	else:
+		for ii in range(v.shape[0]):
+			C[:,ii] = v[ii]*A[:,ii]
 	return C
 
 @cr('math.argsort')

@@ -51,6 +51,30 @@ void dtranspose(double *A, double *B, const int m, const int n) {
 	}
 }
 
+void ctranspose(scomplex_t *A, scomplex_t *B, const int m, const int n) {
+	/*
+		Naive approximation to matrix transpose.
+	*/
+	int ii, jj;
+	for (ii=0; ii<m; ++ii) {
+		for (jj=0; jj<n; ++jj) {
+			AC_MAT(B,m,jj,ii) = AC_MAT(A,n,ii,jj);
+		}
+	}
+}
+
+void ztranspose(dcomplex_t *A, dcomplex_t *B, const int m, const int n) {
+	/*
+		Naive approximation to matrix transpose.
+	*/
+	int ii, jj;
+	for (ii=0; ii<m; ++ii) {
+		for (jj=0; jj<n; ++jj) {
+			AC_MAT(B,m,jj,ii) = AC_MAT(A,n,ii,jj);
+		}
+	}
+}
+
 float svector_sum(float *v, int start, int n) {
 	/*
 		Compute the sum of the n-dim vector v from the position start
@@ -392,7 +416,7 @@ void svecmat(float *v, float *A, const int m, const int n) {
 	*/
 	int ii;
 	#ifdef USE_OMP
-	#pragma omp parallel for private(ii) shared(b,A) firstprivate(m,n)
+	#pragma omp parallel for private(ii) shared(v,A) firstprivate(m,n)
 	#endif
 	for(ii=0; ii<m; ++ii)
 		cblas_sscal(n,v[ii],A+n*ii,1);
@@ -407,7 +431,7 @@ void dvecmat(double *v, double *A, const int m, const int n) {
 	*/
 	int ii;
 	#ifdef USE_OMP
-	#pragma omp parallel for private(ii) shared(b,A) firstprivate(m,n)
+	#pragma omp parallel for private(ii) shared(v,A) firstprivate(m,n)
 	#endif
 	for(ii=0; ii<m; ++ii)
 		cblas_dscal(n,v[ii],A+n*ii,1);
@@ -422,7 +446,7 @@ void cvecmat(scomplex_t *v, scomplex_t *A, const int m, const int n) {
 	*/
 	int ii;
 	#ifdef USE_OMP
-	#pragma omp parallel for private(ii) shared(b,A) firstprivate(m,n)
+	#pragma omp parallel for private(ii) shared(v,A) firstprivate(m,n)
 	#endif
 	for(ii=0; ii<m; ++ii)
 		cblas_cscal(n,&v[ii],A+n*ii,1);
@@ -437,10 +461,70 @@ void zvecmat(dcomplex_t *v, dcomplex_t *A, const int m, const int n) {
 	*/
 	int ii;
 	#ifdef USE_OMP
-	#pragma omp parallel for private(ii) shared(b,A) firstprivate(m,n)
+	#pragma omp parallel for private(ii) shared(v,A) firstprivate(m,n)
 	#endif
 	for(ii=0; ii<m; ++ii)
 		cblas_zscal(n,&v[ii],A+n*ii,1);
+}
+
+void svecmatT(float *v, float *A, const int m, const int n) {
+	/*
+		Computes the product of (b x A^T)^T
+		using cblas routines.
+
+		A(m,n), b(m)
+	*/
+	int ii;
+	#ifdef USE_OMP
+	#pragma omp parallel for private(ii) shared(v,A) firstprivate(m,n)
+	#endif
+	for(ii=0; ii<n; ++ii)
+		cblas_sscal(m,v[ii],A+ii,n);
+}
+
+void dvecmatT(double *v, double *A, const int m, const int n) {
+	/*
+		Computes the product of (b x A^T)^T
+		using cblas routines.
+
+		A(m,n), b(m)
+	*/
+	int ii;
+	#ifdef USE_OMP
+	#pragma omp parallel for private(ii) shared(v,A) firstprivate(m,n)
+	#endif
+	for(ii=0; ii<n; ++ii)
+		cblas_dscal(m,v[ii],A+ii,n);
+}
+
+void cvecmatT(scomplex_t *v, scomplex_t *A, const int m, const int n) {
+	/*
+		Computes the product of (b x A^T)^T
+		using cblas routines.
+
+		A(m,n), b(m)
+	*/
+	int ii;
+	#ifdef USE_OMP
+	#pragma omp parallel for private(ii) shared(v,A) firstprivate(m,n)
+	#endif
+	for(ii=0; ii<n; ++ii)
+		cblas_cscal(m,&v[ii],A+ii,n);
+}
+
+void zvecmatT(dcomplex_t *v, dcomplex_t *A, const int m, const int n) {
+	/*
+		Computes the product of (b x A^T)^T
+		using cblas routines.
+
+		A(m,n), b(m)
+	*/
+	int ii;
+	#ifdef USE_OMP
+	#pragma omp parallel for private(ii) shared(v,A) firstprivate(m,n)
+	#endif
+	for(ii=0; ii<n; ++ii)
+		cblas_zscal(m,&v[ii],A+ii,n);
 }
 
 int ceigen(float *real, float *imag, scomplex_t *w, float *A,
