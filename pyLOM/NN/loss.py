@@ -229,9 +229,15 @@ class FocalMSELoss(BaseLossFunction):
         self.reduction = reduction
         self.eps = float(eps)
 
-    def forward(self, model, batch) -> torch.Tensor:
-        x, y = batch["x"], batch["y"]
-        pred = model(x)
+    def forward(self, a, b) -> torch.Tensor:
+        """Support both legacy ``forward(model, batch)`` and tensor mode ``forward(output, target)``."""
+        if isinstance(b, dict):
+            model, batch = a, b
+            x, y = batch["x"], batch["y"]
+            pred = model(x)
+        else:
+            pred, y = a, b
+
         diff = pred - y
         mse = diff.pow(2)
         weights = (diff.abs() + self.eps).pow(self.gamma)
