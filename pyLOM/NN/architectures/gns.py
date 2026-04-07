@@ -20,7 +20,6 @@ from torch.utils.data import Dataset as TorchDataset
 from torch_geometric.data import Data
 from optuna import Trial
 
-from dacite import from_dict, Config
 
 from .. import set_seed
 from ... import pprint, cr
@@ -681,9 +680,6 @@ class GNS(torch.nn.Module):
 
         shared_graph = Graph.load(graph_path)  # one in-memory graph for all trials
 
-        # ---- Dacite config for DTOs (type hooks if you need them) ----
-        dacite_cfg = Config(strict=True)
-
         @cr("GNS.optimization_function")
         def objective(trial: Trial) -> float:
             # 1) Sample hyperparameters (plain dicts)
@@ -691,8 +687,8 @@ class GNS(torch.nn.Module):
             training_dict = sample_params(training_space, trial)
 
             # 2) Build DTOs (pure dataclasses)
-            model_cfg = from_dict(data_class=GNSModelConfig, data=model_dict, config=dacite_cfg)
-            training_cfg = from_dict(data_class=GNSTrainingConfig, data=training_dict, config=dacite_cfg)
+            model_cfg = dataclass_from_dict(GNSModelConfig, model_dict, strict=True)
+            training_cfg = dataclass_from_dict(GNSTrainingConfig, training_dict, strict=True)
 
             # 3) Build model (no resolvers here; __init__ y fit se encargan internamente)
             model = cls(config=model_cfg, graph=shared_graph, graph_spec=GraphSpec(path=str(graph_path)))
@@ -763,8 +759,8 @@ class GNS(torch.nn.Module):
         best_training_cfg_dict = _materialize_space(training_space, best_params_flat)
 
         # ---- Build final DTOs & final model ----
-        best_model_cfg = from_dict(data_class=GNSModelConfig, data=best_model_cfg_dict, config=dacite_cfg)
-        best_training_cfg = from_dict(data_class=GNSTrainingConfig, data=best_training_cfg_dict, config=dacite_cfg)
+        best_model_cfg = dataclass_from_dict(GNSModelConfig, best_model_cfg_dict, strict=True)
+        best_training_cfg = dataclass_from_dict(GNSTrainingConfig, best_training_cfg_dict, strict=True)
 
         final_model = cls(
             config=best_model_cfg,

@@ -25,14 +25,13 @@ from pathlib import Path
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
-from dacite import Config as DaciteConfig, from_dict
 
 import pyLOM
 from pyLOM.NN import Dataset, GNS, MinMaxScaler, Pipeline, RegressionEvaluator, RobustScaler, StandardScaler
 from pyLOM.NN.utils.config_schema import GNSModelConfig, GNSTrainingConfig
 from pyLOM.NN.utils.experiment import plot_train_test_loss, plot_true_vs_pred, save_experiment_artifacts
 from pyLOM.utils import raiseError
-from pyLOM.utils.config_resolvers import load_yaml
+from pyLOM.utils.config_resolvers import load_yaml, dataclass_from_dict
 
 
 def _resolve(path_like: str, cfg_path: Path) -> Path:
@@ -170,9 +169,8 @@ td_val = (
 )
 
 # Build model and training config
-dcfg = DaciteConfig(strict=True)
-model_cfg = from_dict(GNSModelConfig, model_section["config"], config=dcfg)
-train_cfg = from_dict(GNSTrainingConfig, train_section, config=dcfg)
+model_cfg = dataclass_from_dict(GNSModelConfig, model_section["config"], strict=True)
+train_cfg = dataclass_from_dict(GNSTrainingConfig, train_section, strict=True)
 
 model = GNS.from_graph_path(config=model_cfg, graph_path=graph_path)
 

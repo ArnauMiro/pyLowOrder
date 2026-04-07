@@ -11,11 +11,11 @@ import sys
 from pathlib import Path
 
 import h5py
-from dacite import Config as DaciteConfig, from_dict
 import pyLOM, pyLOM.NN
 from pyLOM import Mesh
 from pyLOM.NN import Graph
 from pyLOM.NN.utils.config_schema import GNSModelConfig, GNSTrainingConfig
+from pyLOM.utils.config_resolvers import dataclass_from_dict
 
 
 DATAFILE  = sys.argv[1]
@@ -119,8 +119,7 @@ train_cfg_dict = {
     },
 }
 
-dcfg = DaciteConfig(strict=True)
-train_cfg = from_dict(GNSTrainingConfig, train_cfg_dict, config=dcfg)
+train_cfg = dataclass_from_dict(GNSTrainingConfig, train_cfg_dict, strict=True)
 
 model = pyLOM.NN.GNS.from_graph_path(config=model_cfg, graph_path=str(train_path))
 

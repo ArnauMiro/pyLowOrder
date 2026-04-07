@@ -24,7 +24,6 @@ from pathlib import Path
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
-from dacite import Config as DaciteConfig, from_dict
 
 import pyLOM
 from pyLOM import Mesh
@@ -41,7 +40,7 @@ from pyLOM.NN import (
 from pyLOM.NN.utils.config_schema import GNSModelConfig, GNSTrainingConfig
 from pyLOM.NN.utils.experiment import plot_train_test_loss, plot_true_vs_pred, save_experiment_artifacts
 from pyLOM.utils import raiseError
-from pyLOM.utils.config_resolvers import load_yaml
+from pyLOM.utils.config_resolvers import load_yaml, dataclass_from_dict
 
 # Load configuration
 cfg_path = (Path(__file__).resolve().parent / "configs" / "example_GNS_cylinder_dataset_config.yaml").resolve()
@@ -158,9 +157,8 @@ td_test = Dataset.load(str(test_ds_path), **ds_kwargs)
 td_val = Dataset.load(str(val_ds_path), **ds_kwargs) if val_ds_path is not None else None
 
 # Build model and training config
-dcfg = DaciteConfig(strict=True)
-model_cfg = from_dict(GNSModelConfig, model_section["config"], config=dcfg)
-train_cfg = from_dict(GNSTrainingConfig, train_section, config=dcfg)
+model_cfg = dataclass_from_dict(GNSModelConfig, model_section["config"], strict=True)
+train_cfg = dataclass_from_dict(GNSTrainingConfig, train_section, strict=True)
 
 model = GNS.from_graph_path(config=model_cfg, graph_path=graph_path)
 

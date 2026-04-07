@@ -2,7 +2,8 @@
 
 import importlib
 import yaml
-from typing import Any, Mapping, Optional, Union
+from dataclasses import fields, is_dataclass
+from typing import Any, Mapping, Optional, Union, get_args, get_origin
 from pathlib import Path
 
 import torch
@@ -14,6 +15,53 @@ def load_yaml(path: Union[str, Path]) -> dict:
     """Load a YAML file into a Python dict."""
     with open(path, "r") as f:
         return yaml.safe_load(f)
+
+
+def dataclass_from_dict(data_class, data: Mapping[str, Any], *, strict: bool = True):
+    """Instantiate a (possibly nested) dataclass from a dict.
+
+    Args:
+        data_class: Target dataclass type.
+        data: Input mapping.
+        strict: If True, unknown keys raise an error.
+    """
+    if not is_dataclass(data_class):
+        raiseError(f"{data_class} is not a dataclass.")
+    if data is None:
+        raiseError("Cannot build dataclass from None.")
+
+    field_names = {f.name for f in fields(data_class)}
+    if strict:
+        extra = set(data.keys()) - field_names
+        if extra:
+            raiseError(f"Unexpected keys for {data_class.__name__}: {sorted(extra)}")
+
+    kwargs = {}
+    for f in fields(data_class):
+        if f.name not in data:
+            continue
+        val = data[f.name]
+        if val is None:
+            kwargs[f.name] = None
+            continue
+
+        ftype = f.type
+        target = None
+        if is_dataclass(ftype):
+            target = ftype
+        else:
+            origin = get_origin(ftype)
+            if origin is Union:
+                for a in get_args(ftype):
+                    if is_dataclass(a):
+                        target = a
+                        break
+        if target is not None and isinstance(val, Mapping):
+            kwargs[f.name] = dataclass_from_dict(target, val, strict=strict)
+        else:
+            kwargs[f.name] = val
+
+    return data_class(**kwargs)
     
 def to_native(obj: Any) -> Any:
     """Convert an object to a native Python type.
