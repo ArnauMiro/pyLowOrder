@@ -338,26 +338,27 @@ class KAN(nn.Module):
             "check": [True],
         }
         if save_logs_path is not None:
-            if not os.path.isdir(save_logs_path):
-                save_logs_path = '.'
+            if save_logs_path.endswith(".npy"):
+                fn = save_logs_path
+            else:
+                if not os.path.isdir(save_logs_path):
+                    save_logs_path = '.'
+                fn = os.path.join(save_logs_path, f"training_results_{self._model_name}.npy")
             if verbose:
-                pprint(0, f"Printing losses on path {save_logs_path}")
-
-            if os.path.isfile(save_logs_path + f"training_results_{self._model_name}.npy"):
-                results_old = np.load(save_logs_path + f"training_results_{self._model_name}.npy", allow_pickle=True).item()
-
+                pprint(0, f"Printing losses on path {fn}")
+            if os.path.isfile(fn):
+                results_old = np.load(fn, allow_pickle=True).item()
                 for key in results.keys():
                     if key != 'check':
                         results[key] = np.concatenate((results_old[key], results[key]), axis=0)
                     else:
                         results[key] = results_old[key] + results[key][:]
                 if verbose:
-                    pprint(0, "Updating previous data in file" + save_logs_path + f"training_results_{self._model_name}.npy")
-            
-            np.save(os.path.join(save_logs_path, f"training_results_{self._model_name}.npy"), results)
+                    pprint(0, "Updating previous data in file" + fn)
+            np.save(fn, results)
             if verbose:
-                pprint(0, f"Training results saved at {save_logs_path}training_results_{self._model_name}.npy")
-
+                pprint(0, f"Training results saved at {fn}")
+        
         return results
             
     @cr("KAN.predict")

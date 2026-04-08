@@ -347,7 +347,10 @@ class MLP(nn.Module):
 
         if save_logs_path is not None:
             pprint(0, f"\nPrinting losses on path: {save_logs_path}")
-            fn = os.path.join(save_logs_path,f"training_results_{self._model_name}.npy")
+            if save_logs_path.endswith(".npy"):
+                fn = save_logs_path
+            else:
+                fn = os.path.join(save_logs_path,f"training_results_{self._model_name}.npy")
             np.save(fn, results)
 
         return results
