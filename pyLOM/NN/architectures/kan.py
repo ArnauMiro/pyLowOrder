@@ -126,6 +126,7 @@ class KAN(nn.Module):
         scheduler_type="StepLR",
         opti_kwargs={},
         lr_kwargs={},
+        dataloader_kwargs: dict = {},
         print_eval_rate: int = 2,
         loss_fn=nn.MSELoss(),
         save_logs_path=None,
@@ -149,25 +150,28 @@ class KAN(nn.Module):
                 - "StepLR": Reduce the learning rate by a factor every ``step_size`` batches.
                 - "ReduceLROnPlateau": Reduces the learning rate when a metric has stopped improving.
                 - "OneCycleLR": Adjust the learning rate in a single cycle of the training.
+            opti_kwargs (dict, Optional): Additional keyword arguments to pass to the optimizer (default: `{}`).
             lr_kwargs (dict, opcional): Dictionary containing the specific parameters for the learning rate scheduler. (default: ``{}``).
                 Some examples are:
                 
                 - StepLR: {"step_size": int, "gamma": float}.
                 - ReduceLROnPlateau: {"mode": str, "factor": float, "patience": int}.
                 - OneCycleLR: {"anneal_strategy": str, "div_factor": float}.
-            opti_kwargs (dict, Optional): Additional keyword arguments to pass to the optimizer (default: `{}`).
+            dataloader_kwargs (dict, optional): Additional keyword arguments to pass to the dataloader (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader. Overrides the following defaults: ``batch_size`` (taken from the ``batch_size`` argument),``shuffle=True``, ``num_workers=0``, ``pin_memory=PIN_MEMORY`` (default: ``False``).
             print_eval_rate (int, Optional): The model will be evaluated every ``print_eval_rate`` epochs and the losses will be printed. If set to 0, nothing will be printed (default: ``2``).
             loss_fn (torch.nn.Module, Optional): The loss function (default: ``nn.MSELoss()``).
             save_logs_path (str, Optional): Path to save the training and evaluation losses (default: ``None``).
             verbose (bool, Optional): Whether to print the training information (default: ``True``).
             max_norm_grad (float, Optional): The maximum norm of the gradients (default: ``float('inf')``).
-            kwargs (dict, Optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):
-               
-                - batch_size (int, Optional): Batch size (default: ``32``).
-                - shuffle (bool, Optional): Shuffle the data (default: ``True``).
-                - num_workers (int, Optional): Number of workers to use (default: ``0``).
-                - pin_memory (bool, Optional): Pin memory (default: ``True``).
         """
+        _dataloader_kwargs = {
+            "batch_size": batch_size,
+            "shuffle": True,
+            "num_workers": 0,
+            "pin_memory": PIN_MEMORY,
+            **dataloader_kwargs,
+        }
+
         if verbose:
             pprint(0, "")
             pprint(0, f"TRAINNING MODEL {self._model_name}")
@@ -189,24 +193,21 @@ class KAN(nn.Module):
                 else:
                     pprint(0, f"\t{key}: {value}")
             pprint(0, "   ")
-
-        dataloader_params = {
-            "batch_size": batch_size,
-            "shuffle": True,
-            "num_workers": 0,
-            "pin_memory": PIN_MEMORY,
-        }
+            pprint(0, "Dataloader conditions:")
+            for key, value in sorted(_dataloader_kwargs.items()):
+                if isinstance(value, dict):
+                    pprint(0, f"\t{key}:")
+                    for subkey, subvalue in sorted(value.items()):
+                        pprint(0, f"\t{subkey}: {subvalue}")
+                else:
+                    pprint(0, f"\t{key}: {value}")
+            pprint(0, "   ")
+        
         if not hasattr(self, "train_loader"):
-            for key in dataloader_params.keys():
-                if key in kwargs:
-                    dataloader_params[key] = kwargs[key]
-            self.train_loader = DataLoader(train_dataset, **dataloader_params)
+            self.train_loader = DataLoader(train_dataset, **_dataloader_kwargs)
         
         if not hasattr(self, "test_loader") and eval_dataset is not None:
-            for key in dataloader_params.keys():
-                if key in kwargs:
-                    dataloader_params[key] = kwargs[key]
-            self.test_loader = DataLoader(eval_dataset, **dataloader_params)
+            self.test_loader = DataLoader(eval_dataset, **_dataloader_kwargs)
 
         train_losses = []
         test_losses = []

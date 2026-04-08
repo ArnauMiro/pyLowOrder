@@ -153,6 +153,7 @@ class MLP(nn.Module):
         scheduler_class: torch.optim.lr_scheduler.LRScheduler = None,
         optimizer_kwargs: dict = {},
         scheduler_kwargs: dict = {},
+        dataloader_kwargs: dict = {},
         save_logs_path: str = None,
         print_rate_batch: int = 0,
         print_rate_epoch: int = 1,
@@ -174,42 +175,35 @@ class MLP(nn.Module):
             scheduler_class (torch.optim.lr_scheduler._LRScheduler, optional): Learning rate scheduler class to use. If ``None``, no scheduler will be used (default: ``None``).
             optimizer_kwargs (dict, optional): Additional keyword arguments to pass to the optimizer (default: ``{}``).
             scheduler_kwargs (dict, optional): Additional keyword arguments to pass to the scheduler (default: ``{}``).
+            dataloader_kwargs (dict, optional): Additional keyword arguments to pass to the dataloader (default: ``{}``).  See PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader. Overrides the following defaults: ``batch_size`` (taken from the ``batch_size`` argument),``shuffle=True``, ``num_workers=0``, ``pin_memory=PIN_MEMORY`` (default: ``False``).
             save_logs_path (str, optional): Path to save the training results. If ``None``, no results will be saved (default: ``None``).
             print_rate_batch (int, optional): Print loss every ``print_rate_batch`` batches (default: ``1``). If set to ``0``, no print will be done.
             print_rate_epoch (int, optional): Print loss every ``print_rate_epoch`` epochs (default: ``1``). If set to ``0``, no print will be done.
-            kwargs (dict, optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):
-                - shuffle (bool, optional): Shuffle the data (default: ``True``).
-                - num_workers (int, optional): Number of workers to use (default: ``0``).
-                - pin_memory (bool, optional): Pin memory (default: ``True``).
+            save_best (bool, optional): Wheter to save the best model during training (default: ``False``). If ``True``, the model will be saved in the `save_logs_path` directory with the name `best_model_{model_name}.pth`.
 
         Returns:
             Dict[str, List[float]]: Dictionary containing the training and evaluation results:
                 - "train_loss": List of training losses for each epoch.
-                - "test_loss": List of evaluation losses for each epoch (if eval_dataset is provided
+                - "test_loss": List of evaluation losses for each epoch (if eval_dataset is provided).
                 - "lr": List of learning rates for each epoch.
                 - "loss_iterations_train": List of training losses for each iteration.
                 - "loss_iterations_test": List of evaluation losses for each iteration (if eval_dataset is provided).
                 - "grad_norms": List of gradient norms for each iteration.
                 - "check": List with a single boolean indicating successful training.
         """
-        dataloader_params = {
+        _dataloader_kwargs = {
             "batch_size": batch_size,
             "shuffle": True,
             "num_workers": 0,
             "pin_memory": PIN_MEMORY,
+            **dataloader_kwargs,
         }
 
         if not hasattr(self, "train_dataloader"):
-            for key in dataloader_params.keys():
-                if key in kwargs:
-                    dataloader_params[key] = kwargs[key]
-            self.train_dataloader = DataLoader(train_dataset, **dataloader_params)
+            self.train_dataloader = DataLoader(train_dataset, **_dataloader_kwargs)
         
         if not hasattr(self, "eval_dataloader") and eval_dataset is not None:
-            for key in dataloader_params.keys():
-                if key in kwargs:
-                    dataloader_params[key] = kwargs[key]
-            self.eval_dataloader = DataLoader(eval_dataset, **dataloader_params)
+            self.eval_dataloader = DataLoader(eval_dataset, **_dataloader_kwargs)
 
         if not hasattr(self, "optimizer"):
             self.optimizer = optimizer_class(
