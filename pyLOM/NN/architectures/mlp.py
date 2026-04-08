@@ -603,16 +603,14 @@ class MLP(nn.Module):
                     epochs = training_params["epochs"]
                     training_params["epochs"] = 1
                     for epoch in range(epochs):
-                        model.fit(train_dataset, **training_params)
-                        y_pred, y_true = model.predict(eval_dataset, return_targets=True)
-                        loss_val = ((y_pred - y_true)**2).mean()
+                        results = model.fit(train_dataset, eval_dataset, **training_params)
+                        loss_val = results["test_loss"][-1]
                         trial.report(loss_val, epoch)
                         if trial.should_prune(): 
                             raise TrialPruned()
                 else:
-                    model.fit(train_dataset, **training_params)
-                    y_pred, y_true = model.predict(eval_dataset, return_targets=True)
-                    loss_val = ((y_pred - y_true)**2).mean()
+                    results = model.fit(train_dataset, eval_dataset, **training_params)
+                    loss_val = results["test_loss"][-1]
                 
                 return loss_val
             
