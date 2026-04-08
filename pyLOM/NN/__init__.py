@@ -28,7 +28,7 @@ from .                                import GAVI
 
 from .pipeline                        import Pipeline, ClusteredPipeline
 from .loss                            import BaseLossFunction, TorchLossAdapter, GradientWeightedMSE, NeighborDifferenceMSELoss, HybridGradientNeighborMSELoss
-from .dataset                         import Dataset
+from .dataset                         import Dataset, NeighborhoodDataset
 from .scalers                         import MinMaxScaler
 from .utils                           import select_device, betaLinearScheduler, create_results_folder, set_seed
 from .utils                           import tanh, relu, elu, sigmoid, leakyRelu, silu
