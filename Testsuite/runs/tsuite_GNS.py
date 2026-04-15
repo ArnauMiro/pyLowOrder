@@ -6,12 +6,9 @@
 # Last revision: 03/04/2026
 from __future__ import print_function, division
 
-import os
-import sys
-from pathlib import Path
-
-import h5py
+import sys, os
 import pyLOM, pyLOM.NN
+
 from pyLOM import Mesh
 from pyLOM.NN import Graph
 from pyLOM.NN.utils.config_schema import GNSModelConfig, GNSTrainingConfig
@@ -23,14 +20,13 @@ VARIABLES = eval(sys.argv[2])
 OUTDIR    = sys.argv[3]
 
 
-## Set device
-device = pyLOM.NN.select_device("cpu")
-
-
 ## Data loading
 d = pyLOM.Dataset.load(DATAFILE)
 y = d.X(*VARIABLES)
-print(d)
+
+
+## Set device
+device = pyLOM.NN.select_device("cpu")
 
 
 ## Load pyLOM dataset and set up results output
@@ -39,30 +35,20 @@ pyLOM.NN.create_results_folder(RESUDIR, verbose=False)
 
 
 ## Build (or reuse) graph in train file
-train_path = Path(DATAFILE).resolve()
-with h5py.File(str(train_path), "r") as f:
-    has_graph = "GRAPH" in f
-
-if has_graph:
-    graph = Graph.load(str(train_path), device="cpu")
-    mesh_shape = (int(graph.num_nodes),)
-else:
-    mesh = Mesh.load(str(train_path), mpio=False)
-    graph = Graph.from_pyLOM_mesh(mesh=mesh, device="cpu")
-    graph.save(str(train_path), mode="a")
-    mesh_shape = (int(mesh.ncells),)
+mesh       = pyLOM.Mesh.load(DATAFILE,mpio=False)
+mesh_shape = (int(mesh.ncells),)
+graph      = pyLOM.NN.Graph.from_pyLOM_mesh(mesh=mesh,device=device)
+graph.save(DATAFILE,mode="a")
 
 
 ## Generate torch dataset
 input_scaler  = pyLOM.NN.MinMaxScaler()
 output_scaler = pyLOM.NN.MinMaxScaler()
 
-variables_names = list(getattr(d, "varnames", [])) or ["time"]
-
 nn_dataset = pyLOM.NN.Dataset.load(
-    str(train_path),
+    DATAFILE,
     field_names=VARIABLES,
-    variables_names=variables_names,
+    variables_names=["time"],
     add_variables=True,
     add_mesh_coordinates=False,
     mesh_shape=mesh_shape,
@@ -77,7 +63,7 @@ td_train, td_test = nn_dataset.get_splits([0.8, 0.2])
 
 ## Generate model
 model_cfg = GNSModelConfig(
-    input_dim=len(variables_names),
+    input_dim=1,
     output_dim=1,
     latent_dim=16,
     hidden_size=128,
@@ -121,7 +107,7 @@ train_cfg_dict = {
 
 train_cfg = dataclass_from_dict(GNSTrainingConfig, train_cfg_dict, strict=True)
 
-model = pyLOM.NN.GNS.from_graph_path(config=model_cfg, graph_path=str(train_path))
+model = pyLOM.NN.GNS.from_graph_path(config=model_cfg, graph_path=DATAFILE)
 
 pipeline = pyLOM.NN.Pipeline(
     train_dataset=td_train,

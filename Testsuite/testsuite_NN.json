@@ -109,5 +109,16 @@
 		"nprocs" : 1,
 		"reset"  : false,
 		"active" : false
+	},
+	"GNN_Cylinder": {
+		"name"   : "GNN cylinder dataset",
+		"module" : "NN",
+		"file"   : "runs/tsuite_GNS.py",
+		"data"   : "DATA/CYLINDER.h5",
+		"var"    : ["VELOX"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : false
 	}
 }
