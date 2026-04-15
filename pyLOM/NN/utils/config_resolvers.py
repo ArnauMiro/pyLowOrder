@@ -1,5 +1,10 @@
-# utils/config_resolver.py
-
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# NN config resolver routines.
+#
+# Last rev: 15/04/2026
 import importlib
 import yaml
 from dataclasses import fields, is_dataclass

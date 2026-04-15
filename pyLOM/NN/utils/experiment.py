@@ -32,7 +32,7 @@ import pyLOM
 
 from ... import pprint
 from ...utils import get_git_commit, raiseError
-from ...utils.config_resolvers import to_native
+from ..utils.config_resolvers import to_native
 
 
 if TYPE_CHECKING:
