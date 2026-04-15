@@ -52,7 +52,7 @@ from ..utils.config_schema import (
     TorchDataloaderConfig,
     SubgraphDataloaderConfig,
 )
-from ...utils.config_resolvers import (
+from ..utils.config_resolvers import (
     resolve_device,
     resolve_activation,
     resolve_loss,
