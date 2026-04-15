@@ -1,9 +1,16 @@
-import subprocess
-import shutil
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# System information
+#
+# Last rev: 15/04/2026
+import shutil, subprocess, inspect
+
 from pathlib import Path
-import inspect
-from types import ModuleType
-from typing import Any, Optional, Union
+from types   import ModuleType
+from typing  import Any, Optional, Union
+
 
 def _resolve_start_path(repo_hint: Optional[Union[str, Path]], obj: Optional[Any]) -> Path:
     """
