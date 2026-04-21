@@ -36,6 +36,7 @@ class TrainingConfigBase:
     scheduler: Optional[str] = "torch.optim.lr_scheduler.StepLR"
     epochs: int = 100
     lr: float = 1e-4
+    weight_decay: float = 0.0
     lr_gamma: float = 0.1
     lr_scheduler_step: int = 1
     print_every: Optional[int] = 1
@@ -80,15 +81,32 @@ class TorchDataloaderConfig:
 
 
 @dataclass(frozen=True, kw_only=True)
+class SeedSelectorConfig:
+    """One-of selector for seed-node definition in subgraph sampling."""
+    type: str = "all"  # all | auto_frac | explicit_list
+    frac: Optional[float] = None
+    nodes_path: Optional[str] = None
+
+
+@dataclass(frozen=True, kw_only=True)
 class SubgraphDataloaderConfig:
     """DTO for the subgraph/seed-node DataLoader settings."""
     batch_size: int = 256
     shuffle: bool = True
     input_nodes: Optional[Union[Tensor, Sequence[int]]] = None
+    mode: str = "nodes"  # "nodes" uses node DataLoader + build_subgraph; "manual" uses ManualNeighborLoader
+    seed_selector: SeedSelectorConfig = field(default_factory=SeedSelectorConfig)
 
 
 @dataclass(frozen=True, kw_only=True)
 class GNSTrainingConfig(TrainingConfigBase):
     """Full training configuration for GNS (DTO) with nested dataloaders."""
+    best_metric: str = "mae"
+    best_metric_space: str = "scaled"  # scaled | physical
+    weighted_loss_alpha: float = 0.0
+    nan_guard_enabled: bool = True
+    grad_clip_enabled: bool = False
+    grad_clip_max_norm: float = 1.0
+    grad_clip_norm_type: float = 2.0
     dataloader: TorchDataloaderConfig = field(default_factory=TorchDataloaderConfig)
     subgraph_loader: SubgraphDataloaderConfig = field(default_factory=SubgraphDataloaderConfig)

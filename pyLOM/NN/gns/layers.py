@@ -4,7 +4,6 @@ import torch.nn as nn
 from torch.nn import ELU
 from torch_geometric.nn import MessagePassing
 
-from ..utils.torch_utils import snap, assert_finite, ensure_2d_f32_contig, safe_linear
 from ... import cr
 
 class GNSMLP(nn.Module):
@@ -33,35 +32,10 @@ class GNSMLP(nn.Module):
 
     @cr('GNSMLP.forward')
     def forward(self, x):
-        # print("GNSMLP forward")
-        # print("dropout module:", self.dropout, "training:", self.training)
-        assert not getattr(self.dropout, 'inplace', False)
-
-        for i, layer in enumerate(self.layers[:-1]):
-            # print("Layer:", layer)
-            # snap(x, f"[mp] before Linear{i}")
-            x = ensure_2d_f32_contig(x)
-            assert_finite(x, f"[mp] Linear{i} input")
-
-            # Ultra-safe path: float64 + chunk=64 + single-thread
-            x = safe_linear(x, layer, chunk=64, compute_dtype=torch.float64,
-                            single_thread_mm=True, debug_name=f"L{i}")
-            x = self.activation(x)
-
-            # snap(x, f"[mp] after act{i}")
+        for layer in self.layers[:-1]:
+            x = self.activation(layer(x))
             x = self.dropout(x)
-            # snap(x, f"[mp] after dropout{i}")
-
-        # Final (no activation)
-        # snap(x, "[mp] before final Linear")
-        x = ensure_2d_f32_contig(x)
-        assert_finite(x, "[mp] final Linear input")
-        x = safe_linear(x, self.layers[-1], chunk=64, compute_dtype=torch.float64,
-                        single_thread_mm=True, debug_name="Lfinal")
-        # snap(x, "[mp] final out")
-        return x
-
-        # return self.layers[-1](x)
+        return self.layers[-1](x)
 
 
 
@@ -89,8 +63,6 @@ class MessagePassingLayer(MessagePassing):
         drop_p: float = 0.0,
     ):
         super().__init__(aggr='mean')
-        self.dropout = nn.Dropout(p=drop_p)
-
         self.phi = GNSMLP(
             input_size=in_channels,
             output_size=out_channels,

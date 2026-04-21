@@ -12,6 +12,7 @@ import datetime
 from pathlib import Path
 from typing import Any, Dict, Tuple, Union, Optional, Callable
 from dataclasses import asdict, replace
+import copy
 import numpy as np
 
 import torch
@@ -46,6 +47,7 @@ from ..gns import (
     _ShapeValidator,
     _GNSHelpers,
 )
+from ..gns.trainer import _GNSTrainingLoop
 from ..utils.wrappers import config_from_kwargs
 from ..utils.config_schema import (
     GraphSpec,
@@ -110,6 +112,11 @@ class GNS(torch.nn.Module):
         self.p_dropout = config.p_dropout
         self.activation = resolve_activation(config.activation)
         self.debug = config.debug
+        # Stage 5: stable debug print helper (closure), to avoid attribute lookup issues
+        def _debug_print(*args, rank: int = -1, **kwargs):
+            if self.debug:
+                pprint(rank, *args, **kwargs, flush=True)
+        self._debug_print = _debug_print
 
         # --- Graph & provenance ---
         self.graph_spec = graph_spec or GraphSpec()
@@ -143,9 +150,14 @@ class GNS(torch.nn.Module):
         self._build_decoder()
 
         # --- GroupNorm configuration ---
-        self.groupnorm = torch.nn.GroupNorm(
-            num_groups=config.groupnorm_groups,
-            num_channels=config.latent_dim
+        self.groupnorm_layers = torch.nn.ModuleList(
+            [
+                torch.nn.GroupNorm(
+                    num_groups=config.groupnorm_groups,
+                    num_channels=config.latent_dim,
+                )
+                for _ in range(config.num_msg_passing_layers)
+            ]
         ).to(self.device)
 
         # --- Seed & RNG generators ---
@@ -215,8 +227,9 @@ class GNS(torch.nn.Module):
             input_size=self._encoder_input_dim,
             output_size=self.model_config.latent_dim,
             hidden_size=self.model_config.hidden_size,
+            num_hidden_layers=self.model_config.encoder_hidden_layers,
             activation=self.activation,
-            drop_p=self.p_dropout
+            drop_p=self.p_dropout,
         ).to(self.device)
 
     def _build_decoder(self):
@@ -224,8 +237,9 @@ class GNS(torch.nn.Module):
             input_size=self.model_config.latent_dim,
             output_size=self.model_config.output_dim,
             hidden_size=self.model_config.hidden_size,
+            num_hidden_layers=self.model_config.decoder_hidden_layers,
             activation=self.activation,
-            drop_p=self.p_dropout
+            drop_p=self.p_dropout,
         ).to(self.device)
 
     def _build_message_passing_layers(self):
@@ -294,15 +308,17 @@ class GNS(torch.nn.Module):
         Returns:
             Tensor: Predicted values for all nodes in the graph.
         """
-        self._dprint(f"Initiating forward pass on device {self.device}...")
+        self._debug_print(f"Initiating forward pass on device {self.device}...")
         x, edge_index, edge_attr = graph.x, graph.edge_index, graph.edge_attr
 
-        self._dprint(f" - x.shape: {x.shape}, edge_index.shape: {edge_index.shape}, edge_attr.shape: {edge_attr.shape}")
+        self._debug_print(f" - x.shape: {x.shape}, edge_index.shape: {edge_index.shape}, edge_attr.shape: {edge_attr.shape}")
         h = self.activation(self.encoder(x))
-        self._dprint(f" - Encoded node features h.shape: {h.shape}")
-        for conv in self.conv_layers_list:
-            h = self.groupnorm(self.activation(conv(h, edge_index, edge_attr)))
-        self._dprint(f" - After message passing h.shape: {h.shape}. Running decoder...")
+        self._debug_print(f" - Encoded node features h.shape: {h.shape}")
+        for conv, norm in zip(self.conv_layers_list, self.groupnorm_layers):
+            h = conv(h, edge_index, edge_attr)
+            h = self.activation(h)
+            h = norm(h)
+        self._debug_print(f" - After message passing h.shape: {h.shape}. Running decoder...")
         y_hat = self.decoder(h)
         return y_hat
 
@@ -312,7 +328,7 @@ class GNS(torch.nn.Module):
         X: Union[Tensor, TorchDataset],
         batch_size: int = 1,
         node_batch_size: int = 256,
-    ) -> torch.Tensor:
+    ) -> np.ndarray:
         """
         Run inference on the model.
 
@@ -322,12 +338,15 @@ class GNS(torch.nn.Module):
             node_batch_size (int): Number of seed nodes per subgraph batch.
 
         Returns:
-            Tensor: Predictions of shape [B, N, F].
+            np.ndarray: Predictions of shape [B, N, F].
         """
-        self._dprint("Starting prediction...")
-        self._validate_shapes(X)
+        self._debug_print("Starting prediction...")
+        try:
+            self.validator.validate(X)
+        except Exception as e:
+            raiseError(f"Invalid dataset for {self.__class__.__name__}: {e}")
 
-        self._dprint(f"Creating dataloaders (batch_size={batch_size}, node_batch_size={node_batch_size})...")
+        self._debug_print(f"Creating dataloaders (batch_size={batch_size}, node_batch_size={node_batch_size})...")
         input_cfg = TorchDataloaderConfig(
             batch_size=batch_size,
             shuffle=False,
@@ -345,14 +364,16 @@ class GNS(torch.nn.Module):
             subgraph_cfg, generator=None
         )
 
-        self._dprint("Running evaluation epoch...")
+        self._debug_print("Running evaluation epoch...")
         self.eval()
+        runner = _GNSTrainingLoop(self)
         with torch.no_grad():
-            return self._run_epoch(
-                input_dataloader,
-                subgraph_loader,
+            return runner.run_epoch(
+                input_dataloader=input_dataloader,
+                subgraph_loader=subgraph_loader,
+                loss_fn=None,
+                return_loss=False,
                 is_train=False,
-                return_loss=False
             )
 
     @config_from_kwargs(GNSTrainingConfig)
@@ -371,13 +392,22 @@ class GNS(torch.nn.Module):
 
         Notes
         -----
+        - Delegates the epoch loop to the internal runner `_GNSTrainingLoop` (separation of concerns).
+        - Keeps the external contract expected by `Pipeline` intact.
         - Config DTOs are resolved to runtime objects here (loss, optimizer, scheduler).
         - RNG generators are passed as runtime args to helpers; DTOs remain immutable.
+        - Tracks and restores the best validation checkpoint at the end of training.
         """
         # --- Validate dataset shapes ---
-        self._validate_shapes(train_dataset)
-        if eval_dataset is not None:
-            self._validate_shapes(eval_dataset)
+        try:
+            self.validator.validate(train_dataset)
+            if eval_dataset is not None:
+                self.validator.validate(eval_dataset)
+        except Exception as e:
+            raiseError(f"Invalid dataset for {self.__class__.__name__}: {e}")
+
+        self._debug_print(f"Validated datasets. Train size: {len(train_dataset)}" +
+                     (f", Eval size: {len(eval_dataset)}" if eval_dataset is not None else ""))
 
         # --- Resolve runtime components from DTOs ---
         loss_fn = resolve_loss(config.loss_fn)
@@ -385,6 +415,7 @@ class GNS(torch.nn.Module):
         scheduler_cls = resolve_scheduler(config.scheduler)  # may be None
 
         # --- Train loaders ---
+        self._debug_print(f"Creating training dataloaders with parameters: {asdict(config.dataloader)} and {asdict(config.subgraph_loader)}")
         train_input_dl = self._helpers.init_dataloader(
             train_dataset,
             config.dataloader,
@@ -405,7 +436,7 @@ class GNS(torch.nn.Module):
                 val_dl_cfg,
                 generator=None,
             )
-            val_sg_cfg = replace(config.subgraph_loader, shuffle=False)
+            val_sg_cfg = replace(config.subgraph_loader, shuffle=False, input_nodes=None)
             eval_subgraph_loader = self._helpers.init_subgraph_loader(
                 val_sg_cfg,
                 generator=None,
@@ -413,7 +444,12 @@ class GNS(torch.nn.Module):
 
         # --- Initialize optimizer and scheduler ---
         if reset_state or self.optimizer is None:
-            self.optimizer = optimizer_cls(self.parameters(), lr=config.lr)
+            # Support weight decay (regularization) for small datasets
+            try:
+                self.optimizer = optimizer_cls(self.parameters(), lr=config.lr, weight_decay=getattr(config, 'weight_decay', 0.0))
+            except TypeError:
+                # Fallback if optimizer does not accept weight_decay
+                self.optimizer = optimizer_cls(self.parameters(), lr=config.lr)
 
         if reset_state or (self.scheduler is None and scheduler_cls is not None):
             # Default to StepLR-style kwargs; callers can change scheduler type via config.
@@ -432,235 +468,20 @@ class GNS(torch.nn.Module):
         train_loss_list = state.get("train_loss_list", [])
         test_loss_list  = state.get("test_loss_list", [])
 
-        # --- Training loop ---
-        total_epochs = len(epoch_list) + config.epochs
-        for epoch in range(1 + len(epoch_list), 1 + total_epochs):
-            train_loss = self._run_epoch(
-                train_input_dl,
-                train_sg_loader,
-                return_loss=True,
-                loss_fn=loss_fn,
-                is_train=True
-            )
-            train_loss_list.append(train_loss)
-
-            if eval_dataloader is not None:
-                test_loss = self._run_epoch(
-                    eval_dataloader,
-                    eval_subgraph_loader,
-                    return_loss=True,
-                    loss_fn=loss_fn,
-                    is_train=False
-                )
-                test_loss_list.append(test_loss)
-
-            # Logging
-            log_this_epoch = (
-                config.print_every is not None
-                and config.print_every > 0
-                and epoch % config.print_every == 0
-            )
-            if log_this_epoch:
-                test_log = f" | Eval loss: {test_loss:.4e}" if eval_dataloader else ""
-                pprint(0, f"Epoch {epoch}/{total_epochs} | Train loss: {train_loss:.4e}{test_log}", flush=True)
-
-                if self.device.type == "cuda":
-                    allocated = torch.cuda.memory_allocated(self.device) / 1024 ** 2
-                    reserved = torch.cuda.memory_reserved(self.device) / 1024 ** 2
-                    pprint(0, f"[GPU] Allocated: {allocated:.2f} MB | Reserved: {reserved:.2f} MB", flush=True)
-
-            # Save state
-            epoch_list.append(epoch)
-            self.state = {
-                "model_state_dict": self.state_dict(),
-                "optimizer_state_dict": self.optimizer.state_dict(),
-                "scheduler_state_dict": self.scheduler.state_dict() if self.scheduler is not None else {},
-                "epoch_list": epoch_list,
-                "train_loss_list": train_loss_list,
-                "test_loss_list": test_loss_list,
-            }
-            self.last_training_config = config
-
-            if on_epoch_end is not None:
-                on_epoch_end(epoch, train_loss)
-
-        return {"train_loss": train_loss_list, "test_loss": test_loss_list}
-
-
-    @cr('GNS._run_epoch')
-    def _run_epoch(
-        self,
-        input_dataloader,
-        subgraph_loader,
-        loss_fn: torch.nn.Module = None,
-        return_loss: bool = False,
-        is_train: bool = False
-    ) -> Union[float, Tensor]:
-        """
-        Run one epoch over the dataset, either in training or evaluation mode.
-
-        Args:
-            input_dataloader (DataLoader): Yields batches of [inputs, targets].
-            subgraph_loader (DataLoader): Yields seed nodes for subgraph sampling.
-            loss_fn (callable, optional): Loss function to apply (only if return_loss=True).
-            return_loss (bool): Whether to compute and return averaged loss.
-            is_train (bool): Whether to perform gradient updates (training) or not (evaluation/prediction).
-
-        Returns:
-            Union[float, Tensor]:
-                - If `return_loss` is True: average loss (float) over all batches (used in training/eval).
-                - If `return_loss` is False: tensor of predictions with shape [B, N, F] (used in prediction mode).
-        """
-        self._dprint(f"{'Training' if is_train else 'Evaluating/Predicting'} epoch on device {self.device}...")
-        self.train() if is_train else self.eval()
-        outputs = []
-        total_loss = 0.0
-        context = torch.enable_grad() if is_train else torch.no_grad()
-
-        last_graph = None
-        last_output = None
-        last_targets = None
-        last_loss = None
-        num_losses = 0
-
-        with context:
-            for batch in input_dataloader:
-                inputs_batch = batch[0].to(self.device)
-                try:
-                    targets_batch = batch[1].to(self.device)
-                except IndexError:
-                    targets_batch = None
-
-                for subgraph in subgraph_loader:
-                    if is_train:
-                        self._dprint("Training on new batch...")
-                        loss_val, G, out, targets, loss = self._train_one_batch(
-                            subgraph, inputs_batch, targets_batch, loss_fn
-                        )
-                    elif return_loss:
-                        self._dprint("Evaluating on new batch...")
-                        loss_val, G, out, targets, loss = self._eval_one_batch(
-                            subgraph, inputs_batch, targets_batch, loss_fn
-                        )
-                    else:
-                        self._dprint("Predicting on new batch...")
-                        out = self._eval_one_batch(subgraph, inputs_batch, targets_batch)
-                        outputs.append(out)
-                        continue  # Skip loss-related code
-
-                    if return_loss:
-                        total_loss += loss_val
-                        last_graph = G
-                        last_output = out
-                        last_targets = targets
-                        last_loss = loss
-
-                    num_losses += 1
-
-            if is_train and self.scheduler is not None:
-                self.scheduler.step()
-
-        if return_loss:
-            cleanup_tensors({
-                "graph": last_graph,
-                "output": last_output,
-                "targets": last_targets,
-                "loss": last_loss,
-            })
-            return total_loss / num_losses
-        else:
-            outputs_numpy = torch.cat(outputs, dim=0).cpu().numpy()
-            outputs_numpy = outputs_numpy.reshape(-1, self.graph.num_nodes, self.model_config.output_dim)
-            return outputs_numpy
-
-
-    @cr('GNS._train_one_batch')
-    def _train_one_batch(
-        self,
-        subgraph: Data,
-        inputs_batch: Tensor,
-        targets_batch: Tensor,
-        loss_fn: torch.nn.Module
-    ) -> Tuple[float, Data, Tensor, Tensor, Tensor]:
-        """
-        Execute a single training step over a subgraph batch.
-
-        Args:
-            subgraph (Data): Subgraph seed data from the loader.
-            inputs_batch (Tensor): Input parameter batch of shape [B, D].
-            targets_batch (Tensor): Ground truth tensor of shape [B, N, F].
-            loss_fn (callable): Loss function to compute training loss.
-
-        Returns:
-            Tuple[float, Data, Tensor, Tensor, Tensor]:
-                - Loss value for this batch.
-                - The processed graph with injected inputs and targets.
-                - Model outputs on the seed nodes.
-                - Ground truth targets on the seed nodes.
-                - Loss tensor.
-        """
-        if not hasattr(self, "_counter"):
-            self._counter = 0
-        self._counter += 1
-        G = self.injector.replicate_inject(subgraph, inputs_batch, targets_batch)
-
-        self.optimizer.zero_grad()
-        output = self.forward(G)[G.seed_mask]
-        targets = G.y[G.seed_mask]
-
-        assert output.shape == targets.shape, f"Output shape {output.shape} != target shape {targets.shape}"
-        if self._counter % 100 == 0:
-            self._dprint(f" - Training batch {self._counter}: output.shape={output.shape}, targets.shape={targets.shape}")
-        loss = loss_fn(output, targets)
-        self._dprint(f" - Computed loss: {loss.item():.4e}. Backpropagating...")
-        loss.backward()
-        self.optimizer.step()
-
-        return loss.item(), G, output, targets, loss
-
-    @cr('GNS._eval_one_batch')
-    def _eval_one_batch(
-        self,
-        subgraph: Data,
-        inputs_batch: Tensor,
-        targets_batch: Union[Tensor, None],
-        loss_fn: torch.nn.Module = None
-    ) -> Union[Tuple[float, Data, Tensor, Tensor, Tensor], Tensor]:
-        """
-        Perform a single evaluation (validation or prediction) step.
-
-        Args:
-            subgraph (Data): Subgraph seed data from the loader.
-            inputs_batch (Tensor): Input parameter batch of shape [B, D].
-            targets_batch (Tensor or None): Ground truth targets if available.
-            loss_fn (callable, optional): If provided, computes loss against targets.
-
-        Returns:
-            Union[Tuple[float, Data, Tensor, Tensor, Tensor], Tensor]:
-                - If `loss_fn` is provided: a tuple (loss_value, graph, output, targets, loss_tensor) for evaluation.
-                - If `loss_fn` is None: predictions on seed nodes as a Tensor of shape [S, F], where S is number of seed nodes.
-        """
-        self._dprint("Evaluating on new batch...")
-        G = self.injector.replicate_inject(subgraph, inputs_batch, targets_batch)
-        output = self.forward(G)[G.seed_mask]
-
-        if loss_fn is not None:
-            self._dprint("Computing evaluation loss...")
-            targets = G.y[G.seed_mask]
-            assert output.shape == targets.shape, f"Output shape {output.shape} != target shape {targets.shape}"
-            loss = loss_fn(output, targets)
-            return loss.item(), G, output, targets, loss
-        else:
-            return output
-
-
-    def _validate_shapes(self, X):
-        try:
-            self.validator.validate(X)
-        except Exception as e:
-            raiseError(f"Invalid dataset for {self.__class__.__name__}: {e}")
-
-    
+        # Delegate epoch loop to the training runner (encapsulates train/val and best-checkpoint logic)
+        runner = _GNSTrainingLoop(self)
+        return runner.train(
+            train_input_dl=train_input_dl,
+            train_subgraph_dl=train_sg_loader,
+            eval_input_dl=eval_dataloader,
+            eval_subgraph_dl=eval_subgraph_loader,
+            loss_fn=loss_fn,
+            config=config,
+            on_epoch_end=on_epoch_end,
+            epoch_list=epoch_list,
+            train_loss_list=train_loss_list,
+            test_loss_list=test_loss_list,
+        )
     def save(self, path: Union[str, Path]) -> None:
         """
         Save the current model to a checkpoint file.
@@ -981,7 +802,7 @@ class GNS(torch.nn.Module):
             **kwargs: Additional keyword arguments for pprint.
         """
         if self.debug:
-            pprint(rank, *args, **kwargs)
+            pprint(rank, *args, **kwargs, flush=True)
 
     def __repr__(self):
         return (
@@ -999,3 +820,5 @@ class GNS(torch.nn.Module):
             ")"
         )
 
+
+# ------------------------------------------------------------

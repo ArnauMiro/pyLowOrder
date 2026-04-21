@@ -90,8 +90,21 @@ class InputsInjector:
     Prepares (sub)graphs for batched inference or training by injecting global input parameters
     into node features and replicating the graph structure.
 
+    Unlike ``Batch.from_data_list`` this routine performs the concatenation in-place to avoid
+    allocating intermediate ``Data`` lists, which keeps memory overhead low and works in
+    environments where PyG's higher level batching helpers (e.g. ``NeighborLoader``) are not
+    available.
+
     Args:
         device (Union[str, torch.device]): Target device where the batched graph will reside.
+
+    Notes
+    -----
+    - Node features are repeated B times and concatenated with the B input conditions.
+    - Edge indices are offset by N per replica; edge attributes are repeated.
+    - When later constructing subgraphs with ``k_hop_subgraph``, PyG may return a boolean
+      ``edge_mask``; prefer boolean indexing for ``edge_attr`` on CUDA to avoid
+      ``index_select_out_cuda_impl not implemented for 'Bool'``.
     """
 
     def __init__(self, device: torch.device) -> None:
@@ -121,6 +134,9 @@ class InputsInjector:
                 - seed_mask: shape [B * N]
                 - y (optional): shape [B * N, O]
         """
+        # Normalize inputs to 2D [B, D]
+        if inputs_batch.ndim == 1:
+            inputs_batch = inputs_batch.unsqueeze(0)
         B = inputs_batch.size(0)
         N = getattr(graph, 'num_nodes', None)
         x = getattr(graph, 'x', None)
@@ -182,6 +198,11 @@ class ManualNeighborLoader:
     """
     CPU-based subgraph sampler similar to torch_geometric's NeighborLoader.
     It yields Data subgraphs per node batch (not a `torch.utils.data.DataLoader`).
+
+    This custom loader exists to keep compatibility with deployments where importing
+    ``torch_geometric.loader.NeighborLoader`` is not possible (e.g. cluster images lacking the
+    extension). Keeping the implementation local also grants fine-grained control over shuffling
+    contracts shared with ``_GNSHelpers``.
 
     Sampling is done on CPU. Only at iteration time are subgraphs moved to the target device.
 
@@ -358,16 +379,20 @@ class _GNSHelpers:
         config: SubgraphDataloaderConfig,
         *,
         generator: Optional[torch.Generator] = None,  # runtime
-    ) -> ManualNeighborLoader:
+    ) -> Union[DataLoader, "ManualNeighborLoader"]:
         """
-        Initialize a subgraph sampler using ManualNeighborLoader and provided config.
+        Initialize a subgraph sampler depending on ``config.mode``:
+        - ``"nodes"``: returns a DataLoader of node indices (seed batches), and subgraphs are
+          built on-the-fly via ``build_subgraph``.
+        - ``"manual"``: returns ``ManualNeighborLoader`` yielding Data subgraphs directly
+          (backward compatible path similar to PyG's NeighborLoader).
 
         Args:
             config (SubgraphDataloaderConfig): Configuration parameters.
             generator (Optional[torch.Generator]): Runtime RNG if shuffling; None otherwise.
 
         Returns:
-            ManualNeighborLoader: Configured subgraph loader.
+            DataLoader or ManualNeighborLoader.
         """
         self._check_shuffle_generator_contract(
             shuffle=config.shuffle,
@@ -375,12 +400,92 @@ class _GNSHelpers:
             ctx="SubgraphLoader"
         )
 
-        return ManualNeighborLoader(
-            device=self.device,
-            base_graph=self.graph,
-            num_hops=self.num_msg_passing_layers,
+        mode = getattr(config, "mode", "nodes")
+        if mode not in {"nodes", "manual"}:
+            raiseError(f"Invalid subgraph_loader.mode='{mode}'. Allowed values: 'nodes', 'manual'.")
+        if mode == "manual":
+            return ManualNeighborLoader(
+                device=self.device,
+                base_graph=self.graph,
+                num_hops=self.num_msg_passing_layers,
+                batch_size=config.batch_size,
+                input_nodes=config.input_nodes,
+                shuffle=config.shuffle,
+                generator=generator,
+            )
+
+        # Default: nodes mode
+        node_indices = self._resolve_input_nodes(config.input_nodes)
+        return DataLoader(
+            node_indices,
             batch_size=config.batch_size,
-            input_nodes=config.input_nodes,
             shuffle=config.shuffle,
-            generator=generator,  # <- runtime generator (may be None)
+            drop_last=False,
+            generator=generator,
+            num_workers=0,
         )
+
+    def build_subgraph(self, seed_nodes: Tensor) -> Data:
+        """
+        Build a k-hop subgraph around the provided seed nodes.
+
+        Args:
+            seed_nodes (Tensor): Tensor of node indices (on CPU or GPU).
+
+        Returns:
+            Data: Torch Geometric data object containing the subgraph.
+
+        Notes
+        -----
+        - ``k_hop_subgraph`` returns ``(subset, edge_index, mapping, edge_mask)``. The
+          ``edge_mask`` can be a boolean tensor; in that case use boolean indexing
+          for ``edge_attr`` to stay backend-safe on CUDA.
+        - This function moves only the necessary slices to the model's current device.
+        """
+        if seed_nodes.ndim > 1:
+            seed_nodes = seed_nodes.view(-1)
+        seed_nodes_cpu = seed_nodes.to(dtype=torch.long, device="cpu")
+
+        subset, edge_index, mapping, edge_mask = k_hop_subgraph(
+            seed_nodes_cpu,
+            num_hops=self.num_msg_passing_layers,
+            edge_index=self.graph.edge_index.cpu(),
+            relabel_nodes=True,
+        )
+
+        subset_device = subset.to(self.graph.x.device)
+        edge_mask_device = edge_mask.to(self.graph.edge_attr.device)
+
+        x = self.graph.x.index_select(0, subset_device)
+        if edge_mask_device.dtype == torch.bool:
+            edge_attr = self.graph.edge_attr[edge_mask_device]
+        else:
+            edge_attr = self.graph.edge_attr.index_select(0, edge_mask_device)
+
+        seed_mask = torch.zeros(subset.size(0), dtype=torch.bool, device=self.graph.x.device)
+        seed_mask[mapping.to(self.graph.x.device)] = True
+
+        data = Data(
+            x=x,
+            edge_index=edge_index.to(self.graph.edge_index.device),
+            edge_attr=edge_attr,
+            seed_mask=seed_mask,
+            subset=subset_device,
+        )
+
+        return data.to(self.device)
+
+    def _resolve_input_nodes(self, input_nodes: Optional[Union[Tensor, Sequence[int]]]) -> Tensor:
+        if input_nodes is None:
+            return torch.arange(self.graph.num_nodes, device="cpu", dtype=torch.long)
+
+        input_nodes = torch.as_tensor(input_nodes, device="cpu")
+        if input_nodes.dtype == torch.bool:
+            if input_nodes.ndim != 1 or input_nodes.size(0) != self.graph.num_nodes:
+                raiseError("Boolean mask must have shape [N]")
+            return input_nodes.nonzero(as_tuple=False).view(-1).to(torch.long)
+
+        if input_nodes.dtype in (torch.int32, torch.int64):
+            return input_nodes.to(torch.long)
+
+        raiseError("input_nodes must be LongTensor, BoolTensor, or list of ints.")

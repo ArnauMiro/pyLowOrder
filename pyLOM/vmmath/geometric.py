@@ -5,10 +5,12 @@
 # Math operations module - geometry.
 #
 # Last rev: 27/10/2021
-from __future__ import print_function, division
+from __future__ import annotations, print_function, division
+from typing import Dict, Set, Tuple
 
 import numpy as np
 from collections import defaultdict, deque
+
 
 from ..utils.gpu import cp
 from ..utils     import cr_nvtx as cr, mpi_reduce
@@ -93,8 +95,8 @@ def normals(xyz:np.ndarray,conec:np.ndarray) -> np.ndarray:
 	return normals
 
 
-@cr('math.edge_to_cells')
-def edge_to_cells(conec:np.ndarray) -> dict:
+@cr('math.edge_to_cells_legacy')
+def edge_to_cells_legacy(conec:np.ndarray) -> dict:
 	r'''
 	Build a dictionary that maps each edge to the cells that share it.
 
@@ -117,6 +119,53 @@ def edge_to_cells(conec:np.ndarray) -> dict:
 			edge_to_cells[(v1, v2)].add(cell_id)  # Associate the cell with the edge
 			edge_to_cells[(v2, v1)].add(cell_id)  # Associate the cell with the edge
 	return edge_to_cells
+
+
+@cr('math.edge_to_cells')
+def edge_to_cells(conec: np.ndarray) -> Dict[Tuple[int, int], Set[int]]:
+    """
+    Build an undirected primal edge→cells incidence from mesh connectivity.
+
+    Contract
+    --------
+    - Keys are *canonical* undirected edges as (min(u, v), max(u, v)) using *global* node ids.
+    - Values are sets of incident cell ids: len==1 for boundary edges, len==2 for interior edges.
+    - Degenerate edges (u == v) are skipped.
+
+    Parameters
+    ----------
+    conec : np.ndarray
+        Mesh connectivity; iterable of per-cell node-id sequences (polygons).
+        It may be a ragged object array (dtype=object) or 2D with padding.
+
+    Returns
+    -------
+    Dict[Tuple[int, int], Set[int]]
+        Mapping from canonical undirected edge to the set of incident cell ids.
+
+    Notes
+    -----
+    - This function does *not* store reverse keys (v, u). Use only canonical keys.
+    - Directionality, if needed (e.g., for PyG), should be introduced later when
+      constructing the dual graph or by duplicating edges in edge_index.
+    """
+    e2c: Dict[Tuple[int, int], Set[int]] = defaultdict(set)
+
+    for cell_id, cnodes in enumerate(conec):
+        # Robustly coerce per-cell node list to 1D int array (global ids)
+        cn = np.asarray(cnodes, dtype=np.int64).ravel()
+        if cn.size < 2:
+            continue  # skip malformed cells
+
+        # Close the polygonal ring: (cn[i], cn[i+1]) with wrap-around
+        for a, b in zip(cn, np.roll(cn, -1)):
+            u, v = int(a), int(b)
+            if u == v:
+                continue  # degenerate edge
+            key = (u, v) if u < v else (v, u)  # canonical (min, max)
+            e2c[key].add(cell_id)
+
+    return e2c
 
 
 @cr('math.cell_adjacency')

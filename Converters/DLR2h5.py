@@ -14,6 +14,7 @@ from tqdm import tqdm
 
 import pyLOM
 from pyLOM.NN import Graph
+from pyLOM import io as pyIO
 
 
 def process_edge_vectors(edge_index: np.ndarray, xyz: np.ndarray) -> np.ndarray:
@@ -76,17 +77,17 @@ def create_graph(datapath: str, npoints: int) -> Graph:
     wall_normals = np.load(os.path.join(datapath, "faceNormals.npz"))['faceNormals']
     edge_index = torch.tensor(np.load(os.path.join(datapath, "edgesCOO.npz"))['edgesCOO'], dtype=torch.long)
 
-    x_dict = {
+    node_features_dict = {
         'xyz': torch.tensor(xyz, dtype=torch.float),
         'normals': torch.tensor(normals, dtype=torch.float),
     }
     edge_vecs = process_edge_vectors(edge_index.numpy(), xyz)
-    edge_attr_dict = {
+    edge_features_dict = {
         'edge_vecs': torch.tensor(edge_vecs, dtype=torch.float),
         'wall_normals': torch.tensor(wall_normals, dtype=torch.float),
     }
 
-    g = Graph(edge_index=edge_index, x_dict=x_dict, edge_attr_dict=edge_attr_dict)
+    g = Graph(edge_index=edge_index, node_features_dict=node_features_dict, edge_features_dict=edge_features_dict)
     print("Graph created.")
     return g
 
@@ -128,7 +129,19 @@ def main():
     for dset in datasets:
         path = os.path.join(datapath, f"{dset.upper()}_converter.h5")
         print(f"Appending graph to {path}")
-        g.save(path, mode='a')
+        # Persist only /GRAPH using strict flat schema, preserving other groups (mode='a')
+        x_np = {k: v.detach().cpu().numpy().astype(np.float32, copy=False) for k, v in g.node_features_dict.items()}
+        e_np = {k: v.detach().cpu().numpy().astype(np.float32, copy=False) for k, v in g.edge_features_dict.items()}
+        edge_index_np = g.edge_index.detach().cpu().numpy().astype(np.int32, copy=False)
+        pyIO.h5_save_graph_serial(
+            fname=path,
+            num_nodes=int(g.num_nodes),
+            num_edges=int(g.num_edges),
+            edge_index=edge_index_np,
+            node_features_dict=x_np,
+            edge_features_dict=e_np,
+            mode='a',
+        )
 
     # Select a snapshot from the dataset and plot the airfoil with CP distribution
     i_case = 0  # First case for demonstration 

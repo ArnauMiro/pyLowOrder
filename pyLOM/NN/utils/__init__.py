@@ -24,7 +24,7 @@ from .optuna_utils import (
     sample_params,
 )
 
-from .scalers import MinMaxScaler
+from .scalers import MinMaxScaler, StandardScaler, RobustScaler
 from .schedulers import betaLinearScheduler
 from .stats import RegressionEvaluator
 from .callbacks import EarlyStopper
@@ -46,6 +46,8 @@ __all__ = [
     "sample_params",
     # scalers, schedulers, metrics, callbacks
     "MinMaxScaler",
+    "StandardScaler",
+    "RobustScaler",
     "betaLinearScheduler",
     "RegressionEvaluator",
     "EarlyStopper",

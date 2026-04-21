@@ -4,25 +4,347 @@ Utilites for running and saving experiments with NN modules in pyLOM.
 
 from pathlib import Path
 import os
-from typing import Dict, Optional, Sequence, Tuple, Union, Any, Mapping
+import datetime
+import getpass
+import hashlib
+import json
+from dataclasses import asdict, dataclass
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+    Literal,
+)
+
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import matplotlib.pyplot as plt
 import yaml
-import hashlib
-import datetime
-from dataclasses import asdict
-import getpass
-from pathlib import Path
-from dataclasses import asdict
-import datetime, getpass, hashlib, json
+import pyLOM
 
 from ... import pprint
 from ...utils import get_git_commit, raiseError
 from ...utils.config_resolvers import to_native
 
 
+if TYPE_CHECKING:
+    from pyLOM import Mesh
+    from pyLOM.partition_table import PartitionTable
+
+
 ArrayLike = Union[np.ndarray, "torch.Tensor"]
+MetricFn = Callable[[np.ndarray, np.ndarray], np.ndarray]
+
+
+@dataclass(frozen=True)
+class ParaviewExportConfig:
+    """Configuration for exporting fields to ParaView-friendly vtk.hdf files."""
+
+    mesh: "Mesh"
+    cell_order: np.ndarray
+    partition_table: "PartitionTable"
+    instants: Sequence[int] | np.ndarray
+    times: Sequence[float] | np.ndarray
+    output_dir: Path
+    base_name: str = "predictions"
+    mode: Literal["single", "per_snapshot"] = "single"
+    snapshot_metadata: Mapping[str, ArrayLike] | None = None
+    extra_cell_fields: Mapping[str, ArrayLike] | None = None
+
+
+# ─────────────────────────────────────────────────────
+# UTILITIES: ARRAY HANDLING
+# ─────────────────────────────────────────────────────
+
+def to_numpy(value: ArrayLike | Sequence[Any], *, dtype: np.dtype | type | None = None,
+             copy: bool = False) -> np.ndarray:
+    """Convert tensors or array-likes to a NumPy array with optional dtype/copy.
+
+    Parameters
+    ----------
+    value : array-like or torch.Tensor
+        Input object to convert.
+    dtype : numpy dtype or type, optional
+        If provided, cast the resulting array to this dtype.
+    copy : bool, default False
+        Force copying the data. When ``False`` NumPy may reuse the underlying
+        memory if possible.
+    """
+
+    array = value.detach().cpu().numpy() if isinstance(value, torch.Tensor) else np.asarray(value)
+
+    if dtype is not None:
+        array = array.astype(dtype, copy=False)
+
+    if copy:
+        array = np.array(array, dtype=array.dtype, copy=True)
+
+    return array
+
+
+# ─────────────────────────────────────────────────────
+# PARAVIEW EXPORT UTILITIES
+# ─────────────────────────────────────────────────────
+
+
+def _ensure_sample_major(
+    array: ArrayLike,
+    ncells: int,
+    *,
+    nsnaps_hint: int | None = None,
+) -> np.ndarray:
+    """Return array shaped as (nsnaps, ncells, nfeat) with optional broadcasting."""
+
+    arr = to_numpy(array)
+    arr = np.asarray(arr)
+
+    if arr.ndim == 1:
+        if arr.size == ncells:
+            arr = arr[None, :, None]
+        elif nsnaps_hint is not None and arr.size == nsnaps_hint:
+            arr = arr[:, None, None]
+        else:
+            raise ValueError("1D arrays must match either ncells or nsnaps length")
+    elif arr.ndim == 2:
+        if arr.shape[1] == ncells:
+            arr = arr[:, :, None]
+        elif arr.shape[0] == ncells:
+            arr = arr.T[:, :, None]
+        else:
+            raise ValueError("2D arrays must include ncells in one axis")
+    elif arr.ndim == 3:
+        if arr.shape[1] == ncells:
+            pass
+        elif arr.shape[0] == ncells:
+            arr = arr.swapaxes(0, 1)
+        else:
+            raise ValueError("3D arrays must include ncells in axis 0 or 1")
+    else:
+        raise ValueError("Unsupported array rank for sample-major conversion")
+
+    if nsnaps_hint is not None:
+        if arr.shape[0] == 1 and nsnaps_hint > 1:
+            arr = np.broadcast_to(arr, (nsnaps_hint, arr.shape[1], arr.shape[2]))
+        elif arr.shape[0] not in (nsnaps_hint, 1):
+            raise ValueError("Snapshot dimension mismatch with provided hint")
+
+    return arr.astype(np.float64, copy=False)
+
+
+def _sample_to_cell_major(arr: np.ndarray) -> np.ndarray:
+    """Swap axes to obtain (ncells, nsnaps, nfeat) layout."""
+
+    return arr.swapaxes(0, 1)
+
+
+def _reshape_for_dataset(arr: np.ndarray) -> tuple[np.ndarray, int]:
+    """Return flat array (ncomp * ncells, nsnaps) and component count."""
+
+    ncells, nsnaps, nfeat = arr.shape
+    data = np.moveaxis(arr, 2, 0).reshape(nfeat * ncells, nsnaps)
+    return data, nfeat
+
+
+def _build_dataset(
+    config: ParaviewExportConfig,
+    cell_fields: Mapping[str, np.ndarray],
+    metadata: Mapping[str, ArrayLike] | None,
+) -> pyLOM.Dataset:
+    """Create a pyLOM Dataset with provided cell fields and snapshot metadata."""
+
+    if not cell_fields:
+        raise ValueError("At least one field must be supplied for ParaView export")
+
+    sample_field = next(iter(cell_fields.values()))
+    _, nsnaps, _ = sample_field.shape
+
+    vars_dict: Dict[str, Dict[str, Any]] = {}
+    if metadata:
+        for name, values in metadata.items():
+            values_np = to_numpy(values)
+            values_np = np.asarray(values_np)
+            if values_np.ndim == 1:
+                if values_np.size not in (nsnaps, 1):
+                    raise ValueError(f"Metadata '{name}' must have length 1 or nsnaps")
+                if values_np.size == 1 and nsnaps > 1:
+                    values_np = np.broadcast_to(values_np, (nsnaps,))
+                vars_dict[name] = {"idim": 0, "value": values_np.astype(np.float64, copy=False)}
+            elif values_np.ndim == 2:
+                if values_np.shape[0] not in (nsnaps, 1):
+                    raise ValueError(f"Metadata '{name}' must align with snapshot count")
+                if values_np.shape[0] == 1 and nsnaps > 1:
+                    values_np = np.broadcast_to(values_np, (nsnaps, values_np.shape[1]))
+                vars_dict[name] = {
+                    "idim": values_np.shape[1],
+                    "value": values_np.astype(np.float64, copy=False),
+                }
+            else:
+                raise ValueError(f"Metadata '{name}' must be 1D or 2D array")
+
+    dataset = pyLOM.Dataset(
+        xyz=config.mesh.xyzc,
+        ptable=config.partition_table,
+        order=config.cell_order,
+        point=False,
+        vars=vars_dict,
+    )
+
+    for field_name, field_values in cell_fields.items():
+        flat_values, ncomp = _reshape_for_dataset(field_values)
+        dataset.add_field(field_name, ncomp, flat_values)
+
+    return dataset
+
+
+def _format_metadata_suffix(metadata: Mapping[str, ArrayLike] | None) -> str:
+    if not metadata:
+        return ""
+
+    parts: List[str] = []
+    for name, values in metadata.items():
+        arr = np.asarray(to_numpy(values), dtype=float).reshape(-1)
+        if arr.size == 0:
+            continue
+        value = float(arr[0])
+        formatted = format(value, ".6g").replace("-", "m").replace(".", "p")
+        parts.append(f"{name}_{formatted}")
+
+    return "__".join(parts)
+
+
+def export_predictions_to_paraview(
+    y_pred: ArrayLike,
+    y_true: ArrayLike,
+    metrics: Iterable[tuple[str, MetricFn]] | None,
+    *,
+    config: ParaviewExportConfig,
+) -> List[Path]:
+    """
+    Export predictions/targets and derived metrics to ParaView (vtk.hdf) files.
+
+    All tensors must be descaled prior to calling this function. Fields are
+    stored as cell-centered data. Snapshot metadata (inputs, conditions, etc.)
+    can be provided via ``config.snapshot_metadata``.
+    """
+
+    ncells = config.mesh.ncells
+
+    pred_samples = _ensure_sample_major(y_pred, ncells)
+    true_samples = _ensure_sample_major(y_true, ncells)
+
+    if pred_samples.shape != true_samples.shape:
+        raise ValueError("Predictions and targets must share the same shape")
+
+    nsnaps = pred_samples.shape[0]
+
+    instants = np.asarray(config.instants, dtype=np.int32)
+    times = np.asarray(config.times, dtype=np.float64)
+    if instants.shape[0] != nsnaps or times.shape[0] != nsnaps:
+        raise ValueError("Instants/times length must match number of snapshots")
+
+    cell_fields: Dict[str, np.ndarray] = {
+        "target": _sample_to_cell_major(true_samples),
+    }
+
+    metric_items = list(metrics) if metrics else [("prediction", lambda yp, yt: yp)]
+    for name, fn in metric_items:
+        metric_result = fn(pred_samples, true_samples)
+        metric_samples = _ensure_sample_major(metric_result, ncells, nsnaps_hint=nsnaps)
+        if metric_samples.shape != pred_samples.shape:
+            raise ValueError(f"Metric '{name}' must return the same shape as inputs")
+        if name in cell_fields:
+            raise ValueError(f"Duplicate field name detected: {name}")
+        cell_fields[name] = _sample_to_cell_major(metric_samples)
+
+    metadata_arrays: Dict[str, np.ndarray] = {}
+    if config.snapshot_metadata:
+        for name, values in config.snapshot_metadata.items():
+            arr = np.asarray(to_numpy(values), dtype=float).reshape(-1)
+            if arr.size not in (1, nsnaps):
+                raise ValueError(f"Metadata '{name}' must have length 1 or nsnaps")
+            if arr.size == 1 and nsnaps > 1:
+                arr = np.broadcast_to(arr, nsnaps)
+            metadata_arrays[name] = arr
+
+            constant = np.broadcast_to(arr.reshape(1, -1), (ncells, nsnaps))
+            cell_fields[f"meta_{name}"] = constant[:, :, None]
+
+    if config.extra_cell_fields:
+        for name, values in config.extra_cell_fields.items():
+            if name in cell_fields:
+                raise ValueError(f"Duplicate field name detected: {name}")
+            extra_samples = _ensure_sample_major(values, ncells, nsnaps_hint=nsnaps)
+            cell_fields[name] = _sample_to_cell_major(extra_samples)
+
+    dataset = _build_dataset(config, cell_fields, config.snapshot_metadata)
+
+    output_dir = config.output_dir
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    written: List[Path] = []
+    mode = config.mode
+    casestr_base = config.base_name or "predictions"
+
+    if mode == "single":
+        pyLOM.io.pv_writer(
+            Mesh=config.mesh,
+            Dataset=dataset,
+            casestr=casestr_base,
+            basedir=str(output_dir),
+            instants=instants,
+            times=times,
+            vars=list(dataset.fields.keys()),
+            fmt="vtkh5",
+            mode="w",
+        )
+        written.append(output_dir / f"{casestr_base}.vtk.hdf")
+    elif mode == "per_snapshot":
+        for idx in range(nsnaps):
+            slice_fields = {
+                name: values[:, idx : idx + 1, :]
+                for name, values in cell_fields.items()
+            }
+            slice_metadata = (
+                {
+                    name: metadata_arrays[name][idx : idx + 1]
+                    for name in metadata_arrays
+                }
+                if config.snapshot_metadata
+                else None
+            )
+            slice_dataset = _build_dataset(config, slice_fields, slice_metadata)
+            suffix = _format_metadata_suffix(slice_metadata)
+            if suffix:
+                casestr = f"{casestr_base}_{idx:04d}__{suffix}"
+            else:
+                casestr = f"{casestr_base}_{idx:04d}"
+
+            instants_slice = np.asarray([0], dtype=np.int32)
+            times_slice = np.asarray([times[idx]], dtype=np.float64)
+            pyLOM.io.pv_writer(
+                Mesh=config.mesh,
+                Dataset=slice_dataset,
+                casestr=casestr,
+                basedir=str(output_dir),
+                instants=instants_slice,
+                times=times_slice,
+                vars=list(slice_dataset.fields.keys()),
+                fmt="vtkh5",
+                mode="w",
+            )
+            written.append(output_dir / f"{casestr}.vtk.hdf")
+    else:
+        raise ValueError("mode must be either 'single' or 'per_snapshot'")
+
+    return written
 
 
 # ─────────────────────────────────────────────────────
@@ -47,8 +369,8 @@ def plot_training_and_validation_loss(train_loss: list[float],
     plt.plot(range(1, len(train_loss) + 1), train_loss, label="Training Loss")
 
     num_epochs = len(val_loss)
-    iters_per_epoch = len(train_loss) // num_epochs
-    val_iters = np.arange(iters_per_epoch, len(train_loss) + 1, iters_per_epoch)
+    # Map validation epochs to iteration axis robustly even if not divisible
+    val_iters = np.linspace(1, len(train_loss), num_epochs)
     plt.plot(val_iters, val_loss, label="Validation Loss")
 
     plt.yscale("log")
@@ -101,15 +423,17 @@ def save_experiment_artifacts(
     metrics_dict: dict[str, float],
     inputs_scaler: any = None,
     outputs_scaler: any = None,
+    full_run_config: dict[str, Any] | None = None,
     extra_files: dict[str, any] | None = None,
     return_path: bool = False,
 ) -> Path | None:
     """
-    Save model checkpoint + DTO configs + provenance + scalers + metrics.
+    Save model checkpoint + reproducibility config + scalers + metrics.
 
     Notes
     -----
-    - The written config.yaml mirrors what the checkpoint stores (DTOs + provenance).
+    - The written config.yaml contains a single `repro_config` block
+      with effective values used during training.
     - A stable SHA256 is computed from a canonical JSON dump of that config document.
     """
     # 1) Decide output directory (timestamped subfolder if 'base_path' is a dir)
@@ -121,17 +445,36 @@ def save_experiment_artifacts(
         out_dir = base_path
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # 2) Build the DTO/provenance document we’ll save AND hash
+    # 2) Build the resolved reproducibility document we’ll save AND hash
     model_cfg_dict  = asdict(model.model_config)
     train_cfg_dict  = asdict(model.last_training_config) if getattr(model, "last_training_config", None) else None
     prov_dict       = {
         "graph_spec": asdict(model.graph_spec),
         "graph_fingerprint": getattr(model, "graph_fingerprint", None),
     }
+
+    # Compact very long fields for human-readable YAML and store full content separately.
+    full_input_nodes = None
+    if train_cfg_dict and isinstance(train_cfg_dict.get("subgraph_loader"), dict):
+        input_nodes = train_cfg_dict["subgraph_loader"].get("input_nodes")
+        if isinstance(input_nodes, list):
+            full_input_nodes = input_nodes
+            preview = input_nodes[:5] + input_nodes[-5:]
+            train_cfg_dict["subgraph_loader"]["input_nodes"] = {
+                "count": len(input_nodes),
+                "preview_first_last": preview,
+                "stored_in": "input_nodes_full.json",
+            }
+
     config_doc = {
-        "model": model_cfg_dict,
-        "training": train_cfg_dict,
-        "provenance": prov_dict,
+        "repro_config": to_native(
+            _build_repro_config(
+                full_run_config=(full_run_config or {}),
+                model_cfg=model_cfg_dict,
+                training_cfg=train_cfg_dict or {},
+                provenance=prov_dict,
+            )
+        )
     }
 
     # 3) Stable hash from canonical JSON (independent of YAML formatting)
@@ -142,6 +485,9 @@ def save_experiment_artifacts(
     yaml_config_path = out_dir / "config.yaml"
     with yaml_config_path.open("w") as f:
         yaml.safe_dump(config_doc, f, sort_keys=False)
+    if full_input_nodes is not None:
+        with (out_dir / "input_nodes_full.json").open("w") as f:
+            json.dump(full_input_nodes, f)
 
     meta_info = {
         "saved_at": datetime.datetime.now().isoformat(),
@@ -162,7 +508,6 @@ def save_experiment_artifacts(
     if inputs_scaler is not None:
         if not getattr(inputs_scaler, "is_fitted", True):
             raiseError("inputs_scaler must be fitted before saving.")
-        inputs_scaler.save(str(out_dir / "inputs_scaler.json"))
         if hasattr(inputs_scaler, "save"):
             inputs_scaler.save(str(out_dir / "inputs_scaler.json"))
         else:
@@ -188,6 +533,72 @@ def save_experiment_artifacts(
 
     pprint(0, f"Experiment artifacts saved to: {out_dir}")
     return out_dir if return_path else None
+
+
+def _resolved_value(cfg: Mapping[str, Any], key: str, default: Any = None) -> Any:
+    eff_key = f"{key}_effective"
+    if eff_key in cfg:
+        return cfg.get(eff_key)
+    return cfg.get(key, default)
+
+
+def _resolve_dataset_config(dataset_cfg: Mapping[str, Any]) -> Dict[str, Any]:
+    # Minimal set required to reproduce dataset construction and scaling behavior.
+    resolved: Dict[str, Any] = {
+        "field_names": dataset_cfg.get("field_names"),
+        "variables_names": dataset_cfg.get("variables_names"),
+        "mesh_shape": dataset_cfg.get("mesh_shape"),
+        "scale_inputs": bool(_resolved_value(dataset_cfg, "scale_inputs", True)),
+        "scale_outputs": bool(_resolved_value(dataset_cfg, "scale_outputs", True)),
+        "input_scaler_type": _resolved_value(dataset_cfg, "input_scaler_type", "minmax"),
+        "output_scaler_type": _resolved_value(dataset_cfg, "output_scaler_type", "minmax"),
+    }
+
+    # Remove null entries to keep config compact and readable.
+    return {k: v for k, v in resolved.items() if v is not None}
+
+
+def _build_repro_config(
+    *,
+    full_run_config: Mapping[str, Any],
+    model_cfg: Mapping[str, Any],
+    training_cfg: Mapping[str, Any],
+    provenance: Mapping[str, Any],
+) -> Dict[str, Any]:
+    dataset_cfg_raw = full_run_config.get("dataset_config", {}) or {}
+    graph_spec = provenance.get("graph_spec", {}) if isinstance(provenance, Mapping) else {}
+    graph_path = None
+    if isinstance(graph_spec, Mapping):
+        graph_path = graph_spec.get("path")
+
+    training_out = dict(training_cfg)
+    sg = training_out.get("subgraph_loader")
+    if isinstance(sg, dict):
+        input_nodes = sg.get("input_nodes")
+        seed_selector = sg.get("seed_selector")
+        if isinstance(input_nodes, dict) and input_nodes.get("stored_in"):
+            sg["seed_selector"] = {
+                "type": "explicit_list",
+                "frac": None,
+                "nodes_path": input_nodes.get("stored_in"),
+            }
+            sg["input_nodes"] = None
+        elif isinstance(seed_selector, dict):
+            st = str(seed_selector.get("type", "all")).strip().lower()
+            if st == "all":
+                sg["input_nodes"] = None
+
+    repro: Dict[str, Any] = {
+        "experiment": full_run_config.get("experiment", {}) or {},
+        "datasets": full_run_config.get("datasets", {}) or {},
+        "dataset_config": _resolve_dataset_config(dataset_cfg_raw),
+        "model": {
+            "graph_path": graph_path,
+            "config": dict(model_cfg),
+        },
+        "training": training_out,
+    }
+    return repro
 
 
 # ----------------------------- core metrics ----------------------------- #
@@ -222,9 +633,7 @@ def compute_regression_metrics(
         l2_error, and absolute error percentiles 'ae_p{p}'.
     """
     def _to_numpy_flat(a: ArrayLike) -> np.ndarray:
-        if isinstance(a, torch.Tensor):
-            a = a.detach().cpu().numpy()
-        return np.asarray(a, dtype=float).reshape(-1)
+        return np.asarray(to_numpy(a), dtype=float).reshape(-1)
 
     y_pred = _to_numpy_flat(preds)
     y_true = _to_numpy_flat(targets)
@@ -299,9 +708,7 @@ def evaluate_model(model, training_params, dataset, evaluators) -> Tuple[Dict[st
     """
     def _as_column(arr: ArrayLike) -> np.ndarray:
         # Convert to numpy and ensure shape (N*, 1)
-        if isinstance(arr, torch.Tensor):
-            arr = arr.detach().cpu().numpy()
-        return np.asarray(arr).reshape(-1, 1)
+        return to_numpy(arr).reshape(-1, 1)
 
     # --- Predict ---
     print(f"Evaluating model: {model.__class__.__name__}")
@@ -392,9 +799,7 @@ def plot_true_vs_pred(
         The metrics dict (computed or the one provided), extended with 'slope' and 'intercept'.
     """
     def _to_numpy_1d(a: ArrayLike) -> np.ndarray:
-        if isinstance(a, torch.Tensor):
-            a = a.detach().cpu().numpy()
-        return np.ravel(np.asarray(a))
+        return np.ravel(to_numpy(a))
 
     y_true = _to_numpy_1d(y_true_col)
     y_pred = _to_numpy_1d(y_pred_col)
@@ -568,15 +973,10 @@ def plot_train_test_loss(
 
     def _to_1d_float_array(x: Union[Sequence[Any], np.ndarray, torch.Tensor]) -> np.ndarray:
         """Convert various inputs to a 1D float numpy array."""
-        if isinstance(x, torch.Tensor):
-            return x.detach().cpu().numpy().astype(float).reshape(-1)
-        if isinstance(x, np.ndarray):
-            return x.astype(float).reshape(-1)
-        if isinstance(x, (list, tuple)):
-            if len(x) > 0 and isinstance(x[0], torch.Tensor):
-                return np.asarray([float(t.detach().cpu().item()) for t in x], dtype=float).reshape(-1)
-            return np.asarray(x, dtype=float).reshape(-1)
-        raise TypeError(f"Unsupported loss series type: {type(x)}")
+        arr = to_numpy(x)
+        if isinstance(x, (list, tuple)) and len(x) > 0 and isinstance(x[0], torch.Tensor):
+            arr = np.asarray([float(t.detach().cpu().item()) for t in x], dtype=float)
+        return np.asarray(arr, dtype=float).reshape(-1)
 
     def _smooth(y: np.ndarray) -> np.ndarray:
         """Apply optional smoothing to a 1D array for plotting only."""

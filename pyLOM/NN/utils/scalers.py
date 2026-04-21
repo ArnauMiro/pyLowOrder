@@ -113,9 +113,20 @@ class MinMaxScaler:
         # Build list of (take_fn, block) safely for np/torch
         def take_cols(a, cols):
             if is_tensor:
-                return a[:, cols] if isinstance(cols, list) else a[:, cols]
+                if isinstance(cols, slice):
+                    block = a[:, cols]
+                elif isinstance(cols, torch.Tensor):
+                    block = a.index_select(dim=1, index=cols.to(dtype=torch.long, device=a.device))
+                elif isinstance(cols, (list, tuple)):
+                    idx = torch.tensor(cols, dtype=torch.long, device=a.device)
+                    block = a.index_select(dim=1, index=idx)
+                else:
+                    idx = torch.tensor([cols], dtype=torch.long, device=a.device)
+                    block = a.index_select(dim=1, index=idx)
+                return block if block.ndim > 1 else block.unsqueeze(1)
             else:
-                return a[:, cols]
+                block = a[:, cols]
+                return block if block.ndim > 1 else block.reshape(-1, 1)
 
         nfeat = X2d.shape[1]
         if self.blocks is None:
@@ -124,16 +135,7 @@ class MinMaxScaler:
         else:
             norm_blocks = []
             for b in self.blocks:
-                if isinstance(b, slice):
-                    norm_blocks.append(take_cols(X2d, b))
-                else:
-                    # list/tuple of indices
-                    # torch advanced indexing needs a tensor of column indices
-                    if is_tensor and not isinstance(b, torch.Tensor):
-                        cols = torch.tensor(b, dtype=torch.long, device=X2d.device)
-                        norm_blocks.append(X2d.index_select(dim=1, index=cols))
-                    else:
-                        norm_blocks.append(take_cols(X2d, b))
+                norm_blocks.append(take_cols(X2d, b))
             blocks = norm_blocks
         return blocks
 
@@ -337,6 +339,199 @@ class MinMaxScaler:
             column=loaded["column"],
             blocks=_deserialize_blocks(loaded.get("blocks", None))
         )
+        scaler.variable_scaling_params = loaded["variable_scaling_params"]
+        scaler._is_fitted = True
+        return scaler
+
+
+class StandardScaler:
+    r"""
+    Standardization scaler: z = (x - mean) / std.
+
+    Supports both matrix/tensor input and list-of-blocks input, mirroring
+    MinMaxScaler behavior used by Dataset.
+    """
+
+    def __init__(self, eps: float = 1e-12):
+        self.eps = eps
+        self._is_fitted = False
+
+    @property
+    def is_fitted(self):
+        return self._is_fitted
+
+    def _ensure_2d(self, x):
+        if isinstance(x, torch.Tensor):
+            return x.unsqueeze(1) if x.ndim == 1 else x
+        x = np.asarray(x)
+        return x[:, None] if x.ndim == 1 else x
+
+    def fit(self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]):
+        blocks = [self._ensure_2d(v) for v in variables] if isinstance(variables, list) else [self._ensure_2d(variables)]
+        params = []
+        for b in blocks:
+            mean = float(b.mean())
+            std = float(b.std())
+            if std < self.eps:
+                std = 1.0
+            params.append({"mean": mean, "std": std})
+        self.variable_scaling_params = params
+        self._fit_from_list = isinstance(variables, list)
+        self._is_fitted = True
+
+    def transform(self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]):
+        if not self._is_fitted:
+            raiseError("Scaler must be fitted before transform")
+        if isinstance(variables, list):
+            if len(variables) != len(self.variable_scaling_params):
+                raiseError("Number of variables does not match fitted parameters")
+            out = []
+            for v, p in zip(variables, self.variable_scaling_params):
+                v2 = self._ensure_2d(v)
+                out.append((v2 - p["mean"]) / p["std"])
+            return out
+
+        x = self._ensure_2d(variables)
+        p = self.variable_scaling_params[0]
+        out = (x - p["mean"]) / p["std"]
+        return out
+
+    def fit_transform(self, variables):
+        self.fit(variables)
+        return self.transform(variables)
+
+    def inverse_transform(self, variables):
+        if not self._is_fitted:
+            raiseError("Scaler must be fitted before inverse_transform")
+        if isinstance(variables, list):
+            if len(variables) != len(self.variable_scaling_params):
+                raiseError("Number of variables does not match fitted parameters")
+            out = []
+            for v, p in zip(variables, self.variable_scaling_params):
+                v2 = self._ensure_2d(v)
+                out.append(v2 * p["std"] + p["mean"])
+            return out
+
+        x = self._ensure_2d(variables)
+        p = self.variable_scaling_params[0]
+        return x * p["std"] + p["mean"]
+
+    def save(self, filepath: str) -> None:
+        if not self.is_fitted:
+            raiseError("Scaler must be fitted before it can be saved")
+        save_dict = {
+            "type": "standard",
+            "eps": self.eps,
+            "variable_scaling_params": self.variable_scaling_params,
+        }
+        with open(filepath, "w") as f:
+            json.dump(save_dict, f, indent=4)
+
+    @staticmethod
+    def load(filepath: str) -> "StandardScaler":
+        if not os.path.exists(filepath):
+            raiseError(f"No file found at {filepath}")
+        with open(filepath, "r") as f:
+            loaded = json.load(f)
+        scaler = StandardScaler(eps=float(loaded.get("eps", 1e-12)))
+        scaler.variable_scaling_params = loaded["variable_scaling_params"]
+        scaler._is_fitted = True
+        return scaler
+
+
+class RobustScaler:
+    r"""
+    Robust scaler using median and IQR: z = (x - median) / IQR.
+
+    Supports both matrix/tensor input and list-of-blocks input.
+    """
+
+    def __init__(self, eps: float = 1e-12):
+        self.eps = eps
+        self._is_fitted = False
+
+    @property
+    def is_fitted(self):
+        return self._is_fitted
+
+    def _ensure_2d(self, x):
+        if isinstance(x, torch.Tensor):
+            return x.unsqueeze(1) if x.ndim == 1 else x
+        x = np.asarray(x)
+        return x[:, None] if x.ndim == 1 else x
+
+    def _quantiles(self, block):
+        arr = block.detach().cpu().numpy() if isinstance(block, torch.Tensor) else np.asarray(block)
+        q1 = float(np.percentile(arr, 25.0))
+        q2 = float(np.percentile(arr, 50.0))
+        q3 = float(np.percentile(arr, 75.0))
+        iqr = q3 - q1
+        if iqr < self.eps:
+            iqr = 1.0
+        return q2, iqr
+
+    def fit(self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]):
+        blocks = [self._ensure_2d(v) for v in variables] if isinstance(variables, list) else [self._ensure_2d(variables)]
+        params = []
+        for b in blocks:
+            med, iqr = self._quantiles(b)
+            params.append({"median": med, "iqr": iqr})
+        self.variable_scaling_params = params
+        self._fit_from_list = isinstance(variables, list)
+        self._is_fitted = True
+
+    def transform(self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]):
+        if not self._is_fitted:
+            raiseError("Scaler must be fitted before transform")
+        if isinstance(variables, list):
+            if len(variables) != len(self.variable_scaling_params):
+                raiseError("Number of variables does not match fitted parameters")
+            out = []
+            for v, p in zip(variables, self.variable_scaling_params):
+                v2 = self._ensure_2d(v)
+                out.append((v2 - p["median"]) / p["iqr"])
+            return out
+        x = self._ensure_2d(variables)
+        p = self.variable_scaling_params[0]
+        return (x - p["median"]) / p["iqr"]
+
+    def fit_transform(self, variables):
+        self.fit(variables)
+        return self.transform(variables)
+
+    def inverse_transform(self, variables):
+        if not self._is_fitted:
+            raiseError("Scaler must be fitted before inverse_transform")
+        if isinstance(variables, list):
+            if len(variables) != len(self.variable_scaling_params):
+                raiseError("Number of variables does not match fitted parameters")
+            out = []
+            for v, p in zip(variables, self.variable_scaling_params):
+                v2 = self._ensure_2d(v)
+                out.append(v2 * p["iqr"] + p["median"])
+            return out
+        x = self._ensure_2d(variables)
+        p = self.variable_scaling_params[0]
+        return x * p["iqr"] + p["median"]
+
+    def save(self, filepath: str) -> None:
+        if not self.is_fitted:
+            raiseError("Scaler must be fitted before it can be saved")
+        save_dict = {
+            "type": "robust",
+            "eps": self.eps,
+            "variable_scaling_params": self.variable_scaling_params,
+        }
+        with open(filepath, "w") as f:
+            json.dump(save_dict, f, indent=4)
+
+    @staticmethod
+    def load(filepath: str) -> "RobustScaler":
+        if not os.path.exists(filepath):
+            raiseError(f"No file found at {filepath}")
+        with open(filepath, "r") as f:
+            loaded = json.load(f)
+        scaler = RobustScaler(eps=float(loaded.get("eps", 1e-12)))
         scaler.variable_scaling_params = loaded["variable_scaling_params"]
         scaler._is_fitted = True
         return scaler
