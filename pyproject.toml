@@ -53,7 +53,7 @@ license-files = ["LICENSE"]
 # Note that this is a list of additional keywords, separated
 # by commas, to be used to assist searching for the distribution in a
 # larger catalog.
-keywords = ["reduced-order modeling", "POD", "DMD", "VAE", "MLP", "GNN"]
+keywords = ["reduced-order modeling", "POD", "DMD", "VAE", "MLP", "NN", "GNN"]
 
 # This should be your name or the name of the organization who originally
 # authored the project, and a valid email address corresponding to the name
