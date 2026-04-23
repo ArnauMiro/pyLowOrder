@@ -185,7 +185,7 @@ class Graph(Data):
 
         return graph
 
-    def save(self, fname: str, mode: Optional[str] = None, **kwargs: Any) -> None:
+    def save(self, fname: str, **kwargs: Any) -> None:
         """
         Persist the graph to disk. Supports .h5, .pt, .pkl.
 
@@ -234,21 +234,17 @@ class Graph(Data):
                 if dt == np.dtype('O') or dt.kind in ('U', 'S'):
                     raiseError(f"HDF5 requires numeric arrays; feature '{name}' has dtype={dt}.")
 
-            if mode is None:
-                mode_kw = 'w' if not os.path.exists(fname) else 'a'
-            else:
-                mode_kw = mode
+            if not 'mode' in kwargs.keys(): kwargs['mode'] = 'w' if not os.path.exists(fname) else 'a'
 
             io.h5_save_graph_serial(
                 fname=fname,
                 num_nodes=int(self.num_nodes),
                 num_edges=int(self.num_edges),
-                edge_index=self.edge_index.detach().cpu().numpy().astype(_np.int32, copy=False),
+                edge_index=self.edge_index.detach().cpu().numpy().astype(np.int32, copy=False),
                 node_features_dict=x_np,
                 edge_features_dict=e_np,
-                mode=mode_kw,
+                mode=kwargs['mode'],
             )
-
         elif fmt in ['pt', 'pkl']:
             torch.save(self, fname)
         else:
