@@ -1,37 +1,36 @@
 #!/usr/bin/env python
-"""
-Minimal graph example:
-1) Load Testsuite/DATA/CYLINDER.h5
-2) Read mesh (group MESH) as pyLOM.Mesh
-3) Build Graph from mesh
-4) Print basic graph stats
-5) Save graph as CYLINDER_GRAPH.h5 in the same folder
-"""
+#
+# Minimal graph example:
+#   1) Load DATA/CYLINDER.h5
+#   2) Read mesh (group MESH) as pyLOM.Mesh
+#   3) Build Graph from mesh
+#   4) Print basic graph stats
+#   5) Save graph as CYLINDER_GRAPH.h5 in the same folder
+#
+# Last revision: 23/04/2026
 
-from pathlib import Path
-import h5py
+import pyLOM, pyLOM.NN
 
-from pyLOM import Mesh
-from pyLOM.NN.gns.graph import Graph
+device = pyLOM.NN.select_device("cpu") # Force CPU for this example, if left in blank it will automatically select the device
 
 
-repo_root = Path(__file__).resolve().parents[2]
-mesh_path = (repo_root / "Testsuite" / "DATA" / "CYLINDER.h5").resolve()
-graph_path = mesh_path.with_name("CYLINDER_GRAPH.h5")
+## Parameters
+DATAFILE  = './DATA/CYLINDER.h5'
+GRAPHFILE = './DATA/CYLINDER_GRAPH.h5'
 
-with h5py.File(mesh_path, "r") as f:
-    if "MESH" not in f:
-        raise RuntimeError(f"Missing 'MESH' group in: {mesh_path}")
+# Load mesh
+mesh = pyLOM.Mesh.load(DATAFILE)
 
-mesh = Mesh.load(str(mesh_path))
-graph = Graph.from_pyLOM_mesh(mesh=mesh, device="cpu")
+# Generate graph from mesh
+graph = pyLOM.NN.Graph.from_pyLOM_mesh(mesh=mesh,device=device)
 graph.validate()
 
-print(f"Mesh file: {mesh_path}")
-print(f"Graph nodes: {int(graph.num_nodes)}")
-print(f"Graph edges: {int(graph.num_edges)}")
-print(f"Node features: {list(graph.node_features_dict.keys())}")
-print(f"Edge features: {list(graph.edge_features_dict.keys())}")
+pyLOM.pprint(0,f"Mesh file: {DATAFILE}")
+pyLOM.pprint(0,f"Graph nodes: {int(graph.num_nodes)}")
+pyLOM.pprint(0,f"Graph edges: {int(graph.num_edges)}")
+pyLOM.pprint(0,f"Node features: {list(graph.node_features_dict.keys())}")
+pyLOM.pprint(0,f"Edge features: {list(graph.edge_features_dict.keys())}")
 
-graph.save(str(graph_path), mode="w")
-print(f"Saved graph: {graph_path}")
+mesh.save(GRAPHFILE,mode="w")
+graph.save(GRAPHFILE,mode="a")
+print(f"Saved graph: {GRAPHFILE}")
