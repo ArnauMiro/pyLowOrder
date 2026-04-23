@@ -61,6 +61,10 @@ keywords = ["reduced-order modeling", "POD", "DMD", "VAE", "MLP", "NN", "GNN"]
 authors = [
   {name = "Benet Eiximeno",   email = "benet.eiximeno@bsc.es" },
   {name = "Beka Begiashvili", email = "beka.begiashvili@alumnos.upm.es" },
+  {name = "Fermín Gutierrez", email = "fermin.gutierrezm@upm.es" },
+  {name = "David Ramos",      email = "david.ramos.archilla@upm.es" },
+  {name = "Miguel Jaraiz",    email = "miguel.jaraizga@upm.es" },
+  {name = "Pablo Yeste",      email = "p.yesteb@upm.es" },
   {name = "Arnau Miro",       email = "arnau.mirojane@bsc.es" },
   {name = "Eusebio Valero",   email = "eusebio.valero@upm.es" },
   {name = "Oriol Lehmkuhl",   email = "oriol.lehmkuhl@bsc.es" },
