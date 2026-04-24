@@ -56,6 +56,8 @@ Eiximeno, B., Miró, A., Begiashvili, B., Valero, E., Rodriguez, I., Lehmkhul, O
 
 The following papers describe some of the tools implemented in pyLOM:
 
+Becerra-Zuniga, N., Lacasa, L., Valero, E., & Rubio, G. 2026. On the Role of Consistency Between Physics and Data in Physics-Informed Neural Networks. arXiv preprint. https://doi.org/10.48550/arXiv.2602.10611
+
 Eiximeno, B., Sanchis-Agudo, M., Miró, A., Rodriguez, I., Vinuesa, R., & Lehmkuhl, O. 2025. On deep-learning-based closures for algebraic surrogate models of turbulent flows. Journal of Fluid Mechanics, 1020, A36. https://doi.org/10.1017/jfm.2025.10610
 
 Eiximeno, B., Miró, A., Kutz, J. N., Rodriguez, I., & Lehmkuhl, O. 2025. On the integration of geometry agnostic variational-autoencoders into large-scale SVD based models. Computers & Fluids, 302, 106797. https://doi.org/10.1016/j.compfluid.2025.106797
@@ -74,6 +76,16 @@ Castellanos, R., Varela, J. B., Gorgues, A., & Andrés, E. 2022. An assessment o
 <p>
 
 ```
+@misc{becerrazuniga_physics_2026,
+  title = {On the Role of Consistency Between Physics and Data in Physics-Informed Neural Networks},
+  author = {Nicolás Becerra-Zuniga and Lucas Lacasa and Eusebio Valero and Gonzalo Rubio},
+  year = {2026},
+  eprint = {2602.10611},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.LG},
+  url = {https://arxiv.org/abs/2602.10611},
+}
+
 @article{eiximeno_transformer_2025, 
   title = {On deep-learning-based closures for algebraic surrogate models of turbulent flows}, 
   author = {Eiximeno, Benet and Sanchis-Agudo, Marcial and Miró, Arnau and Rodriguez, Ivette and Vinuesa, Ricardo and Lehmkuhl, Oriol}, 
@@ -95,14 +107,14 @@ Castellanos, R., Varela, J. B., Gorgues, A., & Andrés, E. 2022. An assessment o
 }
 
 @article{belda_vae_2024,
-    title = {Toward aerodynamic surrogate modeling based on β-variational autoencoders},
-    author = {Francés-Belda, Víctor and Solera-Rico, Alberto and Nieto-Centenero, Javier and Andrés, Esther and Sanmiguel Vila, Carlos and Castellanos, Rodrigo},
-    journal = {Physics of Fluids},
-    volume = {36},
-    number = {11},
-    pages = {117139},
-    year = {2024},
-    doi = {10.1063/5.0232644},
+  title = {Toward aerodynamic surrogate modeling based on β-variational autoencoders},
+  author = {Francés-Belda, Víctor and Solera-Rico, Alberto and Nieto-Centenero, Javier and Andrés, Esther and Sanmiguel Vila, Carlos and Castellanos, Rodrigo},
+  journal = {Physics of Fluids},
+  volume = {36},
+  number = {11},
+  pages = {117139},
+  year = {2024},
+  doi = {10.1063/5.0232644},
 }
 
 @article{eiximeno_vae_2024,
@@ -143,6 +155,10 @@ Castellanos, R., Varela, J. B., Gorgues, A., & Andrés, E. 2022. An assessment o
 
 The following papers are application examples of some of the tools implemented in pyLOM:
 
+Ladrón, Á., Sánchez-Domínguez, M., Rozalén, J., Sánchez, F. R., de Vicente, J., Lacasa, L., Valero, E. & Rubio, G. 2025. A certifiable machine learning-based pipeline to predict fatigue life of aircraft structures. Engineering Failure Analysis, 110334. https://doi.org/10.1016/j.engfailanal.2025.110334
+
+Ramos, D., Lacasa, L., Valero, E., & Rubio, G. 2025. Transfer learning-enhanced deep reinforcement learning for aerodynamic airfoil optimization subject to structural constraints. Physics of Fluids, 37(8). https://doi.org/10.1063/5.0274045
+
 Miró, A., Eiximeno, B., Rodríguez, I., & Lehmkuhl, O. 2024. Self-Induced large-scale motions in a three-dimensional diffuser. Flow, Turbulence and Combustion, 112(1), 303-320. https://doi.org/10.1007/s10494-023-00483-6
 
 Eiximeno, B., Tur-Mongé, C., Lehmkuhl, O., & Rodríguez, I. 2023. Hybrid computation of the aerodynamic noise radiated by the wake of a subsonic cylinder. Fluids, 8(8), 236. https://doi.org/10.3390/fluids8080236
@@ -153,6 +169,26 @@ Eiximeno, B., Miró, A., Cajas, J.C., Lehmkuhl, O., Rodriguez, I., 2022. On the 
 <p>
 
 ```
+@article{Ladron2026,
+  title = {A certifiable machine learning-based pipeline to predict fatigue life of aircraft structures},
+  author = {Ladrón, Ángel and Sánchez-Domínguez, Miguel and Rozalén, Javier and Sánchez, Fernando R. and de Vicente, Javier and Lacasa, Lucas and Valero, Eusebio and Rubio, Gonzalo},
+  journal = {Engineering Failure Analysis},
+  volume = {184},
+  pages = {110334} 
+  year = {2026},
+  doi = {10.1016/j.engfailanal.2025.110334}
+}
+
+@article{ramos2025,
+  title = {Transfer learning-enhanced deep reinforcement learning for aerodynamic airfoil optimization subject to structural constraints},
+  author = {Ramos, David and Lacasa, Lucas and Valero, Eusebio and Rubio, Gonzalo},
+  journal = {Physics of Fluids},
+  volume = {37},
+  number = {8},
+  year = {2025},
+  doi = {10.1063/5.0274045},
+}
+
 @article{miro2024,
   title = {Self-Induced large-scale motions in a three-dimensional diffuser},
   author = {Mir{\'o}, Arnau and Eiximeno, Benet and Rodr{\'\i}guez, Ivette and Lehmkuhl, Oriol},
