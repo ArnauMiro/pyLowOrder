@@ -14,7 +14,7 @@ Please check the [wiki](https://github.com/ArnauMiro/pyLowOrder/wiki) for instru
 If you find this repository useful, please cite it the source code as:
 ```
 @misc{pyLOM,
-  author    = {Eiximeno, Benet and Begiashvili, Beka and Gutierrez, Fermín and Ramos, David and Jaraiz, Miguel and Yeste, Pablo and Becerra, Nicolás and Miro, Arnau and Rubio, Gonzalo and Valero, Eusebio and Lehmkuhl, Oriol},
+  author    = {Eiximeno, Benet and Begiashvili, Beka and Gutierrez, Fermín and Ramos, David and Jaraiz, Miguel and Yeste, Pablo and Ladrón, Ángel and Becerra, Nicolás and Miro, Arnau and Rubio, Gonzalo and Lacasa, Lucas and Valero, Eusebio and Lehmkuhl, Oriol},
   title     = {pyLOM: Low order modelling in Python},
   year      = {2022},
   publisher = {Barcelona Supercomputing Center},

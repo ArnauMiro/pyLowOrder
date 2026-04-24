@@ -65,9 +65,11 @@ authors = [
   {name = "David Ramos",      email = "david.ramos.archilla@upm.es" },
   {name = "Miguel Jaraiz",    email = "miguel.jaraizga@upm.es" },
   {name = "Pablo Yeste",      email = "p.yesteb@upm.es" },
+  {name = "Ángel Ladrón",     email = "angel.lcordoba@upm.es" },
   {name = "Nicolás Becerra",  email = "n.becerra@upm.es" },
   {name = "Arnau Miro",       email = "arnau.miro@upc.edu" },
   {name = "Gonzalo Rubio",    email = "g.rubio@upm.es" },
+  {name = "Lucas Lacasa",     email = "lucas@ifisc.uib-csic.es" },
   {name = "Eusebio Valero",   email = "eusebio.valero@upm.es" },
   {name = "Oriol Lehmkuhl",   email = "oriol.lehmkuhl@bsc.es" },
 ]
