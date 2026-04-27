@@ -32,7 +32,8 @@ from .dataset                         import Dataset
 from .gns                             import Graph
 from .utils.scalers                   import MinMaxScaler, StandardScaler, RobustScaler
 from .utils                           import RegressionEvaluator, ClassificationEvaluator, EarlyStopper
-from .utils                           import select_device, betaLinearScheduler, create_results_folder, set_seed
+from .utils                           import GNSModelConfig, GNSTrainingConfig
+from .utils                           import select_device, betaLinearScheduler, create_results_folder, set_seed, load_yaml, dataclass_from_dict
 from .utils                           import tanh, relu, elu, sigmoid, leakyRelu, silu
 
 from .optimizer                       import OptunaOptimizer, OptunaStudyManager
@@ -49,6 +50,7 @@ from .architectures.pinn              import PINN, BurgersPINN, Euler2DPINN, Nav
 from .architectures.shred             import SHRED
 from .architectures.binary_classifier import BinaryClassifier
 
+from .utils                           import plot_train_test_loss, plot_true_vs_pred, save_experiment_artifacts
 from ..utils.plots                    import plotSnapshot, plotModalErrorBars, plotTimeSeries
 
 del os, utils
