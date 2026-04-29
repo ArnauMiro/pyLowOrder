@@ -387,7 +387,7 @@ def h5_fill_field_datasets(dsetDict,fieldDict,ptable,point,inods,idx):
 			istart, iend = ptable.partition_bounds(MPI_RANK,ndim=fieldDict[var]['ndim'],points=point)
 			dsetDict[var]['value'][istart:iend,:] = fieldDict[var]['value']
 		else:
-			if fieldDict[var]['ndim'] > 1: raiseError('Cannot deal with multi-dimensional arrays in no partition mode!')
+			if fieldDict[var]['ndim'] > 1: raiseError('Cannot deal with multi-dimensional arrays when inods are provided!')
 			dsetDict[var]['value'][inods,:] = fieldDict[var]['value'][idx,:]
 
 def h5_load_fields_single(file,npoints,ptable,varDict,point):
@@ -479,11 +479,11 @@ def h5_save_dset_serial(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable):
 	# Create dataset group
 	group = file.create_group('DATASET')
 	# Save points
-	inods,idx,_ = h5_save_points(group,xyz,ordering,ptable,point)
+	h5_save_points(group,xyz,ordering,ptable,point)
 	# Store the variables
 	h5_fill_variable_datasets(h5_create_variable_datasets(group,varDict,ptable),varDict)
 	# Store the fields
-	h5_fill_field_datasets(h5_create_field_datasets(group,fieldDict,ptable),fieldDict,ptable,point,inods,idx)
+	h5_fill_field_datasets(h5_create_field_datasets(group,fieldDict,ptable),fieldDict,ptable,point,None,None)
 	file.close()
 
 def h5_save_dset_mpio(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable,nopartition):
