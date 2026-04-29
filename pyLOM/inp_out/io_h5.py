@@ -51,7 +51,7 @@ def h5_load_partition(file):
 	# Return partition class
 	return PartitionTable(nparts,ids,elements,points)
 
-def h5_save_meshes(file,mtype,xyz,conec,eltype,cellO,pointO,npointG,ncellG,ptable):
+def h5_save_meshes(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	r'''
 	Save the mesh inside the HDF5 file
 
