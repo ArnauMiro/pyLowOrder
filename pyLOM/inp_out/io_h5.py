@@ -51,7 +51,7 @@ def h5_load_partition(file):
 	# Return partition class
 	return PartitionTable(nparts,ids,elements,points)
 
-def h5_save_meshes(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
+def h5_save_meshes(file,mtype,xyz,conec,eltype,cellO,pointO,npointG,ncellG,ptable):
 	r'''
 	Save the mesh inside the HDF5 file
 
@@ -74,8 +74,8 @@ def h5_save_meshes(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	# Assume we might be dealing with a parallel mesh
 	ndim     = xyz.shape[1]
 	nnodcell = conec.shape[1]
-	npointG  = mpi_reduce(xyz.shape[0],op='sum',all=True)
-	ncellG   = mpi_reduce(eltype.shape[0],op='sum',all=True)
+	npointG  = mpi_reduce(xyz.shape[0],op='sum',all=True) if ptable.n_partitions > 1 else xyz.shape[0]
+	ncellG   = mpi_reduce(eltype.shape[0],op='sum',all=True) if ptable.n_partitions > 1 else eltype.shape[0]
 	if ptable.has_master: 
 		npointG -= 1
 		ncellG  -= 1
