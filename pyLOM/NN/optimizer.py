@@ -566,3 +566,13 @@ except:
         """
         def __init__(self,*args,**kwargs):
             raiseError("Package optuna should be installed")
+
+    class OptunaStudyManager():
+        """
+        Manager class for Optuna studies stored in a database.
+        
+        Args:
+            storage (str): The storage URL to use for accessing studies. Example: 'sqlite:///path/to/optuna_studies.db'
+        """
+        def __init__(self,*args,**kwargs):
+            raiseError("Package optuna should be installed")

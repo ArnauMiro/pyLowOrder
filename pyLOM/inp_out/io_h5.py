@@ -382,7 +382,7 @@ def h5_create_field_datasets(file,fieldDict,ptable,ipart=-1):
 	dsetDict = {}
 	for var in fieldDict.keys():
 		vargroup = group.create_group(var)
-		n     = mpi_reduce(fieldDict[var]['value'].shape[0] if not np.any(np.isnan(fieldDict[var]['value'])) else 0,op='sum',all=True)
+		n     = mpi_reduce(fieldDict[var]['value'].shape[0] if not np.any(np.isnan(fieldDict[var]['value'])) else 0,op='sum',all=True) if ptable.n_partitions > 1 else fieldDict[var]['value'].shape[0]
 		if ptable.has_master: n -= 1
 		npoin = int(file['xyz'].shape[0])
 		ndim  = n//npoin
