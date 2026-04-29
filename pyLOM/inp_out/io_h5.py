@@ -215,7 +215,7 @@ def h5_save_points(file,xyz,order,ptable,point):
 	file.attrs['NOPARTITION'] = False # Either nopartition=False or serial
 	file.attrs['PARTS']       = ptable.n_partitions
 	# Obtain number of points
-	npointG = mpi_reduce(xyz.shape[0] if not np.any(np.isnan(xyz)) else 0,op='sum',all=True)
+	npointG = mpi_reduce(xyz.shape[0] if not np.any(np.isnan(xyz)) else 0,op='sum',all=True) if ptable.n_partitions > 1 else xyz.shape[0]
 	ndim    = xyz.shape[1]
 	if ptable.has_master: npointG -= 1
 	file.create_dataset('pointData',(1,),dtype='i4',data=point)
