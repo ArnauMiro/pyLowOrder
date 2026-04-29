@@ -9,6 +9,7 @@
 # Functions coming from Resolvent
 from .wrapper import run
 from .utils import extract_modes, save, load
+from .plots import plotEnergy, plotEvW
 
 
 del wrapper
