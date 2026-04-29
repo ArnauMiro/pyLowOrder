@@ -24,10 +24,10 @@ from libc.stdlib   cimport malloc, free
 from libc.string   cimport memcpy, memset
 from libc.math     cimport sqrt, atan2
 from .cfuncs       cimport real, real_complex, real_full
-from .cfuncs       cimport c_stranspose, c_svector_sum, c_svector_norm, c_svector_mean, c_smatmul, c_smatmulp, c_svecmat, c_sinv, c_ssort
-from .cfuncs       cimport c_dtranspose, c_dvector_sum, c_dvector_norm, c_dvector_mean, c_dmatmul, c_dmatmulp, c_dvecmat, c_dinv, c_dsort
-from .cfuncs       cimport c_cmatmul, c_cmatmulp, c_cvecmat, c_cinv, c_ceigen, c_ccholesky, c_cvandermonde, c_cvandermonde_time, c_csort
-from .cfuncs       cimport c_zmatmul, c_zmatmulp, c_zvecmat, c_zinv, c_zeigen, c_zcholesky, c_zvandermonde, c_zvandermonde_time, c_zsort
+from .cfuncs       cimport c_stranspose, c_svector_sum, c_svector_norm, c_svector_mean, c_smatmul, c_smatmulp, c_svecmat, c_svecmatT, c_sinv, c_ssort
+from .cfuncs       cimport c_dtranspose, c_dvector_sum, c_dvector_norm, c_dvector_mean, c_dmatmul, c_dmatmulp, c_dvecmat, c_dvecmatT, c_dinv, c_dsort
+from .cfuncs       cimport c_ctranspose, c_cmatmul, c_cmatmulp, c_cvecmat, c_cvecmatT, c_cinv, c_ceigen, c_ccholesky, c_cvandermonde, c_cvandermonde_time, c_csort
+from .cfuncs       cimport c_ztranspose, c_zmatmul, c_zmatmulp, c_zvecmat, c_zvecmatT,c_zinv, c_zeigen, c_zcholesky, c_zvandermonde, c_zvandermonde_time, c_zsort
 
 from ..utils.cr     import cr
 from ..utils.errors import raiseError
@@ -62,13 +62,41 @@ cdef np.ndarray[np.double_t,ndim=2] _dtranspose(double[:,:] A):
 	c_dtranspose(&A[0,0], &At[0,0], m,n)
 	return At
 
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.complex64_t,ndim=2] _ctranspose(np.complex64_t[:,:] A):
+	'''
+	Transposed of matrix A
+	'''
+	cdef int m = A.shape[0], n = A.shape[1]
+	cdef np.ndarray[np.complex64_t,ndim=2] At = np.zeros((n,m),dtype=np.complex64)
+	c_ctranspose(&A[0,0], &At[0,0], m,n)
+	return At
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.complex128_t,ndim=2] _ztranspose(np.complex128_t[:,:] A):
+	'''
+	Transposed of matrix A
+	'''
+	cdef int m = A.shape[0], n = A.shape[1]
+	cdef np.ndarray[np.complex128_t,ndim=2] At = np.zeros((n,m),dtype=np.complex128)
+	c_ztranspose(&A[0,0], &At[0,0], m,n)
+	return At
+
 @cr('math.transpose')
 @cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def transpose(real[:,:] A):
+def transpose(real_full[:,:] A):
 	r'''
 	Transposed of matrix A
 
@@ -78,7 +106,11 @@ def transpose(real[:,:] A):
 	Results
 		np.ndarray: Transposed matrix
 	'''
-	if real is double:
+	if real_full is np.complex128_t:
+		return _ztranspose(A)
+	elif real_full is np.complex64_t:
+		return _ctranspose(A)
+	elif real_full is double:
 		return _dtranspose(A)
 	else:
 		return _stranspose(A)
@@ -463,13 +495,73 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zvecmat(np.complex128_t[:] v, np.comple
 	c_zvecmat(&v[0],&C[0,0],m,n)
 	return C
 
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.float32_t,ndim=2] _svecmatT(float[:] v, float[:,:] A):
+	'''
+	Vector times a matrix C = v x A
+	'''
+	cdef int m = A.shape[0], n = A.shape[1]
+	cdef np.ndarray[np.float32_t,ndim=2] C = np.zeros((m,n),dtype=np.float32)
+	memcpy(&C[0,0],&A[0,0],m*n*sizeof(float))
+	c_svecmatT(&v[0],&C[0,0],m,n)
+	return C
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.double_t,ndim=2] _dvecmatT(double[:] v, double[:,:] A):
+	'''
+	Vector times a matrix C = v x A
+	'''
+	cdef int m = A.shape[0], n = A.shape[1]
+	cdef np.ndarray[np.double_t,ndim=2] C = np.zeros((m,n),dtype=np.double)
+	memcpy(&C[0,0],&A[0,0],m*n*sizeof(double))
+	c_dvecmatT(&v[0],&C[0,0],m,n)
+	return C
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.complex64_t,ndim=2] _cvecmatT(np.complex64_t[:] v, np.complex64_t[:,:] A):
+	'''
+	Vector times a matrix C = v x A
+	'''
+	cdef int m = A.shape[0], n = A.shape[1]
+	cdef np.ndarray[np.complex64_t,ndim=2] C = np.zeros((m,n),dtype=np.complex64)
+	memcpy(&C[0,0],&A[0,0],m*n*sizeof(np.complex64_t))
+	c_cvecmatT(&v[0],&C[0,0],m,n)
+	return C
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.complex128_t,ndim=2] _zvecmatT(np.complex128_t[:] v, np.complex128_t[:,:] A):
+	'''
+	Vector times a matrix C = v x A
+	'''
+	cdef int m = A.shape[0], n = A.shape[1]
+	cdef np.ndarray[np.complex128_t,ndim=2] C = np.zeros((m,n),dtype=np.complex128)
+	memcpy(&C[0,0],&A[0,0],m*n*sizeof(np.complex128_t))
+	c_zvecmatT(&v[0],&C[0,0],m,n)
+	return C
+
 @cr('math.vecmat')
 @cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def vecmat(real_full[:] v, real_full[:,:] A):
+def vecmat(real_full[:] v, real_full[:,:] A, transposed=False):
 	r'''
 	Vector times a matrix 
 	C = v x A
@@ -482,13 +574,13 @@ def vecmat(real_full[:] v, real_full[:,:] A):
 		np.ndarray: Resulting matrix C (M,N)
 	'''
 	if real_full is np.complex128_t:
-		return _zvecmat(v,A)
+		return _zvecmat(v,A) if not transposed else _zvecmatT(v,A)
 	elif real_full is np.complex64_t:
-		return _cvecmat(v,A)
+		return _cvecmat(v,A) if not transposed else _cvecmatT(v,A)
 	elif real_full is double:
-		return _dvecmat(v,A)
+		return _dvecmat(v,A) if not transposed else _dvecmatT(v,A)
 	else:
-		return _svecmat(v,A)
+		return _svecmat(v,A) if not transposed else _svecmatT(v,A)
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function

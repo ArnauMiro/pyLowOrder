@@ -8,7 +8,7 @@
 
 import numpy as np, copy, torch
 
-from typing         import List, Dict, Any
+from typing         import List, Dict, Any, Tuple
 from .optimizer     import OptunaOptimizer
 from ..utils.errors import raiseWarning, raiseError
 from ..             import pprint
@@ -91,6 +91,68 @@ class Pipeline:
 
         return model_output
     
+    def evaluate(self, evaluators, scalers: List = [None, None], set_to_use: str = "test", verbose: bool = True) -> Tuple[Dict, List]:
+        r"""
+        Evaluate the model on the test dataset.
+
+        Args:
+            evaluators (List): The list of evaluators to use for evaluation.
+            scalers (List, optional): The list of scalers to use for rescaling the inputs and outputs (default: ``[None, None]``).
+            set_to_use (str, optional): The dataset to use for evaluation, must be one of "train", "valid" or "test" (default: ``"test"``).
+
+        Returns:
+            Tuple[Dict, List]: A tuple containing the dictionary of metrics and the list of [x_true, y_true, y_pred].
+            
+        """
+        if set_to_use == "train":
+            if self.train_dataset is None:
+                raiseError("Train dataset not provided, cannot evaluate model")
+            self.evaluation_dataset = self.train_dataset
+        elif set_to_use == "valid":
+            if self.valid_dataset is None:
+                raiseError("Validation dataset not provided, cannot evaluate model")
+            self.evaluation_dataset = self.valid_dataset
+        else:
+            if self.test_dataset is None:
+                raiseError("Test dataset not provided, cannot evaluate model")
+            self.evaluation_dataset = self.test_dataset
+
+        if self.training_params is None:
+            raiseError("Training parameters not available, cannot evaluate model")
+        if scalers is not None:
+            if len(scalers) != 2:
+                raiseError("scalers must be a list of two elements: [input_scaler, output_scaler]")
+            input_scaler, output_scaler = scalers
+
+        def _evaluate_model(model, training_params, dataset, evaluators, inputs_scaler, outputs_scaler, verbose=True, kwargs={}):
+            y_pred = model.predict(dataset, **training_params)
+            x_true, y_true = dataset[:]
+            if inputs_scaler is not None:
+                x_true = inputs_scaler.inverse_transform(x_true)
+            if outputs_scaler is not None:
+                y_true = outputs_scaler.inverse_transform(y_true)
+                y_pred = outputs_scaler.inverse_transform(y_pred)
+            metrics = {}
+            for evaluator in evaluators:
+                metrics.update(evaluator(y_true, y_pred, **kwargs))
+                if verbose:
+                    evaluator.print_metrics()
+            return metrics, [x_true, y_true, y_pred]
+        
+        if verbose:
+            pprint(0, "\nEvaluation of the model:")
+        metrics, predictions = _evaluate_model(
+            self._model,
+            self.training_params,
+            self.evaluation_dataset,
+            evaluators,
+            inputs_scaler = input_scaler,
+            outputs_scaler = output_scaler,
+            verbose = verbose,
+        )
+
+        return metrics, predictions
+
 
 class ClusteredPipeline:
     r"""
@@ -101,10 +163,11 @@ class ClusteredPipeline:
         cluster_col_idx (int): the index of the column containing the cluster labels.
         valid_dataset (optional): the validation dataset. Default is ``None``.
         test_dataset (optional): the test dataset. Default is ``None``.
-        models_dict (Dict, optional): the dictionary of models to train for each cluster. Default is ``{}``.
-        training_params_dict (Dict, optional): the dictionary of training parameters for each cluster. Default is ``{}``.
-        optimizers_dict (Dict[OptunaOptimizer], optional): the dictionary of optimizers to use for each cluster. Default is ``{}``.
-        model_classes_dict (Dict, optional): the dictionary of model classes to use for each cluster. Default is ``{}``.
+        models_dict (Dict, optional): the dictionary of models to train for each cluster. Default is ``None``.
+        training_params_dict (Dict, optional): the dictionary of training parameters for each cluster. Default is ``None``.
+        optimizers_dict (Dict[OptunaOptimizer], optional): the dictionary of optimizers to use for each cluster. Default is ``None``.
+        model_classes_dict (Dict, optional): the dictionary of model classes to use for each cluster. Default is ``None``.
+        models_outputs_dict (Dict, optional): the dictionary to store the outputs of each model's fit method. Default is ``None``.
     """
     def __init__(
         self,
@@ -116,6 +179,7 @@ class ClusteredPipeline:
         training_params_dict: Dict = None,
         optimizers_dict: Dict = None,
         model_classes_dict: Dict = None,
+        models_outputs_dict: Dict = None,
     ):
         self.train_dataset = train_dataset
         self.test_dataset = test_dataset
@@ -171,7 +235,14 @@ class ClusteredPipeline:
         else:
             self.model_classes_dict = {k: None for k in self.dict_keys}
 
-        self.model_outputs_dict = {k: None for k in self.dict_keys}
+        if models_outputs_dict is not None:
+            if not all(k in models_outputs_dict.keys() for k in self.dict_keys):
+                raiseError("models_outputs_dict must contain keys: " + ", ".join(self.dict_keys))
+            if (len(models_outputs_dict)-1) != self.n_clusters:
+                raiseError("Number of model outputs must match number of clusters")
+            self.model_outputs_dict = models_outputs_dict
+        else:
+            self.model_outputs_dict = {k: None for k in self.dict_keys}
 
     def _get_n_clusters(self):
         return len(self._get_cluster_ids())
@@ -255,59 +326,68 @@ class ClusteredPipeline:
         pprint(0, f"Found {len(cluster_ids)} clusters: {cluster_ids}")
 
         # Train the classifier to predict the cluster from the inputs
-        if self.optimizers_dict["classifier"] is not None:
-            if self.valid_dataset_dict["classifier"] is None:
-                self.valid_dataset_dict["classifier"] = self.train_dataset_dict["classifier"]
-                raiseWarning("Validation dataset not provided, using train dataset for evaluation on optimization")
+        pprint(0, "\n--- Classifier ---")
+        if self.model_outputs_dict["classifier"] is None:
+            if self.optimizers_dict["classifier"] is not None:
+                if self.valid_dataset_dict["classifier"] is None:
+                    self.valid_dataset_dict["classifier"] = self.train_dataset_dict["classifier"]
+                    raiseWarning("Validation dataset not provided, using train dataset for evaluation on optimization")
 
-            pprint(0, "Optimizing classifier hyperparameters")
-            model_classifier, training_params_classifier = self.model_classes_dict["classifier"].create_optimized_model(
-                train_dataset = self.train_dataset_dict["classifier"],
-                eval_dataset = self.valid_dataset_dict["classifier"],
-                optuna_optimizer = self.optimizers_dict["classifier"],
+                pprint(0, "Optimizing classifier hyperparameters")
+                model_classifier, training_params_classifier = self.model_classes_dict["classifier"].create_optimized_model(
+                    train_dataset = self.train_dataset_dict["classifier"],
+                    eval_dataset = self.valid_dataset_dict["classifier"],
+                    optuna_optimizer = self.optimizers_dict["classifier"],
+                )
+
+                self._models["classifier"] = model_classifier
+                self.training_params_dict["classifier"] = training_params_classifier
+            
+            pprint(0, "Training the classifier with optimized parameters")
+            model_output_classifier = self._models["classifier"].fit(
+                self.train_dataset_dict["classifier"], 
+                eval_dataset=self.valid_dataset_dict["classifier"], 
+                **self.training_params_dict["classifier"],
             )
-
-            self._models["classifier"] = model_classifier
-            self.training_params_dict["classifier"] = training_params_classifier
+            self.model_outputs_dict["classifier"] = model_output_classifier
         
-        pprint(0, "Training the classifier with optimized parameters")
-        model_output_classifier = self._models["classifier"].fit(
-            self.train_dataset_dict["classifier"], 
-            eval_dataset=self.valid_dataset_dict["classifier"], 
-            **self.training_params_dict["classifier"],
-        )
-        self.model_outputs_dict["classifier"] = model_output_classifier
+        else:
+            pprint(0, "Classifier model already trained, skipping training")
 
         # Train one model per cluster
         for idx, cid in enumerate(cluster_ids):
             pprint(0, f"\n--- Cluster {cid} ---")
-            if self.optimizers_dict[f"regressor_{cid}"] is not None:
-                if self.valid_dataset_dict[f"regressor_{cid}"] is None:
-                    self.valid_dataset_dict[f"regressor_{cid}"] = self.train_dataset_dict[f"regressor_{cid}"]
-                    raiseWarning("Validation dataset not provided, using train dataset for evaluation on optimization")
+            if self.model_outputs_dict[f"regressor_{cid}"] is None:
+                if self.optimizers_dict[f"regressor_{cid}"] is not None:
+                    if self.valid_dataset_dict[f"regressor_{cid}"] is None:
+                        self.valid_dataset_dict[f"regressor_{cid}"] = self.train_dataset_dict[f"regressor_{cid}"]
+                        raiseWarning("Validation dataset not provided, using train dataset for evaluation on optimization")
 
-                pprint(0, "Optimizing model hyperparameters for this cluster")
-                model_c, training_params_c = self.model_classes_dict[f"regressor_{cid}"].create_optimized_model(
-                    train_dataset = self.train_dataset_dict[f"regressor_{cid}"],
-                    eval_dataset = self.valid_dataset_dict[f"regressor_{cid}"],
-                    optuna_optimizer = self.optimizers_dict[f"regressor_{cid}"],
+                    pprint(0, "Optimizing model hyperparameters for this cluster")
+                    model_c, training_params_c = self.model_classes_dict[f"regressor_{cid}"].create_optimized_model(
+                        train_dataset = self.train_dataset_dict[f"regressor_{cid}"],
+                        eval_dataset = self.valid_dataset_dict[f"regressor_{cid}"],
+                        optuna_optimizer = self.optimizers_dict[f"regressor_{cid}"],
+                    )
+
+                    self._models[f"regressor_{cid}"] = model_c
+                    self.training_params_dict[f"regressor_{cid}"] = training_params_c
+
+                pprint(0, "Training a model with optimized parameters")
+                model_output_c = self._models[f"regressor_{cid}"].fit(
+                    train_dataset=self.train_dataset_dict[f"regressor_{cid}"], 
+                    eval_dataset=self.valid_dataset_dict[f"regressor_{cid}"], 
+                    **self.training_params_dict[f"regressor_{cid}"],
                 )
 
-                self._models[f"regressor_{cid}"] = model_c
-                self.training_params_dict[f"regressor_{cid}"] = training_params_c
+                self.model_outputs_dict[f"regressor_{cid}"] = model_output_c
 
-            pprint(0, "Training a model with optimized parameters")
-            model_output_c = self._models[f"regressor_{cid}"].fit(
-                train_dataset=self.train_dataset_dict[f"regressor_{cid}"], 
-                eval_dataset=self.valid_dataset_dict[f"regressor_{cid}"], 
-                **self.training_params_dict[f"regressor_{cid}"],
-            )
-
-            self.model_outputs_dict[f"regressor_{cid}"] = model_output_c
+            else:
+                pprint(0, f"Model for cluster {cid} already trained, skipping training")
 
         return self.model_outputs_dict
 
-    def evaluate(self, evaluators_dict, scalers: List = [None, None], threshold: float = 0.5, set_to_use: str = "test", deep: bool = False) -> Dict:
+    def evaluate(self, evaluators_dict, scalers: List = [None, None], threshold: float = 0.5, set_to_use: str = "test", deep: bool = False, verbose: bool = True) -> Dict:
         r"""
         Evaluate the models on the test datasets.
         """
@@ -341,8 +421,8 @@ class ClusteredPipeline:
 
         cluster_ids = self._get_cluster_ids()
 
-        def _evaluate_model(model, training_params, dataset, evaluators, inputs_scaler, outputs_scaler, kwargs={}):
-            y_pred = model.predict(dataset, rescale_output=True, **training_params)
+        def _evaluate_model(model, training_params, dataset, evaluators, inputs_scaler, outputs_scaler, verbose=True, kwargs={}):
+            y_pred = model.predict(dataset, **training_params)
             x_true, y_true = dataset[:]
             if inputs_scaler is not None:
                 x_true = inputs_scaler.inverse_transform(x_true)
@@ -352,82 +432,94 @@ class ClusteredPipeline:
             metrics = {}
             for evaluator in evaluators:
                 metrics.update(evaluator(y_true, y_pred, **kwargs))
-                evaluator.print_metrics()
+                if verbose:
+                    evaluator.print_metrics()
             return metrics, [x_true, y_true, y_pred]
 
         metrics_dict = {}
 
-        pprint(0, "\nEvaluation of the classifier:")
-        metrics_dict["classifier"] = _evaluate_model(
-            self._models["classifier"],
-            self.training_params_dict["classifier"],
-            self.evaluation_dataset_dict["classifier"],
-            evaluators_dict["classifier"],
-            inputs_scaler = input_scaler,
-            outputs_scaler = output_scaler_classifier,
-            kwargs={"given_threshold": threshold},
-        )
-
-        pprint(0, "\nEvaluation of the regressors:")
-        for idx, cid in enumerate(cluster_ids):
-            pprint(0, f"\n--- Cluster {cid} ---")
-            metrics_dict[f"regressor_{cid}"] = _evaluate_model(
-                self._models[f"regressor_{cid}"],
-                self.training_params_dict[f"regressor_{cid}"],
-                self.evaluation_dataset_dict[f"regressor_{cid}"],
-                evaluators_dict[f"regressor_{cid}"],
+        if evaluators_dict["classifier"] is not None:
+            if verbose:
+                pprint(0, "\nEvaluation of the classifier:")
+            metrics_dict["classifier"] = _evaluate_model(
+                self._models["classifier"],
+                self.training_params_dict["classifier"],
+                self.evaluation_dataset_dict["classifier"],
+                evaluators_dict["classifier"],
                 inputs_scaler = input_scaler,
-                outputs_scaler = output_scaler_regressors,
+                outputs_scaler = output_scaler_classifier,
+                kwargs={"given_threshold": threshold},
+                verbose = verbose,
             )
 
-        pprint(0, "\nEvaluation of the full clustered model:")
-        probs = self._models["classifier"].predict(self.evaluation_dataset, rescale_output=True, **self.training_params_dict["classifier"])
-        x_true , y_true = self._drop_cluster_column(self.evaluation_dataset)[:]
-        y_pred = np.zeros_like(y_true)
+        if any(evaluators_dict[f"regressor_{cid}"] is not None for cid in cluster_ids):
+            if verbose:
+                pprint(0, "\nEvaluation of the regressors per cluster:")
         for idx, cid in enumerate(cluster_ids):
+            if evaluators_dict[f"regressor_{cid}"] is not None:
+                if verbose:
+                    pprint(0, f"\n--- Cluster {cid} ---")
+                metrics_dict[f"regressor_{cid}"] = _evaluate_model(
+                    self._models[f"regressor_{cid}"],
+                    self.training_params_dict[f"regressor_{cid}"],
+                    self.evaluation_dataset_dict[f"regressor_{cid}"],
+                    evaluators_dict[f"regressor_{cid}"],
+                    inputs_scaler = input_scaler,
+                    outputs_scaler = output_scaler_regressors,
+                    verbose = verbose,
+                )
 
-            def _mask_filter_fn(inputs, outputs, mask_np):
-                return mask_np.tolist()
+        if evaluators_dict["full_model"] is not None:
+            if verbose:
+                pprint(0, "\nEvaluation of the full clustered model:")
+            probs = self._models["classifier"].predict(self.evaluation_dataset, **self.training_params_dict["classifier"])
+            x_true , y_true = self._drop_cluster_column(self.evaluation_dataset)[:]
+            y_pred = np.zeros_like(y_true)
+            for idx, cid in enumerate(cluster_ids):
 
-            mask = (probs.flatten() < threshold) if cid == 0 else (probs.flatten() >= threshold)
-            if isinstance(mask, torch.Tensor):
-                mask_np = mask.detach().cpu().numpy().astype(bool)
-            else:
-                mask_np = np.asarray(mask, dtype=bool)
+                def _mask_filter_fn(inputs, outputs, mask_np):
+                    return mask_np.tolist()
 
-            if mask_np.ndim != 1:
-                mask_np = mask_np.reshape(-1)
-            if mask_np.size != len(self.evaluation_dataset):
-                raiseError(f"Mask length {mask_np.size} != dataset length {len(self.evaluation_dataset)}")
+                mask = (probs.flatten() < threshold) if cid == 0 else (probs.flatten() >= threshold)
+                if isinstance(mask, torch.Tensor):
+                    mask_np = mask.detach().cpu().numpy().astype(bool)
+                else:
+                    mask_np = np.asarray(mask, dtype=bool)
 
-            evaluation_dataset_c = self.evaluation_dataset.filter(
-                function=_mask_filter_fn,
-                fn_kwargs={"mask_np": mask_np},
-                batched=True,
-                batch_size=len(self.evaluation_dataset),
-                return_views=False,
-            )
+                if mask_np.ndim != 1:
+                    mask_np = mask_np.reshape(-1)
+                if mask_np.size != len(self.evaluation_dataset):
+                    raiseError(f"Mask length {mask_np.size} != dataset length {len(self.evaluation_dataset)}")
 
-            evaluation_dataset_c = self._drop_cluster_column(evaluation_dataset_c)
-            y_pred[np.flatnonzero(mask_np)] = self._models[f"regressor_{cid}"].predict(evaluation_dataset_c, rescale_output=True, **self.training_params_dict[f"regressor_{cid}"])
+                evaluation_dataset_c = self.evaluation_dataset.filter(
+                    function=_mask_filter_fn,
+                    fn_kwargs={"mask_np": mask_np},
+                    batched=True,
+                    batch_size=len(self.evaluation_dataset),
+                    return_views=False,
+                )
 
-        if input_scaler is not None:
-            x_true = input_scaler.inverse_transform(x_true)
-        if output_scaler_regressors is not None:
-            y_true = output_scaler_regressors.inverse_transform(y_true)
-            y_pred = output_scaler_regressors.inverse_transform(y_pred)
-        
-        metrics = {}
-        for evaluator in evaluators_dict["full_model"]:
-            metrics.update(evaluator(y_true, y_pred))
-            evaluator.print_metrics()
+                evaluation_dataset_c = self._drop_cluster_column(evaluation_dataset_c)
+                y_pred[np.flatnonzero(mask_np)] = self._models[f"regressor_{cid}"].predict(evaluation_dataset_c, **self.training_params_dict[f"regressor_{cid}"])
 
-        metrics_dict["full_model"] = metrics, [x_true, y_true, y_pred]
-
-        if deep:
+            if input_scaler is not None:
+                x_true = input_scaler.inverse_transform(x_true)
+            if output_scaler_regressors is not None:
+                y_true = output_scaler_regressors.inverse_transform(y_true)
+                y_pred = output_scaler_regressors.inverse_transform(y_pred)
             
-            # Error of the models conditioned to the classifier output
-            pprint(0, "\nDeep evaluation of the full clustered model:")
+            metrics = {}
+            for evaluator in evaluators_dict["full_model"]:
+                metrics.update(evaluator(y_true, y_pred))
+                if verbose:
+                    evaluator.print_metrics()
+
+            metrics_dict["full_model"] = metrics, [x_true, y_true, y_pred]
+
+        # Error of the models conditioned to the classifier output
+        if deep:
+            if verbose:
+                pprint(0, "\nDeep evaluation of the full clustered model:")
             y_true_classifier = metrics_dict["classifier"][1][1]
             y_pred_probs_classifier = metrics_dict["classifier"][1][2]
             y_pred_classifier = torch.Tensor([0 if p < threshold else 1 for p in y_pred_probs_classifier.flatten()])
@@ -449,8 +541,6 @@ class ClusteredPipeline:
                 else:
                     mask_np = np.asarray(mask, dtype=bool)
 
-                # if mask_np.ndim != 1:
-                #     mask_np = mask_np.reshape(-1)
                 if mask_np.size != len(self.evaluation_dataset):
                     raiseError(f"Mask length {mask_np.size} != dataset length {len(self.evaluation_dataset)}")
 
@@ -461,8 +551,9 @@ class ClusteredPipeline:
                 metrics_cond = {}
                 for evaluator in evaluators_dict["full_model"]:
                     metrics_cond.update(evaluator(y_true_cond, y_pred_cond))
-                    pprint(0, f"\nConditioned on {names[midx]}:")
-                    evaluator.print_metrics()
+                    if verbose:
+                        pprint(0, f"\nConditioned on {names[midx]}:")
+                        evaluator.print_metrics()
 
                 key_suffix = ""
                 if np.all(mask_np == (mask_tp.detach().cpu().numpy().astype(bool))):

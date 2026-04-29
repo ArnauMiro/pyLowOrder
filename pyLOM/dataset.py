@@ -269,7 +269,7 @@ class Dataset(object):
 		return np.ascontiguousarray(field.reshape((npoints,info['ndim']),order='C') if info['ndim'] > 1 else field)
 
 	@cr('Dataset.X')
-	def X(self,*args):
+	def X(self,*args,dtype=np.double):
 		'''
 		Return the X matrix for the selected fields
 		'''
@@ -295,19 +295,19 @@ class Dataset(object):
 		# field
 		varc = 0
 		for v in varls:
-			ivar = self.vars[v]['idim']
-			lvar = len(self.vars[v]['value'])
+			ivar   = self.vars[v]['idim']
+			lvar   = len(self.vars[v]['value'])
 			if ivar == varc:
 				dims += [lvar]
 				varc += 1
 		# Create output array
-		X = np.zeros(dims,np.double)
+		X = np.zeros(dims,dtype)
 		# Populate output matrix
 		ifield = 0
 		for field in fieldnames:
 			v = self.fields[field]
 			for idim in range(v['ndim']):
-				X[ifield:nfields*npoints:nfields] = v['value'][idim:v['ndim']*npoints:v['ndim']]
+				X[ifield:nfields*npoints:nfields] = v['value'][idim:v['ndim']*npoints:v['ndim']].astype(dtype)
 				ifield += 1
 		return X
 
