@@ -327,3 +327,16 @@ def abs(A:np.ndarray) -> np.ndarray:
 	'''
 	p = cp if type(A) is cp.ndarray else np
 	return p.abs(A)
+
+@cr('math.dagger')
+def dagger(A:np.ndarray) -> np.ndarray:
+	r'''
+	Returns the dagger (conjugated transpose) of complex A
+
+	Args:
+		A (np.ndarray): Matrix A (M,N)
+	
+	Result:
+		np.ndarray: Dagger of A (N,M)
+	'''
+	return conj(transpose(A))

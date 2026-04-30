@@ -1187,3 +1187,28 @@ def flip(real[:,:] A):
 		np.ndarray: Flipped version of A (M,N)
 	'''
 	raiseError('Function not implemented in Cython!')
+
+@cr('math.dagger')
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def dagger(real_full[:,:] A):
+	r'''
+	Dagger of matrix A
+
+	Args:
+		A (np.ndarray): Matrix to be daggerd
+	
+	Results
+		np.ndarray: dagger matrix
+	'''
+	if real_full is np.complex128_t:
+		return _zconj(_ztranspose(A))
+	elif real_full is np.complex64_t:
+		return _cconj(_ctranspose(A))
+	elif real_full is double:
+		return _dtranspose(A)
+	else:
+		return _stranspose(A)
