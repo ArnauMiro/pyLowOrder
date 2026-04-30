@@ -27,6 +27,8 @@ from pathlib import Path
 
 import pyLOM, pyLOM.NN
 
+device = pyLOM.NN.select_device("cpu") # Force CPU for this example, if left in blank it will automatically select the device
+
 
 def _build_scaler(enabled: bool, scaler_type: str):
     if not enabled:
