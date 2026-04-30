@@ -1,12 +1,12 @@
 experiment:
   name: "gns_dlr_airfoil"
-  results_path: "../GNS_DLR_airfoil"
+  results_path: "./GNS_DLR_airfoil"
   show_plots: true
 
 datasets:
-  train_ds: "../../../DATA/TRAIN_converter.h5"
-  test_ds: "../../../DATA/TEST_converter.h5"
-  val_ds: "../../../DATA/VAL_converter.h5"
+  train_ds: "./DATA/TRAIN_converter.h5"
+  test_ds: "./DATA/TEST_converter.h5"
+  val_ds: "./DATA/VAL_converter.h5"
 
 dataset_config:
   field_names: ["CP"]
@@ -21,7 +21,7 @@ dataset_config:
 
 model:
   # Graph is read from /GRAPH in TRAIN_converter.h5 (written by Converters/DLR2h5.py)
-  graph_path: "../../../DATA/TRAIN_converter.h5"
+  graph_path: "./DATA/TRAIN_converter.h5"
   config:
     input_dim: 2
     output_dim: 1
