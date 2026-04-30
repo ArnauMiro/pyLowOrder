@@ -10,13 +10,11 @@ import os, glob, torch, numpy as np
 import netCDF4 as NC4
 import matplotlib.pyplot as plt
 
-import pyLOM pyLOM.NN
-#from pyLOM.NN import Graph
-#from pyLOM import io as pyIO
+import pyLOM, pyLOM.NN
 
 
 ## Parameters
-datapath = "/home/p.yeste/CETACEO_DATA/nlr7301/"
+datapath = "./DATA/nlr7301/"
 datasets = ['test', 'train', 'val']
 npoints  = 597
 
