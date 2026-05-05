@@ -351,7 +351,7 @@ class MLP(nn.Module):
             if save_logs_path.endswith(".npy"):
                 fn = save_logs_path
             else:
-                fn = os.path.join(save_logs_path,f"training_results_{self._model_name}.npy")
+                fn = os.path.join(save_logs_path,f"training_results_{self.mname}.npy")
             np.save(fn, results)
 
         return results
