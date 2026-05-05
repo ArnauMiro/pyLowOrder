@@ -576,6 +576,33 @@ class MLP(nn.Module):
                     return trial.suggest_int(name, low, high, log=use_log)
 
                 if isinstance(low, float) and isinstance(high, float):
+                    
+                    def generate_geometric_grid_towards_one(low, high, tol=1e-4, decimals=4):
+                        ratio = 1 - low / high
+                        values = [round(low, decimals)]
+                        current = low
+
+                        max_points = 1000
+
+                        for _ in range(max_points):
+                            step = (high - current) * ratio
+                            current = current + step
+                            current = min(current, high)
+                            current = round(current, decimals)
+                            if current == values[-1]:
+                                break
+
+                            values.append(current)
+
+                            if (high - current) <= tol:
+                                break
+
+                        return values
+                    
+                    if high == 1.0 and (1.0 - low) < 0.2:
+                        choices = generate_geometric_grid_towards_one(low, high)
+                        return trial.suggest_categorical(name, choices)
+
                     use_log = (high / max(1e-12, low)) >= 1000
                     return trial.suggest_float(name, low, high, log=use_log)
 
