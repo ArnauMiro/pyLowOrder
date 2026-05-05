@@ -279,14 +279,15 @@ class MLP(nn.Module):
 
             for b_idx, batch in enumerate(self.train_dataloader):
                 batch = tuple(b.to(self.device) for b in batch)
-                train_loss += self.optimizer.step(closure).item()
+                batch_loss = self.optimizer.step(closure).item()
+                train_loss += batch_loss
                 total_norm = torch.norm(torch.stack([p.grad.norm() for p in self.parameters() if p.grad is not None]))
                 grad_norms.append(total_norm.item())
         
                 if print_rate_batch != 0 and (b_idx % print_rate_batch) == 0:
                     pprint(
                         0,
-                        f"\tBatch {b_idx+1}/{len(self.train_dataloader)}, Train Loss: {train_loss:.4e}",
+                        f"\tBatch {b_idx+1}/{len(self.train_dataloader)}, Train Loss: {batch_loss:.4e}",
                         flush=True
                     )
                     
