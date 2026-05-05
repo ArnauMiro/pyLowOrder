@@ -175,7 +175,7 @@ class MLP(nn.Module):
             scheduler_class (torch.optim.lr_scheduler._LRScheduler, optional): Learning rate scheduler class to use. If ``None``, no scheduler will be used (default: ``None``).
             optimizer_kwargs (dict, optional): Additional keyword arguments to pass to the optimizer (default: ``{}``).
             scheduler_kwargs (dict, optional): Additional keyword arguments to pass to the scheduler (default: ``{}``).
-            dataloader_kwargs (dict, optional): Additional keyword arguments to pass to the dataloader (default: ``{}``).  See PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader. Overrides the following defaults: ``batch_size`` (taken from the ``batch_size`` argument),``shuffle=True``, ``num_workers=0``, ``pin_memory=PIN_MEMORY`` (default: ``False``).
+            dataloader_kwargs (dict, optional): Additional keyword arguments to pass to the dataloader (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader. Overrides the following defaults: ``batch_size`` (taken from the ``batch_size`` argument),``shuffle=True``, ``num_workers=0``, ``pin_memory=PIN_MEMORY`` (default: ``False``).
             save_logs_path (str, optional): Path to save the training results. If ``None``, no results will be saved (default: ``None``).
             print_rate_batch (int, optional): Print loss every ``print_rate_batch`` batches (default: ``1``). If set to ``0``, no print will be done.
             print_rate_epoch (int, optional): Print loss every ``print_rate_epoch`` epochs (default: ``1``). If set to ``0``, no print will be done.
@@ -361,6 +361,7 @@ class MLP(nn.Module):
         self, 
         X: torch.utils.data.Dataset, 
         return_targets: bool = False,
+        dataloader_kwargs: dict = {},
         **kwargs,
     ):
         r"""
@@ -371,28 +372,21 @@ class MLP(nn.Module):
         Args:
             X (torch.utils.data.Dataset): The dataset whose target values are to be predicted using the input data.
             return_targets (bool, optional): If ``True``, the true target values will be returned along with the predictions (default: ``False``).
-            kwargs (dict, optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):
-                
-                - batch_size (int, optional): Batch size (default: ``256``).
-                - shuffle (bool, optional): Shuffle the data (default: ``False``).
-                - num_workers (int, optional): Number of workers to use (default: ``0``).
-                - pin_memory (bool, optional): Pin memory (default: ``True``).
+            dataloader_kwargs (dict, optional): Additional keyword arguments to pass to the dataloader (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader. Overrides the following defaults: ``batch_size=256`` ,``shuffle=False``, ``num_workers=0``, ``pin_memory=PIN_MEMORY`` (default: ``False``).
  
         Returns:
             Tuple [np.ndarray, np.ndarray]: The predictions and the true target values.
         """
-        dataloader_params = {
-            "batch_size": 256,
+
+        _dataloader_kwargs = {
+            "batch_size": kwargs.get("batch_size", 256),
             "shuffle": False,
             "num_workers": 0,
             "pin_memory": PIN_MEMORY,
+            **dataloader_kwargs,
         }
-        
-        for key in dataloader_params.keys():
-            if key in kwargs:
-                dataloader_params[key] = kwargs[key]
 
-        predict_dataloader = DataLoader(X, **dataloader_params)
+        predict_dataloader = DataLoader(X, **_dataloader_kwargs)
         if hasattr(predict_dataloader.dataset, "eval"):
             predict_dataloader.dataset.eval()
 

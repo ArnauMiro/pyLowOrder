@@ -366,6 +366,7 @@ class KAN(nn.Module):
         self,
         X: torch.utils.data.Dataset,
         return_targets: bool = False,
+        dataloader_kwargs: dict = {},
         **kwargs,
     ):
         r"""
@@ -376,29 +377,21 @@ class KAN(nn.Module):
         Args:
             X (torch.utils.data.Dataset): The dataset whose target values are to be predicted using the input data.
             rescale_output (bool): Whether to rescale the output with the scaler of the dataset (default: ``True``).
-            kwargs (dict, Optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):
-                
-                - **batch_size** (int, Optional): Batch size (default: ``32``).  
-                - **shuffle** (bool, Optional): Shuffle the data (default: ``True``).  
-                - **num_workers** (int, Optional): Number of workers to use (default: ``0``).  
-                - **pin_memory** (bool, Optional): Pin memory (default: ``True``).  
+            dataloader_kwargs (dict, optional): Additional keyword arguments to pass to the dataloader (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader. Overrides the following defaults: ``batch_size=256`` ,``shuffle=False``, ``num_workers=0``, ``pin_memory=PIN_MEMORY`` (default: ``False``).
 
         Returns:
             Tuple[np.ndarray, np.ndarray]: The predictions and the true target values.
         """
 
-        dataloader_params = {
-            "batch_size": 32,
+        _dataloader_kwargs = {
+            "batch_size": kwargs.get("batch_size", 256),
             "shuffle": False,
             "num_workers": 0,
             "pin_memory": PIN_MEMORY,
+            **dataloader_kwargs,
         }
 
-        for key in dataloader_params.keys():
-            if key in kwargs:
-                dataloader_params[key] = kwargs[key]
-
-        predict_dataloader = DataLoader(X, **dataloader_params)
+        predict_dataloader = DataLoader(X, **_dataloader_kwargs)
 
         total_rows = len(predict_dataloader.dataset)
         num_columns = self.output_size
