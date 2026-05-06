@@ -1,18 +1,20 @@
-import os
-from typing import Dict, Tuple, Optional
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# KAN (Kolmogorov-Arnold Network) class.
+#
+# Last rev: 06/05/2026
 
-import numpy as np
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader
+import os, numpy as np, torch, torch.nn as nn, torch.optim as optim
 
-from pyLOM.NN.utils import set_seed
+from typing             import Dict, Tuple
+from torch.utils.data   import DataLoader
 
-from ... import cr, pprint  # pyLOM/__init__.py
-from .. import DEVICE, PIN_MEMORY  # pyLOM/NN/__init__.py
-from ...utils.errors import raiseError, raiseWarning
-from ..optimizer import OptunaOptimizer, TrialPruned
+from ..                 import DEVICE, PIN_MEMORY, set_seed
+from ..optimizer        import OptunaOptimizer, TrialPruned
+from ...                import pprint, cr
+from ...utils.errors    import raiseWarning, raiseError
 
 
 class KAN(nn.Module):

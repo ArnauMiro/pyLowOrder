@@ -1,15 +1,21 @@
-import os
-import torch
-import numpy as np
-import torch.nn as nn
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# MLP (Multilayer Perceptron) class.
+#
+# Last rev: 06/05/2026
 
-from torch.utils.data import DataLoader
-from typing import Dict, List, Tuple, Callable
-from ..optimizer import OptunaOptimizer, TrialPruned
-from .. import DEVICE, PIN_MEMORY, set_seed  # pyLOM/NN/__init__.py
-from ... import pprint, cr  # pyLOM/__init__.py
-from ...utils.errors import raiseWarning, raiseError
-from ..loss import BaseLossFunction, TorchLossAdapter
+import os, numpy as np, torch, torch.nn as nn
+
+from typing             import Dict, List, Tuple, Callable
+from torch.utils.data   import DataLoader
+
+from ..                 import DEVICE, PIN_MEMORY, set_seed
+from ..optimizer        import OptunaOptimizer, TrialPruned
+from ..loss             import BaseLossFunction, TorchLossAdapter
+from ...                import pprint, cr
+from ...utils.errors    import raiseWarning, raiseError
 
 
 class MLP(nn.Module):
