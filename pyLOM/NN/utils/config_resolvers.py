@@ -7,6 +7,7 @@
 # Last rev: 15/04/2026
 import importlib
 import yaml
+import numpy as np
 from dataclasses import fields, is_dataclass
 from typing import Any, Mapping, Optional, Union, get_args, get_origin
 from pathlib import Path
@@ -14,7 +15,7 @@ from pathlib import Path
 import torch
 from torch import nn, optim
 
-from . import raiseError
+from ...utils.errors import raiseError
 
 def load_yaml(path: Union[str, Path]) -> dict:
     """Load a YAML file into a Python dict."""
