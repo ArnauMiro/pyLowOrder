@@ -370,54 +370,90 @@ class StandardScaler:
         return x[:, None] if x.ndim == 1 else x
 
     def fit(self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]):
-        blocks = [self._ensure_2d(v) for v in variables] if isinstance(variables, list) else [self._ensure_2d(variables)]
+        is_array  = isinstance(variables, np.ndarray)
+        is_tensor = isinstance(variables, torch.Tensor)
+
+        if is_array or is_tensor:
+            X = self._ensure_2d(variables)
+            blocks = [X[:, i:i+1] for i in range(X.shape[1])]
+        else:
+            blocks = [self._ensure_2d(v) for v in variables]
+
         params = []
         for b in blocks:
             mean = float(b.mean())
-            std = float(b.std())
+            std  = float(b.std())
             if std < self.eps:
                 std = 1.0
             params.append({"mean": mean, "std": std})
+
         self.variable_scaling_params = params
-        self._fit_from_list = isinstance(variables, list)
+        self._fit_from_list = not (is_array or is_tensor)
         self._is_fitted = True
 
     def transform(self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]):
         if not self._is_fitted:
             raiseError("Scaler must be fitted before transform")
-        if isinstance(variables, list):
-            if len(variables) != len(self.variable_scaling_params):
-                raiseError("Number of variables does not match fitted parameters")
-            out = []
-            for v, p in zip(variables, self.variable_scaling_params):
-                v2 = self._ensure_2d(v)
-                out.append((v2 - p["mean"]) / p["std"])
-            return out
 
-        x = self._ensure_2d(variables)
-        p = self.variable_scaling_params[0]
-        out = (x - p["mean"]) / p["std"]
+        is_array  = isinstance(variables, np.ndarray)
+        is_tensor = isinstance(variables, torch.Tensor)
+
+        if is_array or is_tensor:
+            X = self._ensure_2d(variables)
+            if X.shape[1] != len(self.variable_scaling_params):
+                raiseError(
+                    f"Number of features ({X.shape[1]}) does not match fitted parameters ({len(self.variable_scaling_params)})"
+                )
+            scaled_cols = []
+            for i, p in enumerate(self.variable_scaling_params):
+                col = X[:, i:i+1]
+                scaled_cols.append((col - p["mean"]) / p["std"])
+            return torch.hstack(scaled_cols) if is_tensor else np.hstack(scaled_cols)
+
+        # list path
+        if len(variables) != len(self.variable_scaling_params):
+            raiseError(
+                f"Number of variables ({len(variables)}) does not match fitted parameters ({len(self.variable_scaling_params)})"
+            )
+        out = []
+        for v, p in zip(variables, self.variable_scaling_params):
+            v2d = self._ensure_2d(v)
+            out.append((v2d - p["mean"]) / p["std"])
         return out
 
     def fit_transform(self, variables):
         self.fit(variables)
         return self.transform(variables)
 
-    def inverse_transform(self, variables):
+    def inverse_transform(self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]):
         if not self._is_fitted:
             raiseError("Scaler must be fitted before inverse_transform")
-        if isinstance(variables, list):
-            if len(variables) != len(self.variable_scaling_params):
-                raiseError("Number of variables does not match fitted parameters")
-            out = []
-            for v, p in zip(variables, self.variable_scaling_params):
-                v2 = self._ensure_2d(v)
-                out.append(v2 * p["std"] + p["mean"])
-            return out
 
-        x = self._ensure_2d(variables)
-        p = self.variable_scaling_params[0]
-        return x * p["std"] + p["mean"]
+        is_array  = isinstance(variables, np.ndarray)
+        is_tensor = isinstance(variables, torch.Tensor)
+
+        if is_array or is_tensor:
+            X = self._ensure_2d(variables)
+            if X.shape[1] != len(self.variable_scaling_params):
+                raiseError(
+                    f"Number of features ({X.shape[1]}) does not match fitted parameters ({len(self.variable_scaling_params)})"
+                )
+            inv_cols = []
+            for i, p in enumerate(self.variable_scaling_params):
+                col = X[:, i:i+1]
+                inv_cols.append(col * p["std"] + p["mean"])
+            return torch.hstack(inv_cols) if is_tensor else np.hstack(inv_cols)
+
+        # list path
+        if len(variables) != len(self.variable_scaling_params):
+            raiseError(
+                f"Number of variables ({len(variables)}) does not match fitted parameters ({len(self.variable_scaling_params)})"
+            )
+        out = []
+        for v, p in zip(variables, self.variable_scaling_params):
+            v2d = self._ensure_2d(v)
+            out.append(v2d * p["std"] + p["mean"])
+        return out
 
     def save(self, filepath: str) -> None:
         if not self.is_fitted:
@@ -465,57 +501,96 @@ class RobustScaler:
 
     def _quantiles(self, block):
         arr = block.detach().cpu().numpy() if isinstance(block, torch.Tensor) else np.asarray(block)
-        q1 = float(np.percentile(arr, 25.0))
-        q2 = float(np.percentile(arr, 50.0))
-        q3 = float(np.percentile(arr, 75.0))
+        q1  = float(np.percentile(arr, 25.0))
+        q2  = float(np.percentile(arr, 50.0))
+        q3  = float(np.percentile(arr, 75.0))
         iqr = q3 - q1
         if iqr < self.eps:
             iqr = 1.0
         return q2, iqr
 
     def fit(self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]):
-        blocks = [self._ensure_2d(v) for v in variables] if isinstance(variables, list) else [self._ensure_2d(variables)]
+        is_array  = isinstance(variables, np.ndarray)
+        is_tensor = isinstance(variables, torch.Tensor)
+
+        if is_array or is_tensor:
+            X = self._ensure_2d(variables)
+            blocks = [X[:, i:i+1] for i in range(X.shape[1])]
+        else:
+            blocks = [self._ensure_2d(v) for v in variables]
+
         params = []
         for b in blocks:
             med, iqr = self._quantiles(b)
             params.append({"median": med, "iqr": iqr})
+
         self.variable_scaling_params = params
-        self._fit_from_list = isinstance(variables, list)
+        self._fit_from_list = not (is_array or is_tensor)
         self._is_fitted = True
 
     def transform(self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]):
         if not self._is_fitted:
             raiseError("Scaler must be fitted before transform")
-        if isinstance(variables, list):
-            if len(variables) != len(self.variable_scaling_params):
-                raiseError("Number of variables does not match fitted parameters")
-            out = []
-            for v, p in zip(variables, self.variable_scaling_params):
-                v2 = self._ensure_2d(v)
-                out.append((v2 - p["median"]) / p["iqr"])
-            return out
-        x = self._ensure_2d(variables)
-        p = self.variable_scaling_params[0]
-        return (x - p["median"]) / p["iqr"]
+
+        is_array  = isinstance(variables, np.ndarray)
+        is_tensor = isinstance(variables, torch.Tensor)
+
+        if is_array or is_tensor:
+            X = self._ensure_2d(variables)
+            if X.shape[1] != len(self.variable_scaling_params):
+                raiseError(
+                    f"Number of features ({X.shape[1]}) does not match fitted parameters ({len(self.variable_scaling_params)})"
+                )
+            scaled_cols = []
+            for i, p in enumerate(self.variable_scaling_params):
+                col = X[:, i:i+1]
+                scaled_cols.append((col - p["median"]) / p["iqr"])
+            return torch.hstack(scaled_cols) if is_tensor else np.hstack(scaled_cols)
+
+        # list path
+        if len(variables) != len(self.variable_scaling_params):
+            raiseError(
+                f"Number of variables ({len(variables)}) does not match fitted parameters ({len(self.variable_scaling_params)})"
+            )
+        out = []
+        for v, p in zip(variables, self.variable_scaling_params):
+            v2d = self._ensure_2d(v)
+            out.append((v2d - p["median"]) / p["iqr"])
+        return out
 
     def fit_transform(self, variables):
         self.fit(variables)
         return self.transform(variables)
 
-    def inverse_transform(self, variables):
+    def inverse_transform(self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]):
         if not self._is_fitted:
             raiseError("Scaler must be fitted before inverse_transform")
-        if isinstance(variables, list):
-            if len(variables) != len(self.variable_scaling_params):
-                raiseError("Number of variables does not match fitted parameters")
-            out = []
-            for v, p in zip(variables, self.variable_scaling_params):
-                v2 = self._ensure_2d(v)
-                out.append(v2 * p["iqr"] + p["median"])
-            return out
-        x = self._ensure_2d(variables)
-        p = self.variable_scaling_params[0]
-        return x * p["iqr"] + p["median"]
+
+        is_array  = isinstance(variables, np.ndarray)
+        is_tensor = isinstance(variables, torch.Tensor)
+
+        if is_array or is_tensor:
+            X = self._ensure_2d(variables)
+            if X.shape[1] != len(self.variable_scaling_params):
+                raiseError(
+                    f"Number of features ({X.shape[1]}) does not match fitted parameters ({len(self.variable_scaling_params)})"
+                )
+            inv_cols = []
+            for i, p in enumerate(self.variable_scaling_params):
+                col = X[:, i:i+1]
+                inv_cols.append(col * p["iqr"] + p["median"])
+            return torch.hstack(inv_cols) if is_tensor else np.hstack(inv_cols)
+
+        # list path
+        if len(variables) != len(self.variable_scaling_params):
+            raiseError(
+                f"Number of variables ({len(variables)}) does not match fitted parameters ({len(self.variable_scaling_params)})"
+            )
+        out = []
+        for v, p in zip(variables, self.variable_scaling_params):
+            v2d = self._ensure_2d(v)
+            out.append(v2d * p["iqr"] + p["median"])
+        return out
 
     def save(self, filepath: str) -> None:
         if not self.is_fitted:
