@@ -179,8 +179,8 @@ class MLP(nn.Module):
             loss_fn_kwargs (dict, optional): Additional keyword arguments to pass to the loss function (default: ``{}``).
             optimizer_class (torch.optim.Optimizer, optional): Optimizer class to use (default: ``torch.optim.Adam``).
             scheduler_class (torch.optim.lr_scheduler._LRScheduler, optional): Learning rate scheduler class to use. If ``None``, no scheduler will be used (default: ``None``).
-            optimizer_kwargs (dict, optional): Additional keyword arguments to pass to the optimizer (default: ``{}``).
-            scheduler_kwargs (dict, optional): Additional keyword arguments to pass to the scheduler (default: ``{}``).
+            optimizer_kwargs (dict, optional): Additional keyword arguments to pass to the optimizer (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/optim.html#torch.optim.Optimizer.
+            scheduler_kwargs (dict, optional): Additional keyword arguments to pass to the scheduler (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/optim.html#torch.optim.lr_scheduler._LRScheduler.
             dataloader_kwargs (dict, optional): Additional keyword arguments to pass to the dataloader (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader. Overrides the following defaults: ``batch_size`` (taken from the ``batch_size`` argument),``shuffle=True``, ``num_workers=0``, ``pin_memory=PIN_MEMORY`` (default: ``False``).
             save_logs_path (str, optional): Path to save the training results. If ``None``, no results will be saved (default: ``None``).
             print_rate_batch (int, optional): Print loss every ``print_rate_batch`` batches (default: ``1``). If set to ``0``, no print will be done.

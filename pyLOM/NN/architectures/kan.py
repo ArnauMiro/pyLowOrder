@@ -125,10 +125,11 @@ class KAN(nn.Module):
         epochs: int = 100,
         lr: float = 0.001,
         optimizer_class=optim.Adam,
-        scheduler_type="StepLR",
+        scheduler_class: optim.lr_scheduler.LRScheduler | None = None,
         opti_kwargs={},
-        lr_kwargs={},
+        scheduler_kwargs: dict = {},
         dataloader_kwargs: dict = {},
+        scheduler_step_on_epoch: bool = True,
         print_eval_rate: int = 2,
         loss_fn=nn.MSELoss(),
         save_logs_path=None,
@@ -146,20 +147,11 @@ class KAN(nn.Module):
             epochs (int): The number of epochs to train the model. (default: ``100``).
             lr (float): The learning rate for the Adam optimizer. (default: ``0.001``).
             optimizer_class (torch.optim, Optional): The optimizer to use. Available all optimizers from PyTorch except AdaDelta. (default: ``optim.Adam``).
-            scheduler_type (str, opcional): Scheduler type to adjust the learning rate dynamically. (default: ``"StepLR"``).
-                Available options:
-
-                - "StepLR": Reduce the learning rate by a factor every ``step_size`` batches.
-                - "ReduceLROnPlateau": Reduces the learning rate when a metric has stopped improving.
-                - "OneCycleLR": Adjust the learning rate in a single cycle of the training.
-            opti_kwargs (dict, Optional): Additional keyword arguments to pass to the optimizer (default: `{}`).
-            lr_kwargs (dict, opcional): Dictionary containing the specific parameters for the learning rate scheduler. (default: ``{}``).
-                Some examples are:
-                
-                - StepLR: {"step_size": int, "gamma": float}.
-                - ReduceLROnPlateau: {"mode": str, "factor": float, "patience": int}.
-                - OneCycleLR: {"anneal_strategy": str, "div_factor": float}.
+            scheduler_class (torch.optim.lr_scheduler._LRScheduler, optional): Learning rate scheduler class to use. If ``None``, no scheduler will be used (default: ``None``).
+            opti_kwargs (dict, optional): Additional keyword arguments to pass to the optimizer (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/optim.html#torch.optim.Optimizer.
+            scheduler_kwargs (dict, optional): Additional keyword arguments to pass to the scheduler (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/optim.html#torch.optim.lr_scheduler._LRScheduler.
             dataloader_kwargs (dict, optional): Additional keyword arguments to pass to the dataloader (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader. Overrides the following defaults: ``batch_size`` (taken from the ``batch_size`` argument),``shuffle=True``, ``num_workers=0``, ``pin_memory=PIN_MEMORY`` (default: ``False``).
+            scheduler_step_on_epoch (bool, Optional): Whether to step the scheduler every epoch (default: ``True``). If ``False``, the scheduler will be stepped every batch.
             print_eval_rate (int, Optional): The model will be evaluated every ``print_eval_rate`` epochs and the losses will be printed. If set to 0, nothing will be printed (default: ``2``).
             loss_fn (torch.nn.Module, Optional): The loss function (default: ``nn.MSELoss()``).
             save_logs_path (str, Optional): Path to save the training and evaluation losses (default: ``None``).
@@ -182,12 +174,12 @@ class KAN(nn.Module):
             pprint(0, f"\tepochs:     {epochs}")
             pprint(0, f"\tbatch size: {batch_size}")
             pprint(0, f"\toptimizer class:  {optimizer_class}")
-            pprint(0, f"\tscheduler:  {scheduler_type}")
+            pprint(0, f"\tscheduler:  {scheduler_class}")
             pprint(0, f"\tloss_fn:  {loss_fn}")
             pprint(0, f"\tsave_path:  {save_logs_path}")
             pprint(0, "\t")
             pprint(0, "Scheduler conditions:")
-            for key, value in sorted(lr_kwargs.items()):
+            for key, value in sorted(scheduler_kwargs.items()):
                 if isinstance(value, dict):
                     pprint(0, f"\t{key}:")
                     for subkey, subvalue in sorted(value.items()):
@@ -226,22 +218,13 @@ class KAN(nn.Module):
             )
 
         if not hasattr(self, "scheduler"):
-            if scheduler_type == "StepLR":
-                self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, **lr_kwargs)
-            elif scheduler_type == "ReduceLROnPlateau":
-                self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                    self.optimizer, **lr_kwargs
-                )
-            elif scheduler_type == "OneCycleLR":
-                self.scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            if scheduler_class is not None:
+                self.scheduler = scheduler_class(
                     self.optimizer,
-                    max_lr=lr,
-                    steps_per_epoch=len(self.train_loader),
-                    epochs=1,
-                    **lr_kwargs,
+                    **scheduler_kwargs
                 )
             else:
-                raiseError(f"Invalid scheduler_type: {scheduler_type}. Available options are: 'StepLR', 'ReduceLROnPlateau', 'OneCycleLR'")
+                self.scheduler = None
 
         if hasattr(self, "optimizer_state_dict"):
             self.optimizer.load_state_dict(self.optimizer_state_dict)
@@ -276,17 +259,15 @@ class KAN(nn.Module):
                     torch.stack([p.grad.norm() for p in self.parameters() if p.grad is not None])
                 )
                 grad_norms.append(total_norm.item())
-                # if scheduler_type != "ReduceLROnPlateau":
-                #     self.scheduler.step()
-                #     current_lr = self.optimizer.param_groups[0]["lr"]
-                #     current_lr_vec.append(current_lr)
+                if scheduler_class is not None and not scheduler_step_on_epoch:
+                    self.scheduler.step()
+                    current_lr = self.optimizer.param_groups[0]["lr"]
+                    current_lr_vec.append(current_lr)
 
             train_loss /= len(self.train_loader)
             train_losses.append(train_loss)
 
-            # if scheduler_type == "ReduceLROnPlateau":
-            #     self.scheduler.step(train_loss)
-            if scheduler_type == "StepLR":
+            if scheduler_class is not None and scheduler_step_on_epoch:
                 self.scheduler.step()
                 current_lr = self.optimizer.param_groups[0]["lr"]
                 current_lr_vec.append(current_lr)
