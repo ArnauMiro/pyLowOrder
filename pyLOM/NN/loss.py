@@ -37,59 +37,98 @@ class TorchLossAdapter(BaseLossFunction):
         x, y = batch["x"], batch["y"]
         pred = model(x)
         return self.torch_loss(pred, y)
-    
+
 class GradientWeightedMSE(BaseLossFunction):
     r"""
     Gradient-weighted Mean Squared Error loss function.
     The loss computes the standard MSE between predictions and targets, but weights it by the magnitude of the gradient of the predictions with respect to the input features. 
     This gives more importance to points where the model output changes rapidly with respect to the input, which can help in learning sharper features in the data.
-
+    
     Args:
         alpha: Weighting factor for the gradient term. Higher values give more importance to the gradient weighting (default: ``1.0``).
         geom_dim: Number of geometric input dimensions to consider for the gradient (e.g., 3 for 3D spatial coordinates; default: ``3``).
         eps: Small constant to prevent division by zero when normalizing the gradient magnitude (default: ``1e-8``).
+        per_output: If ``False`` (default), a single shared gradient weight is computed per point by differentiating the sum of all outputs. If ``True``, an independent gradient weight is computed for each output variable separately.
     """
     def __init__(
         self,
         alpha: float = 1.0,
         geom_dim: int = 3,
-        eps: float = 1e-8
+        eps: float = 1e-8,
+        per_output: bool = False,
     ):
         super().__init__()
         self.alpha = alpha
         self.geom_dim = geom_dim
         self.eps = eps
+        self.per_output = per_output
 
-    def forward(
-        self,
-        model,
-        batch
+    def _shared_grad_weight(
+        self, 
+        pred, 
+        x
     ) -> torch.Tensor:
-
-        x, y = batch["x"], batch["y"]
-        
-        # Predict outputs with gradient tracking enabled
-        x = x.clone().detach().requires_grad_(True)
-        pred = model(x)
-
-        # Pointwise MSE
-        mse_pointwise = (pred - y) ** 2
-
-        # Gradient magnitude with respect to geometric inputs
+        r"""
+        Compute scalar weight per point, shared across all outputs.
+        Differentiates the sum of all outputs w.r.t. x, so the gradient reflects the aggregate spatial sensitivity of the model.
+        """
         grads_full = torch.autograd.grad(
             outputs=pred,
             inputs=x,
             grad_outputs=torch.ones_like(pred),
             create_graph=True,
             retain_graph=True,
-        )[0]
+        )[0]                                                        # [N, input_dim]
+        grads_geom = grads_full[:, 0:self.geom_dim]                 # [N, geom_dim]
+        grad_norm = torch.norm(grads_geom, dim=1)                   # [N]
+        grad_weight = grad_norm / (grad_norm.mean() + self.eps)     # [N]
+        return grad_weight.unsqueeze(-1)                            # [N, 1]
 
-        grads_geom = grads_full[:, 0:self.geom_dim]
-        grad_norm = torch.norm(grads_geom, dim=1)
-        grad_weight = grad_norm / (grad_norm.mean() + self.eps)
+    def _per_output_grad_weight(
+        self, 
+        pred, 
+        x
+    ) -> torch.Tensor:
+        r"""
+        Compute one scalar weight per (point, output) pair.
+        Differentiates each output independently, capturing output-specific spatial sensitivity.
+        """
+        grad_weights = []
+        for j in range(pred.shape[1]):
+            grad_j = torch.autograd.grad(
+                outputs=pred[:, j].sum(),
+                inputs=x,
+                create_graph=True,
+                retain_graph=True,
+            )[0]                                                        # [N, input_dim]
+            geom_grad_j = grad_j[:, 0:self.geom_dim]                    # [N, geom_dim]
+            norm_j = torch.norm(geom_grad_j, dim=1)                     # [N]
+            grad_weights.append(norm_j / (norm_j.mean() + self.eps))    # [N]
+        return torch.stack(grad_weights, dim=1)                         # [N, M]
+
+    def forward(
+        self, 
+        model, 
+        batch
+    ) -> torch.Tensor:
+        
+        x, y = batch["x"], batch["y"]
+
+        # Predict outputs with gradient tracking enabled
+        x = x.clone().detach().requires_grad_(True)
+        pred = model(x)
+
+        # Pointwise squared error [N, M]
+        mse_pointwise = (pred - y) ** 2
+
+        # Gradient-based weights [N, 1] or [N, M]
+        if self.per_output:
+            grad_weight = self._per_output_grad_weight(pred, x)
+        else:
+            grad_weight = self._shared_grad_weight(pred, x)
 
         # Weighted MSE
-        weighted_mse = (1.0 + self.alpha * grad_weight.unsqueeze(-1)) * mse_pointwise
+        weighted_mse = (1.0 + self.alpha * grad_weight) * mse_pointwise
         return weighted_mse.mean()
 
 class NeighborDifferenceMSELoss(BaseLossFunction):

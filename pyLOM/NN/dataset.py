@@ -584,7 +584,7 @@ class Dataset(torch.utils.data.Dataset):
             if not add_mesh_coordinates:
                 raiseError("Cannot use all variables without adding mesh coordinates")
             if len(original_dataset.varnames) == 0:
-                raiseError("No variabele found in the dataset")
+                raiseError("No variable found in the dataset")
             variables_names = original_dataset.varnames
 
         variables_in = None
@@ -752,14 +752,23 @@ class Dataset(torch.utils.data.Dataset):
         x, y = self[:]
         inputs_min = x.min(dim=0).values
         inputs_max = x.max(dim=0).values
+        inputs_mean = x.mean(dim=0)
+        inputs_std = x.std(dim=0)
         outputs_min = y.min(dim=0).values
         outputs_max = y.max(dim=0).values
+        outputs_mean = y.mean(dim=0)
+        outputs_std = y.std(dim=0)
 
         # Format the values to 2 decimal places
-        inputs_min_str = ', '.join([f'{val:.2f}' for val in inputs_min])
-        inputs_max_str = ', '.join([f'{val:.2f}' for val in inputs_max])
-        outputs_min_str = f'{outputs_min[0]:.2f}'
-        outputs_max_str = f'{outputs_max[0]:.2f}'
+        inputs_min_str  = ', '.join([f'{val:.3f}' for val in inputs_min])
+        inputs_max_str  = ', '.join([f'{val:.3f}' for val in inputs_max])
+        inputs_mean_str = ', '.join([f'{val:.3f}' for val in inputs_mean])
+        inputs_std_str  = ', '.join([f'{val:.3f}' for val in inputs_std])
+
+        outputs_min_str  = ', '.join([f'{val:.3f}' for val in outputs_min])
+        outputs_max_str  = ', '.join([f'{val:.3f}' for val in outputs_max])
+        outputs_mean_str = ', '.join([f'{val:.3f}' for val in outputs_mean])
+        outputs_std_str  = ', '.join([f'{val:.3f}' for val in outputs_std])
 
         pprint(
             0,
@@ -767,9 +776,13 @@ class Dataset(torch.utils.data.Dataset):
             f'  Inputs shape : {x.shape} \n'
             f'  Inputs min   : {inputs_min_str} \n'
             f'  Inputs max   : {inputs_max_str} \n'
+            f'  Inputs mean  : {inputs_mean_str} \n'
+            f'  Inputs std   : {inputs_std_str} \n\n'
             f'  Outputs shape: {y.shape} \n'
             f'  Outputs min  : {outputs_min_str} \n'
             f'  Outputs max  : {outputs_max_str} \n'
+            f'  Outputs mean : {outputs_mean_str} \n'
+            f'  Outputs std  : {outputs_std_str} \n'
         )
 
     def inverse_scale_inputs(self, x: Union[np.ndarray, torch.Tensor], scaler: ScalerProtocol = None):

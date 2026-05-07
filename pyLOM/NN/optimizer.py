@@ -38,14 +38,16 @@ try:
             optimization_params: Dict,
             n_trials: int = 100,
             direction: str = 'minimize',
-            pruner: optuna.pruners.BasePruner = None,
-            save_dir: str = None,
-            storage: str = None,
-            study_name: str = None,
+            sampler: optuna.samplers.BaseSampler | None = None,
+            pruner: optuna.pruners.BasePruner | None = None,
+            save_dir: str | None = None,
+            storage: str | None = None,
+            study_name: str | None = None,
             load_if_exists: bool = True,
         ):
             self.num_trials = n_trials
             self.direction = direction
+            self.sampler = sampler
             self.pruner = pruner
             self._optimization_params = optimization_params
             self.save_dir = save_dir
@@ -69,12 +71,14 @@ try:
                     study_name=self.study_name,
                     storage=self.storage,
                     direction=self.direction,
+                    sampler=self.sampler,
                     pruner=self.pruner,
                     load_if_exists=self.load_if_exists,
                 )
             else:
                 study = optuna.create_study(
                     direction=self.direction,
+                    sampler=self.sampler,
                     pruner=self.pruner,
                 )
             return study
@@ -563,6 +567,16 @@ except:
             direction (str): The direction to optimize. Can be 'minimize' or 'maximize'. Default is ``'minimize'``.
             pruner (optuna.pruners.BasePruner): The pruner to use. Default is ``None``.
             save_dir (str): The directory to save the best parameters. Default is ``None``.
+        """
+        def __init__(self,*args,**kwargs):
+            raiseError("Package optuna should be installed")
+
+    class OptunaStudyManager():
+        """
+        Manager class for Optuna studies stored in a database.
+        
+        Args:
+            storage (str): The storage URL to use for accessing studies. Example: 'sqlite:///path/to/optuna_studies.db'
         """
         def __init__(self,*args,**kwargs):
             raiseError("Package optuna should be installed")

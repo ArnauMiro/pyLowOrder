@@ -77,8 +77,8 @@ def h5_save_meshes(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	# Assume we might be dealing with a parallel mesh
 	ndim     = xyz.shape[1]
 	nnodcell = conec.shape[1]
-	npointG  = mpi_reduce(xyz.shape[0],op='sum',all=True)
-	ncellG   = mpi_reduce(eltype.shape[0],op='sum',all=True)
+	npointG  = mpi_reduce(xyz.shape[0],op='sum',all=True) if ptable.n_partitions > 1 else xyz.shape[0]
+	ncellG   = mpi_reduce(eltype.shape[0],op='sum',all=True) if ptable.n_partitions > 1 else eltype.shape[0]
 	if ptable.has_master: 
 		npointG -= 1
 		ncellG  -= 1
@@ -218,7 +218,7 @@ def h5_save_points(file,xyz,order,ptable,point):
 	file.attrs['NOPARTITION'] = False # Either nopartition=False or serial
 	file.attrs['PARTS']       = ptable.n_partitions
 	# Obtain number of points
-	npointG = mpi_reduce(xyz.shape[0] if not np.any(np.isnan(xyz)) else 0,op='sum',all=True)
+	npointG = mpi_reduce(xyz.shape[0] if not np.any(np.isnan(xyz)) else 0,op='sum',all=True) if ptable.n_partitions > 1 else xyz.shape[0]
 	ndim    = xyz.shape[1]
 	if ptable.has_master: npointG -= 1
 	file.create_dataset('pointData',(1,),dtype='i4',data=point)
@@ -361,7 +361,7 @@ def h5_create_field_datasets(file,fieldDict,ptable,ipart=-1):
 	dsetDict = {}
 	for var in fieldDict.keys():
 		vargroup = group.create_group(var)
-		n     = mpi_reduce(fieldDict[var]['value'].shape[0] if not np.any(np.isnan(fieldDict[var]['value'])) else 0,op='sum',all=True)
+		n     = mpi_reduce(fieldDict[var]['value'].shape[0] if not np.any(np.isnan(fieldDict[var]['value'])) else 0,op='sum',all=True) if ptable.n_partitions > 1 else fieldDict[var]['value'].shape[0]
 		if ptable.has_master: n -= 1
 		npoin = int(file['xyz'].shape[0])
 		ndim  = n//npoin
@@ -390,7 +390,7 @@ def h5_fill_field_datasets(dsetDict,fieldDict,ptable,point,inods,idx):
 			istart, iend = ptable.partition_bounds(MPI_RANK,ndim=fieldDict[var]['ndim'],points=point)
 			dsetDict[var]['value'][istart:iend,:] = fieldDict[var]['value']
 		else:
-			if fieldDict[var]['ndim'] > 1: raiseError('Cannot deal with multi-dimensional arrays in no partition mode!')
+			if fieldDict[var]['ndim'] > 1: raiseError('Cannot deal with multi-dimensional arrays when inods are provided!')
 			dsetDict[var]['value'][inods,:] = fieldDict[var]['value'][idx,:]
 
 def h5_load_fields_single(file,npoints,ptable,varDict,point):
@@ -483,11 +483,11 @@ def h5_save_dset_serial(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable):
 	# Create dataset group
 	group = file.create_group('DATASET')
 	# Save points
-	inods,idx,_ = h5_save_points(group,xyz,ordering,ptable,point)
+	h5_save_points(group,xyz,ordering,ptable,point)
 	# Store the variables
 	h5_fill_variable_datasets(h5_create_variable_datasets(group,varDict,ptable),varDict)
 	# Store the fields
-	h5_fill_field_datasets(h5_create_field_datasets(group,fieldDict,ptable),fieldDict,ptable,point,inods,idx)
+	h5_fill_field_datasets(h5_create_field_datasets(group,fieldDict,ptable),fieldDict,ptable,point,None,None)
 	file.close()
 
 def h5_save_dset_mpio(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable,nopartition):

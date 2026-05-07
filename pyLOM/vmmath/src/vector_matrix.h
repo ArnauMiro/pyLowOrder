@@ -19,6 +19,7 @@ void   smatmult(float *C, float *A, float *B, const int m, const int n, const in
 void   smatmul(float *C, float *A, float *B, const int m, const int n, const int k);
 void   smatmulp(float *C, float *A, float *B, const int m, const int n, const int k);
 void   svecmat(float *v, float *A, const int m, const int n);
+void   svecmatT(float *v, float *A, const int m, const int n);
 int    sinv(float *A, int m, int n);
 int    sinverse(float *A, int N, char *UoL);
 void   ssort(float *v, int *index, int n);
@@ -34,16 +35,19 @@ void   dmatmult(double *C, double *A, double *B, const int m, const int n, const
 void   dmatmul(double *C, double *A, double *B, const int m, const int n, const int k);
 void   dmatmulp(double *C, double *A, double *B, const int m, const int n, const int k);
 void   dvecmat(double *v, double *A, const int m, const int n);
+void   dvecmatT(double *v, double *A, const int m, const int n);
 int    dinv(double *A, int m, int n);
 int    dinverse(double *A, int N, char *UoL);
 void   dsort(double *v, int *index, int n);
 void   drandom_matrix(double *A, int m, int n, unsigned int seed);
 void   deuclidean_d(double *D, double *X, const int m, const int n);
 // Float complex version
+void   ctranspose(scomplex_t *A, scomplex_t *B, const int m, const int n);
 void   cmatmult(scomplex_t *C, scomplex_t *A, scomplex_t *B, const int m, const int n, const int k, const char *TA, const char *TB);
 void   cmatmul(scomplex_t *C, scomplex_t *A, scomplex_t *B, const int m, const int n, const int k);
 void   cmatmulp(scomplex_t *C, scomplex_t *A, scomplex_t *B, const int m, const int n, const int k);
 void   cvecmat(scomplex_t *v, scomplex_t *A, const int m, const int n);
+void   cvecmatT(scomplex_t *v, scomplex_t *A, const int m, const int n);
 int    cinv(scomplex_t *A, int m, int n);
 int    cinverse(scomplex_t *A, int N, char *UoL);
 int    ceigen(float *real, float *imag, scomplex_t *vecs, float *A, const int m, const int n);
@@ -52,10 +56,12 @@ void   cvandermonde(scomplex_t *Vand, float *real, float *imag, int m, int n);
 void   cvandermondeTime(scomplex_t *Vand, float *real, float *imag, int m, int n, float *t);
 void   csort(scomplex_t *v, int *index, int n);
 // Double complex version
+void   ztranspose(dcomplex_t *A, dcomplex_t *B, const int m, const int n);
 void   zmatmult(dcomplex_t *C, dcomplex_t *A, dcomplex_t *B, const int m, const int n, const int k, const char *TA, const char *TB);
 void   zmatmul(dcomplex_t *C, dcomplex_t *A, dcomplex_t *B, const int m, const int n, const int k);
 void   zmatmulp(dcomplex_t *C, dcomplex_t *A, dcomplex_t *B, const int m, const int n, const int k);
 void   zvecmat(dcomplex_t *v, dcomplex_t *A, const int m, const int n);
+void   zvecmatT(dcomplex_t *v, dcomplex_t *A, const int m, const int n);
 int    zinv(dcomplex_t *A, int m, int n);
 int    zinverse(dcomplex_t *A, int N, char *UoL);
 int    zeigen(double *real, double *imag, dcomplex_t *vecs, double *A, const int m, const int n);

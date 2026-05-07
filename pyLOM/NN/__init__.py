@@ -28,7 +28,7 @@ from .                                import GAVI
 
 from .pipeline                        import Pipeline, ClusteredPipeline
 from .loss                            import BaseLossFunction, TorchLossAdapter, GradientWeightedMSE, NeighborDifferenceMSELoss, HybridGradientNeighborMSELoss, FocalMSELoss
-from .dataset                         import Dataset
+from .dataset                         import Dataset, NeighborhoodDataset
 from .gns                             import Graph
 from .utils.scalers                   import MinMaxScaler, StandardScaler, RobustScaler
 from .utils                           import RegressionEvaluator, ClassificationEvaluator, EarlyStopper
