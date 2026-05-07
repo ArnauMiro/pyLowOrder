@@ -248,3 +248,39 @@ class HybridGradientNeighborMSELoss(BaseLossFunction):
 
         # Total loss
         return loss_weighted_mse + self.beta * loss_neighbor
+
+
+class FocalMSELoss(BaseLossFunction):
+    r"""
+    Focal-style Mean Squared Error for regression.
+
+    Emphasizes harder examples by scaling the squared error with |error|^gamma.
+
+    Args:
+        gamma (float): Focusing parameter (>=0). Common values: 1.0-2.0.
+        reduction (str): 'mean' (default) or 'sum'.
+        eps (float): Small epsilon to avoid zero weights.
+    """
+
+    def __init__(self, gamma: float = 1.0, reduction: str = 'mean', eps: float = 1e-6) -> None:
+        super().__init__()
+        self.gamma = float(gamma)
+        self.reduction = reduction
+        self.eps = float(eps)
+
+    def forward(self, a, b) -> torch.Tensor:
+        """Support both legacy ``forward(model, batch)`` and tensor mode ``forward(output, target)``."""
+        if isinstance(b, dict):
+            model, batch = a, b
+            x, y = batch["x"], batch["y"]
+            pred = model(x)
+        else:
+            pred, y = a, b
+
+        diff = pred - y
+        mse = diff.pow(2)
+        weights = (diff.abs() + self.eps).pow(self.gamma)
+        loss = weights * mse
+        if self.reduction == 'sum':
+            return loss.sum()
+        return loss.mean()

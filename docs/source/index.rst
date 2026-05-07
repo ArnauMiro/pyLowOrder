@@ -9,6 +9,7 @@ Welcome to pyLOM's documentation
    API reference <api/modules>
    Examples <examples>
    Installation <install>
+   GNS Guide <NN/GNS/index>
 
 
 **Version**: |version|

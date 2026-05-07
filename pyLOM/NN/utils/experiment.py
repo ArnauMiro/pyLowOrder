@@ -1,0 +1,760 @@
+"""
+Utilites for running and saving experiments with NN modules in pyLOM.
+"""
+
+from pathlib import Path
+import os
+import datetime
+import getpass
+import hashlib
+import json
+from dataclasses import asdict, dataclass
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+    Literal,
+)
+
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+import yaml
+import pyLOM
+
+from ... import pprint
+from ...utils import get_git_commit, raiseError
+from ..utils.config_resolvers import to_native
+
+
+if TYPE_CHECKING:
+    from pyLOM import Mesh
+    from pyLOM.partition_table import PartitionTable
+
+
+ArrayLike = Union[np.ndarray, "torch.Tensor"]
+MetricFn = Callable[[np.ndarray, np.ndarray], np.ndarray]
+
+
+@dataclass(frozen=True)
+class ParaviewExportConfig:
+    """Configuration for exporting fields to ParaView-friendly vtk.hdf files."""
+
+    mesh: "Mesh"
+    cell_order: np.ndarray
+    partition_table: "PartitionTable"
+    instants: Sequence[int] | np.ndarray
+    times: Sequence[float] | np.ndarray
+    output_dir: Path
+    base_name: str = "predictions"
+    mode: Literal["single", "per_snapshot"] = "single"
+    snapshot_metadata: Mapping[str, ArrayLike] | None = None
+    extra_cell_fields: Mapping[str, ArrayLike] | None = None
+
+
+# ─────────────────────────────────────────────────────
+# UTILITIES: ARRAY HANDLING
+# ─────────────────────────────────────────────────────
+
+def to_numpy(value: ArrayLike | Sequence[Any], *, dtype: np.dtype | type | None = None,
+             copy: bool = False) -> np.ndarray:
+    """Convert tensors or array-likes to a NumPy array with optional dtype/copy.
+
+    Parameters
+    ----------
+    value : array-like or torch.Tensor
+        Input object to convert.
+    dtype : numpy dtype or type, optional
+        If provided, cast the resulting array to this dtype.
+    copy : bool, default False
+        Force copying the data. When ``False`` NumPy may reuse the underlying
+        memory if possible.
+    """
+
+    array = value.detach().cpu().numpy() if isinstance(value, torch.Tensor) else np.asarray(value)
+
+    if dtype is not None:
+        array = array.astype(dtype, copy=False)
+
+    if copy:
+        array = np.array(array, dtype=array.dtype, copy=True)
+
+    return array
+
+
+def _asdict_safe(obj: Any) -> Dict[str, Any]:
+    if obj is None:
+        return {}
+    try:
+        return asdict(obj)
+    except Exception:
+        if isinstance(obj, Mapping):
+            return dict(obj)
+        return {}
+
+
+# ─────────────────────────────────────────────────────
+# PARAVIEW EXPORT UTILITIES
+# ─────────────────────────────────────────────────────
+
+
+def _ensure_sample_major(
+    array: ArrayLike,
+    ncells: int,
+    *,
+    nsnaps_hint: int | None = None,
+) -> np.ndarray:
+    """Return array shaped as (nsnaps, ncells, nfeat) with optional broadcasting."""
+
+    arr = to_numpy(array)
+    arr = np.asarray(arr)
+
+    if arr.ndim == 1:
+        if arr.size == ncells:
+            arr = arr[None, :, None]
+        elif nsnaps_hint is not None and arr.size == nsnaps_hint:
+            arr = arr[:, None, None]
+        else:
+            raise ValueError("1D arrays must match either ncells or nsnaps length")
+    elif arr.ndim == 2:
+        if arr.shape[1] == ncells:
+            arr = arr[:, :, None]
+        elif arr.shape[0] == ncells:
+            arr = arr.T[:, :, None]
+        else:
+            raise ValueError("2D arrays must include ncells in one axis")
+    elif arr.ndim == 3:
+        if arr.shape[1] == ncells:
+            pass
+        elif arr.shape[0] == ncells:
+            arr = arr.swapaxes(0, 1)
+        else:
+            raise ValueError("3D arrays must include ncells in axis 0 or 1")
+    else:
+        raise ValueError("Unsupported array rank for sample-major conversion")
+
+    if nsnaps_hint is not None:
+        if arr.shape[0] == 1 and nsnaps_hint > 1:
+            arr = np.broadcast_to(arr, (nsnaps_hint, arr.shape[1], arr.shape[2]))
+        elif arr.shape[0] not in (nsnaps_hint, 1):
+            raise ValueError("Snapshot dimension mismatch with provided hint")
+
+    return arr.astype(np.float64, copy=False)
+
+
+def _sample_to_cell_major(arr: np.ndarray) -> np.ndarray:
+    """Swap axes to obtain (ncells, nsnaps, nfeat) layout."""
+
+    return arr.swapaxes(0, 1)
+
+
+def _reshape_for_dataset(arr: np.ndarray) -> tuple[np.ndarray, int]:
+    """Return flat array (ncomp * ncells, nsnaps) and component count."""
+
+    ncells, nsnaps, nfeat = arr.shape
+    data = np.moveaxis(arr, 2, 0).reshape(nfeat * ncells, nsnaps)
+    return data, nfeat
+
+
+def _build_dataset(
+    config: ParaviewExportConfig,
+    cell_fields: Mapping[str, np.ndarray],
+    metadata: Mapping[str, ArrayLike] | None,
+) -> pyLOM.Dataset:
+    """Create a pyLOM Dataset with provided cell fields and snapshot metadata."""
+
+    if not cell_fields:
+        raise ValueError("At least one field must be supplied for ParaView export")
+
+    sample_field = next(iter(cell_fields.values()))
+    _, nsnaps, _ = sample_field.shape
+
+    vars_dict: Dict[str, Dict[str, Any]] = {}
+    if metadata:
+        for name, values in metadata.items():
+            values_np = to_numpy(values)
+            values_np = np.asarray(values_np)
+            if values_np.ndim == 1:
+                if values_np.size not in (nsnaps, 1):
+                    raise ValueError(f"Metadata '{name}' must have length 1 or nsnaps")
+                if values_np.size == 1 and nsnaps > 1:
+                    values_np = np.broadcast_to(values_np, (nsnaps,))
+                vars_dict[name] = {"idim": 0, "value": values_np.astype(np.float64, copy=False)}
+            elif values_np.ndim == 2:
+                if values_np.shape[0] not in (nsnaps, 1):
+                    raise ValueError(f"Metadata '{name}' must align with snapshot count")
+                if values_np.shape[0] == 1 and nsnaps > 1:
+                    values_np = np.broadcast_to(values_np, (nsnaps, values_np.shape[1]))
+                vars_dict[name] = {
+                    "idim": values_np.shape[1],
+                    "value": values_np.astype(np.float64, copy=False),
+                }
+            else:
+                raise ValueError(f"Metadata '{name}' must be 1D or 2D array")
+
+    dataset = pyLOM.Dataset(
+        xyz=config.mesh.xyzc,
+        ptable=config.partition_table,
+        order=config.cell_order,
+        point=False,
+        vars=vars_dict,
+    )
+
+    for field_name, field_values in cell_fields.items():
+        flat_values, ncomp = _reshape_for_dataset(field_values)
+        dataset.add_field(field_name, ncomp, flat_values)
+
+    return dataset
+
+
+def _format_metadata_suffix(metadata: Mapping[str, ArrayLike] | None) -> str:
+    if not metadata:
+        return ""
+
+    parts: List[str] = []
+    for name, values in metadata.items():
+        arr = np.asarray(to_numpy(values), dtype=float).reshape(-1)
+        if arr.size == 0:
+            continue
+        value = float(arr[0])
+        formatted = format(value, ".6g").replace("-", "m").replace(".", "p")
+        parts.append(f"{name}_{formatted}")
+
+    return "__".join(parts)
+
+
+def export_predictions_to_paraview(
+    y_pred: ArrayLike,
+    y_true: ArrayLike,
+    metrics: Iterable[tuple[str, MetricFn]] | None,
+    *,
+    config: ParaviewExportConfig,
+) -> List[Path]:
+    """
+    Export predictions/targets and derived metrics to ParaView (vtk.hdf) files.
+
+    All tensors must be descaled prior to calling this function. Fields are
+    stored as cell-centered data. Snapshot metadata (inputs, conditions, etc.)
+    can be provided via ``config.snapshot_metadata``.
+    """
+
+    ncells = config.mesh.ncells
+
+    pred_samples = _ensure_sample_major(y_pred, ncells)
+    true_samples = _ensure_sample_major(y_true, ncells)
+
+    if pred_samples.shape != true_samples.shape:
+        raise ValueError("Predictions and targets must share the same shape")
+
+    nsnaps = pred_samples.shape[0]
+
+    instants = np.asarray(config.instants, dtype=np.int32)
+    times = np.asarray(config.times, dtype=np.float64)
+    if instants.shape[0] != nsnaps or times.shape[0] != nsnaps:
+        raise ValueError("Instants/times length must match number of snapshots")
+
+    cell_fields: Dict[str, np.ndarray] = {}
+
+    metric_items = list(metrics) if metrics else [("prediction", lambda yp, yt: yp)]
+    for name, fn in metric_items:
+        metric_result = fn(pred_samples, true_samples)
+        metric_samples = _ensure_sample_major(metric_result, ncells, nsnaps_hint=nsnaps)
+        if metric_samples.shape != pred_samples.shape:
+            raise ValueError(f"Metric '{name}' must return the same shape as inputs")
+        if name in cell_fields:
+            raise ValueError(f"Duplicate field name detected: {name}")
+        cell_fields[name] = _sample_to_cell_major(metric_samples)
+
+    metadata_arrays: Dict[str, np.ndarray] = {}
+    if config.snapshot_metadata:
+        for name, values in config.snapshot_metadata.items():
+            arr = np.asarray(to_numpy(values), dtype=float).reshape(-1)
+            if arr.size not in (1, nsnaps):
+                raise ValueError(f"Metadata '{name}' must have length 1 or nsnaps")
+            if arr.size == 1 and nsnaps > 1:
+                arr = np.broadcast_to(arr, nsnaps)
+            metadata_arrays[name] = arr
+
+            constant = np.broadcast_to(arr.reshape(1, -1), (ncells, nsnaps))
+            cell_fields[f"meta_{name}"] = constant[:, :, None]
+
+    if config.extra_cell_fields:
+        for name, values in config.extra_cell_fields.items():
+            if name in cell_fields:
+                raise ValueError(f"Duplicate field name detected: {name}")
+            extra_samples = _ensure_sample_major(values, ncells, nsnaps_hint=nsnaps)
+            cell_fields[name] = _sample_to_cell_major(extra_samples)
+
+    dataset = _build_dataset(config, cell_fields, config.snapshot_metadata)
+
+    output_dir = config.output_dir
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    written: List[Path] = []
+    mode = config.mode
+    casestr_base = config.base_name or "predictions"
+
+    if mode == "single":
+        pyLOM.io.pv_writer(
+            Mesh=config.mesh,
+            Dataset=dataset,
+            casestr=casestr_base,
+            basedir=str(output_dir),
+            instants=instants,
+            times=times,
+            vars=list(dataset.fields.keys()),
+            fmt="vtkh5",
+            mode="w",
+        )
+        written_file = output_dir / f"{casestr_base}.vtk.hdf"
+        written.append(written_file)
+
+        # VTK-HDF stores instant/time as numeric values, not arbitrary per-snapshot names.
+        # For reproducible human-readable identification in single-file mode, emit a sidecar map.
+        if metadata_arrays:
+            labels = []
+            for idx in range(nsnaps):
+                slice_metadata = {
+                    name: metadata_arrays[name][idx : idx + 1]
+                    for name in metadata_arrays
+                }
+                suffix = _format_metadata_suffix(slice_metadata)
+                labels.append(
+                    {
+                        "snapshot_index": int(idx),
+                        "instant": int(instants[idx]),
+                        "time": float(times[idx]),
+                        "name": f"{casestr_base}_{idx:04d}" + (f"__{suffix}" if suffix else ""),
+                    }
+                )
+            labels_path = output_dir / f"{casestr_base}__snapshot_labels.json"
+            with labels_path.open("w", encoding="utf-8") as f:
+                json.dump({"snapshots": labels}, f, indent=2, ensure_ascii=False)
+            written.append(labels_path)
+    elif mode == "per_snapshot":
+        for idx in range(nsnaps):
+            slice_fields = {
+                name: values[:, idx : idx + 1, :]
+                for name, values in cell_fields.items()
+            }
+            slice_metadata = (
+                {
+                    name: metadata_arrays[name][idx : idx + 1]
+                    for name in metadata_arrays
+                }
+                if config.snapshot_metadata
+                else None
+            )
+            slice_dataset = _build_dataset(config, slice_fields, slice_metadata)
+            suffix = _format_metadata_suffix(slice_metadata)
+            if suffix:
+                casestr = f"{casestr_base}_{idx:04d}__{suffix}"
+            else:
+                casestr = f"{casestr_base}_{idx:04d}"
+
+            instants_slice = np.asarray([0], dtype=np.int32)
+            times_slice = np.asarray([times[idx]], dtype=np.float64)
+            pyLOM.io.pv_writer(
+                Mesh=config.mesh,
+                Dataset=slice_dataset,
+                casestr=casestr,
+                basedir=str(output_dir),
+                instants=instants_slice,
+                times=times_slice,
+                vars=list(slice_dataset.fields.keys()),
+                fmt="vtkh5",
+                mode="w",
+            )
+            written.append(output_dir / f"{casestr}.vtk.hdf")
+    else:
+        raise ValueError("mode must be either 'single' or 'per_snapshot'")
+
+    return written
+
+
+# ─────────────────────────────────────────────────────
+# UTILITIES: PLOTTING AND SAVING
+# ─────────────────────────────────────────────────────
+
+def plot_true_vs_pred(y_true: np.ndarray,
+                      y_pred: np.ndarray,
+                      save_path: Path | None = None) -> None:
+    """
+    Plot predicted vs. true values with equal axis limits and 1:1 scale.
+    """
+    if y_true.shape != y_pred.shape:
+        raise ValueError("Shapes of y_true and y_pred must match.")
+
+    num_outputs = y_true.shape[1]
+    fig, axs = plt.subplots(num_outputs, 1, figsize=(6, 6 * num_outputs), squeeze=False)
+
+    for i, ax in enumerate(axs[:, 0]):
+        ax.scatter(y_true[:, i], y_pred[:, i], s=1, alpha=0.5)
+        min_val = float(min(y_true[:, i].min(), y_pred[:, i].min()))
+        max_val = float(max(y_true[:, i].max(), y_pred[:, i].max()))
+        ax.plot([min_val, max_val], [min_val, max_val], "r--")
+        # Same limits and same scale in both axes.
+        ax.set_xlim(min_val, max_val)
+        ax.set_ylim(min_val, max_val)
+        ax.set_aspect("equal", adjustable="box")
+        # Keep each subplot square.
+        if hasattr(ax, "set_box_aspect"):
+            ax.set_box_aspect(1)
+        ax.set_xlabel("True")
+        ax.set_ylabel("Predicted")
+        ax.grid()
+
+    fig.tight_layout()
+    if save_path:
+        fig.savefig(save_path, dpi=300)
+        plt.close(fig)
+
+
+def save_experiment_artifacts(
+    base_path: Path,
+    model: any,
+    metrics_dict: dict[str, float],
+    inputs_scaler: any = None,
+    outputs_scaler: any = None,
+    full_run_config: dict[str, Any] | None = None,
+    extra_files: dict[str, any] | None = None,
+    return_path: bool = False,
+) -> Path | None:
+    """
+    Save model checkpoint + reproducibility config + scalers + metrics.
+
+    Notes
+    -----
+    - The written config.yaml contains a single `repro_config` block
+      with effective values used during training.
+    - A stable SHA256 is computed from a canonical JSON dump of that config document.
+    """
+    # 1) Decide output directory (timestamped subfolder if 'base_path' is a dir)
+    if base_path.is_dir() or not base_path.suffix:
+        timestamp = datetime.datetime.now().isoformat(timespec="seconds").replace(":", "-")
+        model_name = getattr(model, "__class__", type("X",(object,),{})).__name__
+        out_dir = base_path / f"{timestamp}_{model_name}"
+    else:
+        out_dir = base_path
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # 2) Build the resolved reproducibility document we’ll save AND hash
+    model_cfg_dict = _asdict_safe(getattr(model, "model_config", None))
+    train_cfg_dict = _asdict_safe(getattr(model, "last_training_config", None)) if getattr(model, "last_training_config", None) else None
+    graph_spec_obj = getattr(model, "graph_spec", None)
+    prov_dict = {
+        "graph_spec": _asdict_safe(graph_spec_obj) if graph_spec_obj is not None else {},
+        "graph_fingerprint": getattr(model, "graph_fingerprint", None),
+    }
+
+    # Compact very long fields for human-readable YAML and store full content separately.
+    full_input_nodes = None
+    if train_cfg_dict and isinstance(train_cfg_dict.get("subgraph_loader"), dict):
+        input_nodes = train_cfg_dict["subgraph_loader"].get("input_nodes")
+        if isinstance(input_nodes, list):
+            full_input_nodes = input_nodes
+            preview = input_nodes[:5] + input_nodes[-5:]
+            train_cfg_dict["subgraph_loader"]["input_nodes"] = {
+                "count": len(input_nodes),
+                "preview_first_last": preview,
+                "stored_in": "input_nodes_full.json",
+            }
+
+    config_doc = {
+        "repro_config": to_native(
+            _build_repro_config(
+                full_run_config=(full_run_config or {}),
+                model_cfg=model_cfg_dict,
+                training_cfg=train_cfg_dict or {},
+                provenance=prov_dict,
+            )
+        )
+    }
+
+    # 3) Stable hash from canonical JSON (independent of YAML formatting)
+    canonical = json.dumps(config_doc, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    config_sha256 = hashlib.sha256(canonical).hexdigest()
+
+    # 4) Write config.yaml (human‑readable) and meta.yaml
+    yaml_config_path = out_dir / "config.yaml"
+    with yaml_config_path.open("w") as f:
+        yaml.safe_dump(config_doc, f, sort_keys=False)
+    if full_input_nodes is not None:
+        with (out_dir / "input_nodes_full.json").open("w") as f:
+            json.dump(full_input_nodes, f)
+
+    meta_info = {
+        "saved_at": datetime.datetime.now().isoformat(),
+        "config_sha256": config_sha256,
+        "torch_version": str(torch.__version__),
+        "user": getpass.getuser(),
+        "git_commit": get_git_commit(),
+    }
+    meta_info = to_native(meta_info)  # Convert to native types
+    with (out_dir / "meta.yaml").open("w") as f:
+        yaml.safe_dump(meta_info, f, sort_keys=False)
+
+    # 5) Save model checkpoint (contains DTOs + provenance + states)
+    model.save(out_dir / "model.pth")
+
+    # 6) Save scalers (via their own API)
+    # Use consistent, pluralized names and JSON extension.
+    if inputs_scaler is not None:
+        if not getattr(inputs_scaler, "is_fitted", True):
+            raiseError("inputs_scaler must be fitted before saving.")
+        if hasattr(inputs_scaler, "save"):
+            inputs_scaler.save(str(out_dir / "inputs_scaler.json"))
+        else:
+            raiseError("inputs_scaler does not implement a .save(filepath) method.")
+
+    if outputs_scaler is not None:
+        if hasattr(outputs_scaler, "save"):
+            outputs_scaler.save(str(out_dir / "outputs_scaler.json"))
+        else:
+            raiseError("outputs_scaler does not implement a .save(filepath) method.")
+
+    # 7) Save metrics (YAML with numpy→native conversion)
+    native_metrics = to_native(metrics_dict)
+    with (out_dir / "metrics.yaml").open("w") as f:
+        yaml.safe_dump(native_metrics, f, sort_keys=False)
+
+    # 8) Extra files
+    if extra_files:
+        for filename, generator_fn in extra_files.items():
+            if not callable(generator_fn):
+                raise TypeError(f"Expected a callable for file '{filename}'")
+            generator_fn(out_dir / filename)
+
+    pprint(0, f"Experiment artifacts saved to: {out_dir}")
+    return out_dir if return_path else None
+
+
+def _resolved_value(cfg: Mapping[str, Any], key: str, default: Any = None) -> Any:
+    eff_key = f"{key}_effective"
+    if eff_key in cfg:
+        return cfg.get(eff_key)
+    return cfg.get(key, default)
+
+
+def _resolve_dataset_config(dataset_cfg: Mapping[str, Any]) -> Dict[str, Any]:
+    # Minimal set required to reproduce dataset construction and scaling behavior.
+    resolved: Dict[str, Any] = {
+        "field_names": dataset_cfg.get("field_names"),
+        "variables_names": dataset_cfg.get("variables_names"),
+        "mesh_shape": dataset_cfg.get("mesh_shape"),
+        "scale_inputs": bool(_resolved_value(dataset_cfg, "scale_inputs", True)),
+        "scale_outputs": bool(_resolved_value(dataset_cfg, "scale_outputs", True)),
+        "input_scaler_type": _resolved_value(dataset_cfg, "input_scaler_type", "minmax"),
+        "output_scaler_type": _resolved_value(dataset_cfg, "output_scaler_type", "minmax"),
+    }
+
+    # Remove null entries to keep config compact and readable.
+    return {k: v for k, v in resolved.items() if v is not None}
+
+
+def _build_repro_config(
+    *,
+    full_run_config: Mapping[str, Any],
+    model_cfg: Mapping[str, Any],
+    training_cfg: Mapping[str, Any],
+    provenance: Mapping[str, Any],
+) -> Dict[str, Any]:
+    dataset_cfg_raw = full_run_config.get("dataset_config", {}) or {}
+    graph_spec = provenance.get("graph_spec", {}) if isinstance(provenance, Mapping) else {}
+    graph_path = None
+    if isinstance(graph_spec, Mapping):
+        graph_path = graph_spec.get("path")
+
+    training_out = dict(training_cfg)
+    sg = training_out.get("subgraph_loader")
+    if isinstance(sg, dict):
+        input_nodes = sg.get("input_nodes")
+        seed_selector = sg.get("seed_selector")
+        if isinstance(input_nodes, dict) and input_nodes.get("stored_in"):
+            sg["seed_selector"] = {
+                "type": "explicit_list",
+                "frac": None,
+                "nodes_path": input_nodes.get("stored_in"),
+            }
+            sg["input_nodes"] = None
+        elif isinstance(seed_selector, dict):
+            st = str(seed_selector.get("type", "all")).strip().lower()
+            if st == "all":
+                sg["input_nodes"] = None
+
+    repro: Dict[str, Any] = {
+        "experiment": full_run_config.get("experiment", {}) or {},
+        "datasets": full_run_config.get("datasets", {}) or {},
+        "dataset_config": _resolve_dataset_config(dataset_cfg_raw),
+        "model": {
+            "graph_path": graph_path,
+            "config": dict(model_cfg),
+        },
+        "training": training_out,
+    }
+    return repro
+
+
+def plot_train_test_loss(
+    loss_dict: Mapping[str, Union[Sequence[Any], np.ndarray, torch.Tensor, Mapping[str, Union[Sequence[Any], np.ndarray, torch.Tensor]]]],
+    *,
+    title: str = "Training/Validation Loss",
+    xlabel: str = "Epoch",
+    ylabel: str = "Loss",
+    yscale: str = "log",             # "log" or "linear"
+    mark_min: bool = True,           # mark the epoch of minimal loss for each series
+    grid: bool = True,
+    legend_loc: str = "best",
+    # Saving / rendering
+    save: bool = False,              # backward-compat; if True and save_path is None -> "./plots/train_test_losses.png"
+    save_path: Optional[str] = None,
+    dpi: int = 300,
+    show: bool = True,
+    # Reuse axes if desired
+    ax: Optional[plt.Axes] = None,
+) -> Tuple[plt.Figure, plt.Axes, Dict[str, Dict[str, float]]]:
+    """
+    Plot one or multiple loss curves.
+
+    Parameters
+    ----------
+    loss_dict : mapping
+        Dictionary of loss series. Two accepted shapes:
+        1) {"Model A": losses, "Model B": losses}
+        2) {"Model A": {"train": train_losses, "val": val_losses}, ...}
+       Each "losses" can be a list/tuple, numpy array, torch tensor, or a list of tensors.
+    title, xlabel, ylabel : str
+        Plot labels.
+    yscale : {"log", "linear"}
+        Y axis scale.
+    mark_min : bool
+        If True, annotate and mark the epoch of the minimum loss per series.
+    grid : bool
+        Show a light grid.
+    legend_loc : str
+        Legend location.
+    save : bool
+        Backward-compatible toggle. If True and `save_path` is None, defaults to "./plots/train_test_losses.png".
+    save_path : Optional[str]
+        If provided, save the figure to this path (directories created as needed).
+    dpi : int
+        Figure DPI when saving.
+    show : bool
+        If True, call plt.show() at the end.
+    ax : Optional[matplotlib.axes.Axes]
+        Existing axes to draw on; if None, a new figure/axes is created.
+
+    Returns
+    -------
+    fig, ax, summary : (Figure, Axes, dict)
+        - fig / ax: the Matplotlib figure and axes used.
+        - summary: per-series information, e.g. {"Model A": {"min": 0.01, "argmin": 42, "last": 0.012}, ...}
+
+    Notes
+    -----
+    - When `save=True` and `save_path is None`, the file is saved to "./plots/train_test_losses.png".
+    """
+
+    # Prepare figure/axes
+    created_fig = False
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(8, 5))
+        created_fig = True
+    else:
+        fig = ax.figure
+
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_yscale(yscale)
+
+    summary: Dict[str, Dict[str, float]] = {}
+
+    # Normalize loss_dict to flat series for plotting
+    # Case 1: value is a sequence/array/tensor => single series
+    # Case 2: value is a mapping => multiple named series (e.g., train/val/test)
+    for model_name, series in loss_dict.items():
+        if isinstance(series, Mapping):
+            # nested: plot each split
+            for split_name, split_series in series.items():
+                y_raw = np.asarray(to_numpy(split_series), dtype=float).reshape(-1)
+                epochs = np.arange(1, len(y_raw) + 1)
+                y_vis = y_raw
+
+                ax.plot(epochs, y_vis, label=f"{model_name} ({split_name})")
+
+                min_idx = int(np.argmin(y_raw))
+                min_val = float(y_raw[min_idx])
+                if mark_min:
+                    ax.scatter(epochs[min_idx], y_vis[min_idx], marker="o", s=25, zorder=3)
+                    ax.annotate(
+                        f"min={min_val:.3e} @ {epochs[min_idx]}",
+                        xy=(epochs[min_idx], y_vis[min_idx]),
+                        xytext=(5, 8),
+                        textcoords="offset points",
+                        fontsize=8,
+                    )
+
+                # record summary per series
+                summary[f"{model_name} ({split_name})"] = {
+                    "min": min_val,
+                    "argmin": float(min_idx + 1),  # epoch index (1-based)
+                    "last": float(y_raw[-1]),
+                    "n_epochs": float(len(y_raw)),
+                }
+        else:
+            # flat: single series per model_name
+            y_raw = np.asarray(to_numpy(series), dtype=float).reshape(-1)
+            epochs = np.arange(1, len(y_raw) + 1)
+            y_vis = y_raw
+
+            ax.plot(epochs, y_vis, label=f"{model_name}")
+
+            min_idx = int(np.argmin(y_raw))
+            min_val = float(y_raw[min_idx])
+            if mark_min:
+                ax.scatter(epochs[min_idx], y_vis[min_idx], marker="o", s=25, zorder=3)
+                ax.annotate(
+                    f"min={min_val:.3g} @ {epochs[min_idx]}",
+                    xy=(epochs[min_idx], y_vis[min_idx]),
+                    xytext=(5, 8),
+                    textcoords="offset points",
+                    fontsize=8,
+                )
+
+            summary[model_name] = {
+                "min": min_val,
+                "argmin": float(min_idx + 1),
+                "last": float(y_raw[-1]),
+                "n_epochs": float(len(y_raw)),
+            }
+
+    if grid:
+        ax.grid(True, linestyle=":", linewidth=0.8)
+    ax.legend(loc=legend_loc, frameon=True)
+    fig.tight_layout()
+
+    # Saving logic
+    final_save_path = save_path
+    if save and final_save_path is None:
+        final_save_path = os.path.join(".", "plots", "train_test_losses.png")
+    if final_save_path is not None:
+        os.makedirs(os.path.dirname(final_save_path), exist_ok=True)
+        fig.savefig(final_save_path, dpi=dpi)
+
+    if show:
+        plt.show()
+    elif created_fig:
+        # If we created the figure and user does not want to show it,
+        # it's still returned so the caller can manage it.
+        pass
+
+    return fig, ax, summary

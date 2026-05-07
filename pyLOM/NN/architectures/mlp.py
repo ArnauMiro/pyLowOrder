@@ -71,7 +71,7 @@ class MLP(nn.Module):
         self.model_name = model_name
 
         self.layers = nn.ModuleList()
-        for i in range(self.n_layers):
+        for i in range(self.n_layers + 1):
             in_size = self.input_size if i == 0 else self.hidden_size
             out_size = self.hidden_size
             self.layers.append(nn.Linear(in_size, out_size))

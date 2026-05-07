@@ -9,8 +9,28 @@ from sklearn.metrics import (
     balanced_accuracy_score, brier_score_loss
 )
 
-from .. import pprint
-from ..utils import raiseError
+from ... import pprint
+from ...utils import raiseError
+
+
+def _score_f1(y_true: np.ndarray, y_pred: np.ndarray, pos_label: int) -> float:
+    return f1_score(y_true, y_pred, pos_label=pos_label)
+
+
+def _score_accuracy(y_true: np.ndarray, y_pred: np.ndarray, pos_label: int) -> float:
+    return accuracy_score(y_true, y_pred)
+
+
+def _score_balanced_accuracy(y_true: np.ndarray, y_pred: np.ndarray, pos_label: int) -> float:
+    return balanced_accuracy_score(y_true, y_pred)
+
+
+def _score_youden(y_true: np.ndarray, y_pred: np.ndarray, pos_label: int) -> float:
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
+    sens = tp / max(1, tp + fn)
+    spec = tn / max(1, tn + fp)
+    return sens + spec - 1.0
+
 
 class RegressionEvaluator():
     r"""
@@ -307,30 +327,21 @@ class ClassificationEvaluator:
         p, r, th = precision_recall_curve(y_true, y_prob, pos_label=self.pos_label)
         candidates = list(th) + [0.5, 0.0, 1.0]
 
-        # Pick scorer
         metric = self.threshold_metric
-        if metric == "f1":
-            def scorer(y_true, y_pred):
-                return f1_score(y_true, y_pred, pos_label=self.pos_label)
-        elif metric == "accuracy":
-            def scorer(y_true, y_pred):
-                return accuracy_score(y_true, y_pred)
-        elif metric == "balanced_accuracy":
-            def scorer(y_true, y_pred):
-                return balanced_accuracy_score(y_true, y_pred)
-        elif metric == "youden":
-            def scorer(y_true, y_pred):
-                tn, fp, fn, tp = self._confmat_counts(y_true, y_pred)
-                sens = tp / max(1, tp + fn)
-                spec = tn / max(1, tn + fp)
-                return sens + spec - 1.0
 
         best_val = -np.inf
         best_th = 0.5
 
         for t in candidates:
             y_pred = (y_prob >= t)
-            val = scorer(y_true, y_pred)
+            if metric == "f1":
+                val = _score_f1(y_true, y_pred, self.pos_label)
+            elif metric == "accuracy":
+                val = _score_accuracy(y_true, y_pred, self.pos_label)
+            elif metric == "balanced_accuracy":
+                val = _score_balanced_accuracy(y_true, y_pred, self.pos_label)
+            else:
+                val = _score_youden(y_true, y_pred, self.pos_label)
             if val > best_val:
                 best_val, best_th = val, float(t)
 

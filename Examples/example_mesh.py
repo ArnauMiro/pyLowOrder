@@ -13,7 +13,7 @@ import pyLOM
 DATAFILE = './Testsuite/DATA/CYLINDER.h5'
 
 m = pyLOM.Mesh.load(DATAFILE)
-print(m)
+pyLOM.pprint(m)
 
 
 ## Compute geometrical information (this may take a while depending on your mesh size)
@@ -26,10 +26,12 @@ cell_conec = m.cell_connectivity
 edge_dict = pyLOM.vmmath.edge_to_cells(cell_conec)
 surf_norms = pyLOM.vmmath.fix_normals_coherence(surf_norms, edge_dict, cell_conec, m.ncells)
 
+# Create a dummy variable to test saving
+dummy_var = np.zeros((2*m.ncells,3),np.double)
+
 pyLOM.pprint(0,"surf_norms: ", surf_norms.shape)
 pyLOM.pprint(0,"edge_norms: ", edge_norms.shape)
 pyLOM.pprint(0,"cell_connectivity: ", cell_conec.shape)
-
 
 ## Export to ParaView for visualization
 d = pyLOM.Dataset(xyz=xyz_center, ptable=m.partition_table, order=m.cellOrder, point=False,
@@ -42,9 +44,19 @@ d = pyLOM.Dataset(xyz=xyz_center, ptable=m.partition_table, order=m.cellOrder, p
 	EDGE_NORM_2 = {'ndim': 3,'value':edge_norms[:,3:6].flatten()},
 	EDGE_NORM_3 = {'ndim': 3,'value':edge_norms[:,6:9].flatten()},
 	EDGE_NORM_4 = {'ndim': 3,'value':edge_norms[:,9:12].flatten()},
-	CELL_CONEC = {'ndim':cell_conec.shape[1],'value':cell_conec.flatten()},
+	CELL_CONEC = {'ndim': 4,'value':cell_conec.flatten()},
 )
+pyLOM.pprint(0, "SURF_NORMS:", surf_norms.shape, "->", surf_norms.flatten().shape)
+pyLOM.pprint(0, "ptable:", m.partition_table, "cells:", m.ncells)
+
+pyLOM.pprint(0, "Dataset created with the following variables:")
+pyLOM.pprint(d)
+d.save('./example_mesh.h5')
+pyLOM.pprint(0, "Dataset saved to ./example_mesh.h5")
+
+pyLOM.pprint(0, "Loading the dataset back to verify")
+d_load = pyLOM.Dataset.load('./example_mesh.h5')
+pyLOM.pprint(0, d_load)
 pyLOM.io.pv_writer(m,d,'mesh',basedir='./',instants=[0],times=[0.],vars=['SURF_NORMS','EDGE_NORM_1', 'EDGE_NORM_2', 'EDGE_NORM_3', 'EDGE_NORM_4','CELL_CONEC'],fmt='vtkh5')
-
-
+pyLOM.pprint(0, "Mesh saved to ./mesh.vtkh5")
 pyLOM.cr_info()
