@@ -91,7 +91,14 @@ class Pipeline:
 
         return model_output
     
-    def evaluate(self, evaluators, scalers: List = [None, None], set_to_use: str = "test", verbose: bool = True) -> Tuple[Dict, List]:
+    def evaluate(
+        self,
+        evaluators,
+        scalers: List = [None, None],
+        set_to_use: str = "test",
+        verbose: bool = True,
+        evaluation_params: Dict | None = None,
+    ) -> Tuple[Dict, List]:
         r"""
         Evaluate the model on the test dataset.
 
@@ -99,6 +106,8 @@ class Pipeline:
             evaluators (List): The list of evaluators to use for evaluation.
             scalers (List, optional): The list of scalers to use for rescaling the inputs and outputs (default: ``[None, None]``).
             set_to_use (str, optional): The dataset to use for evaluation, must be one of "train", "valid" or "test" (default: ``"test"``).
+            verbose (bool, optional): Whether to print the evaluation metrics (default: ``True``).
+            evaluation_params (Dict, optional): The parameters to use for evaluation. If not provided, the training parameters will be used for evaluation (default: ``None``).
 
         Returns:
             Tuple[Dict, List]: A tuple containing the dictionary of metrics and the list of [x_true, y_true, y_pred].
@@ -117,8 +126,15 @@ class Pipeline:
                 raiseError("Test dataset not provided, cannot evaluate model")
             self.evaluation_dataset = self.test_dataset
 
-        if self.training_params is None:
-            raiseError("Training parameters not available, cannot evaluate model")
+        if evaluation_params is not None:
+            self.evaluation_params = evaluation_params
+        else:
+            if self.training_params is not None:
+                pprint(0, "Evaluation parameters not provided, using training parameters for evaluation")
+                self.evaluation_params = self.training_params
+            else:
+                raiseError("Neither evaluation parameters nor training parameters are available, cannot evaluate model")
+        
         if scalers is not None:
             if len(scalers) != 2:
                 raiseError("scalers must be a list of two elements: [input_scaler, output_scaler]")
@@ -143,7 +159,7 @@ class Pipeline:
             pprint(0, "\nEvaluation of the model:")
         metrics, predictions = _evaluate_model(
             self._model,
-            self.training_params,
+            self.evaluation_params,
             self.evaluation_dataset,
             evaluators,
             inputs_scaler = input_scaler,

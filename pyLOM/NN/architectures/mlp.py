@@ -1,15 +1,21 @@
-import os
-import torch
-import numpy as np
-import torch.nn as nn
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# MLP (Multilayer Perceptron) class.
+#
+# Last rev: 06/05/2026
 
-from torch.utils.data import DataLoader
-from typing import Dict, List, Tuple, Callable
-from ..optimizer import OptunaOptimizer, TrialPruned
-from .. import DEVICE, PIN_MEMORY, set_seed  # pyLOM/NN/__init__.py
-from ... import pprint, cr  # pyLOM/__init__.py
-from ...utils.errors import raiseWarning, raiseError
-from ..loss import BaseLossFunction, TorchLossAdapter
+import os, numpy as np, torch, torch.nn as nn
+
+from typing             import Dict, List, Tuple, Callable
+from torch.utils.data   import DataLoader
+
+from ..                 import DEVICE, PIN_MEMORY, set_seed
+from ..optimizer        import OptunaOptimizer, TrialPruned
+from ..loss             import BaseLossFunction, TorchLossAdapter
+from ...                import pprint, cr
+from ...utils.errors    import raiseWarning, raiseError
 
 
 class MLP(nn.Module):
@@ -65,13 +71,13 @@ class MLP(nn.Module):
         self.model_name = model_name
 
         self.layers = nn.ModuleList()
-        for i in range(n_layers):
-            in_size = input_size if i == 0 else hidden_size
-            out_size = hidden_size
+        for i in range(self.n_layers):
+            in_size = self.input_size if i == 0 else self.hidden_size
+            out_size = self.hidden_size
             self.layers.append(nn.Linear(in_size, out_size))
-            if p_dropouts > 0:
-                self.layers.append(nn.Dropout(p_dropouts))
-        self.oupt = nn.Linear(hidden_size, output_size)
+            if self.p_dropouts > 0:
+                self.layers.append(nn.Dropout(self.p_dropouts))
+        self.oupt = nn.Linear(self.hidden_size, self.output_size)
 
         for layer in self.layers:
             if isinstance(layer, nn.Linear):
@@ -153,6 +159,7 @@ class MLP(nn.Module):
         scheduler_class: torch.optim.lr_scheduler.LRScheduler = None,
         optimizer_kwargs: dict = {},
         scheduler_kwargs: dict = {},
+        dataloader_kwargs: dict = {},
         save_logs_path: str = None,
         print_rate_batch: int = 0,
         print_rate_epoch: int = 1,
@@ -172,44 +179,37 @@ class MLP(nn.Module):
             loss_fn_kwargs (dict, optional): Additional keyword arguments to pass to the loss function (default: ``{}``).
             optimizer_class (torch.optim.Optimizer, optional): Optimizer class to use (default: ``torch.optim.Adam``).
             scheduler_class (torch.optim.lr_scheduler._LRScheduler, optional): Learning rate scheduler class to use. If ``None``, no scheduler will be used (default: ``None``).
-            optimizer_kwargs (dict, optional): Additional keyword arguments to pass to the optimizer (default: ``{}``).
-            scheduler_kwargs (dict, optional): Additional keyword arguments to pass to the scheduler (default: ``{}``).
+            optimizer_kwargs (dict, optional): Additional keyword arguments to pass to the optimizer (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/optim.html#torch.optim.Optimizer.
+            scheduler_kwargs (dict, optional): Additional keyword arguments to pass to the scheduler (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/optim.html#torch.optim.lr_scheduler._LRScheduler.
+            dataloader_kwargs (dict, optional): Additional keyword arguments to pass to the dataloader (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader. Overrides the following defaults: ``batch_size`` (taken from the ``batch_size`` argument),``shuffle=True``, ``num_workers=0``, ``pin_memory=PIN_MEMORY`` (default: ``False``).
             save_logs_path (str, optional): Path to save the training results. If ``None``, no results will be saved (default: ``None``).
             print_rate_batch (int, optional): Print loss every ``print_rate_batch`` batches (default: ``1``). If set to ``0``, no print will be done.
             print_rate_epoch (int, optional): Print loss every ``print_rate_epoch`` epochs (default: ``1``). If set to ``0``, no print will be done.
-            kwargs (dict, optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):
-                - shuffle (bool, optional): Shuffle the data (default: ``True``).
-                - num_workers (int, optional): Number of workers to use (default: ``0``).
-                - pin_memory (bool, optional): Pin memory (default: ``True``).
+            save_best (bool, optional): Wheter to save the best model during training (default: ``False``). If ``True``, the model will be saved in the `save_logs_path` directory with the name `best_model_{model_name}.pth`.
 
         Returns:
             Dict[str, List[float]]: Dictionary containing the training and evaluation results:
                 - "train_loss": List of training losses for each epoch.
-                - "test_loss": List of evaluation losses for each epoch (if eval_dataset is provided
+                - "test_loss": List of evaluation losses for each epoch (if eval_dataset is provided).
                 - "lr": List of learning rates for each epoch.
                 - "loss_iterations_train": List of training losses for each iteration.
                 - "loss_iterations_test": List of evaluation losses for each iteration (if eval_dataset is provided).
                 - "grad_norms": List of gradient norms for each iteration.
                 - "check": List with a single boolean indicating successful training.
         """
-        dataloader_params = {
+        _dataloader_kwargs = {
             "batch_size": batch_size,
             "shuffle": True,
             "num_workers": 0,
             "pin_memory": PIN_MEMORY,
+            **dataloader_kwargs,
         }
 
         if not hasattr(self, "train_dataloader"):
-            for key in dataloader_params.keys():
-                if key in kwargs:
-                    dataloader_params[key] = kwargs[key]
-            self.train_dataloader = DataLoader(train_dataset, **dataloader_params)
+            self.train_dataloader = DataLoader(train_dataset, **_dataloader_kwargs)
         
         if not hasattr(self, "eval_dataloader") and eval_dataset is not None:
-            for key in dataloader_params.keys():
-                if key in kwargs:
-                    dataloader_params[key] = kwargs[key]
-            self.eval_dataloader = DataLoader(eval_dataset, **dataloader_params)
+            self.eval_dataloader = DataLoader(eval_dataset, **_dataloader_kwargs)
 
         if not hasattr(self, "optimizer"):
             self.optimizer = optimizer_class(
@@ -285,14 +285,15 @@ class MLP(nn.Module):
 
             for b_idx, batch in enumerate(self.train_dataloader):
                 batch = tuple(b.to(self.device) for b in batch)
-                train_loss += self.optimizer.step(closure).item()
+                batch_loss = self.optimizer.step(closure).item()
+                train_loss += batch_loss
                 total_norm = torch.norm(torch.stack([p.grad.norm() for p in self.parameters() if p.grad is not None]))
                 grad_norms.append(total_norm.item())
         
                 if print_rate_batch != 0 and (b_idx % print_rate_batch) == 0:
                     pprint(
                         0,
-                        f"\tBatch {b_idx+1}/{len(self.train_dataloader)}, Train Loss: {train_loss:.4e}",
+                        f"\tBatch {b_idx+1}/{len(self.train_dataloader)}, Train Loss: {batch_loss:.4e}",
                         flush=True
                     )
                     
@@ -353,7 +354,10 @@ class MLP(nn.Module):
 
         if save_logs_path is not None:
             pprint(0, f"\nPrinting losses on path: {save_logs_path}")
-            fn = os.path.join(save_logs_path,f"training_results_{self._model_name}.npy")
+            if save_logs_path.endswith(".npy"):
+                fn = save_logs_path
+            else:
+                fn = os.path.join(save_logs_path,f"training_results_{self.mname}.npy")
             np.save(fn, results)
 
         return results
@@ -363,6 +367,7 @@ class MLP(nn.Module):
         self, 
         X: torch.utils.data.Dataset, 
         return_targets: bool = False,
+        dataloader_kwargs: dict = {},
         **kwargs,
     ):
         r"""
@@ -373,28 +378,21 @@ class MLP(nn.Module):
         Args:
             X (torch.utils.data.Dataset): The dataset whose target values are to be predicted using the input data.
             return_targets (bool, optional): If ``True``, the true target values will be returned along with the predictions (default: ``False``).
-            kwargs (dict, optional): Additional keyword arguments to pass to the DataLoader. Can be used to set the parameters of the DataLoader (see PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader):
-                
-                - batch_size (int, optional): Batch size (default: ``256``).
-                - shuffle (bool, optional): Shuffle the data (default: ``False``).
-                - num_workers (int, optional): Number of workers to use (default: ``0``).
-                - pin_memory (bool, optional): Pin memory (default: ``True``).
+            dataloader_kwargs (dict, optional): Additional keyword arguments to pass to the dataloader (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader. Overrides the following defaults: ``batch_size=256`` ,``shuffle=False``, ``num_workers=0``, ``pin_memory=PIN_MEMORY`` (default: ``False``).
  
         Returns:
             Tuple [np.ndarray, np.ndarray]: The predictions and the true target values.
         """
-        dataloader_params = {
-            "batch_size": 256,
+
+        _dataloader_kwargs = {
+            "batch_size": kwargs.get("batch_size", 256),
             "shuffle": False,
             "num_workers": 0,
             "pin_memory": PIN_MEMORY,
+            **dataloader_kwargs,
         }
-        
-        for key in dataloader_params.keys():
-            if key in kwargs:
-                dataloader_params[key] = kwargs[key]
 
-        predict_dataloader = DataLoader(X, **dataloader_params)
+        predict_dataloader = DataLoader(X, **_dataloader_kwargs)
         if hasattr(predict_dataloader.dataset, "eval"):
             predict_dataloader.dataset.eval()
 
@@ -584,6 +582,33 @@ class MLP(nn.Module):
                     return trial.suggest_int(name, low, high, log=use_log)
 
                 if isinstance(low, float) and isinstance(high, float):
+                    
+                    def generate_geometric_grid_towards_one(low, high, tol=1e-4, decimals=4):
+                        ratio = 1 - low / high
+                        values = [round(low, decimals)]
+                        current = low
+
+                        max_points = 1000
+
+                        for _ in range(max_points):
+                            step = (high - current) * ratio
+                            current = current + step
+                            current = min(current, high)
+                            current = round(current, decimals)
+                            if current == values[-1]:
+                                break
+
+                            values.append(current)
+
+                            if (high - current) <= tol:
+                                break
+
+                        return values
+                    
+                    if high == 1.0 and (1.0 - low) < 0.2:
+                        choices = generate_geometric_grid_towards_one(low, high)
+                        return trial.suggest_categorical(name, choices)
+
                     use_log = (high / max(1e-12, low)) >= 1000
                     return trial.suggest_float(name, low, high, log=use_log)
 
@@ -606,16 +631,14 @@ class MLP(nn.Module):
                     epochs = training_params["epochs"]
                     training_params["epochs"] = 1
                     for epoch in range(epochs):
-                        model.fit(train_dataset, **training_params)
-                        y_pred, y_true = model.predict(eval_dataset, return_targets=True)
-                        loss_val = ((y_pred - y_true)**2).mean()
+                        results = model.fit(train_dataset, eval_dataset, **training_params)
+                        loss_val = results["test_loss"][-1]
                         trial.report(loss_val, epoch)
                         if trial.should_prune(): 
                             raise TrialPruned()
                 else:
-                    model.fit(train_dataset, **training_params)
-                    y_pred, y_true = model.predict(eval_dataset, return_targets=True)
-                    loss_val = ((y_pred - y_true)**2).mean()
+                    results = model.fit(train_dataset, eval_dataset, **training_params)
+                    loss_val = results["test_loss"][-1]
                 
                 return loss_val
             
