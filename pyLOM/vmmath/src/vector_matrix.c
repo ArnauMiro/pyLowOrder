@@ -1058,3 +1058,147 @@ void drandom_matrix(double *A, int m, int n, unsigned int seed){
 		}
 	}
 }
+
+void cconj(scomplex_t *A, scomplex_t *B, const int m, const int n){
+	/*
+		Returns the conjugated version of a matrix
+	*/
+	for (int ii = 0; ii < m; ii++){
+		for (int jj = 0; jj < n; jj++){
+			AC_MAT(B,n,ii,jj) = conjf(AC_MAT(A,n,ii,jj));
+		}
+	}
+}
+
+void zconj(dcomplex_t *A, dcomplex_t *B, const int m, const int n){
+	/*
+		Returns the conjugated version of a matrix
+	*/
+	for (int ii = 0; ii < m; ii++){
+		for (int jj = 0; jj < n; jj++){
+			AC_MAT(B,n,ii,jj) = conj(AC_MAT(A,n,ii,jj));
+		}
+	}
+}
+
+void cdagger(scomplex_t *A, scomplex_t *B, const int m, const int n){
+	/*
+		Returns the dagger version of a matrix
+	*/
+	for (int ii = 0; ii < m; ii++){
+		for (int jj = 0; jj < n; jj++){
+			AC_MAT(B,m,jj,ii) = conjf(AC_MAT(A,n,ii,jj));
+		}
+	}
+}
+
+void zdagger(dcomplex_t *A, dcomplex_t *B, const int m, const int n){
+	/*
+		Returns the dagger version of a matrix
+	*/
+	for (int ii = 0; ii < m; ii++){
+		for (int jj = 0; jj < n; jj++){
+			AC_MAT(B,m,jj,ii) = conj(AC_MAT(A,n,ii,jj));
+		}
+	}
+}
+
+void sdiag(float *A, float *B, const int m){
+	/*
+		Diagonal of a square matrix.
+	*/
+	for (int ii = 0; ii < m; ii++){
+		B[ii] = AC_MAT(A,m,ii,ii);
+	}
+}
+
+void ddiag(double *A, double *B, const int m){
+	/*
+		Diagonal of a square matrix.
+	*/
+	for (int ii = 0; ii < m; ii++){
+		B[ii] = AC_MAT(A,m,ii,ii);
+	}
+}
+
+void cdiag(scomplex_t *A, scomplex_t *B, const int m){
+	/*
+		Diagonal of a square matrix.
+	*/
+	for (int ii = 0; ii < m; ii++){
+		B[ii] = AC_MAT(A,m,ii,ii);
+	}
+}
+
+void zdiag(dcomplex_t *A, dcomplex_t *B, const int m){
+	/*
+		Diagonal of a square matrix.
+	*/
+	for (int ii = 0; ii < m; ii++){
+		B[ii] = AC_MAT(A,m,ii,ii);
+	}
+}
+
+void sdiag2(float *A, float *B, const int m){
+	/*
+		Diagonal matrix of an array.
+	*/
+	for (int ii = 0; ii < m; ii++){
+		for (int jj = 0; jj < m; jj++){
+			if (ii == jj){
+				AC_MAT(B,m,ii,ii) = A[ii];
+			}
+			else{
+				AC_MAT(B,m,ii,jj) = 0;
+			}
+		}
+	}
+}
+
+void ddiag2(double *A, double *B, const int m){
+	/*
+		Diagonal matrix of an array.
+	*/
+	for (int ii = 0; ii < m; ii++){
+		for (int jj = 0; jj < m; jj++){
+			if (ii == jj){
+				AC_MAT(B,m,ii,ii) = A[ii];
+			}
+			else{
+				AC_MAT(B,m,ii,jj) = 0;
+			}
+		}
+	}
+}
+
+void cdiag2(scomplex_t *A, scomplex_t *B, const int m){
+	/*
+		Diagonal matrix of an array.
+	*/
+	for (int ii = 0; ii < m; ii++){
+		for (int jj = 0; jj < m; jj++){
+			if (ii == jj){
+				AC_MAT(B,m,ii,ii) = A[ii];
+			}
+			else{
+				AC_MAT(B,m,ii,jj) = 0;
+			}
+		}
+	}
+}
+
+void zdiag2(dcomplex_t *A, dcomplex_t *B, const int m){
+	/*
+		Diagonal matrix of an array.
+	*/
+	for (int ii = 0; ii < m; ii++){
+		for (int jj = 0; jj < m; jj++){
+			if (ii == jj){
+				AC_MAT(B,m,ii,ii) = A[ii];
+			}
+			else{
+				AC_MAT(B,m,ii,jj) = 0;
+			}
+		}
+	}
+}

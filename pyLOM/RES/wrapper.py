@@ -10,7 +10,7 @@ from __future__ import print_function
 import numpy as np
 
 from ..utils.gpu import cp
-from ..vmmath    import vecmat, matmul, temporal_mean, subtract_mean, svd, tsqr_svd, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, matmulp, vandermondeTime, vector_norm, dagger
+from ..vmmath    import vecmat, matmul, svd, cholesky, inv, matmulp, dagger
 from ..utils     import cr_nvtx as cr, cr_start, cr_stop
 
 @cr('RES.run')
@@ -26,35 +26,25 @@ def run(Phi, delta, freq, f, Q=None):
     H = 1 / (-1j * f - Omega) 
 
     if Q is None: 
-
-        # Proper treatment (?)
-        # Qhat = matmulp(transpose(conj(Phi)), Phi) 
-        # Fhat = cholesky(Qhat)
-        # Fhat_inv = inv(Fhat)
-        # Hhat = matmul(Fhat, vecmat(H, Fhat_inv))
-        # U, S, VT = svd(Hhat)
-        
-        U, S, VT = svd(diag(H))
-        V = dagger(VT)
-
-        # U_res = matmul(matmul(Phi, Fhat_inv),U)
-        # V_res = matmul(matmul(Phi, Fhat_inv),V)
-
-        U_res = matmul(Phi,U)
-        V_res = matmul(Phi,V)
-
-
+        Qhat = matmulp(dagger(Phi), Phi) 
+    
     else:
-
         Qhat = matmulp(dagger(Phi), vecmat(Q, Phi))
-        Fhat = cholesky(Qhat)
-        Fhat_inv = inv(Fhat)
+    
+    Fhat = cholesky(Qhat)
+    Fhat_inv = inv(Fhat)
 
-        Hhat = matmul(Fhat, vecmat(H, Fhat_inv))
-        U, S, VT = svd(Hhat)
-        V = dagger(VT)
+    Hhat = matmul(Fhat, vecmat(H, Fhat_inv))
+    U, S, VT = svd(Hhat)
+    V = dagger(VT)
 
-        U_res = matmul(matmul(Phi, Fhat_inv),U)
-        V_res = matmul(matmul(Phi, Fhat_inv),V)
+    U_res = matmul(Phi, matmul(Fhat_inv, U))
+    V_res = matmul(Phi, matmul(Fhat_inv, V))
+    
+    # # U, S, VT = svd(diag(H))
+    # # V = dagger(VT)
+
+    # # U_res = matmul(Phi,U)
+    # # V_res = matmul(Phi,V)
 
     return U_res, S, V_res
