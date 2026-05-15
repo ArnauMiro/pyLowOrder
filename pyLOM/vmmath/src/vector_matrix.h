@@ -43,8 +43,8 @@ int    dinverse(double *A, int N, char *UoL);
 void   dsort(double *v, int *index, int n);
 void   drandom_matrix(double *A, int m, int n, unsigned int seed);
 void   deuclidean_d(double *D, double *X, const int m, const int n);
-void   ddiag(float *A, float *B, const int m);
-void   ddiag2(float *A, float *B, const int m);
+void   ddiag(double *A, double *B, const int m);
+void   ddiag2(double *A, double *B, const int m);
 // Float complex version
 void   ctranspose(scomplex_t *A, scomplex_t *B, const int m, const int n);
 void   cmatmult(scomplex_t *C, scomplex_t *A, scomplex_t *B, const int m, const int n, const int k, const char *TA, const char *TB);
@@ -61,8 +61,8 @@ void   cvandermondeTime(scomplex_t *Vand, float *real, float *imag, int m, int n
 void   csort(scomplex_t *v, int *index, int n);
 void   cconj(scomplex_t *A, scomplex_t *B, int m, int n);
 void   cdagger(scomplex_t *A, scomplex_t *B, int m, int n);
-void   cdiag(float *A, float *B, const int m);
-void   cdiag2(float *A, float *B, const int m);
+void   cdiag(scomplex_t *A, scomplex_t *B, const int m);
+void   cdiag2(scomplex_t *A, scomplex_t *B, const int m);
 // Double complex version
 void   ztranspose(dcomplex_t *A, dcomplex_t *B, const int m, const int n);
 void   zmatmult(dcomplex_t *C, dcomplex_t *A, dcomplex_t *B, const int m, const int n, const int k, const char *TA, const char *TB);
@@ -77,7 +77,7 @@ int    zcholesky(dcomplex_t *A, int N);
 void   zvandermonde(dcomplex_t *Vand, double *real, double *imag, int m, int n);
 void   zvandermondeTime(dcomplex_t *Vand, double *real, double *imag, int m, int n, double *t);
 void   zsort(dcomplex_t *v, int *index, int n);
-void   zconj(scomplex_t *A, scomplex_t *B, int m, int n);
-void   zdagger(scomplex_t *A, scomplex_t *B, int m, int n);
-void   zdiag(float *A, float *B, const int m);
-void   zdiag2(float *A, float *B, const int m);
+void   zconj(dcomplex_t *A, dcomplex_t *B, int m, int n);
+void   zdagger(dcomplex_t *A, dcomplex_t *B, int m, int n);
+void   zdiag(dcomplex_t *A, dcomplex_t *B, const int m);
+void   zdiag2(dcomplex_t *A, dcomplex_t *B, const int m);
