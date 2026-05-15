@@ -1,0 +1,64 @@
+experiment:
+  name: "gns_dlr_airfoil"
+  results_path: "./GNS_DLR_airfoil"
+  show_plots: true
+
+datasets:
+  train_ds: "./DATA/TRAIN_converter.h5"
+  test_ds: "./DATA/TEST_converter.h5"
+  val_ds: "./DATA/VAL_converter.h5"
+
+dataset_config:
+  field_names: ["CP"]
+  variables_names: ["AoA", "Mach"]
+  add_variables: true
+  add_mesh_coordinates: false
+  mesh_shape: null
+  scale_inputs: false
+  scale_outputs: false
+  input_scaler_type: "none"
+  output_scaler_type: "none"
+
+model:
+  # Graph is read from /GRAPH in TRAIN_converter.h5 (written by Converters/DLR2h5.py)
+  graph_path: "./DATA/TRAIN_converter.h5"
+  config:
+    input_dim: 2
+    output_dim: 1
+    latent_dim: 16
+    hidden_size: 128
+    num_msg_passing_layers: 2
+    encoder_hidden_layers: 2
+    decoder_hidden_layers: 1
+    message_hidden_layers: 1
+    update_hidden_layers: 1
+    groupnorm_groups: 2
+    activation: "torch.nn.ELU"
+    p_dropout: 0.0
+    seed: 42
+    device: "cpu"
+
+training:
+  loss_fn: "torch.nn.MSELoss"
+  optimizer: "torch.optim.Adam"
+  scheduler: "torch.optim.lr_scheduler.StepLR"
+  epochs: 20
+  lr: 1.0e-3
+  weight_decay: 0.0
+  lr_gamma: 0.98
+  lr_scheduler_step: 1
+  print_every: 1
+  dataloader:
+    batch_size: 8
+    shuffle: true
+    num_workers: 0
+    pin_memory: false
+  subgraph_loader:
+    batch_size: 2048
+    shuffle: true
+    input_nodes: null
+    mode: "nodes"
+    seed_selector:
+      type: "all"
+      frac: null
+      nodes_path: null

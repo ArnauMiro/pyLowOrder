@@ -9,8 +9,28 @@ from sklearn.metrics import (
     balanced_accuracy_score, brier_score_loss
 )
 
-from .. import pprint
-from ..utils import raiseError
+from ... import pprint
+from ...utils import raiseError
+
+
+def _score_f1(y_true: np.ndarray, y_pred: np.ndarray, pos_label: int) -> float:
+    return f1_score(y_true, y_pred, pos_label=pos_label)
+
+
+def _score_accuracy(y_true: np.ndarray, y_pred: np.ndarray, pos_label: int) -> float:
+    return accuracy_score(y_true, y_pred)
+
+
+def _score_balanced_accuracy(y_true: np.ndarray, y_pred: np.ndarray, pos_label: int) -> float:
+    return balanced_accuracy_score(y_true, y_pred)
+
+
+def _score_youden(y_true: np.ndarray, y_pred: np.ndarray, pos_label: int) -> float:
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
+    sens = tp / max(1, tp + fn)
+    spec = tn / max(1, tn + fp)
+    return sens + spec - 1.0
+
 
 class RegressionEvaluator():
     r"""
@@ -47,7 +67,7 @@ class RegressionEvaluator():
         y_true: np.ndarray,
         y_pred: np.ndarray,
     ) -> float:
-        """
+        r"""
         Compute the mean squared error (MSE) between the true values and the predicted values.
 
         Args:
@@ -60,7 +80,7 @@ class RegressionEvaluator():
         return np.mean((y_true - y_pred) ** 2)
     
     def mean_absolute_error(self, y_true, y_pred):
-        """
+        r"""
         Compute the mean absolute error (MAE) between the true values and the predicted values.
 
         Args:
@@ -77,7 +97,7 @@ class RegressionEvaluator():
         y_pred: np.ndarray,
         y_true: np.ndarray,
     ) -> float:
-        """
+        r"""
         Compute the mean relative error (MRE) between the true values and the predicted values,
         adding a tolerance level to consider values close to zero.
 
@@ -98,7 +118,7 @@ class RegressionEvaluator():
         y_true: np.ndarray,
         quantile: int,
     ) -> float:
-        """
+        r"""
         Calculate the quantile of the absolute errors between the true and predicted values.
 
         Args:
@@ -109,7 +129,6 @@ class RegressionEvaluator():
         Returns:
             float: The quantile of the absolute errors.
         """
-
         absolute_errors = np.abs(y_true - y_pred)
         return np.percentile(absolute_errors, quantile)    
 
@@ -118,7 +137,7 @@ class RegressionEvaluator():
         y_pred: np.ndarray,
         y_true: np.ndarray,
     ) -> float:
-        """
+        r"""
         Calculate the L2 error between the true and predicted values.
 
         Args:
@@ -128,7 +147,6 @@ class RegressionEvaluator():
         Returns:
             float: The L2 error.
         """
-
         return np.linalg.norm(y_true - y_pred) / np.linalg.norm(y_true)
     
     def R2(
@@ -136,7 +154,7 @@ class RegressionEvaluator():
         y_true: np.ndarray,
         y_pred: np.ndarray,
     ) -> float:
-        """
+        r"""
         Calculate the R-squared (coefficient of determination) for a set of true and predicted values.
 
         Args:
@@ -152,38 +170,64 @@ class RegressionEvaluator():
         r_squared = 1 - (residual_sum_of_squares / total_sum_of_squares)
         return r_squared
 
-    def print_metrics(self):
+    def _compute_metrics_single(
+        self,
+        y_true: np.ndarray,
+        y_pred: np.ndarray,
+    ) -> dict:
+        r"""
+        Compute all metrics for a single output column.
         """
+        mse = self.mean_squared_error(y_true, y_pred)
+        return {
+            "mse":      mse,
+            "rmse":     np.sqrt(mse),
+            "mae":      self.mean_absolute_error(y_true, y_pred),
+            "mre":      self.mean_relative_error(y_true, y_pred),
+            "ae_95":    self.ae_q(y_true, y_pred, 95),
+            "ae_99":    self.ae_q(y_true, y_pred, 99),
+            "r2":       self.R2(y_true, y_pred),
+            "l2_error": self.l2_error(y_true, y_pred),
+        }
+
+    def print_metrics(self):
+        r"""
         Print the calculated regression metrics.
         """
         if self._metrics is None:
             raise raiseError("No metrics have been calculated yet.")
-        
-        pprint(0, "\nRegression evaluator metrics:")
-        
-        for key, value in self._metrics.items():
-            if key == "mre":
-                pprint(0, f"{key}: {value:.4f}%")
-            elif key == "r2":
-                pprint(0, f"{key}: {value:.4f}")
-            else:
-                if value < 1e-3 or value > 1e3:
-                    pprint(0, f"{key}: {value:.4e}")
-                else:
-                    pprint(0, f"{key}: {value:.4f}")
 
+        def _print_block(label, metrics):
+            pprint(0, f"\n{label}")
+            for key, value in metrics.items():
+                if key == "mre":
+                    pprint(0, f"  {key}: {value:.4f}%")
+                elif key == "r2":
+                    pprint(0, f"  {key}: {value:.4f}")
+                else:
+                    pprint(0, f"  {key}: {value:.4e}" if (value < 1e-3 or value > 1e3) else f"  {key}: {value:.4f}")
+
+        if "per_column" in self._metrics:
+            for col_name, col_metrics in self._metrics["per_column"].items():
+                _print_block(f"Column: {col_name}", col_metrics)
+            _print_block("Aggregated (mean across columns)", self._metrics["aggregated"])
+        else:
+            _print_block("Regression evaluator metrics:", self._metrics)
 
     def __call__(
         self,
         y_true: np.ndarray,
         y_pred: np.ndarray,
+        column_names: list[str] | None = None,
     ) -> dict:
-        """
+        r"""
         Calculate multiple regression metrics between the true and predicted values.
+        If y_true and y_pred have multiple columns, metrics are computed per column and also aggregated (mean across columns).
 
         Args:
-            y_true (numpy.ndarray): An array-like object containing the true values.
-            y_pred (numpy.ndarray): An array-like object containing the predicted values.
+            y_true (numpy.ndarray): An array-like object containing the true values, shape (N,), (N, 1), or (N, C).
+            y_pred (numpy.ndarray): An array-like object containing the predicted values, shape (N,), (N, 1), or (N, C).
+            column_names (list[str] | None): Optional names for each output column.
 
         Returns:
             dict: A dictionary containing the calculated regression metrics.
@@ -197,27 +241,34 @@ class RegressionEvaluator():
             y_pred = y_pred.detach().cpu().numpy()
         elif not isinstance(y_pred, np.ndarray):
             raiseError("y_pred must be a numpy array.")
-        
-        mse = self.mean_squared_error(y_true, y_pred)
-        rmse = np.sqrt(mse)
-        mae = self.mean_absolute_error(y_true, y_pred)
-        mre = self.mean_relative_error(y_true, y_pred)
-        aq_95 = self.ae_q(y_true, y_pred, 95)
-        aq_99 = self.ae_q(y_true, y_pred, 99)
-        r2 = self.R2(y_true, y_pred)
-        l2_error = self.l2_error(y_true, y_pred)
-        self._metrics = {
-            "mse": mse,
-            "rmse": rmse,
-            "mae": mae, 
-            "mre": mre, 
-            "ae_95": aq_95,
-            "ae_99": aq_99,
-            "r2": r2,
-            "l2_error": l2_error 
+
+        # Ensure shape (N, C)
+        y_true = np.atleast_2d(y_true.T).T
+        y_pred = np.atleast_2d(y_pred.T).T
+
+        n_cols = y_true.shape[1]
+
+        if column_names is None:
+            column_names = [f"col_{i}" for i in range(n_cols)]
+        elif len(column_names) != n_cols:
+            raise ValueError(f"Expected {n_cols} column names, got {len(column_names)}.")
+
+        if n_cols == 1:
+            self._metrics = self._compute_metrics_single(y_true[:, 0], y_pred[:, 0])
+            return self._metrics
+
+        per_column = {
+            name: self._compute_metrics_single(y_true[:, i], y_pred[:, i])
+            for i, name in enumerate(column_names)
         }
+        metric_keys = list(next(iter(per_column.values())).keys())
+        aggregated = {
+            k: np.mean([per_column[name][k] for name in column_names])
+            for k in metric_keys
+        }
+
+        self._metrics = {"per_column": per_column, "aggregated": aggregated}
         return self._metrics
-    
 
 class ClassificationEvaluator:
     r"""
@@ -276,30 +327,21 @@ class ClassificationEvaluator:
         p, r, th = precision_recall_curve(y_true, y_prob, pos_label=self.pos_label)
         candidates = list(th) + [0.5, 0.0, 1.0]
 
-        # Pick scorer
         metric = self.threshold_metric
-        if metric == "f1":
-            def scorer(y_true, y_pred):
-                return f1_score(y_true, y_pred, pos_label=self.pos_label)
-        elif metric == "accuracy":
-            def scorer(y_true, y_pred):
-                return accuracy_score(y_true, y_pred)
-        elif metric == "balanced_accuracy":
-            def scorer(y_true, y_pred):
-                return balanced_accuracy_score(y_true, y_pred)
-        elif metric == "youden":
-            def scorer(y_true, y_pred):
-                tn, fp, fn, tp = self._confmat_counts(y_true, y_pred)
-                sens = tp / max(1, tp + fn)
-                spec = tn / max(1, tn + fp)
-                return sens + spec - 1.0
 
         best_val = -np.inf
         best_th = 0.5
 
         for t in candidates:
             y_pred = (y_prob >= t)
-            val = scorer(y_true, y_pred)
+            if metric == "f1":
+                val = _score_f1(y_true, y_pred, self.pos_label)
+            elif metric == "accuracy":
+                val = _score_accuracy(y_true, y_pred, self.pos_label)
+            elif metric == "balanced_accuracy":
+                val = _score_balanced_accuracy(y_true, y_pred, self.pos_label)
+            else:
+                val = _score_youden(y_true, y_pred, self.pos_label)
             if val > best_val:
                 best_val, best_th = val, float(t)
 

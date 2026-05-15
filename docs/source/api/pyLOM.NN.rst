@@ -9,6 +9,14 @@ Subpackages
 
    pyLOM.NN.architectures
 
+Guides
+------
+
+.. toctree::
+   :maxdepth: 2
+
+   ../NN/GNS/index
+
 Module contents
 ---------------
 

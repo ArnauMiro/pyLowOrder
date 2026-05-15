@@ -14,3 +14,4 @@ This is the examples section, here you can find some notebooks that will guide y
    notebook_examples/NN/PINNs/burgers_PINN_training_pipeline.ipynb
    notebook_examples/NN/MLP_training
    notebook_examples/NN/KAN_training
+   notebook_examples/NN/GNS_training

@@ -22,7 +22,6 @@ device = pyLOM.NN.select_device('cpu')
 ## Data loading
 d = pyLOM.Dataset.load(DATAFILE)
 y = d.X(*VARIABLES)
-print(d)
 
 
 ## Load pyLOM dataset and set up results output
