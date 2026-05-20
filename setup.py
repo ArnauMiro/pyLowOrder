@@ -322,7 +322,7 @@ setup(
 	name             = 'pyLowOrder',
 	version          = __version__,
 	author           = 'Benet Eiximeno, Beka Begiashvili, Fermín Gutierrez, David Ramos, Miguel Jaraiz, Pablo Yeste, Ángel Ladrón, Nicolás Becerra, Víctor Francés-Belda, Isaac Robledo, Javier Nieto-Centenero, Arnau Miro, Gonzalo Rubio, Lucas Lacasa, Rodrigo Castellanos, Carlos Sanmiguel, Esther Andrés, Eusebio Valero, Oriol Lehmkuhl',
-	author_email     = 'beiximeno@nvidia.com, beka.begiashvili@alumnos.upm.es, fermin.gutierrezm@upm.es, david.ramos.archilla@upm.es, miguel.jaraizga@upm.es, p.yesteb@upm.es, angel.lcordoba@upm.es, n.becerra@upm.es, vfrabel@inta.es, isaac.robledo@alumnos.uc3m.es, jniecen@inta.es, arnau.miro@upc.edu, g.rubio@upm.es, lucas@ifisc.uib-csic.es, rodrigo.castellanos@uc3m.es, csanvil@inta.es, eandper@inta.es, eusebio.valero@upm.es, oriol.lehmkuhl@bsc.es',
+	author_email     = 'beiximeno@nvidia.com, beka.begiashvili@alumnos.upm.es, fermin.gutierrezm@upm.es, david.ramos.archilla@upm.es, miguel.jaraizga@upm.es, p.yesteb@upm.es, angel.lcordoba@upm.es, n.becerra@upm.es, vfrabel@inta.es, irobmar@inta.es, jniecen@inta.es, arnau.miro@upc.edu, g.rubio@upm.es, lucas@ifisc.uib-csic.es, rodrigo.castellanos@uc3m.es, csanvil@inta.es, eandper@inta.es, eusebio.valero@upm.es, oriol.lehmkuhl@bsc.es',
 	maintainer       = 'Benet Eiximeno, Arnau Miro',
 	maintainer_email = 'beiximeno@nvidia.com, arnau.mirojane@bsc.es',
 	ext_modules      = cythonize(modules_list,
