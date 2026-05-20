@@ -23,7 +23,7 @@ dynamic = ["version"]
 # This is a one-line description or tagline of what your project does. This
 # corresponds to the "Summary" metadata field:
 # https://packaging.python.org/specifications/core-metadata/#summary
-description = "High-performance low-order modeling with Python"
+description = "High-performance reduced-order modeling in Python"
 
 # This is an optional longer description of your project that represents
 # the body of text which users will see when they visit PyPI.
@@ -53,25 +53,39 @@ license-files = ["LICENSE"]
 # Note that this is a list of additional keywords, separated
 # by commas, to be used to assist searching for the distribution in a
 # larger catalog.
-keywords = ["low-order", "modeling", "POD", "DMD"]
+keywords = ["reduced-order modeling", "POD", "DMD", "VAE", "MLP", "NN", "GNN"]
 
 # This should be your name or the name of the organization who originally
 # authored the project, and a valid email address corresponding to the name
 # listed.
 authors = [
-  {name = "Benet Eiximeno",   email = "benet.eiximeno@bsc.es" },
-  {name = "Beka Begiashvili", email = "beka.begiashvili@alumnos.upm.es" },
-  {name = "Arnau Miro",       email = "arnau.mirojane@bsc.es" },
-  {name = "Eusebio Valero",   email = "eusebio.valero@upm.es" },
-  {name = "Oriol Lehmkuhl",   email = "oriol.lehmkuhl@bsc.es" },
+  {name = "Benet Eiximeno",         email = "beiximeno@nvidia.com" },
+  {name = "Beka Begiashvili",       email = "beka.begiashvili@alumnos.upm.es" },
+  {name = "Fermín Gutierrez",       email = "fermin.gutierrezm@upm.es" },
+  {name = "David Ramos",            email = "david.ramos.archilla@upm.es" },
+  {name = "Miguel Jaraiz",          email = "miguel.jaraizga@upm.es" },
+  {name = "Pablo Yeste",            email = "p.yesteb@upm.es" },
+  {name = "Ángel Ladrón",           email = "angel.lcordoba@upm.es" },
+  {name = "Nicolás Becerra",        email = "n.becerra@upm.es" },
+  {name = "Víctor Francés-Belda",   email = "vfrabel@inta.es" },
+  {name = "Isaac Robledo",          email = "irobmar@inta.es" },
+  {name = "Javier Nieto-Centenero", email = "jniecen@inta.es" },
+  {name = "Arnau Miro",             email = "arnau.miro@upc.edu" },
+  {name = "Gonzalo Rubio",          email = "g.rubio@upm.es" },
+  {name = "Lucas Lacasa",           email = "lucas@ifisc.uib-csic.es" },
+  {name = "Rodrigo Castellanos",    email = "rodrigo.castellanos@uc3m.es" },
+  {name = "Carlos Sanmiguel",       email = "csanvil@inta.es" },
+  {name = "Esther Andrés",          email = "eandper@inta.es" },
+  {name = "Eusebio Valero",         email = "eusebio.valero@upm.es" },
+  {name = "Oriol Lehmkuhl",         email = "oriol.lehmkuhl@bsc.es" },
 ]
 
 # This should be your name or the names of the organization who currently
 # maintains the project, and a valid email address corresponding to the name
 # listed.
 maintainers = [
-  {name = "Benet Eiximeno", email = "benet.eiximeno@bsc.es" },
-  {name = "Arnau Miro",     email = "arnau.mirojane@bsc.es" },
+  {name = "Benet Eiximeno", email = "beiximeno@nvidia.com" },
+  {name = "Arnau Miro",     email = "arnau.miro@upc.edu" },
 ]
 
 # Classifiers help users find your project by categorizing it.

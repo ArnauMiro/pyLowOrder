@@ -321,10 +321,10 @@ modules_list = Module_Math + Module_ROM if options['USE_COMPILED'] else []
 setup(
 	name             = 'pyLowOrder',
 	version          = __version__,
-	author           = 'Benet Eiximeno, Beka Begiashvili, Arnau Miro, Eusebio Valero, Oriol Lehmkuhl',
-	author_email     = 'benet.eiximeno@bsc.es, beka.begiashvili@alumnos.upm.es, arnau.mirojane@bsc.es, eusebio.valero@upm.es, oriol.lehmkuhl@bsc.es',
+	author           = 'Benet Eiximeno, Beka Begiashvili, Fermín Gutierrez, David Ramos, Miguel Jaraiz, Pablo Yeste, Ángel Ladrón, Nicolás Becerra, Víctor Francés-Belda, Isaac Robledo, Javier Nieto-Centenero, Arnau Miro, Gonzalo Rubio, Lucas Lacasa, Rodrigo Castellanos, Carlos Sanmiguel, Esther Andrés, Eusebio Valero, Oriol Lehmkuhl',
+	author_email     = 'beiximeno@nvidia.com, beka.begiashvili@alumnos.upm.es, fermin.gutierrezm@upm.es, david.ramos.archilla@upm.es, miguel.jaraizga@upm.es, p.yesteb@upm.es, angel.lcordoba@upm.es, n.becerra@upm.es, vfrabel@inta.es, irobmar@inta.es, jniecen@inta.es, arnau.miro@upc.edu, g.rubio@upm.es, lucas@ifisc.uib-csic.es, rodrigo.castellanos@uc3m.es, csanvil@inta.es, eandper@inta.es, eusebio.valero@upm.es, oriol.lehmkuhl@bsc.es',
 	maintainer       = 'Benet Eiximeno, Arnau Miro',
-	maintainer_email = 'benet.eiximeno@bsc.es, arnau.mirojane@bsc.es',
+	maintainer_email = 'beiximeno@nvidia.com, arnau.mirojane@bsc.es',
 	ext_modules      = cythonize(modules_list,
 		language_level = str(sys.version_info[0]), # This is to specify python 3 synthax
 		annotate       = True                      # This is to generate a report on the conversion to C code
