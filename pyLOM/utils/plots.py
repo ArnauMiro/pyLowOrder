@@ -178,7 +178,7 @@ try:
 		# First create the unstructured grid
 		cells, offsets = _cells_and_offsets(mesh.connectivity)
 		# Create the unstructured grid
-		ugrid =  pv.UnstructuredGrid(offsets,cells,mesh.eltype2VTK,mesh.xyz) if pv.vtk_version_info < (9,) else pv.UnstructuredGrid(cells,mesh.eltype2VTK,mesh.xyz)
+		ugrid =  pv.UnstructuredGrid(offsets,cells,mesh.eltype2VTK,mesh.xyz) if pv.vtk_version_info.major < 9 else pv.UnstructuredGrid(cells,mesh.eltype2VTK,mesh.xyz)
 		# Load the variables inside the unstructured grid
 		plotter = pv.Plotter(shape=(nrows,ncols),off_screen=off_screen)
 		irow, icol = 0, 0
