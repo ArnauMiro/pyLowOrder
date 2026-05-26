@@ -6,3 +6,4 @@ tensorflow
 tensorboard
 xgboost
 scikit-learn
+fluidflow
