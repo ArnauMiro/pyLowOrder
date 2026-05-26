@@ -40,7 +40,19 @@ from ..utils.errors   import raiseError
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def _crun(np.complex64_t[:,:] Phi, float[:] delta, float[:] freq, float f, float[:] Q=None):
-	
+	'''
+    Resolvent Analysis of snapshot matrix X
+    Inputs:
+        - X[ndims*nmesh,n_temp_snapshots]: data matrix
+        - delta: damping ratio of each mode
+        - freq: frequency of each mode
+        - f: target frequency
+        - Q: weighting matrix
+    Returns:
+        - U_res: response modes
+        - S: emergy gains
+        - V_res: forcing modes
+    '''
 	# Variables
 	cdef int m = Phi.shape[0], n = Phi.shape[1]
 	cdef int ii, retval
@@ -148,7 +160,19 @@ def _crun(np.complex64_t[:,:] Phi, float[:] delta, float[:] freq, float f, float
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def _zrun(np.complex128_t[:,:] Phi, double[:] delta, double[:] freq, double f, double[:] Q=None):
-
+	'''
+    Resolvent Analysis of snapshot matrix X
+    Inputs:
+        - X[ndims*nmesh,n_temp_snapshots]: data matrix
+        - delta: damping ratio of each mode
+        - freq: frequency of each mode
+        - f: target frequency
+        - Q: weighting matrix
+    Returns:
+        - U_res: response modes
+        - S: emergy gains
+        - V_res: forcing modes
+    '''
 	# Variables
 	cdef int m = Phi.shape[0], n = Phi.shape[1]
 	cdef int ii, retval
@@ -252,7 +276,19 @@ def _zrun(np.complex128_t[:,:] Phi, double[:] delta, double[:] freq, double f, d
 	return U_res, S, V_res
 
 def run(real_complex[:,:] Phi, real[:] delta, real[:] freq, real f, real[:] Q=None):
-
+	'''
+    Resolvent Analysis of snapshot matrix X
+    Inputs:
+        - X[ndims*nmesh,n_temp_snapshots]: data matrix
+        - delta: damping ratio of each mode
+        - freq: frequency of each mode
+        - f: target frequency
+        - Q: weighting matrix
+    Returns:
+        - U_res: response modes
+        - S: emergy gains
+        - V_res: forcing modes
+    '''
 	if real_complex is np.complex128_t:
 		return _zrun(Phi, delta, freq, f, Q)
 	else:

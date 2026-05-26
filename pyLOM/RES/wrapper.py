@@ -15,6 +15,19 @@ from ..utils     import cr_nvtx as cr, cr_start, cr_stop
 
 @cr('RES.run')
 def run(Phi, delta, freq, f, Q=None):
+    '''
+    Resolvent Analysis of snapshot matrix X
+    Inputs:
+        - X[ndims*nmesh,n_temp_snapshots]: data matrix
+        - delta: damping ratio of each mode
+        - freq: frequency of each mode
+        - f: target frequency
+        - Q: weighting matrix
+    Returns:
+        - U_res: response modes
+        - S: emergy gains
+        - V_res: forcing modes
+    '''
     p = cp if type(Phi) is cp.ndarray else np
 
     # Normalization of modes (?)
