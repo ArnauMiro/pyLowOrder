@@ -2,4 +2,7 @@ torch>=2.3.0
 torchvision
 torchsummary
 tensorflow
+tensorboard
+xgboost
+scikit-learn
 optuna

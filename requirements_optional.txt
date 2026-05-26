@@ -1,3 +1,2 @@
 pyvista
-scikit-learn
 nvtx
