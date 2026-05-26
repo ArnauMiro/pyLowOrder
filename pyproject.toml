@@ -159,7 +159,6 @@ NN = [
   "tensorboard",
   "xgboost",
   "scikit-learn",
-  "optuna",
 ]
 # Dependencies to work with the GPR module
 GPR = [
@@ -170,6 +169,7 @@ GPR = [
 # Optional visualization dependencies
 optionals = [
   "pyvista",
+  "optuna",
   "nvtx",
 ]
 # Dependencies for the RL module
