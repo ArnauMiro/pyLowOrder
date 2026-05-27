@@ -152,7 +152,7 @@ rocm-4-0 = [
 ]
 # Dependencies to work with the NN module
 NN = [
-  "torch>=2.3.0",
+  "torch>=2.3.0,<=2.11.0",
   "torchvision",
   "torchsummary",
   "tensorflow",
