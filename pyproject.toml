@@ -156,7 +156,9 @@ NN = [
   "torchvision",
   "torchsummary",
   "tensorflow",
-  "optuna",
+  "tensorboard",
+  "xgboost",
+  "scikit-learn",
 ]
 # Dependencies to work with the GPR module
 GPR = [
@@ -167,7 +169,7 @@ GPR = [
 # Optional visualization dependencies
 optionals = [
   "pyvista",
-  "scikit-learn",
+  "optuna",
   "nvtx",
 ]
 # Dependencies for the RL module
