@@ -55,7 +55,7 @@ nw  = 192
 
 
 ## Create a torch dataset
-td   = pyLOM.NN.Dataset((u_x,), (n0h, n0w))
+td   = pyLOM.NN.Dataset((u_x,), (n0h, n0w), squeeze_last_dim=False)
 td.crop(nh, nw)
 
 
@@ -83,7 +83,7 @@ pipeline.run()
 
 ## Reconstruct dataset and compute accuracy
 rec = model.reconstruct(td)
-rd  = pyLOM.NN.Dataset((rec), (nh, nw))
+rd  = pyLOM.NN.Dataset((rec), (nh, nw), squeeze_last_dim=False)
 rd.pad(n0h, n0w)
 td.pad(n0h, n0w)
 d.add_field('urec',1,rd[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
