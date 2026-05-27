@@ -41,7 +41,7 @@ from .optimizer                       import OptunaOptimizer, OptunaStudyManager
 from .interpolator                    import Interpolator
 from .aerodynamics                    import global_coeff, jacobians_pressure
 
-from .architectures.mlp               import MLP
+from .architectures.mlp               import MLP, MLP_JIT
 from .architectures.kan               import KAN, KAN_SIN, ChebyshevLayer, JacobiLayer, SineLayer
 from .architectures.gns               import GNS
 from .architectures.autoencoders      import Autoencoder, FullyConnectedAutoencoder, VariationalAutoencoder, FullyConnectedVariationalAutoencoder
