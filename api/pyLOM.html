@@ -48,6 +48,8 @@
     <script src="../_static/copybutton.js?v=f281be69"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'api/pyLOM';</script>
     <link rel="icon" href="../_static/favicon_tmp.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -448,7 +450,202 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="pyLOM.NN.html#module-contents">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pyLOM.NN.html#module-pyLOM.NN">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.plotSnapshot"><code class="docutils literal notranslate"><span class="pre">plotSnapshot()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.plotModalErrorBars"><code class="docutils literal notranslate"><span class="pre">plotModalErrorBars()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.plotTimeSeries"><code class="docutils literal notranslate"><span class="pre">plotTimeSeries()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Pipeline"><code class="docutils literal notranslate"><span class="pre">Pipeline</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Pipeline.model"><code class="docutils literal notranslate"><span class="pre">Pipeline.model</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Pipeline.run"><code class="docutils literal notranslate"><span class="pre">Pipeline.run()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Dataset"><code class="docutils literal notranslate"><span class="pre">Dataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Dataset.shape"><code class="docutils literal notranslate"><span class="pre">Dataset.shape</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Dataset.num_parameters"><code class="docutils literal notranslate"><span class="pre">Dataset.num_parameters</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Dataset.__getitem__"><code class="docutils literal notranslate"><span class="pre">Dataset.__getitem__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Dataset.__setitem__"><code class="docutils literal notranslate"><span class="pre">Dataset.__setitem__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Dataset.__add__"><code class="docutils literal notranslate"><span class="pre">Dataset.__add__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Dataset.concatenate"><code class="docutils literal notranslate"><span class="pre">Dataset.concatenate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Dataset.crop"><code class="docutils literal notranslate"><span class="pre">Dataset.crop()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Dataset.pad"><code class="docutils literal notranslate"><span class="pre">Dataset.pad()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Dataset.get_splits"><code class="docutils literal notranslate"><span class="pre">Dataset.get_splits()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Dataset.get_splits_by_parameters"><code class="docutils literal notranslate"><span class="pre">Dataset.get_splits_by_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Dataset.load"><code class="docutils literal notranslate"><span class="pre">Dataset.load()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Dataset.map"><code class="docutils literal notranslate"><span class="pre">Dataset.map()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Dataset.filter"><code class="docutils literal notranslate"><span class="pre">Dataset.filter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Dataset.remove_column"><code class="docutils literal notranslate"><span class="pre">Dataset.remove_column()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.MinMaxScaler"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.MinMaxScaler.is_fitted"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler.is_fitted</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.MinMaxScaler.fit"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.MinMaxScaler.transform"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler.transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.MinMaxScaler.fit_transform"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler.fit_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.MinMaxScaler.inverse_transform"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler.inverse_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.MinMaxScaler.save"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler.save()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.MinMaxScaler.load"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler.load()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.select_device"><code class="docutils literal notranslate"><span class="pre">select_device()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.betaLinearScheduler"><code class="docutils literal notranslate"><span class="pre">betaLinearScheduler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.betaLinearScheduler.getBeta"><code class="docutils literal notranslate"><span class="pre">betaLinearScheduler.getBeta()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.create_results_folder"><code class="docutils literal notranslate"><span class="pre">create_results_folder()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.set_seed"><code class="docutils literal notranslate"><span class="pre">set_seed()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.OptunaOptimizer"><code class="docutils literal notranslate"><span class="pre">OptunaOptimizer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.OptunaOptimizer.optimization_params"><code class="docutils literal notranslate"><span class="pre">OptunaOptimizer.optimization_params</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.OptunaOptimizer.optimize"><code class="docutils literal notranslate"><span class="pre">OptunaOptimizer.optimize()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.RegressionEvaluator"><code class="docutils literal notranslate"><span class="pre">RegressionEvaluator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.RegressionEvaluator.tolerance"><code class="docutils literal notranslate"><span class="pre">RegressionEvaluator.tolerance</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.RegressionEvaluator.mean_squared_error"><code class="docutils literal notranslate"><span class="pre">RegressionEvaluator.mean_squared_error()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.RegressionEvaluator.mean_absolute_error"><code class="docutils literal notranslate"><span class="pre">RegressionEvaluator.mean_absolute_error()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.RegressionEvaluator.mean_relative_error"><code class="docutils literal notranslate"><span class="pre">RegressionEvaluator.mean_relative_error()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.RegressionEvaluator.ae_q"><code class="docutils literal notranslate"><span class="pre">RegressionEvaluator.ae_q()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.RegressionEvaluator.l2_error"><code class="docutils literal notranslate"><span class="pre">RegressionEvaluator.l2_error()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.RegressionEvaluator.R2"><code class="docutils literal notranslate"><span class="pre">RegressionEvaluator.R2()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.RegressionEvaluator.print_metrics"><code class="docutils literal notranslate"><span class="pre">RegressionEvaluator.print_metrics()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.RegressionEvaluator.__call__"><code class="docutils literal notranslate"><span class="pre">RegressionEvaluator.__call__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.EarlyStopper"><code class="docutils literal notranslate"><span class="pre">EarlyStopper</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.EarlyStopper.early_stop"><code class="docutils literal notranslate"><span class="pre">EarlyStopper.early_stop()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Interpolator"><code class="docutils literal notranslate"><span class="pre">Interpolator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Interpolator.objective_mse_torch"><code class="docutils literal notranslate"><span class="pre">Interpolator.objective_mse_torch()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Interpolator.objective_mse_np"><code class="docutils literal notranslate"><span class="pre">Interpolator.objective_mse_np()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Interpolator.objective_mse_grad"><code class="docutils literal notranslate"><span class="pre">Interpolator.objective_mse_grad()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Interpolator.objective_mse_hess"><code class="docutils literal notranslate"><span class="pre">Interpolator.objective_mse_hess()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Interpolator.multitarget_equality_penalty"><code class="docutils literal notranslate"><span class="pre">Interpolator.multitarget_equality_penalty()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Interpolator.get_opt_params_for_case"><code class="docutils literal notranslate"><span class="pre">Interpolator.get_opt_params_for_case()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Interpolator.create_linear_constraint"><code class="docutils literal notranslate"><span class="pre">Interpolator.create_linear_constraint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Interpolator.adjust_field_first_order"><code class="docutils literal notranslate"><span class="pre">Interpolator.adjust_field_first_order()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Interpolator.adjust_field_second_order"><code class="docutils literal notranslate"><span class="pre">Interpolator.adjust_field_second_order()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.global_coeff"><code class="docutils literal notranslate"><span class="pre">global_coeff()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.jacobians_pressure"><code class="docutils literal notranslate"><span class="pre">jacobians_pressure()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.MLP"><code class="docutils literal notranslate"><span class="pre">MLP</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.MLP.forward"><code class="docutils literal notranslate"><span class="pre">MLP.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.MLP.fit"><code class="docutils literal notranslate"><span class="pre">MLP.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.MLP.predict"><code class="docutils literal notranslate"><span class="pre">MLP.predict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.MLP.save"><code class="docutils literal notranslate"><span class="pre">MLP.save()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.MLP.load"><code class="docutils literal notranslate"><span class="pre">MLP.load()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.MLP.create_optimized_model"><code class="docutils literal notranslate"><span class="pre">MLP.create_optimized_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.KAN"><code class="docutils literal notranslate"><span class="pre">KAN</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.KAN.forward"><code class="docutils literal notranslate"><span class="pre">KAN.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.KAN.fit"><code class="docutils literal notranslate"><span class="pre">KAN.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.KAN.predict"><code class="docutils literal notranslate"><span class="pre">KAN.predict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.KAN.save"><code class="docutils literal notranslate"><span class="pre">KAN.save()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.KAN.load"><code class="docutils literal notranslate"><span class="pre">KAN.load()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.KAN.create_optimized_model"><code class="docutils literal notranslate"><span class="pre">KAN.create_optimized_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.KAN_SIN"><code class="docutils literal notranslate"><span class="pre">KAN_SIN</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.ChebyshevLayer"><code class="docutils literal notranslate"><span class="pre">ChebyshevLayer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.ChebyshevLayer.forward"><code class="docutils literal notranslate"><span class="pre">ChebyshevLayer.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.JacobiLayer"><code class="docutils literal notranslate"><span class="pre">JacobiLayer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.JacobiLayer.forward"><code class="docutils literal notranslate"><span class="pre">JacobiLayer.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.SineLayer"><code class="docutils literal notranslate"><span class="pre">SineLayer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.SineLayer.init_weights"><code class="docutils literal notranslate"><span class="pre">SineLayer.init_weights()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.SineLayer.forward"><code class="docutils literal notranslate"><span class="pre">SineLayer.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Autoencoder"><code class="docutils literal notranslate"><span class="pre">Autoencoder</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Autoencoder.forward"><code class="docutils literal notranslate"><span class="pre">Autoencoder.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Autoencoder.fit"><code class="docutils literal notranslate"><span class="pre">Autoencoder.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Autoencoder.reconstruct"><code class="docutils literal notranslate"><span class="pre">Autoencoder.reconstruct()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Autoencoder.latent_space"><code class="docutils literal notranslate"><span class="pre">Autoencoder.latent_space()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Autoencoder.decode"><code class="docutils literal notranslate"><span class="pre">Autoencoder.decode()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.VariationalAutoencoder"><code class="docutils literal notranslate"><span class="pre">VariationalAutoencoder</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.VariationalAutoencoder.forward"><code class="docutils literal notranslate"><span class="pre">VariationalAutoencoder.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.VariationalAutoencoder.fit"><code class="docutils literal notranslate"><span class="pre">VariationalAutoencoder.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.VariationalAutoencoder.reconstruct"><code class="docutils literal notranslate"><span class="pre">VariationalAutoencoder.reconstruct()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.VariationalAutoencoder.correlation"><code class="docutils literal notranslate"><span class="pre">VariationalAutoencoder.correlation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.VariationalAutoencoder.modes"><code class="docutils literal notranslate"><span class="pre">VariationalAutoencoder.modes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.VariationalAutoencoder.latent_space"><code class="docutils literal notranslate"><span class="pre">VariationalAutoencoder.latent_space()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.VariationalAutoencoder.fine_tune"><code class="docutils literal notranslate"><span class="pre">VariationalAutoencoder.fine_tune()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.VariationalAutoencoder.decode"><code class="docutils literal notranslate"><span class="pre">VariationalAutoencoder.decode()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Encoder2D"><code class="docutils literal notranslate"><span class="pre">Encoder2D</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Encoder2D.forward"><code class="docutils literal notranslate"><span class="pre">Encoder2D.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Decoder2D"><code class="docutils literal notranslate"><span class="pre">Decoder2D</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Decoder2D.forward"><code class="docutils literal notranslate"><span class="pre">Decoder2D.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Encoder3D"><code class="docutils literal notranslate"><span class="pre">Encoder3D</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Encoder3D.forward"><code class="docutils literal notranslate"><span class="pre">Encoder3D.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Decoder3D"><code class="docutils literal notranslate"><span class="pre">Decoder3D</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Decoder3D.forward"><code class="docutils literal notranslate"><span class="pre">Decoder3D.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.ShallowDecoder"><code class="docutils literal notranslate"><span class="pre">ShallowDecoder</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.ShallowDecoder.forward"><code class="docutils literal notranslate"><span class="pre">ShallowDecoder.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.PINN"><code class="docutils literal notranslate"><span class="pre">PINN</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.PINN.__call__"><code class="docutils literal notranslate"><span class="pre">PINN.__call__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.PINN.bc_data_loss"><code class="docutils literal notranslate"><span class="pre">PINN.bc_data_loss()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.PINN.compute_loss"><code class="docutils literal notranslate"><span class="pre">PINN.compute_loss()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.PINN.fit"><code class="docutils literal notranslate"><span class="pre">PINN.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.PINN.predict"><code class="docutils literal notranslate"><span class="pre">PINN.predict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.PINN.__repr__"><code class="docutils literal notranslate"><span class="pre">PINN.__repr__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.PINN.plot_training_logs"><code class="docutils literal notranslate"><span class="pre">PINN.plot_training_logs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.PINN.pde_loss"><code class="docutils literal notranslate"><span class="pre">PINN.pde_loss()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.PINN.save"><code class="docutils literal notranslate"><span class="pre">PINN.save()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.PINN.load"><code class="docutils literal notranslate"><span class="pre">PINN.load()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.BurgersPINN"><code class="docutils literal notranslate"><span class="pre">BurgersPINN</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.BurgersPINN.pde_loss"><code class="docutils literal notranslate"><span class="pre">BurgersPINN.pde_loss()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Euler2DPINN"><code class="docutils literal notranslate"><span class="pre">Euler2DPINN</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Euler2DPINN.GAMMA"><code class="docutils literal notranslate"><span class="pre">Euler2DPINN.GAMMA</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.Euler2DPINN.pde_loss"><code class="docutils literal notranslate"><span class="pre">Euler2DPINN.pde_loss()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.NavierStokesIncompressible2DPINN"><code class="docutils literal notranslate"><span class="pre">NavierStokesIncompressible2DPINN</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.NavierStokesIncompressible2DPINN.pde_loss"><code class="docutils literal notranslate"><span class="pre">NavierStokesIncompressible2DPINN.pde_loss()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.BoundaryCondition"><code class="docutils literal notranslate"><span class="pre">BoundaryCondition</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.BoundaryCondition.loss"><code class="docutils literal notranslate"><span class="pre">BoundaryCondition.loss()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.BoundaryCondition.points"><code class="docutils literal notranslate"><span class="pre">BoundaryCondition.points</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.SHRED"><code class="docutils literal notranslate"><span class="pre">SHRED</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.SHRED.forward"><code class="docutils literal notranslate"><span class="pre">SHRED.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.SHRED.freeze"><code class="docutils literal notranslate"><span class="pre">SHRED.freeze()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.SHRED.unfreeze"><code class="docutils literal notranslate"><span class="pre">SHRED.unfreeze()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.SHRED.fit"><code class="docutils literal notranslate"><span class="pre">SHRED.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.SHRED.save"><code class="docutils literal notranslate"><span class="pre">SHRED.save()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.tanh"><code class="docutils literal notranslate"><span class="pre">tanh()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.relu"><code class="docutils literal notranslate"><span class="pre">relu()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.elu"><code class="docutils literal notranslate"><span class="pre">elu()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.sigmoid"><code class="docutils literal notranslate"><span class="pre">sigmoid()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.leakyRelu"><code class="docutils literal notranslate"><span class="pre">leakyRelu()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="pyLOM.NN.html#pyLOM.NN.silu"><code class="docutils literal notranslate"><span class="pre">silu()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="pyLOM.PCA.html">pyLOM.PCA</a><ul>
