@@ -320,15 +320,15 @@ class Dataset(torch.utils.data.Dataset):
         """
         return self.__add__(other)
 
-    def _crop2D(self, nh, nw):
-        self.variables_out = self.variables_out[:, :, :nh, :nw]
+    def _crop2D(self, nh, nw, squeeze_last_dim):
+        self.variables_out = self.variables_out[:, :, :nh, :nw] if not squeeze_last_dim else self.variables_out[:, :nh, :nw]
         self.mesh_shape    = (nh, nw)
 
-    def _crop3D(self, nh, nw, nd):
-        self.variables_out = self.variables_out[:, :, :nh, :nw, :nd]
+    def _crop3D(self, nh, nw, nd, squeeze_last_dim):
+        self.variables_out = self.variables_out[:, :, :nh, :nw, :nd] if not squeeze_last_dim else self.variables_out[:, :nh, :nw, :nd]
         self.mesh_shape    = (nh, nw, nd)
 
-    def crop(self, *args):
+    def crop(self, *args, squeeze_last_dim:bool=True):
         """
         Crop the dataset to a desired shape. The cropping currently works for 2D and 3D meshes.
 
@@ -336,9 +336,9 @@ class Dataset(torch.utils.data.Dataset):
             args (Tuple): Desired shape of the mesh. If the mesh is 2D, the shape should be a tuple with two elements. If the mesh is 3D, the shape should be a tuple with three elements.
         """
         if len(args) == 2: 
-            self._crop2D(*args)
+            self._crop2D(*args,squeeze_last_dim)
         elif len(args) == 3:
-            self._crop3D(*args)
+            self._crop3D(*args,squeeze_last_dim)
         else:
             raiseError(f'Invalid number of dimensions {len(args)} for mesh {self.mesh_shape}')
 
