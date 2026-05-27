@@ -107,7 +107,7 @@ def run(testDict,active_modules=MODULES,relTol=RELTOL,zeroTol=ZEROTOL,OUTROOT=OU
 
 	# Clean tests root directory
 	cmd = "rm -rf %s" % OUTROOT
-	# mysystem(cmd,echoi=True,echoo=True)
+	mysystem(cmd,echoi=True,echoo=True)
 	os.makedirs(OUTROOT,exist_ok=True)
 
 	# Show the dragon
