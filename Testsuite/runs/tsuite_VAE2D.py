@@ -56,7 +56,7 @@ nw  = 192
 
 ## Create a torch dataset
 td   = pyLOM.NN.Dataset((u_x,), (n0h, n0w), squeeze_last_dim=False)
-td.crop(nh, nw)
+td.crop(nh, nw, squeeze_last_dim=False)
 
 
 ## Set and train the variational autoencoder

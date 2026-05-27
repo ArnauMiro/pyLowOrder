@@ -61,7 +61,7 @@ nx, ny, nz  = PARAMS['nx'], PARAMS['ny'], PARAMS['nz']
 
 # Create the torch dataset
 td = pyLOM.NN.Dataset((u_x,), (n0x, n0y, n0z), squeeze_last_dim=False)
-td.crop(nx, ny, nz)
+td.crop(nx, ny, nz, squeeze_last_dim=False)
 
 
 ## Set and train the variational autoencoder
