@@ -57,7 +57,7 @@ nw  = 192
 
 ## Create a torch dataset
 td   = pyLOM.NN.Dataset((u_x,), (n0h, n0w), squeeze_last_dim=False)
-td.crop(nh, nw)
+td.crop(nh, nw, squeeze_last_dim=False)
 
 
 ## Set and train the variational autoencoder
@@ -94,7 +94,7 @@ pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],d
 
 ## Fine tuning
 td_ft   = pyLOM.NN.Dataset((u_x,), (n0h, n0w), squeeze_last_dim=False)
-td_ft.crop(nh, nw)
+td_ft.crop(nh, nw, squeeze_last_dim=False)
 z = model.latent_space(td_ft).cpu().numpy()
 z = z + 100*np.random.rand(z.shape[0], z.shape[1])
 td_rs = np.reshape(td_ft, (td_ft.shape[0]*td_ft.shape[1], td_ft.shape[2]*td_ft.shape[3]))
