@@ -66,6 +66,9 @@ class Dataset(torch.utils.data.Dataset):
         inputs_scaler (MinMaxScaler): Scaler to scale the input variables. If the scaler is not fitted, it will be fitted. Default is ``None``.
         outputs_scaler (MinMaxScaler): Scaler to scale the output variables. If the scaler is not fitted, it will be fitted. Default is ``None``.
         snapshots_by_column (bool): If the snapshots from `variables_out` are stored by column. The snapshots on `pyLOM.Dataset`s have this format. Default is ``True``.
+        combine_parameters_with_cartesian_prod (bool): If ``True``, parameters are combined using the Cartesian product when building the parameter grid. Default is ``False``.
+        squeeze_last_dim (bool): If ``True``, a singleton trailing dimension in the output variables is squeezed after processing. Default is ``True``.
+        channels_last (bool): If ``True``, output variables are returned with channels last ordering. Default is ``False``.
     """
     @cr("NN.Dataset.__init__")
     def __init__(
@@ -81,9 +84,6 @@ class Dataset(torch.utils.data.Dataset):
         squeeze_last_dim: bool = True,
         channels_last: bool = False,
     ):
-        """
-        See class docstring for argument semantics.
-        """
         # --- metadata ---
         self.parameters = parameters
         self.num_channels = len(variables_out)
