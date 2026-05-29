@@ -425,7 +425,7 @@ class KAN(nn.Module):
 
         if not save_only_model:
             checkpoint["optimizer"] = self.optimizer.state_dict()
-            checkpoint["scheduler"] = self.scheduler.state_dict()
+            checkpoint["scheduler"] = self.scheduler.state_dict() if self.scheduler is not None else None
 
         if os.path.isdir(path):
             filename = f"{self._model_name}.pth"

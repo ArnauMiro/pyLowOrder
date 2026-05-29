@@ -49,8 +49,8 @@ u_x  = d['VELOX']
 u_m  = pyLOM.math.temporal_mean(u_x)
 u_xm = pyLOM.math.subtract_mean(u_x, u_m)
 time = d.get_variable('time')
-td   = pyLOM.NN.Dataset((u_xm,), (n0h, n0w))
-td.crop(nh, nw)
+td   = pyLOM.NN.Dataset((u_xm,), (n0h, n0w), squeeze_last_dim=False)
+td.crop(nh, nw, squeeze_last_dim=False)
 
 
 ## Set and train the variational autoencoder
@@ -90,8 +90,8 @@ pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=np.arange(time.shape[0],d
 RESUDIR_FT = f"{RESUDIR}/ft_vae_beta_{beta}_{lat_dim}"
 pyLOM.NN.create_results_folder(RESUDIR_FT)
 
-td_ft   = pyLOM.NN.Dataset((u_xm,), (n0h, n0w))
-td_ft.crop(nh, nw)
+td_ft   = pyLOM.NN.Dataset((u_xm,), (n0h, n0w), squeeze_last_dim=False)
+td_ft.crop(nh, nw, squeeze_last_dim=False)
 z = model.latent_space(td_ft).cpu().numpy()
 z_noisy = z + 10*np.random.rand(z.shape[0], z.shape[1])
 td_rs = np.reshape(td_ft, (td_ft.shape[0]*td_ft.shape[1], td_ft.shape[2]*td_ft.shape[3]))

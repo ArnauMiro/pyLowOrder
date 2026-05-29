@@ -45,8 +45,8 @@ d    = pyLOM.Dataset.load(DSETDIR,ptable=m.partition_table)
 u    = d['VELOX']
 um   = pyLOM.math.temporal_mean(u)
 u_x  = pyLOM.math.subtract_mean(u, um)[:,0]
-td   = pyLOM.NN.Dataset((u_x,), (n0h, n0w))
-td.crop(nh, nw)
+td   = pyLOM.NN.Dataset((u_x,), (n0h, n0w), squeeze_last_dim=False)
+td.crop(nh, nw, squeeze_last_dim=False)
 
 
 ## Set and train the variational autoencoder
