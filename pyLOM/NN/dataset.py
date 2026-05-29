@@ -66,6 +66,9 @@ class Dataset(torch.utils.data.Dataset):
         inputs_scaler (MinMaxScaler): Scaler to scale the input variables. If the scaler is not fitted, it will be fitted. Default is ``None``.
         outputs_scaler (MinMaxScaler): Scaler to scale the output variables. If the scaler is not fitted, it will be fitted. Default is ``None``.
         snapshots_by_column (bool): If the snapshots from `variables_out` are stored by column. The snapshots on `pyLOM.Dataset`s have this format. Default is ``True``.
+        combine_parameters_with_cartesian_prod (bool): If ``True``, parameters are combined using the Cartesian product when building the parameter grid. Default is ``False``.
+        squeeze_last_dim (bool): If ``True``, a singleton trailing dimension in the output variables is squeezed after processing. Default is ``True``.
+        channels_last (bool): If ``True``, output variables are returned with channels last ordering. Default is ``False``.
     """
     @cr("NN.Dataset.__init__")
     def __init__(
@@ -81,9 +84,6 @@ class Dataset(torch.utils.data.Dataset):
         squeeze_last_dim: bool = True,
         channels_last: bool = False,
     ):
-        """
-        See class docstring for argument semantics.
-        """
         # --- metadata ---
         self.parameters = parameters
         self.num_channels = len(variables_out)
@@ -320,15 +320,15 @@ class Dataset(torch.utils.data.Dataset):
         """
         return self.__add__(other)
 
-    def _crop2D(self, nh, nw):
-        self.variables_out = self.variables_out[:, :, :nh, :nw]
+    def _crop2D(self, nh, nw, squeeze_last_dim):
+        self.variables_out = self.variables_out[:, :, :nh, :nw] if not squeeze_last_dim else self.variables_out[:, :nh, :nw]
         self.mesh_shape    = (nh, nw)
 
-    def _crop3D(self, nh, nw, nd):
-        self.variables_out = self.variables_out[:, :, :nh, :nw, :nd]
+    def _crop3D(self, nh, nw, nd, squeeze_last_dim):
+        self.variables_out = self.variables_out[:, :, :nh, :nw, :nd] if not squeeze_last_dim else self.variables_out[:, :nh, :nw, :nd]
         self.mesh_shape    = (nh, nw, nd)
 
-    def crop(self, *args):
+    def crop(self, *args, squeeze_last_dim:bool=True):
         """
         Crop the dataset to a desired shape. The cropping currently works for 2D and 3D meshes.
 
@@ -336,9 +336,9 @@ class Dataset(torch.utils.data.Dataset):
             args (Tuple): Desired shape of the mesh. If the mesh is 2D, the shape should be a tuple with two elements. If the mesh is 3D, the shape should be a tuple with three elements.
         """
         if len(args) == 2: 
-            self._crop2D(*args)
+            self._crop2D(*args,squeeze_last_dim)
         elif len(args) == 3:
-            self._crop3D(*args)
+            self._crop3D(*args,squeeze_last_dim)
         else:
             raiseError(f'Invalid number of dimensions {len(args)} for mesh {self.mesh_shape}')
 

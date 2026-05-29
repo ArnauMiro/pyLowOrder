@@ -54,7 +54,7 @@ in_size = n0w*n0h
 u    = d.X(*VARIABLES)
 um   = pyLOM.math.temporal_mean(u)
 u_x  = pyLOM.math.subtract_mean(u, um).T
-td   = pyLOM.NN.Dataset((u_x,), (in_size,))  # Flat the data
+td   = pyLOM.NN.Dataset((u_x,), (in_size,), squeeze_last_dim=False)  # Flat the data
 
 
 ## Set and train the variational autoencoder
@@ -81,7 +81,7 @@ pipeline.run()
 
 ## Reconstruct dataset and compute accuracy
 rec = model.reconstruct(td)
-rd  = pyLOM.NN.Dataset((rec,), (in_size,))
+rd  = pyLOM.NN.Dataset((rec,), (in_size,), squeeze_last_dim=False)
 d.add_field('urec',1,rd[0].numpy().reshape((n0w*n0h,)))
 d.add_field('utra',1,td[0].numpy().reshape((n0w*n0h,)))
 pyLOM.io.pv_writer(m,d,'reco',basedir=RESUDIR,instants=[0],times=[0.],vars=VARIABLES+['urec', 'utra'],fmt='vtkh5')

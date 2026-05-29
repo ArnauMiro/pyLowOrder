@@ -12,7 +12,7 @@ import pyLOM, pyLOM.NN
 from pyLOM import Mesh
 from pyLOM.NN import Graph
 from pyLOM.NN.utils.config_schema import GNSModelConfig, GNSTrainingConfig
-from pyLOM.utils.config_resolvers import dataclass_from_dict
+from pyLOM.NN import dataclass_from_dict
 
 
 DATAFILE  = sys.argv[1]

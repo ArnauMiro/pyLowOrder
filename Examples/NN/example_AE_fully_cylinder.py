@@ -42,7 +42,7 @@ u    = d['VELOX']
 um   = pyLOM.math.temporal_mean(u)
 u_x  = pyLOM.math.subtract_mean(u, um).T
 
-td   = pyLOM.NN.Dataset((u_x,), (in_size,))  # Flat the data
+td   = pyLOM.NN.Dataset((u_x,), (in_size,), squeeze_last_dim=False)  # Flat the data
 
 ## Set and train the variational autoencoder
 encoder    = pyLOM.NN.FullyConnectedEncoder2D(hidden_layer_sizes=hidden_layer_sizes_enc, lat_dim=lat_dim, in_size=in_size, activation_funcs=activations)
