@@ -42,11 +42,12 @@ def plotEnergy(S,fig=None,ax=None):
 
 def plotEvW(S, omega, modes, fig=None,ax=None):
 	r'''
-	Plot the cummulative energy of a set of modes
+	Plot the energy gain for different frequencies
 
 	Args:
 		S (np.ndarray): array containing the energy gains from the RES modes (columns) at diferent frequencies (rows)
 		omega (np.ndarray): array containing the frequencies from the respective energy gains
+		modes (np.ndarray): modes to plot
 		fig (plt.figure, optional): figure object in which the plot will be done (default: ``[]``)
 		axs (plt.axes, optional): axes object in which the plot will be done (default: ``[]``)
 
