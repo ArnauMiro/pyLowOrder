@@ -47,7 +47,7 @@ u_x  = d['VELOX']
 u_m  = pyLOM.math.temporal_mean(u_x)
 u_xm = pyLOM.math.subtract_mean(u_x, u_m).T
 time = d.get_variable('time')
-td   = pyLOM.NN.Dataset((u_xm,), (in_size,))
+td   = pyLOM.NN.Dataset((u_xm,), (in_size,), squeeze_last_dim=False)
 
 
 ## Set and train the variational autoencoder
