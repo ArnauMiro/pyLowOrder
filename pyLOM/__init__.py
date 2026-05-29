@@ -4,7 +4,7 @@
 #
 # Last rev: 09/07/2021
 
-__version__ = '3.2.7'
+__version__ = '3.2.8'
 
 # Import essential tools
 from .                import inp_out as io, vmmath as math

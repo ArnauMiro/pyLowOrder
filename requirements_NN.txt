@@ -1,4 +1,4 @@
-torch>=2.3.0
+torch>=2.3.0,<=2.11.0
 torch-geometric
 torchvision
 torchsummary
@@ -6,3 +6,4 @@ tensorflow
 tensorboard
 xgboost
 scikit-learn
+fluidflow

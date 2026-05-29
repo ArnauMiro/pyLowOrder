@@ -108,7 +108,7 @@ def create_dataset(data:tuple, scale:str='max', device:torch.device=DEVICE):
 		scaler = None
 		raiseWarning('Scaling method not implemented, setting scaler to None and adding the non-scaled data to the dataset')
 	# Generate dataset
-	return Dataset(tuple(matsca[:, i, :] for i in range(nchannel)), mesh_shape=(matsca.shape[0],), snapshots_by_column=True), scaler
+	return Dataset(tuple(matsca[:, i, :] for i in range(nchannel)), mesh_shape=(matsca.shape[0],), snapshots_by_column=True, squeeze_last_dim=False), scaler
 
 @cr('GAVI.energy')
 def energy(dataset:Dataset,reconstructed:np.array,channel:int):

@@ -58,6 +58,7 @@ from ..utils.config_resolvers import (
     resolve_loss,
     resolve_optimizer,
     resolve_scheduler,
+    dataclass_from_dict
 )
 from ..optimizer import OptunaOptimizer, TrialPruned
 
