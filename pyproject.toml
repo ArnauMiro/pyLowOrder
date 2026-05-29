@@ -145,6 +145,7 @@ NN = [
   "tensorboard",
   "xgboost",
   "scikit-learn",
+  "fluidflow",
 ]
 # Dependencies to work with the GPR module
 GPR = [
