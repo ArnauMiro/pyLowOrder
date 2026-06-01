@@ -144,7 +144,7 @@ data_resolution = (16, 16)
 generator = AnalyticalFunctionDataset(nx=data_resolution[0], ny=data_resolution[1], x_range=(0, 2*np.pi), y_range=(0, 2*np.pi))
 
 solutions_random, parameters_random = generator.generate_dataset(
-    n_samples=1000,
+    n_samples=100,
     alpha1_range=(-2.0, 2.0),
     alpha2_range=(-2.0, 2.0)
 )
@@ -182,7 +182,7 @@ diffusion = Diffusion(
     input_size=data_resolution,
     cond_scale=2.0,
     sampling_method="euler",
-    num_sampling_steps=400,
+    num_sampling_steps=25,
     results_folder=results_folder,
     use_cpu=True, 
 )
@@ -190,9 +190,9 @@ diffusion = Diffusion(
 diffusion.fit(
     train_data,
     dataset_test=test_data, # small_val_dataset is to avoid timeout when training on 2 GPUs
-    train_batch_size=64,
+    train_batch_size=4,
     train_lr=2e-4,
-    train_num_steps=10,  # total training steps
+    train_num_steps=5,  # total training steps
     gradient_accumulate_every=1,  # gradient accumulation steps
     ema_decay=0.995,  # exponential moving average decay
     # amp=True,     # turn on mixed precision
@@ -200,15 +200,14 @@ diffusion.fit(
     save_and_sample_every=20000,
     eta_min_scheduler=1e-6,
     max_grad_norm=1.0,
-    compile_model=True,
-    split_batches=True
+    compile_model=False,
 )
 
 diffusion.save(f"{results_folder}/final_model.pt")
 
 diffusion.load(f"{results_folder}/final_model.pt")
 
-samples = diffusion.predict(test_data, batch_size=16)
+samples = diffusion.predict(test_data, batch_size=4)
 
 evaluator = RegressionEvaluator()
 eval_metrics = evaluator(samples, solutions_test.numpy())
