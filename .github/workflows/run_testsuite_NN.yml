@@ -13,7 +13,7 @@ jobs:
   run-testsuite-NN:
     runs-on: ubuntu-22.04
     env:
-      CC: gcc
+      CC: mpicc
       CXX: g++
       FC: mpif90
     steps:
