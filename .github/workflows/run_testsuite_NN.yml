@@ -13,8 +13,8 @@ jobs:
   run-testsuite-NN:
     runs-on: ubuntu-22.04
     env:
-      CC: mpicc
-      CXX: mpic++
+      CC: gcc
+      CXX: g++
       FC: mpif90
     steps:
       # Free up some disk space in the runner
