@@ -662,3 +662,34 @@ class MLP(nn.Module):
         OptunaOptimizer.apply_to(optimization_params, optimized_params=best_params)
         
         return cls(input_dim, output_dim, **optimization_params), optimization_params
+
+
+class MLP_JIT(MLP):
+    r"""
+    Multi-layer perceptron model for regression tasks. The model is based on the PyTorch library `torch.nn` 
+    (detailed documentation can be found at https://pytorch.org/docs/stable/nn.html).
+
+    Class adapted for JIT compiling with `torch.jit.script`.
+
+    Args:
+        input_size (int): Number of input features.
+        output_size (int): Number of output features.
+        n_layers (int): Number of hidden layers.
+        hidden_size (int): Number of neurons in each hidden layer.
+        p_dropouts (float, optional): Dropout probability for the hidden layers (default: ``0.0``).
+        activation (torch.nn.Module, optional): Activation function to use (default: ``torch.nn.functional.relu``).
+        device (torch.device, optional): Device to use (default: ``torch.device("cpu")``).
+        initialization (Callable, optional): Initialization function for the weights (default: ``torch.nn.init.xavier_uniform_``).
+        initialization_kwargs (Dict, optional): Additional keyword arguments for the initialization function (default: ``{}``).
+        seed (int, optional): Seed for reproducibility (default: ``None``).
+        model_name (str, optional): Name of the model used as a base for the model name (default: ``"mlp"``).
+        verbose (bool, optional): If ``True``, prints the model parameters and total size (default: ``True``).
+        kwargs: Additional keyword arguments.
+    """
+    @property
+    def model_name(self) -> str:
+        return self._model_name
+    
+    @model_name.setter
+    def model_name(self, value: str) -> None:
+        self._model_name = value.strip()
