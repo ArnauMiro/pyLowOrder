@@ -76,8 +76,8 @@ def _crun(np.complex64_t[:,:] Phi, float[:] delta, float[:] freq, float f, float
 	cdef np.complex64_t *Fhat
 	Phi_dagger = <np.complex64_t*>malloc(n*m*sizeof(np.complex64_t))
 	Fhat = <np.complex64_t*>malloc(n*n*sizeof(np.complex64_t))
-	Phi_aux = <np.complex64_t*>malloc(n*n*sizeof(np.complex64_t))
-	cdef np.ndarray[np.complex64_t,ndim=1] Q_aux = np.zeros((m),dtype=np.complex64)
+	Phi_aux = <np.complex64_t*>malloc(m*n*sizeof(np.complex64_t))
+	cdef np.ndarray[np.complex64_t, ndim=1] Q_aux = np.zeros((m),dtype=np.complex64)
 	c_cdagger(&Phi[0,0], Phi_dagger, m, n)
 	if Q is None:
 		c_cmatmulp(Fhat, Phi_dagger, &Phi[0,0], n, n, m)
@@ -132,12 +132,8 @@ def _crun(np.complex64_t[:,:] Phi, float[:] delta, float[:] freq, float f, float
 
 	# Compute the projection
 	cr_start('RES.projection', 0)
-	# cdef np.complex64_t *U_res
-	# cdef np.complex64_t *V_res
 	cdef np.complex64_t *U_aux
 	cdef np.complex64_t *V_aux
-	# U_res = <np.complex64_t*>malloc(m*n*sizeof(np.complex64_t))
-	# V_res = <np.complex64_t*>malloc(m*n*sizeof(np.complex64_t))
 	U_aux = <np.complex64_t*>malloc(m*n*sizeof(np.complex64_t))
 	V_aux = <np.complex64_t*>malloc(m*n*sizeof(np.complex64_t))
 	cdef np.ndarray[np.complex64_t,ndim=2] U_res = np.zeros((m,n),dtype=np.complex64)
@@ -196,7 +192,7 @@ def _zrun(np.complex128_t[:,:] Phi, double[:] delta, double[:] freq, double f, d
 	cdef np.complex128_t *Fhat
 	Phi_dagger = <np.complex128_t*>malloc(n*m*sizeof(np.complex128_t))
 	Fhat = <np.complex128_t*>malloc(n*n*sizeof(np.complex128_t))
-	Phi_aux = <np.complex128_t*>malloc(n*n*sizeof(np.complex128_t))
+	Phi_aux = <np.complex128_t*>malloc(m*n*sizeof(np.complex128_t))
 	cdef np.ndarray[np.complex128_t,ndim=1] Q_aux = np.zeros((m),dtype=np.complex128)
 	c_zdagger(&Phi[0,0], Phi_dagger, m, n)
 	if Q is None:
@@ -252,12 +248,8 @@ def _zrun(np.complex128_t[:,:] Phi, double[:] delta, double[:] freq, double f, d
 
 	# Compute the projection
 	cr_start('RES.projection', 0)
-	# cdef np.complex128_t *U_res
-	# cdef np.complex128_t *V_res
 	cdef np.complex128_t *U_aux
 	cdef np.complex128_t *V_aux
-	# U_res = <np.complex128_t*>malloc(m*n*sizeof(np.complex128_t))
-	# V_res = <np.complex128_t*>malloc(m*n*sizeof(np.complex128_t))
 	U_aux = <np.complex128_t*>malloc(m*n*sizeof(np.complex128_t))
 	V_aux = <np.complex128_t*>malloc(m*n*sizeof(np.complex128_t))
 	cdef np.ndarray[np.complex128_t,ndim=2] U_res = np.zeros((m,n),dtype=np.complex128)
@@ -293,4 +285,3 @@ def run(real_complex[:,:] Phi, real[:] delta, real[:] freq, real f, real[:] Q=No
 		return _zrun(Phi, delta, freq, f, Q)
 	else:
 		return _crun(Phi, delta, freq, f, Q)
-	# return _crun(Phi, delta, freq, f, Q)
