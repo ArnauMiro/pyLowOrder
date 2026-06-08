@@ -105,7 +105,7 @@ class Dataset(torch.utils.data.Dataset):
         # --- inputs / parameters ---
         if variables_in is not None:
             self.parameters = self._process_parameters(parameters, combine_parameters_with_cartesian_prod)
-            self.variables_in = torch.tensor(variables_in, dtype=torch.float32)
+            self.variables_in = torch.tensor(variables_in, dtype=torch.float32) if type(variables_in) != torch.Tensor else variables_in.clone().detach()
 
             if self.inputs_scaler is not None:
                 # Build column-wise list: [variables_in columns] + [parameters columns]
@@ -953,9 +953,11 @@ class NeighborhoodDataset(Dataset):
                 )
             self.geom_dim = geom_dim
 
-        self.n_neighbors = n_neighbors
-        self.neighbors = neighbors if neighbors is not None else self._build_neighbors()
         self.use_neighbors = False
+        self.n_neighbors = n_neighbors
+        self.coords = self.variables_in[:, :self.geom_dim].cpu().numpy()
+        self.neighbors = neighbors if neighbors is not None else self._build_neighbors()
+        
 
     def __getitem__(self, idx: Union[int, slice]):
         if self.use_neighbors:
@@ -967,12 +969,10 @@ class NeighborhoodDataset(Dataset):
         """
         Precompute geometric neighbors using only geometric coordinates.
         """
-        coords = self.variables_in[:, :self.geom_dim].cpu().numpy()
-
         nbrs = NearestNeighbors(n_neighbors=self.n_neighbors + 1, algorithm="ball_tree")
-        nbrs.fit(coords)
+        nbrs.fit(self.coords)
 
-        _, indices = nbrs.kneighbors(coords)
+        _, indices = nbrs.kneighbors(self.coords)
         return torch.tensor(indices[:, 1:], dtype=torch.long)
 
     def _build_new(self, **kwargs):
@@ -982,6 +982,18 @@ class NeighborhoodDataset(Dataset):
             neighbors=self.neighbors,
             **kwargs,
         )
+
+    def compute_neighbors(self, coords: None, n_neighbors: int = None, geom_dim: int = None):
+        if coords is not None:
+            self.coords = coords
+        
+        if n_neighbors is not None:
+            self.n_neighbors = n_neighbors  
+
+        if geom_dim is not None:
+            self.geom_dim = geom_dim 
+
+        self.neighbors = self._build_neighbors()
 
     def train(self):
         self.use_neighbors = True
