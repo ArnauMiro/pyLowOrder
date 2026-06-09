@@ -1,22 +1,22 @@
-from __future__ import annotations
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# RBF-ELM (Radial Basis Function-augmented Extreme Learning Machine) class.
+#
+# Last rev: 09/06/2026
 
-import math
-import os
-import json
-import pickle
-from tabnanny import verbose
-from typing import Dict, Optional, Tuple, List
-from sklearn.neighbors import NearestNeighbors
+import math, os, json, pickle, numpy as np, torch, torch.nn as nn
 
-import numpy as np
-import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader
-from sklearn.cluster import MiniBatchKMeans
+from typing                 import Dict, Optional, Tuple, List
+from sklearn.neighbors      import NearestNeighbors
+from torch.utils.data       import DataLoader
+from sklearn.cluster        import MiniBatchKMeans
 
-from .. import DEVICE, PIN_MEMORY, set_seed
-from ...utils.errors    import raiseWarning, raiseError
-from .. import Dataset as NNDataset, RobustScaler
+from ..                     import DEVICE, PIN_MEMORY, set_seed
+from ..                     import Dataset as NNDataset, RobustScaler
+from ...utils.errors        import raiseError
+from ...                    import pprint, cr
 
 try:
     from optuna.exceptions import TrialPruned
