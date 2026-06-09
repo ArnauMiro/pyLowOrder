@@ -26,7 +26,13 @@ except ImportError:
 
 
 class RBFLayer(nn.Module):
-
+    r"""
+    Radial Basis Function (RBF) layer with Gaussian kernels. 
+    
+    Args:
+        n_centers (int): Number of RBF neurons (hidden layer size).
+        input_size (int): Dimensionality of input features.
+    """
     def __init__(self, n_centers: int, input_size: int):
         super().__init__()
         self.n_centers  = n_centers
@@ -36,6 +42,12 @@ class RBFLayer(nn.Module):
         self.register_buffer("gamma", torch.ones(n_centers))
 
     def set_gamma(self, gamma):
+        r"""
+        Set the gamma parameter(s) for the RBF layer.
+
+        Args:
+            gamma (float or torch.Tensor): If a float or a integer, all centers share the same gamma. If a tensor, must have shape (n_centers,) to specify a separate gamma for each center.
+        """
         if isinstance(gamma, float) or isinstance(gamma, int):
             gamma_tensor = torch.full(
                 (self.n_centers,),
@@ -51,12 +63,15 @@ class RBFLayer(nn.Module):
         self.gamma.copy_(gamma_tensor)
 
     def forward(self, X):
-        # Expand distances via ||x - c||^2 = ||x||^2 + ||c||^2 - 2*x@c^T
-        # Avoids materialising the (B, L, D) intermediate tensor.
-        x_sq = (X ** 2).sum(dim=-1, keepdim=True)          # (B, 1)
-        c_sq = (self.centers ** 2).sum(dim=-1, keepdim=True).T  # (1, L)
-        dist_sq = x_sq + c_sq - 2.0 * (X @ self.centers.T)     # (B, L)
-        return torch.exp(-dist_sq * self.gamma.unsqueeze(0))    # (B, L)
+        # X shape: (B, D)
+        # C shape: (L, D)
+        # Avoid computing ||x - c||^2 with shape (B, L, D) by using the expansion:
+        # ||x - c||^2 = ||x||^2 + ||c||^2 - 2*x@c^T
+
+        x_sq = (X ** 2).sum(dim=-1, keepdim=True)                   # (B, 1)
+        c_sq = (self.centers ** 2).sum(dim=-1, keepdim=True).T      # (1, L)
+        dist_sq = x_sq + c_sq - 2.0 * (X @ self.centers.T)          # (B, L)
+        return torch.exp(-dist_sq * self.gamma.unsqueeze(0))        # (B, L)
 
 
 class RBFELM(nn.Module):
