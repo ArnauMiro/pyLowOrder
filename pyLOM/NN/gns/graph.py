@@ -11,6 +11,7 @@ import os
 from typing import Any, Optional, Tuple, Union, Dict
 import warnings
 import hashlib
+from collections import defaultdict
 
 # Third-party libraries
 import numpy as np

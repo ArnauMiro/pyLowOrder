@@ -88,6 +88,17 @@
 		"reset"  : false,
 		"active" : true
 	},
+	"diffusion": {
+		"name"   : "Diffusion synthetic data",
+		"module" : "NN",
+		"file"   : "runs/tsuite_diffusion.py",
+		"data"   : "Synthetic 2D",
+		"var"    : [],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
 	"KAN_airfoil": {
 		"name"   : "KAN airfoil data",
 		"module" : "NN",

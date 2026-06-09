@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath('_ext'))
 import pyLOM
 # -- Project information -----------------------------------------------------
 project = 'pyLOM'
-copyright = '2023-2025'
+copyright = '2023-2026'
 author = 'pyLOM developers'
 version = pyLOM.__version__
 

@@ -60,8 +60,8 @@ n0z = len(np.unique(pyLOM.utils.round(d.xyz[:,2],5)))
 nx, ny, nz  = PARAMS['nx'], PARAMS['ny'], PARAMS['nz']
 
 # Create the torch dataset
-td = pyLOM.NN.Dataset((u_x,), (n0x, n0y, n0z))
-td.crop(nx, ny, nz)
+td = pyLOM.NN.Dataset((u_x,), (n0x, n0y, n0z), squeeze_last_dim=False)
+td.crop(nx, ny, nz, squeeze_last_dim=False)
 
 
 ## Set and train the variational autoencoder
@@ -88,7 +88,7 @@ pipeline.run()
 
 ## Reconstruct dataset and compute accuracy
 rec = model.reconstruct(td)
-rd  = pyLOM.NN.Dataset((rec,), (nx, ny, nz))
+rd  = pyLOM.NN.Dataset((rec,), (nx, ny, nz), squeeze_last_dim=False)
 rd.pad(n0x, n0y, n0z)
 td.pad(n0x, n0y, n0z)
 d.add_field('urec',1,rd[:,0,:,:].numpy().reshape((len(time),n0x*n0y*n0z)).T)

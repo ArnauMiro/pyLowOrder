@@ -20,6 +20,7 @@ If you find this repository useful, please cite it the source code as:
   publisher = {Barcelona Supercomputing Center},
   journal   = {GitHub repository},
   url       = {https://github.com/ArnauMiro/UPM_BSC_LowOrder},
+	doi       = {10.5281/zenodo.10598565},
 }
 ```
 The following papers describe the parallel implementation, validation and profiling of pyLOM both in CPU and GPU:

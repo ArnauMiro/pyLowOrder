@@ -37,3 +37,4 @@ where ``module`` can be exchanged by:
 - ``NN``: Installs the dependencies related to the **NN** module of the tool.
 - ``GPR``: Installs the dependencies related to the **GPR** module of the tool.
 - ``optionals``: Installs some optional dependencies.
+- ``rl``: Install the dependencies related to the **RL** module of the tool

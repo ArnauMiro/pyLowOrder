@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CC: mpicc
-      CXX: mpc++
+      CXX: mpic++
       FC: mpif90
     steps:
       # Free up some disk space in the runner
