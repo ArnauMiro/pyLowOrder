@@ -179,50 +179,6 @@ class RBFELM(nn.Module):
             raise ValueError("model_name cannot be empty")
         self._model_name = value
 
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
-
-    def unpack_batch(self, batch) -> Dict:
-        """Unpack a DataLoader batch into a unified dict (mirrors MLP)."""
-        if len(batch) == 2:
-            x, y = batch
-            return {"x": x, "x_neighbors": None, "y": y, "y_neighbors": None}
-        elif len(batch) == 4:
-            x, x_neighbors, y, y_neighbors = batch
-            return {
-                "x": x, "x_neighbors": x_neighbors,
-                "y": y, "y_neighbors": y_neighbors,
-            }
-        else:
-            raise ValueError(f"Unexpected batch length: {len(batch)}")
-
-    def _is_fitted(self) -> bool:
-        return self.beta is not None
-
-    # ------------------------------------------------------------------
-    # forward
-    # ------------------------------------------------------------------
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Run inference on a batch tensor.
-
-        Args:
-            x (torch.Tensor): Shape ``(N, input_size)``.
-
-        Returns:
-            torch.Tensor: Predictions of shape ``(N, output_size)``.
-        """
-        if not self._is_fitted():
-            raise RuntimeError("Model has not been fitted yet. Call fit() first.")
-        # hidden(x): (N, L)  @  beta: (L, O)  →  (N, O)
-        return self.hidden(x) @ self.beta
-
-
-    # ------------------------------------------------------------------
-    # center sampling
-    # ------------------------------------------------------------------
-
     @staticmethod
     def _sample_centers(
         all_x: torch.Tensor,
@@ -378,7 +334,7 @@ class RBFELM(nn.Module):
         # ---- Pass 1: collect all X to sample centers -----------------
         loader0 = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
         all_x = torch.cat(
-            [self.unpack_batch(b)["x"] for b in loader0], dim=0
+            [b[0] for b in loader0], dim=0
         ).to(self.device, dtype=dtype)
 
         N = all_x.shape[0]
@@ -410,9 +366,7 @@ class RBFELM(nn.Module):
         total_blocks  = math.ceil(N / batch_size)
 
         for b_idx, batch in enumerate(loader1):
-            unpacked = self.unpack_batch(batch)
-            x_blk = unpacked["x"].to(self.device, dtype=dtype)
-            y_blk = unpacked["y"].to(self.device, dtype=dtype)
+            x_blk, y_blk = batch[0].to(self.device, dtype=dtype), batch[1].to(self.device, dtype=dtype)
             if y_blk.dim() == 1:
                 y_blk = y_blk.unsqueeze(-1)
 
@@ -535,7 +489,7 @@ class RBFELM(nn.Module):
         # ----------------------------------------------------------------
         loader0 = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
         all_x = torch.cat(
-            [self.unpack_batch(b)["x"] for b in loader0], dim=0
+            [b[0] for b in loader0], dim=0
         ).to(device, dtype=dtype)
  
         N = all_x.shape[0]
@@ -577,9 +531,7 @@ class RBFELM(nn.Module):
                   f"threshold={sparsity_threshold})")
  
         for b_idx, batch in enumerate(loader1):
-            unpacked = self.unpack_batch(batch)
-            x_blk = unpacked["x"].to(device, dtype=dtype)
-            y_blk = unpacked["y"].to(device, dtype=dtype)
+            x_blk, y_blk = batch[0].to(self.device, dtype=dtype), batch[1].to(self.device, dtype=dtype)
             if y_blk.dim() == 1:
                 y_blk = y_blk.unsqueeze(-1)
  
