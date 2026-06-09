@@ -616,64 +616,54 @@ class RBFELM(nn.Module):
         if save_logs_path is not None:
             self.save(os.path.join(save_logs_path, f"{self._model_name}.pth"))
 
-
-    # ------------------------------------------------------------------
-    # predict
-    # ------------------------------------------------------------------
-
+    @cr('RBFELM.predict')
     def predict(
         self,
         X: torch.utils.data.Dataset,
         return_targets: bool = False,
-        batch_size: int = 50_000,
+        dataloader_kwargs: dict = {},
         **kwargs,
     ) -> np.ndarray | Tuple[np.ndarray, np.ndarray]:
         r"""
-        Predict target values for a dataset.
+        Predict target values for the input data of a dataset. The dataset is loaded to a DataLoader with the provided keyword arguments. 
+        The model is set to evaluation mode and the predictions are made using the input data. 
+        To make a prediction from a torch tensor, use the `__call__` method directly.
 
         Args:
-            X (torch.utils.data.Dataset): Dataset to predict.
-            return_targets (bool, optional): Also return true targets
-                (default: ``False``).
-            batch_size (int, optional): DataLoader batch size
-                (default: ``50 000``).
-            kwargs: Extra DataLoader kwargs (e.g. ``num_workers``).
+            X (torch.utils.data.Dataset): The dataset whose target values are to be predicted using the input data.
+            return_targets (bool, optional): If ``True``, the true target values will be returned along with the predictions (default: ``False``).
+                        dataloader_kwargs (dict, optional): Additional keyword arguments to pass to the dataloader (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader. Overrides the following defaults: ``batch_size=16_384`` ,``shuffle=False``, ``num_workers=0``, ``pin_memory=PIN_MEMORY`` (default: ``False``).
 
         Returns:
-            ``np.ndarray`` of shape ``(N, output_size)``, or a
-            ``(predictions, targets)`` tuple if ``return_targets=True``.
+            ``np.ndarray`` of shape ``(N, output_size)``, or a ``(predictions, targets)`` tuple if ``return_targets=True``.
         """
-        loader = DataLoader(
-            X,
-            batch_size=batch_size,
-            shuffle=False,
-            num_workers=kwargs.get("num_workers", 0),
-        )
-        total    = len(loader.dataset)
-        preds_np = np.empty((total, self.output_size), dtype=np.float32)
-        tgts_np  = np.empty((total, self.output_size), dtype=np.float32)
+        _dataloader_kwargs = {
+            "batch_size": kwargs.get("batch_size", 16_384),
+            "shuffle": False,
+            "num_workers": 0,
+            "pin_memory": PIN_MEMORY,
+            **dataloader_kwargs,
+        }
+
+        predict_dataloader = DataLoader(X, **_dataloader_kwargs)
+        total_rows = len(predict_dataloader.dataset)
+        total_cols = self.output_size
+        all_predictions = np.empty((total_rows, total_cols), dtype=np.float32)
+        all_targets = np.empty((total_rows, total_cols), dtype=np.float32)
 
         self.eval()
-        start = 0
+        start_idx = 0
         with torch.no_grad():
-            for batch in loader:
-                unpacked = self.unpack_batch(batch)
-                x = unpacked["x"].to(self.device, torch.float32)
-                p = self(x)
-                b = x.shape[0]
-                preds_np[start : start + b] = p.cpu().numpy()
-                if return_targets and unpacked["y"] is not None:
-                    y = unpacked["y"]
-                    if y.dim() == 1:
-                        y = y.unsqueeze(-1)
-                    tgts_np[start : start + b] = y.cpu().numpy()
-                start += b
+            for x, y in predict_dataloader:
+                output = self(x.to(self.device))
+                batch_size = x.size(0)
+                end_idx = start_idx + batch_size
+                all_predictions[start_idx:end_idx, :] = output.cpu().numpy()
+                if return_targets:
+                    all_targets[start_idx:end_idx, :] = y.cpu().numpy()
+                start_idx = end_idx
 
-        return (preds_np, tgts_np) if return_targets else preds_np
-
-    # ------------------------------------------------------------------
-    # save / load
-    # ------------------------------------------------------------------
+        return (all_predictions, all_targets) if return_targets else all_predictions
 
     def _define_checkpoint(self) -> Dict:
         return {
