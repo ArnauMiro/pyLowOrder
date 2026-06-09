@@ -78,77 +78,57 @@ class RBFELM(nn.Module):
     r"""
     Radial Basis Function Extreme Learning Machine (RBF-ELM) for regression.
 
-    Architecture
-    ------------
-    The network has **two layers**:
-
-    1. **Hidden layer** (:class:`RBFLayer`): ``L`` Gaussian RBF neurons whose
-       centers are randomly sampled from the training data and kept fixed.
-
-       .. math::
-
-           H_{n,l} = \exp\!\left(-\gamma \,\lVert x_n - c_l \rVert^2\right)
-
-    2. **Output layer**: linear projection ``y = H @ beta``.  The weight
-       matrix ``beta`` of shape ``(L, output_size)`` is computed analytically:
-
-       .. math::
-
-           \beta = \bigl(H^T H + \lambda I\bigr)^{-1} H^T Y
-
-       No gradient-based optimisation is needed, so fitting is exact and fast.
-
     Args:
         input_size (int): Number of input features.
         output_size (int): Number of output features.
         n_centers (int): Number of RBF neurons in the hidden layer.
-        gamma (float): Width parameter of the Gaussian RBF kernel.
-        reg_lambda (float, optional): Tikhonov regularisation coefficient
-            (default: ``1e-8``).
-        center_sampling (str, optional): Method to sample RBF centers from the
-            training data (default: ``"random"``).
-        device (torch.device, optional): Computation device
-            (default: ``torch.device("cpu")``).
-        seed (int, optional): Seed for reproducible center sampling
-            (default: ``None``).
-        model_name (str, optional): Base name for checkpoints
-            (default: ``"rbfelm"``).
-        verbose (bool, optional): Print hyperparameters on construction
-            (default: ``True``).
-        kwargs: Ignored; kept for API compatibility with ``MLP``.
+        gamma (float): Width parameter of the Gaussian RBF kernel. Ignored if ``gamma_mode="local"``.
+        reg_lambda (float, optional): Tikhonov regularisation coefficient (default: ``1e-8``).
+        center_sampling (str, optional): Method to sample RBF centers from the training data (default: ``"random"``).
+            - ``"random"``: Uniform random sampling of rows from the training set.
+            - ``"uniform"``: Voxel-grid subsampling that divides the bounding box into a 3-D grid and picks one random point per occupied cell, then adjusts to return exactly ``n_centers`` points.
+        gamma_mode (str, optional): Method to determine gamma values (default: ``"fixed"``).
+            - ``"fixed"``: All centers share the same gamma value specified by the ``gamma`` parameter.
+            - ``"local"``: Each center has its own gamma value estimated from the local spacing of centers.  The ``gamma_k`` and ``gamma_alpha`` parameters control the estimation.
+        gamma_k (int, optional): Number of nearest neighbours used to estimate local spacing for the ``"local"`` gamma mode (default: ``10``).
+        gamma_alpha (float, optional): Scaling factor for local gamma estimation (default: ``1.0``).  Values < 1 produce narrower kernels; > 1 produce wider kernels.
+        device (torch.device, optional): Computation device (default: ``torch.device("cpu")``).
+        seed (int, optional): Seed for reproducible center sampling (default: ``None``).
+        model_name (str, optional): Base name for checkpoints (default: ``"rbfelm"``).
+        verbose (bool, optional): Print hyperparameters on construction (default: ``True``).
+        kwargs: Ignored; kept for API compatibility.
     """
-
     def __init__(
         self,
-        input_size: int,
-        output_size: int,
-        n_centers: int,
-        reg_lambda: float = 1e-8,
-        center_sampling: str = "random",
-        gamma_mode: str = "fixed",
-        gamma: float = 1.0,
-        gamma_k: int = 10,
-        gamma_alpha: float = 1.0,
-        device: torch.device = DEVICE,
-        seed: Optional[int] = None,
-        model_name: str = "rbfelm",
-        verbose: bool = True,
+        input_size:         int,
+        output_size:        int,
+        n_centers:          int,
+        reg_lambda:         float = 1e-8,
+        center_sampling:    str = "random",
+        gamma_mode:         str = "fixed",
+        gamma:              float = 1.0,
+        gamma_k:            int = 10,
+        gamma_alpha:        float = 1.0,
+        device:             torch.device = DEVICE,
+        seed:               Optional[int] = None,
+        model_name:         str = "rbfelm",
+        verbose:            bool = True,
         **kwargs,
     ):
         super().__init__()
 
-        self.input_size      = input_size
-        self.output_size     = output_size
-        self.n_centers       = n_centers
-        self.gamma           = gamma
-        self.reg_lambda      = reg_lambda
-        self.center_sampling = center_sampling
-        self.gamma_mode      = gamma_mode
-        self.gamma_k         = gamma_k
-        self.gamma_alpha     = gamma_alpha
-        self.device          = device
-        self.seed            = seed
-        self.model_name      = model_name
+        self.input_size         = input_size
+        self.output_size        = output_size
+        self.n_centers          = n_centers
+        self.gamma              = gamma
+        self.reg_lambda         = reg_lambda
+        self.center_sampling    = center_sampling
+        self.gamma_mode         = gamma_mode
+        self.gamma_k            = gamma_k
+        self.gamma_alpha        = gamma_alpha
+        self.device             = device
+        self.seed               = seed
+        self.model_name         = model_name
 
         self.hidden = RBFLayer(n_centers, input_size)
         self.register_buffer("beta", None)
@@ -159,20 +139,33 @@ class RBFELM(nn.Module):
         self.to(self.device)
 
         if verbose:
-            print(f"Creating model: {self._model_name}")
-            for key in [
-                "input_size", "output_size", "n_centers",
-                "gamma", "reg_lambda", "center_sampling",
-                "gamma_mode", "gamma_k", "gamma_alpha",
-                "device", "seed", "model_name",
-            ]:
-                print(f"\t{key}: {getattr(self, key)}")
-            print()
+            pprint(0, f"Creating model: {self._model_name}")
+            keys_print = [
+                "input_size",
+                "output_size",
+                "n_centers",
+                "gamma",
+                "reg_lambda",
+                "center_sampling",
+                "gamma_mode",
+                "gamma_k",
+                "gamma_alpha",
+                "device",
+                "seed",
+                "model_name",
+            ]
+            for key in keys_print:
+                pprint(0, f"\t{key}: {getattr(self, key)}")
 
-    # ------------------------------------------------------------------
-    # model_name property (mirrors MLP)
-    # ------------------------------------------------------------------
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if not self._is_fitted():
+            raise raiseError("Model has not been fitted yet. Call fit() first.")
+        
+        return self.hidden(x) @ self.beta
 
+    def _is_fitted(self) -> bool:
+        return self.beta is not None
+    
     @property
     def model_name(self) -> str:
         return self._model_name
