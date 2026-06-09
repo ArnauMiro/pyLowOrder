@@ -684,43 +684,63 @@ class RBFELM(nn.Module):
             "beta":             self.beta,
         }
 
-    def save(self, path: str) -> None:
+    def save(
+        self, 
+        path: str
+    ) -> None:
         r"""
-        Save the model to a ``.pth`` checkpoint.
+        Save the model to a ``.pth`` checkpoint file.
 
         Args:
-            path (str): File path or directory.  A directory receives the
-                automatic filename ``{model_name}.pth``.
+            path (str): File path or directory. A directory receives the automatic filename ``{model_name}.pth``.
         """
+        self.checkpoint = self._define_checkpoint()
         if os.path.isdir(path):
             path = os.path.join(path, f"{self._model_name}.pth")
         torch.save(self._define_checkpoint(), path)
-        print(f"\tModel saved → {path}")
+        pprint(0, f"\tModel saved at: {path}")
 
     @classmethod
-    def load(cls, path, device=torch.device("cpu"), verbose=True):
-        ckpt  = torch.load(path, map_location=device, weights_only=False)
+    def load(
+        cls,
+        path: str,
+        device: torch.device = DEVICE,
+        verbose: bool = True
+    ):
+        r"""
+        Load the model from a checkpoint file. Does not require the model to be instantiated.
+
+        Args:
+            path (str): Path to the file to load the model from.
+            device (torch.device, optional): Device to use (default: ``torch.device("cpu")``).
+            verbose (bool, optional): If ``True``, prints the model parameters and total size after loading (default: ``True``).
+
+        Returns:
+            model (RBF-ELM): The loaded model with the trained weights.
+        """
+        checkpoint  = torch.load(path, map_location=device, weights_only=False)
         model = cls(
-            input_size      = ckpt["input_size"],
-            output_size     = ckpt["output_size"],
-            n_centers       = ckpt["n_centers"],
-            gamma           = ckpt["gamma"],
-            reg_lambda      = ckpt["reg_lambda"],
-            center_sampling = ckpt.get("center_sampling", "random"),
-            gamma_mode      = ckpt.get("gamma_mode", "fixed"),
-            gamma_k         = ckpt.get("gamma_k", 10),
-            gamma_alpha     = ckpt.get("gamma_alpha", 1.0),
+            input_size      = checkpoint["input_size"],
+            output_size     = checkpoint["output_size"],
+            n_centers       = checkpoint["n_centers"],
+            gamma           = checkpoint["gamma"],
+            reg_lambda      = checkpoint["reg_lambda"],
+            center_sampling = checkpoint.get("center_sampling", "random"),
+            gamma_mode      = checkpoint.get("gamma_mode", "fixed"),
+            gamma_k         = checkpoint.get("gamma_k", 10),
+            gamma_alpha     = checkpoint.get("gamma_alpha", 1.0),
             device          = device,
-            seed            = ckpt["seed"],
-            model_name      = ckpt["model_name"],
+            seed            = checkpoint["seed"],
+            model_name      = checkpoint["model_name"],
             verbose         = verbose,
         )
-        if ckpt["centers"] is not None:
-            model.hidden.centers = ckpt["centers"].to(device)
-        if ckpt.get("gamma_tensor") is not None:
-            model.hidden.set_gamma(ckpt["gamma_tensor"].to(device))
-        if ckpt["beta"] is not None:
-            model.beta = ckpt["beta"].to(device)
+        if checkpoint["centers"] is not None:
+            model.hidden.centers = checkpoint["centers"].to(device)
+        if checkpoint.get("gamma_tensor") is not None:
+            model.hidden.set_gamma(checkpoint["gamma_tensor"].to(device))
+        if checkpoint["beta"] is not None:
+            model.beta = checkpoint["beta"].to(device)
+
         return model
 
     # ------------------------------------------------------------------
