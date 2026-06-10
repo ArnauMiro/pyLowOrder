@@ -282,7 +282,7 @@ def h5_load_points(file,ptable,point):
 	'''
 	nopartition = file.attrs.get('NOPARTITION',True)
 	parts       = file.attrs.get('PARTS',1)
-	if ptable.nodes is None:
+	if ptable.nodes is None or not point:
 		# Warning! Repartition will only work if the input file is serial
 		# i.e., it does not have any repeated nodes, otherwise it wont work
 		istart, iend = ptable.partition_bounds(MPI_RANK,points=point)
