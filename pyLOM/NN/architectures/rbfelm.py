@@ -159,7 +159,7 @@ class RBFELM(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if not self._is_fitted():
-            raise raiseError("Model has not been fitted yet. Call fit() first.")
+            raiseError("Model has not been fitted yet. Call fit() first.")
         
         return self.hidden(x) @ self.beta
 
@@ -185,7 +185,6 @@ class RBFELM(nn.Module):
         n_centers: int,
         method: str,
         gen: torch.Generator,
-        chunk: int = 10_000,
     ) -> torch.Tensor:
         """
         Select ``n_centers`` rows from ``all_x`` as RBF centers.
@@ -193,15 +192,8 @@ class RBFELM(nn.Module):
         Args:
             all_x (torch.Tensor): All training inputs, shape ``(N, D)``.
             n_centers (int): Number of centers to select.
-            method (str):
-                ``"random"``  — uniform random over indices (original behaviour).
-                ``"uniform"`` — voxel-grid subsampling: divides the bounding box
-                    into a 3-D grid and picks one random point per occupied cell,
-                    then adjusts to return exactly ``n_centers`` points. Works
-                    directly on the surface geometry without requiring mesh
-                    connectivity or cell areas.
+            method (str): Sampling method, either ``"random"`` or ``"uniform"``.
             gen (torch.Generator): RNG state (for reproducibility).
-            chunk (int): Unused, kept for API consistency.
 
         Returns:
             torch.Tensor: Selected center rows, shape ``(n_centers, D)``.
@@ -213,51 +205,41 @@ class RBFELM(nn.Module):
             return all_x[idx].detach().clone()
 
         elif method == "uniform":
-            # Work entirely on CPU to avoid device mismatch issues;
-            # caller moves the result to the target device.
             x_cpu = all_x.cpu()
-            N     = x_cpu.shape[0]
-            K     = math.ceil(n_centers ** (1 / 3)) + 1
+            K = math.ceil(n_centers ** (1 / 3)) + 1
 
-            mins  = x_cpu.min(dim=0).values
-            maxs  = x_cpu.max(dim=0).values
-            span  = maxs - mins
-            span  = torch.where(span > 0, span, torch.ones_like(span))
+            mins = x_cpu.min(dim=0).values
+            maxs = x_cpu.max(dim=0).values
+            span = maxs - mins
+            span = torch.where(span > 0, span, torch.ones_like(span))
 
-            coords    = ((x_cpu - mins) / span * K).long().clamp(0, K - 1)
+            coords = ((x_cpu - mins) / span * K).long().clamp(0, K - 1)
             voxel_ids = coords[:, 0] * K * K + coords[:, 1] * K + coords[:, 2]
 
-            order      = torch.randperm(N, generator=gen)   # CPU generator → CPU tensor
-            voxel_ids  = voxel_ids[order]
+            order = torch.randperm(N, generator=gen)
+            voxel_ids = voxel_ids[order]
 
             sorted_v, sort_idx = voxel_ids.sort()
-            first_occ = torch.cat([
-                torch.tensor([True]),                        # CPU, matches sorted_v
-                sorted_v[1:] != sorted_v[:-1]
-            ])
+            first_occ = torch.cat([torch.tensor([True]), sorted_v[1:] != sorted_v[:-1]])
             cell_representatives = order[sort_idx[first_occ]]
 
             n_occupied = cell_representatives.shape[0]
 
             if n_occupied >= n_centers:
-                chosen = cell_representatives[
-                    torch.randperm(n_occupied, generator=gen)[:n_centers]
-                ]
+                chosen = cell_representatives[torch.randperm(n_occupied, generator=gen)[:n_centers]]
+
             else:
                 missing = n_centers - n_occupied
-                mask    = torch.ones(N, dtype=torch.bool)
+                mask = torch.ones(N, dtype=torch.bool)
                 mask[cell_representatives] = False
-                extra   = torch.where(mask)[0]
-                extra   = extra[torch.randperm(extra.shape[0], generator=gen)[:missing]]
-                chosen  = torch.cat([cell_representatives, extra])
+                extra = torch.where(mask)[0]
+                extra = extra[torch.randperm(extra.shape[0], generator=gen)[:missing]]
+                chosen = torch.cat([cell_representatives, extra])
 
             return x_cpu[chosen].detach().clone()
 
         else:
-            raise ValueError(
-                f"Unknown center_sampling method: '{method}'. "
-                "Choose 'random' or 'uniform'."
-            )
+            raiseError(f"Unknown center_sampling method: '{method}'. Choose either 'random' or 'uniform'.")
     
     @staticmethod
     def _estimate_local_gamma(
@@ -267,32 +249,23 @@ class RBFELM(nn.Module):
     ) -> torch.Tensor:
         """
         Estimate a per-center gamma value based on the local spacing between centers.
-
-        For each center, the mean distance to its ``k`` nearest neighbours is used
-        as a local length scale ``sigma``.  The resulting gamma is:
-
-        .. math::
-
-            \\gamma_l = \\frac{1}{(\\alpha \\cdot \\sigma_l)^2}
+        For each center, the mean distance to its ``k`` nearest neighbours is used as a local length scale ``sigma``.
 
         Args:
             centers (torch.Tensor): RBF centers, shape ``(L, D)``.
-            k (int): Number of nearest neighbours used to estimate local spacing
-                (default: ``10``).
-            alpha (float): Scaling factor for the bandwidth (default: ``1.0``).
-                Values < 1 produce narrower kernels; > 1 produce wider kernels.
+            k (int): Number of nearest neighbours used to estimate local spacing (default: ``10``).
+            alpha (float): Scaling factor for the bandwidth (default: ``1.0``). Values < 1 produce narrower kernels; > 1 produce wider kernels.
 
         Returns:
-            torch.Tensor: Per-center gamma values, shape ``(L,)``, on the same
-            device and dtype as ``centers``.
+            torch.Tensor: Per-center gamma values, shape ``(L,)``, on the same device and dtype as ``centers``.
         """
-        centers_np    = centers.cpu().numpy()
-        nbrs          = NearestNeighbors(n_neighbors=k + 1).fit(centers_np)
-        distances, _  = nbrs.kneighbors(centers_np)
+        centers_np = centers.cpu().numpy()
+        nbrs = NearestNeighbors(n_neighbors = k+1).fit(centers_np)
+        distances, _ = nbrs.kneighbors(centers_np)
         local_spacing = distances[:, 1:].mean(axis=1)
-        sigma         = local_spacing
-        sigma         = np.where(sigma > 0, sigma, np.finfo(np.float32).eps)
-        gamma         = alpha / (sigma ** 2)
+        sigma = local_spacing
+        sigma = np.where(sigma > 0, sigma, np.finfo(np.float32).eps)
+        gamma = alpha / (sigma ** 2)
         return torch.tensor(gamma, device=centers.device, dtype=centers.dtype)
 
     @cr('RBFELM.fit')
