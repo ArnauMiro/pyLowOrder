@@ -15,6 +15,7 @@ from sklearn.cluster        import MiniBatchKMeans
 
 from ..                     import DEVICE, PIN_MEMORY, set_seed
 from ..                     import Dataset as NNDataset, RobustScaler
+from ..optimizer            import OptunaOptimizer
 from ...utils.errors        import raiseError
 from ...                    import pprint, cr
 
@@ -583,10 +584,6 @@ class RBFELM(nn.Module):
 
         return model
 
-    # ------------------------------------------------------------------
-    # create_optimized_model
-    # ------------------------------------------------------------------
-
     @classmethod
     def create_optimized_model(
         cls,
@@ -596,57 +593,33 @@ class RBFELM(nn.Module):
         **kwargs,
     ) -> Tuple["RBFELM", Dict]:
         r"""
-        Hyperparameter search with Optuna; returns the best unfitted model.
-
-        Each trial instantiates a fresh ``RBFELM``, calls :meth:`fit`, and
-        scores it on ``eval_dataset`` using MSE.  After all trials the best
-        hyperparameters are used to build the returned model.
-
-        Searchable hyperparameters
-        --------------------------
-        Supply ``(low, high)`` tuples for parameters you want Optuna to search,
-        or a fixed scalar to hold a parameter constant:
-
-        ================  =======  =========================================
-        Key               Type     Description
-        ================  =======  =========================================
-        ``n_centers``     int      Number of hidden RBF neurons
-        ``gamma``         float    Gaussian kernel width
-        ``reg_lambda``    float    Tikhonov regularisation coefficient
-        ``batch_size``    int      Block size used during fitting
-        ================  =======  =========================================
-
-        Ranges spanning more than 2 orders of magnitude are sampled on a
-        **log scale** automatically.
+        Create an optimized model using Optuna.
+        Each trial instantiates a fresh ``RBFELM``, calls :meth:`fit`, and scores it on ``eval_dataset`` using MSE.  After all trials the best hyperparameters are used to build the returned model.
 
         Args:
-            train_dataset: Training dataset.
-            eval_dataset: Validation dataset for scoring each trial.
-            optuna_optimizer (OptunaOptimizer): Must expose
-                ``.optimization_params`` (dict) and
-                ``.optimize(objective_function)`` → best_params dict.
-            kwargs: Ignored.
+            train_dataset (torch.utils.data.Dataset): The training dataset.
+            eval_dataset (torch.utils.data.Dataset): The evaluation dataset.
+            optuna_optimizer (OptunaOptimizer): The optimizer to use for optimization.
+            kwargs: Additional keyword arguments.
 
         Returns:
-            Tuple[RBFELM, Dict]: Best unfitted model and resolved parameter
-            dict.  Fit the model with:
+            Tuple[RBFELM, Dict]: The optimized model and the optimization parameters.
 
-            .. code-block:: python
-
-                model.fit(train_dataset, **best_params)
-
-        Example
-        -------
+        Example:
+        >>> from pyLOM.NN import RBFELM, OptunaOptimizer
+        >>> train_dataset, eval_dataset = dataset.get_splits([0.8, 0.2])
         >>> optimization_params = {
-        ...     "n_centers":  (500, 5000),      # searched (log-scale int)
-        ...     "gamma":      (1e-3, 10.0),     # searched (log-scale float)
-        ...     "reg_lambda": (1e-10, 1e-4),    # searched (log-scale float)
-        ...     "batch_size": 10_000,           # fixed
+        ...     "n_centers":  (500, 5000),
+        ...     "gamma":      (1e-3, 10.0),
+        ...     "reg_lambda": (1e-10, 1e-4),
+        ...     "batch_size": 10_000,
         ... }
         >>> optimizer = OptunaOptimizer(
         ...     optimization_params=optimization_params,
         ...     n_trials=30,
         ...     direction="minimize",
+        ...     pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=5, interval_steps=1),
+        ...     save_dir=None,
         ... )
         >>> model, best_params = RBFELM.create_optimized_model(
         ...     train_dataset, eval_dataset, optimizer
@@ -654,77 +627,82 @@ class RBFELM(nn.Module):
         >>> model.fit(train_dataset, **best_params)
         """
         if not _OPTUNA_AVAILABLE:
-            raise ImportError(
-                "Optuna is required for create_optimized_model. "
-                "Install it with:  pip install optuna"
-            )
+            raiseError("Optuna is required for create_optimized_model. Install it with: pip install optuna")
 
         optimization_params = optuna_optimizer.optimization_params
-        input_dim  = train_dataset[0][0].shape[0]
-        first_y    = train_dataset[0][1]
-        output_dim = first_y.shape[0] if first_y.dim() > 0 else 1
+        input_dim, output_dim = train_dataset[0][0].shape[0], train_dataset[0][1].shape[0]
 
-        # ---- Helper: suggest or pass through a single value -----------
         def suggest_value(name, space, trial):
-            if isinstance(space, (tuple, list)) and len(space) == 2:
+            if isinstance(space, dict):
+                suggested_dict = {}
+                for key, subspace in space.items():
+                    full_name = f"{name}.{key}"
+                    suggested_dict[key] = suggest_value(full_name, subspace, trial)
+                return suggested_dict
+            
+            if isinstance(space, (tuple, list)):
                 low, high = space
-                if isinstance(low, int) and isinstance(high, int):
-                    use_log = (high / max(1, low)) >= 100
-                    return trial.suggest_int(name, low, high, log=use_log)
-                if isinstance(low, float) and isinstance(high, float):
-                    use_log = (high / max(1e-12, low)) >= 100
-                    return trial.suggest_float(name, low, high, log=use_log)
-            return space  # fixed scalar
 
-        # ---- Objective ------------------------------------------------
-        def objective(trial) -> float:
+                if isinstance(low, int) and isinstance(high, int):
+                    def is_power_of_2(n):
+                        return n > 0 and (n & (n - 1)) == 0
+                    
+                    if is_power_of_2(low) and is_power_of_2(high):
+                        power_low = int(np.log2(low))
+                        power_high = int(np.log2(high))
+                        power_diff = power_high - power_low
+                        
+                        if power_diff > 1:
+                            choices = [2**p for p in range(power_low, power_high + 1)]
+                            return trial.suggest_categorical(name, choices)
+                    
+                    use_log = (high / max(1, low)) >= 1000
+                    return trial.suggest_int(name, low, high, log=use_log)
+
+                if isinstance(low, float) and isinstance(high, float):
+                    use_log = (high / max(1e-12, low)) >= 1000
+                    return trial.suggest_float(name, low, high, log=use_log)
+
+            return space
+
+        def optimization_function(trial) -> float:
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
             model = None
+
             try:
-                training_params: Dict = {
-                    key: suggest_value(key, space, trial)
-                    for key, space in optimization_params.items()
-                }
-                model = cls(
-                    input_size  = input_dim,
-                    output_size = output_dim,
-                    verbose     = False,
-                    **training_params,
-                )
-                model.fit(train_dataset, print_rate_batch=0, verbose=False, **training_params)
+                training_params = {}
+                for key, params in optimization_params.items():
+                    training_params[key] = suggest_value(key, params, trial)
+                training_params["save_logs_path"] = None
+
+                model = cls(input_dim, output_dim, verbose=False, **training_params)
+                results = model.fit(train_dataset, print_rate_batch=0, verbose=False, **training_params)
                 y_pred, y_true = model.predict(eval_dataset, return_targets=True)
                 return float(((y_pred - y_true) ** 2).mean())
 
             except RuntimeError as exc:
                 if "out of memory" in str(exc).lower():
-                    print(f"Trial {trial.number}: OOM — pruning.")
+                    print(f"Trial {trial.number} failed due to out of memory error. Pruning the trial.")
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
                     raise TrialPruned()
                 raise
 
             finally:
-                del model
+                if model is not None:
+                    del model
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
 
-        # ---- Run optimisation ----------------------------------------
-        best_params = optuna_optimizer.optimize(objective_function=objective)
+        best_params = optuna_optimizer.optimize(objective_function=optimization_function)
 
-        # Resolve final parameter dict (best values override search spaces)
-        resolved: Dict = {}
-        for key, space in optimization_params.items():
-            if key in best_params:
-                resolved[key] = best_params[key]
-            elif not isinstance(space, (tuple, list)):
-                resolved[key] = space   # was fixed all along
+        # Update params with best ones
+        OptunaOptimizer.apply_to(optimization_params, optimized_params=best_params)
 
-        final_model = cls(
-            input_size  = input_dim,
-            output_size = output_dim,
-            **resolved,
-        )
-        return final_model, resolved
+        return cls(input_dim, output_dim, **optimization_params), optimization_params
 
-
-class MultiRBFELM:
-    r"""
-    Ensemble of local RBF-ELM models trained on spatial clusters.
 
     For large datasets where a single RBF-ELM would require too many centers
     to capture local structure, ``MultiRBFELM`` partitions the input space
