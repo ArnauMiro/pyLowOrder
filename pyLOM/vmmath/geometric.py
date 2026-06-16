@@ -20,8 +20,11 @@ def euclidean_d(X):
 	Compute Euclidean distances between simulations.
 
 	In:
+
 		- X: NxM Data matrix with N points in the mesh for M simulations
+
 	Returns:
+
 		- D: MxM distance matrix 
 	'''
 	p = cp if type(X) is cp.ndarray else np
@@ -146,13 +149,15 @@ def cell_adjacency(edge_dict) -> dict:
 def fix_normals_coherence(normals, edge_dict, adjacency, num_cells) -> np.ndarray:
 	'''
 	Ensure that the normals of the cells are coherent. (i.e. they point all in the same direction).
-	In:
+	Args:
 		- normals: Array of normals of the cells
 		- edge_dict: Dictionary mapping edges to cells sharing that edge.
 		- adjacency: Dictionary mapping cells to their neighbors.
 		- num_cells: Number of cells in the mesh
+	
 	Returns:
 		- normals: Array of normals of the cells
+	
 	'''
 	# Find the cells that are on the border
 	border_cells = set()

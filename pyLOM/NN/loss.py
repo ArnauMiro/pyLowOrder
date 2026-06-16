@@ -254,7 +254,7 @@ class FocalMSELoss(BaseLossFunction):
     r"""
     Focal-style Mean Squared Error for regression.
 
-    Emphasizes harder examples by scaling the squared error with |error|^gamma.
+    Emphasizes harder examples by scaling the squared error with \|error\|\^gamma.
 
     Args:
         gamma (float): Focusing parameter (>=0). Common values: 1.0-2.0.

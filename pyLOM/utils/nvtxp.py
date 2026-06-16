@@ -14,7 +14,11 @@ try:
 
 	def nvtxp(ch_name,color="blue"):
 		'''
-		CR NVTX decorator
+		CR NVTX decorator.
+
+		Args:
+			ch_name (str): The name of the channel.
+			color (str, optional): The color to anotate the message.
 		'''
 		def decorator(func):
 			@functools.wraps(func)
@@ -28,7 +32,11 @@ try:
 except:
 	def nvtxp(ch_name,color="blue"):
 		'''
-		CR NVTX decorator
+		CR NVTX decorator.
+
+		Args:
+			ch_name (str): The name of the channel.
+			color (str, optional): The color to anotate the message.
 		'''
 		def decorator(func):
 			@functools.wraps(func)

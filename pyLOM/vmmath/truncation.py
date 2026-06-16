@@ -15,11 +15,13 @@ from ..utils     import cr_nvtx as cr, mpi_reduce
 
 
 def compute_truncation_residual(S, r):
-	'''
+	r'''
 	Compute the truncation residual.
 	r must be a float precision (r<1) where:
+	
 		- r > 0: target residual
 		- r < 0: fraction of cumulative energy to retain
+	
 	'''
 	N = 0
 	if r > 0:

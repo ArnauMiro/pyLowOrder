@@ -36,9 +36,20 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 	Returns:
 		[(np.ndarray), (np.ndarray), (np.ndarray)]: where the first array is L, the modal energy spectra, the second array is  P, SPOD modes, whose spatial dimensions are identical to those of X and finally f is the frequency vectors
 	''' 
+	# Check if the input has any error or inconsistency
+	if (np.shape(t)[0] < 2):
+		raiseError("In SPOD.run: Invalid time array.")
+	dt  = t[1] - t[0]
+
+	if (dt <= 0):
+		raiseError("In SPOD.run: Invalid time array.")
+
+	for i in range(1, np.shape(t)[0]):
+		if (np.abs(t[i] - t[i - 1] - dt) > dt * 1E-5):
+			raiseError("In SPOD.run: The time array is not equispaced.")
+	
 	cnp = cp if type(X) is cp.ndarray else np
 	M,N = X.shape
-	dt  = t[1] - t[0]
 	cdtype = np.complex128 if X.dtype is np.double else np.complex64
 	
 	if nDFT == 0:
@@ -46,7 +57,13 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 	window = cpu_to_gpu(hammwin(nDFT))
 	if nolap == 0:
 		nolap = int(np.floor(nDFT/2))
+
+	if (N <= nolap or nDFT <= nolap):
+		raiseError(
+			"In SPOD.run: Invalid combination of nDFT and nolap parameters")
+
 	nBlks = int(np.floor((N-nolap)/(nDFT-nolap)))
+
 	# Correction for FFT window gain
 	winWeight = 1/np.mean(window)
 
@@ -62,6 +79,11 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 	# Set frequency axis
 	f  = cnp.arange(np.ceil(nDFT / 2) + 1) / dt / nDFT
 	nf = f.shape[0]
+
+	if (nf == 0):
+		raiseError(
+			"In SPOD.run: Invalid combination of nDFT and nolap parameters")
+
 	qk = cnp.zeros((M,nf),cdtype)
 	Q  = cnp.zeros((M*nf,nBlks),cdtype)
 	cr_start('SPOD.fft',0)

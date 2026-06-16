@@ -29,7 +29,7 @@ def global_coeff(
         SRef (float): Reference area.
         MomentCenter (torch.Tensor): Tensor of shape (3,) with the moment center coordinates.
         cRef (float): Reference chord length.
-        CoefSkinFriction (torch.Tensor, optional): Tensor of shape (n,3) with the skin friction coefficients of the surface (default: `None).
+        CoefSkinFriction (torch.Tensor, optional): Tensor of shape (n,3) with the skin friction coefficients of the surface (default: `None`).
         alpha (torch.Tensor): Angle of attack in deg.
         coordinates (torch.Tensor): Tensor of shape (n,3) with the coordinates of the surface points.
         normals (torch.Tensor): Tensor of shape (n,3) with the normal vectors of the surface.

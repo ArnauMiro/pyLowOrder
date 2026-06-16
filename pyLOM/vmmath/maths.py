@@ -96,7 +96,7 @@ def matmulp(A:np.ndarray,B:np.ndarray) -> np.ndarray:
 	C = A x B 
 
 	.. warning::
-	A and B are distributed along the processors and C is the same for all of them
+		A and B are distributed along the processors and C is the same for all of them.
 
 	Args:
 		A (np.ndarray): Matrix A (M,Q)
@@ -168,9 +168,9 @@ def eigen(A:np.ndarray) -> np.ndarray:
 	Eigenvalues and eigenvectors.
 
 	.. warning::
-	GPU implementation of this algoritm is still slow and
-	thus will be executed purely on CPU level until
-	cupy implements linalg.eig
+		GPU implementation of this algoritm is still slow and
+		thus will be executed purely on CPU level until
+		cupy implements linalg.eig.
 
 	Args:
 		A (np.ndarray): Matrix A (M,N)
@@ -298,8 +298,7 @@ def flip(A:np.ndarray) -> np.ndarray:
 	Returns the pointwise conjugate of A
 
 	.. warning::
-	This function is not implemented in the
-	compiled layer and will raise an error if used
+		This function is not implemented in the compiled layer and will raise an error if used.
 
 	Args:
 		A (np.ndarray): Matrix A (M,N)

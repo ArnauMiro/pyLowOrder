@@ -13,7 +13,14 @@ from .mpi import MPI_RANK, MPI_COMM
 
 def round(value,precision):
 	'''
-	Truncate array by a certain precision
+	Truncate array by a certain precision.
+
+	Args:
+		value: The array with values to round.
+		precision: Number of decimal significant digits to keep.
+
+	Returns:
+		The rounded array.
 	'''
 	fact  = 10**precision
 	return np.round(value*fact)/fact
@@ -23,6 +30,9 @@ def raiseError(errmsg):
 	'''
 	Raise a controlled error and abort execution on
 	all processes.
+
+	Args:
+		errmsg: The message to print.
 	'''
 	print('%d - %s' % (MPI_RANK,errmsg),file=sys.stderr,flush=True)
 	MPI_COMM.Abort(1)
@@ -32,6 +42,11 @@ def raiseWarning(warnmsg,allranks=False):
 	'''
 	Raise a controlled warning but don't abort execution on
 	all processes.
+
+	Args:
+		warnmsh: The message to print.
+		allranks (bool, optional): If ``True`` all ranks will print the warning,
+			otherwise only rank 0.
 	'''
 	if allranks:
 		print('Warning! %d - %s' % (MPI_RANK,warnmsg),file=sys.stderr,flush=True)

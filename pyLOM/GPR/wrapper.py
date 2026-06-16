@@ -247,18 +247,19 @@ class SF_GPR(GPRBase):
     def predict(self, X_test):
         """
         Predicts mean and standard deviation on new data.
-
+        
         Args:
             X_test (array-like): Test feature set.
-
+        
         Returns:
             Dict[str, numpy.ndarray]: {
                 'mean': Predicted means,
                 'std': Predicted standard deviations
-            }
-
+                }
+        
         Raises:
             RuntimeError: If called before fitting.
+        
         """
         if self.model is None:
             raiseError("Fit the model before predicting.")
@@ -276,22 +277,22 @@ class SF_GPR(GPRBase):
 class MF_GPR(GPRBase):
     """
     Multi-fidelity Gaussian process regression model.
-
+    
     Interface:
       - fit(feature_list, label_list, kernels, noise_vars, num_restarts, verbose)
       - predict(feature_list) → {
             'fidelity_1': {'mean': array, 'std': array},
             'fidelity_2': {'mean': array, 'std': array},
             ...
-        }
-
+            }
+    
     Automatically reshapes input arrays to column matrices for consistency.
     """
 
     def __init__(self, input_dim=None):
         """
         Initializes the multi-fidelity GPR model.
-
+       
         Args:
             input_dim (int, optional): Dimensionality of each fidelity feature space.
         """
@@ -335,7 +336,7 @@ class MF_GPR(GPRBase):
     ):
         """
         Fits the linear multi-fidelity model to lists of data arrays.
-
+       
         Args:
             train_features_list (List[array-like]): Features per fidelity.
             train_labels_list (List[array-like]): Targets per fidelity.
@@ -343,10 +344,10 @@ class MF_GPR(GPRBase):
             noise_vars (float or List[float], optional): Noise variances.
             num_restarts (int): Number of optimization restarts.
             verbose (bool): Print optimization logs.
-
+        
         Returns:
             MF_GPR: The fitted multi-fidelity model.
-
+        
         Raises:
             RuntimeError: If kernels list length mismatches number of fidelities.
         """
@@ -412,14 +413,14 @@ class MF_GPR(GPRBase):
     def predict(self, predict_features_list):
         """
         Predicts outputs at each fidelity level for new data.
-
+        
         Args:
             predict_features_list (List[array-like]): Test arrays per fidelity.
-
+        
         Returns:
             Dict[str, Dict[str, numpy.ndarray]]: Mapping
             fidelity_i → {'mean': ..., 'std': ...}
-
+        
         Raises:
             RuntimeError: If input is not a list of arrays.
         """

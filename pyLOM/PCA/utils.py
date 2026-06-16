@@ -16,7 +16,7 @@ from ..utils.cr  import cr_nvtx as cr
 @cr('PCA.T2')
 def T2score(P:np.ndarray, ncomp:int=1, confidence:float=0.8):
 	r'''
-	Summarize the scores over the ncomp and return the limit for the confidence itnerval according to its probabilistic distribution.
+	Summarize the scores over the ncomp and return the limit for the confidence interval according to its probabilistic distribution.
 
 	Args:
 		P (np.ndarray): scores from PCA.

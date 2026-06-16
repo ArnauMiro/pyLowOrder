@@ -197,12 +197,15 @@ class Graph(Data):
         - /GRAPH/numEdges : i4[1]
         - /GRAPH/edgeIndex : i4[2,E]
         - /GRAPH/NODEFEATRS : group
+        
             * attrs['feature_names'] : S[]
             * <feat_name> : float32[N, k_i]
+        
         - /GRAPH/EDGEFEATRS : group
+        
             * attrs['feature_names'] : S[]
             * <feat_name> : float32[E, k_i]
-
+        
         Parameters
         ----------
         fname : str
@@ -212,13 +215,14 @@ class Graph(Data):
             root groups and only replace /GRAPH. Ignored for .pt/.pkl. When
             omitted, defaults to 'w' if ``fname`` does not exist and 'a'
             otherwise (matching ``Dataset.save``).
-
+        
         Notes
         -----
         * Only numeric features are stored under NODEFEATRS/EDGEFEATRS.
-        Text metadata must be stored elsewhere (e.g., /GRAPH/METADATA).
-        * Only the /GRAPH group is created/overwritten; other root groups
-        (e.g., /DATASET) remain untouched.
+            Text metadata must be stored elsewhere (e.g., /GRAPH/METADATA).
+        * Only the /GRAPH group is created/overwritten;
+            other root groups (e.g., /DATASET) remain untouched.
+        
         """
         fmt = os.path.splitext(fname)[1][1:].lower()
 

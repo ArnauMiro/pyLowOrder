@@ -17,6 +17,13 @@ class PartitionTable(object):
 	The partition table class contains information on the 
 	partition used for the given dataset or  it can generate
 	a new partition
+
+	Attributes:
+		_nparts (int): Number of partitions.
+	#	_ids (int): Id of the table at the current rank.
+		#_elements (int): Number of elements of this rank of the partition table.
+		#_master (bool): Store all the information in rank 0.
+		#_points (int): Number of points of this rank of the partition table.
 	'''
 	def __init__(self,nparts,ids,elements,points,has_master=False):
 		'''

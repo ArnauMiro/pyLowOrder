@@ -630,6 +630,7 @@ def plot_train_test_loss(
         Dictionary of loss series. Two accepted shapes:
         1) {"Model A": losses, "Model B": losses}
         2) {"Model A": {"train": train_losses, "val": val_losses}, ...}
+
        Each "losses" can be a list/tuple, numpy array, torch tensor, or a list of tensors.
     title, xlabel, ylabel : str
         Plot labels.
@@ -661,6 +662,7 @@ def plot_train_test_loss(
     Notes
     -----
     - When `save=True` and `save_path is None`, the file is saved to "./plots/train_test_losses.png".
+
     """
 
     # Prepare figure/axes

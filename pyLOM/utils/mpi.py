@@ -46,7 +46,12 @@ def mpi_barrier():
 @nvtxp('mpi_send',color='red')
 def mpi_send(f,dest,tag=0):
 	'''
-	Implements the send operation
+	Implements the send operation.
+
+	Args:
+		f: The buffer to send.
+		dest (int): Rank of the destination.
+		tag (int, optional): Tag of the message.
 	'''
 	MPI_COMM.send(f,dest,tag=tag)
 
@@ -54,7 +59,10 @@ def mpi_send(f,dest,tag=0):
 @nvtxp('mpi_recv',color='red')
 def mpi_recv(**kwargs):
 	'''
-	Implements the recieve operation
+	Implements the recieve operation.
+
+	Args:
+		**kwargs: Arguments are forwarded to the recv function.
 	'''
 	return MPI_COMM.recv(**kwargs)
 
@@ -62,7 +70,11 @@ def mpi_recv(**kwargs):
 @nvtxp('mpi_sendrecv',color='red')
 def mpi_sendrecv(buff,**kwargs):
 	'''
-	Implements the sendrecv operation
+	Implements the sendrecv operation.
+
+	Args:
+		buff: The buffer.
+		**kwargs: Additional arguments are forwarded to the sendrecv function.
 	'''
 	return MPI_COMM.sendrecv(buff,**kwargs)
 
@@ -70,8 +82,12 @@ def mpi_sendrecv(buff,**kwargs):
 @nvtxp('mpi_scatter',color='red')
 def mpi_scatter(sendbuff,root=0,do_split=False):
 	'''
-	Send an array among the processors and split
-	if necessary.
+	Send an array among the processors and split if necessary.
+
+	Args:
+		sendbuff: The array to send.
+		root (int, optional): The root rank.
+		do_split (bool, optional): Split flag. The default is ``False``.
 	'''
 	if MPI_SIZE > 1:
 		return MPI_COMM.scatter(split(sendbuff,root=root),root=root) if do_split else MPI_COMM.scatter(sendbuff,root=root)
@@ -82,6 +98,16 @@ def mpi_scatter(sendbuff,root=0,do_split=False):
 def mpi_gather(sendbuff,root=0,all=False):
 	'''
 	Gather an array from all the processors.
+
+	Args:
+		sendbuff: The array to gather.
+		root (int, optional): The rank where to gather the array if ``all`` is
+			``False``.
+		all (bool, optional): If ``true`` gathers to all ranks, otherwise only
+			to ``root``.
+
+	Returns:
+		The gathered array or None.
 	'''
 	if MPI_SIZE > 1:
 		if not isinstance(sendbuff,np.ndarray) and not isinstance(sendbuff,list): sendbuff = [sendbuff]
@@ -98,6 +124,18 @@ def mpi_gather(sendbuff,root=0,all=False):
 def mpi_reduce(sendbuff,root=0,op='sum',all=False):
 	'''
 	Reduce an array from all the processors.
+
+	Args:
+		sendbuff: The buffer to reduce.
+		root (int, optional): The rank where to reduce the buffer if ``all`` is
+			``False``.
+		op (optional): The reduce operation.
+		all (bool, optional): If ``true`` the buffer will be reduced to all
+			ranks, otherwise only to ``root``.
+
+	Returns:
+		The result of the reduce operation if the rank should receive it
+		according to its arguments, otherwise ``senduff``.
 	'''
 	if MPI_SIZE > 1:
 		if isinstance(op,str):
@@ -123,6 +161,14 @@ def mpi_reduce(sendbuff,root=0,op='sum',all=False):
 @nvtxp('mpi_bcast',color='red')
 def mpi_bcast(sendbuff,root=0):
 	'''
-	Implements the broadcast operation
+	Implements the broadcast operation.
+
+	Args:
+		sendbuff: The buffer to broadcast.
+		root (int, optional): The rank of the broadcast operation. The default
+			is 0.
+
+	Returns:
+		The result of the broadcast operation.
 	'''
 	return MPI_COMM.bcast(sendbuff,root=root)

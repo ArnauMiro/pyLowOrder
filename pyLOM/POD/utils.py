@@ -22,10 +22,11 @@ def extract_modes(U:np.ndarray,ivar:int,npoints:int,modes:list=[],reshape:bool=T
 
 	Args:
 		U (np.ndarray): POD spatial modes
-		ivar (int): ID of the variable (i. e.) position in which it was concatenated to the rest of data (min=1, max=number of concatenated variables)
+		ivar (int): ID of the variable, i. e. position in which it was concatenated to the rest of data (min=1, max=number of concatenated variables)
 		npoints (int): number of points in the domain per variable
 		modes (list, optional): list containing the id of the modes to separate (default ``[]``).
-		reshape (bool, optional): if true the output will be given as (len(modes)*npoints,) if not it the result will be (npoints, len(modes)) (default `` True ``)
+		reshape (bool, optional): if true the output will be given as ``(len(modes)*npoints,)``
+			if not it the result will be (npoints, len(modes)) (default `` True``)
 
 	Returns:
 		np.ndarray: modes of the variable ivar

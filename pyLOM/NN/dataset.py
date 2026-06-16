@@ -619,14 +619,14 @@ class Dataset(torch.utils.data.Dataset):
     
     @cr("NN.Dataset.map")
     def map(self, function: Callable, fn_kwargs: dict = {}, batched: bool = False, batch_size: int = 1000):
-        '''
+        r'''
         Apply a function to the dataset.
-
+        
         Args:
             function (Callable): Function to be applied to the dataset with one of the following signatures:
                 
-                - function (inputs: torch.Tensor, outputs: torch.Tensor, \*\*kwargs) -> Tuple[torch.Tensor, torch.Tensor] if variables_in exists. Here `inputs` is the input data and `outputs` is the output data that __getitem__ returns, so `inputs` will include the parameters if they exist. 
-                - function (outputs: torch.Tensor, \*\*kwargs) -> torch.Tensor if variables_in does not exist.
+                - function (inputs: torch.Tensor, outputs: torch.Tensor, `**kwargs`) -> Tuple[torch.Tensor, torch.Tensor] if variables_in exists. Here `inputs` is the input data and `outputs` is the output data that __getitem__ returns, so `inputs` will include the parameters if they exist. 
+                - function (outputs: torch.Tensor, `**kwargs`) -> torch.Tensor if variables_in does not exist.
                 
                 If batched is False, the tensors will have only one element in the first dimension.
             fn_kwargs (Dict): Additional keyword arguments to be passed to the function.
@@ -665,8 +665,8 @@ class Dataset(torch.utils.data.Dataset):
         Args:
             function (Callable): Function to be applied to the dataset with one of the following signatures:
 
-                - function (inputs: torch.Tensor, outputs: torch.Tensor, \*\*kwargs) -> bool if variables_in exists. Here `inputs` is the input data and `outputs` is the output data that __getitem__ returns, so `inputs` will include the parameters if they exist. 
-                - function (outputs: torch.Tensor, \*\*kwargs) -> bool if variables_in does not exist.
+                - function (inputs: torch.Tensor, outputs: torch.Tensor, `**kwargs`) -> bool if variables_in exists. Here `inputs` is the input data and `outputs` is the output data that __getitem__ returns, so `inputs` will include the parameters if they exist. 
+                - function (outputs: torch.Tensor, `**kwargs`) -> bool if variables_in does not exist.
 
                 If batched is True, the function should return a list of booleans.
             fn_kwargs (Dict): Additional keyword arguments to be passed to the function.
@@ -871,8 +871,8 @@ class Dataset(torch.utils.data.Dataset):
     ):
         """
         Inverse-scale an output tensor using the provided scaler or self.outputs_scaler.
-        Accepts channel-first (N, C, *mesh_shape), channel-last (N, *mesh_shape, C),
-        or no-explicit-channel (N, *mesh_shape), and returns the same container type.
+        Accepts channel-first (N, C, `*mesh_shape`), channel-last (N, `*mesh_shape`, C),
+        or no-explicit-channel (N, `*mesh_shape`), and returns the same container type.
         """
         sc = scaler or self.outputs_scaler
         if sc is None or not sc.is_fitted:

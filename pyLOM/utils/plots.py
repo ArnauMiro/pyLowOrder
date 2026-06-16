@@ -47,14 +47,32 @@ def close_plots():
 
 def style_plots(styleDict=DEFAULTSTYLE):
 	'''
-	Define a common plot style in the scripts
+	Define a common plot style in the scripts.
+
+	Args:
+		styleDict (dict) : Dictionary with the styles.
 	'''
 	for key in styleDict.keys():
 		matplotlib.rc(key,**styleDict[key])
 
 def plotFieldStruct2D(ax,nx,ny,ndim,xyz,field,dim,cmap,clear=False):
 	'''
-	Plot a 2D point or cell centered field on an structured mesh
+	Plot a 2D point or cell centered field on an structured mesh.
+
+	Args:
+		ax (matplotlib.axes.Axes) : Matplotlib axes where to plot.
+		nx (int) : Number of points to plot in the x direction.
+		ny (int) : Number of points to plot in the y direction.
+		ndim (int) : Number of dimensions of the ``field``.
+		xyz (np.ndarray) : Points array.
+		field (np.ndarray) : Field array.
+		dim (int) : Dimension of ``field`` to print.
+		cmap : Colormap to use in the plot.
+		clear (bool, optional) : If ``true``, ``ax`` is cleared before plotting.
+			The default is ``False``.
+
+	Returns:
+		The contourf plot object.
 	'''
 	# Clear the axis if needed
 	if clear: ax.clear()
@@ -70,8 +88,17 @@ def plotFieldStruct2D(ax,nx,ny,ndim,xyz,field,dim,cmap,clear=False):
 
 def plotResidual(S,fig=None,ax=None):
 	'''
-	Given the S matrix as a vector, plot
-	the accumulated residual.
+	Given the S matrix as a vector, plot the accumulated residual.
+
+	Args:
+		S : The vector of residuals.
+		fig (optional) : Matplotlib figure to plot the residuals. If None (as
+			default) a new one is created.
+		ax (optional) : Matplotlib axes to plot the residuals. If None (as
+			default) a new one is created.
+
+	Return:
+		Figure and axes whith the plots.
 	'''
 	S = gpu_to_cpu(S)
 	# Build figure and axes
@@ -93,7 +120,14 @@ def plotResidual(S,fig=None,ax=None):
 
 def plotModalErrorBars(error:np.ndarray):
 	'''
-	Do a barplot of a 1D array of errors, where each element is the error associated in the prediction of a mode.
+	Do a barplot of a 1D array of errors, where each element is the error
+	associated in the prediction of a mode.
+
+	Args:
+		error (np.ndarray) : Error array.
+
+	Return:
+		Figure and axes whith the plots.
 	'''
 	indices = np.arange(len(error))+1
 	cmap    = plt.cm.jet
@@ -111,6 +145,15 @@ def plotModalErrorBars(error:np.ndarray):
 def plotTimeSeries(time:np.ndarray, truth:np.ndarray, pred:np.ndarray, std:np.ndarray = None):
 	'''
 	Function to plot the comparison between the truth and predicted N temporal series.
+
+	Args:
+		time (np.ndarray) : Time array.
+		truth (np.ndarray) : Truth values.
+		pred (np.ndarray) : Prediction values.
+		std (np.ndarray, optional) : Standard deviation values.
+
+	Return:
+		Figure and axes whith the plots.
 	'''
 	N, nt = truth.shape
 	std   = std if std is not None else np.zeros((N,nt))
@@ -135,8 +178,13 @@ try:
 
 	def _cells_and_offsets(conec):
 		'''
-		Build the offsets and cells array to create am
-		UnstructuredGrid
+		Build the offsets and cells array to create an UnstructuredGrid.
+
+		Args:
+			conec : Mesh connectivity.
+
+		Returns:
+			Cells and offset arrays.
 		'''
 		# Compute points per cell
 		ppcell = np.sum(conec >= 0,axis=1)
@@ -153,7 +201,19 @@ try:
 	@cr('plots.pyvista_snap')
 	def plotSnapshot(mesh,dset,vars=[],idim=0,instant=0,**kwargs):
 		'''
-		Plot using pyVista
+		Plot using pyVista.
+
+		Args:
+			mesh (pyLOM.Mesh) : Mesh.
+			dset (pyLOM.Dataset) : Dataset.
+			vars (list, optional) : List of strings containing the fields to
+				plot.
+			idim (optional) : Dimension to plot.
+			instant (optional) : Instant to plot.
+			**kwargs : Arguments forwarded to ``ugrid.plot``.
+
+		Returns:
+			The plot object.
 		'''
 		# First create the unstructured grid
 		cells, offsets = _cells_and_offsets(mesh.connectivity)
@@ -173,7 +233,23 @@ try:
 	@cr('plots.pyvista_layout')
 	def plotLayout(mesh,dset,nrows,ncols,imode,vars=[],cmap='jet',title='',off_screen=False,**kwargs):
 		'''
-		Plot using pyVista
+		Plot using pyVista.
+
+		Args:
+			mesh (pyLOM.Mesh) : Mesh.
+			dset (pyLOM.Dataset) : Dataset.
+			nrows (int) : Number of rows of windows to plot.
+			ncols (int) : Number of columns of windows to plot.
+			impode (int) : Component of the field to plot.
+			vars (list, optional) : List of strings containing the fields to
+				plot.
+			cmap (optional) : Colormap.
+			title (str, optional) : Plot title.
+			off_screen (bool, optional) : Renders off screen when ``True``.
+			**kwargs : Arguments forwarded to ``plotter.plot``.
+
+		Returns:
+			The plot object.
 		'''
 		# First create the unstructured grid
 		cells, offsets = _cells_and_offsets(mesh.connectivity)
@@ -204,12 +280,41 @@ try:
 except:
 	def plotSnapshot(mesh,dset,vars=[],idim=0,instant=0,**kwargs):
 		'''
-		Plot using pyVista
+		Plot using pyVista.
+
+		Args:
+			mesh (pyLOM.Mesh) : Mesh.
+			dset (pyLOM.Dataset) : Dataset.
+			vars (list, optional) : List of strings containing the fields to
+				plot.
+			idim (optional) : Dimension to plot.
+			instant (optional) : Instant to plot.
+			**kwargs : Arguments forwarded to ``ugrid.plot``.
+
+		Returns:
+			The plot object.
 		'''
 		raiseWarning('Import - Problems loading pyVista!',False)
 
 	def plotLayout(mesh,dset,nrows,ncols,imode,vars=[],cmap='jet',title='',off_screen=False,**kwargs):
 		'''
-		Plot using pyVista
+		Plot using pyVista.
+
+		Args:
+			mesh (pyLOM.Mesh) : Mesh.
+			dset (pyLOM.Dataset) : Dataset.
+			nrows (int) : Number of rows of windows to plot.
+			ncols (int) : Number of columns of windows to plot.
+			impode (int) : Component of the field to plot.
+			vars (list, optional) : List of strings containing the fields to
+				plot.
+			cmap (optional) : Colormap.
+			title (str, optional) : Plot title.
+			off_screen (bool, optional) : Renders off screen when ``True``.
+			**kwargs : Arguments forwarded to ``plotter.plot``.
+
+		Returns:
+			The plot object.
 		'''
 		raiseWarning('Import - Problems loading pyVista!',False)
+

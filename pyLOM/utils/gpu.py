@@ -17,7 +17,11 @@ try:
 
 	def gpu_device(id=MPI_RANK,gpu_per_node=4):
 		'''
-		Setup the GPU to be used
+		Setup the GPU to be used.
+
+		Args:
+			id: The MPI Rank.
+			gpu_per_node: The number of GPUs available per node.
 		'''
 		local_id = int(id%gpu_per_node)
 		cp.cuda.Device(local_id).use()
@@ -54,21 +58,55 @@ try:
 
 	def gpu_to_cpu(X):
 		'''
-		Move an array from GPU to CPU
+		Move an array from GPU to CPU.
+
+		Args:
+			X (np.ndarray or cp.ndarray): The array to return.
+
+		Returns:
+			numpy.ndarray:
+				Converted array on host memory.
+				
 		'''
 		return cp.asnumpy(X) if type(X) is cp.ndarray else X
 
 	def cpu_to_gpu(X):
 		'''
-		Move an array from GPU to CPU
+		Move an array from GPU to CPU.
+
+		Args:
+			X (np.ndarray or cp.ndarray): The array to return.
+
+		Returns:
+			cupy.ndarray:
+				Converted array on selected device.
 		'''
 		return cp.asarray(X) if type(X) is not cp.ndarray else X
 	
 	def ascontiguousarray(X):
+		'''
+		Returns a C-contiguous array.
+
+		Args:
+			X (np.ndarray or cp.ndarray): The array to return.
+
+		Returns:
+			np.ndarray or cp.ndarray:
+				``X`` if no copy is required, otherwise a copy of ``X``.
+		'''
 		p = cp if type(X) is cp.ndarray else np
 		return p.ascontiguousarray(X)
 	
 	def from_dlpack(X):
+		'''
+		Returns from_dlpack from the cupy package.
+
+		Args:
+			X : Array
+
+		Returns:
+			cp.from_dlpack(X)
+		'''
 		return cp.from_dlpack(X)
 
 except:
@@ -76,7 +114,11 @@ except:
 
 	def gpu_device(id=MPI_RANK,gpu_per_node=4):
 		'''
-		Setup the GPU to be used
+		Setup the GPU to be used.
+
+		Args:
+			id: The MPI Rank.
+			gpu_per_node: The number of GPUs available per node.
 		'''
 		raiseWarning('cupy not available! GPU version deactivated!')
 
@@ -89,18 +131,52 @@ except:
 
 	def gpu_to_cpu(X):
 		'''
-		Move an array from GPU to CPU
+		Move an array from GPU to CPU.
+
+		Args:
+			X (np.ndarray or cp.ndarray): The array to return.
+
+		Returns:
+			numpy.ndarray:
+				Converted array on host memory.
+				
 		'''
 		return X
 
 	def cpu_to_gpu(X):
 		'''
-		Move an array from GPU to CPU
+		Move an array from GPU to CPU.
+
+		Args:
+			X (np.ndarray or cp.ndarray): The array to return.
+
+		Returns:
+			cupy.ndarray:
+				Converted array on selected device.
 		'''
 		return X
 
 	def ascontiguousarray(X):
+		'''
+		Returns a C-contiguous array.
+
+		Args:
+			X (np.ndarray or cp.ndarray): The array to return.
+
+		Returns:
+			np.ndarray or cp.ndarray:
+				``X`` if no copy is required, otherwise a copy of ``X``.
+		'''
 		return np.ascontiguousarray(X)
 
 	def from_dlpack(X):
+		'''
+		Returns from_dlpack from the cupy package.
+
+		Args:
+			X : Array
+
+		Returns:
+			cp.from_dlpack(X)
+		'''
 		return X

@@ -17,7 +17,20 @@ from ..utils     import cr_nvtx as cr, cr_start, cr_stop
 
 def _order_modes(muReal, muImag, Phi, bJov):
 	'''
-    Order the modes according to its amplitude, forcing that in case of a conjugate eigenvalue, the positive part always is the first one
+	Order the modes according to its amplitude, forcing that in case of a
+	conjugate eigenvalue, the positive part always is the first one.
+
+	Args:
+		muReal : Array of the real part of the eigenvalues.
+		muImag : Array of the imaginary part of the eigenvalues.
+		Phi : DMD modes.
+		bJov : Amplitudes of the DMD modes.
+
+	Returns:
+		muReal : Array of the real part of the eigenvalues.
+		muImag : Array of the imaginary part of the eigenvalues.
+		Phi : DMD modes.
+		bJov : Amplitudes of the DMD modes.
 	'''
 	cnp    = cp if type(muReal) is cp.ndarray else np
 	muReal = muReal[flip(cnp.abs(bJov).argsort())]
@@ -48,17 +61,18 @@ def _order_modes(muReal, muImag, Phi, bJov):
 @cr('DMD.run')
 def run(X, r, remove_mean = True):
 	'''
-	DMD analysis of snapshot matrix X
-	Inputs:
-		- X[ndims*nmesh,n_temp_snapshots]: data matrix
-		- remove_mean:                     whether or not to remove the mean flow
+	DMD analysis of snapshot matrix X.
+
+	Args:
+		X (np.ndarray) : Size = [ndims*nmesh,n_temp_snapshots] data matrix.
+		r : Truncation parameter of the SVD.
+		remove_mean (bool, optional) : whether or not to remove the mean flow.
 
 	Returns:
 		- Phi:      DMD Modes
 		- muReal:   Real part of the eigenvalues
 		- muImag:   Imaginary part of the eigenvalues
 		- b:        Amplitude of the DMD modes
-		- X_DMD:    Reconstructed flow
 	'''
 	# Remove temporal mean or not, depending on the user choice
 	if remove_mean:
@@ -119,7 +133,16 @@ def run(X, r, remove_mean = True):
 @cr('DMD.frequency_damping')
 def frequency_damping(real, imag, dt):
 	'''
-	Computation of the damping ratio and the frequency of each mode
+	Computation of the damping ratio and the frequency of each mode.
+
+	Args:
+		- real:		Real part of the eigenvalues.
+		- imag:		Imaginary part of the eigenvalues.
+		- dt:		Time interval
+
+	Returns:
+		- delta:	Damping ratio of the modes.
+		- omega:	Frequency of the modes.
 	'''
 	p = cp if type(real) is cp.ndarray else np
 	mod, arg = polar(real, imag) #Create vmmath/complex.c?
@@ -132,7 +155,19 @@ def frequency_damping(real, imag, dt):
 @cr('DMD.mode_computation')
 def mode_computation(X, V, S, W):
 	'''
-	Computation of DMD Modes
+	Computation of DMD Modes.
+
+	WARNING: abs may be a bug. The normalisation used is not consistent
+	(cf. line 111).
+
+	Args:
+		X : Data_matrix. 
+		V : Right singular vectors of X.
+		S : Singular values of X.
+		W : DMD modes in the reduced basis.
+
+	Returns:
+		The DMD modes in the snapshot basis.
 	'''
 	p = cp if type(X) is cp.ndarray else np
 	return  matmul(matmul(matmul(X, transpose(V)), diag(1/S)), p.abs(W))
@@ -140,7 +175,17 @@ def mode_computation(X, V, S, W):
 @cr('DMD.reconstruction_jovanovic')
 def reconstruction_jovanovic(Phi, real, imag, t, bJov):
 	'''
-    Reconstruction of the DMD modes according to the Jovanovic method
+	Reconstruction of the DMD modes according to the Jovanovic method.
+
+	Args:
+		- Phi:      DMD Modes.
+		- real: 	Real part of the eigenvalues.
+		- imag:     Imaginary part of the eigenvalues.
+		- t:		Time instant.
+		- bJov:     Amplitude of the DMD modes.
+
+	Returns:
+		The reconstructed field.
 	'''
 	Vand = vandermondeTime(real, imag, real.shape[0], t)
 	return matmul(Phi, matmul(diag(bJov), Vand)).real

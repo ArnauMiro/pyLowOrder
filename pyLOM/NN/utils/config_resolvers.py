@@ -155,16 +155,16 @@ def resolve_scheduler(scheduler_path: str):
 def instantiate_from_config(spec: Optional[Mapping[str, Any]]) -> Any:
     """
     Instantiate a Python object from a config dict with a `type` key.
-
+    
     Example spec:
-    --------
+    -------------
     spec = {
         "type": "torch.optim.Adam",
         "args": [[...]],          # optional positional args (list)
         "lr": 0.001,              # keyword args
         "weight_decay": 1e-4
-    }
-
+        }
+    
     Returns
     -------
     object : Any

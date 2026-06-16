@@ -124,22 +124,24 @@ class ScalerProtocol(Protocol):
 class MinMaxScaler:
     r"""
     Min-max scaling to scale variables to a desired range.
-
+    
     By default (blocks=None), each column is treated as an independent variable
     (fully backward-compatible with previous behavior).
-
+    
     If `blocks` is provided, it defines groups of columns (blocks) that are scaled
     together sharing the same (min, max). This is ideal when each "variable"
     is actually a vector quantity with multiple components.
-
+    
     Args:
         feature_range (Tuple): Desired range of transformed data. Default: (0, 1).
         column (bool): Scale over column or row space. Default: False.
         blocks (Optional[List[Union[slice, Sequence[int]]]]): Column groupings.
             - None (default): each column is its own variable (old behavior).
             - List of slices or list of index lists. E.g.:
-                blocks=[slice(0,1), slice(1,3), slice(3,6)]
-              or   blocks=[[0], [1,2], [3,4,5]]
+                
+                -blocks=[slice(0,1), slice(1,3), slice(3,6)]
+                -blocks=[[0], [1,2], [3,4,5]]
+                
     """
 
     def __init__(self, feature_range=(0, 1), column=False, blocks=None):
@@ -197,10 +199,14 @@ class MinMaxScaler:
         """
         Compute the min and max per variable.
         - If `blocks is None`:
+            
             - Backward compatible: if `variables` is array/tensor, split by columns.
             - If `variables` is a list, each item is treated as an independent variable.
+
         - If `blocks` provided and `variables` is array/tensor:
+
             - Group by the blocks for min/max.
+
         """
         # Normalize inputs to a single 2D matrix for easier handling
         is_array  = isinstance(variables, np.ndarray)
@@ -235,9 +241,11 @@ class MinMaxScaler:
     ):
         """
         Scale variables using min-max.
+        
         Returns:
             - If input was np.ndarray/torch.Tensor: returns same type (2D), preserving shape.
             - If input was list: returns list of same length with each block scaled.
+        
         """
         if not self._is_fitted:
             raiseError("Scaler must be fitted before transform")

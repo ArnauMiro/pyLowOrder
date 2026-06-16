@@ -25,16 +25,14 @@ class Dataset(object):
 	def __init__(self, xyz=None, ptable=None, vars=None, order=None, point=True, **kwargs):
 		'''
 		Class constructor
-
+		
 		Inputs:
-			> xyz:    coordinates of the points.
-			> ptable: partition table used.
-			> vars:   dictionary containing the variable name and values as
-					  as a python dictionary.
-			> order:  ordering of the points (automatically created if none)
-			> point:  True if point data, False if cell data.
-			> kwags:  dictionary containing the field name and values as a
-					  python dictionary.
+			xyz:    coordinates of the points.
+			ptable: partition table used.
+			vars:   dictionary containing the variable name and values as as a python dictionary.
+			order:  ordering of the points (automatically created if none)
+			point:  True if point data, False if cell data.
+			kwargs:  dictionary containing the field name and values as a python dictionary.
 		'''
 		self._xyz      = xyz
 		self._vardict  = vars
@@ -44,11 +42,18 @@ class Dataset(object):
 		self._point    = point
 
 	def __len__(self):
+		'''
+		Returns:
+			int : Number of points.
+		'''
 		return self._xyz.shape[0]
 
 	def __str__(self):
 		'''
-		String representation
+		String representation.
+
+		Returns:
+			str : Summary of the dataset state.
 		'''
 		s  = 'Dataset of %d variables:\n' % len(self.varnames)
 		for key in self.varnames:
@@ -72,6 +77,12 @@ class Dataset(object):
 		Dataset[key]
 
 		Recover the value of a field given its key
+
+		Args:
+			key (str) : key of the field
+
+		Returns:
+			(np.ndarray) : value of the field
 		'''
 		return self._fieldict[key]['value']
 
@@ -80,6 +91,10 @@ class Dataset(object):
 		Dataset[key] = value
 
 		Set the field of a variable given its key
+
+		Args:
+			key (str) : key of the field
+			value (np.ndarray) : value to be set the key
 		'''
 		self._fieldict[key]['value'] = value
 
@@ -87,6 +102,13 @@ class Dataset(object):
 	def rename(self,new,old):
 		'''
 		Rename a variable inside a field.
+
+		Args:
+			new (str) : new key of the field.
+			old (str) : old key of the field.
+
+		Returns:
+			Dataset: self.
 		'''
 		self.fields[new] = self.fields.pop(old)
 		return self
@@ -94,6 +116,12 @@ class Dataset(object):
 	def delete(self,varname):
 		'''
 		Delete a variable inside a field.
+
+		Args:
+			varname (str) : key of the field to remove.
+
+		Returns:
+			(np.ndarray) : value of the removed variable.
 		'''
 		return self.fields.pop(varname)
 
@@ -111,13 +139,25 @@ class Dataset(object):
 
 	def set_variable(self,key,value):
 		'''
-		Recover the value of a variable given its key
+		Set the value of a variable given its key
+
+		Args:
+			key (str): name of the variable
+			value (np.ndarray) : value of the variable
 		'''
 		self._vardict[key]['value'] = value
 
 	def get_dim(self,var,idim):
 		'''
 		Recover the value of a variable for a given dimension
+		Aborts if ``idim`` is invalid.
+
+		Args:
+			var (str) : name of the variable
+			idim (int) : requested dimension
+
+		Returns
+			np.ndarray: requested dimension of the variable
 		'''
 		ndim = self._fieldict[var]['ndim']
 		if idim >= ndim: raiseError(f'Requested dimension {idim} for {var} greater than its number of dimensions {ndim}!')
@@ -127,12 +167,24 @@ class Dataset(object):
 	def info(self,var):
 		'''
 		Returns the information for a certain variable
+
+		Args:
+			var (str) : name of the variable
+
+		Returns:
+			dict: contains point and ndim data.
 		'''
 		return {'point':self._point,'ndim':self._fieldict[var]['ndim']}
 	
 	def to_gpu(self,fields=None):
 		'''
 		Send field data to the GPU
+
+		Args:
+			fields (list[str], optional) : list with names of the variables
+
+		Returns:
+			Dataset : self
 		'''
 		fields = fields if not fields is None else self.fieldnames
 		for key in fields:
@@ -142,6 +194,12 @@ class Dataset(object):
 	def to_cpu(self,fields=None):
 		'''
 		Send field data to the CPU
+
+		Args:
+			fields (list[str], optional) : list with names of the variables
+
+		Returns:
+			Dataset : self
 		'''
 		fields = fields if not fields is None else self.fieldnames
 		for key in fields:
@@ -151,6 +209,11 @@ class Dataset(object):
 	def add_field(self,varname,ndim,var):
 		'''
 		Add a field to the dataset
+
+		Args:
+			varname (str): name of the field
+			ndim (int) : number of dimensions of the field
+			var (np.ndarray) : value of the field
 		'''
 		self._fieldict[varname] = {
 			'ndim'  : ndim,
@@ -160,6 +223,11 @@ class Dataset(object):
 	def add_variable(self,varname,idim,var):
 		'''
 		Add a variable to the dataset
+
+		Args:
+			varname (str): name of the variable
+			ndim (int) : number of dimensions of the variable
+			var (np.ndarray) : value of the variable
 		'''
 		self._vardict[varname] = {
 			'idim'  : idim,
@@ -190,6 +258,13 @@ class Dataset(object):
 	def mask_field(self, key, mask):
 		'''
 		Mask a field over a defined variable
+
+		Args:
+			key (str) : name of the variable
+			mask : mask to apply
+
+		Returns:	
+			np.ndarray : the masked array
 		'''
 		mask = mask if mask is not str else self.get_variable(mask)
 		return self[key][:,mask].copy()
@@ -197,6 +272,10 @@ class Dataset(object):
 	def append_variable(self,varname,var,**fieldict):
 		'''
 		Appends new timesteps to the dataset
+
+		Args:
+			varname (str) : name of the variable
+			var (np.ndarray) : timesteps to append
 		'''
 		# Add to variable vector
 		self.vars[varname]['value'] = np.concatenate((self.vars[varname]['value'],var))
@@ -211,9 +290,23 @@ class Dataset(object):
 
 	def select_random_sensors(self, nsensors, bounds, VARLIST, seed=-1):
 		'''
-		Generates a set of coordinats of nsensors random sensors inside the region defined by bounds.
-		Then for each sensor finds the nearest point from the dataset to get its coordinates and dataset value.
-		It creates a new dataset containing all the sensor coordinates and values
+		Generates a set of coordinates of ``nsensors`` random sensors inside the
+		region defined by ``bounds``.
+		Then for each sensor finds the nearest point from the dataset to get its
+		coordinates and dataset value.
+		It creates a new dataset containing all the sensor coordinates and
+		values.
+
+		Args:
+			nsensors (int) : number of sensors
+			bounds (np.ndarray) : bounds of the region
+			VARLIST (list[str]) : list of variables to extract as sensors
+			seed (int, optional) : seed the random engine. If negative (as
+				default) no seeding is performed
+
+		Returns:
+			Dataset : with the data of the selected variables at the random
+					sensors
 		'''
 		# Fix seed if user requested
 		if seed > 0: np.random.seed(seed)
@@ -255,8 +348,15 @@ class Dataset(object):
 	@cr('Dataset.reshape')
 	def reshape(self,field,info):
 		'''
-		Reshape a field for a single variable
-		according to the info
+		Reshape a field for a single variable according to the info
+
+		Args:
+			field (np.ndarray) : field to reshape
+			info (dict) : contains ``'ndim'`` the number of dimensions of
+				``field``
+
+		Returns:
+			np.ndarray: The reshaped field array.
 		'''
 		# Obtain number of points from the mesh
 		npoints = len(self)
@@ -267,6 +367,13 @@ class Dataset(object):
 	def X(self,*args,dtype=np.double):
 		'''
 		Return the X matrix for the selected fields
+
+		Args:
+			*args : ``None`` or strings of the variables to extract. If ``None``
+				all the fields will be returned
+			dtype : underlying type of the returned matrix
+		Returns:
+			X (np.ndarray) : contains all requested fields
 		'''
 		# Select all variables if none is provided
 		fieldnames = self.fieldnames if len(args) == 0 else args
@@ -310,6 +417,18 @@ class Dataset(object):
 	def save(self,fname,**kwargs):
 		'''
 		Store the field in various formats.
+
+		Args:
+			fname (str) : File name
+			**kwargs :
+				- 'mode' (str) ``'w'`` for overwrite (default) and ``'a'`` for
+					append
+				- 'mpio' (bool) ``True`` (default) for parallel and ``False``
+					for serial
+				- 'nopartition' (bool) ``True`` to not store the partition table
+				  and ``False`` (default) to store it
+				- The rest of arguments are forwarded to ``io.h5_save_dset`` or
+				  ``io.h5_append_dset``
 		'''
 		# Guess format from extension
 		fmt = os.path.splitext(fname)[1][1:] # skip the .
@@ -332,7 +451,14 @@ class Dataset(object):
 	@cr('Dataset.load')
 	def load(cls,fname,**kwargs):
 		'''
-		Load a field from various formats
+		Load a field from various formats.
+
+		Args:
+			fname (str) : File name
+			**kwargs :
+				- 'mpio' (bool) ``True`` (default) for parallel and ``False``
+					for serial
+				- The rest of arguments are forwarded to ``io.h5_load_dset``
 		'''
 		# Guess format from extension
 		fmt = os.path.splitext(fname)[1][1:] # skip the .

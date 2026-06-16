@@ -17,7 +17,18 @@ from ..utils.plots import plotResidual, plotFieldStruct2D, plotSnapshot, plotLay
 
 def plotMode(Phi, omega, mesh, dset, ivar, pointData=True, modes=np.array([1],np.int32),**kwargs):
 	'''
-	Plot the real and imaginary parts of a mode
+	Plot the real and imaginary parts of a mode.
+
+	Args:
+		- Phi (np.ndarray) : DMD modes.
+		- omega (np.ndarray) : Frequency of the modes.
+		- mesh (pyLOM.Mesh) : Mesh.
+		- dset (pyLOM.Dataset) : Dataset.
+		- ivar (int) : Dimension of the modes to plot.
+		- pointData (bool, optional) : ``True`` (default) if the fields
+			represent data of the node meshes, ``False`` if represent data of
+			the cell meshes.
+		- modes : Array of modes to plot.
 	'''
 	Phi, omega = gpu_to_cpu(Phi), gpu_to_cpu(omega)
 	# Extract the modes to be plotted
@@ -40,7 +51,20 @@ def plotMode(Phi, omega, mesh, dset, ivar, pointData=True, modes=np.array([1],np
 
 def ritzSpectrum(real, imag, fig = None, ax = None, cmap = None):
 	'''
-	Given the real and imaginary part of the eigenvalues, plot the Ritz Spectrum together with the unit circle
+	Given the real and imaginary part of the eigenvalues, plot the Ritz Spectrum
+	together with the unit circle.
+
+	Args:
+		real (np.ndarray) : Real part of the eigenvalues.
+		imag (np.ndarray) : Imaginary part of the eigenvalues.
+		fig (plt.figure, optional): Figure object in which the plot will be
+			done (default: ``[]``).
+		axs (plt.axes, optional): Axes object in which the plot will be done
+			(default: ``[]``).
+		cmap (optional) : Colormap. Default is ``'r'``.
+		
+	Returns:
+		[plt.figure, plt.axes]: figure and axes objects of the plot
 	'''
 	real, imag = gpu_to_cpu(real), gpu_to_cpu(imag)
 	if fig is None:
@@ -56,9 +80,25 @@ def ritzSpectrum(real, imag, fig = None, ax = None, cmap = None):
 	ax.set(xlabel = r'$\mu_{Re}$', ylabel = r'$\mu_{Imag}$', title = 'Ritz spectrum')
 	return fig, ax
 
-def amplitudeFrequency(omega, amplitude, fig = None, ax = None, cmap = None, mark = None, norm = False):
+def amplitudeFrequency(omega, amplitude, fig = None, ax = None, cmap = None,
+	mark = None, norm = False):
 	'''
-	Given the frequency and the amplitude of the DMD modes, plot the amplitude against the Strouhal number
+	Given the frequency and the amplitude of the DMD modes, plot the amplitude
+	against the Strouhal number.
+		
+	Args:
+		omega (np.ndarray) : Frequency of the modes.
+		amplitude (np.ndarray) : Amplitude of the modes.
+		fig (plt.figure, optional): Figure object in which the plot will be
+			done (default: ``[]``).
+		axs (plt.axes, optional): Axes object in which the plot will be done
+			(default: ``[]``).
+		cmap (optional) : Colormap. Default is ``'r'``.
+		mark (str, optional) : Marks of the plots. Default is ``'X'``.
+		norm (bool, optional) : If ``True`` normalise the amplitudes.
+		
+	Returns:
+		[plt.figure, plt.axes]: figure and axes objects of the plot
 	'''
 	omega, amplitude = gpu_to_cpu(omega), gpu_to_cpu(amplitude)
 	if fig is None:
@@ -80,7 +120,21 @@ def amplitudeFrequency(omega, amplitude, fig = None, ax = None, cmap = None, mar
 
 def dampingFrequency(omega, delta, fig = None, ax = None, cmap = None, mark = None):
 	'''
-	Given the frequency and the damping ratio of the DMD modes, plot the amplitude against the Strouhal number
+	Given the frequency and the damping ratio of the DMD modes,
+	plot the amplitude against the Strouhal number.
+		
+	Args:
+		omega (np.ndarray) : Frequency of the modes.
+		delta (np.ndarray) : Damping ratio of the modes.
+		fig (plt.figure, optional): Figure object in which the plot will be
+			done (default: ``[]``).
+		axs (plt.axes, optional): Axes object in which the plot will be done
+			(default: ``[]``).
+		cmap (optional) : Colormap. Default is ``'r'``
+		mark (str, optional) : Marks of the plots. Default is ``'X'``.
+		
+	Returns:
+		[plt.figure, plt.axes]: figure and axes objects of the plot
 	'''
 	omega, delta = gpu_to_cpu(omega), gpu_to_cpu(delta)
 	if fig is None:

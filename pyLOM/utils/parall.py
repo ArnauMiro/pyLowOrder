@@ -24,6 +24,17 @@ mpi_recv = MPI_COMM.recv
 def worksplit(istart,iend,whoAmI,nWorkers=MPI_SIZE):
 	'''
 	Divide the work between the processors
+
+	Args:
+		istart (int): Start index of an array of work to be split.
+		iend (int): End index of an array of work to be split.
+		whoAmI (int): Id of the worker to compute the split range.
+		nWorkers (int, optional): Total number of workers. The default vaule is
+			the MPI size.
+
+	Returns:
+		[(int), (int)]: The start and end indices of the range of work
+			corresponding to ``whoAmI``.
 	'''
 	istart_l, iend_l = istart, iend
 	irange = iend - istart
@@ -50,7 +61,15 @@ def worksplit(istart,iend,whoAmI,nWorkers=MPI_SIZE):
 
 def writesplit(npoints,write_master):
 	'''
-	Divide the write array between the processors
+	Divide the write array between the processors.
+
+	Args:
+		npoints (int): Number of points that the current rank has to write.
+		write_master (bool): If the array to write has master.
+
+	Returns:
+		[(int), (int)]: The start and end indices of the range of the global
+			array where this rank has to write.
 	'''
 	rstart = 1 if not write_master else 0
 	istart, iend = 0, 0 
@@ -73,14 +92,32 @@ def writesplit(npoints,write_master):
 
 def split(array,root=0):
 	'''
-	Split an array among the processors
+	Split an array among the processors.
+
+	Args:
+		array: The array to split.
+		root (int, optional): The rank which has to split the array.
+
+	Returns:
+		A list of arrays split according to ``worksplit`` if the rank is equal
+		to ``root``, otherwise None.
+
+	See also
+		worksplit : Divide the work between the processors
 	'''
 	return np.vsplit(array,[worksplit(0,array.shape[0],i)[1] for i in range(MPI_SIZE-1)]) if MPI_RANK==root else None
 
 def is_rank_or_serial(root=0):
 	'''
 	Return whether the rank is active or True
-	in case of a serial run
+	in case of a serial run.
+
+	Args:
+		root (int, optional)
+
+	Returns:
+		bool:
+			``True`` iff ``root`` coincides with the rank or the MPI size is 1.
 	'''
 	return MPI_RANK == root or MPI_SIZE == 1
 
@@ -90,6 +127,12 @@ def pprint(rank,*args,**kwargs):
 	python's print with the rank variable, which can 
 	be negative for everyone to print or equal to the
 	rank that should print.
+
+	Args:
+		rank (int): Rank which has to print the message, if negative, all ranks
+		will print.
+		*arg : Arguments to be forwarded to the ``print`` function.
+		**kwargs : Arguments to be forwarded to the ``print`` function.
 	'''
 	if MPI_SIZE == 1:
 		print(*args,**kwargs)

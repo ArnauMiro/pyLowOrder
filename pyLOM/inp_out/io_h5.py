@@ -1202,20 +1202,25 @@ def h5_save_graph_serial(
 ):
 	"""
 	Save a Graph in HDF5 (serial mode), strict flat schema with ordering.
-
+	
 	Schema
 	------
-	/GRAPH
-	  attrs['schema']     = "graph_flat_v2"
-	  numNodes            : i4[1]
-	  numEdges            : i4[1]
-	  edgeIndex           : i4[2,E]
-	  NODEFEATRS (group)
-		attrs['feature_names'] : S[]
-		<feat_name>            : float32[N, k_i]
-	  EDGEFEATRS (group)
-		attrs['feature_names'] : S[]
-		<feat_name>            : float32[E, k_i]
+	- /GRAPH
+
+		- attrs['schema']     = "graph_flat_v2"
+		- numNodes            : i4[1]
+		- numEdges            : i4[1]
+		- edgeIndex           : i4[2,E]
+		- NODEFEATRS (group)
+
+			- attrs['feature_names'] : S[]
+			- <feat_name>            : float32[N, k_i]
+
+		- EDGEFEATRS (group)
+
+			- attrs['feature_names'] : S[]
+			- <feat_name>            : float32[E, k_i]
+	
 	"""
 
 	if node_features_dict is None or edge_features_dict is None:
