@@ -473,7 +473,7 @@ class RBFELM(nn.Module):
         Args:
             X (torch.utils.data.Dataset): The dataset whose target values are to be predicted using the input data.
             return_targets (bool, optional): If ``True``, the true target values will be returned along with the predictions (default: ``False``).
-                        dataloader_kwargs (dict, optional): Additional keyword arguments to pass to the dataloader (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader. Overrides the following defaults: ``batch_size=16_384`` ,``shuffle=False``, ``num_workers=0``, ``pin_memory=PIN_MEMORY`` (default: ``False``).
+            dataloader_kwargs (dict, optional): Additional keyword arguments to pass to the dataloader (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader. Overrides the following defaults: ``batch_size=16_384`` ,``shuffle=False``, ``num_workers=0``, ``pin_memory=PIN_MEMORY`` (default: ``False``).
 
         Returns:
             ``np.ndarray`` of shape ``(N, output_size)``, or a ``(predictions, targets)`` tuple if ``return_targets=True``.
@@ -704,99 +704,79 @@ class RBFELM(nn.Module):
         return cls(input_dim, output_dim, **optimization_params), optimization_params
 
 
-    For large datasets where a single RBF-ELM would require too many centers
-    to capture local structure, ``MultiRBFELM`` partitions the input space
-    using :class:`~sklearn.cluster.MiniBatchKMeans`, trains one
-    :class:`RBFELM` per cluster, and at inference routes each point to its
-    nearest-cluster model.
-
-    The public interface mirrors :class:`RBFELM` (``fit``, ``predict``,
-    ``save``, ``load``) so both classes can be used interchangeably.
-
-    Persistence layout (``save`` / ``load``)
-    -----------------------------------------
-    All artefacts are stored under a single directory::
-
-        <path>/
-          meta.json          ← n_clusters + shared RBFELM hyperparameters
-          kmeans.pkl         ← fitted MiniBatchKMeans router
-          scalers.pkl        ← per-cluster (input_scaler, output_scaler) pairs
-          model_0.pth
-          model_1.pth
-          ...
+class MultiRBFELM:
+    r"""
+    Ensemble of local RBF-ELM models trained on spatial clusters with interface overlap and blended inference.
+    Useful for large datasets where a single RBF-ELM would require too many centers to capture local structure.
 
     Args:
         n_clusters (int): Number of spatial clusters (and local models).
-        n_centers (int): RBF centers per local model.  Capped at the cluster
-            size automatically.
-        reg_lambda (float): Tikhonov regularisation for each local model
-            (default: ``1e-2``).
-        center_sampling (str): Center-sampling strategy passed to each
-            :class:`RBFELM` (default: ``"uniform"``).
+        n_centers (int): RBF centers per local model. Capped at the cluster size automatically.
+        overlap_factor (float): Controls the width of the shared zone. A point is added to cluster *i* if its distance to centroid *i* is less than ``overlap_factor`` times its distance to its primary centroid. ``1.0`` disables overlap (default: ``1.25``).
+        reg_lambda (float): Tikhonov regularisation for each local model (default: ``1e-2``).
+        center_sampling (str): Center-sampling strategy passed to each :class:`RBFELM` (default: ``"random"``).
         gamma_mode (str): Gamma estimation mode (default: ``"local"``).
-        gamma_k (int): Neighbours used for local gamma estimation
-            (default: ``30``).
+        gamma_k (int): Neighbours used for local gamma estimation (default: ``30``).
         gamma_alpha (float): Bandwidth scaling factor (default: ``1.0``).
-        kmeans_batch_size (int): ``batch_size`` for
-            :class:`~sklearn.cluster.MiniBatchKMeans` (default: ``100_000``).
-        kmeans_n_init (int): ``n_init`` for MiniBatchKMeans (default: ``5``).
-        fit_batch_size (int): DataLoader block size used during each local
-            :class:`RBFELM` fit (default: ``100_000``).
+        blend_eps (float): Small constant added to squared distances when computing blending weights to avoid division by zero (default: ``1e-12``).
+        kmeans_batch_size (int): ``batch_size`` for :class:`~sklearn.cluster.MiniBatchKMeans` (default: ``100_000``).
+        kmeans_n_init (int): ``n_init`` for :class:`~sklearn.cluster.MiniBatchKMeans` (default: ``5``).
+        fit_batch_size (int): DataLoader block size used during each local :class:`RBFELM` fit (default: ``100_000``).
         device (torch.device): Computation device (default: global ``DEVICE``).
         seed (int, optional): Master seed for reproducibility.
-        model_name (str): Base name used when printing / saving
-            (default: ``"multirbfelm"``).
-        verbose (bool): Print progress during fit (default: ``True``).
+        model_name (str): Base name used when printing and saving (default: ``"multirbfelm"``).
+        verbose (bool): Print progress logs (default: ``True``).
     """
 
     def __init__(
         self,
-        n_clusters: int,
-        n_centers: int = 10_000,
-        reg_lambda: float = 1e-2,
-        center_sampling: str = "uniform",
-        gamma_mode: str = "local",
-        gamma_k: int = 30,
-        gamma_alpha: float = 1.0,
-        kmeans_batch_size: int = 100_000,
-        kmeans_n_init: int = 5,
-        fit_batch_size: int = 100_000,
-        device: torch.device = DEVICE,
-        seed: Optional[int] = None,
-        model_name: str = "multirbfelm",
-        verbose: bool = True,
+        n_clusters:         int,
+        n_centers:          int = 10_000,
+        overlap_factor:     float = 1.25,
+        reg_lambda:         float = 1e-2,
+        center_sampling:    str = "random",
+        gamma_mode:         str = "local",
+        gamma:              float = 1.0,
+        gamma_k:            int = 30,
+        gamma_alpha:        float = 1.0,
+        blend_eps:          float = 1e-12,
+        kmeans_batch_size:  int = 100_000,
+        kmeans_n_init:      int = 5,
+        fit_batch_size:     int = 100_000,
+        device:             torch.device = DEVICE,
+        seed:               Optional[int] = None,
+        model_name:         str = "multirbfelm",
+        verbose:            bool= True,
     ):
-        self.n_clusters       = n_clusters
-        self.n_centers        = n_centers
-        self.reg_lambda       = reg_lambda
-        self.center_sampling  = center_sampling
-        self.gamma_mode       = gamma_mode
-        self.gamma_k          = gamma_k
-        self.gamma_alpha      = gamma_alpha
+        self.n_clusters        = n_clusters
+        self.n_centers         = n_centers
+        self.overlap_factor    = overlap_factor
+        self.reg_lambda        = reg_lambda
+        self.center_sampling   = center_sampling
+        self.gamma_mode        = gamma_mode
+        self.gamma             = gamma
+        self.gamma_k           = gamma_k
+        self.gamma_alpha       = gamma_alpha
+        self.blend_eps         = blend_eps
         self.kmeans_batch_size = kmeans_batch_size
-        self.kmeans_n_init    = kmeans_n_init
-        self.fit_batch_size   = fit_batch_size
-        self.device           = device
-        self.seed             = seed
-        self.model_name       = model_name
-        self.verbose          = verbose
+        self.kmeans_n_init     = kmeans_n_init
+        self.fit_batch_size    = fit_batch_size
+        self.device            = device
+        self.seed              = seed
+        self.model_name        = model_name
+        self.verbose           = verbose
 
-        # Populated by fit() / load()
+        # Populated by fit() or load()
         self._kmeans:         Optional[MiniBatchKMeans] = None
-        self._models:         List[Optional[RBFELM]]   = [None] * n_clusters
-        self._input_scalers:  List[Optional[object]]   = [None] * n_clusters
-        self._output_scalers: List[Optional[object]]   = [None] * n_clusters
+        self._models:         List[Optional[RBFELM]] = [None] * n_clusters
+        self._input_scalers:  List[Optional[object]] = [None] * n_clusters
+        self._output_scalers: List[Optional[object]] = [None] * n_clusters
 
-        if verbose:
-            print(f"MultiRBFELM — {n_clusters} clusters, up to {n_centers} centers each")
-
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
+        self._log(f"MultiRBFELM — {n_clusters} clusters, up to {n_centers} centers each, overlap_factor={overlap_factor}")
 
     def _log(self, msg: str) -> None:
         if self.verbose:
-            print(msg)
+            pprint(0, msg)
 
     def _is_fitted(self) -> bool:
         return self._kmeans is not None and all(m is not None for m in self._models)
