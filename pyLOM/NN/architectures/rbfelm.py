@@ -781,10 +781,6 @@ class MultiRBFELM:
     def _is_fitted(self) -> bool:
         return self._kmeans is not None and all(m is not None for m in self._models)
 
-    def _assign_clusters(self, X: torch.Tensor) -> np.ndarray:
-        """Return cluster label for every row in X (shape N,)."""
-        return self._kmeans.predict(X.cpu().numpy())
-
     def _build_kmeans(self) -> MiniBatchKMeans:
         return MiniBatchKMeans(
             n_clusters   = self.n_clusters,
@@ -793,26 +789,28 @@ class MultiRBFELM:
             n_init       = self.kmeans_n_init,
         )
 
+    def _cluster_distances(self, X_np: np.ndarray) -> np.ndarray:
+        centroids = self._kmeans.cluster_centers_                       # (K, D)
+        diff = X_np[:, np.newaxis, :] - centroids[np.newaxis, :, :]     # Expand: (N,1,D) - (1,K,D) = (N,K,D)
+        return (diff ** 2).sum(axis=-1)                                 # (N, K)
+
+    def _active_clusters(self, dist_sq: np.ndarray) -> List[np.ndarray]:
+        primary_dist_sq = dist_sq.min(axis=1, keepdims=True)            # (N, 1)
+        threshold_sq = (self.overlap_factor ** 2) * primary_dist_sq     # (N, 1)
+        active_mask = dist_sq <= threshold_sq                           # (N, K)
+        return [np.where(row)[0] for row in active_mask]                # list of arrays
+
     @staticmethod
     def _subset_dataset(
         dataset,
-        mask: np.ndarray,
+        indices: np.ndarray,
         input_scaler,
         output_scaler,
     ):
-        """
-        Build an NNDataset for the rows selected by boolean *mask*, using
-        already-fitted scalers so train/valid/test share the same scaling.
-        """
-        if NNDataset is None or RobustScaler is None:
-            raise ImportError(
-                "NNDataset and RobustScaler must be importable to use MultiRBFELM.fit()."
-            )
-
-        indices  = torch.where(torch.tensor(mask))[0]
+        idx_tensor = torch.tensor(indices, dtype=torch.long)
         X_full, y_full = dataset[:]
-        X_sub = X_full[indices]
-        y_sub = y_full[indices]
+        X_sub = X_full[idx_tensor]
+        y_sub = y_full[idx_tensor]
 
         return NNDataset(
             variables_out  = (y_sub,),
@@ -820,7 +818,7 @@ class MultiRBFELM:
             parameters     = None,
             inputs_scaler  = input_scaler,
             outputs_scaler = output_scaler,
-        ), indices
+        ), idx_tensor
 
     # ------------------------------------------------------------------
     # fit
