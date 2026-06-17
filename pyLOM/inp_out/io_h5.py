@@ -7,7 +7,7 @@
 # Last rev: 31/07/2021
 from __future__ import print_function, division
 
-import os, numpy as np, h5py
+import numpy as np, h5py
 
 from typing import Optional, Mapping, Union
 from collections import OrderedDict
@@ -228,11 +228,14 @@ def h5_save_points(file,xyz,order,ptable,point):
 	dpoinO = file.create_dataset('order',(npointG,),dtype='i4')
 	# Skip master if needed
 	if ptable.has_master and MPI_RANK == 0: return None, None, None
-	# Compute start and end of read, node data
+	# Skip empty part
+	if order.shape[0] == 0: return None, None, None
+	# Get the position where the points should be stored
 	istart, iend = ptable.partition_bounds(MPI_RANK,points=point)
+	inods,idx    = np.arange(istart,iend,dtype=np.int32), np.arange(0,xyz.shape[0],dtype=np.int32)
+	# Compute start and end of read, node data
 	dxyz[istart:iend,:] = xyz
 	dpoinO[istart:iend] = order
-	inods,idx = np.unique(order,return_index=True)
 	return inods, idx, npointG
 
 def h5_save_points_nopartition(file,xyz,order,ptable,point):
@@ -278,14 +281,15 @@ def h5_load_points(file,ptable,point):
 	Load the mesh inside the HDF5 file
 	'''
 	nopartition = file.attrs.get('NOPARTITION',True)
+	parts       = file.attrs.get('PARTS',1)
 	if ptable.nodes is None or not point:
 		# Warning! Repartition will only work if the input file is serial
 		# i.e., it does not have any repeated nodes, otherwise it wont work
 		istart, iend = ptable.partition_bounds(MPI_RANK,points=point)
 		ptable.nodes = np.arange(istart,iend,dtype=np.int32)
-		if not nopartition: raiseWarning(f'Repartition of dataset will only work if the input file is serial!')
+		if not nopartition and parts != ptable.n_partitions: raiseWarning(f'Repartition of dataset will only work if the input file is serial!')
 	inods = ptable.nodes
-	xyz   = np.array(file['xyz'][inods,:]) 
+	xyz   = np.array(file['xyz'][inods,:])
 	order = np.array(file['order'][inods])
 	# Return
 	return xyz, order
@@ -413,7 +417,6 @@ def h5_load_fields_single(file,npoints,ptable,varDict,point):
 			# Use the partition bounds to recover the array
 			istart, iend = ptable.partition_bounds(MPI_RANK,ndim=ndim,points=False)
 			inods = np.arange(istart,iend,dtype=np.int32)
-
 		# Read the values
 		value[:] = np.array(fieldgroup['value'][inods])
 		# Generate dictionary
@@ -678,6 +681,8 @@ def h5_save_mesh_serial(fname,mode,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	h5_save_partition(file,ptable)
 	# Create dataset group
 	group = file.create_group('MESH')
+	group.attrs['NOPARTITION'] = True 
+	group.attrs['PARTS']       = ptable.n_partitions
 	# Save mesh
 	h5_save_meshes(group,mtype,xyz,conec,eltype,cellO,pointO,ptable)
 	file.close()
@@ -693,6 +698,8 @@ def h5_save_mesh_mpio(fname,mode,mtype,xyz,conec,eltype,cellO,pointO,ptable,nopa
 	h5_save_partition(file,ptable)
 	# Create dataset group
 	group = file.create_group('MESH')
+	group.attrs['NOPARTITION'] = nopartition 
+	group.attrs['PARTS']       = ptable.n_partitions
 	# Save mesh
 	h5_save_meshes(group,mtype,xyz,conec,eltype,cellO,pointO,ptable) if not nopartition else h5_save_meshes_nopartition(group,mtype,xyz,conec,eltype,cellO,pointO,ptable)
 	file.close()
@@ -752,7 +759,8 @@ def h5_load_mesh_mpio(fname):
 	repart = False
 	# Are we reading for the same number of partitions?
 	group = file['MESH']
-	if not ptable.check_split():
+	nopartition = group.attrs.get('NOPARTITION',True)
+	if nopartition or not ptable.check_split():
 		# Read the number of elements and points to compute
 		# the new partition table
 		npoints, ncells = h5_load_meshes_size(group)
