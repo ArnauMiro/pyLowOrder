@@ -820,10 +820,7 @@ class MultiRBFELM:
             outputs_scaler = output_scaler,
         ), idx_tensor
 
-    # ------------------------------------------------------------------
-    # fit
-    # ------------------------------------------------------------------
-
+    @cr('MultiRBFELM.fit')
     def fit(
         self,
         train_dataset,
@@ -832,90 +829,91 @@ class MultiRBFELM:
         reload_existing: bool = True,
     ) -> None:
         r"""
-        Cluster the training set and fit one :class:`RBFELM` per cluster.
-
-        The KMeans model is fitted **only on training data**; validation and
-        test points are then assigned to the nearest cluster centroid.
+        Cluster the training set and fit one :class:`RBFELM` per cluster, including overlap points from neighbouring clusters.
 
         Args:
-            train_dataset: Training :class:`NNDataset`.
-            valid_dataset: Validation :class:`NNDataset` (used for progress
-                reporting only; not used for fitting).
-            save_dir (str, optional): If given, each local model is saved to
-                ``<save_dir>/model_<i>.pth`` as it is trained, and reloaded
-                from disk on subsequent calls when ``reload_existing=True``.
-            reload_existing (bool): Skip retraining a cluster whose ``.pth``
-                file already exists in ``save_dir`` (default: ``True``).
+            train_dataset: Training :class:`pyLOM.NN.Dataset`.
+            valid_dataset: Validation :class:`pyLOM.NN.Dataset`.
+            save_dir (str, optional): If given, each local model is saved to ``<save_dir>/model_<i>.pth`` as it is trained, and reloaded from disk on subsequent calls when ``reload_existing=True``.
+            reload_existing (bool): Skip retraining a cluster whose ``.pth`` file already exists in ``save_dir`` (default: ``True``).
         """
-        if NNDataset is None or RobustScaler is None:
-            raise ImportError(
-                "NNDataset and RobustScaler are required for MultiRBFELM.fit()."
-            )
-
         X_train, y_train = train_dataset[:]
         X_valid, y_valid = valid_dataset[:]
 
         input_size  = X_train.shape[1]
         output_size = y_train.shape[1] if y_train.dim() > 1 else 1
 
-        # ----------------------------------------------------------------
-        # 1. KMeans clustering on training set
-        # ----------------------------------------------------------------
+        X_train_np = X_train.cpu().numpy()
+        X_valid_np = X_valid.cpu().numpy()
+
+        # KMeans clustering on training set
         self._log("\n[MultiRBFELM] Fitting KMeans on training set...")
         self._kmeans = self._build_kmeans()
-        train_labels = self._kmeans.fit_predict(X_train.cpu().numpy())
-        valid_labels = self._assign_clusters(X_valid)
+        self._kmeans.fit(X_train_np)
 
-        self._log(f"[MultiRBFELM] Cluster sizes (train): "
-                  f"{np.bincount(train_labels, minlength=self.n_clusters).tolist()}")
+        train_dist_sq = self._cluster_distances(X_train_np)    # (N_train, K)
+        valid_dist_sq = self._cluster_distances(X_valid_np)    # (N_valid, K)
 
-        # ----------------------------------------------------------------
-        # 2. Train one RBFELM per cluster
-        # ----------------------------------------------------------------
-        if save_dir is not None:
-            os.makedirs(save_dir, exist_ok=True)
+        train_primary = train_dist_sq.argmin(axis=1)           # (N_train,)
+        valid_primary = valid_dist_sq.argmin(axis=1)           # (N_valid,)
 
+        train_active = self._active_clusters(train_dist_sq)    # list of arrays
+
+        primary_counts = np.bincount(train_primary, minlength=self.n_clusters)
+        self._log(f"[MultiRBFELM] Primary cluster sizes (train): {primary_counts.tolist()}")
+
+        # Build per-cluster lists of training indices (with overlap)
+        cluster_train_indices = [[] for _ in range(self.n_clusters)]
+        for n, active in enumerate(train_active):
+            for i in active:
+                cluster_train_indices[i].append(n)
+
+        overlap_counts = [len(idxs) for idxs in cluster_train_indices]
+        self._log(f"[MultiRBFELM] Effective cluster sizes after overlap (train): {overlap_counts}")
+
+        # Train one RBFELM model per cluster
         for i in range(self.n_clusters):
             self._log(f"\n[MultiRBFELM] ── Cluster {i + 1}/{self.n_clusters} ──")
 
-            model_path = (
-                os.path.join(save_dir, f"model_{i}.pth") if save_dir else None
-            )
-
-            # Optionally reload an already-trained model
+            model_path = os.path.join(save_dir, f"model_{i}.pth") if save_dir else None
             if reload_existing and model_path and os.path.exists(model_path):
                 self._log(f"  Loading existing model from {model_path}")
                 self._models[i] = RBFELM.load(model_path, device=self.device, verbose=False)
-                # Scalers must have been saved separately — loaded in load()
                 continue
 
-            # ---- Build per-cluster scalers (fit on train split) --------
-            train_mask = train_labels == i
-            valid_mask = valid_labels == i
+            # Find primary and overlap indices for this cluster
+            all_indices_i = np.array(cluster_train_indices[i], dtype=np.int64)
+            primary_mask_i = train_primary[all_indices_i] == i
+            primary_indices = all_indices_i[primary_mask_i]
 
-            n_train_i = int(train_mask.sum())
-            n_valid_i = int(valid_mask.sum())
-            self._log(f"  Train: {n_train_i}  |  Valid: {n_valid_i}")
+            n_total_i   = len(all_indices_i)
+            n_primary_i = len(primary_indices)
+            n_overlap_i = n_total_i - n_primary_i
 
-            if n_train_i == 0:
-                self._log("  ⚠ Empty cluster — skipping.")
+            valid_indices_i = np.where(valid_primary == i)[0]
+            n_valid_i = len(valid_indices_i)
+
+            self._log(
+                f"  Primary: {n_primary_i}  |  Overlap: {n_overlap_i}  "
+                f"(total train: {n_total_i})  |  Valid: {n_valid_i}"
+            )
+
+            if n_primary_i == 0:
+                self._log("  Empty primary cluster — skipping.")
                 continue
 
+            # Fit scalers on primary members
             input_scaler_i  = RobustScaler()
             output_scaler_i = RobustScaler()
 
-            train_sub, _ = self._subset_dataset(
-                train_dataset, train_mask, input_scaler_i, output_scaler_i
-            )
-            valid_sub, _ = self._subset_dataset(
-                valid_dataset, valid_mask, input_scaler_i, output_scaler_i
-            )
+            train_sub, _ = self._subset_dataset(train_dataset, all_indices_i, input_scaler_i, output_scaler_i)
+            valid_sub, _ = self._subset_dataset(valid_dataset, valid_indices_i, input_scaler_i, output_scaler_i)
 
             self._input_scalers[i]  = input_scaler_i
             self._output_scalers[i] = output_scaler_i
 
-            # ---- Instantiate and fit local RBFELM ----------------------
-            n_centers_i = min(self.n_centers, n_train_i)
+            # Instantiate and fit local RBF-ELM
+            n_centers_i = min(self.n_centers, n_total_i)
 
             model = RBFELM(
                 input_size      = input_size,
@@ -924,6 +922,7 @@ class MultiRBFELM:
                 reg_lambda      = self.reg_lambda,
                 center_sampling = self.center_sampling,
                 gamma_mode      = self.gamma_mode,
+                gamma           = self.gamma,
                 gamma_k         = self.gamma_k,
                 gamma_alpha     = self.gamma_alpha,
                 device          = self.device,
