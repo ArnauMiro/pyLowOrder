@@ -17,17 +17,17 @@ def isomap(X:np.ndarray, dims:int, n_size:int, comp:int = 1 ,verbose:bool = True
     """
     Computes Isomap embedding using the algorithm of Tenenbaum, de Silva, and Langford (2000).
     
-    Parameters:
-    X (ndarray) : NxM Data matrix with N points in the mesh for M simulations
-    dims (int): Embedding dimensionality to use 
-    n_size (int) : Neighborhood size (number of neighbors for 'k' method)
-    comp (int, optional) : Component to embed, if more than 1 (defaults to 1, the largest)
-    verbos (bool, optional) : Display information (default is True)
+    Arguments:
+		X (ndarray) : NxM Data matrix with N points in the mesh for M simulations
+		dims (int): Embedding dimensionality to use 
+		n_size (int) : Neighborhood size (number of neighbors for 'k' method)
+		comp (int, optional) : Component to embed, if more than 1 (defaults to 1, the largest)
+		verbos (bool, optional) : Display information (default is True)
     
     Returns:
-    Y (ndarray) : Contains coordinates for d-dimensional embeddings in Y.
-    R (list) : Residual variances for the embedding in Y.
-    E (ndarray) : Edge matrix for neighborhood graph.
+		Y (ndarray) : Contains coordinates for d-dimensional embeddings in Y.
+		R (list) : Residual variances for the embedding in Y.
+		E (ndarray) : Edge matrix for neighborhood graph.
     """    
     # Compute pairwise distances in a condensed form and convert to a square form
     D = cp.asnumpy(euclidean_d(X)) if type(X) is cp.ndarray else euclidean_d(X)
@@ -118,14 +118,14 @@ def mds(X:np.ndarray, dims:int, verbose:bool = True):
     """
     Computes the MDS embedding using a custom approach with squared distances and eigen-decomposition.
     
-    Parameters:
-    X (ndarray) : NxM Data matrix with N points in the mesh for M simulations
-    dims (int) : Embedding dimensionality to use (p in your MATLAB code)
-    verbose (bool) : Display information (default is True)
+    Arguments:
+		X (ndarray) : NxM Data matrix with N points in the mesh for M simulations
+		dims (int) : Embedding dimensionality to use (p in your MATLAB code)
+		verbose (bool) : Display information (default is True)
     
     
     Returns:
-    Y (ndarray) : Contains coordinates for d-dimensional embeddings in Y.
+		Y (ndarray) : Contains coordinates for d-dimensional embeddings in Y.
     """
     # Step 1: Compute the pairwise Euclidean distance matrix and square it
     D = cp.asnumpy(euclidean_d(X)) if type(X) is cp.ndarray else euclidean_d(X)

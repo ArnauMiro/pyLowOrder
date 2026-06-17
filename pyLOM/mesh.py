@@ -66,10 +66,32 @@ ID2MTYPE = {
 class Mesh(object):
 	r'''
 	The Mesh class wraps the mesh details of the case.
+
+	Attributes:
+		_type (int) : Mesh type.
+		_xyz (np.ndarray) : Node coordinates.
+		_xyzc (np.ndarray) : Cell coordinares.
+		_normal (np.ndarray) : Cell normals. Initialised lazily.
+		_wall_normal (np.ndarray) : Wall normals. Initialised lazily.
+		_conec (np.ndarray) : Connectivity array.
+		_cell_connec (np.ndarray) : Cell connectivity array. Initialised lazily.
+		_eltype (int) : Element type.
+		_cellO (int) : Cell order.
+		_pointO (int) : Point order.
+		_ptable (PartitionTable) : Partition table.
 	'''
 	def __init__(self,mtype,xyz,connectivity,eltype,cellOrder,pointOrder,ptable):
 		r'''
-		Class constructor
+		Class constructor.
+
+		Args:
+			mtype (int) : Mesh type.
+			xyz (np.ndarray) : Node coordinates.
+			connectivity (np.ndarray) : Connectivity array.
+			eltype (int) : Element type.
+			cellOrder (int) : Cell order.
+			pointOrder (int) : Point order.
+			ptable (PartitionTable) : Partition table.
 		'''
 		self._type   = mtype
 		self._xyz    = xyz
@@ -85,7 +107,10 @@ class Mesh(object):
 
 	def __str__(self):
 		r'''
-		String representation
+		String representation.
+
+		Returns:
+			str:
 		'''
 		s   = 'Mesh (%s) of %d nodes and %d elements:\n' % (self.type,self.npoints,self.ncells)
 		s  += '  > xyz  - max = ' + str(np.nanmax(self._xyz,axis=0)) + ', min = ' + str(np.nanmin(self._xyz,axis=0)) + '\n'
@@ -93,32 +118,64 @@ class Mesh(object):
 
 	def find_point(self,xyz:np.array):
 		r'''
-		Return all the points where self._xyz == xyz
+		Return all the points where self._xyz == xyz.
+
+		Args:
+			xyz (np.ndarray) : Coordinates to find.
+
+		Returns:
+			np.ndarray:
+				Indices of points that match ``xyz``.
+
 		'''
 		return np.where(np.all(self._xyz == xyz,axis=1))[0]
 
 	def find_cell(self,eltype:int):
 		r'''
-		Return all the elements where self._elemList == elem
+		Return all the elements where self._elemList == elem.
+
+		Args:
+			eltype (int) : Element type to find.
+
+		Returns:
+			np.ndarray:
+				Indices of elements that math the ``eltype`` type.
 		'''
 		return np.where(np.all(self._eltype == eltype))[0]
 
 	def find_point_in_cell(self,inode:int):
 		r'''
-		Return all the elements where the node is
+		Return all the elements where the node is.
+
+		Args:
+			inode (int).
+
+		Returns:
+			np.ndarray : Array containing all elements which contain ``inode``.
 		'''
 		return np.where(np.any(np.isin(self._conec,inode),axis=1))[0]
 
 	def size(self,pointData:bool):
 		r'''
-		Return the size accoding to the type of data
+		Return the size accoding to the type of data.
+
+		Args:
+			pointData (bool).
+
+		Returns:
+			int:
+				Number of points if ``pointData == True``, number of cells otherwise.
 		'''
 		return self.npoints if pointData else self.ncells
 
 	@cr('Mesh.cellcenters')
 	def cellcenters(self):
 		r'''
-		Computes and returns the cell centers
+		Computes and returns the cell centers.
+
+		Returns:
+			np.ndarray:
+				Cell centers.
 		'''
 		if self.type == 'STRUCT2D':
 			# Recover unique X, Y coordinates
@@ -157,10 +214,10 @@ class Mesh(object):
 	def _compute_cell_connectivity(self):
 		'''Computes the connectivity between cells that share an edge.
 
-		Returns
-		-------
-		padded_neighbors : list
-			Connectivity array of neighbors for each cell. Each list is padded with -1s to have a fixed length.
+		Returns:
+			list:
+				Connectivity array of neighbors for each cell.
+				Each list is padded with -1s to have a fixed length.
 		'''
 		# Step 1: Create a dictionary to store the edges and their corresponding cells
 		edge_dict = edge_to_cells(self.connectivity)  # Dictionary mapping edges to cells
@@ -180,10 +237,9 @@ class Mesh(object):
 		Computes the normalized wall normals of the cells in the mesh.
 		Wall normals are the vectors normal to the edges and tangent to the cell.
 			
-		Returns
-		-------
-		wall_normals : np.ndarray
-			Array with the edge normals of each cell concatenated along axis 1.
+		Returns:
+			np.ndarray:
+				Array with the edge normals of each cell concatenated along axis 1.
 		'''
 
 		# Array to store the edge normals of each cell. Assumes every cell has the same number of edges.
@@ -204,7 +260,17 @@ class Mesh(object):
 	@cr('Mesh.reshape')
 	def reshape_var(self,var:str,info:dict):
 		r'''
-		Reshape a variable according to the mesh
+		Reshape a variable according to the mesh.
+
+		Args:
+			var (str) : Variable name.
+			info (dict) : Dictionary containg:
+				- ``'point'`` (int) : Number of points.
+				- ``'ndim'`` (int) : Number of dimensions of the variable.
+
+		Returns:
+			np.ndarray:
+				Reshaped variable.
 		'''
 		# Obtain number of points from the mesh
 		npoints = self.size(info['point'])
@@ -219,6 +285,18 @@ class Mesh(object):
 	def save(self,fname:str,**kwargs):
 		r'''
 		Store the mesh in various formats.
+
+		Args:
+			fname (str) : File name
+			**kwargs :
+				- 'mode' (str) : ``'w'`` for overwrite (default) and ``'a'`` for
+					append.
+				- 'mpio' (bool) : ``True`` (default) for parallel and ``False``
+					for serial.
+				- 'nopartition' (bool) : ``True`` to not store the partition table
+				  and ``False`` (default) to store it.
+				- The rest of arguments are forwarded to ``io.h5_save_dset`` or
+				  ``io.h5_append_dset``.
 		'''
 		# Guess format from extension
 		fmt = os.path.splitext(fname)[1][1:] # skip the .
@@ -237,8 +315,18 @@ class Mesh(object):
 	@classmethod
 	@cr('Mesh.load')
 	def load(cls,fname:str,**kwargs):
-		r'''
-		Load a mesh from various formats
+		'''
+		Load a field from various formats.
+
+		Args:
+			fname (str) : File name
+			**kwargs :
+				- 'mpio' (bool) : ``True`` (default) for parallel and ``False``
+					for serial.
+				- The rest of arguments are forwarded to ``io.h5_load_dset``.
+
+		Returns:
+			Mesh:
 		'''
 		# Guess format from extension
 		fmt = os.path.splitext(fname)[1][1:] # skip the .
@@ -254,7 +342,25 @@ class Mesh(object):
 
 	@classmethod
 	@cr('Mesh.new_struct2D')
-	def new_struct2D(cls,nx:int,ny:int,x:float,y:float,dimsx:float,dimsy:float,ptable=None):
+	def new_struct2D(cls,nx:int,ny:int,x:np.ndarray,y:np.ndarray,dimsx:np.ndarray,dimsy:np.ndarray,
+				  ptable=None):
+		'''
+		Generate a structured two dimensional mesh.
+
+		Args:
+			nx (int) : Number of points in the x direction if ``x`` is ``None``.
+			ny (int) : Similar to ``nx``.
+			x (np.ndarray or None) : Array of coordinates in the x direction. If ``None``, it will
+			be constructed as equispaced between ``(dimsx[0], dimsy[1])`` using ``nx`` points.
+			y (np.ndarray or None) : Similar to ``x``.
+			dimsx (np.ndarray) : Dimensions of the domain in the x direction if ``x`` is ``None``.
+			dimsy (np.ndarray) : Similar to ``dimsx``.
+			ptable (PartitionTable, optional) : Partition table of the mesh. Default is ``None``.
+
+		Returns:
+			Mesh:
+				Structured two dimensional mesh.
+		'''
 		xyz    = _struct2d_compute_xyz(nx,ny,x,y,dimsx,dimsy)
 		conec  = _struct2d_compute_conec(nx,ny,xyz)
 		eltype = 3*np.ones(((nx-1)*(ny-1),),np.uint8)
@@ -265,6 +371,26 @@ class Mesh(object):
 	@classmethod
 	@cr('Mesh.new_struct3D')
 	def new_struct3D(cls,nx:int,ny:int,nz:int,x:float,y:float,z:float,dimsx:float,dimsy:float,dimsz:float,ptable=None):
+		'''
+		Generate a structured three dimensional mesh.
+
+		Args:
+			nx (int) : Number of points in the x direction if ``x`` is ``None``.
+			ny (int) : Similar to ``nx``.
+			nz (int) : Similar to ``nx``.
+			x (np.ndarray or None) : Array of coordinates in the x direction. If ``None``, it will
+			be constructed as equispaced between ``(dimsx[0], dimsy[1])`` using ``nx`` points.
+			y (np.ndarray or None) : Similar to ``x``.
+			z (np.ndarray or None) : Similar to ``x``.
+			dimsx (np.ndarray) : Dimensions of the domain in the x direction if ``x`` is ``None``.
+			dimsy (np.ndarray) : Similar to ``dimsx``.
+			dimsz (np.ndarray) : Similar to ``dimsx``.
+			ptable (PartitionTable, optional) : Partition table of the mesh. Default is ``None``.
+
+		Returns:
+			Mesh:
+				Structured three dimensional mesh.
+		'''
 		xyz    = _struct3d_compute_xyz(nx,ny,nz,x,y,z,dimsx,dimsy,dimsz)
 		conec  = _struct3d_compute_conec(nx,ny,nz,xyz)
 		eltype = 5*np.ones(((nx-1)*(ny-1)*(nz-1),),np.uint8)
@@ -276,7 +402,16 @@ class Mesh(object):
 	@cr('Mesh.from_pyQvarsi')
 	def from_pyQvarsi(cls,mesh,ptable=None,sod:bool=False):
 		'''
-		Create the mesh structure from a pyQvarsi mesh structure
+		Create the mesh structure from a pyQvarsi mesh structure.
+
+		Args:
+			mesh : Mesh from pyQvarsi.
+			ptable (PartitionTable, optional) : Partition table. Default is ``None``.
+			sod (bool, optional) : Indicates if the mesh is in `sod` format. Default is ``False``.
+
+		Returns:
+			Mesh:
+				The created mesh.
 		'''
 		eltype = np.array([ALYA2ELTYP[t] for t in mesh.eltype_linear],np.uint8)
 		return cls('UNSTRUCT',mesh.xyz,mesh.connectivity_vtk if sod else mesh.connectivity,eltype,mesh.leinv_linear,mesh.lninv,ptable)
@@ -371,9 +506,23 @@ class Mesh(object):
 		return ELTYPE2ENSI[self._eltype[0]]
 
 
-def _struct2d_compute_xyz(nx:int,ny:int,x:float,y:float,dimsx:float,dimsy:float):
+def _struct2d_compute_xyz(nx:int,ny:int,x:np.ndarray,y:np.ndarray,
+						  dimsx:np.ndarray,dimsy:np.ndarray):
 	r'''
-	Compute points for a 2D structured mesh
+	Compute points for a 2D structured mesh.
+
+	Args:
+		nx (int) : Number of points in the x direction if ``x`` is ``None``.
+		ny (int) : Similar to ``nx``.
+		x (np.ndarray or None) : Array of coordinates in the x direction. If ``None``, it will
+		be constructed as equispaced between ``(dimsx[0], dimsy[1])`` using ``nx`` points.
+		y (np.ndarray or None) : Similar to ``x``.
+		dimsx (np.ndarray) : Dimensions of the domain in the x direction if ``x`` is ``None``.
+		dimsy (np.ndarray) : Similar to ``dimsx``.
+
+	Returns:
+		np.ndarray:
+			Array of coordinates.
 	'''
 	if x is None:
 		dx = (dimsx[1] - dimsx[0])/(nx - 1.)
@@ -387,9 +536,18 @@ def _struct2d_compute_xyz(nx:int,ny:int,x:float,y:float,dimsx:float,dimsy:float)
 	xy[:,1] = yy.reshape((nx*ny,),order='C')
 	return xy
 
-def _struct2d_compute_conec(nx:int,ny:int,xyz:np.array):
+def _struct2d_compute_conec(nx:int,ny:int,xyz:np.ndarray):
 	r'''
-	Compute connectivity for a 2D structured mesh
+	Compute connectivity for a 2D structured mesh.
+
+	Args:
+		nx (int) : Number of points in the x direction.
+		ny (int) : Similar to ``nx``.
+		xyz (np.ndarray) : Coordinates array.
+
+	Returns:
+		np.ndarray:
+			Array of connectivities.
 	'''
 	# Obtain the ids
 	idx  = np.lexsort((xyz[:,1],xyz[:,0]))
@@ -403,9 +561,26 @@ def _struct2d_compute_conec(nx:int,ny:int,xyz:np.array):
 	return conec
 
 
-def _struct3d_compute_xyz(nx:int,ny:int,nz:int,x:float,y:float,z:float,dimsx:float,dimsy:float,dimsz:float):
-	r'''
-	Compute points for a 2D structured mesh
+def _struct3d_compute_xyz(nx:int,ny:int,nz:int,x:np.ndarray,y:np.ndarray,z:np.ndarray,
+						  dimsx:np.ndarray,dimsy:np.ndarray,dimsz:np.ndarray):
+	'''
+	Compute points for a 3d structured mesh.
+
+	Args:
+		nx (int) : Number of points in the x direction if ``x`` is ``None``.
+		ny (int) : Similar to ``nx``.
+		nz (int) : Similar to ``nx``.
+		x (np.ndarray or None) : Array of coordinates in the x direction. If ``None``, it will
+		be constructed as equispaced between ``(dimsx[0], dimsy[1])`` using ``nx`` points.
+		y (np.ndarray or None) : Similar to ``x``.
+		z (np.ndarray or None) : Similar to ``x``.
+		dimsx (np.ndarray) : Dimensions of the domain in the x direction if ``x`` is ``None``.
+		dimsy (np.ndarray) : Similar to ``dimsx``.
+		dimsz (np.ndarray) : Similar to ``dimsx``.
+
+	Returns:
+		np.ndarray:
+			Array of coordinates.
 	'''
 	if x is None:
 		dx = (dimsx[1] - dimsx[0])/(nx - 1.)
@@ -425,7 +600,17 @@ def _struct3d_compute_xyz(nx:int,ny:int,nz:int,x:float,y:float,z:float,dimsx:flo
 
 def _struct3d_compute_conec(nx:int,ny:int,nz:int,xyz:np.array):
 	r'''
-	Compute connectivity for a 2D structured mesh
+	Compute connectivity for a 2D structured mesh.
+
+	Args:
+		nx (int) : Number of points in the x direction.
+		ny (int) : Similar to ``nx``.
+		nz (int) : Similar to ``nx``.
+		xyz (np.ndarray) : Coordinates array.
+
+	Returns:
+		np.ndarray:
+			Array of connectivities.
 	'''
 	# Obtain the ids
 	idx  = np.lexsort((xyz[:,2],xyz[:,1],xyz[:,0]))
@@ -441,3 +626,4 @@ def _struct3d_compute_conec(nx:int,ny:int,nz:int,xyz:np.array):
 	conec[:,6] = idx2[1:,1:,1:].ravel()
 	conec[:,7] = idx2[1:,1:,:-1].ravel()
 	return conec
+

@@ -27,10 +27,13 @@ def _order_modes(muReal, muImag, Phi, bJov):
 		bJov : Amplitudes of the DMD modes.
 
 	Returns:
-		muReal : Array of the real part of the eigenvalues.
-		muImag : Array of the imaginary part of the eigenvalues.
-		Phi : DMD modes.
-		bJov : Amplitudes of the DMD modes.
+		[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+
+			-muReal : Array of the real part of the eigenvalues.
+			-muImag : Array of the imaginary part of the eigenvalues.
+			-Phi : DMD modes.
+			-bJov : Amplitudes of the DMD modes.
+
 	'''
 	cnp    = cp if type(muReal) is cp.ndarray else np
 	muReal = muReal[flip(cnp.abs(bJov).argsort())]
@@ -69,10 +72,11 @@ def run(X, r, remove_mean = True):
 		remove_mean (bool, optional) : whether or not to remove the mean flow.
 
 	Returns:
-		- Phi:      DMD Modes
-		- muReal:   Real part of the eigenvalues
-		- muImag:   Imaginary part of the eigenvalues
-		- b:        Amplitude of the DMD modes
+		[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+			- Phi:      DMD Modes
+			- muReal:   Real part of the eigenvalues
+			- muImag:   Imaginary part of the eigenvalues
+			- b:        Amplitude of the DMD modes
 	'''
 	# Remove temporal mean or not, depending on the user choice
 	if remove_mean:
@@ -141,8 +145,9 @@ def frequency_damping(real, imag, dt):
 		- dt:		Time interval
 
 	Returns:
-		- delta:	Damping ratio of the modes.
-		- omega:	Frequency of the modes.
+		[np.ndarray, np.ndarray]:
+			- delta:	Damping ratio of the modes.
+			- omega:	Frequency of the modes.
 	'''
 	p = cp if type(real) is cp.ndarray else np
 	mod, arg = polar(real, imag) #Create vmmath/complex.c?
@@ -167,7 +172,8 @@ def mode_computation(X, V, S, W):
 		W : DMD modes in the reduced basis.
 
 	Returns:
-		The DMD modes in the snapshot basis.
+		np.ndarray:
+			The DMD modes in the snapshot basis.
 	'''
 	p = cp if type(X) is cp.ndarray else np
 	return  matmul(matmul(matmul(X, transpose(V)), diag(1/S)), p.abs(W))
@@ -185,7 +191,8 @@ def reconstruction_jovanovic(Phi, real, imag, t, bJov):
 		- bJov:     Amplitude of the DMD modes.
 
 	Returns:
-		The reconstructed field.
+		np.ndarray:
+			The reconstructed field.
 	'''
 	Vand = vandermondeTime(real, imag, real.shape[0], t)
 	return matmul(Phi, matmul(diag(bJov), Vand)).real

@@ -16,7 +16,7 @@ from ..utils     import cr_nvtx as cr, mpi_reduce
 @cr('math.RMSE')
 def RMSE(A:np.ndarray,B:np.ndarray,relative:bool=True) -> float:
 	r'''
-	Compute the root mean square error between A and B
+	Compute the root mean square error between A and B.
 
 	Args:
 		A (np.ndarray).
@@ -36,7 +36,7 @@ def RMSE(A:np.ndarray,B:np.ndarray,relative:bool=True) -> float:
 @cr('math.MAE')
 def MAE(A:np.ndarray,B:np.ndarray) -> float:
 	r'''
-	Compute mean absolute error between A and B
+	Compute mean absolute error between A and B.
 
 	Args:
 		A (np.ndarray).
@@ -55,7 +55,7 @@ def MAE(A:np.ndarray,B:np.ndarray) -> float:
 @cr('math.r2')
 def r2(A:np.ndarray,B:np.ndarray) -> float:
 	r'''
-	Compute r2 score between A and B
+	Compute r2 score between A and B.
 
 	Args:
 		A (np.ndarray).
@@ -94,3 +94,4 @@ def MRE_array(A:np.ndarray, B:np.ndarray, axis:int=1) -> np.ndarray:
 	deng = p.sum(B*B,axis=axis)
 	# Compute Mean Relative Error (this will be identical on all ranks)
 	return numg/deng
+

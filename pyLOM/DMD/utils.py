@@ -30,6 +30,10 @@ def extract_modes(Phi,ivar,npoints,real=True,modes=[],reshape=True):
 		reshape (bool, optional) : If ``True`` (as default) returns the output
 			as a vector, otherwise the modes form the columns of the return
 			matrix.
+
+	Returns:
+		np.ndarray:
+			Requested modes.
 	'''
 	p = cp if type(Phi) is cp.ndarray else np
 	nvars = Phi.shape[0]//npoints
@@ -79,6 +83,7 @@ def load(fname,vars=['Phi','mu','bJov','delta','omega'],nmod=-1,ptable=None):
 			will not be loaded from the file.
 
 	Returns:
-		list[np.ndarray] : List with the arrays of the requested variables.
+		list[np.ndarray]:
+			List with the arrays of the requested variables.
 	'''
 	return io.h5_load_DMD(fname,vars,nmod,ptable)

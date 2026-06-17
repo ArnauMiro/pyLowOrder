@@ -72,7 +72,8 @@ def plotFieldStruct2D(ax,nx,ny,ndim,xyz,field,dim,cmap,clear=False):
 			The default is ``False``.
 
 	Returns:
-		The contourf plot object.
+		plt.axes:
+			The contourf plot object.
 	'''
 	# Clear the axis if needed
 	if clear: ax.clear()
@@ -98,7 +99,8 @@ def plotResidual(S,fig=None,ax=None):
 			default) a new one is created.
 
 	Return:
-		Figure and axes whith the plots.
+		[plt.figures, plt.axes]:
+			Figure and axes whith the plots.
 	'''
 	S = gpu_to_cpu(S)
 	# Build figure and axes
@@ -127,7 +129,8 @@ def plotModalErrorBars(error:np.ndarray):
 		error (np.ndarray) : Error array.
 
 	Return:
-		Figure and axes whith the plots.
+		[plt.figures, plt.axes]:
+			Figure and axes whith the plots.
 	'''
 	indices = np.arange(len(error))+1
 	cmap    = plt.cm.jet

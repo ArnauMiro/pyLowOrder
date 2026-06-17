@@ -44,7 +44,7 @@ def raiseWarning(warnmsg,allranks=False):
 	all processes.
 
 	Args:
-		warnmsh: The message to print.
+		warnmsg: The message to print.
 		allranks (bool, optional): If ``True`` all ranks will print the warning,
 			otherwise only rank 0.
 	'''

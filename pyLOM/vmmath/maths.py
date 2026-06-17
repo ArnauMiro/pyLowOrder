@@ -22,23 +22,25 @@ def transpose(A:np.ndarray) -> np.ndarray:
 	Args:
 		A (np.ndarray): Matrix to be transposed
 	
-	Results
-		np.ndarray: Transposed matrix
+	Returns:
+		np.ndarray:
+			Transposed matrix
 	'''
 	p = cp if type(A) is cp.ndarray else np
 	return p.transpose(A)
 
-@cr('math.vector_norm')
+@cr('math.vector_sum')
 def vector_sum(v:np.ndarray,start:int=0) -> float:
 	r'''
 	Sum of a vector
 
 	Args:
-		v (np.ndarray): a vector
-		start (int): position of the vector where to start the sum
+		v (np.ndarray) : Vector.
+		start (int, optional) : Position of the vector where to start the sum. Default is 0.
 	
-	Result:
-		float: sum of the vector
+	Returns:
+		float:
+			sum of the vector
 	'''
 	p = cp if type(v) is cp.ndarray else np
 	return p.sum(v[start:])
@@ -52,8 +54,9 @@ def vector_norm(v:np.ndarray,start:int=0) -> float:
 		v (np.ndarray): a vector
 		start (int): position of the vector where to start the norm
 	
-	Result:
-		float: norm of the vector
+	Returns:
+		float:
+			norm of the vector
 	'''
 	p = cp if type(v) is cp.ndarray else np
 	return p.linalg.norm(v[start:],2)
@@ -67,8 +70,9 @@ def vector_mean(v:np.ndarray,start:int=0) -> float:
 		v (np.ndarray): a vector
 		start (int): position of the vector where to start the mean
 	
-	Result:
-		float: mean of the vector
+	Returns:
+		float:
+			mean of the vector
 	'''
 	p = cp if type(v) is cp.ndarray else np
 	return p.mean(v[start:])
@@ -83,8 +87,9 @@ def matmul(A:np.ndarray,B:np.ndarray) -> np.ndarray:
 		A (np.ndarray): Matrix A (M,Q)
 		B (np.ndarray): Matrix B (Q,N)
 	
-	Result:
-		np.ndarray: Resulting matrix C (M,N)
+	Returns:
+		np.ndarray:
+			Resulting matrix C (M,N)
 	'''
 	p = cp if type(A) is cp.ndarray else np
 	return p.matmul(A,B)
@@ -92,18 +97,20 @@ def matmul(A:np.ndarray,B:np.ndarray) -> np.ndarray:
 @cr('math.matmulp')
 def matmulp(A:np.ndarray,B:np.ndarray) -> np.ndarray:
 	r'''
-	Matrix multiplication in parallel
-	C = A x B 
-
+	Matrix multiplication in parallel.
+	C = A x B
+	
 	.. warning::
+	
 		A and B are distributed along the processors and C is the same for all of them.
-
+	
 	Args:
 		A (np.ndarray): Matrix A (M,Q)
 		B (np.ndarray): Matrix B (Q,N)
 	
-	Result:
-		np.ndarray: Resulting matrix C (M,N)
+	Returns:
+		np.ndarray:
+			Resulting matrix C (M,N)
 	'''
 	p = cp if type(A) is cp.ndarray else np
 	aux = p.matmul(A,B)
@@ -120,7 +127,7 @@ def vecmat(v:np.ndarray,A:np.ndarray,transposed:bool=False) -> np.ndarray:
 		A (np.ndarray): Matrix A (M,N)
 		transposed (bool): If False, performs row multiplication. Column for True
 	
-	Result:
+	Returns:
 		np.ndarray: Resulting matrix C (M,N)
 	'''
 	p = cp if type(v) is cp.ndarray else np
@@ -141,8 +148,9 @@ def argsort(v:np.ndarray) -> np.ndarray:
 	Args:
 		v (np.ndarray): Vector v (M,)
 	
-	Result:
-		np.ndarray: Indices that sort v (M,)
+	Returns:
+		np.ndarray:
+			Indices that sort v (M,)
 	'''
 	p = cp if type(v) is cp.ndarray else np
 	return p.argsort(v)
@@ -156,8 +164,9 @@ def diag(A:np.ndarray) -> np.ndarray:
 	Args:
 		A (np.ndarray): Matrix A (M,N)
 	
-	Result:
-		np.ndarray: Diagonal of A (M,)
+	Returns:
+		np.ndarray:
+			Diagonal of A (M,)
 	'''
 	p = cp if type(A) is cp.ndarray else np
 	return p.diag(A)
@@ -168,6 +177,7 @@ def eigen(A:np.ndarray) -> np.ndarray:
 	Eigenvalues and eigenvectors.
 
 	.. warning::
+
 		GPU implementation of this algoritm is still slow and
 		thus will be executed purely on CPU level until
 		cupy implements linalg.eig.
@@ -175,7 +185,7 @@ def eigen(A:np.ndarray) -> np.ndarray:
 	Args:
 		A (np.ndarray): Matrix A (M,N)
 	
-	Result:
+	Returns:
 		np.ndarray: the real eigenvalues, real(M)
 		np.ndarray: the imaginary eigenvalues, imag(M)
 		np.ndarray: the right eigenvectors, vecs(M,M)
@@ -195,7 +205,7 @@ def polar(real:np.ndarray, imag:np.ndarray) -> np.ndarray:
 		real (np.ndarray): the real component
 		imag (np.ndarray): the imaginary component
 
-	Result:
+	Returns:
 		np.ndarray: the modulus
 		np.ndarray: the argument
 	'''
@@ -216,7 +226,7 @@ def vandermonde(real:np.ndarray, imag:np.ndarray, m:int, n:int) -> np.ndarray:
 		m (int): number of rows for the Vandermode matrix
 		n (int): number of columns for the Vandermode matrix
 
-	Result:
+	Returns:
 		np.ndarray: the Vandermonde matrix
 	'''
 	p = cp if type(real) is cp.ndarray else np
@@ -239,7 +249,7 @@ def vandermondeTime(real:np.ndarray, imag:np.ndarray, m:int, time:np.ndarray) ->
 		m (int): number of rows for the Vandermode matrix
 		time (np.ndarray): the time vector
 
-	Result:
+	Returns:
 		np.ndarray: the Vandermonde matrix
 	'''
 	p = cp if type(real) is cp.ndarray else np
@@ -258,7 +268,7 @@ def cholesky(A:np.ndarray) -> np.ndarray:
 	Args:
 		A (np.ndarray): Matrix A (M,N)
 	
-	Result:
+	Returns:
 		np.ndarray: Cholesky factorization of A (M,N)
 	'''
 	p = cp if type(A) is cp.ndarray else np
@@ -272,7 +282,7 @@ def conj(A:np.ndarray) -> np.ndarray:
 	Args:
 		A (np.ndarray): Vector, matrix or number A
 	
-	Result:
+	Returns:
 		np.ndarray: Conjugate of A
 	'''
 	p = cp if type(A) is cp.ndarray else np
@@ -286,7 +296,7 @@ def inv(A:np.ndarray) -> np.ndarray:
 	Args:
 		A (np.ndarray): Matrix A (M,N)
 	
-	Result:
+	Returns:
 		np.ndarray: Inverse of A (M,N)
 	'''
 	p = cp if type(A) is cp.ndarray else np
@@ -298,12 +308,13 @@ def flip(A:np.ndarray) -> np.ndarray:
 	Returns the pointwise conjugate of A
 
 	.. warning::
+
 		This function is not implemented in the compiled layer and will raise an error if used.
 
 	Args:
 		A (np.ndarray): Matrix A (M,N)
 	
-	Result:
+	Returns:
 		np.ndarray: Flipped version of A (M,N)
 	'''
 	p = cp if type(A) is cp.ndarray else np

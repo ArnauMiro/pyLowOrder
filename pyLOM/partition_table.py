@@ -16,18 +16,26 @@ class PartitionTable(object):
 	'''
 	The partition table class contains information on the 
 	partition used for the given dataset or  it can generate
-	a new partition
+	a new partition.
 
 	Attributes:
 		_nparts (int): Number of partitions.
-	#	_ids (int): Id of the table at the current rank.
-		#_elements (int): Number of elements of this rank of the partition table.
-		#_master (bool): Store all the information in rank 0.
-		#_points (int): Number of points of this rank of the partition table.
+		_ids (np.ndarray): Array of Id of all partitions.
+		_elements (np.ndarray): Array of the number of elements of each partition.
+		_master (bool): Treat rank zero as master rank.
+		_points (np.ndarray): Array of the number of points of of each partition.
+		_inods (np.ndarray) : Array of points of the current partition.
 	'''
 	def __init__(self,nparts,ids,elements,points,has_master=False):
 		'''
-		Class constructor
+		Class constructor.
+
+		Args:
+			nparts (int): Number of partitions.
+			ids (np.ndarray): Array of Id of all partitions.
+			elements (np.ndarray): Array of the number of elements of each partition.
+			points (np.ndarray): Array of the number of points of of each partition.
+			has_master (bool, optional): Treat rank zero as master rank. Default is ``False``.
 		'''
 		self._nparts   = nparts
 		self._ids      = ids
@@ -37,6 +45,11 @@ class PartitionTable(object):
 		self._inods    = None
 
 	def __str__(self):
+		'''
+		Returns:
+			str:
+				Brief description.
+		'''
 		out  = 'Partition Table:\nnumber of partitions: %d\n' % self.n_partitions
 		out += '\tIds  |  Elements  |  Points  \n'
 		for ipart in range(self.n_partitions):
@@ -46,7 +59,16 @@ class PartitionTable(object):
 	@cr('PartTable.pbounds')
 	def partition_bounds(self,rank,ndim=1,points=True):
 		'''
-		Compute the partition bounds for a given rank
+		Compute the partition bounds for a given rank.
+		
+		Args:
+			rank (int) : Current MPI_RANK.
+			ndim (int, optional) : Dimension of the variable. Default is 1.
+			points (bool, optional) : ``True`` (as default) for treating the variable as data at the
+				nodes, ``False`` as data at the elements.
+
+		Returns:
+			[int, int] : Start and end indices of the global vatiable array.
 		'''
 		if self._master and rank == 0 and not MPI_SIZE == 1: 
 			return 0, 1
@@ -61,7 +83,10 @@ class PartitionTable(object):
 	@cr('PartTable.set_ppoints')
 	def create_partition_points(self,conec):
 		'''
-		Find which nodes this partition has
+		Find which nodes this partition has.
+
+		Args:
+			conec (np.ndarray) : The conncectivity matrix.
 		'''
 		self._inods = np.unique(conec.flatten())
 		self.update_points(self._inods.shape[0])
@@ -69,7 +94,14 @@ class PartitionTable(object):
 	@cr('PartTable.ppoints')
 	def partition_points(self,npoints,ndim=1):
 		'''
-		Compute the points to be read for this partition
+		Compute the points to be read for this partition.
+
+		Args:
+			npoints (int) : Number of points.
+			ndim (int, optional) : Number of dimensions of the variable to read. Default is 1.
+
+		Returns:
+			np.ndarray : Nodes to be read for this partition.
 		'''
 		mynods  = np.array([],np.int32)
 		# Deal with multiple dimensions
@@ -78,15 +110,22 @@ class PartitionTable(object):
 		return mynods		
 
 	@cr('PartTable.reorder')
-	def reorder_points(self,xyz,conectivity):
+	def reorder_points(self,xyz,connectivity):
 		'''
 		Reorder the points array so that in matches with
 		the partition table, in serial algorithm.
+
+		Args:
+			xyz (np.ndarray) : Points to reorder.
+			connectivity (np.ndarray) : Connectivity array.
+
+		Returns:
+			np.ndarray : Reordered points.
 		'''
 		xyz_new = np.zeros_like(xyz)
 		# Loop all the partitions
 		for ipart in range(self.n_partitions):
-			mynods = self.partition_points(ipart,conectivity)
+			mynods = self.partition_points(ipart,connectivity)
 			# Rearrange the node vector
 			nstart  = np.cumsum(self.Points[:ipart])
 			nend    = self.Points[ipart] + nstart
@@ -96,7 +135,10 @@ class PartitionTable(object):
 
 	def update_points(self,npoints_new):
 		'''
-		Update the number of points on the table
+		Update the number of points on the table.
+
+		Args:
+			n_points_new (np.ndarray) : New array of points
 		'''
 		p = mpi_gather(npoints_new,all=True)
 		self._points = p if isinstance(p,np.ndarray) else np.array([p],np.int32)
@@ -104,7 +146,10 @@ class PartitionTable(object):
 	def check_split(self):
 		'''
 		See if a table has the same number of subdomains
-		than the number of mpi ranks
+		than the number of mpi ranks.
+
+		Returns:
+			bool : The result of the check.
 		'''
 		# Deal with master and serial
 		offst = 1 if self._master and not MPI_SIZE == 1 else 0
@@ -115,6 +160,15 @@ class PartitionTable(object):
 	def new(cls,nparts,nelems,npoints,has_master=False):
 		'''
 		Create a new partition table, in serial algorithm.
+
+		Attributes:
+			nparts (int): Number of partitions.
+			elements (np.ndarray): Array of the number of elements of each partition.
+			npoints (np.ndarray): Array of the number of points of of each partition.
+			has_master (bool, optional): Treat rank zero as master rank. Default is ``False``.
+
+		Returns:
+			PartitionTable : The created table.
 		'''
 		ids      = np.zeros((nparts,),np.int32)
 		points   = np.zeros((nparts,),np.int32)
@@ -136,7 +190,13 @@ class PartitionTable(object):
 	def from_pyQvarsi(cls,ptable,porder=1,ndime=3,has_master=False):
 		'''
 		Create a partition table from a partition table coming
-		from pyQvarsi
+		from pyQvarsi.
+
+		Args:
+			ptable (PartitionTable) : Partition table from pyQvarsi.
+			porder (int, optional) : Order of the underlying FEM space. Default is ``1``.
+			ndime (int, optional) : Number of dimensions of the domain. Default is ``3``.
+			has_master (bool, optional): Treat rank zero as master rank. Default is ``False``.
 		'''
 		nparts   = ptable.n_partitions
 		ids      = np.arange(1,nparts+1,dtype=np.int32)

@@ -17,11 +17,17 @@ from ..utils     import cr_nvtx as cr, mpi_reduce
 def compute_truncation_residual(S, r):
 	r'''
 	Compute the truncation residual.
-	r must be a float precision (r<1) where:
+
+	Args:
+		S (np.ndarray) : Vector.
+		r (float) : Precision. Must satisfy ``r < 1`` where:
 	
-		- r > 0: target residual
-		- r < 0: fraction of cumulative energy to retain
+			- ``r > 0``: target residual.
+			- ``r < 0``: fraction of cumulative energy to retain.
 	
+	Returns:
+		int:
+			Index of truncation.
 	'''
 	N = 0
 	if r > 0:
@@ -48,6 +54,14 @@ def local_energy(original, rec):
 	Towards extraction of orthogonal and parsimonious non-linear modes from turbulent flows. 
 	Expert Systems with Applications, 202, 117038.
 	https://doi.org/10.1016
+
+	Args:
+		original (np.ndarray or cp.ndarray).
+		rec (np.ndarray or cp.ndarray).
+
+	Returns:
+		float:
+			Reconstruction energy.
 	'''
 	p = cp if type(original) is cp.ndarray else np
 	# Compute local sums
@@ -65,6 +79,14 @@ def energy(original, rec):
 	Towards extraction of orthogonal and parsimonious non-linear modes from turbulent flows. 
 	Expert Systems with Applications, 202, 117038.
 	https://doi.org/10.1016
+
+	Args:
+		original (np.ndarray or cp.ndarray).
+		rec (np.ndarray or cp.ndarray).
+
+	Returns:
+		float:
+			Reconstruction energy.
 	'''
 	p = cp if type(original) is cp.ndarray else np
 	# Compute local sums

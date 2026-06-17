@@ -34,8 +34,13 @@ def data_splitting(Nt:int, mode:str, seed:int=-1):
 def time_delay_embedding(X, dimension=50):
 	r'''
 	Extract time-series of lenght equal to lag from longer time series in data, whose dimension is (number of time series, sequence length, data shape)
-	Inputs: [Points, Time]
-	Output: [Points, Time, Delays]
+
+	Args:
+		X (np.ndarray) : Shape is [Points, Time].
+		dimension (int, optional) : Default is 50.
+
+	Returns:
+		np.ndarray: Shape is [Points, Time, Delays]
 	'''
 	
 	X_delay = np.zeros((X.shape[0], X.shape[1], dimension), dtype=X.dtype)

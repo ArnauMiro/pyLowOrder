@@ -19,7 +19,7 @@ def euclidean_d(X):
 	'''
 	Compute Euclidean distances between simulations.
 
-	In:
+	Args:
 
 		- X: NxM Data matrix with N points in the mesh for M simulations
 
@@ -149,6 +149,7 @@ def cell_adjacency(edge_dict) -> dict:
 def fix_normals_coherence(normals, edge_dict, adjacency, num_cells) -> np.ndarray:
 	'''
 	Ensure that the normals of the cells are coherent. (i.e. they point all in the same direction).
+
 	Args:
 		- normals: Array of normals of the cells
 		- edge_dict: Dictionary mapping edges to cells sharing that edge.
@@ -202,15 +203,18 @@ def wall_normals(nodes_idx, nodes_xyz, surf_normal) -> list:
 	The wall normals are always contained in the cell plane, thus are orthogonal themselves to the cell surface normal.
 	As a convention, wall normals are always pointing outwards the cell.
 
-	In:
-		- nodes_idx: List or array of the node indices of the cell
-		- nodes_xyz: List or array of the node coordinates of the cell
-		- surf_normal: Normal to the plane of the cell
+	Args:
+		- nodes_idx (list or np.ndarray) : List or array of the node indices of the cell
+		- nodes_xyz (list or np.ndarray) : List or array of the node coordinates of the cell
+		- surf_normal (np.ndarray) : Normal to the plane of the cell
 
 
 	Returns:
-		- cell_edges: List of graph edges representing the element walls (node indices)
-		- wall_normals: List of the unitary wall normals
+		[list, list]:	
+
+			- cell_edges: List of graph edges representing the element walls (node indices)
+			- wall_normals: List of the unitary wall normals
+
 	'''
 	num_nodes = len(nodes_xyz)
 	wall_normals = []

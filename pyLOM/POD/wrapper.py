@@ -97,7 +97,8 @@ def reconstruct(U:np.ndarray,S:np.ndarray,V:np.ndarray):
 		V (np.ndarray): of size (n,n), are the right singular vectors.
 
 	Returns:
-		(np.array): Reconstructed flow.
+		np.ndarray:
+			Reconstructed flow.
 	'''
 	# Compute X = U x S x VT
 	return matmul(U,vecmat(S,V))

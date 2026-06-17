@@ -18,10 +18,18 @@ from ..utils     import cr_nvtx as cr
 @cr('math.svd')
 def svd(A,method='gesdd'):
 	'''
-	Single value decomposition (SVD) using numpy.
-		U(m,n)   are the POD modes.
-		S(n)     are the singular values.
-		V(n,n)   are the right singular vectors.
+	Single value decomposition (SVD) using numpy or cupy.
+
+	Args:
+		A (np.ndarray or cp.ndarray) : Matrix of shape (m,n).
+
+	Returns:
+		[np.ndarray of cp.ndarray, np.ndarray of cp.ndarray, np.ndarray of cp.ndarray]:
+
+			-U(m,n)   are the POD modes.
+			-S(n)     are the singular values.
+			-V(n,n)   are the right singular vectors.
+
 	'''
 	p = cp if type(A) is cp.ndarray else np
 	return p.linalg.svd(A,full_matrices=False)
@@ -36,11 +44,16 @@ def tsqr_svd(Ai):
 
 	doi: 10.1137/080731992.
 
-	Ai(m,n)  data matrix dispersed on each processor.
+	Args:
+		Ai (np.ndarray or cp.ndarray) : Data matrix of shape (m,n) dispersed on each processor.
 
-	Ui(m,n)  POD modes dispersed on each processor (must come preallocated).
-	S(n)     singular values.
-	VT(n,n)  right singular vectors (transposed).
+	Returns:
+		[np.ndarray of cp.ndarray, np.ndarray of cp.ndarray, np.ndarray of cp.ndarray]:
+
+			- Ui(m,n)  POD modes dispersed on each processor (must come preallocated).
+			- S(n)     singular values.
+			- VT(n,n)  right singular vectors (transposed).
+
 	'''
 	# QR factorization on A
 	Qi,R = tsqr(Ai)
@@ -56,12 +69,22 @@ def tsqr_svd(Ai):
 @cr('math.randomized_svd')
 def randomized_svd(Ai, r, q, seed=-1):
 	'''
-	Ai(m,n)  data matrix dispersed on each processor.
-	r        target number of modes
+	Randomized SVD.
 
-	Ui(m,n)  POD modes dispersed on each processor (must come preallocated).
-	S(n)     singular values.
-	VT(n,n)  right singular vectors (transposed).
+	Args:
+		Ai (np.ndarray or cp.ndarray) : Data matrix of shape (m,n) dispersed on each processor.
+		r (int) : Target number of modes.
+		q (int) : Number of power iterations.
+		seed (int, optional) : Seed of the random engine.
+			Use a negative value (as default) to avoid seeding.
+
+	Returns:
+		[np.ndarray of cp.ndarray, np.ndarray of cp.ndarray, np.ndarray of cp.ndarray]:
+
+			- Ui(m,n)  POD modes dispersed on each processor (must come preallocated).
+			- S(n)     singular values.
+			- VT(n,n)  right singular vectors (transposed).
+
 	'''
 	seed = int(time.time()) if seed < 0 else seed
 	np.random.seed(seed=seed)
@@ -73,3 +96,4 @@ def randomized_svd(Ai, r, q, seed=-1):
 	Ui = matmul(Qi, Ur)
 
 	return Ui, S, V
+

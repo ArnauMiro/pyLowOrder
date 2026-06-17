@@ -38,7 +38,7 @@ mpi_nansum = mpi_create_op(lambda v1,v2,dtype : np.nansum([v1,v2]),commute=True)
 
 def mpi_barrier():
 	'''
-	Implements the barrier
+	Implements the barrier.
 	'''
 	MPI_COMM.Barrier()
 
@@ -63,6 +63,9 @@ def mpi_recv(**kwargs):
 
 	Args:
 		**kwargs: Arguments are forwarded to the recv function.
+
+	Returns:
+		The received buffer.
 	'''
 	return MPI_COMM.recv(**kwargs)
 
@@ -75,6 +78,9 @@ def mpi_sendrecv(buff,**kwargs):
 	Args:
 		buff: The buffer.
 		**kwargs: Additional arguments are forwarded to the sendrecv function.
+
+	Returns:
+		The received buffer.
 	'''
 	return MPI_COMM.sendrecv(buff,**kwargs)
 
@@ -88,6 +94,9 @@ def mpi_scatter(sendbuff,root=0,do_split=False):
 		sendbuff: The array to send.
 		root (int, optional): The root rank.
 		do_split (bool, optional): Split flag. The default is ``False``.
+
+	Returns:
+		The scattered buffer.
 	'''
 	if MPI_SIZE > 1:
 		return MPI_COMM.scatter(split(sendbuff,root=root),root=root) if do_split else MPI_COMM.scatter(sendbuff,root=root)

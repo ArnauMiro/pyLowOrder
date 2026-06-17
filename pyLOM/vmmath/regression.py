@@ -18,8 +18,16 @@ from ..utils     import cr_nvtx as cr
 @cr('math.least_squares')
 def least_squares(A,b):
 	'''
-	Least squares regression
-	(A^T * A)^-1 * A^T * b
+	Least squares regression.
+
+
+	Args:
+		A (np.ndarray or cp.ndarray) : Matrix of shape (m,n).
+		b (np.ndarray or cp.ndarray) : Vector of shape(m,).
+
+	Returns:
+		np.ndarray or cp.ndarray:
+			``(A^T * A)^-1 * A^T * b``
 	'''
 	A_t = transpose(A)
 	normal_matrix = matmul(A_t, A)
@@ -30,10 +38,20 @@ def least_squares(A,b):
 @cr('math.ridge_regresion')
 def ridge_regresion(A,b,lam):
 	'''
-	Ridge regression
+	Ridge regression.
+
+	Args:
+		A (np.ndarray or cp.ndarray) : Matrix of shape (m,n).
+		b (np.ndarray or cp.ndarray) : Vector of shape(m,).
+		lam (float) : Regularization parameter.
+
+	Returns:
+		np.ndarray or cp.ndarray:
+			``(A^T * A + lam * I)^-1 * A^T * b``
 	'''
 	p = cp if type(A) is cp.ndarray else np
 	I = p.sqrt(lam)*p.eye(A.shape[1])
 	augmented_A = p.vstack([A, I])
 	augmented_b = p.hstack([b,p.zeros((I.shape[0],))])
 	return least_squares(augmented_A,augmented_b)
+

@@ -393,10 +393,10 @@ def cr_info(rank=-1):
 	'''
 	Print information - order by major sum.
 
-		Args:
-			rank (int, optional): The rank which has to print the info.
-				If negative (as default) the information of all ranks is
-				printed.
+	Args:
+		rank (int, optional): The rank which has to print the info.
+			If negative (as default) the information of all ranks is
+			printed.
 	'''
 	if rank >= 0 and rank == MPI_RANK:
 		_info_serial()

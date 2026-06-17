@@ -75,7 +75,7 @@ def QR2POD(varname:str, ptable:PartitionTable, iiload:int, basedir:str='.'):
 		iiload (int): which QR result we want to save (1 or 2)
 		basedir (str, optional): directory where the QR results must be loaded from (default ``'.'``)
 
-	Returns
+	Returns:
 		[np.ndarray, np.ndarray, np.ndarray]: left singular vectors, singular values and right singular vectors
 	"""
 	Q, B   = h5_load_QR(FMT_QR_FILE % (basedir,varname,iiload), ['Q','B'], ptable=ptable)

@@ -16,7 +16,13 @@ from ..utils     import cr_nvtx as cr, MPI_RANK, MPI_SIZE, mpi_send, mpi_recv
 
 def next_power_of_2(n):
 	'''
-	Find the next power of 2 of n
+	Find the next power of 2 of n.
+
+	Args:
+		n (int).
+
+	Returns:
+		int : Next power of 2 of n.
 	'''
 	p = 1
 	if (n and not(n & (n - 1))):
@@ -28,9 +34,15 @@ def next_power_of_2(n):
 @cr('math.qr')
 def qr(A):
 	'''
-	QR factorization using Lapack
-		Q(m,n) is the Q matrix 
-		R(n,n) is the R matrix semipositive
+	QR factorization using Lapack.
+
+	Args:
+		A (np.ndarray of cp.ndarray) : Matrix of shape (m, n).
+
+	Returns:
+		[np.linalg or cp.linalg, np.linalg or cp.linalg]:
+			- Q(m,n) is the Q matrix.
+			- R(n,n) is the R matrix semipositive.
 	'''
 	p = cp if type(A) is cp.ndarray else np
 
@@ -49,8 +61,14 @@ def qr(A):
 def tsqr(Ai):
 	'''
 	Parallel QR factorization of a real array using Lapack
-		Q(m,n) is the Q matrix
-		R(n,n) is the R matrix
+
+	Args:
+		Ai (np.ndarray of cp.ndarray) : Matrix of shape (m, n).
+
+	Returns:
+		[np.linalg or cp.linalg, np.linalg or cp.linalg]:
+			- Q(m,n) is the Q matrix.
+			- R(n,n) is the R matrix semipositive.
 	'''
 	p = cp if type(Ai) is cp.ndarray else np
 	_, n = Ai.shape
@@ -118,13 +136,20 @@ def tsqr(Ai):
 
 def qr_streaming(Ai, r, q, seed, local):
 	'''
-	Internal function
+	Internal function.
 	
-	Ai(m,n)  data matrix dispersed on each processor.
-	r        target number of modes
+	Args:
+		Ai (np.ndarray or cp.ndarray) :  Data matrix of shape (m, n) dispersed on each processor.
+		r (int) : Target number of modes.
+		q (int) : Number of power iterations.
+		seed (int) : Seed of the random engine. Use a negative value to avoid seeding.
+		local (bool) : ``True`` to use the serial version, ``False`` to use the parallel version.
 
-	Qi(m,r)  
-	B (r,n) 
+	Returns:
+		[np.ndarray of cp.ndarray, np.ndarray of cp.ndarray, np.ndarray of cp.ndarray]:
+			- Qi(m,r)  
+			- B (r,n) 
+			- Yi (m,r)
 	'''
 	qrfun = qr if local else tsqr
 	p = cp if type(Ai) is cp.ndarray else np
@@ -146,16 +171,23 @@ def qr_streaming(Ai, r, q, seed, local):
 
 def qr_streaming2(Ai, r, q, seed, local):
 	'''
-	Internal function
+	Internal function.
 	
-	Ai(m,n)  data matrix dispersed on each processor.
-	r        target number of modes
-
-	Qi(m,r)  
-	B (r,n) 
-
 	Here we only perform the tsqr on GPU while
 	matmul happens on CPU.
+
+	Args:
+		Ai (np.ndarray or cp.ndarray) :  Data matrix of shape (m, n) dispersed on each processor.
+		r (int) : Target number of modes.
+		q (int) : Number of power iterations.
+		seed (int) : Seed of the random engine. Use a negative value to avoid seeding.
+		local (bool) : ``True`` to use the serial version, ``False`` to use the parallel version.
+
+	Returns:
+		[np.ndarray of cp.ndarray, np.ndarray of cp.ndarray, np.ndarray of cp.ndarray]:
+			- Qi(m,r)  
+			- B (r,n) 
+			- Yi (m,r)
 	'''
 	qrfun = qr if local else tsqr
 	Ai = gpu_to_cpu(Ai) # Ensure Ai is on CPU
@@ -178,11 +210,21 @@ def qr_streaming2(Ai, r, q, seed, local):
 @cr('math.randomized_qr')
 def randomized_qr(Ai, r, q, seed=-1, local=False, hybrid=False):
 	'''
-	Ai(m,n)  data matrix dispersed on each processor.
-	r        target number of modes
+	Randomized qr algorithm.
 
-	Qi(m,r)  
-	B (r,n) 
+	Args:
+		Ai (np.ndarray) : Data matrix of shape (m,n) dispersed on each processor.
+		r (int) : Target number of modes.
+		q (int) : Number of power iterations.
+		seed (int) : Seed of the random engine. Use a negative value to avoid seeding.
+		local (bool) : ``True`` to use the serial version, ``False`` to use the parallel version.
+		hybrid (bool, optional) : ``True`` to perform tsqr on gpu and matmul on CPU, ``False``
+			(as default) to perform all the work on the GPU.
+
+	Returns:
+		[np.ndarray of cp.ndarray, np.ndarray of cp.ndarray]:
+			- Qi(m,r)  
+			- B(r,n)
 	'''
 	Qi,B,_ = qr_streaming2(Ai,r,q,seed,local) if hybrid else qr_streaming(Ai,r,q,seed,local)
 	return Qi, B
@@ -190,22 +232,44 @@ def randomized_qr(Ai, r, q, seed=-1, local=False, hybrid=False):
 @cr('math.init_qr_streaming')
 def init_qr_streaming(Ai, r, q, seed=-1, local=False, hybrid=False):
 	'''
-	Ai(m,n)  data matrix dispersed on each processor.
-	r        target number of modes
+	Randomized qr algorithm.
 
-	Qi(m,r)  
-	B (r,n) 
+	Args:
+		Ai (np.ndarray) : Data matrix of shape (m,n) dispersed on each processor.
+		r (int) : Target number of modes.
+		q (int) : Number of power iterations.
+		seed (int, optional) : Seed of the random engine.
+			Use a negative value (as default) to avoid seeding.
+		local (bool, optional) : ``True`` to use the serial version,
+			``False`` (as default) to use the parallel version.
+		hybrid (bool, optional) : ``True`` to perform tsqr on gpu and matmul on CPU, ``False``
+			(as default) to perform all the work on the GPU.
+
+	Returns:
+		[np.ndarray of cp.ndarray, np.ndarray of cp.ndarray]:
+			- Qi(m,r)  
+			- B(r,n)
+
 	'''
 	return qr_streaming2(Ai,r,q,seed,local) if hybrid else qr_streaming(Ai,r,q,seed,local)
 
 @cr('math.qr_iteration')
 def update_qr_streaming(Ai, Q1, B1, Yo, r, q):
 	'''
-	Ai(m,n)  data matrix dispersed on each processor.
-	r        target number of modes
+	Args:
+		Ai (np.ndarray) : Data matrix of shape (m,n) dispersed on each processor.
+		Q1 (np.ndarray) : Data matrix.
+		B1 (np.ndarray) : Data matrix.
+		Yo (np.ndarray) : Data matrix.
+		r (int) : Target number of modes.
+		q (int) : Number of power iterations.
 
-	Qi(m,r)  
-	B (r,n) 
+	Returns:
+		[np.ndarray of cp.ndarray, np.ndarray of cp.ndarray, np.ndarray of cp.ndarray]:
+			- Q2(m,r)  
+			- B2(r,n) 
+			- Yo (m,r)
+
 	'''
 	p = cp if type(Ai) is cp.ndarray else np
 	_, n  = Ai.shape

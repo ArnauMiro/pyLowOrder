@@ -21,18 +21,26 @@ class Dataset(object):
 	The Dataset class wraps the position of the nodes and the time instants
 	with the number of variables and relates them so that the operations 
 	in parallel are easier.
+
+	Attributes:
+		_xyz (np.ndarray) :    coordinates of the points.
+		_vardict (dict) : dictionary containing the variable name and their value.
+		_fieldict (dict) : dictionary containing the field name and their value.
+		_ptable (PartitionTable) : partition table used.
+		_order (np.ndarray) :  ordering of the points.
+		_point (bool) :  ``True`` if point data, ``False`` if cell data.
 	'''
 	def __init__(self, xyz=None, ptable=None, vars=None, order=None, point=True, **kwargs):
 		'''
 		Class constructor
 		
-		Inputs:
-			xyz:    coordinates of the points.
-			ptable: partition table used.
-			vars:   dictionary containing the variable name and values as as a python dictionary.
-			order:  ordering of the points (automatically created if none)
-			point:  True if point data, False if cell data.
-			kwargs:  dictionary containing the field name and values as a python dictionary.
+		Arguments:
+			xyz (np.ndarray, optional) : coordinates of the points.
+			ptable (PartitionTable, optional) : partition table used.
+			vars (dict, optional) : dictionary containing the variable name and their value. 
+			order (np.ndarray) :  ordering of the points (automatically created if none).
+			point (bool, optional) :  ``True`` (as default) if point data, ``False`` if cell data.
+			kwargs:  dictionary containing the field name and their value.
 		'''
 		self._xyz      = xyz
 		self._vardict  = vars
@@ -156,7 +164,7 @@ class Dataset(object):
 			var (str) : name of the variable
 			idim (int) : requested dimension
 
-		Returns
+		Returns:
 			np.ndarray: requested dimension of the variable
 		'''
 		ndim = self._fieldict[var]['ndim']
@@ -305,8 +313,7 @@ class Dataset(object):
 				default) no seeding is performed
 
 		Returns:
-			Dataset : with the data of the selected variables at the random
-					sensors
+			Dataset : with the data of the selected variables at the random sensors
 		'''
 		# Fix seed if user requested
 		if seed > 0: np.random.seed(seed)
@@ -421,14 +428,14 @@ class Dataset(object):
 		Args:
 			fname (str) : File name
 			**kwargs :
-				- 'mode' (str) ``'w'`` for overwrite (default) and ``'a'`` for
-					append
-				- 'mpio' (bool) ``True`` (default) for parallel and ``False``
-					for serial
-				- 'nopartition' (bool) ``True`` to not store the partition table
-				  and ``False`` (default) to store it
+				- 'mode' (str) : ``'w'`` for overwrite (default) and ``'a'`` for
+					append.
+				- 'mpio' (bool) : ``True`` (default) for parallel and ``False``
+					for serial.
+				- 'nopartition' (bool) : ``True`` to not store the partition table
+				  and ``False`` (default) to store it.
 				- The rest of arguments are forwarded to ``io.h5_save_dset`` or
-				  ``io.h5_append_dset``
+				  ``io.h5_append_dset``.
 		'''
 		# Guess format from extension
 		fmt = os.path.splitext(fname)[1][1:] # skip the .
@@ -456,9 +463,9 @@ class Dataset(object):
 		Args:
 			fname (str) : File name
 			**kwargs :
-				- 'mpio' (bool) ``True`` (default) for parallel and ``False``
-					for serial
-				- The rest of arguments are forwarded to ``io.h5_load_dset``
+				- 'mpio' (bool) : ``True`` (default) for parallel and ``False``
+					for serial.
+				- The rest of arguments are forwarded to ``io.h5_load_dset``.
 		'''
 		# Guess format from extension
 		fmt = os.path.splitext(fname)[1][1:] # skip the .
@@ -476,6 +483,7 @@ class Dataset(object):
 	@property
 	def xyz(self):
 		return self._xyz
+	@property
 	def x(self):
 		return self._xyz[:,0]
 	@property
