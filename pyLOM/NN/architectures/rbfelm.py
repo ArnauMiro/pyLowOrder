@@ -561,7 +561,6 @@ class RBFELM(nn.Module):
             model.hidden.set_gamma(checkpoint["gamma_tensor"].to(device))
         if checkpoint["beta"] is not None:
             model.beta = checkpoint["beta"].to(device)
-
         return model
 
     @classmethod
@@ -575,7 +574,7 @@ class RBFELM(nn.Module):
             verbose (bool, optional): If ``True``, prints detailed information about the loaded model (default: ``True``).
 
         Returns:
-            model (MLP): The loaded model with the trained weights.
+            model (RBFELM): The loaded model instance.
         """
         checkpoint = torch.load(path, map_location=device, weights_only=False)
         return cls._from_checkpoint(checkpoint, device, verbose)
@@ -1026,84 +1025,64 @@ class MultiRBFELM:
 
     def save(self, path: str) -> None:
         r"""
-        Persist the full ensemble to a directory.
-
-        Saved artefacts::
-
-            <path>/
-              meta.json
-              kmeans.pkl
-              scalers.pkl
-              model_0.pth … model_{N-1}.pth
+        Save the model to a ``.pth`` checkpoint file.
 
         Args:
-            path (str): Target directory (created if it does not exist).
+            path (str): File path or directory. A directory receives the automatic filename ``{model_name}.pth``.
         """
-        os.makedirs(path, exist_ok=True)
-
-        # meta.json — all hyperparameters needed to reconstruct the object
-        meta = {
-            "n_clusters":        self.n_clusters,
-            "n_centers":         self.n_centers,
-            "reg_lambda":        self.reg_lambda,
-            "center_sampling":   self.center_sampling,
-            "gamma_mode":        self.gamma_mode,
-            "gamma_k":           self.gamma_k,
-            "gamma_alpha":       self.gamma_alpha,
-            "kmeans_batch_size": self.kmeans_batch_size,
-            "kmeans_n_init":     self.kmeans_n_init,
-            "fit_batch_size":    self.fit_batch_size,
-            "seed":              self.seed,
-            "model_name":        self.model_name,
-        }
-        with open(os.path.join(path, "meta.json"), "w") as f:
-            json.dump(meta, f, indent=2)
-
-        # KMeans router
-        with open(os.path.join(path, "kmeans.pkl"), "wb") as f:
-            pickle.dump(self._kmeans, f)
-
-        # Per-cluster scalers
-        with open(os.path.join(path, "scalers.pkl"), "wb") as f:
-            pickle.dump(
-                {
-                    "input_scalers":  self._input_scalers,
-                    "output_scalers": self._output_scalers,
-                },
-                f,
-            )
-
-        # Local models
-        for i, model in enumerate(self._models):
-            if model is not None:
-                model.save(os.path.join(path, f"model_{i}.pth"))
-
+        if os.path.isdir(path):
+            path = os.path.join(path, f"{self.model_name}.pth")
+        torch.save({
+            "meta": {
+                "n_clusters":        self.n_clusters,
+                "n_centers":         self.n_centers,
+                "overlap_factor":    self.overlap_factor,
+                "reg_lambda":        self.reg_lambda,
+                "center_sampling":   self.center_sampling,
+                "gamma_mode":        self.gamma_mode,
+                "gamma_k":           self.gamma_k,
+                "gamma_alpha":       self.gamma_alpha,
+                "blend_eps":         self.blend_eps,
+                "kmeans_batch_size": self.kmeans_batch_size,
+                "kmeans_n_init":     self.kmeans_n_init,
+                "fit_batch_size":    self.fit_batch_size,
+                "seed":              self.seed,
+                "model_name":        self.model_name,
+            },
+            "kmeans":         self._kmeans,
+            "input_scalers":  self._input_scalers,
+            "output_scalers": self._output_scalers,
+            "cov_inv":        self._cov_inv,
+            "models":         [m._define_checkpoint() if m is not None else None for m in self._models],
+        }, path)
         self._log(f"[MultiRBFELM] Saved to {path}")
 
     @classmethod
     def load(cls, path: str, device: torch.device = DEVICE, verbose: bool = True) -> "MultiRBFELM":
         r"""
-        Restore a persisted ensemble from a directory.
-
+        Load the model from a checkpoint file. Does not require the model to be instantiated.
+        
         Args:
-            path (str): Directory previously created by :meth:`save`.
-            device (torch.device): Device to load models onto.
-            verbose (bool): Print progress (default: ``True``).
+            path (str): Path to the file to load the model from.
+            device (torch.device, optional): Device to use (default: ``torch.device("cpu")``).
+            verbose (bool, optional): If ``True``, prints detailed information about the loaded model (default: ``True``).
 
         Returns:
-            A fully restored :class:`MultiRBFELM` instance.
+            model (MultiRBFELM): The loaded model instance.
         """
-        with open(os.path.join(path, "meta.json")) as f:
-            meta = json.load(f)
+        data = torch.load(path, map_location=device)
+        meta = data["meta"]
 
         obj = cls(
             n_clusters        = meta["n_clusters"],
             n_centers         = meta["n_centers"],
+            overlap_factor    = meta.get("overlap_factor", 1.0),
             reg_lambda        = meta["reg_lambda"],
             center_sampling   = meta["center_sampling"],
             gamma_mode        = meta["gamma_mode"],
             gamma_k           = meta["gamma_k"],
             gamma_alpha       = meta["gamma_alpha"],
+            blend_eps         = meta.get("blend_eps", 1e-12),
             kmeans_batch_size = meta["kmeans_batch_size"],
             kmeans_n_init     = meta["kmeans_n_init"],
             fit_batch_size    = meta["fit_batch_size"],
@@ -1113,42 +1092,21 @@ class MultiRBFELM:
             verbose           = verbose,
         )
 
-        with open(os.path.join(path, "kmeans.pkl"), "rb") as f:
-            obj._kmeans = pickle.load(f)
+        obj._kmeans         = data["kmeans"]
+        obj._input_scalers  = data["input_scalers"]
+        obj._output_scalers = data["output_scalers"]
+        obj._cov_inv        = data.get("cov_inv", [None] * obj.n_clusters)
 
-        with open(os.path.join(path, "scalers.pkl"), "rb") as f:
-            scalers = pickle.load(f)
-        obj._input_scalers  = scalers["input_scalers"]
-        obj._output_scalers = scalers["output_scalers"]
-
-        for i in range(obj.n_clusters):
-            model_path = os.path.join(path, f"model_{i}.pth")
-            if os.path.exists(model_path):
-                obj._models[i] = RBFELM.load(model_path, device=device, verbose=False)
+        obj._models = []
+        for ckpt in data["models"]:
+            if ckpt is None:
+                obj._models.append(None)
+            else:
+                model = RBFELM._from_checkpoint(ckpt, device=device, verbose=False)
+                obj._models.append(model)
 
         if verbose:
             loaded = sum(m is not None for m in obj._models)
-            print(f"[MultiRBFELM] Loaded {loaded}/{obj.n_clusters} models from {path}")
+            pprint(0, f"[MultiRBFELM] Loaded {loaded}/{obj.n_clusters} models from {path}")
 
         return obj
-
-
-# ---------------------------------------------------------------------------
-# Internal helper — wraps raw tensors so _subset_dataset can index them
-# ---------------------------------------------------------------------------
-
-class _TensorDatasetWrapper:
-    """Minimal dataset wrapper around two tensors (X, y)."""
-
-    def __init__(self, X: torch.Tensor, y: torch.Tensor):
-        self._X = X
-        self._y = y
-
-    def __len__(self) -> int:
-        return self._X.shape[0]
-
-    def __getitem__(self, idx):
-        return self._X[idx], self._y[idx]
-
-    def __iter__(self):
-        return iter((self._X, self._y))
