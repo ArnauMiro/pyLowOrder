@@ -1052,7 +1052,6 @@ class MultiRBFELM:
             "kmeans":         self._kmeans,
             "input_scalers":  self._input_scalers,
             "output_scalers": self._output_scalers,
-            "cov_inv":        self._cov_inv,
             "models":         [m._define_checkpoint() if m is not None else None for m in self._models],
         }, path)
         self._log(f"[MultiRBFELM] Saved to {path}")
@@ -1070,7 +1069,7 @@ class MultiRBFELM:
         Returns:
             model (MultiRBFELM): The loaded model instance.
         """
-        data = torch.load(path, map_location=device)
+        data = torch.load(path, map_location=device, weights_only=False)
         meta = data["meta"]
 
         obj = cls(
@@ -1095,7 +1094,6 @@ class MultiRBFELM:
         obj._kmeans         = data["kmeans"]
         obj._input_scalers  = data["input_scalers"]
         obj._output_scalers = data["output_scalers"]
-        obj._cov_inv        = data.get("cov_inv", [None] * obj.n_clusters)
 
         obj._models = []
         for ckpt in data["models"]:
