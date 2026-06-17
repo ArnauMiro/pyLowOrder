@@ -525,10 +525,7 @@ class RBFELM(nn.Module):
             "beta":             self.beta,
         }
 
-    def save(
-        self, 
-        path: str
-    ) -> None:
+    def save(self, path: str) -> None:
         r"""
         Save the model to a ``.pth`` checkpoint file.
 
@@ -542,24 +539,7 @@ class RBFELM(nn.Module):
         pprint(0, f"\tModel saved at: {path}")
 
     @classmethod
-    def load(
-        cls,
-        path: str,
-        device: torch.device = DEVICE,
-        verbose: bool = True
-    ):
-        r"""
-        Load the model from a checkpoint file. Does not require the model to be instantiated.
-
-        Args:
-            path (str): Path to the file to load the model from.
-            device (torch.device, optional): Device to use (default: ``torch.device("cpu")``).
-            verbose (bool, optional): If ``True``, prints the model parameters and total size after loading (default: ``True``).
-
-        Returns:
-            model (RBF-ELM): The loaded model with the trained weights.
-        """
-        checkpoint  = torch.load(path, map_location=device, weights_only=False)
+    def _from_checkpoint(cls, checkpoint: dict, device: torch.device, verbose: bool):
         model = cls(
             input_size      = checkpoint["input_size"],
             output_size     = checkpoint["output_size"],
@@ -583,6 +563,22 @@ class RBFELM(nn.Module):
             model.beta = checkpoint["beta"].to(device)
 
         return model
+
+    @classmethod
+    def load(cls, path, device=DEVICE, verbose=True) -> "RBFELM":
+        r"""
+        Load the model from a checkpoint file. Does not require the model to be instantiated.
+
+        Args:
+            path (str): Path to the file to load the model from.
+            device (torch.device, optional): Device to use (default: ``torch.device("cpu")``).
+            verbose (bool, optional): If ``True``, prints detailed information about the loaded model (default: ``True``).
+
+        Returns:
+            model (MLP): The loaded model with the trained weights.
+        """
+        checkpoint = torch.load(path, map_location=device, weights_only=False)
+        return cls._from_checkpoint(checkpoint, device, verbose)
 
     @classmethod
     def create_optimized_model(
