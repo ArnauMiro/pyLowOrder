@@ -944,107 +944,89 @@ class MultiRBFELM:
 
         self._log("\n[MultiRBFELM] All clusters trained.")
 
-    # ------------------------------------------------------------------
-    # predict
-    # ------------------------------------------------------------------
-
+    @cr('MutiRBFELM.predict')
     def predict(
         self,
-        dataset,
+        dataset: torch.utils.data.Dataset,
         return_targets: bool = False,
-        batch_size: int = 50_000,
+        dataloader_kwargs: dict = {},
+        **kwargs,
     ) -> np.ndarray | Tuple[np.ndarray, np.ndarray]:
         r"""
-        Predict target values by routing each point to its local model.
+        Predict target values by routing each point to its local model(s).
+        Points that fall exclusively within one cluster's zone are handled by hard assignment. 
+        Points that lie within the overlap zone of multiple clusters receive a weighted average prediction.
 
         Args:
-            dataset: :class:`NNDataset` whose inputs are used for routing and
-                prediction.
-            return_targets (bool): Also return true targets (default: ``False``).
-            batch_size (int): Unused; kept for API parity with
-                :class:`RBFELM`.
+            X (torch.utils.data.Dataset): The dataset whose target values are to be predicted using the input data.
+            return_targets (bool, optional): If ``True``, the true target values will be returned along with the predictions (default: ``False``).
+            dataloader_kwargs (dict, optional): Additional keyword arguments to pass to the dataloader (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader. Overrides the following defaults: ``batch_size=16_384`` ,``shuffle=False``, ``num_workers=0``, ``pin_memory=PIN_MEMORY`` (default: ``False``).
 
         Returns:
-            ``np.ndarray`` of shape ``(N, output_size)``, or a
-            ``(predictions, targets)`` tuple if ``return_targets=True``.
+            ``np.ndarray`` of shape ``(N, output_size)``, or a ``(predictions, targets)`` tuple if ``return_targets=True``.
         """
         if not self._is_fitted():
-            raise RuntimeError("Model has not been fitted. Call fit() or load() first.")
+            raiseError(f"Model has not been fitted. Call fit() or load() first.")
 
         X_all, y_all = dataset[:]
         N = X_all.shape[0]
+        output_size = y_all.shape[1] if y_all.dim() > 1 else 1
 
-        output_size = (
-            y_all.shape[1] if y_all.dim() > 1 else 1
-        )
+        X_all_np = X_all.cpu().numpy()
+        dist_sq = self._cluster_distances(X_all_np)
+        active = self._active_clusters(dist_sq)
 
-        labels    = self._assign_clusters(X_all)
-        preds_out = np.empty((N, output_size), dtype=np.float32)
-        tgts_out  = np.empty((N, output_size), dtype=np.float32)
+        # Numerator and denominator accumulators for the weighted blend
+        weighted_sum = np.zeros((N, output_size), dtype=np.float64)
+        weight_total = np.zeros((N, 1), dtype=np.float64)
+
+        # Group points by their active-cluster sets to minimise repeated model calls
+        cluster_to_points: List[List[int]] = [[] for _ in range(self.n_clusters)]
+        for n, active_i in enumerate(active):
+            for i in active_i:
+                cluster_to_points[i].append(n)
 
         for i in range(self.n_clusters):
-            mask    = labels == i
-            indices = np.where(mask)[0]
-            if len(indices) == 0:
+            point_indices_i = np.array(cluster_to_points[i], dtype=np.int64)
+            if len(point_indices_i) == 0:
                 continue
 
-            model           = self._models[i]
+            model_i = self._models[i]
+            input_scaler_i = self._input_scalers[i]
             output_scaler_i = self._output_scalers[i]
 
-            if model is None:
-                raise RuntimeError(f"Model for cluster {i} is not fitted.")
-
-            # Build a minimal NNDataset using the cluster's scalers
-            X_sub = X_all[indices]
-            y_sub = y_all[indices]
+            if model_i is None:
+                raiseError(f"Model for cluster {i} is not fitted.")
 
             sub_dataset, _ = self._subset_dataset(
-                _TensorDatasetWrapper(X_all, y_all),
-                mask,
-                self._input_scalers[i],
-                self._output_scalers[i],
+                dataset,
+                point_indices_i,
+                input_scaler_i,
+                output_scaler_i,
             )
 
-            y_pred_scaled, y_tgt_scaled = model.predict(sub_dataset, return_targets=True)
+            if return_targets:
+                y_pred_scaled, y_true_scaled = model_i.predict(sub_dataset, return_targets=True, dataloader_kwargs=dataloader_kwargs, **kwargs)
+                y_pred = output_scaler_i.inverse_transform(y_pred_scaled)
+                y_true = output_scaler_i.inverse_transform(y_true_scaled)
 
-            # Inverse-transform back to original scale
-            y_pred = output_scaler_i.inverse_transform(y_pred_scaled)
-            y_tgt  = output_scaler_i.inverse_transform(y_tgt_scaled)
+            else:
+                y_pred_scaled = model_i.predict(sub_dataset, return_targets=False, dataloader_kwargs=dataloader_kwargs, **kwargs)
+                y_pred = output_scaler_i.inverse_transform(y_pred_scaled)
 
-            preds_out[indices] = y_pred
-            tgts_out[indices]  = y_tgt
+            # Weights: inverse squared distance to centroid i
+            d_sq_i = dist_sq[point_indices_i, i]
+            w_i = 1.0 / (d_sq_i + self.blend_eps)
 
-        return (preds_out, tgts_out) if return_targets else preds_out
+            weighted_sum[point_indices_i] += w_i[:, np.newaxis] * y_pred
+            weight_total[point_indices_i] += w_i[:, np.newaxis]
 
-    # ------------------------------------------------------------------
-    # evaluate  (convenience, mirrors common usage pattern)
-    # ------------------------------------------------------------------
+        preds_out = (weighted_sum / weight_total).astype(np.float32)
 
-    def evaluate(self, dataset, batch_size: int = 50_000) -> Dict[str, float]:
-        r"""
-        Compute MAE, MSE, and R² on a dataset.
+        if return_targets:
+            return preds_out, y_true
 
-        Args:
-            dataset: :class:`NNDataset`.
-            batch_size (int): Passed to :meth:`predict`.
-
-        Returns:
-            dict with keys ``"mae"``, ``"mse"``, ``"r2"``.
-        """
-        y_pred, y_true = self.predict(dataset, return_targets=True, batch_size=batch_size)
-        y_pred = torch.tensor(y_pred)
-        y_true = torch.tensor(y_true)
-
-        mae = torch.mean(torch.abs(y_pred - y_true)).item()
-        mse = torch.mean((y_pred - y_true) ** 2).item()
-        var = torch.var(y_true, correction=0).item()
-        r2  = 1.0 - mse / var if var > 0 else float("nan")
-
-        return {"mae": mae, "mse": mse, "r2": r2}
-
-    # ------------------------------------------------------------------
-    # save / load
-    # ------------------------------------------------------------------
+        return preds_out
 
     def save(self, path: str) -> None:
         r"""
