@@ -716,7 +716,6 @@ class MultiRBFELM:
         blend_eps (float): Small constant added to squared distances when computing blending weights to avoid division by zero (default: ``1e-12``).
         kmeans_batch_size (int): ``batch_size`` for :class:`~sklearn.cluster.MiniBatchKMeans` (default: ``100_000``).
         kmeans_n_init (int): ``n_init`` for :class:`~sklearn.cluster.MiniBatchKMeans` (default: ``5``).
-        fit_batch_size (int): DataLoader block size used during each local :class:`RBFELM` fit (default: ``100_000``).
         device (torch.device): Computation device (default: global ``DEVICE``).
         seed (int, optional): Master seed for reproducibility.
         model_name (str): Base name used when printing and saving (default: ``"multirbfelm"``).
@@ -737,7 +736,6 @@ class MultiRBFELM:
         blend_eps:          float = 1e-12,
         kmeans_batch_size:  int = 100_000,
         kmeans_n_init:      int = 5,
-        fit_batch_size:     int = 100_000,
         device:             torch.device = DEVICE,
         seed:               Optional[int] = None,
         model_name:         str = "multirbfelm",
@@ -755,7 +753,6 @@ class MultiRBFELM:
         self.blend_eps         = blend_eps
         self.kmeans_batch_size = kmeans_batch_size
         self.kmeans_n_init     = kmeans_n_init
-        self.fit_batch_size    = fit_batch_size
         self.device            = device
         self.seed              = seed
         self.model_name        = model_name
@@ -819,27 +816,25 @@ class MultiRBFELM:
     def fit(
         self,
         train_dataset,
-        valid_dataset,
-        save_dir: Optional[str] = None,
-        reload_existing: bool = True,
+        batch_size:         int = 16_384,
+        dataloader_kwargs:  dict = {},
+        save_logs_path:     Optional[str] = None,
+        verbose:            bool = True,
     ) -> None:
         r"""
         Cluster the training set and fit one :class:`RBFELM` per cluster, including overlap points from neighbouring clusters.
 
         Args:
             train_dataset: Training :class:`pyLOM.NN.Dataset`.
-            valid_dataset: Validation :class:`pyLOM.NN.Dataset`.
-            save_dir (str, optional): If given, each local model is saved to ``<save_dir>/model_<i>.pth`` as it is trained, and reloaded from disk on subsequent calls when ``reload_existing=True``.
-            reload_existing (bool): Skip retraining a cluster whose ``.pth`` file already exists in ``save_dir`` (default: ``True``).
+            batch_size (int, optional): Block size for DataLoader during fitting (default: ``10_000``).
+            dataloader_kwargs (dict, optional): Additional keyword arguments to pass to the dataloader (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader. Overrides the following defaults: ``batch_size`` (taken from the ``batch_size`` argument),``shuffle=True``, ``num_workers=0``, ``pin_memory=PIN_MEMORY`` (default: ``False``).
+            save_logs_path (str, optional): Path to save the training results. If ``None``, no results will be saved (default: ``None``).
+            verbose (bool, optional): If ``True``, prints detailed progress and sparsity metrics during fitting (default: ``True``).
         """
         X_train, y_train = train_dataset[:]
-        X_valid, y_valid = valid_dataset[:]
-
         input_size  = X_train.shape[1]
         output_size = y_train.shape[1] if y_train.dim() > 1 else 1
-
         X_train_np = X_train.cpu().numpy()
-        X_valid_np = X_valid.cpu().numpy()
 
         # KMeans clustering on training set
         self._log("\n[MultiRBFELM] Fitting KMeans on training set...")
@@ -847,11 +842,7 @@ class MultiRBFELM:
         self._kmeans.fit(X_train_np)
 
         train_dist_sq = self._cluster_distances(X_train_np)    # (N_train, K)
-        valid_dist_sq = self._cluster_distances(X_valid_np)    # (N_valid, K)
-
         train_primary = train_dist_sq.argmin(axis=1)           # (N_train,)
-        valid_primary = valid_dist_sq.argmin(axis=1)           # (N_valid,)
-
         train_active = self._active_clusters(train_dist_sq)    # list of arrays
 
         primary_counts = np.bincount(train_primary, minlength=self.n_clusters)
@@ -870,12 +861,6 @@ class MultiRBFELM:
         for i in range(self.n_clusters):
             self._log(f"\n[MultiRBFELM] ── Cluster {i + 1}/{self.n_clusters} ──")
 
-            model_path = os.path.join(save_dir, f"model_{i}.pth") if save_dir else None
-            if reload_existing and model_path and os.path.exists(model_path):
-                self._log(f"  Loading existing model from {model_path}")
-                self._models[i] = RBFELM.load(model_path, device=self.device, verbose=False)
-                continue
-
             # Find primary and overlap indices for this cluster
             all_indices_i = np.array(cluster_train_indices[i], dtype=np.int64)
             primary_mask_i = train_primary[all_indices_i] == i
@@ -885,12 +870,9 @@ class MultiRBFELM:
             n_primary_i = len(primary_indices)
             n_overlap_i = n_total_i - n_primary_i
 
-            valid_indices_i = np.where(valid_primary == i)[0]
-            n_valid_i = len(valid_indices_i)
 
             self._log(
-                f"  Primary: {n_primary_i}  |  Overlap: {n_overlap_i}  "
-                f"(total train: {n_total_i})  |  Valid: {n_valid_i}"
+                f"  Primary: {n_primary_i}  |  Overlap: {n_overlap_i}"
             )
 
             if n_primary_i == 0:
@@ -902,7 +884,6 @@ class MultiRBFELM:
             output_scaler_i = RobustScaler()
 
             train_sub, _ = self._subset_dataset(train_dataset, all_indices_i, input_scaler_i, output_scaler_i)
-            valid_sub, _ = self._subset_dataset(valid_dataset, valid_indices_i, input_scaler_i, output_scaler_i)
 
             self._input_scalers[i]  = input_scaler_i
             self._output_scalers[i] = output_scaler_i
@@ -927,17 +908,28 @@ class MultiRBFELM:
             )
 
             model.fit(
-                train_dataset  = train_sub,
-                batch_size     = self.fit_batch_size,
-                save_logs_path = None,
+                train_dataset     = train_sub,
+                batch_size        = batch_size,
+                dataloader_kwargs = dataloader_kwargs,
+                save_logs_path    = None,
+                verbose           = verbose,
             )
-
-            if model_path:
-                model.save(model_path)
 
             self._models[i] = model
 
         self._log("\n[MultiRBFELM] All clusters trained.")
+
+        results = {"check": [True]}
+
+        if save_logs_path is not None:
+            pprint(0, f"\nPrinting losses on path: {save_logs_path}")
+            if save_logs_path.endswith(".npy"):
+                fn = save_logs_path
+            else:
+                fn = os.path.join(save_logs_path,f"training_results_{self.mname}.npy")
+            np.save(fn, results)
+
+        return results
 
     @cr('MutiRBFELM.predict')
     def predict(
@@ -1045,7 +1037,6 @@ class MultiRBFELM:
                 "blend_eps":         self.blend_eps,
                 "kmeans_batch_size": self.kmeans_batch_size,
                 "kmeans_n_init":     self.kmeans_n_init,
-                "fit_batch_size":    self.fit_batch_size,
                 "seed":              self.seed,
                 "model_name":        self.model_name,
             },
@@ -1084,7 +1075,6 @@ class MultiRBFELM:
             blend_eps         = meta.get("blend_eps", 1e-12),
             kmeans_batch_size = meta["kmeans_batch_size"],
             kmeans_n_init     = meta["kmeans_n_init"],
-            fit_batch_size    = meta["fit_batch_size"],
             device            = device,
             seed              = meta["seed"],
             model_name        = meta["model_name"],
