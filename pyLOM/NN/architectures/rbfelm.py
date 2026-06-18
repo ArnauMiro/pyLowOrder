@@ -1160,3 +1160,92 @@ class MultiRBFELM:
             pprint(0, f"[MultiRBFELM] Loaded {loaded}/{obj.n_clusters} models from {path}")
 
         return obj
+
+    @classmethod
+    def create_optimized_model(
+        cls,
+        train_dataset:  torch.utils.data.Dataset,
+        eval_dataset:   torch.utils.data.Dataset,
+        optuna_optimizer,
+        local_optimization: bool = False,
+        **kwargs,
+    ) -> Tuple["MultiRBFELM", Dict]:
+        if not _OPTUNA_AVAILABLE:
+            raiseError("Optuna is required for create_optimized_model. Install it with: pip install optuna")
+
+        optimization_params = optuna_optimizer.optimization_params
+
+        _GLOBAL_PARAMS = {"n_clusters", "overlap_factor"}
+
+        def suggest_value(name, space, trial):
+            if isinstance(space, dict):
+                suggested_dict = {}
+                for key, subspace in space.items():
+                    full_name = f"{name}.{key}"
+                    suggested_dict[key] = suggest_value(full_name, subspace, trial)
+                return suggested_dict
+            
+            if isinstance(space, (tuple, list)):
+                low, high = space
+
+                if isinstance(low, int) and isinstance(high, int):
+                    def is_power_of_2(n):
+                        return n > 0 and (n & (n - 1)) == 0
+                    
+                    if is_power_of_2(low) and is_power_of_2(high):
+                        power_low = int(np.log2(low))
+                        power_high = int(np.log2(high))
+                        power_diff = power_high - power_low
+                        
+                        if power_diff > 1:
+                            choices = [2**p for p in range(power_low, power_high + 1)]
+                            return trial.suggest_categorical(name, choices)
+                    
+                    use_log = (high / max(1, low)) >= 1000
+                    return trial.suggest_int(name, low, high, log=use_log)
+
+                if isinstance(low, float) and isinstance(high, float):
+                    use_log = (high / max(1e-12, low)) >= 1000
+                    return trial.suggest_float(name, low, high, log=use_log)
+
+            return space
+
+        # Global optimization (single Optuna study for all parameters)
+        if not local_optimization:
+
+            def optimization_function(trial) -> float:
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+
+                model = None
+
+                try:
+                    training_params = {}
+                    for key, space in optimization_params.items():
+                        training_params[key] = suggest_value(key, space, trial)
+                    training_params["save_logs_path"] = None
+
+                    model = cls(verbose = False, **training_params)
+                    results = model.fit(train_dataset, verbose=False, **training_params)
+                    y_pred, y_true = model.predict(eval_dataset, return_targets=True)
+                    return float(((y_pred - y_true) ** 2).mean())
+
+                except RuntimeError as exc:
+                    if "out of memory" in str(exc).lower():
+                        pprint(0, f"Trial {trial.number} failed due to out of memory error. Pruning the trial.")
+                        if torch.cuda.is_available():
+                            torch.cuda.empty_cache()
+                        raise TrialPruned()
+                    raise
+                finally:
+                    if model is not None:
+                        del model
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+
+            best_params = optuna_optimizer.optimize(objective_function=optimization_function)
+
+            # Update params with best ones
+            OptunaOptimizer.apply_to(optimization_params, optimized_params=best_params)
+
+            return cls(**optimization_params), optimization_params
