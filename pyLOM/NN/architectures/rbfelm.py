@@ -588,8 +588,8 @@ class RBFELM(nn.Module):
         **kwargs,
     ) -> Tuple["RBFELM", Dict]:
         r"""
-        Create an optimized model using Optuna.
-        Each trial instantiates a fresh ``RBFELM``, calls :meth:`fit`, and scores it on ``eval_dataset`` using MSE.  After all trials the best hyperparameters are used to build the returned model.
+        Create an optimized :class:`RBFELM` using Optuna.
+        Each trial instantiates a fresh :class:`RBFELM`, calls :meth:`fit`, and scores it on ``eval_dataset`` using MSE.  After all trials the best hyperparameters are used to build the returned model.
 
         Args:
             train_dataset (torch.utils.data.Dataset): The training dataset.
@@ -679,7 +679,7 @@ class RBFELM(nn.Module):
 
             except RuntimeError as exc:
                 if "out of memory" in str(exc).lower():
-                    print(f"Trial {trial.number} failed due to out of memory error. Pruning the trial.")
+                    pprint(0, f"Trial {trial.number} failed due to out of memory error. Pruning the trial.")
                     if torch.cuda.is_available():
                         torch.cuda.empty_cache()
                     raise TrialPruned()
@@ -813,6 +813,85 @@ class MultiRBFELM:
             outputs_scaler = output_scaler,
         ), idx_tensor
 
+    @staticmethod
+    def _build_cluster_subsets(
+        train_dataset,
+        kmeans:         MiniBatchKMeans,
+        n_clusters:     int,
+        overlap_factor: float,
+    ) -> Tuple[
+        List[np.ndarray],           # cluster_train_indices  — per-cluster list of row indices (primary + overlap)
+        List[np.ndarray],           # primary_indices        — per-cluster list of primary-only row indices
+        List[Optional[object]],     # input_scalers          — per-cluster fitted RobustScaler (inputs)
+        List[Optional[object]],     # output_scalers         — per-cluster fitted RobustScaler (outputs)
+        List[Optional[object]],     # train_subs             — per-cluster NNDataset (scaled, ready for RBFELM.fit)
+    ]:
+        X_train, y_train = train_dataset[:]
+        X_train_np = X_train.cpu().numpy()
+
+        # Squared Euclidean distances to all centroids
+        centroids = kmeans.cluster_centers_
+        diff = X_train_np[:, np.newaxis, :] - centroids[np.newaxis, :, :]
+        dist_sq = (diff ** 2).sum(axis=-1)
+
+        # Primary cluster per point (nearest centroid)
+        train_primary = dist_sq.argmin(axis=1)                          # (N_train,)
+
+        # Active clusters per point (primary + overlap neighbours)
+        primary_dist_sq = dist_sq.min(axis=1, keepdims=True)            # (N_train, 1)
+        threshold_sq = (overlap_factor ** 2) * primary_dist_sq          # (N_train, 1)
+        active_mask = dist_sq <= threshold_sq                           # (N_train, K)
+        train_active = [np.where(row)[0] for row in active_mask]
+
+        # Build per-cluster index lists (primary + overlap)
+        cluster_train_indices = [[] for _ in range(n_clusters)]
+        for n, active in enumerate(train_active):
+            for i in active:
+                cluster_train_indices[i].append(n)
+
+        # Convert to arrays and build outputs
+        all_indices_list  = []
+        primary_list      = []
+        input_scalers     = []
+        output_scalers    = []
+        train_subs        = []
+
+        for i in range(n_clusters):
+            all_indices_i  = np.array(cluster_train_indices[i], dtype=np.int64)
+            primary_mask_i = train_primary[all_indices_i] == i
+            primary_i      = all_indices_i[primary_mask_i]
+
+            all_indices_list.append(all_indices_i)
+            primary_list.append(primary_i)
+
+            if len(primary_i) == 0:
+                input_scalers.append(None)
+                output_scalers.append(None)
+                train_subs.append(None)
+                continue
+
+            # Fit scalers on all points assigned to this cluster (primary + overlap)
+            in_sc  = RobustScaler()
+            out_sc = RobustScaler()
+
+            idx_tensor = torch.tensor(all_indices_i, dtype=torch.long)
+            X_sub = X_train[idx_tensor]
+            y_sub = y_train[idx_tensor]
+
+            train_sub_i = NNDataset(
+                variables_out  = (y_sub,),
+                variables_in   = X_sub,
+                parameters     = None,
+                inputs_scaler  = in_sc,
+                outputs_scaler = out_sc,
+            )
+
+            input_scalers.append(in_sc)
+            output_scalers.append(out_sc)
+            train_subs.append(train_sub_i)
+
+        return all_indices_list, primary_list, input_scalers, output_scalers, train_subs
+
     @cr('MultiRBFELM.fit')
     def fit(
         self,
@@ -836,40 +915,33 @@ class MultiRBFELM:
         X_train, y_train = train_dataset[:]
         input_size  = X_train.shape[1]
         output_size = y_train.shape[1] if y_train.dim() > 1 else 1
-        X_train_np = X_train.cpu().numpy()
 
         # KMeans clustering on training set
         self._log("\n[MultiRBFELM] Fitting KMeans on training set...")
         self._kmeans = self._build_kmeans()
-        self._kmeans.fit(X_train_np)
+        self._kmeans.fit(X_train.cpu().numpy())
 
-        train_dist_sq = self._cluster_distances(X_train_np)    # (N_train, K)
-        train_primary = train_dist_sq.argmin(axis=1)           # (N_train,)
-        train_active = self._active_clusters(train_dist_sq)    # list of arrays
+        # Build per-cluster subsets (primary + overlap) with fitted scalers
+        all_indices_list, primary_list, self._input_scalers, self._output_scalers, train_subs = \
+            self._build_cluster_subsets(
+                train_dataset,
+                self._kmeans,
+                self.n_clusters,
+                self.overlap_factor,
+            )
+ 
+        primary_counts = [len(p) for p in primary_list]
+        overlap_counts = [len(a) - len(p) for a, p in zip(all_indices_list, primary_list)]
+        self._log(f"[MultiRBFELM] Primary cluster sizes (train): {primary_counts}")
+        self._log(f"[MultiRBFELM] Overlap sizes (train):         {overlap_counts}")
 
-        primary_counts = np.bincount(train_primary, minlength=self.n_clusters)
-        self._log(f"[MultiRBFELM] Primary cluster sizes (train): {primary_counts.tolist()}")
-
-        # Build per-cluster lists of training indices (with overlap)
-        cluster_train_indices = [[] for _ in range(self.n_clusters)]
-        for n, active in enumerate(train_active):
-            for i in active:
-                cluster_train_indices[i].append(n)
-
-        overlap_counts = [len(idxs) for idxs in cluster_train_indices]
-        self._log(f"[MultiRBFELM] Effective cluster sizes after overlap (train): {overlap_counts}")
 
         # Train one RBFELM model per cluster
         for i in range(self.n_clusters):
             self._log(f"\n[MultiRBFELM] ── Cluster {i + 1}/{self.n_clusters} ──")
 
-            # Find primary and overlap indices for this cluster
-            all_indices_i = np.array(cluster_train_indices[i], dtype=np.int64)
-            primary_mask_i = train_primary[all_indices_i] == i
-            primary_indices = all_indices_i[primary_mask_i]
-
-            n_total_i   = len(all_indices_i)
-            n_primary_i = len(primary_indices)
+            n_primary_i = len(primary_list[i])
+            n_total_i = len(all_indices_list[i])
             n_overlap_i = n_total_i - n_primary_i
 
             self._log(f"Primary: {n_primary_i}  |  Overlap: {n_overlap_i}  |  Total: {n_total_i}")
@@ -878,16 +950,6 @@ class MultiRBFELM:
                 self._log("Empty primary cluster — skipping.")
                 continue
 
-            # Fit scalers on primary members
-            input_scaler_i  = RobustScaler()
-            output_scaler_i = RobustScaler()
-
-            train_sub, _ = self._subset_dataset(train_dataset, all_indices_i, input_scaler_i, output_scaler_i)
-
-            self._input_scalers[i]  = input_scaler_i
-            self._output_scalers[i] = output_scaler_i
-
-            # Instantiate and fit local RBF-ELM
             n_centers_i = min(self.n_centers, n_total_i)
 
             model = RBFELM(
@@ -907,7 +969,7 @@ class MultiRBFELM:
             )
 
             model.fit(
-                train_dataset     = train_sub,
+                train_dataset     = train_subs[i],
                 batch_size        = batch_size,
                 dataloader_kwargs = dataloader_kwargs,
                 save_logs_path    = None,
