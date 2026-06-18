@@ -44,6 +44,7 @@ class BaseParameterizer(ABC):
     def get_params_from_shape(self, shapea: asb.Airfoil) -> np.ndarray:
         """
         Get the parameters from the given shape.
+
         Args:
             shape (asb.Airfoil): Shape to get the parameters from.
 

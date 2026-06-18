@@ -25,8 +25,8 @@ def h5_save_partition(file,ptable):
 	Save a partition table inside an HDF5 file.
 
 	Args:
-		file (string): file name
-		ptable (PartitionTable): partition table to be saved
+		file (h5py.File).
+		ptable (PartitionTable).
 	'''
 	# Create a group for the mesh
 	group = file.create_group('PARTITIONS')
@@ -40,10 +40,10 @@ def h5_load_partition(file):
 	Load a partition table inside an HDF5 file.
 
 	Args:
-		file (string): file name to load the partition from
+		file (h5py.File).
 
 	Returns:
-		PartitionTable
+		PartitionTable:
 	'''
 	# Load file
 	if not 'PARTITIONS' in file.keys(): raiseError('No partition table stored in dataset!')
@@ -56,11 +56,11 @@ def h5_load_partition(file):
 
 def h5_save_meshes(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	r'''
-	Save the mesh inside the HDF5 file
+	Save the mesh inside the HDF5 file.
 
 	Args:
-		file (string): file name to load the partition from
-		mtype
+		file (h5py.File).
+		mtype (int) : mesh type
 		xyz (np.ndarray): coordinates
 		conec (np.ndarray): connectivity
 		eltype (np.ndarray): type of element
@@ -108,8 +108,8 @@ def h5_save_meshes_nopartition(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	Save the mesh inside the HDF5 file removing the repeated points so that we can change the partition while running the POD.
 
 	Args:
-		file (string): file name to load the partition from
-		mtype
+		file (h5py.File).
+		mtype (int) : mesh_type
 		xyz (np.ndarray): coordinates
 		conec (np.ndarray): connectivity
 		eltype (np.ndarray): type of element
@@ -154,10 +154,11 @@ def h5_load_meshes_size(file):
 	Load only the number of cells and points for the partition
 
 	Args:
-		file (string): file where the mesh is stored
+		file (h5py.File).
 	
 	Returns
-		int, int: number of points and number of cells
+		[int, int]:
+			number of points and number of cells
 	'''
 	# If the mesh is present read the size
 	npoints = int(file['npoints'][0])
@@ -169,12 +170,13 @@ def h5_load_meshes(file,ptable,repart):
 	Load the mesh inside the HDF5 file
 
 	Args:
-		file (string): file where the mesh is stored
+		file (h5py.File).
 		ptable (PartitionTable): partition table which the mesh will be loaded
-		repart (Bool): whether the mesh has to be repartitioned or not
+		repart (bool): whether the mesh has to be repartitioned or not
 
 	Returns
-		_, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray: mesh type, coordinates, connectivity, element type, cell order and point order
+		[int, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+			mesh type, coordinates, connectivity, element type, cell order and point order
 	'''
 	# Check how the mesh was stored
 	nopartition = file.attrs.get('NOPARTITION',True)
@@ -212,7 +214,19 @@ def h5_load_meshes(file,ptable,repart):
 
 def h5_save_points(file,xyz,order,ptable,point):
 	'''
-	Save the points inside the HDF5 file
+	Save the points inside the HDF5 file. Partitioned mesh version.
+
+	Args:
+		file (h5py.File).
+		xyz (np.ndarray): coordinates
+		order (np.ndarray).
+		ptable (PartitionTable): partition table
+		points (bool) : ``True`` for treating the variable as data at the
+			nodes, ``False`` as data at the elements.
+
+	Returns:
+		[np.ndarray, np.ndarray, int]:
+			Nodes array, local nodes array, number of points in the mesh.	
 	'''
 	# Save attributes
 	file.attrs['NOPARTITION'] = False # Either nopartition=False or serial
@@ -240,7 +254,19 @@ def h5_save_points(file,xyz,order,ptable,point):
 
 def h5_save_points_nopartition(file,xyz,order,ptable,point):
 	'''
-	Save the points inside the HDF5 file
+	Save the points inside the HDF5 file. No partitioned mesh version.
+
+	Args:
+		file (h5py.File).
+		xyz (np.ndarray): coordinates
+		order (np.ndarray).
+		ptable (PartitionTable): partition table
+		points (bool) : ``True`` for treating the variable as data at the
+			nodes, ``False`` as data at the elements.
+
+	Returns:
+		[np.ndarray, np.ndarray, int]:
+			Nodes array, local nodes array, number of points in the mesh.	
 	'''
 	# Save attributes
 	file.attrs['NOPARTITION'] = True
@@ -266,11 +292,19 @@ def h5_save_points_nopartition(file,xyz,order,ptable,point):
 
 def h5_load_dset_size(file):
 	'''
-	Load only the number of points for the dataset
+	Load only the number of points for the dataset.
+
+	Args:
+		file (h5py.File).
+
+	Returns:
+		[int, bool]:
+			npoints, pointData
+			
 	'''
 	# Crash if mesh is not present
 	if not 'xyz' in file.keys():
-		raiseError('Repartition is not possible without a the points!')
+		raiseError('Repartition is not possible without the points!')
 	# If the mesh is present read the size
 	npoints = int(file['npoints'][0])
 	point   = int(file['pointData'][0])
@@ -278,7 +312,17 @@ def h5_load_dset_size(file):
 
 def h5_load_points(file,ptable,point):
 	'''
-	Load the mesh inside the HDF5 file
+	Load the mesh inside the HDF5 file.
+
+	Args:
+		file (h5py.File).
+		ptable (PartitionTable).
+		points (bool) : ``True`` for treating the variable as data at the
+			nodes, ``False`` as data at the elements.
+
+	Returns:
+		[np.ndarray, np.ndarray]:
+			Coordinates array of the current partition, and order array of the current partition.
 	'''
 	nopartition = file.attrs.get('NOPARTITION',True)
 	parts       = file.attrs.get('PARTS',1)
@@ -296,7 +340,18 @@ def h5_load_points(file,ptable,point):
 
 def h5_create_variable_datasets(file,varDict,ptable,ipart=-1):
 	'''
-	Create the variable datasets inside an HDF5 file
+	Create the variable datasets inside an HDF5 file.
+
+	Args:
+		file (h5py.File).
+		varDict (dict) : Dictionary of variables.
+		ptable (PartitionTable).
+		ipart (int, optional) : Parition index. Use a negative value (as default) for the parallel
+			version.
+
+	Returns:
+		dict:
+			Dataset dictionary.
 	'''
 	# Create group for variables
 	group = file.create_group('VARIABLES_%d'%ipart if ipart >= 0 else 'VARIABLES')
@@ -312,7 +367,11 @@ def h5_create_variable_datasets(file,varDict,ptable,ipart=-1):
 
 def h5_fill_variable_datasets(dsetDict,varDict):
 	'''
-	Fill in the variable datasets inside an HDF5 file
+	Fill in the variable datasets inside an HDF5 file.
+
+	Args:
+		dsetDict (dict) : Dataset dictionary.
+		varDict (dict) : Dictionary of variables to be added to ``dsetDict``.
 	'''
 	for var in dsetDict.keys():
 		# Fill dataset
@@ -321,7 +380,14 @@ def h5_fill_variable_datasets(dsetDict,varDict):
 
 def h5_load_variables_single(file):
 	'''
-	Load the variables inside the HDF5 file
+	Load the variables inside the HDF5 file.
+
+	Args:
+		file (h5py.File).
+
+	Returns:
+		dict:
+			Dictionary of variables.
 	'''
 	varDict = {}
 	for v in file['VARIABLES'].keys():
@@ -335,7 +401,15 @@ def h5_load_variables_single(file):
 
 def h5_load_variables_multi(file,npart):
 	'''
-	Load the variables inside the HDF5 file
+	Load the variables inside the HDF5 file.
+
+	Args:
+		file (h5py.File).
+		npart (int) : Number of parts in which the variables are stored.
+
+	Returns:
+		dict:
+			Dictionary of variables.
 	'''
 	# Scan for variables in first partition and build variable dictionary
 	varDict = {}
@@ -358,7 +432,18 @@ def h5_load_variables_multi(file,npart):
 
 def h5_create_field_datasets(file,fieldDict,ptable,ipart=-1):
 	'''
-	Create the variable datasets inside an HDF5 file
+	Create the variable datasets inside an HDF5 file.
+
+	Args:
+		file (h5py.File).
+		fieldDict (dict) : Dictionary of variables.
+		ptable (PartitionTable).
+		ipart (int, optional) : Parition index. Use a negative value (as default) for the parallel
+			version.
+
+	Returns:
+		dict:
+			Dataset dictionary.
 	'''
 	# Create group for variables
 	group = file.create_group('FIELDS_%d'%ipart if ipart >= 0 else 'FIELDS')
@@ -380,7 +465,17 @@ def h5_create_field_datasets(file,fieldDict,ptable,ipart=-1):
 
 def h5_fill_field_datasets(dsetDict,fieldDict,ptable,point,inods,idx):
 	'''
-	Fill in the variable datasets inside an HDF5 file
+	Fill in the field datasets inside an HDF5 file.
+
+	Args:
+		dsetDict (dict) : Dataset dictionary.
+		fieldDict (dict) : Dictionary of fields to be added to ``dsetDict``.
+		ptable (PartitionTable).
+		point (bool) : ``True`` for treating the variable as data at the
+			nodes, ``False`` as data at the elements.
+		inods (np.ndarray or None) : Array of nodes. If ``None`` will be selected from the partition
+			bounds.
+		idx (np.ndarray) : Required only when ``inods`` is not ``None``.
 	'''
 	# Skip master if needed
 	if ptable.has_master and MPI_RANK == 0: return
@@ -399,7 +494,19 @@ def h5_fill_field_datasets(dsetDict,fieldDict,ptable,point,inods,idx):
 
 def h5_load_fields_single(file,npoints,ptable,varDict,point):
 	'''
-	Load the fields inside the HDF5 file
+	Load the fields inside the HDF5 file.
+
+	Args:
+		file (h5py.File).
+		npoins (int) : Number of points of the field.
+		ptable (PartitionTable).
+		varDict (dict) : Apparently unused.
+		point (bool) : ``True`` for treating the variable as data at the
+			nodes, ``False`` as data at the elements.
+	
+	Returns:
+		dict:
+			Fields dictionary.
 	'''
 	# Read variables
 	fieldDict = {}
@@ -426,7 +533,20 @@ def h5_load_fields_single(file,npoints,ptable,varDict,point):
 
 def h5_load_fields_multi(file,npoints,ptable,varDict,point,npart):
 	'''
-	Load the fields inside the HDF5 file
+	Load the fields inside the HDF5 file.
+
+	Args:
+		file (h5py.File).
+		npoins (int) : Number of points of the field.
+		ptable (PartitionTable).
+		varDict (dict) : Dictionary of variables.
+		point (bool) : ``True`` for treating the variable as data at the
+			nodes, ``False`` as data at the elements.
+		npart (int) : Number of partitions.
+	
+	Returns:
+		dict:
+			Fields dictionary.
 	'''
 	# Scan for variables in first partition and build variable dictionary
 	fieldDict = {}
@@ -469,7 +589,22 @@ def h5_load_fields_multi(file,npoints,ptable,varDict,point,npart):
 @cr('h5IO.save_dset')
 def h5_save_dset(fname,xyz,varDict,fieldDict,ordering,point,ptable,mode='w',mpio=True,nopartition=False):
 	'''
-	Save a Dataset in HDF5
+	Save a Dataset in HDF5.
+
+	Args:
+		fname (str) : File name.
+		xyz (np.ndarray): Coordinates array.
+		varDict (dict) : Dictionary of variables.
+		fieldDict (dict) : Dictionary of variables.
+		ordering (np.ndarray).
+		point (bool) : ``True`` for treating the variable as data at the
+			nodes, ``False`` as data at the elements.
+		ptable (PartitionTable).
+		mode (str, optional) : ``'w'`` (default) for overwrite and ``'a'`` for append.
+		mpio (bool, optional) : ``True`` (default) for save in parallel and ``False`` for the serial
+			version.
+		nopartition (bool, optional) : ``False`` (default) to save the partition table and
+			``True`` to not save it.
 	'''
 	if mpio and not MPI_SIZE == 1:
 		h5_save_dset_mpio(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable,nopartition)
@@ -478,7 +613,18 @@ def h5_save_dset(fname,xyz,varDict,fieldDict,ordering,point,ptable,mode='w',mpio
 
 def h5_save_dset_serial(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable):
 	'''
-	Save a Dataset in HDF5 in serial mode
+	Save a Dataset in HDF5 in serial.
+
+	Args:
+		fname (str) : File name.
+		mode (str, optional) : ``'w'`` (default) for overwrite and ``'a'`` for append.
+		xyz (np.ndarray): Coordinates array.
+		varDict (dict) : Dictionary of variables.
+		fieldDict (dict) : Dictionary of variables.
+		ordering (np.ndarray).
+		point (bool) : ``True`` for treating the variable as data at the
+			nodes, ``False`` as data at the elements.
+		ptable (PartitionTable).
 	'''
 	# Open file for writing
 	file = h5py.File(fname,mode)
@@ -495,7 +641,19 @@ def h5_save_dset_serial(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable):
 
 def h5_save_dset_mpio(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable,nopartition):
 	'''
-	Save a Dataset in HDF5 in parallel mode
+	Save a Dataset in HDF5 in parallel.
+
+	Args:
+		fname (str) : File name.
+		mode (str, optional) : ``'w'`` (default) for overwrite and ``'a'`` for append.
+		varDict (dict) : Dictionary of variables.
+		xyz (np.ndarray): Coordinates array.
+		fieldDict (dict) : Dictionary of variables.
+		ordering (np.ndarray).
+		point (bool) : ``True`` for treating the variable as data at the
+			nodes, ``False`` as data at the elements.
+		ptable (PartitionTable).
+		nopartition (bool) : ``False`` to save the partition table and ``True`` to not save it.
 	'''
 	# Open file
 	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM)
@@ -514,7 +672,22 @@ def h5_save_dset_mpio(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable,nop
 @cr('h5IO.append_dset')
 def h5_append_dset(fname,xyz,varDict,fieldDict,ordering,point,ptable,mode='a',mpio=True,nopartition=False):
 	'''
-	Save a Dataset in HDF5
+	Append a Dataset in HDF5.
+
+	Args:
+		fname (str) : File name.
+		xyz (np.ndarray): Coordinates array.
+		varDict (dict) : Dictionary of variables.
+		fieldDict (dict) : Dictionary of variables.
+		ordering (np.ndarray).
+		point (bool) : ``True`` for treating the variable as data at the
+			nodes, ``False`` as data at the elements.
+		ptable (PartitionTable).
+		mode (str, optional) : ``'w'`` for overwrite and ``'a'`` (default) for append.
+		mpio (bool, optional) : ``True`` (default) for save in parallel and ``False`` for the serial
+			version.
+		nopartition (bool, optional) : ``False`` (default) to save the partition table and
+			``True`` to not save it.
 	'''
 	if mpio and not MPI_SIZE == 1:
 		h5_append_dset_mpio(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable,nopartition)
@@ -523,7 +696,18 @@ def h5_append_dset(fname,xyz,varDict,fieldDict,ordering,point,ptable,mode='a',mp
 
 def h5_append_dset_serial(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable):
 	'''
-	Save a dataset in HDF5 in serial mode
+	Save a Dataset in HDF5 in serial.
+
+	Args:
+		fname (str) : File name.
+		mode (str, optional) : ``'w'`` for overwrite and ``'a'`` (default) for append.
+		xyz (np.ndarray): Coordinates array.
+		varDict (dict) : Dictionary of variables.
+		fieldDict (dict) : Dictionary of variables.
+		ordering (np.ndarray).
+		point (bool) : ``True`` for treating the variable as data at the
+			nodes, ``False`` as data at the elements.
+		ptable (PartitionTable).
 	'''
 	file = h5py.File(fname,mode)
 	if not hasattr(h5_append_dset_serial,'ipart'):
@@ -558,7 +742,19 @@ def h5_append_dset_serial(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable
 
 def h5_append_dset_mpio(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable,nopartition):
 	'''
-	Save a dataset in HDF5 in parallel mode
+	Save a Dataset in HDF5 in serial.
+
+	Args:
+		fname (str) : File name.
+		mode (str, optional) : ``'w'`` for overwrite and ``'a'`` (default) for append.
+		xyz (np.ndarray): Coordinates array.
+		varDict (dict) : Dictionary of variables.
+		fieldDict (dict) : Dictionary of variables.
+		ordering (np.ndarray).
+		point (bool) : ``True`` for treating the variable as data at the
+			nodes, ``False`` as data at the elements.
+		ptable (PartitionTable).
+		nopartition (bool) : ``False`` to save the partition table and ``True`` to not save it.
 	'''
 	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM)
 	if not hasattr(h5_append_dset_mpio,'ipart'):
@@ -595,7 +791,18 @@ def h5_append_dset_mpio(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable,n
 @cr('h5IO.load_dset')
 def h5_load_dset(fname,ptable=None,mpio=True):
 	'''
-	Load a dataset in HDF5
+	Load a dataset in HDF5.
+
+	Args:
+		fname (str) : File name.
+		ptable (PartitionTable, optional).
+		mpio (bool, optional) : ``True`` (default) for save in parallel and ``False`` for the serial
+			version.
+
+	Returns:
+		[np.ndarray, np.ndarray, bool, PartitionTable, dict, dict]:
+			Coordinates array, ordering array, is data stored at nodes, partition table,
+			dictionary of variables, dictionary of fields.
 	'''
 	if mpio and not MPI_SIZE == 1:
 		return h5_load_dset_mpio(fname,ptable)
@@ -604,7 +811,16 @@ def h5_load_dset(fname,ptable=None,mpio=True):
 
 def h5_load_dset_serial(fname,ptable):
 	'''
-	Load a dataset in HDF5 in serial
+	Load a dataset in HDF5 in serial.
+
+	Args:
+		fname (str) : File name.
+		ptable (PartitionTable).
+
+	Returns:
+		[np.ndarray, np.ndarray, bool, PartitionTable, dict, dict]:
+			Coordinates array, ordering array, is data stored at nodes, partition table,
+			dictionary of variables, dictionary of fields.
 	'''
 	# Open file for writing
 	file = h5py.File(fname,'r')
@@ -632,7 +848,16 @@ def h5_load_dset_serial(fname,ptable):
 
 def h5_load_dset_mpio(fname,ptable):
 	'''
-	Load a field in HDF5 in parallel
+	Load a dataset in HDF5 in parallel.
+
+	Args:
+		fname (str) : File name.
+		ptable (PartitionTable).
+
+	Returns:
+		[np.ndarray, np.ndarray, bool, PartitionTable, dict, dict]:
+			Coordinates array, ordering array, is data stored at nodes, partition table,
+			dictionary of variables, dictionary of fields.
 	'''
 	# Open file for reading
 	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM)
@@ -663,7 +888,22 @@ def h5_load_dset_mpio(fname,ptable):
 @cr('h5IO.save_mesh')
 def h5_save_mesh(fname,mtype,xyz,conec,eltype,cellO,pointO,ptable,mode='w',mpio=True,nopartition=False):
 	'''
-	Save a Mesh in HDF5
+	Save a Mesh in HDF5.
+
+	Args:
+		fname (str) : File name.
+		mtype (int) : Mesh tpye.
+		xyz (np.ndarray): Coordinates array.
+		conec (np.ndarray) : Connectivity array.
+		eltype (int) : Element type.
+		cellO (np.ndarray): cell order
+		pointO (np.ndarray): point order
+		ptable (PartitionTable): partition table
+		mode (str, optional) : ``'w'`` (default) for overwrite and ``'a'`` for append.
+		mpio (bool, optional) : ``True`` (default) for save in parallel and ``False`` for the serial
+			version.
+		nopartition (bool, optional) : ``False`` (default) to save the partition table and
+			``True`` to not save it.
 	'''
 	if mpio and not MPI_SIZE == 1:
 		h5_save_mesh_mpio(fname,mode,mtype,xyz,conec,eltype,cellO,pointO,ptable,nopartition)
@@ -672,7 +912,18 @@ def h5_save_mesh(fname,mtype,xyz,conec,eltype,cellO,pointO,ptable,mode='w',mpio=
 
 def h5_save_mesh_serial(fname,mode,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	'''
-	Save a Mesh in HDF5 in serial mode
+	Save a Mesh in HDF5 in serial.
+
+	Args:
+		fname (str) : File name.
+		mode (str) : ``'w'`` for overwrite and ``'a'`` for append.
+		mtype (int) : Mesh tpye.
+		xyz (np.ndarray): Coordinates array.
+		conec (np.ndarray) : Connectivity array.
+		eltype (int) : Element type.
+		cellO (np.ndarray): cell order
+		pointO (np.ndarray): point order
+		ptable (PartitionTable): partition table
 	'''
 	# Open file for writing
 	file = h5py.File(fname,mode)
@@ -689,7 +940,18 @@ def h5_save_mesh_serial(fname,mode,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 
 def h5_save_mesh_mpio(fname,mode,mtype,xyz,conec,eltype,cellO,pointO,ptable,nopartition):
 	'''
-	Save a dataset in HDF5 in parallel mode
+	Save a Mesh in HDF5 in parallel.
+
+	Args:
+		fname (str) : File name.
+		mode (str) : ``'w'`` for overwrite and ``'a'`` for append.
+		mtype (int) : Mesh tpye.
+		xyz (np.ndarray): Coordinates array.
+		conec (np.ndarray) : Connectivity array.
+		eltype (int) : Element type.
+		cellO (np.ndarray): cell order
+		pointO (np.ndarray): point order
+		ptable (PartitionTable): partition table
 	'''
 	# Open file
 	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM)
@@ -708,7 +970,17 @@ def h5_save_mesh_mpio(fname,mode,mtype,xyz,conec,eltype,cellO,pointO,ptable,nopa
 @cr('h5IO.load_mesh')
 def h5_load_mesh(fname,mpio=True):
 	'''
-	Load a mesh in HDF5
+	Load a mesh in HDF5.
+
+	Args:
+		fname (str) : File name.
+		mpio (bool, optional) : ``True`` (default) for save in parallel and ``False`` for the serial
+			version.
+
+	Returns:
+		[int, np.ndarray, np.ndarray, int, np.ndarray, np.ndarray, PartitionTable]:
+			Mesh type, coordinates array, connectivity array, element type, coll order, point order,
+			partition table.
 	'''
 	if mpio and not MPI_SIZE == 1:
 		return h5_load_mesh_mpio(fname)
@@ -717,7 +989,15 @@ def h5_load_mesh(fname,mpio=True):
 
 def h5_load_mesh_serial(fname):
 	'''
-	Load a mesh in HDF5 in serial
+	Load a mesh in HDF5 in serial.
+
+	Args:
+		fname (str) : File name.
+
+	Returns:
+		[int, np.ndarray, np.ndarray, int, np.ndarray, np.ndarray, PartitionTable]:
+			Mesh type, coordinates array, connectivity array, element type, coll order, point order,
+			partition table.
 	'''
 	# Open file for writing
 	file = h5py.File(fname,'r')
@@ -746,7 +1026,15 @@ def h5_load_mesh_serial(fname):
 
 def h5_load_mesh_mpio(fname):
 	'''
-	Load a mesh in HDF5 in parallel
+	Load a mesh in HDF5 in parallel.
+
+	Args:
+		fname (str) : File name.
+
+	Returns:
+		[int, np.ndarray, np.ndarray, int, np.ndarray, np.ndarray, PartitionTable]:
+			Mesh type, coordinates array, connectivity array, element type, coll order, point order,
+			partition table.
 	'''
 	# Open file for reading
 	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM)
@@ -777,17 +1065,19 @@ def h5_load_mesh_mpio(fname):
 @cr('h5IO.save_QR')
 def h5_save_QR(fname,Q,Y,B,ptable,nvars=1,pointData=True,mode='w'):
 	r'''
-	Store QR variables into an HDF5 file. Can be appended to another HDF by setting the mode to 'a'. Then no partition table will be saved.
+	Store QR variables into an HDF5 file.
+	Can be appended to another HDF by setting the mode to 'a'.
+	Then no partition table will be saved.
 
 	Args:
-		fname (string): file name
+		fname (str): file name
 		Q (np.ndarray): Q matrix
 		Y (np.ndarray): Randomized matrix before QR
 		B (np.ndarray): R upper triangular matrix or B in case of doing randomized QR
 		ptable (PartitionTable): partition table
 		nvars (int, optional): number of variables analyzed jointly (default=1)
 		pointData(bool, optional): whether is point data or cell data (default=True)
-		Writing mode (string, optional): the h5 will be written again or appended.
+		mode (str, optional): the h5 will be written again or appended.
 	'''
 	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,mode)
 	# Store attributes and partition table
@@ -821,7 +1111,7 @@ def h5_load_QR(fname,vars,ptable=None):
 	Load QR variables from an HDF5 file.
 	
 	Args:
-		fname (string): file name
+		fname (str): file name
 		vars (list): variables to load, it must be any of Q, B, Y.
 		ptable (PartitionTable, optional): partition table used to load the data (default, None)
 	
@@ -858,10 +1148,20 @@ def h5_load_QR(fname,vars,ptable=None):
 
 @cr('h5IO.save_POD')
 def h5_save_POD(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
-	'''
+	r'''
 	Store POD variables into an HDF5 file.
 	Can be appended to another HDF by setting the
 	mode to 'a'. Then no partition table will be saved.
+
+	Args:
+		fname (str): file name
+		U (np.ndarray): U matrix
+		S (np.ndarray): S matrix
+		V (np.ndarray): V matrix
+		ptable (PartitionTable): partition table
+		nvars (int, optional): number of variables analyzed jointly (default=1)
+		pointData(bool, optional): whether is point data or cell data (default=True)
+		mode (str, optional): the h5 will be written again or appended.
 	'''
 	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,mode)
 	# Store attributes and partition table
@@ -890,8 +1190,16 @@ def h5_save_POD(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
 
 @cr('h5IO.load_POD')
 def h5_load_POD(fname,vars,nmod,ptable=None):
-	'''
+	r'''
 	Load POD variables from an HDF5 file.
+	
+	Args:
+		fname (str): file name
+		vars (list): variables to load, it must be any of U, S, V.
+		ptable (PartitionTable, optional): partition table used to load the data (default, None)
+	
+	Returns:
+		list: list of the np.ndarray requested to load.
 	'''
 	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,'r')
 	# Check the file version
@@ -917,10 +1225,21 @@ def h5_load_POD(fname,vars,nmod,ptable=None):
 
 @cr('h5IO.save_DMD')
 def h5_save_DMD(fname,muReal,muImag,Phi,bJov,ptable,nvars=1,pointData=True,mode='w'):
-	'''
+	r'''
 	Store DMD variables into an HDF5 file.
-	Can be appended to another HDF by setting the
-	mode to 'a'. Then no partition table will be saved.
+	Can be appended to another HDF by setting the mode to 'a'.
+	Then no partition table will be saved.
+
+	Args:
+		fname (str): file name
+		muReal (np.ndarray): Real part of the eigenvalues
+		muImag (np.ndarray): Imaginary part of the eigenvalues
+		Phi (np.ndarray): DMD mdoes
+		bJov (np.ndarray): DMD amplitudes
+		ptable (PartitionTable): partition table
+		nvars (int, optional): number of variables analyzed jointly (default=1)
+		pointData(bool, optional): whether is point data or cell data (default=True)
+		mode (str, optional): the h5 will be written again or appended.
 	'''
 	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,mode)
 	# Store attributes and partition table
@@ -950,6 +1269,17 @@ def h5_save_DMD(fname,muReal,muImag,Phi,bJov,ptable,nvars=1,pointData=True,mode=
 
 @cr('h5IO.load_DMD')
 def h5_load_DMD(fname,vars,nmod,ptable=None):
+	r'''
+	Load DMD variables from an HDF5 file.
+	
+	Args:
+		fname (str): file name
+		vars (list): variables to load, it must be any of Phi, mu, bJov
+		ptable (PartitionTable, optional): partition table used to load the data (default, None)
+	
+	Returns:
+		list: list of the np.ndarray requested to load.
+	'''
 	'''
 	Load DMD variables from an HDF5 file.
 	'''
@@ -978,8 +1308,19 @@ def h5_load_DMD(fname,vars,nmod,ptable=None):
 
 @cr('h5IO.save_VAE')
 def h5_save_VAE(fname, kld, mse, val_loss, train_loss_avg, corrcoef, mode='w'):
-	'''
-	Store VAE results.
+	r'''
+	Store VAE variables into an HDF5 file.
+	Can be appended to another HDF by setting the mode to 'a'.
+	Then no partition table will be saved.
+
+	Args:
+		fname (str): file name
+		kld (np.ndarray).
+		mse (np.ndarray).
+		val_loss (np.ndarray).
+		train_loss_avg (np.ndarray).
+		corrcoef (np.ndarray).
+		mode (str, optional): the h5 will be written again or appended.
 	'''
 	file = h5py.File('%s.h5'%fname,mode,driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,mode)
 	# Now create a VAE group
@@ -994,10 +1335,20 @@ def h5_save_VAE(fname, kld, mse, val_loss, train_loss_avg, corrcoef, mode='w'):
 	file.close()
 
 def h5_save_SPOD(fname,L,P,f,ptable,nvars=1,pointData=True,mode='w'):
-	'''
+	r'''
 	Store SPOD variables into an HDF5 file.
-	Can be appended to another HDF by setting the
-	mode to 'a'. Then no partition table will be saved.
+	Can be appended to another HDF by setting the mode to 'a'.
+	Then no partition table will be saved.
+
+	Args:
+		fname (str): file name
+		L (np.ndarray): modal energy spectra matrix
+		P (np.ndarray): SPOD modes
+		f (np.ndarray): frequency vectors
+		ptable (PartitionTable): partition table
+		nvars (int, optional): number of variables analyzed jointly (default=1)
+		pointData(bool, optional): whether is point data or cell data (default=True)
+		mode (str, optional): the h5 will be written again or appended.
 	'''
 	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,mode)
 	# Store attributes and partition table
@@ -1028,8 +1379,17 @@ def h5_save_SPOD(fname,L,P,f,ptable,nvars=1,pointData=True,mode='w'):
 	file.close()
 
 def h5_load_SPOD(fname,vars,nmod,ptable=None):
-	'''
+	r'''
 	Load SPOD variables from an HDF5 file.
+	
+	Args:
+		fname (str): file name
+		vars (list): variables to load, it must be any of P, L, f.
+		nmod (int): Number of modes  of the saved data.
+		ptable (PartitionTable, optional): partition table used to load the data (default, None)
+	
+	Returns:
+		list: list of the np.ndarray requested to load.
 	'''
 	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,'r')
 	# Check the file version
@@ -1075,9 +1435,14 @@ def h5_create_compressed(fname:str,basedir:str,r:int,nmod:int,nvars:int,nlayers:
 		nptxAE (int): number of points per autoencoder in the matrix
 		dtype (np.dtype): precision in which to save the arrays
 
-	Returns
-		h5py.File the file is not closed and once this function creates it, it returns its pointer to be used during the compression. 
-		Note: The file must be closed at the end of the compression using file.close()
+	Returns:
+		h5py.File:
+			The file is not closed and once this function creates it,
+			it returns its pointer to be used during the compression. 
+
+		Note:
+			The file must be closed at the end of the compression using
+			file.close().
 
 	'''
 	file  = h5py.File('%s/%s.h5' % (basedir, fname), mode="w", driver='mpio', comm=MPI_COMM)
@@ -1113,8 +1478,10 @@ def h5_flush_compressed(fname:str,basedir:str,ist:int,ien:int,means:np.ndarray,s
 		B (np.ndarray): B matrix of the factorization of the latent vectors
 		r (int): truncation value of the factorized latent vectors
 
-	Returns;
-		h5py.File file in which the data has been saved. It must be closed when all cores finish compressing their data
+	Returns:
+		h5py.File:
+			File in which the data has been saved. It must be closed when all
+			cores finish compressing their data
 	'''
 	file  = h5py.File('%s/%s.h5' % (basedir, fname), mode="a", driver='mpio', comm=MPI_COMM)
 	file['STATS/mean'][ist:ien,:] = means
@@ -1130,7 +1497,7 @@ def h5_flush_compressed(fname:str,basedir:str,ist:int,ien:int,means:np.ndarray,s
 @cr('io.load_compressed')
 def h5_load_compressed(fname:str, basedir:str, ptable:PartitionTable, nelxAE:int):
 	r"""
-	Load the necessary information to decompress the Q matrix atre using GAVI:
+	Load the necessary information to decompress the Q matrix using GAVI:
 	
 	CITA PROCEEDINGS MADRID
 	
@@ -1141,7 +1508,10 @@ def h5_load_compressed(fname:str, basedir:str, ptable:PartitionTable, nelxAE:int
 		nelxAE (int): number of elements in each autoencoder
 		
 	Returns:
-		[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray] The 6 arrays saved in the compressed file: the mean and standard deviation of the inputs, the decoder parameters and the factorized latent spaces	
+		[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+			The 6 arrays saved in the compressed file: the mean and standard
+			deviation of the inputs, the decoder parameters and the factorized
+			latent spaces.
 	"""
 	ist,ien = ptable.partition_bounds(MPI_RANK,points=False)
 	ist,ien = int(ist/nelxAE), int(ien/nelxAE)
@@ -1160,6 +1530,14 @@ def h5_load_compressed(fname:str, basedir:str, ptable:PartitionTable, nelxAE:int
 def _h5_prep_numeric_features(features_dict):
 	"""
 	Validate graph feature dictionary and cast numeric arrays to float32.
+
+	Args:
+		features_dict (dict).
+
+	Returns:
+		dict:
+			A dictionary containing the same items as ``features_dict`` with all
+			numeric data casted to np.ndarray with float32.
 	"""
 	out = {}
 	for name, arr in features_dict.items():
@@ -1177,9 +1555,10 @@ def _h5_decode_bytes_list(values):
 	"""
 	Decode a list of bytes or strings to a list of strings. This is used to decode the feature names stored as byte strings in HDF5 attributes.
 	Args:
-		values: list of bytes or strings
+		values (list) : list of bytes or strings
 	Returns:
-		list of strings
+		list:
+			All elements are of type ``str``.
 	"""
 	out = []
 	for v in values:
@@ -1203,6 +1582,16 @@ def h5_save_graph_serial(
 	"""
 	Save a Graph in HDF5 (serial mode), strict flat schema with ordering.
 	
+	Args:
+		fname (str).
+		num_nodes (int).
+		num_edges (int).
+		edge_index (np.ndarray).
+		node_features_dict (np.ndarray).
+		edge_features_dict (np.ndarray).
+		mode (str, optional) : ``'w'`` (default) for overwrite and
+			``'a'`` for append.
+
 	Schema
 	------
 	- /GRAPH
@@ -1220,7 +1609,6 @@ def h5_save_graph_serial(
 
 			- attrs['feature_names'] : S[]
 			- <feat_name>            : float32[E, k_i]
-	
 	"""
 
 	if node_features_dict is None or edge_features_dict is None:
@@ -1272,13 +1660,28 @@ def h5_load_graph_serial(fname):
 	"""
 	Load a Graph from HDF5 (serial mode), strict flat schema.
 
-	Returns
-	-------
-	num_nodes : int
-	num_edges : int
-	edge_index : np.ndarray, shape (2, E), dtype=int64
-	node_features_dict : OrderedDict[str, np.ndarray]  # float32 arrays
-	edge_features_dict : OrderedDict[str, np.ndarray]  # float32 arrays
+	Args:
+		fname (str) : File name.
+
+	Returns:
+		[int, int, np.ndarray, OrderedDict, OrderedDict]:
+			- Number of nodes.
+			- Number of edges.
+			- Edge index.
+
+				- ``shape=(2,E)``
+				- ``dtype=int64``
+
+			- Node features dictionary.
+
+				- Key type is ``str``.
+				- Value type is ``np.ndarray`` with ``dtype=float32``.
+
+			- Node features dictionary.
+
+				- Key type is ``str``.
+				- Value type is ``np.ndarray`` with ``dtype=float32``.
+
 	"""
 	f  = h5py.File(fname, mode='r')
 	if 'GRAPH' not in f:

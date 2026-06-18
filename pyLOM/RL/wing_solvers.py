@@ -7,11 +7,13 @@ import numpy as np
 class AerosandboxWingSolver(BaseSolver):
     """
     Aerosandbox solver for wing analysis. It uses the AeroBuildup component from the Aerosandbox library to compute the lift and drag coefficients. For more details, see https://aerosandbox.readthedocs.io/en/master/autoapi/aerosandbox/index.html#aerosandbox.AeroBuildup
+
     Args:
         velocity (float): The flight velocity, expressed as a true airspeed. [m/s]
         alpha (float): Angle of attack in degrees.
         atmosphere (asb.Atmosphere): The atmosphere model to use.
         model_size (str, optional): Size of the model. Default is ``xxxlarge``. Other options are "xxsmall", "xsmall", "small", "medium", "large", "xlarge", "xxlarge".
+
     """
     def __init__(self, velocity, alpha, atmosphere, model_size="xxxlarge"):
         super().__init__()
@@ -44,6 +46,7 @@ class AerosandboxWingSolver(BaseSolver):
 class AVLSolver(BaseSolver):
     """
     AVL solver for wing analysis. It uses the AVL (Athena Vortex Lattice) method to compute the lift and drag coefficients. To use this solver, you need to have AVL executable installed and available in your PATH, see https://web.mit.edu/drela/Public/web/avl/
+
     Args:
         velocity (float): The flight velocity, expressed as a true airspeed. [m/s]
         alpha (float): Angle of attack in degrees.

@@ -285,7 +285,13 @@ class SolverFactory:
     
     @staticmethod
     def create_wing_solver(solver_name: str, conditions: Optional[WingOperatingConditions] = None):
-        """Create a wing solver"""
+        """
+        Create a wing solver.
+
+        Args:
+            solver_name (str).
+            contiions (WingOperatingConditions, optional) : Default is ``None``.
+        """
         if conditions is None:
             conditions = WingOperatingConditions()
             

@@ -125,12 +125,30 @@ try:
         def get_airfoil_coordinates(self, airfoil, axes):
             """
             Get airfoil coordinates and map them to Axes coordinates.
-            Assumes airfoil.coordinates is a (points, 2) numpy array.
+        
+            Args:
+                airfoil (np.ndarray): With shape ``(points, 2)``.
+                axes (manim.Axes).
+
+            Returns:
+                np.ndarray:
+                    Airfoil coordinates.
             """
             return np.array([axes.c2p(x, y) for x, y in airfoil.coordinates])
         
         def interpolate_airfoils(self, start, end, alpha):
-            """Interpolate between two sets of coordinates using alpha."""
+            """
+            Interpolate between two sets of coordinates using alpha.
+
+            Args:
+                start (np.ndarray).
+                end (np.ndarray).
+                alpha (float).
+
+            Returns:
+                np.ndarray:
+                    The interpolated array.
+            """
             return (1 - alpha) * start + alpha * end
         
         def construct(self):

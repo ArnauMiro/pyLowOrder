@@ -15,7 +15,14 @@ VTKVERS = np.array([1,0],np.int32)
 
 def _vtkh5_create_structure(file):
 	'''
-	Create the basic structure of a VTKH5 file
+	Create the basic structure of a VTKH5 file.
+
+	Args:
+		file (h5py.File).
+
+	Returns:
+		[h5py.Group, h5py.Group, h5py.Group, h5py.Group]:
+			Main, cell data, point data and field data groups.
 	'''
 	# Create main group
 	main = file.create_group('VTKHDF')
@@ -30,8 +37,14 @@ def _vtkh5_create_structure(file):
 
 def _vtkh5_connectivity_and_offsets(lnods):
 	'''
-	Build the offsets array (starting point per each element)
+	Build the offsets array (starting point per each element).
 
+	Args:
+		lnods (np.ndarray) : List of nodes.
+
+	Returns:
+		[np.ndarray, np.ndarray]:
+			Flattened list of nodes and offset array.
 	'''
 	# Compute the number of points per cell
 	ppcell = np.sum(lnods >= 0,axis=1)
@@ -46,7 +59,17 @@ def _vtkh5_connectivity_and_offsets(lnods):
 
 def _vtkh5_write_mesh_serial(file,xyz,lnods,ltype):
 	'''
-	Write the mesh and the connectivity to the VTKH5 file.
+	Write the mesh and the connectivity to the VTKH5 file. Serial version.
+
+	Args:
+		file (h5py.File).
+		xyz (np.ndarray) : Coordinates array.
+		lnods (np.ndarray) : List of nodes.
+		ltype (np.ndarray) : List of types.
+
+	Returns:
+		[int, int]:
+			Number of points, number of cells.
 	'''
 	# Create dataset for number of points
 	npoints, ndim = xyz.shape
@@ -66,7 +89,18 @@ def _vtkh5_write_mesh_serial(file,xyz,lnods,ltype):
 
 def _vtkh5_write_mesh_mpio(file,xyz,lnods,ltype, ptable):
 	'''
-	Write the mesh and the connectivity to the VTKH5 file.
+	Write the mesh and the connectivity to the VTKH5 file. Parallel version.
+
+	Args:
+		file (h5py.File).
+		xyz (np.ndarray) : Coordinates array.
+		lnods (np.ndarray) : List of nodes.
+		ltype (np.ndarray) : List of types.
+		ptable (PartitionTable).
+
+	Returns:
+		[int, int]:
+			Number of points, number of cells.
 	'''
 	myrank, nparts  = MPI_RANK, MPI_SIZE
 	# Create datasets for point data
@@ -104,6 +138,10 @@ def _vtkh5_write_mesh_mpio(file,xyz,lnods,ltype, ptable):
 def _vtkh5_link_mesh(file,lname):
 	'''
 	Create external link mesh to the VTKH5 file.
+
+	Args:
+		file (h5py.File).
+		lname (str) : Name of the external link.
 	'''
 	file['NumberOfPoints']          = h5py.ExternalLink(lname,'VTKHDF/NumberOfPoints')
 	file['NumberOfCells']           = h5py.ExternalLink(lname,'VTKHDF/NumberOfCells')
@@ -117,7 +155,16 @@ def _vtkh5_link_mesh(file,lname):
 @cr('vtkh5IO.save_mesh')
 def vtkh5_save_mesh(fname,mesh,ptable,mpio=True,mode='w'):
 	'''
-	Save the mesh component into a VTKH5 file
+	Save the mesh component into a VTKH5 file.
+
+	Args:
+		fname (str): File name.
+		mesh (Mesh).
+		ptable (PartitionTable).
+		mpio (bool, optional) : ``True`` (default) for save in parallel and
+			``False`` for the serial
+		mode (str, optional) : ``'w'`` (default) for overwrite and
+			``'a'`` for append.
 	'''
 	if mpio and not MPI_SIZE == 1:
 		vtkh5_save_mesh_mpio(fname,mode,mesh.xyz,mesh.connectivity,mesh.eltype2VTK,ptable)
@@ -126,7 +173,15 @@ def vtkh5_save_mesh(fname,mesh,ptable,mpio=True,mode='w'):
 
 def vtkh5_save_mesh_serial(fname,mode,xyz,lnods,ltype):
 	'''
-	Save the mesh component into a VTKH5 file (serial)
+	Save the mesh component into a VTKH5 file. Serial version.
+
+	Args:
+		fname (str): File name.
+		mode (str, optional) : ``'w'`` (default) for overwrite and
+			``'a'`` for append.
+		xyz (np.ndarray) : Coordinates array.
+		lnods (np.ndarray) : List of nodes.
+		ltype (np.ndarray) : List of types.
 	'''
 	# Open file for writing
 	file = h5py.File(fname,mode)
@@ -139,7 +194,15 @@ def vtkh5_save_mesh_serial(fname,mode,xyz,lnods,ltype):
 
 def vtkh5_save_mesh_mpio(fname,mode,xyz,lnods,ltype,ptable):
 	'''
-	Save the mesh component into a VTKH5 file (serial)
+	Save the mesh component into a VTKH5 file. Parallel version.
+
+	Args:
+		fname (str): File name.
+		mode (str, optional) : ``'w'`` (default) for overwrite and
+			``'a'`` for append.
+		xyz (np.ndarray) : Coordinates array.
+		lnods (np.ndarray) : List of nodes.
+		ltype (np.ndarray) : List of types.
 	'''
 	# Open file for writing
 	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM)
@@ -154,7 +217,15 @@ def vtkh5_save_mesh_mpio(fname,mode,xyz,lnods,ltype,ptable):
 @cr('vtkh5IO.link_mesh')
 def vtkh5_link_mesh(fname,lname,mpio=True,mode='w'):
 	'''
-	Link the mesh component into a VTKH5 file
+	Link the mesh component into a VTKH5 file.
+
+	Args:
+		fname (str): File name.
+		lname (str): Link name.
+		mpio (bool, optional) : ``True`` (default) for save in parallel and
+			``False`` for the serial
+		mode (str, optional) : ``'w'`` (default) for overwrite and
+			``'a'`` for append.
 	'''
 	if mpio and not MPI_SIZE == 1:
 		vtkh5_link_mesh_mpio(fname,mode,lname)
@@ -163,7 +234,12 @@ def vtkh5_link_mesh(fname,lname,mpio=True,mode='w'):
 
 def vtkh5_link_mesh_serial(fname,mode,lname):
 	'''
-	Save the mesh component into a VTKH5 file (serial)
+	Save the mesh component into a VTKH5 file. Serial version.
+
+	Args:
+		fname (str): File name.
+		mode (str) : ``'w'`` for overwrite and ``'a'`` for append.
+		lname (str): Link name.
 	'''
 	# Open file for writing
 	file = h5py.File(fname,mode)
@@ -176,7 +252,12 @@ def vtkh5_link_mesh_serial(fname,mode,lname):
 
 def vtkh5_link_mesh_mpio(fname,mode,lname):
 	'''
-	Save the mesh component into a VTKH5 file (serial)
+	Save the mesh component into a VTKH5 file. Parallel version.
+
+	Args:
+		fname (str): File name.
+		mode (str) : ``'w'`` for overwrite and ``'a'`` for append.
+		lname (str): Link name.
 	'''
 	# Open file for writing
 	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM)
@@ -191,7 +272,20 @@ def vtkh5_link_mesh_mpio(fname,mode,lname):
 @cr('vtkh5IO.save_field')
 def vtkh5_save_field(fname,instant,time,point,varDict,ptable,mpio=True,mode='a'):
 	'''
-	Save the mesh component into a VTKH5 file
+	Save the mesh component into a VTKH5 file.
+
+	Args:
+		fname (str): File name.
+		instant (int) : Instant saved, i.e. index of the time step.
+		time (float) : Physical time for the given instant.
+		point (bool) : Indicates if the data is given at the points in contrast
+			to the case where it is given at the cells.
+		varDict (dict) : Dictionary of variables.
+		ptable (PartitionTable).
+		mpio (bool, optional) : ``True`` (default) for save in parallel and
+			``False`` for the serial
+		mode (str, optional) : ``'w'`` (default) for overwrite and
+			``'a'`` for append.
 	'''
 	if mpio and not MPI_SIZE == 1:
 		vtkh5_save_field_mpio(fname,mode,instant,time,point,varDict,ptable)
@@ -200,7 +294,16 @@ def vtkh5_save_field(fname,instant,time,point,varDict,ptable,mpio=True,mode='a')
 
 def vtkh5_save_field_serial(fname,mode,instant,time,point,varDict):
 	'''
-	Save the field component into a VTKH5 file (serial)
+	Save the mesh component into a VTKH5 file. Serial version.
+
+	Args:
+		fname (str): File name.
+		mode (str) : ``'w'`` for overwrite and ``'a'`` for append.
+		instant (int) : Instant saved, i.e. index of the time step.
+		time (float) : Physical time for the given instant.
+		point (bool) : Indicates if the data is given at the points in contrast
+			to the case where it is given at the cells.
+		varDict (dict) : Dictionary of variables.
 	'''
 	# Open file for writing (append to a mesh)
 	file = h5py.File(fname,mode)
@@ -219,7 +322,17 @@ def vtkh5_save_field_serial(fname,mode,instant,time,point,varDict):
 
 def vtkh5_save_field_mpio(fname,mode,instant,time,point,varDict,ptable):
 	'''
-	Save the mesh component into a VTKH5 file (serial)
+	Save the mesh component into a VTKH5 file. Parallel version.
+
+	Args:
+		fname (str): File name.
+		mode (str) : ``'w'`` for overwrite and ``'a'`` for append.
+		instant (int) : Instant saved, i.e. index of the time step.
+		time (float) : Physical time for the given instant.
+		point (bool) : Indicates if the data is given at the points in contrast
+			to the case where it is given at the cells.
+		varDict (dict) : Dictionary of variables.
+		ptable (PartitionTable).
 	'''
 	myrank = MPI_RANK
 	# Open file for writing

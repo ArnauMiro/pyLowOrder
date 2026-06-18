@@ -175,6 +175,18 @@ def evaluate_airfoil_agent_whole_uiuc_mpi(agent, env, save_results_path):
 
 
 def extract_metrics(rewards, states):
+    """
+    Extract initial, final and best metrics from the rewards and states.
+
+    Args:
+        rewards (list[float]).
+        states (list).
+
+    Returns:
+        [np.ndarray, np.ndarray, np.ndarray, list, list]:
+            Initial rewards, final rewards, best rewards, initial states, best
+                states.
+    """
     initial_rewards = np.array([reward[0] for reward in rewards])
     final_rewards = np.array([reward[-1] for reward in rewards])
     best_rewards = np.array([max(reward) for reward in rewards])
@@ -185,6 +197,14 @@ def extract_metrics(rewards, states):
 
 
 def save_results_to_csv(rewards, states, save_results_path):
+    """
+    Saves the results in csv format.
+
+    Args:
+        rewards (list[float]).
+        states (list).
+        save_results_path (str).
+    """
     initial_rewards, _, best_rewards, initial_states, best_states = extract_metrics(rewards, states)
     columns_names = ["initial_param_" + str(i) for i in range(initial_states[0].shape[0])]
     columns_names += ["best_param_" + str(i) for i in range(best_states[0].shape[0])]
@@ -196,6 +216,13 @@ def save_results_to_csv(rewards, states, save_results_path):
 
 
 def print_metric_summary(rewards, states):
+    """
+    Print a summary for the metrics.
+
+    Args:
+        rewards (list[float]).
+        states (list).
+    """
     initial_rewards, _, best_rewards, _, _ = extract_metrics(rewards, states)
     # remove states that didn't converge
     converged_mask = (initial_rewards > NON_CONVERGED_REWARD) & (best_rewards > NON_CONVERGED_REWARD) & (initial_rewards != best_rewards)

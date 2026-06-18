@@ -12,8 +12,14 @@ from pyLOM.utils import raiseWarning, pprint
 class BaseSolver(ABC):
     """
     Base class for all solvers. It defines the interface for the solvers.
+
+    Attributes:
+        NON_CONVERGED_REWARD (int).
     """
     def __init__(self):
+        '''
+        Constructor.
+        '''
         self.NON_CONVERGED_REWARD = NON_CONVERGED_REWARD
 
     @abstractmethod
@@ -21,7 +27,7 @@ class BaseSolver(ABC):
         """
         Compute the reward for the given shape.
         Args:
-            shape: Shape to compute the reward for.
+            shape (asb.Airfoil): Shape to compute the reward for.
         Returns:
             float: Reward for the shape.
         """
@@ -54,6 +60,17 @@ class XFoilSolver(BaseSolver):
         self.xfoil_params = xfoil_params
 
     def __call__(self, airfoil: asb.Airfoil):
+        '''
+        Given an airfoil computes its lift to drag ratio.
+
+        Args:
+            airfoil (asb.Airfoil).
+
+        Returns:
+            float:
+                Lift to drag ratio or NON_CONVERGED_REWARD if the solver does
+                not converge.
+        '''
         if self.check_selfintersection and self._check_if_self_intersecting(airfoil):
             pprint(0, "Airfoil self-intersecting")
             return self.NON_CONVERGED_REWARD
@@ -83,6 +100,13 @@ class XFoilSolver(BaseSolver):
             return self.NON_CONVERGED_REWARD
     
     def _check_if_self_intersecting(self, airfoil, threshold=0.0005):
+        '''
+        Checks if an airfoil presents self intersection.
+        
+        Args:
+            airfoil (asb.Airfoil).
+            threshold (float, optional): Default is 5e-4.
+        '''
         coordinates_thickness = airfoil.local_thickness()
         # remove leading and trailing zeros from leading edge and trailing edge if they are present
         if coordinates_thickness[0] == 0:
@@ -109,6 +133,16 @@ class NeuralFoilSolver(BaseSolver):
         self.model_size = model_size
 
     def __call__(self, airfoil: asb.Airfoil):
+        '''
+        Given an airfoil computes its lift to drag ratio.
+
+        Args:
+            airfoil (asb.Airfoil).
+
+        Returns:
+            float:
+                Lift to drag ratio.
+        '''
         params = dict(
             airfoil=airfoil,
             alpha=self.alpha,
@@ -131,4 +165,14 @@ class DummySolver(BaseSolver):
         super().__init__()
 
     def __call__(self, shape):
+        '''
+        Returns 0
+
+        Args:
+            airfoil (asb.Airfoil).
+
+        Returns:
+            int:
+                Returns 0.
+        '''
         return 0

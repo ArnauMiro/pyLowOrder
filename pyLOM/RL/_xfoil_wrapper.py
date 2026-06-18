@@ -8,10 +8,20 @@ import os
 import re
 from aerosandbox import XFoil as XFoilAero
 
-# this class is an adatpation of aerosandbox.XFoil to make it work 
-# the installation of xfoil tested is https://github.com/RobotLocomotion/xfoil/
 class XFoil(XFoilAero):
+    '''
+    This class is an adatpation of aerosandbox.XFoil to make it work.
+    The installation of xfoil tested is
+    https://github.com/RobotLocomotion/xfoil/
+    '''
     def __init__(self, *args, **kwargs):
+        '''
+        Constructor. Forwards all arguments to its super class.
+
+        Args:
+            *args.
+            **kargs.
+        '''
 
         super().__init__(*args, **kwargs)
 
@@ -23,8 +33,14 @@ class XFoil(XFoilAero):
         """
         Returns a list of XFoil keystrokes that are common to all XFoil runs.
 
+        Args:
+            airfloi_filename (str).
+            output_filename (str).
+
         Returns:
-            A list of strings, each of which is a single XFoil keystroke to be followed by <enter>.
+            list[str]:
+                Each element is a single XFoil keystroke
+                    to be followed by <enter>.
         """
         run_file_contents = []
 
@@ -118,11 +134,18 @@ class XFoil(XFoilAero):
         """
         Private function to run XFoil.
 
-        Args: run_command: A string with any XFoil keystroke inputs that you'd like. By default, you start off within the OPER
-        menu. All of the inputs indicated in the constructor have been set already, but you can override them here (for
-        this run only) if you want.
+        Args:
+            run_command (list): A string with any XFoil keystroke inputs that
+                you'd like. By default, you start off within the OPER
+                menu. All of the inputs indicated in the constructor have been
+                set already, but you can override them here (for this run only)
+                if you want.
+            read_bl_data_from (str). Default is ``None``
 
-        Returns: A dictionary containing all converged solutions obtained with your inputs.
+        Returns:
+            dict:
+                A dictionary containing all converged solutions obtained with
+                    your inputs.
 
         """
         # Set up a temporary directory
@@ -316,24 +339,34 @@ class XFoil(XFoilAero):
         start_at: Union[float, None] = 0,
     ) -> Dict[str, np.ndarray]:
         """
-        Execute XFoil at a given angle of attack, or at a sequence of angles of attack.
+        Execute XFoil at a given angle of attack, or at a sequence of angles of
+        attack.
 
         Args:
+            alpha(Union[float, np.ndarray]): The angle of attack [degrees].  Can
+                be either a float or an iterable of floats, such as an array.
 
-            alpha: The angle of attack [degrees]. Can be either a float or an iterable of floats, such as an array.
+            start_at (Union[float, None]): Chooses whether to split a large
+                sweep into two runs that diverge away from some central value,
+                to improve convergence. As an example, if you wanted to sweep
+                from alpha=-20 to alpha=20, you might want to instead do two
+                sweeps and stitch them together: 0 to 20, and 0 to -20.
+                `start_at` can be either:
 
-            start_at: Chooses whether to split a large sweep into two runs that diverge away from some central value,
-            to improve convergence. As an example, if you wanted to sweep from alpha=-20 to alpha=20, you might want
-            to instead do two sweeps and stitch them together: 0 to 20, and 0 to -20. `start_at` can be either:
+                    * None, in which case the alpha inputs are run as a single
+                        sequence in the order given.
 
-                * None, in which case the alpha inputs are run as a single sequence in the order given.
+                    * A float that corresponds to an angle of attack
+                        (in degrees), in which case the alpha inputs are
+                        split into two sequences that diverge from the
+                        `start_at` value. Successful runs are then sorted by
+                        `alpha` before returning.
 
-                * A float that corresponds to an angle of attack (in degrees), in which case the alpha inputs are
-                split into two sequences that diverge from the `start_at` value. Successful runs are then sorted by
-                `alpha` before returning.
-
-        Returns: A dictionary with the XFoil results. Dictionary values are arrays; they may not be the same shape as
-        your input array if some points did not converge.
+        Returns:
+            dict:
+                A dictionary with the XFoil results. Dictionary values are
+                    arrays; they may not be the same shape as your input array
+                    if some points did not converge.
 
         """
         alphas = np.reshape(np.array(alpha), -1)

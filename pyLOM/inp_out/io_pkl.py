@@ -15,7 +15,11 @@ from ..utils.cr     import cr
 @cr('pklIO.save')
 def pkl_save(fname,obj):
 	'''
-	Save an object in pkl format
+	Save an object in pkl format.
+
+	Args:
+		fname (str) : File name.
+		obj : Object to write.
 	'''
 	f = open(fname,'wb')
 	pkl.dump(obj,f)
@@ -25,7 +29,13 @@ def pkl_save(fname,obj):
 @cr('pklIO.load')
 def pkl_load(fname):
 	'''
-	Load an object in pkl format
+	Load an object in pkl format.
+
+	Args:
+		fname (str) : File name.
+
+	Returns:
+		The loaded object.
 	'''
 	f = open(fname,'rb')
 	out = pkl.load(f)
