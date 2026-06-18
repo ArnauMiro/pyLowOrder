@@ -1024,9 +1024,9 @@ class MultiRBFELM:
         dist_sq = self._cluster_distances(X_all_np)
         active = self._active_clusters(dist_sq)
 
-        # Numerator and denominator accumulators for the weighted blend
         weighted_sum = np.zeros((N, output_size), dtype=np.float64)
         weight_total = np.zeros((N, 1), dtype=np.float64)
+        targets_out  = np.empty((N, output_size), dtype=np.float64)
 
         # Group points by their active-cluster sets to minimise repeated model calls
         cluster_to_points: List[List[int]] = [[] for _ in range(self.n_clusters)]
@@ -1057,6 +1057,7 @@ class MultiRBFELM:
                 y_pred_scaled, y_true_scaled = model_i.predict(sub_dataset, return_targets=True, dataloader_kwargs=dataloader_kwargs, **kwargs)
                 y_pred = output_scaler_i.inverse_transform(y_pred_scaled)
                 y_true = output_scaler_i.inverse_transform(y_true_scaled)
+                targets_out[point_indices_i] = y_true
 
             else:
                 y_pred_scaled = model_i.predict(sub_dataset, return_targets=False, dataloader_kwargs=dataloader_kwargs, **kwargs)
@@ -1072,7 +1073,7 @@ class MultiRBFELM:
         preds_out = (weighted_sum / weight_total).astype(np.float32)
 
         if return_targets:
-            return preds_out, y_true
+            return preds_out, targets_out
 
         return preds_out
 
