@@ -740,6 +740,7 @@ class MultiRBFELM:
         seed:               Optional[int] = None,
         model_name:         str = "multirbfelm",
         verbose:            bool= True,
+        **kwargs,
     ):
         self.n_clusters        = n_clusters
         self.n_centers         = n_centers
@@ -820,6 +821,7 @@ class MultiRBFELM:
         dataloader_kwargs:  dict = {},
         save_logs_path:     Optional[str] = None,
         verbose:            bool = True,
+        **kwargs,
     ) -> None:
         r"""
         Cluster the training set and fit one :class:`RBFELM` per cluster, including overlap points from neighbouring clusters.
@@ -870,13 +872,10 @@ class MultiRBFELM:
             n_primary_i = len(primary_indices)
             n_overlap_i = n_total_i - n_primary_i
 
-
-            self._log(
-                f"  Primary: {n_primary_i}  |  Overlap: {n_overlap_i}"
-            )
+            self._log(f"Primary: {n_primary_i}  |  Overlap: {n_overlap_i}  |  Total: {n_total_i}")
 
             if n_primary_i == 0:
-                self._log("  Empty primary cluster — skipping.")
+                self._log("Empty primary cluster — skipping.")
                 continue
 
             # Fit scalers on primary members
