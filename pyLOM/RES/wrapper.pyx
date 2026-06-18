@@ -69,36 +69,40 @@ def _crun(np.complex64_t[:,:] Phi, float[:] delta, float[:] freq, float f, float
 	free(Omega)
 	cr_stop('RES.resolvent_operator', 0)
 
-	# Compute the Qhat (named Fhat for convenience)
+	# Compute the Qhat (named Fhat_dagger for convenience)
 	cr_start('RES.Qhat', 0)
 	cdef np.complex64_t *Phi_dagger
 	cdef np.complex64_t *Phi_aux
-	cdef np.complex64_t *Fhat
+	cdef np.complex64_t *Fhat_dagger
 	Phi_dagger = <np.complex64_t*>malloc(n*m*sizeof(np.complex64_t))
-	Fhat = <np.complex64_t*>malloc(n*n*sizeof(np.complex64_t))
 	Phi_aux = <np.complex64_t*>malloc(m*n*sizeof(np.complex64_t))
+	Fhat_dagger = <np.complex64_t*>malloc(n*n*sizeof(np.complex64_t))
 	cdef np.ndarray[np.complex64_t, ndim=1] Q_aux = np.zeros((m),dtype=np.complex64)
 	c_cdagger(&Phi[0,0], Phi_dagger, m, n)
 	if Q is None:
-		c_cmatmulp(Fhat, Phi_dagger, &Phi[0,0], n, n, m)
+		c_cmatmulp(Fhat_dagger, Phi_dagger, &Phi[0,0], n, n, m)
 	else:
 		memcpy(Phi_aux, &Phi[0,0], m*n*sizeof(np.complex64_t))
 		Q_aux = np.array(Q, dtype=np.complex64)
 		c_cvecmat(&Q_aux[0], Phi_aux, m, n) # Phi_aux is overwritten
-		c_cmatmulp(Fhat, Phi_dagger, Phi_aux, n, n, m)
+		c_cmatmulp(Fhat_dagger, Phi_dagger, Phi_aux, n, n, m)
 	free(Phi_aux)
 	free(Phi_dagger)
 	cr_stop('RES.Qhat', 0)
 
 	# Compute the Choleski decomposition
 	cr_start('RES.Choleski', 0)
-	retval = c_ccholesky(Fhat, n)
+	cdef np.complex64_t *Fhat
+	Fhat = <np.complex64_t*>malloc(n*n*sizeof(np.complex64_t))
+	retval = c_ccholesky(Fhat_dagger, n)
 	if not retval == 0: raiseError('Problems computing Cholesky factorization!')
+	c_cdagger(Fhat_dagger, Fhat, n, n)
 	cdef np.complex64_t *Fhat_inv
 	Fhat_inv = <np.complex64_t*>malloc(n*n*sizeof(np.complex64_t))
 	memcpy(Fhat_inv, Fhat, n*n*sizeof(np.complex64_t))
-	retval = c_cinverse(Fhat_inv, n, 'L')
+	retval = c_cinverse(Fhat_inv, n, 'U')
 	if not retval == 0: raiseError('Problems computing the Inverse!')
+	free(Fhat_dagger)
 	cr_stop('RES.Choleski', 0)
 
 	# Compute Hhat
@@ -189,31 +193,35 @@ def _zrun(np.complex128_t[:,:] Phi, double[:] delta, double[:] freq, double f, d
 	cr_start('RES.Qhat', 0)
 	cdef np.complex128_t *Phi_dagger
 	cdef np.complex128_t *Phi_aux
-	cdef np.complex128_t *Fhat
+	cdef np.complex128_t *Fhat_dagger
 	Phi_dagger = <np.complex128_t*>malloc(n*m*sizeof(np.complex128_t))
-	Fhat = <np.complex128_t*>malloc(n*n*sizeof(np.complex128_t))
 	Phi_aux = <np.complex128_t*>malloc(m*n*sizeof(np.complex128_t))
+	Fhat_dagger = <np.complex128_t*>malloc(n*n*sizeof(np.complex128_t))
 	cdef np.ndarray[np.complex128_t,ndim=1] Q_aux = np.zeros((m),dtype=np.complex128)
 	c_zdagger(&Phi[0,0], Phi_dagger, m, n)
 	if Q is None:
-		c_zmatmulp(Fhat, Phi_dagger, &Phi[0,0], n, n, m)
+		c_zmatmulp(Fhat_dagger, Phi_dagger, &Phi[0,0], n, n, m)
 	else:
 		memcpy(Phi_aux, &Phi[0,0], m*n*sizeof(np.complex128_t))
 		Q_aux = np.array(Q, dtype=np.complex128)
 		c_zvecmat(&Q_aux[0], Phi_aux, m, n) # Phi_aux is overwritten
-		c_zmatmulp(Fhat, Phi_dagger, Phi_aux, n, n, m)
+		c_zmatmulp(Fhat_dagger, Phi_dagger, Phi_aux, n, n, m)
 	free(Phi_aux)
 	free(Phi_dagger)
+	free(Fhat_dagger)
 	cr_stop('RES.Qhat', 0)
 
 	# Compute the Choleski decomposition
 	cr_start('RES.Choleski', 0)
-	retval = c_zcholesky(Fhat, n)
+	cdef np.complex128_t *Fhat
+	Fhat = <np.complex128_t*>malloc(n*n*sizeof(np.complex128_t))
+	retval = c_zcholesky(Fhat_dagger, n)
 	if not retval == 0: raiseError('Problems computing Cholesky factorization!')
+	c_zdagger(Fhat_dagger, Fhat, n, n)
 	cdef np.complex128_t *Fhat_inv
 	Fhat_inv = <np.complex128_t*>malloc(n*n*sizeof(np.complex128_t))
 	memcpy(Fhat_inv, Fhat, n*n*sizeof(np.complex128_t))
-	retval = c_zinverse(Fhat_inv, n, 'L')
+	retval = c_zinverse(Fhat_inv, n, 'U')
 	if not retval == 0: raiseError('Problems computing the Inverse!')
 	cr_stop('RES.Choleski', 0)
 

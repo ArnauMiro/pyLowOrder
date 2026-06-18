@@ -44,7 +44,7 @@ def run(Phi, delta, freq, f, Q=None):
     else:
         Qhat = matmulp(dagger(Phi), vecmat(Q, Phi))
     
-    Fhat = cholesky(Qhat)
+    Fhat = dagger(cholesky(Qhat))
     Fhat_inv = inv(Fhat)
 
     Hhat = matmul(Fhat, vecmat(H, Fhat_inv))
