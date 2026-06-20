@@ -208,7 +208,6 @@ def _zrun(np.complex128_t[:,:] Phi, double[:] delta, double[:] freq, double f, d
 		c_zmatmulp(Fhat_dagger, Phi_dagger, Phi_aux, n, n, m)
 	free(Phi_aux)
 	free(Phi_dagger)
-	free(Fhat_dagger)
 	cr_stop('RES.Qhat', 0)
 
 	# Compute the Choleski decomposition
@@ -223,6 +222,7 @@ def _zrun(np.complex128_t[:,:] Phi, double[:] delta, double[:] freq, double f, d
 	memcpy(Fhat_inv, Fhat, n*n*sizeof(np.complex128_t))
 	retval = c_zinverse(Fhat_inv, n, 'U')
 	if not retval == 0: raiseError('Problems computing the Inverse!')
+	free(Fhat_dagger)
 	cr_stop('RES.Choleski', 0)
 
 	# Compute Hhat
@@ -275,6 +275,12 @@ def _zrun(np.complex128_t[:,:] Phi, double[:] delta, double[:] freq, double f, d
 
 	return U_res, S, V_res
 
+@cr('RES.run')
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
 def run(real_complex[:,:] Phi, real[:] delta, real[:] freq, real f, real[:] Q=None):
 	'''
     Resolvent Analysis of snapshot matrix X
