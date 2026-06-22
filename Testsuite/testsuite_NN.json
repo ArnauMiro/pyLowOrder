@@ -143,5 +143,15 @@
 		"reset"  : false,
 		"active" : true
 	},
+	"MultiRBFELM_airfoil": {
+		"name"	 : "MultiRBFELM airfoil data",
+		"module" : "NN",
+		"file"   : "runs/tsuite_MultiRBFELM.py",
+		"data"   : "DATA/AIRFOIL.h5",
+		"var"    : ["cp"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
 	}
 }

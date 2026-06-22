@@ -766,6 +766,9 @@ class MultiRBFELM:
         self._input_scalers:  List[Optional[object]] = [None] * n_clusters
         self._output_scalers: List[Optional[object]] = [None] * n_clusters
 
+        if seed is not None:
+            set_seed(seed)
+
         self._log(f"MultiRBFELM — {n_clusters} clusters, up to {n_centers} centers each, overlap_factor={overlap_factor}")
 
     def _log(self, msg: str) -> None:
@@ -1078,7 +1081,7 @@ class MultiRBFELM:
 
         return preds_out
 
-    def save(self, path: str) -> None:
+    def save(self, path: str, verbose=True) -> None:
         r"""
         Save the model to a ``.pth`` checkpoint file.
 
@@ -1108,7 +1111,8 @@ class MultiRBFELM:
             "output_scalers": self._output_scalers,
             "models":         [m._define_checkpoint() if m is not None else None for m in self._models],
         }, path)
-        self._log(f"[MultiRBFELM] Saved to {path}")
+        if verbose:
+            pprint(0, f"[MultiRBFELM] Saved to {path}")
 
     @classmethod
     def load(cls, path: str, device: torch.device = DEVICE, verbose: bool = True) -> "MultiRBFELM":
