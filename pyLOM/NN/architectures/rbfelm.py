@@ -1171,10 +1171,7 @@ class MultiRBFELM:
         r"""
         Create an optimized :class:`MultiRBFELM` using Optuna.
         Each trial instantiates a fresh :class:`RBFELM`, calls :meth:`fit`, and scores it on ``eval_dataset`` using MSE. After all trials the best hyperparameters are used to build the returned model.
-
-        A single Optuna study optimizes all parameters at once. Every trial samples one value per parameter and uses it uniformly across all clusters.
-        Optimizable parameters:
-        ``n_clusters``, ``n_centers``, ``overlap_factor``, ``reg_lambda``, ``gamma``, ``gamma_k``, ``gamma_alpha``.
+        Optimizable parameters include: ``n_clusters``, ``n_centers``, ``overlap_factor``, ``reg_lambda``, ``gamma``, ``gamma_k``, and ``gamma_alpha``.
 
         Args:
             train_dataset (torch.utils.data.Dataset): The training dataset.
@@ -1189,14 +1186,15 @@ class MultiRBFELM:
         >>> from pyLOM.NN import MultiRBFELM, OptunaOptimizer
         >>> train_dataset, eval_dataset = dataset.get_splits([0.8, 0.2])
         >>> optimization_params = {
-        ...     "n_clusters":    (2, 16),
-        ...     "n_centers":     (500, 5000),
-        ...     "overlap_factor":(1.0, 2.0),
-        ...     "reg_lambda":    (1e-6, 1e-1),
-        ...     "gamma_k":       (5, 50),
-        ...     "gamma_alpha":   (0.5, 2.0),
+        ...     "n_clusters":      (2, 16),
+        ...     "n_centers":       (500, 5000),
+        ...     "overlap_factor":  (1.0, 2.0),
+        ...     "reg_lambda":      (1e-6, 1e-1),
+        ...     "gamma_k":         (5, 50),
+        ...     "gamma_alpha":     (0.5, 2.0),
         ...     "center_sampling": "random",
         ...     "gamma_mode":      "local",
+        ...     "batch_size":      100_000,
         ... }
         >>> optimizer = OptunaOptimizer(
         ...     optimization_params = optimization_params,
