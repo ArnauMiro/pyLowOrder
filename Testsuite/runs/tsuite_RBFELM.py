@@ -75,9 +75,7 @@ td_test.print_stats(dataset_name='Test Dataset')
 
 ## Generate model
 optimization_params = {
-    "n_clusters":      (1, 2),
     "n_centers":       (20, 50),
-    "overlap_factor":  (1.0, 2.0),
     "reg_lambda":      (1e-6, 1e-1),
     "gamma_k":         (1, 5),
     "gamma_alpha":     (0.5, 2.0),
