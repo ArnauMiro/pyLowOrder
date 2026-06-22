@@ -131,5 +131,17 @@
 		"nprocs" : 1,
 		"reset"  : false,
 		"active" : false
+	},
+	"RBFELM_airfoil": {
+		"name"	 : "RBFELM airfoil data",
+		"module" : "NN",
+		"file"   : "runs/tsuite_RBFELM.py",
+		"data"   : "DATA/AIRFOIL.h5",
+		"var"    : ["cp"],
+		"params" : {},
+		"nprocs" : 1,
+		"reset"  : false,
+		"active" : true
+	},
 	}
 }

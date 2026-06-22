@@ -157,6 +157,7 @@ class RBFELM(nn.Module):
             ]
             for key in keys_print:
                 pprint(0, f"\t{key}: {getattr(self, key)}")
+            pprint(0, "")            
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if not self._is_fitted():
@@ -525,7 +526,7 @@ class RBFELM(nn.Module):
             "beta":             self.beta,
         }
 
-    def save(self, path: str) -> None:
+    def save(self, path: str, verbose: bool = True) -> None:
         r"""
         Save the model to a ``.pth`` checkpoint file.
 
@@ -536,7 +537,8 @@ class RBFELM(nn.Module):
         if os.path.isdir(path):
             path = os.path.join(path, f"{self._model_name}.pth")
         torch.save(self._define_checkpoint(), path)
-        pprint(0, f"\tModel saved at: {path}")
+        if verbose:
+            pprint(0, f"Model saved at: {path}")
 
     @classmethod
     def _from_checkpoint(cls, checkpoint: dict, device: torch.device, verbose: bool):
