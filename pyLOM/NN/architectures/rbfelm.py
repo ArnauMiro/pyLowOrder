@@ -610,11 +610,10 @@ class RBFELM(nn.Module):
         ...     "batch_size": 10_000,
         ... }
         >>> optimizer = OptunaOptimizer(
-        ...     optimization_params=optimization_params,
-        ...     n_trials=30,
-        ...     direction="minimize",
-        ...     pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=5, interval_steps=1),
-        ...     save_dir=None,
+        ...     optimization_params = optimization_params,
+        ...     n_trials            = 30,
+        ...     direction           = "minimize",
+        ...     save_dir            = None,
         ... )
         >>> model, best_params = RBFELM.create_optimized_model(
         ...     train_dataset, eval_dataset, optimizer
@@ -1167,15 +1166,53 @@ class MultiRBFELM:
         train_dataset:  torch.utils.data.Dataset,
         eval_dataset:   torch.utils.data.Dataset,
         optuna_optimizer,
-        local_optimization: bool = False,
         **kwargs,
     ) -> Tuple["MultiRBFELM", Dict]:
+        r"""
+        Create an optimized :class:`MultiRBFELM` using Optuna.
+        Each trial instantiates a fresh :class:`RBFELM`, calls :meth:`fit`, and scores it on ``eval_dataset`` using MSE. After all trials the best hyperparameters are used to build the returned model.
+
+        A single Optuna study optimizes all parameters at once. Every trial samples one value per parameter and uses it uniformly across all clusters.
+        Optimizable parameters:
+        ``n_clusters``, ``n_centers``, ``overlap_factor``, ``reg_lambda``, ``gamma``, ``gamma_k``, ``gamma_alpha``.
+
+        Args:
+            train_dataset (torch.utils.data.Dataset): The training dataset.
+            eval_dataset (torch.utils.data.Dataset): The evaluation dataset.
+            optuna_optimizer (OptunaOptimizer): The optimizer used for optimization. Its ``optimization_params`` dict controls which parameters are tuned and their search spaces.
+            kwargs: Additional keyword arguments.
+
+        Returns:
+            Tuple[MultiRBFELM, Dict]: The optimized model and the optimization parameters.
+
+        Example:
+        >>> from pyLOM.NN import MultiRBFELM, OptunaOptimizer
+        >>> train_dataset, eval_dataset = dataset.get_splits([0.8, 0.2])
+        >>> optimization_params = {
+        ...     "n_clusters":    (2, 16),
+        ...     "n_centers":     (500, 5000),
+        ...     "overlap_factor":(1.0, 2.0),
+        ...     "reg_lambda":    (1e-6, 1e-1),
+        ...     "gamma_k":       (5, 50),
+        ...     "gamma_alpha":   (0.5, 2.0),
+        ...     "center_sampling": "random",
+        ...     "gamma_mode":      "local",
+        ... }
+        >>> optimizer = OptunaOptimizer(
+        ...     optimization_params = optimization_params,
+        ...     n_trials            = 30,
+        ...     direction           = "minimize",
+        ...     save_dir            = None,
+        ... )
+        >>> model, best_params = MultiRBFELM.create_optimized_model(
+        ...     train_dataset, eval_dataset, optimizer
+        ... )
+        >>> model.fit(train_dataset, **best_params)
+        """
         if not _OPTUNA_AVAILABLE:
             raiseError("Optuna is required for create_optimized_model. Install it with: pip install optuna")
 
         optimization_params = optuna_optimizer.optimization_params
-
-        _GLOBAL_PARAMS = {"n_clusters", "overlap_factor"}
 
         def suggest_value(name, space, trial):
             if isinstance(space, dict):
@@ -1210,42 +1247,39 @@ class MultiRBFELM:
 
             return space
 
-        # Global optimization (single Optuna study for all parameters)
-        if not local_optimization:
+        def optimization_function(trial) -> float:
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
-            def optimization_function(trial) -> float:
+            model = None
+
+            try:
+                training_params = {}
+                for key, space in optimization_params.items():
+                    training_params[key] = suggest_value(key, space, trial)
+                training_params["save_logs_path"] = None
+
+                model = cls(verbose = False, **training_params)
+                results = model.fit(train_dataset, verbose=False, **training_params)
+                y_pred, y_true = model.predict(eval_dataset, return_targets=True)
+                return float(((y_pred - y_true) ** 2).mean())
+
+            except RuntimeError as exc:
+                if "out of memory" in str(exc).lower():
+                    pprint(0, f"Trial {trial.number} failed due to out of memory error. Pruning the trial.")
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                    raise TrialPruned()
+                raise
+            finally:
+                if model is not None:
+                    del model
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
 
-                model = None
+        best_params = optuna_optimizer.optimize(objective_function=optimization_function)
 
-                try:
-                    training_params = {}
-                    for key, space in optimization_params.items():
-                        training_params[key] = suggest_value(key, space, trial)
-                    training_params["save_logs_path"] = None
+        # Update params with best ones
+        OptunaOptimizer.apply_to(optimization_params, optimized_params=best_params)
 
-                    model = cls(verbose = False, **training_params)
-                    results = model.fit(train_dataset, verbose=False, **training_params)
-                    y_pred, y_true = model.predict(eval_dataset, return_targets=True)
-                    return float(((y_pred - y_true) ** 2).mean())
-
-                except RuntimeError as exc:
-                    if "out of memory" in str(exc).lower():
-                        pprint(0, f"Trial {trial.number} failed due to out of memory error. Pruning the trial.")
-                        if torch.cuda.is_available():
-                            torch.cuda.empty_cache()
-                        raise TrialPruned()
-                    raise
-                finally:
-                    if model is not None:
-                        del model
-                    if torch.cuda.is_available():
-                        torch.cuda.empty_cache()
-
-            best_params = optuna_optimizer.optimize(objective_function=optimization_function)
-
-            # Update params with best ones
-            OptunaOptimizer.apply_to(optimization_params, optimized_params=best_params)
-
-            return cls(**optimization_params), optimization_params
+        return cls(**optimization_params), optimization_params
