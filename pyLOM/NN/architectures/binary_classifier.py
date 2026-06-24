@@ -1,13 +1,27 @@
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# Binary Classifier class.
+#
+# Last rev: 24/06/2026
+
 import numpy as np, os, pickle, torch, xgboost as xgb
 
-from typing             import Dict, List, Tuple, Callable
+from typing             import Dict, List, Tuple
 from torch.utils.data   import DataLoader
 from sklearn.metrics    import log_loss
-from ..optimizer        import OptunaOptimizer, TrialPruned
-from ..                 import DEVICE, PIN_MEMORY, set_seed # pyLOM/NN/__init__.py
-from ...                import pprint, cr # pyLOM/__init__.py
+
+from ..                 import DEVICE, PIN_MEMORY, set_seed
+from ..optimizer        import OptunaOptimizer
+from ...                import pprint, cr
 from ...utils.errors    import raiseWarning, raiseError
 
+try:
+    from optuna.exceptions import TrialPruned
+    _OPTUNA_AVAILABLE = True
+except ImportError:
+    _OPTUNA_AVAILABLE = False
 
 class BinaryClassifier:
     r"""
@@ -34,41 +48,41 @@ class BinaryClassifier:
 
     def __init__(
         self,
-        input_size: int,
+        input_size:             int,
         *,
-        learning_rate: float = 0.05,
-        n_estimators: int = 1000,
-        early_stopping_rounds: int = 100,
-        max_depth: int = 6,
-        subsample: float = 0.9,
-        colsample_bytree: float = 0.9,
-        reg_lambda: float = 1.0,
-        min_child_weight: float = 1.0,
-        tree_method: str = "hist",          # use "gpu_hist" if GPU build available
-        enable_categorical: bool = False,   # set True only if dtype is categorical and using hist/gpu_hist
-        seed: int = 42,
-        model_name: str = "xgb",
-        device: torch.device = DEVICE,
-        verbose: bool = True,
-        **kwargs: Dict,
+        learning_rate:          float = 0.05,
+        n_estimators:           int = 1000,
+        early_stopping_rounds:  int = 100,
+        max_depth:              int = 6,
+        subsample:              float = 0.9,
+        colsample_bytree:       float = 0.9,
+        reg_lambda:             float = 1.0,
+        min_child_weight:       float = 1.0,
+        tree_method:            str = "hist",           # use "gpu_hist" if GPU build available
+        enable_categorical:     bool = False,           # set True only if dtype is categorical and using hist/gpu_hist
+        seed:                   int = 42,
+        model_name:             str = "xgb",
+        device:                 torch.device = DEVICE,
+        verbose:                bool = True,
+        **kwargs:               Dict,
     ):
         
-        self.input_size = input_size
-        self.output_size = 1
-        self.learning_rate = learning_rate
-        self.n_estimators = n_estimators
-        self.early_stopping_rounds = early_stopping_rounds
-        self.max_depth = max_depth
-        self.subsample = subsample
-        self.colsample_bytree = colsample_bytree
-        self.reg_lambda = reg_lambda
-        self.min_child_weight = min_child_weight
-        self.tree_method = tree_method
-        self.enable_categorical = enable_categorical
-        self.seed = seed
-        self.model_name = model_name
-        self.mname = f"{self._model_name}_{self.n_estimators:05d}"
-        self.device = device
+        self.input_size             = input_size
+        self.output_size            = 1
+        self.learning_rate          = learning_rate
+        self.n_estimators           = n_estimators
+        self.early_stopping_rounds  = early_stopping_rounds
+        self.max_depth              = max_depth
+        self.subsample              = subsample
+        self.colsample_bytree       = colsample_bytree
+        self.reg_lambda             = reg_lambda
+        self.min_child_weight       = min_child_weight
+        self.tree_method            = tree_method
+        self.enable_categorical     = enable_categorical
+        self.seed                   = seed
+        self.model_name             = model_name
+        self.mname                  = f"{self._model_name}_{self.n_estimators:05d}"
+        self.device                 = device
 
         if seed is not None:
             set_seed(seed)
@@ -140,12 +154,12 @@ class BinaryClassifier:
     @cr('BinaryClassifier.fit')
     def fit(
         self,
-        train_dataset: torch.utils.data.Dataset,
-        eval_dataset: torch.utils.data.Dataset = None,
+        train_dataset:  torch.utils.data.Dataset,
+        eval_dataset:   torch.utils.data.Dataset = None,
         *,
-        batch_size: int = 32,
+        batch_size:     int = 32,
         save_logs_path: str = None,
-        verbose: bool = True,
+        verbose:        bool = True,
         **kwargs,
     ) -> Dict[str, List[float]]:
         r""""
@@ -192,34 +206,34 @@ class BinaryClassifier:
             eval_set = None
 
         self.model = xgb.XGBClassifier(
-            objective="binary:logistic",
-            eval_metric="logloss",
-            learning_rate=self.learning_rate,
-            n_estimators=self.n_estimators,
-            max_depth=self.max_depth,
-            subsample=self.subsample,
-            colsample_bytree=self.colsample_bytree,
-            reg_lambda=self.reg_lambda,
-            min_child_weight=self.min_child_weight,
-            scale_pos_weight=self._compute_scale_pos_weight(y_tr),
-            tree_method=self.tree_method,
-            enable_categorical=self.enable_categorical,
-            random_state=self.random_state,
-            n_jobs=0,
-            verbosity=0,
+            objective           = "binary:logistic",
+            eval_metric         = "logloss",
+            learning_rate       = self.learning_rate,
+            n_estimators        = self.n_estimators,
+            max_depth           = self.max_depth,
+            subsample           = self.subsample,
+            colsample_bytree    = self.colsample_bytree,
+            reg_lambda          = self.reg_lambda,
+            min_child_weight    = self.min_child_weight,
+            scale_pos_weight    = self._compute_scale_pos_weight(y_tr),
+            tree_method         = self.tree_method,
+            enable_categorical  = self.enable_categorical,
+            random_state        = self.random_state,
+            n_jobs              = 0,
+            verbosity           = 0,
         )
 
         self.model.fit(
             X_tr, y_tr,
             eval_set=eval_set if eval_set is not None else None,
             verbose=False,
-            # early_stopping_rounds=self.early_stopping_rounds if eval_set is not None else None,
+            early_stopping_rounds=self.early_stopping_rounds if eval_set is not None else None,
         )
 
         self.n_param_like_ = self._count_xgb_leaf_values(include_intercept=False, only_used_trees=True)
 
         train_losses = []
-        test_losses = []
+        test_losses  = []
 
         if eval_set is not None and hasattr(self.model, "evals_result"):
             ev = self.model.evals_result()
@@ -256,7 +270,16 @@ class BinaryClassifier:
         **kwargs,
     ):
         r"""
-        Predict the target values for the inputs data. 
+        Predict class probabilities for the input data.
+        
+        Args:
+            X (torch.utils.data.Dataset): The dataset whose label class is to be predicted using the input data.
+            return_targets (bool, optional): If True, also return the ground-truth labels (default: False).
+
+        Returns:
+            np.ndarray or Tuple[np.ndarray, np.ndarray]:
+                - ``all_prob``: Array of shape ``(N, 1)`` with predicted probabilities for the positive class.
+                - ``all_targets``: Array of shape ``(N, 1)`` with ground-truth labels (only returned when ``return_targets=True``).
         """
         dataloader_params = {
             "batch_size": 256,
@@ -289,21 +312,21 @@ class BinaryClassifier:
 
     def _define_checkpoint(self):
         return {
-            "input_size": self.input_size,
-            "learning_rate": self.learning_rate,
-            "n_estimators": self.n_estimators,
-            "max_depth": self.max_depth,
-            "subsample": self.subsample,
-            "colsample_bytree": self.colsample_bytree,
-            "reg_lambda": self.reg_lambda,
-            "min_child_weight": self.min_child_weight,
-            "tree_method": self.tree_method,
-            "enable_categorical": self.enable_categorical,
+            "input_size":            self.input_size,
+            "learning_rate":         self.learning_rate,
+            "n_estimators":          self.n_estimators,
+            "max_depth":             self.max_depth,
+            "subsample":             self.subsample,
+            "colsample_bytree":      self.colsample_bytree,
+            "reg_lambda":            self.reg_lambda,
+            "min_child_weight":      self.min_child_weight,
+            "tree_method":           self.tree_method,
+            "enable_categorical":    self.enable_categorical,
             "early_stopping_rounds": self.early_stopping_rounds,
-            "seed": self.seed,
-            "device": self.device,
-            "model_name": self._model_name,
-            "xgb_pickle": pickle.dumps(self.model),
+            "seed":                  self.seed,
+            "device":                self.device,
+            "model_name":            self._model_name,
+            "xgb_pickle":            pickle.dumps(self.model),
         }
 
     def save(self, path: str):
@@ -320,21 +343,21 @@ class BinaryClassifier:
         checkpoint["device"] = device
 
         model = cls(
-            input_size=checkpoint["input_size"],
-            learning_rate=checkpoint["learning_rate"],
-            n_estimators=checkpoint["n_estimators"],
-            max_depth=checkpoint["max_depth"],
-            subsample=checkpoint["subsample"],
-            colsample_bytree=checkpoint["colsample_bytree"],
-            reg_lambda=checkpoint["reg_lambda"],
-            min_child_weight=checkpoint["min_child_weight"],
-            tree_method=checkpoint["tree_method"],
-            enable_categorical=checkpoint["enable_categorical"],
-            early_stopping_rounds=checkpoint["early_stopping_rounds"],
-            seed=checkpoint["seed"],
-            model_name=checkpoint["model_name"],
-            device=checkpoint["device"],
-            verbose=verbose,
+            input_size              = checkpoint["input_size"],
+            learning_rate           = checkpoint["learning_rate"],
+            n_estimators            = checkpoint["n_estimators"],
+            max_depth               = checkpoint["max_depth"],
+            subsample               = checkpoint["subsample"],
+            colsample_bytree        = checkpoint["colsample_bytree"],
+            reg_lambda              = checkpoint["reg_lambda"],
+            min_child_weight        = checkpoint["min_child_weight"],
+            tree_method             = checkpoint["tree_method"],
+            enable_categorical      = checkpoint["enable_categorical"],
+            early_stopping_rounds   = checkpoint["early_stopping_rounds"],
+            seed                    = checkpoint["seed"],
+            model_name              = checkpoint["model_name"],
+            device                  = checkpoint["device"],
+            verbose                 = verbose,
         )
         model.model = pickle.loads(checkpoint["xgb_pickle"])
         model.checkpoint = checkpoint
@@ -361,6 +384,9 @@ class BinaryClassifier:
         Returns:
             Tuple[BinaryClassifier, Dict]: The optimized model and the optimization parameters.
         """
+        if not _OPTUNA_AVAILABLE:
+            raiseError("Optuna is required for create_optimized_model. Install it with: pip install optuna")
+                
         optimization_params = optuna_optimizer.optimization_params
         input_dim = train_dataset[0][0].shape[0]
 
@@ -375,34 +401,52 @@ class BinaryClassifier:
                 return space
 
         def optimization_function(trial):
-            training_params = {}
-            for k, spec in optimization_params.items():
-                training_params[k] = suggest_value(k, spec, trial)
-            training_params["save_logs_path"] = None
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
-            model = cls(input_dim, verbose=False, **training_params)
-            if optuna_optimizer.pruner is not None:
-                n_estimators = training_params["n_estimators"]
-                training_params["n_estimators"] = 1
-                for estimator in range(n_estimators):
+            model = None
+
+            try: 
+                training_params = {}
+                for k, spec in optimization_params.items():
+                    training_params[k] = suggest_value(k, spec, trial)
+                training_params["save_logs_path"] = None
+
+                model = cls(input_dim, verbose=False, **training_params)
+                if optuna_optimizer.pruner is not None:
+                    n_estimators = training_params["n_estimators"]
+                    training_params["n_estimators"] = 1
+                    for estimator in range(n_estimators):
+                        model.fit(train_dataset, verbose=False, **training_params)
+                        y_pred, y_true = model.predict(eval_dataset, return_targets=True)
+                        loss_val = log_loss(y_true, y_pred, labels=[0, 1])
+                        trial.report(loss_val, estimator)
+                        if trial.should_prune():
+                            raise TrialPruned()
+                else:
                     model.fit(train_dataset, verbose=False, **training_params)
                     y_pred, y_true = model.predict(eval_dataset, return_targets=True)
                     loss_val = log_loss(y_true, y_pred, labels=[0, 1])
-                    trial.report(loss_val, estimator)
-                    if trial.should_prune():
-                        raise TrialPruned()
-            else:
-                model.fit(train_dataset, verbose=False, **training_params)
-                y_pred, y_true = model.predict(eval_dataset, return_targets=True)
-                loss_val = log_loss(y_true, y_pred, labels=[0, 1])
 
-            return loss_val
+                return loss_val
+
+            except RuntimeError as exc:
+                if "out of memory" in str(exc).lower():
+                    pprint(0, f"Trial {trial.number} failed due to out of memory error. Pruning the trial.")
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                    raise TrialPruned()
+                raise
+
+            finally:
+                if model is not None:
+                    del model
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
 
         best_params = optuna_optimizer.optimize(objective_function=optimization_function)
 
         # Update params with best ones
-        for param in best_params.keys():
-            if param in optimization_params:
-                optimization_params[param] = best_params[param]
+        OptunaOptimizer.apply_to(optimization_params, optimized_params=best_params)
 
         return cls(input_dim, **optimization_params), optimization_params

@@ -267,7 +267,7 @@ class MulticlassClassifier:
                 if len(test_losses) > 0:
                     pprint(0, f"\tFinal Val MLLogLoss: {test_losses[-1]:.4e}")
         else:
-            prob_tr = self.model.predict_proba(X_tr)   # shape (N, n_classes)
+            prob_tr = self.model.predict_proba(X_tr)
             tr_ll = log_loss(y_tr, prob_tr)
             train_losses.append(tr_ll)
             if verbose:
