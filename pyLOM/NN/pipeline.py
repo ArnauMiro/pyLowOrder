@@ -188,14 +188,14 @@ class ClusteredPipeline:
     def __init__(
         self,
         train_dataset,
-        cluster_col_idx: int,
-        valid_dataset=None,
-        test_dataset=None, 
-        models_dict: Dict = None,
-        training_params_dict: Dict = None,
-        optimizers_dict: Dict = None,
-        model_classes_dict: Dict = None,
-        models_outputs_dict: Dict = None,
+        cluster_col_idx:        int,
+        valid_dataset:          torch.utils.data.Dataset | None = None,
+        test_dataset:           torch.utils.data.Dataset | None = None, 
+        models_dict:            Dict = None,
+        training_params_dict:   Dict = None,
+        optimizers_dict:        Dict = None,
+        model_classes_dict:     Dict = None,
+        models_outputs_dict:    Dict = None,
     ):
         self.train_dataset = train_dataset
         self.test_dataset = test_dataset
@@ -354,6 +354,7 @@ class ClusteredPipeline:
                     train_dataset = self.train_dataset_dict["classifier"],
                     eval_dataset = self.valid_dataset_dict["classifier"],
                     optuna_optimizer = self.optimizers_dict["classifier"],
+                    n_classes = self.n_clusters
                 )
 
                 self._models["classifier"] = model_classifier
@@ -403,7 +404,15 @@ class ClusteredPipeline:
 
         return self.model_outputs_dict
 
-    def evaluate(self, evaluators_dict, scalers: List = [None, None], threshold: float = 0.5, set_to_use: str = "test", deep: bool = False, verbose: bool = True) -> Dict:
+    def evaluate(
+        self, 
+        evaluators_dict,    Dict,
+        scalers:            List = [None, None], 
+        threshold:          float = 0.5, 
+        set_to_use:         str = "test", 
+        deep:               bool = False, 
+        verbose:            bool = True
+    ) -> Dict:
         r"""
         Evaluate the models on the test datasets.
         """
@@ -496,7 +505,8 @@ class ClusteredPipeline:
                 def _mask_filter_fn(inputs, outputs, mask_np):
                     return mask_np.tolist()
 
-                mask = (probs.flatten() < threshold) if cid == 0 else (probs.flatten() >= threshold)
+                predicted_class = np.argmax(probs, axis=1)
+                mask = (predicted_class == cid)
                 if isinstance(mask, torch.Tensor):
                     mask_np = mask.detach().cpu().numpy().astype(bool)
                 else:
@@ -534,53 +544,56 @@ class ClusteredPipeline:
 
         # Error of the models conditioned to the classifier output
         if deep:
-            if verbose:
-                pprint(0, "\nDeep evaluation of the full clustered model:")
-            y_true_classifier = metrics_dict["classifier"][1][1]
-            y_pred_probs_classifier = metrics_dict["classifier"][1][2]
-            y_pred_classifier = torch.Tensor([0 if p < threshold else 1 for p in y_pred_probs_classifier.flatten()])
+            if self.n_clusters != 2:
+                raiseWarning("Deep evaluation is only supported for binary classification. Skipping deep evaluation.")
+            else: 
+                if verbose:
+                    pprint(0, "\nDeep evaluation of the full clustered model:")
+                y_true_classifier = metrics_dict["classifier"][1][1]
+                y_pred_probs_classifier = metrics_dict["classifier"][1][2]
+                y_pred_classifier = torch.Tensor([0 if p < threshold else 1 for p in y_pred_probs_classifier.flatten()])
 
-            mask_tp = ( (y_true_classifier.flatten() == 1) & (y_pred_classifier.flatten() == 1) )
-            mask_tn = ( (y_true_classifier.flatten() == 0) & (y_pred_classifier.flatten() == 0) )
-            mask_fp = ( (y_true_classifier.flatten() == 0) & (y_pred_classifier.flatten() == 1) )
-            mask_fn = ( (y_true_classifier.flatten() == 1) & (y_pred_classifier.flatten() == 0) )
-            masks = [mask_tp, mask_tn, mask_fp, mask_fn]
-            names = ['True Positive', 'True Negative', 'False Positive', 'False Negative']
+                mask_tp = ( (y_true_classifier.flatten() == 1) & (y_pred_classifier.flatten() == 1) )
+                mask_tn = ( (y_true_classifier.flatten() == 0) & (y_pred_classifier.flatten() == 0) )
+                mask_fp = ( (y_true_classifier.flatten() == 0) & (y_pred_classifier.flatten() == 1) )
+                mask_fn = ( (y_true_classifier.flatten() == 1) & (y_pred_classifier.flatten() == 0) )
+                masks = [mask_tp, mask_tn, mask_fp, mask_fn]
+                names = ['True Positive', 'True Negative', 'False Positive', 'False Negative']
 
-            x_true_model = metrics_dict["full_model"][1][0]
-            y_true_model = metrics_dict["full_model"][1][1]
-            y_pred_model = metrics_dict["full_model"][1][2]
+                x_true_model = metrics_dict["full_model"][1][0]
+                y_true_model = metrics_dict["full_model"][1][1]
+                y_pred_model = metrics_dict["full_model"][1][2]
 
-            for midx, mask in enumerate(masks):
-                if isinstance(mask, torch.Tensor):
-                    mask_np = mask.detach().cpu().numpy().astype(bool)
-                else:
-                    mask_np = np.asarray(mask, dtype=bool)
+                for midx, mask in enumerate(masks):
+                    if isinstance(mask, torch.Tensor):
+                        mask_np = mask.detach().cpu().numpy().astype(bool)
+                    else:
+                        mask_np = np.asarray(mask, dtype=bool)
 
-                if mask_np.size != len(self.evaluation_dataset):
-                    raiseError(f"Mask length {mask_np.size} != dataset length {len(self.evaluation_dataset)}")
+                    if mask_np.size != len(self.evaluation_dataset):
+                        raiseError(f"Mask length {mask_np.size} != dataset length {len(self.evaluation_dataset)}")
 
-                x_true_cond = x_true_model[mask_np]
-                y_true_cond = y_true_model[mask_np]
-                y_pred_cond = y_pred_model[mask_np]
+                    x_true_cond = x_true_model[mask_np]
+                    y_true_cond = y_true_model[mask_np]
+                    y_pred_cond = y_pred_model[mask_np]
 
-                metrics_cond = {}
-                for evaluator in evaluators_dict["full_model"]:
-                    metrics_cond.update(evaluator(y_true_cond, y_pred_cond))
-                    if verbose:
-                        pprint(0, f"\nConditioned on {names[midx]}:")
-                        evaluator.print_metrics()
+                    metrics_cond = {}
+                    for evaluator in evaluators_dict["full_model"]:
+                        metrics_cond.update(evaluator(y_true_cond, y_pred_cond))
+                        if verbose:
+                            pprint(0, f"\nConditioned on {names[midx]}:")
+                            evaluator.print_metrics()
 
-                key_suffix = ""
-                if np.all(mask_np == (mask_tp.detach().cpu().numpy().astype(bool))):
-                    key_suffix = "TP"
-                elif np.all(mask_np == (mask_tn.detach().cpu().numpy().astype(bool))):
-                    key_suffix = "TN"
-                elif np.all(mask_np == (mask_fp.detach().cpu().numpy().astype(bool))):
-                    key_suffix = "FP"
-                elif np.all(mask_np == (mask_fn.detach().cpu().numpy().astype(bool))):
-                    key_suffix = "FN"
+                    key_suffix = ""
+                    if np.all(mask_np == (mask_tp.detach().cpu().numpy().astype(bool))):
+                        key_suffix = "TP"
+                    elif np.all(mask_np == (mask_tn.detach().cpu().numpy().astype(bool))):
+                        key_suffix = "TN"
+                    elif np.all(mask_np == (mask_fp.detach().cpu().numpy().astype(bool))):
+                        key_suffix = "FP"
+                    elif np.all(mask_np == (mask_fn.detach().cpu().numpy().astype(bool))):
+                        key_suffix = "FN"
 
-                metrics_dict[f"full_model_{key_suffix}"] = metrics_cond, [x_true_cond, y_true_cond, y_pred_cond]
+                    metrics_dict[f"full_model_{key_suffix}"] = metrics_cond, [x_true_cond, y_true_cond, y_pred_cond]
 
-        return metrics_dict
+            return metrics_dict
