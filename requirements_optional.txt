@@ -1,3 +1,4 @@
 pyvista
 optuna
 nvtx
+scikit-sparse
