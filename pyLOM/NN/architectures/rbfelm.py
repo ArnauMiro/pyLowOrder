@@ -6,7 +6,7 @@
 #
 # Last rev: 09/06/2026
 
-import math, os, json, pickle, numpy as np, torch, torch.nn as nn
+import math, os, numpy as np, torch, torch.nn as nn, scipy.sparse as sp
 
 from typing                 import Dict, Optional, Tuple, List
 from sklearn.neighbors      import NearestNeighbors
@@ -18,6 +18,12 @@ from ..                     import Dataset as NNDataset, RobustScaler
 from ..optimizer            import OptunaOptimizer
 from ...utils.errors        import raiseError
 from ...                    import pprint, cr
+
+try:
+    from sksparse.cholmod import cholesky as cholmod_cholesky
+    _CHOLMOD_AVAILABLE = True
+except ImportError:
+    _CHOLMOD_AVAILABLE = False
 
 try:
     from optuna.exceptions import TrialPruned
@@ -302,15 +308,8 @@ class RBFELM(nn.Module):
 
         """
         if use_cholmod: 
-            try:
-                import scipy.sparse as sp
-                from sksparse.cholmod import cholesky as cholmod_cholesky
-            except ImportError:
-                raise ImportError(
-                    "scikit-sparse is required for use_cholmod=True.\n"
-                    "Install with: conda install -c conda-forge scikit-sparse\n"
-                    "          or: pip install scikit-sparse"
-                )
+            if not _CHOLMOD_AVAILABLE:
+                raiseError("scikit-sparse is required for use_cholmod=True. Install with: pip install scikit-sparse")
 
         _dataloader_kwargs = {
             "batch_size": batch_size,
