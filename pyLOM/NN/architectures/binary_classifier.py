@@ -206,28 +206,28 @@ class BinaryClassifier:
             eval_set = None
 
         self.model = xgb.XGBClassifier(
-            objective           = "binary:logistic",
-            eval_metric         = "logloss",
-            learning_rate       = self.learning_rate,
-            n_estimators        = self.n_estimators,
-            max_depth           = self.max_depth,
-            subsample           = self.subsample,
-            colsample_bytree    = self.colsample_bytree,
-            reg_lambda          = self.reg_lambda,
-            min_child_weight    = self.min_child_weight,
-            scale_pos_weight    = self._compute_scale_pos_weight(y_tr),
-            tree_method         = self.tree_method,
-            enable_categorical  = self.enable_categorical,
-            random_state        = self.random_state,
-            n_jobs              = 0,
-            verbosity           = 0,
+            objective             = "binary:logistic",
+            eval_metric           = "logloss",
+            learning_rate         = self.learning_rate,
+            n_estimators          = self.n_estimators,
+            max_depth             = self.max_depth,
+            subsample             = self.subsample,
+            colsample_bytree      = self.colsample_bytree,
+            reg_lambda            = self.reg_lambda,
+            min_child_weight      = self.min_child_weight,
+            scale_pos_weight      = self._compute_scale_pos_weight(y_tr),
+            tree_method           = self.tree_method,
+            enable_categorical    = self.enable_categorical,
+            random_state          = self.random_state,
+            early_stopping_rounds = self.early_stopping_rounds if eval_set is not None else None,
+            n_jobs                = 0,
+            verbosity             = 0,
         )
 
         self.model.fit(
             X_tr, y_tr,
             eval_set=eval_set if eval_set is not None else None,
             verbose=False,
-            early_stopping_rounds=self.early_stopping_rounds if eval_set is not None else None,
         )
 
         self.n_param_like_ = self._count_xgb_leaf_values(include_intercept=False, only_used_trees=True)

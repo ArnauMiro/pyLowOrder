@@ -229,21 +229,22 @@ class MulticlassClassifier:
         )
 
         self.model = xgb.XGBClassifier(
-            objective           = "multi:softprob",
-            eval_metric         = "mlogloss",
-            num_class           = self.n_classes,
-            learning_rate       = self.learning_rate,
-            n_estimators        = self.n_estimators,
-            max_depth           = self.max_depth,
-            subsample           = self.subsample,
-            colsample_bytree    = self.colsample_bytree,
-            reg_lambda          = self.reg_lambda,
-            min_child_weight    = self.min_child_weight,
-            tree_method         = self.tree_method,
-            enable_categorical  = self.enable_categorical,
-            random_state        = self.random_state,
-            n_jobs              = 0,
-            verbosity           = 0,
+            objective             = "multi:softprob",
+            eval_metric           = "mlogloss",
+            num_class             = self.n_classes,
+            learning_rate         = self.learning_rate,
+            n_estimators          = self.n_estimators,
+            max_depth             = self.max_depth,
+            subsample             = self.subsample,
+            colsample_bytree      = self.colsample_bytree,
+            reg_lambda            = self.reg_lambda,
+            min_child_weight      = self.min_child_weight,
+            tree_method           = self.tree_method,
+            enable_categorical    = self.enable_categorical,
+            random_state          = self.random_state,
+            early_stopping_rounds = self.early_stopping_rounds if eval_set is not None else None,
+            n_jobs                = 0,
+            verbosity             = 0,
         )
 
         self.model.fit(
@@ -251,7 +252,6 @@ class MulticlassClassifier:
             sample_weight=sample_weight,
             eval_set=eval_set if eval_set is not None else None,
             verbose=False,
-            early_stopping_rounds=self.early_stopping_rounds if eval_set is not None else None,
         )
 
         self.n_param_like_ = self._count_xgb_leaf_values(include_intercept=False, only_used_trees=True)
