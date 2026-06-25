@@ -47,8 +47,9 @@ def QR(X:np.ndarray,k:int,q:int=1,osampl:int=10):
 		q (int, optional): number of power iterations
 		osampl (int, optional): number of oversampled modes
 
-	Returns
-		[np.ndarray, np.ndarray] the Q and B matrices with k modes each
+	Returns:
+		[np.ndarray, np.ndarray]:
+			Q and B matrices with k modes each
 	
 	"""
 	r   = k+osampl if k+osampl < X.shape[1] else X.shape[1]

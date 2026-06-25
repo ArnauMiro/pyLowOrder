@@ -165,8 +165,8 @@ def instantiate_from_config(spec: Optional[Mapping[str, Any]]) -> Any:
         "weight_decay": 1e-4
         }
     
-    Returns
-    -------
+    Returns:
+    --------
     object : Any
         Instantiated object.
     """
