@@ -784,7 +784,7 @@ def h5_load_mesh_mpio(fname):
 	# Are we reading for the same number of partitions?
 	group = file['MESH']
 	nopartition = group.attrs.get('NOPARTITION',True)
-	if nopartition or not ptable.check_split():
+	if nopartition and not ptable.check_split():
 		# Read the number of elements and points to compute
 		# the new partition table
 		npoints, ncells = h5_load_meshes_size(group)
