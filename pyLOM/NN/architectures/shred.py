@@ -21,26 +21,26 @@ from   ..dataset           import Dataset
 
 class SHRED(nn.Module):
 	r'''
-    Shallow recurrent decoder (SHRED) architecture. For more information on the theoretical background of the architecture check the following reference
+	Shallow recurrent decoder (SHRED) architecture. For more information on the theoretical background of the architecture check the following reference
 		Williams, J. P., Zahn, O., & Kutz, J. N. (2023). Sensing with shallow recurrent decoder networks. arXiv preprint arXiv:2301.12011.
 	
 	The model is based on the PyTorch library `torch.nn` (detailed documentation can be found at https://pytorch.org/docs/stable/nn.html). 
 
 	In this implementation we assume that the output are always the POD coefficients of the full dataset.
 
-    Args:
-        output_size (int): Number of POD modes.
+	Args:
+		output_size (int): Number of POD modes.
 		device (torch.device): Device to use.
 		total_sensors (int): Total number of sensors that will be used to ensamble the different configurations.
-        hidden_size (int, optional): Dimension of the LSTM hidden layers (default: ``64``).
+		hidden_size (int, optional): Dimension of the LSTM hidden layers (default: ``64``).
 		hidden_layers (int, optional): Number of LSTM hidden layers (default: ``2``).
 		decoder_sizes (list, optional): Integer list of the decoder layer sizes (default: ``[350, 400]``).
 		input_size (int, optional): Number of sensor signals used as input (default: ``3``).
-        dropouts (float, optional): Dropout probability for the decoder (default: ``0.1``).
-        nconfigs (int, optional): Number of configurations to train SHRED on (default: ``1``).
-        compile (bool, optional): Flag to compile the model (default: ``False``).
-        seed (int, optional): Seed for reproducibility (default: ``-1``).
-    '''
+		dropouts (float, optional): Dropout probability for the decoder (default: ``0.1``).
+		nconfigs (int, optional): Number of configurations to train SHRED on (default: ``1``).
+		compile (bool, optional): Flag to compile the model (default: ``False``).
+		seed (int, optional): Seed for reproducibility (default: ``-1``).
+	'''
 	def __init__(
 			self, 
 			output_size:int, 
@@ -48,14 +48,16 @@ class SHRED(nn.Module):
 			total_sensors:int, 
 			hidden_size:int=64, 
 			hidden_layers:int=2, 
-			decoder_sizes:list=[350, 400], 
+			decoder_sizes:list=None, 
 			input_size:int=3, 
 			dropout:int=0.1, 
 			nconfigs:int=1, 
 			compile:bool=False, 
 			seed:int=-1):
 		super(SHRED,self).__init__()
-		np.random.seed(0) if seed == -1 else np.random.seed(seed)
+		rng = np.random.default_rng(None if seed == -1 else seed)
+		if decoder_sizes is None:
+			decoder_sizes = [350, 400]
 		if compile:
 			self.lstm    = torch.compile(nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=hidden_layers, batch_first=True), mode="max-autotune")
 			self.decoder = torch.compile(ShallowDecoder(output_size, hidden_size, decoder_sizes, dropout), mode="max-autotune")
@@ -66,10 +68,10 @@ class SHRED(nn.Module):
 		self.sensxconfig   = input_size
 		self.nconfigs      = nconfigs
 		self.hidden_layers = hidden_layers
-		self.hidden_size = hidden_size
+		self.hidden_size   = hidden_size
 		self.configs = np.zeros((self.nconfigs, self.sensxconfig), dtype=int)
 		for kk in range(self.nconfigs):
-			self.configs[kk,:] = np.random.choice(total_sensors, size=self.sensxconfig, replace=False)
+			self.configs[kk,:] = rng.choice(total_sensors, size=self.sensxconfig, replace=False)
 		
 		self.device = device
 		self.to(device)
@@ -203,7 +205,7 @@ class SHRED(nn.Module):
 			sensors (np.array): IDs of the sensors used for the current SHRED configuration.
 		'''
 		torch.save({
-		    'model_state_dict': self.state_dict(),
-		    'scaler_path'     : scaler_path,
-		    'podscale_path'   : podscale_path,
+			'model_state_dict': self.state_dict(),
+			'scaler_path'     : scaler_path,
+			'podscale_path'   : podscale_path,
 			'sensors'         : sensors,}, "%s.pth" % path)

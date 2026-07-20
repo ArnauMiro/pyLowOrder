@@ -6,7 +6,7 @@
 #
 # Last rev: 02/10/2024
 
-import os, random, json, numpy as np, torch, torch.nn as nn
+import os, random, numpy as np, torch, torch.nn as nn
 
 from .                import DEVICE
 

@@ -166,7 +166,7 @@ class Dataset(object):
 			'value' : var, 
 		}
 
-	def split_data(self,var,ptrain=0.7,mode='reconstruct'):
+	def split_data(self,var,ptrain=0.7,mode='reconstruct',seed=-1):
 		r'''
 		Generate random training, validation and test masks for a dataset of Nt samples.
 
@@ -185,7 +185,7 @@ class Dataset(object):
 		
 		N    = len(self.vars[var]["value"])
 		idim = self.vars[var]["idim"]
-		trid, vaid, teid = data_splitting(N,ptrain,mode)
+		trid, vaid, teid = data_splitting(N,ptrain,mode,seed=seed)
 		self.add_variable('training_%s'%var,idim,trid)
 		self.add_variable('validation_%s'%var,idim,vaid)
 		self.add_variable('test_%s'%var,idim,teid)
@@ -220,12 +220,9 @@ class Dataset(object):
 		Then for each sensor finds the nearest point from the dataset to get its coordinates and dataset value.
 		It creates a new dataset containing all the sensor coordinates and values
 		'''
-		# Fix seed if user requested
-		if seed >= 0: np.random.seed(seed)
-
 		# Obtain the indices of the sensors and to which rank
 		# this index has been found
-		idxsensors, ranksensors = find_random_sensors(bounds,self.xyz,nsensors)
+		idxsensors, ranksensors = find_random_sensors(bounds,self.xyz,nsensors,seed=seed)
 
 		# Create a new partition table
 		nparts   = MPI_SIZE

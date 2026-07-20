@@ -25,14 +25,14 @@ def data_splitting(Nt:int, ptrain:int, mode:str, seed:int=-1, root:int=0):
 	pval = (1. - ptrain)/2.
 	ptes = (1. - ptrain)/2.
 	# Setup seed
-	if seed >= 0: np.random.seed(seed)
+	rng = np.random.default_rng(None if seed == -1 else seed)
 
 	# Mask should be the same for all ranks, we thus generate it at rank=0
 	tridx, vaidx, teidx = [], [], []
 	if mode =='reconstruct':
 		if is_rank_or_serial(root):
 			# Here we explicitly avoid the start and end of the mask
-			tridx       = np.sort(np.random.choice(Nt-2, size=int(ptrain*Nt)-2, replace=False)+1)
+			tridx       = np.sort(rng.choice(Nt-2, size=int(ptrain*Nt)-2, replace=False)+1)
 			mask        = np.ones(Nt,dtype=bool)
 			mask[tridx] = 0
 			mask[0]     = 0
@@ -46,7 +46,7 @@ def data_splitting(Nt:int, ptrain:int, mode:str, seed:int=-1, root:int=0):
 			Ntest          = int(ptes*Nt)
 			Nother         = Nt - Ntest
 			# Here we explicitly avoid the start and end of the mask
-			tridx          = np.sort(np.random.choice(Nother-2, size=int(ptrain*Nt)-2, replace=False)+1)
+			tridx          = np.sort(rng.choice(Nother-2, size=int(ptrain*Nt)-2, replace=False)+1)
 			mask           = np.ones(Nt,dtype=bool)
 			mask[tridx]    = 0
 			mask[0]        = 0
@@ -80,7 +80,7 @@ def time_delay_embedding(X, dimension=50):
 
 	return X_delay
 
-def find_random_sensors(bounds:np.ndarray, xyz:np.ndarray, nsensors:int, root:int=0):
+def find_random_sensors(bounds:np.ndarray, xyz:np.ndarray, nsensors:int, seed:int=-1, root:int=0):
 	r'''
 	Generate a set of random points inside a bounding box and find the closest grid points to them
 
@@ -88,19 +88,21 @@ def find_random_sensors(bounds:np.ndarray, xyz:np.ndarray, nsensors:int, root:in
 		bounds (np.ndarray): bounds of the box in the following format: np.array([xmin, xmax, ymin, ymax, zmin, zmax])
 		xyz (np.ndarray): coordinates of the grid
 		nsensors(int): number of sensors to generate
-		root(int): rank that generates the sensors
+		seed (int, optional): (default: ``-1``).
+		root (int,optional): (default: ``0``).
 
 	Returns:
 		np.ndarray: array with the indices of the points
 	'''
+	rng = np.random.default_rng(None if seed == -1 else seed)
 	# Generate random points using numpy's uniform distribution
 	# Here we build the random points at a global domain box in a single processor
 	# that is later broadcasted to every rank
 	xyz_sensors = []
 	if is_rank_or_serial(root):
-		x = np.random.uniform(bounds[0], bounds[1], nsensors)
-		y = np.random.uniform(bounds[2], bounds[3], nsensors)
-		z = np.random.uniform(bounds[4], bounds[5], nsensors) if len(bounds) > 4 else None
+		x = rng.uniform(bounds[0], bounds[1], nsensors)
+		y = rng.uniform(bounds[2], bounds[3], nsensors)
+		z = rng.uniform(bounds[4], bounds[5], nsensors) if len(bounds) > 4 else None
 		# Stack them into an Nxndim
 		xyz_sensors = np.vstack((x,y,z)).T if z is not None else np.vstack((x,y)).T
 	# Broadcast to all ranks
