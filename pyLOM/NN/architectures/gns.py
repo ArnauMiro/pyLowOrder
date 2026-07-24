@@ -18,7 +18,6 @@ import torch
 from torch import Tensor
 from torch.utils.data import Dataset as TorchDataset
 from torch_geometric.data import Data
-from optuna import Trial
 
 
 from .. import set_seed
@@ -682,7 +681,7 @@ class GNS(torch.nn.Module):
         shared_graph = Graph.load(graph_path)  # one in-memory graph for all trials
 
         @cr("GNS.optimization_function")
-        def objective(trial: Trial) -> float:
+        def objective(trial) -> float:
             # 1) Sample hyperparameters (plain dicts)
             model_dict = sample_params(model_space, trial)
             training_dict = sample_params(training_space, trial)
