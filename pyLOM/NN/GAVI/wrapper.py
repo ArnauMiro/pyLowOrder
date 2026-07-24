@@ -13,7 +13,7 @@
 # Last rev: 13/11/2025
 
 # General python imports
-import os, numpy as np
+import os, json, importlib, datetime, numpy as np
 import torch
 
 # General pyLOM inputs
@@ -30,7 +30,32 @@ from ...utils.cr                       import cr, cr_start, cr_stop
 from ...utils.parall                   import pprint
 from ...utils.mpi                      import mpi_reduce, mpi_barrier, MPI_RANK
 from ...utils.gpu                      import cpu_to_gpu, gpu_to_cpu, from_dlpack
+from ...utils.errors                   import raiseError, raiseWarning
 from ...inp_out.io_h5                  import h5_create_compressed, h5_flush_compressed
+
+
+## GAVI R-VAE configuration I/O
+GAVI_R_CONFIG_VERSION = 1
+
+
+def _activation_to_str(func) -> str:
+	r'''Serialise an activation instance as an import path, e.g. "torch.nn.SiLU".'''
+	cls = type(func)
+	if getattr(torch.nn, cls.__name__, None) is cls:
+		return 'torch.nn.%s' % cls.__name__
+	return '%s.%s' % (cls.__module__, cls.__name__)
+
+
+def _activation_from_str(path:str):
+	r'''Rebuild an activation from its import path. Default-constructed only.'''
+	module, _, name = path.rpartition('.')
+	return getattr(importlib.import_module(module), name)()
+
+
+def _gavi_paths(BASEDIR:str, modelstr:str, latent_dim:int):
+	r'''Checkpoint and configuration paths, sharing the stem written by ``fit``.'''
+	stem = os.path.join(BASEDIR.rstrip('/'), '%s_%i' % (modelstr, latent_dim))
+	return stem + '.pth', stem + '.json'
 
 
 ## Compute the randomized QR factorization
@@ -57,6 +82,7 @@ def QR(X:np.ndarray,k:int,q:int=1,osampl:int=10):
 	Q,B = randomized_qr(X,r,q,hybrid=True)
 	
 	return Q[:,:k].copy(), B[:k,:].copy()
+
 
 ## Compress the randomized QR factorization
 @cr('GAVI.vae_Q')
@@ -185,72 +211,164 @@ def reconstruct_Q(mesh:Mesh,nelxAE:int,nmod:int,Qmeans:np.ndarray,Qstds:np.ndarr
 	
 	return Q
 
+
 ## Autoencoder on the R
 @cr('GAVI.vae_R')
-def vae_R(data:Dataset, latent_dim:int, *, nepochs:int=2500, nlayers:int=3, conv_chan:int=64, hid_dim:int=32, kernel:int=4, padding:int=1, func:object=silu(), BASEDIR:str='./', modelstr='gavi_R_latent'):
+def vae_R(data:Dataset, latent_dim:int, *, eval_data:Dataset=None, nepochs:int=2500, nlayers:int=3, conv_chan:int=64, hid_dim:int=32, kernel:int=4, padding:int=1, func:object=silu(), 
+		batch_size:int=64, lr:float=5e-4, beta_start:float=0.0, beta_end:float=2.5e-2, beta_first:int=500, beta_last:int=1000, seed:int=None, BASEDIR:str='./', modelstr='gavi_R_latent'):
 	r"""
-	Function to get a disentangled latent representation of the B matrix from the randomized QR factorization:
+	Function to get a disentangled latent representation of the B matrix from the
+	randomized QR factorization.
 
-	Eiximeno, B., A., Miró, A., Kutz, J. N., Rodriguez, I., & Lehmkuhl, O. (2025). 
-	On the integration of geometry agnostic variational-autoencoders into large-scale SVD based models. 
-	Computers & Fluids, 302, 106797. https://doi.org/10.1016/j.compfluid.2025.106797
+	Eiximeno, B., Miro, A., Kutz, J. N., Rodriguez, I., & Lehmkuhl, O. (2025).
+	On the integration of geometry agnostic variational-autoencoders into large-scale
+	SVD based models. Computers & Fluids, 302, 106797.
 
 	Args:
-		data (Dataset): R matrix to compress
-		latent_dim (int): number of latent vectors
-		nepochs (int, optional): number of epochs to do the training (default ``1000``)
-		nlayers (int, optional): number of convolutional layers in the autoencoders (default ``1``)
-		conv_chan (int, optional): number of convolutional channels in each layer (default ``4``)
-		kernel (int, optional): size of the kernel of the convolutions (default ``4``)
-		padding (int, optional): size of the padding of the convolutions (default ``1``)
-		func (torch.module, optional): activation function (default ``silu()``)
+		data (Dataset): R matrix to compress.
+		latent_dim (int): number of latent vectors.
+		eval_data (Dataset, optional): held-out dataset for the validation loss.
+			``None`` (default) disables validation. Passing ``data`` here reports
+			the training loss twice and cannot detect overfitting.
+		nepochs (int, optional): number of training epochs (default ``2500``).
+		beta_start, beta_end, beta_first, beta_last: linear KL schedule. ``beta``
+			is ``beta_start`` until epoch ``beta_first`` and reaches ``beta_end``
+			at epoch ``beta_last``; a run shorter than ``beta_last`` never
+			reaches ``beta_end``.
+		seed (int, optional): seed for weight initialisation and the
+			reparameterisation draw (default ``None``, unseeded).
+		...
 
 	Returns:
-		Variational autoencoder
-
+		VariationalAutoencoder
 	"""
-
+	if seed is not None:
+		torch.manual_seed(seed)
+		if torch.cuda.is_available():
+			torch.cuda.manual_seed_all(seed)
 	nmod       = data.shape[2]
 	input_chan = data.shape[1]
 	activation = [func for _ in range(nlayers + 2)]
 	encoder    = Encoder1D(nlayers, latent_dim, nmod, input_chan, conv_chan, kernel, padding, activation, hid_dim, batch_norm=False)
 	decoder    = Decoder1D(nlayers, latent_dim, nmod, input_chan, conv_chan, kernel, padding, activation, hid_dim, batch_norm=False)
 	vae        = VariationalAutoencoder(latent_dim, (nmod,), input_chan, encoder, decoder)
-	vae.fit(data, eval_dataset=data, betasch=betaLinearScheduler(0,2.5e-2,500,1000), batch_size=64, epochs=nepochs, lr=5e-4, BASEDIR=BASEDIR, pin_memory=False, MODELSTR="%s_%i" % (modelstr,latent_dim))
-	#TODO: guardar tots els parametres del vae en un altre fitxer, potser npz o en diccionari pkl, per tal de poder carregar el gavi directament.
+	vae.gavi_config = dict(
+		latent_dim = latent_dim,
+		nmod       = nmod,
+		input_chan = input_chan,
+		nlayers    = nlayers,
+		conv_chan  = conv_chan,
+		hid_dim    = hid_dim,
+		kernel     = kernel,
+		padding    = padding,
+		batch_norm = False,
+		activation = _activation_to_str(func),
+		training   = dict(nepochs=nepochs, lr=lr, batch_size=batch_size,
+		                  beta_start=beta_start, beta_end=beta_end,
+		                  beta_first=beta_first, beta_last=beta_last,
+		                  seed=seed, validated=eval_data is not None),
+	)
+
+	betasch    = betaLinearScheduler(beta_start, beta_end, beta_first, beta_last)
+	vae.fit(data, eval_dataset=eval_data, betasch=betasch, batch_size=batch_size, epochs=nepochs, lr=lr, BASEDIR=BASEDIR, pin_memory=False, MODELSTR="%s_%i" % (modelstr, latent_dim))
+	save_vae_R(vae, BASEDIR=BASEDIR, modelstr=modelstr, save_weights=False)
 	return vae
 
 
-@cr('GAVI.load_vae_R')
-def load_vae_R(data:Dataset, latent_dim:int, *, nlayers:int=3, conv_chan:int=64, hid_dim:int=32, kernel:int=4, padding:int=1, func:object=silu(), BASEDIR:str='./', modelstr='gavi_R_latent'):
+@cr('GAVI.save_vae_R')
+def save_vae_R(vae, BASEDIR:str='./', modelstr:str='gavi_R_latent', save_weights:bool=False, **extra):
 	r"""
-	Load a trained GAVI R-VAE from a saved state_dict (same architecture as vae_R, no training).
-
-	Eiximeno, B., A., Miró, A., Kutz, J. N., Rodriguez, I., & Lehmkuhl, O. (2025).
-	On the integration of geometry agnostic variational-autoencoders into large-scale SVD based models.
-	Computers & Fluids, 302, 106797. https://doi.org/10.1016/j.compfluid.2025.106797
+	Save a GAVI R-VAE configuration so it can be reloaded without restating the
+	architecture.
 
 	Args:
-		data (Dataset): Dataset with same shape as used for training (used only for nmod, input_chan).
-		latent_dim (int): number of latent vectors (must match the saved model).
-		nlayers (int, optional): number of convolutional layers (default ``3``).
-		conv_chan (int, optional): number of convolutional channels (default ``64``).
-		hid_dim (int, optional): hidden dimension (default ``32``).
-		kernel (int, optional): kernel size (default ``4``).
-		padding (int, optional): padding (default ``1``).
-		func (object, optional): activation function (default ``silu()``).
-		BASEDIR (str, optional): directory containing ``gavi_R_latent_<latent_dim>.pth`` (default ``"./"``).
+		vae (VariationalAutoencoder): model returned by :func:`vae_R`, which carries
+			its own description in ``vae.gavi_config``.
+		BASEDIR (str, optional): output folder (default ``"./"``).
+		modelstr (str, optional): file stem (default ``"gavi_R_latent"``).
+		save_weights (bool, optional): also write the ``.pth``. ``fit`` already
+			writes it under the same stem, so this is only needed after
+			``fine_tune`` or manual surgery (default ``False``).
+		**extra: extra JSON-serialisable provenance stored under ``"extra"``
+			(fold index, split definition, scalar scalers, ...). Arrays do not
+			belong here; keep those in the companion ``.npz``.
 
 	Returns:
-		VariationalAutoencoder: VAE with loaded state_dict, in eval mode.
+		str: path to the JSON file written.
 	"""
-	nmod       = data.shape[2]
-	input_chan = data.shape[1]
-	activation = [func for _ in range(nlayers + 2)]
-	encoder    = Encoder1D(nlayers, latent_dim, nmod, input_chan, conv_chan, kernel, padding, activation, hid_dim, batch_norm=False)
-	decoder    = Decoder1D(nlayers, latent_dim, nmod, input_chan, conv_chan, kernel, padding, activation, hid_dim, batch_norm=False)
-	vae        = VariationalAutoencoder(latent_dim, (nmod,), input_chan, encoder, decoder)
-	ckpt_path  = os.path.join(BASEDIR.rstrip('/'),'%s_%i.pth' % (modelstr,latent_dim))
-	vae.load_state_dict(torch.load(ckpt_path, map_location=DEVICE, weights_only=True))
+	if not hasattr(vae, 'gavi_config'):
+		raiseError('This model carries no gavi_config: it was not built by GAVI.vae_R, or predates the configuration-saving change.')
+	cfg              = dict(vae.gavi_config)
+	pthfile, cfgfile = _gavi_paths(BASEDIR, modelstr, cfg['latent_dim'])
+	cfg['config_version'] = GAVI_R_CONFIG_VERSION
+	cfg['checkpoint']     = os.path.basename(pthfile)
+	cfg['torch_version']  = torch.__version__
+	cfg['saved']          = datetime.datetime.now().isoformat(timespec='seconds')
+	if extra: cfg['extra'] = {**cfg.get('extra', {}), **extra}
+
+	os.makedirs(os.path.dirname(cfgfile) or '.', exist_ok=True)
+	if save_weights: torch.save(vae.state_dict(), pthfile)
+	with open(cfgfile, 'w') as f:
+		json.dump(cfg, f, indent=2, sort_keys=True)
+	pprint(0, 'GAVI R-VAE configuration written to %s' % cfgfile, flush=True)
+	return cfgfile
+
+@cr('GAVI.load_vae_R')
+def load_vae_R(latent_dim:int, *, nlayers:int=None, conv_chan:int=None, hid_dim:int=None, kernel:int=None, padding:int=None, func:object=None,
+               BASEDIR:str='./', modelstr:str='gavi_R_latent', strict:bool=True):
+	r"""
+	Load a trained GAVI R-VAE from a saved state_dict (no training).
+
+	When ``<BASEDIR>/<modelstr>_<latent_dim>.json`` exists the architecture is read
+	from it and nothing else is required::
+
+		vae = pyLOM.NN.GAVI.load_vae_R(BASEDIR='gavi_folds/fold00')
+
+	If ``latent_dim`` is omitted the folder is globbed and must contain exactly one
+	configuration. When no configuration is found the previous behaviour applies:
+	``data`` and ``latent_dim`` become mandatory and the architecture defaults are
+	used, with a warning, since nothing then guarantees the network matches the
+	weights.
+
+	Args:
+		latent_dim (int, optional): number of latent vectors.
+		nlayers, conv_chan, hid_dim, kernel, padding, func (optional): override the
+			stored architecture. A warning is raised on disagreement.
+		BASEDIR (str, optional): folder holding the ``.pth`` and ``.json``.
+		modelstr (str, optional): file stem (default ``"gavi_R_latent"``).
+		strict (bool, optional): passed to ``load_state_dict`` (default ``True``).
+
+	Returns:
+		VariationalAutoencoder: model with the weights loaded, in eval mode, with
+		``vae.gavi_config`` reattached.
+	"""
+	# Locate the configuration
+	_, cfgfile = _gavi_paths(BASEDIR, modelstr, latent_dim)
+	with open(cfgfile, 'r') as f:
+			cfg = json.load(f)
+	given = dict(nlayers=nlayers, conv_chan=conv_chan, hid_dim=hid_dim, kernel=kernel, padding=padding)
+	keys = ('latent_dim','nmod','input_chan','nlayers','conv_chan','hid_dim','kernel','padding')
+	arch = {k: cfg[k] for k in keys}
+	arch['batch_norm'] = cfg.get('batch_norm', False)
+	arch['activation'] = cfg['activation']
+	for k, v in given.items():
+		if v is not None and v != arch[k]:
+			raiseWarning('%s=%r overrides the stored value %r' % (k, v, arch[k]))
+			arch[k] = v
+	if func is not None: arch['activation'] = _activation_to_str(func)
+	# Rebuild and load
+	activ      = _activation_from_str(arch['activation'])
+	activation = [activ for _ in range(arch['nlayers'] + 2)]
+	encoder    = Encoder1D(arch['nlayers'], arch['latent_dim'], arch['nmod'], arch['input_chan'],
+	                       arch['conv_chan'], arch['kernel'], arch['padding'], activation,
+	                       arch['hid_dim'], batch_norm=arch['batch_norm'])
+	decoder    = Decoder1D(arch['nlayers'], arch['latent_dim'], arch['nmod'], arch['input_chan'],
+	                       arch['conv_chan'], arch['kernel'], arch['padding'], activation,
+	                       arch['hid_dim'], batch_norm=arch['batch_norm'])
+	vae        = VariationalAutoencoder(arch['latent_dim'], (arch['nmod'],), arch['input_chan'],
+	                                    encoder, decoder)
+	ckpt, _    = _gavi_paths(BASEDIR, modelstr, arch['latent_dim'])
+	vae.load_state_dict(torch.load(ckpt, map_location=DEVICE, weights_only=True), strict=strict)
 	vae.eval()
+	vae.gavi_config = cfg if cfg is not None else arch
 	return vae

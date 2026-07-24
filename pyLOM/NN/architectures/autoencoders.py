@@ -551,7 +551,7 @@ class VariationalAutoencoder(Autoencoder):
                     recon, mu, logvar, _ = self(batch)
                     mse_i = self._lossfunc(batch, recon, reduction='sum')
                     kld_i = self._kld(mu,logvar)
-                    loss  = mse_i - beta/2*kld_i
+                    loss  = mse_i - beta*kld_i
                 scaler.scale(loss).backward()
                 scaler.step(optimizer)
                 scaler.update()
@@ -641,29 +641,26 @@ class VariationalAutoencoder(Autoencoder):
 
         return rec.cpu().numpy()
   
-    def correlation(self, dataset):
+    def correlation(self, dataset, savepath: str = None):
         r"""
         Compute the correlation between the latent variables of the given dataset.
 
         Args:
             dataset (torch.utils.data.Dataset): Dataset to compute the correlation.
+            savepath (str, optional): if given, the latent coordinates are saved
+                there as a ``.npy``. Nothing is written when ``None`` (default).
 
         Returns:
-            np.ndarray: Correlation between the latent variables.
+            [np.ndarray, float]: correlation matrix and 100*det(corr).
         """
-        ##  Compute correlation between latent variables
-        loader = torch.utils.data.DataLoader(dataset, batch_size=len(dataset), shuffle=False)
-        with torch.no_grad():
-            instant  = iter(loader)
-            batch    = next(instant)
-            batch    = batch.to(self._device)
-            _,_,_, z = self(batch)
-            np.save('z.npy',z.cpu())
-            corr = np.corrcoef(z.cpu(),rowvar=False)
-        detR = np.linalg.det(corr)*100
-        pprint(0,'Orthogonality between modes %.2f' % (detR), flush=True)
-        return corr, detR#.reshape((self.lat_dim*self.lat_dim,))
-    
+        z = self.latent_space(dataset, sample=False).cpu().numpy()
+        if savepath is not None:
+            np.save(savepath, z)
+        corr = np.corrcoef(z, rowvar=False)
+        detR = np.linalg.det(corr) * 100
+        pprint(0, 'Orthogonality between modes %.2f' % (detR), flush=True)
+        return corr, detR
+
     def modes(self):
         r"""
         Compute the modes of the latent space.
@@ -682,23 +679,29 @@ class VariationalAutoencoder(Autoencoder):
             mymod[:,imode] = modesr.reshape((self.N,), order='C')
         return mymod.reshape((self.N*self.lat_dim,),order='C')
 
-    def latent_space(self, dataset):
+    def latent_space(self, dataset: torch.utils.data.Dataset, sample: bool = True):
         r"""
         Compute the latent space of the elements of a given dataset.
 
         Args:
             dataset (torch.utils.data.Dataset): Dataset to compute the latent space.
+            sample (bool, optional): if ``True`` return a reparameterised draw
+                ``mu + sigma*eps``; if ``False`` (default) return the posterior
+                mean ``mu``, which is deterministic and is what downstream
+                surrogates should be trained against.
 
         Returns:
-            np.ndarray: Latent space of the dataset elements.
+            torch.Tensor: Latent coordinates, shape (num_samples, latent_dim).
         """
-        # Compute latent vectors
         loader = torch.utils.data.DataLoader(dataset, batch_size=len(dataset), shuffle=False)
+        was_training = self.training
+        self.eval()
         with torch.no_grad():
-            instant  = iter(loader)
-            batch    = next(instant)
-            batch    = batch.to(self._device)
-            _,_,_, z = self(batch)
+            batch      = next(iter(loader)).to(self._device)
+            mu, logvar = self.encoder(batch)
+            z          = self._reparamatrizate(mu, logvar) if sample else mu
+        if was_training:
+            self.train()
         return z
 
     def fine_tune(self, train_dataset, shape_, eval_dataset=None, epochs=1000, callback=None, lr=1e-4, BASEDIR='./', **dataloader_params):
@@ -966,23 +969,29 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
 
         return rec.cpu().numpy()
           
-    def latent_space(self, dataset):
+    def latent_space(self, dataset: torch.utils.data.Dataset, sample: bool = True):
         r"""
         Compute the latent space of the elements of a given dataset.
 
         Args:
             dataset (torch.utils.data.Dataset): Dataset to compute the latent space.
+            sample (bool, optional): if ``True`` return a reparameterised draw
+                ``mu + sigma*eps``; if ``False`` (default) return the posterior
+                mean ``mu``, which is deterministic and is what downstream
+                surrogates should be trained against.
 
         Returns:
-            np.ndarray: Latent space of the dataset elements.
+            torch.Tensor: Latent coordinates, shape (num_samples, latent_dim).
         """
-        # Compute latent vectors
         loader = torch.utils.data.DataLoader(dataset, batch_size=len(dataset), shuffle=False)
+        was_training = self.training
+        self.eval()
         with torch.no_grad():
-            instant  = iter(loader)
-            batch    = next(instant)
-            batch    = batch.to(self._device)
-            _,_,_, z = self(batch)
+            batch      = next(iter(loader)).to(self._device)
+            mu, logvar = self.encoder(batch)
+            z          = self._reparamatrizate(mu, logvar) if sample else mu
+        if was_training:
+            self.train()
         return z
 
     def fine_tune(self, train_dataset, shape_, eval_dataset=None, epochs=1000, callback=None, lr=1e-4, BASEDIR='./', **dataloader_params):
