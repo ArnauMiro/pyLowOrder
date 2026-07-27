@@ -32,7 +32,7 @@ latent = np.load(os.path.join(BASEDIR, 'latent_%i.npy' % latent_dim))
 # Decode (output is scaled, same as dataset.variables_out)
 with torch.no_grad():
     z   = torch.tensor(latent, dtype=torch.float32, device=pyLOM.NN.DEVICE)
-    dec = vae.decode(z)  # raw shape (num_samples, inp_chan, N)
+    dec = vae.decode(z)  # raw shape (inp_chan, N, num_samples)
 
 # Recovered energy on X and Y
 energy_x = pyLOM.NN.GAVI.energy(data, dec, 0)
