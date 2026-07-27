@@ -160,11 +160,18 @@ class Dataset(torch.utils.data.Dataset):
         - Rebuilds a torch.Tensor with shape (N, C, *mesh_shape) by default.
           If ``channels_last=True`` it returns (N, *mesh_shape, C).
         """
-        # 1) Prepare flattened list (one 2D block per channel)
-        np_vars = [np.asarray(v) for v in variables_out]
-        flat_list = [arr.reshape(-1, 1) for arr in np_vars]
+        # 1) Normalise every channel to a torch tensor without leaving its device.
+        #    torch.as_tensor is a no-op for a tensor that is already of the right
+        #    type and wraps a numpy array without copying, so neither input path
+        #    round-trips. detach() keeps autograd history out of the dataset;
+        #    np.asarray used to raise outright on a grad-requiring tensor.
+        t_vars = [(v if isinstance(v, torch.Tensor) else torch.as_tensor(v)).detach()
+                  for v in variables_out]
+        flat_list = [t.reshape(-1, 1) for t in t_vars]
 
-        # 2) Fit (once) and transform using list-mode (as required by the protocol)
+        # 2) Fit (once) and transform using list-mode (as required by the protocol).
+        #    The scalers accept tensors and hold their per-block parameters as Python
+        #    floats, so the transform is plain arithmetic and stays on the device.
         if outputs_scaler is not None:
             if not outputs_scaler.is_fitted:
                 outputs_scaler.fit(flat_list)
@@ -174,11 +181,9 @@ class Dataset(torch.utils.data.Dataset):
 
         # 3) Rebuild tensors and stack along the channel axis
         stacked = []
-        for scaled, orig in zip(flat_scaled, np_vars):
-            s = np.asarray(scaled).reshape(orig.shape)     # back to (N, *mesh_shape)
-            t = torch.as_tensor(s)
-            t = t.reshape(-1, *self.mesh_shape)
-            stacked.append(t)
+        for scaled, orig in zip(flat_scaled, t_vars):
+            s = scaled if isinstance(scaled, torch.Tensor) else torch.as_tensor(scaled)
+            stacked.append(s.reshape(-1, *self.mesh_shape))
 
         out = torch.stack(stacked, dim=-1 if channels_last else 1)
         if squeeze_last_dim:
@@ -187,7 +192,6 @@ class Dataset(torch.utils.data.Dataset):
             if (not channels_last) and out.shape[1] == 1:
                 out = out.squeeze(1)
         return out.float()
-
 
 
     def _process_parameters(self, parameters, combine_parameters_with_cartesian_prod):
@@ -700,8 +704,8 @@ class Dataset(torch.utils.data.Dataset):
             data = self[indices]
             if self.variables_in is None:
                 dataset = self._build_new(
-                    variables_out=tuple([data[:, i].reshape(-1, *self.mesh_shape).numpy()
-                                for i in range(self.num_channels)]),
+                    variables_out=tuple([data[:, i].reshape(-1, *self.mesh_shape)
+                                 for i in range(self.num_channels)]),
                     mesh_shape=self.mesh_shape,
                     variables_in=None,
                     combine_parameters_with_cartesian_prod=False,
@@ -709,16 +713,16 @@ class Dataset(torch.utils.data.Dataset):
                 )
             else:
                 dataset = self._build_new(
-                    variables_out=tuple([data[1][:, i].reshape(-1, *self.mesh_shape).numpy()
+                    variables_out=tuple([data[1][:, i].reshape(-1, *self.mesh_shape)
                                 for i in range(self.num_channels)]),
                     mesh_shape=self.mesh_shape,
-                    variables_in=data[0].numpy(),
+                    variables_in=data[0],
                     combine_parameters_with_cartesian_prod=False,
                     snapshots_by_column=False  # Since the data is already reshaped
                 )
             return dataset
         else:
-            return Subset(self, indices)
+            return Subset(self, indices)       
         
     def remove_column(self, column_idx: int, from_variables_out: bool):
         """
