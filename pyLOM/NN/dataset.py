@@ -187,10 +187,18 @@ class Dataset(torch.utils.data.Dataset):
 
         out = torch.stack(stacked, dim=-1 if channels_last else 1)
         if squeeze_last_dim:
-            if channels_last and out.shape[-1] == 1:
-                out = out.squeeze(-1)
-            if (not channels_last) and out.shape[1] == 1:
-                out = out.squeeze(1)
+            if channels_last:
+                # (N, *mesh_shape, C)
+                if out.shape[-1] == 1:                    # single channel
+                    out = out.squeeze(-1)
+                elif tuple(self.mesh_shape) == (1,):      # dummy mesh axis
+                    out = out.squeeze(-2)
+            else:
+                # (N, C, *mesh_shape)
+                if tuple(self.mesh_shape) == (1,):        # dummy mesh axis -> (N, C)
+                    out = out.squeeze(-1)
+                if out.ndim > 2 and out.shape[1] == 1:    # singleton channel -> (N, *mesh)
+                    out = out.squeeze(1)
         return out.float()
 
 
