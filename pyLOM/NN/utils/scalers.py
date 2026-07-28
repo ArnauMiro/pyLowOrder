@@ -83,6 +83,13 @@ def _deserialize_blocks(serial):
             out.append(list(item["indices"]))
     return out
 
+def _as_float(block):
+    """Cast to floating point only if needed, preserving float32."""
+    if isinstance(block, torch.Tensor):
+        return block if block.is_floating_point() else block.to(torch.get_default_dtype())
+    block = np.asarray(block)
+    return block if np.issubdtype(block.dtype, np.floating) else block.astype(np.float64)
+
 
 class ScalerProtocol(Protocol):
     r"""
@@ -154,15 +161,24 @@ class MinMaxScaler:
 
     # ---------- internal helpers (robustos y retrocompatibles) ----------
     def _ensure_2d(self, x):
-        """Return x as 2D array/tensor of shape (n_samples, n_features)."""
+        """Return x as a 2D array/tensor. A 1D input is promoted to a single
+        variable: a column when column=False, a row when column=True."""
         if isinstance(x, torch.Tensor):
             if x.ndim == 1:
-                return x.unsqueeze(1)
+                return x.unsqueeze(0) if self._column else x.unsqueeze(1)
             return x
         x = np.asarray(x)
         if x.ndim == 1:
-            x = x[:, None]
+            x = x[None, :] if self._column else x[:, None]
         return x
+
+    def _orient(self, X2d):
+        """With column=True the variables live along the rows, so transpose before
+        splitting into blocks. This restores the behaviour of the pre-refactor
+        _cast_variables, where the transpose preceded the column split.
+        The trailing `.T` already present in transform/inverse_transform then
+        restores the caller's original orientation."""
+        return X2d.T if self._column else X2d
 
     def _split_into_blocks(self, X2d):
         """
@@ -207,7 +223,7 @@ class MinMaxScaler:
         is_tensor = isinstance(variables, torch.Tensor)
 
         if is_array or is_tensor:
-            X = self._ensure_2d(variables)
+            X = self._orient(self._ensure_2d(variables))
             blocks = self._split_into_blocks(X)
         else:
             # List path (backward-compatible): each element can be (n, d_i)
@@ -247,7 +263,7 @@ class MinMaxScaler:
 
         # --- Case 1: array/tensor input ---
         if is_array or is_tensor:
-            X = self._ensure_2d(variables)
+            X = self._orient(self._ensure_2d(variables))
             blocks = self._split_into_blocks(X)
 
             if is_tensor:
@@ -258,7 +274,7 @@ class MinMaxScaler:
                 return out.T if self._column else out
             else:
                 scaled_blocks = [
-                    _scale_block(block.astype(float), p, self.feature_range) for block, p in zip(blocks, self.variable_scaling_params)
+                    _scale_block(_as_float(block), p, self.feature_range) for block, p in zip(blocks, self.variable_scaling_params)
                 ]
                 out = self._stack_blocks(scaled_blocks, as_tensor=False)
                 return out.T if self._column else out
@@ -286,7 +302,7 @@ class MinMaxScaler:
         is_tensor = isinstance(variables, torch.Tensor)
 
         if is_array or is_tensor:
-            X = self._ensure_2d(variables)
+            X = self._orient(self._ensure_2d(variables))
             blocks = self._split_into_blocks(X)
 
             if len(blocks) != len(self.variable_scaling_params):
@@ -302,7 +318,7 @@ class MinMaxScaler:
                 return out.T if self._column else out
             else:
                 inv_blocks = [
-                    _inv_block(block.astype(float), p, self.feature_range) for block, p in zip(blocks, self.variable_scaling_params)
+                    _inv_block(_as_float(block), p, self.feature_range) for block, p in zip(blocks, self.variable_scaling_params)
                 ]
                 out = self._stack_blocks(inv_blocks, as_tensor=False)
                 return out.T if self._column else out
@@ -374,7 +390,7 @@ class StandardScaler:
         is_tensor = isinstance(variables, torch.Tensor)
 
         if is_array or is_tensor:
-            X = self._ensure_2d(variables)
+            X = self._orient(self._ensure_2d(variables))
             blocks = [X[:, i:i+1] for i in range(X.shape[1])]
         else:
             blocks = [self._ensure_2d(v) for v in variables]
@@ -399,7 +415,7 @@ class StandardScaler:
         is_tensor = isinstance(variables, torch.Tensor)
 
         if is_array or is_tensor:
-            X = self._ensure_2d(variables)
+            X = self._orient(self._ensure_2d(variables))
             if X.shape[1] != len(self.variable_scaling_params):
                 raiseError(
                     f"Number of features ({X.shape[1]}) does not match fitted parameters ({len(self.variable_scaling_params)})"
@@ -433,7 +449,7 @@ class StandardScaler:
         is_tensor = isinstance(variables, torch.Tensor)
 
         if is_array or is_tensor:
-            X = self._ensure_2d(variables)
+            X = self._orient(self._ensure_2d(variables))
             if X.shape[1] != len(self.variable_scaling_params):
                 raiseError(
                     f"Number of features ({X.shape[1]}) does not match fitted parameters ({len(self.variable_scaling_params)})"
@@ -514,7 +530,7 @@ class RobustScaler:
         is_tensor = isinstance(variables, torch.Tensor)
 
         if is_array or is_tensor:
-            X = self._ensure_2d(variables)
+            X = self._orient(self._ensure_2d(variables))
             blocks = [X[:, i:i+1] for i in range(X.shape[1])]
         else:
             blocks = [self._ensure_2d(v) for v in variables]
@@ -536,7 +552,7 @@ class RobustScaler:
         is_tensor = isinstance(variables, torch.Tensor)
 
         if is_array or is_tensor:
-            X = self._ensure_2d(variables)
+            X = self._orient(self._ensure_2d(variables))
             if X.shape[1] != len(self.variable_scaling_params):
                 raiseError(
                     f"Number of features ({X.shape[1]}) does not match fitted parameters ({len(self.variable_scaling_params)})"
@@ -570,7 +586,7 @@ class RobustScaler:
         is_tensor = isinstance(variables, torch.Tensor)
 
         if is_array or is_tensor:
-            X = self._ensure_2d(variables)
+            X = self._orient(self._ensure_2d(variables))
             if X.shape[1] != len(self.variable_scaling_params):
                 raiseError(
                     f"Number of features ({X.shape[1]}) does not match fitted parameters ({len(self.variable_scaling_params)})"
