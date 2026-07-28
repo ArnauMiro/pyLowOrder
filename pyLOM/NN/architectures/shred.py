@@ -14,11 +14,11 @@ import numpy               as np
 import torch.nn            as nn
 import torch.nn.functional as F
 
-from   torch.utils.data    import DataLoader
-from   ...utils.cr         import cr
-from   .encoders_decoders  import ShallowDecoder
-from   ..dataset           import Dataset
-from ..utils.errors        import raiseError
+from torch.utils.data    import DataLoader
+from ...utils.cr         import cr
+from .encoders_decoders  import ShallowDecoder
+from ..dataset           import Dataset
+from ...utils.errors     import raiseError
 
 
 class SHRED(nn.Module):
