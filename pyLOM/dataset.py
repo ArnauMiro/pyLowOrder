@@ -308,8 +308,27 @@ class Dataset(object):
 
 	@cr('Dataset.save')
 	def save(self,fname,**kwargs):
-		'''
-		Store the field in various formats.
+		r'''
+		Store the dataset in pickle or HDF5 format.
+
+		Keyword Args:
+			mode (str): HDF5 opening mode (default ``'w'`` for a new file and
+				``'a'`` for an existing file).
+			mpio (bool): use parallel HDF5 when running with MPI (default ``True``).
+			nopartition (bool): store point data using its global ordering
+				(default ``False``).
+			append (bool): append the supplied variable and field block
+				(default ``False``).
+			append_resizable (bool): when used together with ``append=True``, keep
+				the regular ``VARIABLES`` and ``FIELDS`` groups and grow their value
+				datasets. Without this flag, ``append=True`` retains the existing
+				numbered-group append procedure (default ``False``).
+			append_total_size (int): optional number of entries to reserve along the
+				resizable append dimension. Only committed values are loaded, and the
+				capacity can still grow beyond this value.
+
+		Example:
+			``dataset.save('data.h5',append=True,append_resizable=True,append_total_size=1000)``
 		'''
 		# Guess format from extension
 		fmt = os.path.splitext(fname)[1][1:] # skip the .
@@ -322,9 +341,19 @@ class Dataset(object):
 			if not 'mode' in kwargs.keys():        kwargs['mode']        = 'w' if not os.path.exists(fname) else 'a'
 			if not 'mpio' in kwargs.keys():        kwargs['mpio']        = True
 			if not 'nopartition' in kwargs.keys(): kwargs['nopartition'] = False
+			# Select the append layout
+			append            = kwargs.pop('append',False)
+			append_resizable  = kwargs.pop('append_resizable',False)
+			append_total_size = kwargs.pop('append_total_size',None)
+			if append_resizable and not append:
+				raiseError('append_resizable requires append=True!')
+			if append_total_size is not None and not append_resizable:
+				raiseError('append_total_size requires append_resizable=True!')
 			# Append or save
-			if not kwargs.pop('append',False):
+			if not append:
 				io.h5_save_dset(fname,self.xyz,self.vars,self.fields,self.ordering,self.point,self.partition_table,**kwargs)
+			elif append_resizable:
+				io.h5_append_dset_resizable(fname,self.xyz,self.vars,self.fields,self.ordering,self.point,self.partition_table,append_total_size=append_total_size,**kwargs)
 			else:
 				io.h5_append_dset(fname,self.xyz,self.vars,self.fields,self.ordering,self.point,self.partition_table,**kwargs)
 

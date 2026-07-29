@@ -7,7 +7,7 @@
 # Last rev: 31/07/2021
 from __future__ import print_function, division
 
-import numpy as np, h5py
+import hashlib, numpy as np, h5py
 
 from typing import Optional, Mapping, Union
 from collections import OrderedDict
@@ -18,6 +18,129 @@ from ..utils           import cr, MPI_COMM, MPI_RANK, MPI_SIZE, is_rank_or_seria
 
 
 PYLOM_H5_VERSION = (3,0)
+
+H5_APPEND_MODE         = 'appendMode'
+H5_APPEND_CURSOR       = 'appendCursor'
+H5_APPEND_BLOCK_SIZE   = 'appendBlockSize'
+H5_APPEND_NOPARTITION  = 'appendNoPartition'
+H5_APPEND_LAYOUT_HASH  = 'appendLayoutHash'
+H5_RESIZABLE_APPEND    = 'resizable'
+H5_APPEND_CHUNK_BYTES  = 1024**2
+H5_APPEND_HASH_ROWS    = 65536
+
+
+def h5_resizable_append_cursor(file):
+	r'''
+	Return the committed length of a resizable append dataset.
+
+	Args:
+		file (h5py.Group): ``DATASET`` group in the HDF5 file.
+
+	Returns:
+		int or None: number of written entries, or ``None`` for a regular HDF5
+			dataset.
+	'''
+	stored_append_type = file.attrs.get(H5_APPEND_MODE,None)
+	if isinstance(stored_append_type,bytes): stored_append_type = stored_append_type.decode()
+	if not stored_append_type == H5_RESIZABLE_APPEND: return None
+	if not H5_APPEND_CURSOR in file.attrs:
+		raiseError('Resizable append cursor is missing!')
+	cursor = int(file.attrs[H5_APPEND_CURSOR])
+	if cursor < 0: raiseError('Invalid resizable append cursor <%d>!'%cursor)
+	return cursor
+
+
+def h5_resizable_append_block_size(varDict,fieldDict):
+	r'''
+	Validate a resizable append block and return its common length.
+
+	Resizable append currently supports one appended dimension. Every variable
+	therefore has ``idim=0`` and every field is a two-dimensional array whose
+	second dimension has the same length as all variables.
+
+	Args:
+		varDict (dict): dataset variables for the block.
+		fieldDict (dict): dataset fields for the block.
+
+	Returns:
+		int: number of entries in the append block.
+	'''
+	if varDict is None or len(varDict) == 0:
+		raiseError('Resizable append requires at least one variable!')
+	if fieldDict is None or len(fieldDict) == 0:
+		raiseError('Resizable append requires at least one field!')
+	block_sizes = []
+	for var in sorted(varDict.keys()):
+		value = np.asarray(varDict[var]['value'])
+		if not int(varDict[var]['idim']) == 0:
+			raiseError('Resizable append variable <%s> must have idim=0!'%var)
+		if not value.ndim == 1:
+			raiseError('Resizable append variable <%s> must be one-dimensional!'%var)
+		block_sizes.append(value.shape[0])
+	for var in sorted(fieldDict.keys()):
+		value = np.asarray(fieldDict[var]['value'])
+		if int(fieldDict[var]['ndim']) < 1:
+			raiseError('Resizable append field <%s> has an invalid ndim!'%var)
+		if not value.ndim == 2:
+			raiseError('Resizable append field <%s> must have one append dimension!'%var)
+		block_sizes.append(value.shape[1])
+	if block_sizes[0] < 1:
+		raiseError('Resizable append blocks cannot be empty!')
+	if not all(size == block_sizes[0] for size in block_sizes):
+		raiseError('All variables and fields in a resizable append must have the same size!')
+	return block_sizes[0]
+
+
+def h5_resizable_append_capacity(block_size,append_total_size):
+	r'''
+	Return the initial or requested physical capacity of an append dataset.
+
+	``append_total_size`` reserves space but does not set a hard maximum. The
+	underlying HDF5 arrays always retain an unlimited append dimension.
+
+	Args:
+		block_size (int): size of one append block.
+		append_total_size (int or None): requested total capacity.
+
+	Returns:
+		int: capacity large enough to contain the current block.
+	'''
+	if append_total_size is None: return block_size
+	if isinstance(append_total_size,(bool,np.bool_)) or not isinstance(append_total_size,(int,np.integer)):
+		raiseError('append_total_size must be a positive integer!')
+	if append_total_size < 1:
+		raiseError('append_total_size must be a positive integer!')
+	return max(block_size,int(append_total_size))
+
+
+def h5_resizable_append_layout_hash(xyz,ordering):
+	r'''
+	Return a stable MPI-wide fingerprint of a partitioned spatial layout.
+
+	The hash includes each rank's coordinate and ordering shapes, dtypes, and raw
+	values. Arrays are processed in bounded row chunks to avoid large temporary
+	copies when an input is not C-contiguous.
+
+	Args:
+		xyz (np.ndarray): local point coordinates.
+		ordering (np.ndarray): global ordering of local points.
+
+	Returns:
+		np.ndarray: MPI-wide SHA-256 digest with shape ``(32,)``.
+	'''
+	digest = hashlib.sha256()
+	for array in [np.asarray(xyz),np.asarray(ordering)]:
+		digest.update(array.dtype.str.encode('ascii'))
+		digest.update(np.asarray(array.shape,dtype='<i8').tobytes())
+		for istart in range(0,array.shape[0],H5_APPEND_HASH_ROWS):
+			chunk = np.ascontiguousarray(array[istart:istart+H5_APPEND_HASH_ROWS])
+			digest.update(memoryview(chunk).cast('B'))
+	local_hash = np.frombuffer(digest.digest(),dtype=np.uint8).copy()
+	if MPI_SIZE > 1:
+		digest = hashlib.sha256()
+		for rank_hash in MPI_COMM.allgather(local_hash): digest.update(rank_hash.tobytes())
+		return np.frombuffer(digest.digest(),dtype=np.uint8).copy()
+	return local_hash
 
 
 def h5_save_partition(file,ptable):
@@ -323,12 +446,13 @@ def h5_load_variables_single(file):
 	'''
 	Load the variables inside the HDF5 file
 	'''
+	cursor  = h5_resizable_append_cursor(file)
 	varDict = {}
 	for v in file['VARIABLES'].keys():
 		vargroup = file['VARIABLES'][v]
 		varDict[v] = {
 			'idim'  : int(vargroup['idim'][0]),
-			'value' : np.array(vargroup['value']),
+			'value' : np.array(vargroup['value'][:cursor] if not cursor is None else vargroup['value']),
 		}
 	# Return
 	return varDict
@@ -397,19 +521,280 @@ def h5_fill_field_datasets(dsetDict,fieldDict,ptable,point,inods,idx):
 			if fieldDict[var]['ndim'] > 1: raiseError('Cannot deal with multi-dimensional arrays when inods are provided!')
 			dsetDict[var]['value'][inods,:] = fieldDict[var]['value'][idx,:]
 
+
+def h5_create_resizable_variable_datasets(file,varDict,capacity,block_size):
+	r'''
+	Create the regular ``VARIABLES`` group with resizable value arrays.
+
+	Args:
+		file (h5py.Group): ``DATASET`` group in the HDF5 file.
+		varDict (dict): variables in the first append block.
+		capacity (int): initial physical length of each value array.
+		block_size (int): expected length of every append block.
+	'''
+	group = file.create_group('VARIABLES')
+	for var in sorted(varDict.keys()):
+		vargroup  = group.create_group(var)
+		value     = np.asarray(varDict[var]['value'])
+		itemsize  = max(1,value.dtype.itemsize)
+		chunk_len = min(block_size,max(1,H5_APPEND_CHUNK_BYTES//itemsize))
+		vargroup.create_dataset('idim',(1,),dtype='i4',data=int(varDict[var]['idim']))
+		vargroup.create_dataset('value',(capacity,),maxshape=(None,),chunks=(chunk_len,),dtype=value.dtype)
+
+
+def h5_create_resizable_field_datasets(file,fieldDict,capacity,block_size):
+	r'''
+	Create the regular ``FIELDS`` group with resizable value arrays.
+
+	Only the final, appended dimension is unlimited. The spatial dimension is
+	fixed from the first block, and ``vars`` records the logical written length
+	rather than the possibly larger reserved capacity.
+
+	Args:
+		file (h5py.Group): ``DATASET`` group in the HDF5 file.
+		fieldDict (dict): fields in the first append block.
+		capacity (int): initial physical length of each value array.
+		block_size (int): expected length of every append block.
+	'''
+	group   = file.create_group('FIELDS')
+	npoints = int(file['npoints'][0])
+	for var in sorted(fieldDict.keys()):
+		vargroup  = group.create_group(var)
+		value     = np.asarray(fieldDict[var]['value'])
+		ndim      = int(fieldDict[var]['ndim'])
+		nrows     = ndim*npoints
+		itemsize  = max(1,value.dtype.itemsize)
+		timechunk = min(block_size,max(1,H5_APPEND_CHUNK_BYTES//itemsize))
+		rowchunk  = min(nrows,max(1,H5_APPEND_CHUNK_BYTES//(itemsize*timechunk)))
+		vargroup.create_dataset('ndim',(1,),dtype='i4',data=ndim)
+		vargroup.create_dataset('nvar',(1,),dtype='i4',data=1)
+		vargroup.create_dataset('vars',(1,),dtype='i4',data=0)
+		vargroup.create_dataset('value',(nrows,capacity),maxshape=(nrows,None),chunks=(rowchunk,timechunk),dtype=value.dtype)
+
+
+def h5_validate_resizable_append_input(xyz,varDict,fieldDict,ordering,point,ptable,nopartition):
+	r'''
+	Validate local input and MPI-wide schema for a resizable append.
+
+	Args:
+		xyz (np.ndarray): local point coordinates.
+		varDict (dict): variables in the append block.
+		fieldDict (dict): fields in the append block.
+		ordering (np.ndarray): global ordering of local points.
+		point (bool): whether the fields contain point data.
+		ptable (PartitionTable): active partition table.
+		nopartition (bool): whether global point ordering is stored directly.
+
+	Returns:
+		int: common append block size.
+	'''
+	if ptable is None:
+		raiseError('Resizable append requires a partition table!')
+	xyz      = np.asarray(xyz)
+	ordering = np.asarray(ordering)
+	if not xyz.ndim == 2:
+		raiseError('Resizable append coordinates must be a two-dimensional array!')
+	if not ordering.ndim == 1 or not ordering.shape[0] == xyz.shape[0]:
+		raiseError('Resizable append ordering must contain one entry per point!')
+	if not np.issubdtype(ordering.dtype,np.integer) or np.any(ordering < 0):
+		raiseError('Resizable append ordering must contain non-negative integers!')
+	if h5_resizable_append_npoints(xyz,ordering,ptable,nopartition) < 1:
+		raiseError('Resizable append requires at least one spatial point!')
+	block_size = h5_resizable_append_block_size(varDict,fieldDict)
+	master     = ptable.has_master and MPI_RANK == 0
+	if not master:
+		for var in sorted(fieldDict.keys()):
+			ndim = int(fieldDict[var]['ndim'])
+			if point and ndim > 1:
+				raiseError('Resizable append point fields must be one-dimensional!')
+			if nopartition and ndim > 1:
+				raiseError('Cannot deal with multi-dimensional arrays in no partition mode!')
+			if not np.asarray(fieldDict[var]['value']).shape[0] == ndim*ordering.shape[0]:
+				raiseError('Resizable append field <%s> has an invalid spatial size!'%var)
+			if not nopartition:
+				istart,iend = ptable.partition_bounds(MPI_RANK,ndim=ndim,points=point)
+				if not iend-istart == np.asarray(fieldDict[var]['value']).shape[0]:
+					raiseError('Resizable append field <%s> does not match its partition bounds!'%var)
+	# Every rank must create and resize the same HDF5 schema in the same order.
+	schema = (
+		(xyz.shape[1],xyz.dtype.str,bool(ptable.has_master)),
+		tuple((var,int(varDict[var]['idim']),np.asarray(varDict[var]['value']).dtype.str,np.asarray(varDict[var]['value']).shape[0]) for var in sorted(varDict.keys())),
+		tuple((var,int(fieldDict[var]['ndim']),np.asarray(fieldDict[var]['value']).dtype.str,np.asarray(fieldDict[var]['value']).shape[1]) for var in sorted(fieldDict.keys())),
+		bool(point),bool(nopartition),
+	)
+	if MPI_SIZE > 1:
+		schemas = MPI_COMM.allgather(schema)
+		if not all(candidate == schemas[0] for candidate in schemas):
+			raiseError('Resizable append schema differs between MPI ranks!')
+	return block_size
+
+
+def h5_resizable_append_npoints(xyz,ordering,ptable,nopartition):
+	r'''
+	Return the global spatial size represented by an append input block.
+
+	Args:
+		xyz (np.ndarray): local coordinates.
+		ordering (np.ndarray): global ordering of local points.
+		ptable (PartitionTable): active partition table.
+		nopartition (bool): whether repeated points are removed by global index.
+
+	Returns:
+		int: global number of spatial points.
+	'''
+	if nopartition:
+		local_max = int(np.max(ordering)) if ordering.shape[0] > 0 else -1
+		return int(mpi_reduce(local_max,op='max',all=True)) + 1
+	npoints = mpi_reduce(xyz.shape[0] if not np.any(np.isnan(xyz)) else 0,op='sum',all=True)
+	if ptable.has_master: npoints -= 1
+	return int(npoints)
+
+
+def h5_validate_resizable_append_group(file,xyz,varDict,fieldDict,ordering,point,ptable,nopartition,block_size,layout_hash):
+	r'''
+	Validate an existing resizable append group and return cursor and capacity.
+
+	The validation prevents appending incompatible names, dtypes, dimensions,
+	partition layout, or spatial sizes to an existing file.
+
+	Args:
+		file (h5py.Group): ``DATASET`` group in the HDF5 file.
+		xyz, varDict, fieldDict, ordering, point, ptable, nopartition: append input.
+		block_size (int): validated input block size.
+		layout_hash (np.ndarray or None): partitioned spatial layout fingerprint.
+
+	Returns:
+		(int, int): committed cursor and current physical capacity.
+	'''
+	cursor = h5_resizable_append_cursor(file)
+	if cursor is None:
+		raiseError('Existing DATASET was not created with append_resizable=True!')
+	for attr in [H5_APPEND_BLOCK_SIZE,H5_APPEND_NOPARTITION]:
+		if not attr in file.attrs: raiseError('Resizable append attribute <%s> is missing!'%attr)
+	if not int(file.attrs[H5_APPEND_BLOCK_SIZE]) == block_size:
+		raiseError('Resizable append block size differs from the first block!')
+	if not bool(file.attrs[H5_APPEND_NOPARTITION]) == bool(nopartition):
+		raiseError('Cannot change nopartition while appending to a resizable dataset!')
+	if not nopartition:
+		if not H5_APPEND_LAYOUT_HASH in file.attrs:
+			raiseError('Resizable append spatial layout fingerprint is missing!')
+		if not np.array_equal(np.asarray(file.attrs[H5_APPEND_LAYOUT_HASH]),layout_hash):
+			raiseError('Resizable append spatial layout differs from the first block!')
+	if not bool(int(file['pointData'][0])) == bool(point):
+		raiseError('Cannot change point data type while appending to a resizable dataset!')
+	if not int(file['npoints'][0]) == h5_resizable_append_npoints(xyz,ordering,ptable,nopartition):
+		raiseError('Resizable append spatial size differs from the first block!')
+	if not file['xyz'].shape[1] == xyz.shape[1]:
+		raiseError('Resizable append coordinate dimension differs from the first block!')
+	if not 'VARIABLES' in file or not 'FIELDS' in file:
+		raiseError('Resizable append VARIABLES or FIELDS group is missing!')
+	if not sorted(file['VARIABLES'].keys()) == sorted(varDict.keys()):
+		raiseError('Resizable append variable names differ from the first block!')
+	if not sorted(file['FIELDS'].keys()) == sorted(fieldDict.keys()):
+		raiseError('Resizable append field names differ from the first block!')
+	capacities = []
+	for var in sorted(varDict.keys()):
+		vargroup = file['VARIABLES'][var]
+		value    = np.asarray(varDict[var]['value'])
+		if not int(vargroup['idim'][0]) == int(varDict[var]['idim']):
+			raiseError('Resizable append variable <%s> changed idim!'%var)
+		if not vargroup['value'].dtype == value.dtype:
+			raiseError('Resizable append variable <%s> changed dtype!'%var)
+		if not vargroup['value'].ndim == 1 or not vargroup['value'].maxshape == (None,) or vargroup['value'].chunks is None:
+			raiseError('Resizable append variable <%s> is not resizable!'%var)
+		capacities.append(vargroup['value'].shape[0])
+	for var in sorted(fieldDict.keys()):
+		fieldgroup = file['FIELDS'][var]
+		value      = np.asarray(fieldDict[var]['value'])
+		ndim       = int(fieldDict[var]['ndim'])
+		nrows      = ndim*int(file['npoints'][0])
+		if not int(fieldgroup['ndim'][0]) == ndim or not int(fieldgroup['nvar'][0]) == 1:
+			raiseError('Resizable append field <%s> changed dimensions!'%var)
+		if not fieldgroup['vars'].shape == (1,) or not fieldgroup['value'].dtype == value.dtype:
+			raiseError('Resizable append field <%s> has an incompatible schema!'%var)
+		if not fieldgroup['value'].shape[0] == nrows or not fieldgroup['value'].maxshape == (nrows,None) or fieldgroup['value'].chunks is None:
+			raiseError('Resizable append field <%s> is not resizable!'%var)
+		capacities.append(fieldgroup['value'].shape[1])
+	if len(set(capacities)) != 1:
+		raiseError('Resizable append arrays have inconsistent capacities!')
+	if cursor > capacities[0]:
+		raiseError('Resizable append cursor exceeds the physical capacity!')
+	return cursor,capacities[0]
+
+
+def h5_resize_resizable_append_datasets(file,varDict,fieldDict,capacity):
+	r'''
+	Resize every append value array to a common physical capacity.
+
+	This function must be called by every MPI rank because extending an HDF5
+	dataset is a collective metadata operation.
+
+	Args:
+		file (h5py.Group): ``DATASET`` group in the HDF5 file.
+		varDict (dict): variables in the append block.
+		fieldDict (dict): fields in the append block.
+		capacity (int): new physical capacity.
+	'''
+	for var in sorted(varDict.keys()):
+		file['VARIABLES'][var]['value'].resize((capacity,))
+	for var in sorted(fieldDict.keys()):
+		value = file['FIELDS'][var]['value']
+		value.resize((value.shape[0],capacity))
+
+
+def h5_fill_resizable_append_datasets(file,varDict,fieldDict,ordering,point,ptable,nopartition,cursor,end):
+	r'''
+	Write one block into already sized resizable HDF5 arrays.
+
+	Variables are replicated and written by rank zero. Field rows are written by
+	the owning rank in partition mode or mapped through their global ordering in
+	``nopartition`` mode.
+
+	Args:
+		file (h5py.Group): ``DATASET`` group in the HDF5 file.
+		varDict (dict): variables in the append block.
+		fieldDict (dict): fields in the append block.
+		ordering (np.ndarray): global ordering of local points.
+		point (bool): whether fields contain point data.
+		ptable (PartitionTable): active partition table.
+		nopartition (bool): whether rows use their global ordering.
+		cursor (int): first position to write.
+		end (int): position immediately after the block.
+	'''
+	if MPI_RANK == 0:
+		for var in sorted(varDict.keys()):
+			file['VARIABLES'][var]['value'][cursor:end] = np.asarray(varDict[var]['value'])
+	if ptable.has_master and MPI_RANK == 0: return
+	for var in sorted(fieldDict.keys()):
+		value = np.asarray(fieldDict[var]['value'])
+		ndim  = int(fieldDict[var]['ndim'])
+		dset  = file['FIELDS'][var]['value']
+		if nopartition:
+			inods,idx = np.unique(ordering,return_index=True)
+			components = np.arange(ndim,dtype=np.int64)
+			destination = (ndim*inods[:,None] + components[None,:]).reshape(-1)
+			source      = (ndim*idx[:,None]   + components[None,:]).reshape(-1)
+			dset[destination,cursor:end] = value[source,:]
+		else:
+			istart,iend = ptable.partition_bounds(MPI_RANK,ndim=ndim,points=point)
+			if not iend-istart == value.shape[0]:
+				raiseError('Resizable append field <%s> does not match its partition bounds!'%var)
+			dset[istart:iend,cursor:end] = value
+
 def h5_load_fields_single(file,npoints,ptable,varDict,point):
 	'''
 	Load the fields inside the HDF5 file
 	'''
 	# Read variables
+	cursor    = h5_resizable_append_cursor(file)
 	fieldDict = {}
 	for v in file['FIELDS'].keys():
 		fieldgroup = file['FIELDS'][v]
 		# Load point and dimensions
 		ndim = int(fieldgroup['ndim'][0])
-		dims = [ndim*npoints] + list(fieldgroup['vars'])
+		dims = [ndim*npoints] + ([cursor] if not cursor is None else list(fieldgroup['vars']))
 		# Now allocate output array
-		value = np.zeros(dims,fieldgroup['value'])
+		value = np.zeros(dims,fieldgroup['value'].dtype)
 		# Select which points to load
 		if point:
 			inods = ptable.partition_points(npoints,ndim=ndim)
@@ -417,8 +802,9 @@ def h5_load_fields_single(file,npoints,ptable,varDict,point):
 			# Use the partition bounds to recover the array
 			istart, iend = ptable.partition_bounds(MPI_RANK,ndim=ndim,points=False)
 			inods = np.arange(istart,iend,dtype=np.int32)
-		# Read the values
-		value[:] = np.array(fieldgroup['value'][inods])
+		# Read only the committed part of a preallocated append dataset
+		sliced  = tuple([inods] + [np.s_[:dim] for dim in dims[1:]])
+		value[:] = np.array(fieldgroup['value'][sliced])
 		# Generate dictionary
 		fieldDict[v] = {'ndim':ndim,'value':value}
 	# Return
@@ -590,6 +976,145 @@ def h5_append_dset_mpio(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable,n
 	# Increase the partition counter
 	h5_append_dset_mpio.ipart += 1
 	file.close()
+
+
+@cr('h5IO.append_dset_resizable')
+def h5_append_dset_resizable(fname,xyz,varDict,fieldDict,ordering,point,ptable,append_total_size=None,mode='a',mpio=True,nopartition=False):
+	r'''
+	Append a fixed-size block to consolidated, resizable HDF5 arrays.
+
+	This opt-in variant retains the same ``VARIABLES`` and ``FIELDS`` hierarchy
+	as a regular save. A persistent cursor separates the logical written length
+	from optional preallocated capacity, so reopening the file continues at the
+	last committed position.
+
+	Args:
+		fname (str): HDF5 file name.
+		xyz (np.ndarray): local point coordinates.
+		varDict (dict): variables in this append block.
+		fieldDict (dict): fields in this append block.
+		ordering (np.ndarray): global ordering of local points.
+		point (bool): whether fields contain point data.
+		ptable (PartitionTable): active partition table.
+		append_total_size (int, optional): initial or enlarged physical capacity.
+			The append dimension remains unlimited.
+		mode (str, optional): HDF5 opening mode (default ``'a'``).
+		mpio (bool, optional): use parallel HDF5 for multi-rank execution.
+		nopartition (bool, optional): store rows using their global ordering.
+
+	Notes:
+		Every block must have the same length, names, dtypes, and dimensions as
+		the first. Point fields and ``nopartition`` fields currently require
+		``ndim=1``. Serial HDF5 cannot safely be used by multiple MPI ranks and
+		is therefore rejected for this append mode. With MPI ``nopartition``,
+		repeated global point IDs must contain identical coordinates and field
+		values on every rank that owns them. Files with reserved capacity must be
+		loaded by a pyLOM version that understands the persistent append cursor.
+	'''
+	if not mpio and MPI_SIZE > 1:
+		raiseError('Resizable append requires mpio=True when using multiple MPI ranks!')
+	block_size = h5_validate_resizable_append_input(xyz,varDict,fieldDict,ordering,point,ptable,nopartition)
+	capacity   = h5_resizable_append_capacity(block_size,append_total_size)
+	if MPI_SIZE > 1:
+		capacities = MPI_COMM.allgather(capacity)
+		if not all(candidate == capacities[0] for candidate in capacities):
+			raiseError('append_total_size differs between MPI ranks!')
+	if mpio and MPI_SIZE > 1:
+		h5_append_dset_resizable_mpio(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable,nopartition,block_size,capacity)
+	else:
+		h5_append_dset_resizable_serial(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable,nopartition,block_size,capacity)
+
+
+def h5_append_dset_resizable_serial(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable,nopartition,block_size,requested_capacity):
+	r'''
+	Open a file with the serial HDF5 driver and append one resizable block.
+
+	This is the serial backend of :func:`h5_append_dset_resizable`; callers
+	should normally use that dispatch function instead.
+
+	Args:
+		fname, mode, xyz, varDict, fieldDict, ordering, point, ptable,
+			nopartition: see :func:`h5_append_dset_resizable`.
+		block_size (int): validated append block length.
+		requested_capacity (int): requested physical capacity.
+	'''
+	file = h5py.File(fname,mode)
+	h5_append_dset_resizable_file(file,xyz,varDict,fieldDict,ordering,point,ptable,nopartition,block_size,requested_capacity)
+	file.close()
+
+
+def h5_append_dset_resizable_mpio(fname,mode,xyz,varDict,fieldDict,ordering,point,ptable,nopartition,block_size,requested_capacity):
+	r'''
+	Collectively open a file with parallel HDF5 and append one block.
+
+	All ranks enter the same metadata operations while raw field data is written
+	to each rank's spatial rows.
+
+	Args:
+		fname, mode, xyz, varDict, fieldDict, ordering, point, ptable,
+			nopartition: see :func:`h5_append_dset_resizable`.
+		block_size (int): validated append block length.
+		requested_capacity (int): requested physical capacity.
+	'''
+	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM)
+	h5_append_dset_resizable_file(file,xyz,varDict,fieldDict,ordering,point,ptable,nopartition,block_size,requested_capacity)
+	file.close()
+
+
+def h5_append_dset_resizable_file(file,xyz,varDict,fieldDict,ordering,point,ptable,nopartition,block_size,requested_capacity):
+	r'''
+	Create or extend resizable append arrays in an open HDF5 file.
+
+	The cursor attribute is committed only after the data and logical ``vars``
+	lengths have been flushed. If a write is interrupted earlier, a subsequent
+	append overwrites the uncommitted region rather than skipping it.
+
+	Args:
+		file (h5py.File): open serial or parallel HDF5 file.
+		xyz, varDict, fieldDict, ordering, point, ptable, nopartition: see
+			:func:`h5_append_dset_resizable`.
+		block_size (int): validated append block length.
+		requested_capacity (int): requested physical capacity.
+	'''
+	new_dataset = not 'DATASET' in file
+	layout_hash = None if nopartition else h5_resizable_append_layout_hash(xyz,ordering)
+	if not 'Version' in file.attrs:
+		if not new_dataset: raiseError('HDF5 file version is missing!')
+		file.attrs['Version'] = PYLOM_H5_VERSION
+	version = tuple(file.attrs['Version'])
+	if not version == PYLOM_H5_VERSION:
+		raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
+	if new_dataset:
+		group = file.create_group('DATASET')
+		if nopartition:
+			h5_save_points_nopartition(group,xyz,ordering,ptable,point)
+		else:
+			h5_save_points(group,xyz,ordering,ptable,point)
+		group.attrs[H5_APPEND_MODE]        = np.bytes_(H5_RESIZABLE_APPEND)
+		group.attrs[H5_APPEND_CURSOR]      = np.int64(0)
+		group.attrs[H5_APPEND_BLOCK_SIZE]  = np.int64(block_size)
+		group.attrs[H5_APPEND_NOPARTITION] = np.uint8(bool(nopartition))
+		if not nopartition: group.attrs[H5_APPEND_LAYOUT_HASH] = layout_hash
+		h5_create_resizable_variable_datasets(group,varDict,requested_capacity,block_size)
+		h5_create_resizable_field_datasets(group,fieldDict,requested_capacity,block_size)
+	group = file['DATASET']
+	cursor,capacity = h5_validate_resizable_append_group(group,xyz,varDict,fieldDict,ordering,point,ptable,nopartition,block_size,layout_hash)
+	end             = cursor + block_size
+	capacity_new    = max(capacity,requested_capacity,end)
+	if capacity_new > capacity:
+		h5_resize_resizable_append_datasets(group,varDict,fieldDict,capacity_new)
+	# Raw data writes may be independent; all metadata operations remain collective.
+	h5_fill_resizable_append_datasets(group,varDict,fieldDict,ordering,point,ptable,nopartition,cursor,end)
+	if MPI_SIZE > 1: MPI_COMM.Barrier()
+	file.flush()
+	if MPI_RANK == 0:
+		for var in sorted(fieldDict.keys()):
+			group['FIELDS'][var]['vars'][0] = end
+	if MPI_SIZE > 1: MPI_COMM.Barrier()
+	file.flush()
+	# Commit the authoritative cursor last. Attribute updates are collective.
+	group.attrs.modify(H5_APPEND_CURSOR,np.int64(end))
+	file.flush()
 
 
 @cr('h5IO.load_dset')
