@@ -342,6 +342,9 @@ class MLP(nn.Module):
                     flush=True
                 )
 
+        if hasattr(self.train_dataloader.dataset, "eval"):
+                self.train_dataloader.dataset.eval()
+
         results = {
             "train_loss": np.array(train_losses),
             "test_loss": np.array(test_losses),
@@ -574,7 +577,7 @@ class MLP(nn.Module):
                         power_high = int(np.log2(high))
                         power_diff = power_high - power_low
                         
-                        if power_diff > 3:
+                        if power_diff > 1:
                             choices = [2**p for p in range(power_low, power_high + 1)]
                             return trial.suggest_categorical(name, choices)
                     
