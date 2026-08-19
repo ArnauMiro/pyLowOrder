@@ -25,8 +25,6 @@ from libc.stdlib     cimport malloc, free
 from libc.string     cimport memcpy, memset
 from libc.math       cimport sqrt, log, atan2
 from ..vmmath.cfuncs cimport real, real_complex
-# from ..vmmath.cfuncs cimport 
-# from ..vmmath.cfuncs cimport 
 from ..vmmath.cfuncs cimport c_csvd, c_cdagger, c_cmatmul, c_cmatmulp, c_cvecmat, c_ccholesky, c_cinverse
 from ..vmmath.cfuncs cimport c_zsvd, c_zdagger, c_zmatmul, c_zmatmulp, c_zvecmat, c_zcholesky, c_zinverse
 
@@ -39,13 +37,13 @@ from ..utils.errors   import raiseError
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _crun(np.complex64_t[:,:] Phi, float[:] delta, float[:] freq, float f, float[:] Q=None):
+def _crun(np.complex64_t[:,:] Phi, float[:] delta, float[:] omega, float f, float[:] Q=None):
 	'''
     Resolvent Analysis of snapshot matrix X
     Inputs:
         - X[ndims*nmesh,n_temp_snapshots]: data matrix
         - delta: damping ratio of each mode
-        - freq: frequency of each mode
+        - omega: frequency of each mode
         - f: target frequency
         - Q: weighting matrix
     Returns:
@@ -64,7 +62,7 @@ def _crun(np.complex64_t[:,:] Phi, float[:] delta, float[:] freq, float f, float
 	H  = <np.complex64_t*>malloc(n*sizeof(np.complex64_t))
 	cr_start('RES.resolvent_operator', 0)
 	for ii in range(n):
-		Omega[ii] = delta[ii] + J * freq[ii]
+		Omega[ii] = delta[ii] + J * omega[ii]
 		H[ii] = 1 / (-J * f - Omega[ii])
 	free(Omega)
 	cr_stop('RES.resolvent_operator', 0)
@@ -159,13 +157,13 @@ def _crun(np.complex64_t[:,:] Phi, float[:] delta, float[:] freq, float f, float
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _zrun(np.complex128_t[:,:] Phi, double[:] delta, double[:] freq, double f, double[:] Q=None):
+def _zrun(np.complex128_t[:,:] Phi, double[:] delta, double[:] omega, double f, double[:] Q=None):
 	'''
     Resolvent Analysis of snapshot matrix X
     Inputs:
         - X[ndims*nmesh,n_temp_snapshots]: data matrix
         - delta: damping ratio of each mode
-        - freq: frequency of each mode
+        - omega: frequency of each mode
         - f: target frequency
         - Q: weighting matrix
     Returns:
@@ -184,7 +182,7 @@ def _zrun(np.complex128_t[:,:] Phi, double[:] delta, double[:] freq, double f, d
 	H  = <np.complex128_t*>malloc(n*sizeof(np.complex128_t))
 	cr_start('RES.resolvent_operator', 0)
 	for ii in range(n):
-		Omega[ii] = delta[ii] + J * freq[ii]
+		Omega[ii] = delta[ii] + J * omega[ii]
 		H[ii] = 1 / (-J * f - Omega[ii])
 	free(Omega)
 	cr_stop('RES.resolvent_operator', 0)
@@ -281,13 +279,13 @@ def _zrun(np.complex128_t[:,:] Phi, double[:] delta, double[:] freq, double f, d
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def run(real_complex[:,:] Phi, real[:] delta, real[:] freq, real f, real[:] Q=None):
+def run(real_complex[:,:] Phi, real[:] delta, real[:] omega, real f, real[:] Q=None):
 	'''
     Resolvent Analysis of snapshot matrix X
     Inputs:
         - X[ndims*nmesh,n_temp_snapshots]: data matrix
         - delta: damping ratio of each mode
-        - freq: frequency of each mode
+        - omega: frequency of each mode
         - f: target frequency
         - Q: weighting matrix
     Returns:
@@ -296,6 +294,6 @@ def run(real_complex[:,:] Phi, real[:] delta, real[:] freq, real f, real[:] Q=No
         - V_res: forcing modes
     '''
 	if real_complex is np.complex128_t:
-		return _zrun(Phi, delta, freq, f, Q)
+		return _zrun(Phi, delta, omega, f, Q)
 	else:
-		return _crun(Phi, delta, freq, f, Q)
+		return _crun(Phi, delta, omega, f, Q)

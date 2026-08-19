@@ -34,7 +34,7 @@ pyLOM.pprint(0,'dataset loaded', flush=True)
 
 
 # Compute the DMD of the case
-muReal, muImag, Phi, bJov = pyLOM.DMD.run(X, r=2*10**-1, remove_mean=True)
+muReal, muImag, Phi, bJov = pyLOM.DMD.run(X, r=2e-1, remove_mean=True)
 delta, omega = pyLOM.DMD.frequency_damping(muReal,muImag,dt)
 freq = omega / param
 

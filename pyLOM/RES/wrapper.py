@@ -14,13 +14,13 @@ from ..vmmath    import vecmat, matmul, svd, cholesky, inv, matmulp, dagger
 from ..utils     import cr_nvtx as cr, cr_start, cr_stop
 
 @cr('RES.run')
-def run(Phi, delta, freq, f, Q=None):
+def run(Phi, delta, omega, f, Q=None):
     '''
     Resolvent Analysis of snapshot matrix X
     Inputs:
         - X[ndims*nmesh,n_temp_snapshots]: data matrix
         - delta: damping ratio of each mode
-        - freq: frequency of each mode
+        - omega: frequency of each mode
         - f: target frequency
         - Q: weighting matrix
     Returns:
@@ -30,14 +30,11 @@ def run(Phi, delta, freq, f, Q=None):
     '''
     p = cp if type(Phi) is cp.ndarray else np
 
-    # Normalization of modes (?)
-    # Matrix = transpose(vecmat(bJov, transpose(Phi)))
-    # for ii in range(len(Matrix[0,:])):
-    #     Matrix[:,ii] = Matrix[:,ii] / vector_norm(Phi[:,ii]) 
-
-    Omega = delta + 1j * freq
+    # Compute the resolvent operator
+    Omega = delta + 1j * omega
     H = 1 / (-1j * f - Omega) 
-
+    
+    # Compute the metric
     if Q is None: 
         Qhat = matmulp(dagger(Phi), Phi) 
     
@@ -47,17 +44,13 @@ def run(Phi, delta, freq, f, Q=None):
     Fhat = dagger(cholesky(Qhat))
     Fhat_inv = inv(Fhat)
 
+    # Solve the optimization problem
     Hhat = matmul(Fhat, vecmat(H, Fhat_inv))
     U, S, VT = svd(Hhat)
     V = dagger(VT)
 
+    # Project the solution
     U_res = matmul(Phi, matmul(Fhat_inv, U))
     V_res = matmul(Phi, matmul(Fhat_inv, V))
-    
-    # # U, S, VT = svd(diag(H))
-    # # V = dagger(VT)
-
-    # # U_res = matmul(Phi,U)
-    # # V_res = matmul(Phi,V)
 
     return U_res, S, V_res

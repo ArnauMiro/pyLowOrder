@@ -848,31 +848,63 @@ def h5_load_QR(fname,vars,ptable=None):
 	file.close()
 	return varList
 
-def h5_save_usv(U,S,V,ptable,nvars,pointData,group,kind):
+def h5_save_USV(U,S,V,ptable,nvars,pointData,group,projected=False):
 	# Create the datasets for U, S and V
 	group.create_dataset('pointData',(1,),dtype='u1',data=pointData)
 	group.create_dataset('n_variables',(1,),dtype='u1',data=nvars)
 	Usize = (mpi_reduce(U.shape[0],op='sum',all=True),U.shape[1]) if U is not None else None
 	dsetU = group.create_dataset('U',Usize,dtype=U.dtype)   if U is not None else None
 	dsetS = group.create_dataset('S',S.shape,dtype=S.dtype) if S is not None else None
-	if kind == 'POD':
+	if not projected:
 		dsetV = group.create_dataset('V',V.shape,dtype=V.dtype) if V is not None else None
-	elif kind == 'RES':
+	else:
 		Vsize = (mpi_reduce(V.shape[0],op='sum',all=True),V.shape[1]) if V is not None else None
 		dsetV = group.create_dataset('V',Vsize,dtype=V.dtype)   if V is not None else None
-	else:
-		raise ValueError("kind must be: POD, RES")
+
 	# Store S and U that are repeated across the ranks
 	# So it is enough that one rank stores them
 	if is_rank_or_serial(0):
 		if dsetS is not None: dsetS[:] = S
-		if kind == 'POD':
+		if not projected:
 			if dsetV is not None: dsetV[:] = V 
 	# Store U in parallel
 	istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=pointData)
 	if dsetU is not None: dsetU[istart:iend,:] = U
-	if kind == 'RES':
+	if projected:
 		if dsetV is not None: dsetV[istart:iend,:] = V
+
+def h5_load_USV(fname,vars,nmod,ptable=None,group='POD',projected=False):
+	# Load the dataset for U, S, V
+	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,'r')
+	# Check the file version
+	version = tuple(file.attrs['Version'])
+	if not version == PYLOM_H5_VERSION:
+		raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
+	# Read the requested variables S, V
+	varList = []
+	if 'U' in vars:
+		# Check if we need to read the partition table
+		if ptable is None: ptable = h5_load_partition(file)
+		# Read
+		nvars = int(file[group]['n_variables'][0])
+		point = bool(file[group]['pointData'][0])
+		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=point)
+		varList.append(np.array(file[group]['U'][istart:iend,:]) if nmod < 0 else np.array(file[group]['U'][istart:iend,:nmod]))
+	if 'S' in vars: varList.append( np.array(file[group]['S'][:]) if nmod < 0 else  np.array(file[group]['S'][:nmod]) )
+	if 'V' in vars: 
+		if not projected:
+			varList.append( np.array(file[group]['V'][:,:]) if nmod < 0 else np.array(file[group]['V'][:nmod,:]) )
+		else:
+			# Check if we need to read the partition table
+			if ptable is None: ptable = h5_load_partition(file)
+			# Read
+			nvars = int(file['RES']['n_variables'][0])
+			point = bool(file['RES']['pointData'][0])
+			istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=point)
+			varList.append(np.array(file[group]['V'][istart:iend,:]) if nmod < 0 else np.array(file[group]['V'][istart:iend,:nmod]))
+	# Return
+	file.close()
+	return varList
 
 @cr('h5IO.save_POD')
 def h5_save_POD(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
@@ -890,7 +922,7 @@ def h5_save_POD(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
 	# Now create a POD group
 	group = file.create_group('POD')
 	# Create and store de datsets
-	h5_save_usv(U,S,V,ptable,nvars,pointData,group,kind='POD')
+	h5_save_USV(U,S,V,ptable,nvars,pointData,group,projected=False)
 	file.close()
 
 @cr('h5IO.load_POD')
@@ -898,26 +930,7 @@ def h5_load_POD(fname,vars,nmod,ptable=None):
 	'''
 	Load POD variables from an HDF5 file.
 	'''
-	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,'r')
-	# Check the file version
-	version = tuple(file.attrs['Version'])
-	if not version == PYLOM_H5_VERSION:
-		raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
-	# Read the requested variables S, V
-	varList = []
-	if 'U' in vars:
-		# Check if we need to read the partition table
-		if ptable is None: ptable = h5_load_partition(file)
-		# Read
-		nvars = int(file['POD']['n_variables'][0])
-		point = bool(file['POD']['pointData'][0])
-		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=point)
-		varList.append(np.array(file['POD']['U'][istart:iend,:]) if nmod < 0 else np.array(file['POD']['U'][istart:iend,:nmod]))
-	if 'S' in vars: varList.append( np.array(file['POD']['S'][:]) if nmod < 0 else  np.array(file['POD']['S'][:nmod]) )
-	if 'V' in vars: varList.append( np.array(file['POD']['V'][:,:]) if nmod < 0 else np.array(file['POD']['V'][:nmod,:]) )
-	# Return
-	file.close()
-	return varList
+	return h5_load_USV(fname,vars,nmod,ptable,group='POD',projected=False)
 
 
 @cr('h5IO.save_DMD')
@@ -1076,7 +1089,7 @@ def h5_save_RES(fname,U,S,V,ptable,nvars=1,pointData=True,mode='w'):
 	# Now create a POD group
 	group = file.create_group('RES')
 	# Create and store de datsets
-	h5_save_usv(U,S,V,ptable,nvars,pointData,group,kind='RES')
+	h5_save_USV(U,S,V,ptable,nvars,pointData,group,projected=True)
 	file.close()
 
 @cr('h5IO.load_RES')
@@ -1084,33 +1097,7 @@ def h5_load_RES(fname,vars,nmod,ptable=None):
 	'''
 	Load RES variables from an HDF5 file.
 	'''
-	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,'r')
-	# Check the file version
-	version = tuple(file.attrs['Version'])
-	if not version == PYLOM_H5_VERSION:
-		raiseError('File version <%s> not matching the tool version <%s>!'%(str(file.attrs['Version']),str(PYLOM_H5_VERSION)))
-	# Read the requested variables S, V
-	varList = []
-	if 'U' in vars:
-		# Check if we need to read the partition table
-		if ptable is None: ptable = h5_load_partition(file)
-		# Read
-		nvars = int(file['RES']['n_variables'][0])
-		point = bool(file['RES']['pointData'][0])
-		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=point)
-		varList.append(np.array(file['RES']['U'][istart:iend,:]) if nmod < 0 else np.array(file['RES']['U'][istart:iend,:nmod]))
-	if 'S' in vars: varList.append( np.array(file['RES']['S'][:]) if nmod < 0 else  np.array(file['RES']['S'][:nmod]) )
-	if 'V' in vars: 
-		# Check if we need to read the partition table
-		if ptable is None: ptable = h5_load_partition(file)
-		# Read
-		nvars = int(file['RES']['n_variables'][0])
-		point = bool(file['RES']['pointData'][0])
-		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars,points=point)
-		varList.append(np.array(file['RES']['V'][istart:iend,:]) if nmod < 0 else np.array(file['RES']['V'][istart:iend,:nmod]))
-	# Return
-	file.close()
-	return varList
+	return h5_load_USV(fname,vars,nmod,ptable,group='RES',projected=True)
 
 @cr('io.create_compressed')
 def h5_create_compressed(fname:str,basedir:str,r:int,nmod:int,nvars:int,nlayers:int,conv_chan:int,kernel:int,nAEsG:int,nptxAE:int,dtype:np.dtype):

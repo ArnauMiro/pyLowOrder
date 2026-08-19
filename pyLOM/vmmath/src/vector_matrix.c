@@ -1143,15 +1143,10 @@ void sdiag2(float *A, float *B, const int m){
 	/*
 		Diagonal matrix of an array.
 	*/
+	memset(B, 0, m*m*sizeof(float));
+	
 	for (int ii = 0; ii < m; ii++){
-		for (int jj = 0; jj < m; jj++){
-			if (ii == jj){
-				AC_MAT(B,m,ii,ii) = A[ii];
-			}
-			else{
-				AC_MAT(B,m,ii,jj) = 0;
-			}
-		}
+		AC_MAT(B,m,ii,ii) = A[ii];
 	}
 }
 
@@ -1159,15 +1154,10 @@ void ddiag2(double *A, double *B, const int m){
 	/*
 		Diagonal matrix of an array.
 	*/
+	memset(B, 0, m*m*sizeof(double));
+
 	for (int ii = 0; ii < m; ii++){
-		for (int jj = 0; jj < m; jj++){
-			if (ii == jj){
-				AC_MAT(B,m,ii,ii) = A[ii];
-			}
-			else{
-				AC_MAT(B,m,ii,jj) = 0;
-			}
-		}
+		AC_MAT(B,m,ii,ii) = A[ii];
 	}
 }
 
@@ -1175,15 +1165,10 @@ void cdiag2(scomplex_t *A, scomplex_t *B, const int m){
 	/*
 		Diagonal matrix of an array.
 	*/
+	memset(B, 0, m*m*sizeof(scomplex_t));
+
 	for (int ii = 0; ii < m; ii++){
-		for (int jj = 0; jj < m; jj++){
-			if (ii == jj){
-				AC_MAT(B,m,ii,ii) = A[ii];
-			}
-			else{
-				AC_MAT(B,m,ii,jj) = 0;
-			}
-		}
+		AC_MAT(B,m,ii,ii) = A[ii];
 	}
 }
 
@@ -1191,14 +1176,9 @@ void zdiag2(dcomplex_t *A, dcomplex_t *B, const int m){
 	/*
 		Diagonal matrix of an array.
 	*/
+	memset(B, 0, m*m*sizeof(dcomplex_t));
+
 	for (int ii = 0; ii < m; ii++){
-		for (int jj = 0; jj < m; jj++){
-			if (ii == jj){
-				AC_MAT(B,m,ii,ii) = A[ii];
-			}
-			else{
-				AC_MAT(B,m,ii,jj) = 0;
-			}
-		}
+		AC_MAT(B,m,ii,ii) = A[ii];
 	}
 }
