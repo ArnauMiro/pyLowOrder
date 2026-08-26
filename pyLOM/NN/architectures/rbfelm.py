@@ -21,10 +21,13 @@ from ...utils.cr            import CHANNEL_DICT
 from ...                    import pprint, cr
 
 try:
-    from sksparse.cholmod import cholesky as cholmod_cholesky
+    from sksparse.cholmod import cholesky as cholmod_cholesky, CholmodError
     _CHOLMOD_AVAILABLE = True
 except ImportError:
     _CHOLMOD_AVAILABLE = False
+    CholmodError = None
+
+_SOLVER_EXCEPTIONS = (RuntimeError, CholmodError) if _CHOLMOD_AVAILABLE else (RuntimeError,)
 
 try:
     from optuna.exceptions import TrialPruned
@@ -678,14 +681,14 @@ class RBFELM(nn.Module):
                 y_pred, y_true = model.predict(eval_dataset, return_targets=True)
                 return float(((y_pred - y_true) ** 2).mean())
 
-            except RuntimeError as exc:
+            except _SOLVER_EXCEPTIONS as exc:
                 msg = str(exc).lower()
                 if "out of memory" in msg:
                     pprint(0, f"Trial {trial.number} failed due to out of memory error. Pruning the trial.")
                     if torch.cuda.is_available():
                         torch.cuda.empty_cache()
                     raise TrialPruned()
-                if "singular" in msg or "solver failed" in msg:
+                if "singular" in msg or "solver failed" in msg or "not positive definite" in msg:
                     pprint(0, f"Trial {trial.number} failed due to a singular matrix (ill-conditioned HtH). Pruning the trial.")
                     if torch.cuda.is_available():
                         torch.cuda.empty_cache()
@@ -1277,14 +1280,14 @@ class MultiRBFELM:
                 y_pred, y_true = model.predict(eval_dataset, return_targets=True)
                 return float(((y_pred - y_true) ** 2).mean())
 
-            except RuntimeError as exc:
+            except _SOLVER_EXCEPTIONS as exc:
                 msg = str(exc).lower()
                 if "out of memory" in msg:
                     pprint(0, f"Trial {trial.number} failed due to out of memory error. Pruning the trial.")
                     if torch.cuda.is_available():
                         torch.cuda.empty_cache()
                     raise TrialPruned()
-                if "singular" in msg or "solver failed" in msg:
+                if "singular" in msg or "solver failed" in msg or "not positive definite" in msg:
                     pprint(0, f"Trial {trial.number} failed due to a singular matrix (ill-conditioned HtH). Pruning the trial.")
                     if torch.cuda.is_available():
                         torch.cuda.empty_cache()
