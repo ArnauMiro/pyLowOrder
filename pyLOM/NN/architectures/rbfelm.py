@@ -17,6 +17,7 @@ from ..                     import DEVICE, PIN_MEMORY, set_seed
 from ..                     import Dataset as NNDataset, RobustScaler
 from ..optimizer            import OptunaOptimizer
 from ...utils.errors        import raiseError
+from ...utils.cr            import CHANNEL_DICT
 from ...                    import pprint, cr
 
 try:
@@ -678,10 +679,19 @@ class RBFELM(nn.Module):
                 return float(((y_pred - y_true) ** 2).mean())
 
             except RuntimeError as exc:
-                if "out of memory" in str(exc).lower():
+                msg = str(exc).lower()
+                if "out of memory" in msg:
                     pprint(0, f"Trial {trial.number} failed due to out of memory error. Pruning the trial.")
                     if torch.cuda.is_available():
                         torch.cuda.empty_cache()
+                    raise TrialPruned()
+                if "singular" in msg or "solver failed" in msg:
+                    pprint(0, f"Trial {trial.number} failed due to a singular matrix (ill-conditioned HtH). Pruning the trial.")
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                    for ch in CHANNEL_DICT.values():
+                        if ch.is_running():
+                            ch.restart()
                     raise TrialPruned()
                 raise
 
@@ -1268,12 +1278,22 @@ class MultiRBFELM:
                 return float(((y_pred - y_true) ** 2).mean())
 
             except RuntimeError as exc:
-                if "out of memory" in str(exc).lower():
+                msg = str(exc).lower()
+                if "out of memory" in msg:
                     pprint(0, f"Trial {trial.number} failed due to out of memory error. Pruning the trial.")
                     if torch.cuda.is_available():
                         torch.cuda.empty_cache()
                     raise TrialPruned()
+                if "singular" in msg or "solver failed" in msg:
+                    pprint(0, f"Trial {trial.number} failed due to a singular matrix (ill-conditioned HtH). Pruning the trial.")
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                    for ch in CHANNEL_DICT.values():
+                        if ch.is_running():
+                            ch.restart()
+                    raise TrialPruned()
                 raise
+
             finally:
                 if model is not None:
                     del model
