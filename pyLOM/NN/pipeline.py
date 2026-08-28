@@ -177,6 +177,7 @@ class ClusteredPipeline:
     Args:
         train_dataset: the training dataset.
         cluster_col_idx (int): the index of the column containing the cluster labels.
+        scalers (List): the list of scalers fitted over the dataset, if the dataset was scaled before being passed in. Else, use ``[None, None]``.
         valid_dataset (optional): the validation dataset. Default is ``None``.
         test_dataset (optional): the test dataset. Default is ``None``.
         models_dict (Dict, optional): the dictionary of models to train for each cluster. Default is ``None``.
@@ -189,26 +190,39 @@ class ClusteredPipeline:
         self,
         train_dataset,
         cluster_col_idx:        int,
+        scalers:                list,
         valid_dataset:          torch.utils.data.Dataset | None = None,
-        test_dataset:           torch.utils.data.Dataset | None = None, 
+        test_dataset:           torch.utils.data.Dataset | None = None,
         models_dict:            Dict = None,
         training_params_dict:   Dict = None,
         optimizers_dict:        Dict = None,
         model_classes_dict:     Dict = None,
         models_outputs_dict:    Dict = None,
     ):
-        self.train_dataset = train_dataset
-        self.test_dataset = test_dataset
-        self.valid_dataset = valid_dataset
-
         ok_opt_pipeline = (optimizers_dict is not None) and (model_classes_dict is not None)
         ok_fixed_train = (models_dict is not None) and (training_params_dict is not None)
         if not (ok_opt_pipeline or ok_fixed_train):
             raiseError(f"Either models_dict and training_params_dict or optimizers_dict and model_classes_dict must be provided.")
         if ok_opt_pipeline and ok_fixed_train:
             raiseError(f"Provide either models_dict and training_params_dict or optimizers_dict and model_classes_dict, not both.")
-        
+
         self.cluster_col_idx = cluster_col_idx
+
+        if scalers is not None:
+            if len(scalers) != 2:
+                raiseError("scalers must be a list of two elements: [input_scaler, output_scaler]")
+            input_scaler, output_scaler = scalers
+            if output_scaler is not None:
+                col_scaler = copy.deepcopy(output_scaler)
+                col_scaler.keep_columns([cluster_col_idx])
+                train_dataset = self._unscale_cluster_column(train_dataset, col_scaler)
+                valid_dataset = self._unscale_cluster_column(valid_dataset, col_scaler)
+                test_dataset  = self._unscale_cluster_column(test_dataset, col_scaler)
+
+        self.train_dataset = train_dataset
+        self.test_dataset = test_dataset
+        self.valid_dataset = valid_dataset
+
         self.n_clusters = self._get_n_clusters()
 
         self.dict_keys = ["classifier"]
@@ -262,7 +276,15 @@ class ClusteredPipeline:
 
     def _get_n_clusters(self):
         return len(self._get_cluster_ids())
-    
+
+    def _unscale_cluster_column(self, dataset, col_scaler):
+        if dataset is None:
+            return None
+        ds_new = copy.deepcopy(dataset)
+        col = ds_new.variables_out[:, self.cluster_col_idx:self.cluster_col_idx + 1]
+        ds_new.variables_out[:, self.cluster_col_idx:self.cluster_col_idx + 1] = col_scaler.inverse_transform(col)
+        return ds_new
+
     def _get_cluster_ids(self):
         cluster_col = self.train_dataset[:][1][:, self.cluster_col_idx]
         cluster_col_np = cluster_col.detach().cpu().numpy() if hasattr(cluster_col, "detach") else np.asarray(cluster_col)
@@ -439,8 +461,6 @@ class ClusteredPipeline:
             if len(scalers) != 2:
                 raiseError("scalers must be a list of two elements: [input_scaler, output_scaler]")
             input_scaler, output_scaler = scalers
-            output_scaler_classifier = copy.deepcopy(output_scaler)
-            output_scaler_classifier.keep_columns([self.cluster_col_idx])
             output_scaler_regressors = copy.deepcopy(output_scaler)
             output_scaler_regressors.drop_columns([self.cluster_col_idx])
 
@@ -472,7 +492,7 @@ class ClusteredPipeline:
                 self.evaluation_dataset_dict["classifier"],
                 evaluators_dict["classifier"],
                 inputs_scaler = input_scaler,
-                outputs_scaler = output_scaler_classifier,
+                outputs_scaler = None,
                 kwargs={"given_threshold": threshold},
                 verbose = verbose,
             )
