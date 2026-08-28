@@ -186,6 +186,8 @@ class Dataset(torch.utils.data.Dataset):
                 out = out.squeeze(-1)
             if (not channels_last) and out.shape[1] == 1:
                 out = out.squeeze(1)
+            if (not channels_last) and out.shape[-1] == 1 and out.ndim > 2:
+                out = out.squeeze(-1)
         return out.float()
 
 
