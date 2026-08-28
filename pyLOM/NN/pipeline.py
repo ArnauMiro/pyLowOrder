@@ -406,7 +406,7 @@ class ClusteredPipeline:
 
     def evaluate(
         self, 
-        evaluators_dict,    Dict,
+        evaluators_dict:    Dict,
         scalers:            List = [None, None], 
         threshold:          float = 0.5, 
         set_to_use:         str = "test", 
