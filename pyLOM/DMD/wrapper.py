@@ -167,7 +167,7 @@ def resolvent_analysis(A:np.ndarray, w:np.ndarray, n_modes:int=1):
         for j in range(n_modes):
             amplitudes[i*n_modes + j] = 1 / S[n - 1 - j]
             direct_modes[:, i*n_modes + j]  = VT[n - 1 - j, :].reshape((-1,))
-            adjoint_modes[:, i*n_modes + j] = U [:, n - 1 - j].reshape((-1,))
+            adjoint_modes[:, i*n_modes + j] = U[:, n - 1 - j].reshape((-1,))
 
     amplitudes = mpi_gather(amplitudes, all=True)
     direct_modes = mpi_gather(direct_modes.T, all=True)
