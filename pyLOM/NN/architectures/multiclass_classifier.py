@@ -398,7 +398,6 @@ class MulticlassClassifier:
         train_dataset:    torch.utils.data.Dataset,
         eval_dataset:     torch.utils.data.Dataset,
         optuna_optimizer: OptunaOptimizer,
-        n_classes:        int,
         **kwargs,
     ) -> Tuple["MulticlassClassifier", Dict]:
         r"""
@@ -408,7 +407,6 @@ class MulticlassClassifier:
             train_dataset (torch.utils.data.Dataset): The training dataset.
             eval_dataset (torch.utils.data.Dataset): The evaluation dataset.
             optuna_optimizer (OptunaOptimizer): The optimizer to use for optimization.
-            n_classes (int): Number of target classes.
             kwargs: Additional keyword arguments.
 
         Returns:
@@ -436,13 +434,13 @@ class MulticlassClassifier:
 
             model = None
 
-            try: 
+            try:
                 training_params = {}
                 for k, spec in optimization_params.items():
                     training_params[k] = suggest_value(k, spec, trial)
                 training_params["save_logs_path"] = None
 
-                model = cls(input_dim, n_classes, verbose=False, **training_params)
+                model = cls(input_dim, verbose=False, **training_params)
                 if optuna_optimizer.pruner is not None:
                     n_estimators = training_params["n_estimators"]
                     training_params["n_estimators"] = 1
@@ -479,4 +477,4 @@ class MulticlassClassifier:
         # Update params with best ones
         OptunaOptimizer.apply_to(optimization_params, optimized_params=best_params)
 
-        return cls(input_dim, n_classes, **optimization_params), optimization_params
+        return cls(input_dim, **optimization_params), optimization_params

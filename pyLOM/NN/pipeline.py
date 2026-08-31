@@ -372,11 +372,11 @@ class ClusteredPipeline:
                     raiseWarning("Validation dataset not provided, using train dataset for evaluation on optimization")
 
                 pprint(0, "Optimizing classifier hyperparameters")
+                self.optimizers_dict["classifier"].optimization_params["n_classes"] = self.n_clusters
                 model_classifier, training_params_classifier = self.model_classes_dict["classifier"].create_optimized_model(
                     train_dataset = self.train_dataset_dict["classifier"],
                     eval_dataset = self.valid_dataset_dict["classifier"],
                     optuna_optimizer = self.optimizers_dict["classifier"],
-                    n_classes = self.n_clusters
                 )
 
                 self._models["classifier"] = model_classifier
