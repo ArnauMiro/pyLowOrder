@@ -7,11 +7,11 @@
 # Last rev: 27/10/2021
 
 # Vector matrix routines
-from .maths          import transpose, vector_sum, vector_norm, vector_mean, matmul, matmulp, vecmat, argsort, eigen, polar, cholesky, vandermonde, conj, diag, inv, flip, vandermondeTime
+from .maths          import transpose, vector_sum, vector_norm, vector_mean, matmul, matmulp, vecmat, argsort, eigen, polar, cholesky, vandermonde, conj, diag, inv, flip, vandermondeTime, dagger
 # Averaging routines
 from .averaging      import temporal_mean, subtract_mean, temporal_variance, norm_variance
 # Truncation routines
-from .truncation     import compute_truncation_residual, energy, local_energy
+from .truncation     import compute_truncation_residual, energy, local_energy, remove_rows
 # Statistics routines
 from .stats          import RMSE, MAE, r2, MRE_array
 # QR routines
@@ -26,6 +26,8 @@ from .geometric      import cellCenters, normals, euclidean_d, wall_normals, edg
 from .regression     import least_squares, ridge_regresion
 # Data processing module
 from .dataprocessing import data_splitting, time_delay_embedding, find_random_sensors
+# Linear matrix module
+from .linear         import linear_operator, concatenate, separate, resolvent
 
 
-del maths, averaging, truncation, stats, geometric, regression
+del maths, averaging, truncation, stats, geometric, regression, dataprocessing, linear
