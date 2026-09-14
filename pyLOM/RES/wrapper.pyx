@@ -24,9 +24,11 @@ cdef double complex J = 1j
 from libc.stdlib     cimport malloc, free
 from libc.string     cimport memcpy, memset
 from libc.math       cimport sqrt, log, atan2
-from ..vmmath.cfuncs cimport real, real_complex
+from ..vmmath.cfuncs cimport real, real_complex, real_float, real_double
 from ..vmmath.cfuncs cimport c_csvd, c_cdagger, c_cmatmul, c_cmatmulp, c_cvecmat, c_ccholesky, c_cinverse
 from ..vmmath.cfuncs cimport c_zsvd, c_zdagger, c_zmatmul, c_zmatmulp, c_zvecmat, c_zcholesky, c_zinverse
+from ..vmmath.linear cimport _sconcatenate, _slinear_operator, _sseparate, _cresolvent
+from ..vmmath.linear cimport _dconcatenate, _dlinear_operator, _dseparate, _zresolvent
 
 from ..utils.cr       import cr, cr_start, cr_stop
 from ..utils.errors   import raiseError
@@ -297,3 +299,182 @@ def run(real_complex[:,:] Phi, real[:] delta, real[:] omega, real f, real[:] Q=N
 		return _zrun(Phi, delta, omega, f, Q)
 	else:
 		return _crun(Phi, delta, omega, f, Q)
+
+def _crun_old(float[:,:] X, np.complex64_t w, float r, int remove_mean):
+
+	# Variables
+	cdef int m, n
+	cdef float[:, ::1] Y
+	cdef float[:, ::1] Z
+	cdef float[:, ::1] U1
+	cdef float[::1] S1
+	cdef float[:, ::1] VT1
+	cdef float[:, ::1] Atilde
+	
+	# Create the snapshot of matrices and separate it into Y, Z
+	Y, Z = _sseparate(X, remove_mean)
+	m = Z.shape[0]
+	n = Z.shape[1] + 1
+	# Compute the linear operator in lower dimension
+	U1, S1, VT1, Atilde = _slinear_operator(Y, Z, r)
+	cdef int nr
+	nr = Atilde.shape[1]
+
+	del S1, VT1
+
+	cdef np.complex64_t[:, ::1] U2
+	cdef np.ndarray[np.float32_t,ndim=1] S = np.zeros((nr),dtype=np.float32)
+	cdef np.complex64_t[:, ::1] V2
+
+	U2, S, V2 = _cresolvent(Atilde, w)
+
+	del Atilde
+
+	cdef np.ndarray[np.complex64_t,ndim=2] U = np.zeros((m,nr),dtype=np.complex64)
+	cdef np.ndarray[np.complex64_t,ndim=2] V = np.zeros((m,nr),dtype=np.complex64)
+	c_cmatmul(&U[0,0], <np.complex64_t*>&U1[0,0], &U2[0,0], m, nr, nr)
+	c_cmatmul(&V[0,0], <np.complex64_t*>&U1[0,0], &V2[0,0], m, nr, nr)
+
+	del U1, U2, V2
+
+	return U, S, V
+
+def _zrun_old(double[:,:] X, np.complex128_t w, double r, int remove_mean):
+	print('variables', flush=True)
+	# Variables
+	cdef int m, n
+	cdef double[:, ::1] Y
+	cdef double[:, ::1] Z
+	cdef double[:, ::1] U1
+	cdef double[::1] S1
+	cdef double[:, ::1] VT1
+	cdef double[:, ::1] Atilde
+	print('snapshots', flush=True)
+	# Create the snapshot of matrices and separate it into Y, Z
+	Y, Z = _dseparate(X, remove_mean)
+	m = Z.shape[0]
+	n = Z.shape[1] + 1
+	print('linear operator', flush=True)
+	# Compute the linear operator in lower dimension
+	U1, S1, VT1, Atilde = _dlinear_operator(Y, Z, r)
+	cdef int nr
+	nr = Atilde.shape[1]
+
+	del S1, VT1
+	print('resolvent', flush=True)
+	cdef np.complex128_t[:, ::1] U2
+	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((nr),dtype=np.double)
+	cdef np.complex128_t[:, ::1] V2
+
+	U2, S, V2 = _zresolvent(Atilde, w)
+
+	del Atilde
+	print('project', flush=True)
+	cdef np.ndarray[np.complex128_t,ndim=2] U = np.zeros((m,nr),dtype=np.complex128)
+	cdef np.ndarray[np.complex128_t,ndim=2] V = np.zeros((m,nr),dtype=np.complex128)
+	c_zmatmul(&U[0,0], <np.complex128_t*>&U1[0,0], &U2[0,0], m, nr, nr)
+	c_zmatmul(&V[0,0], <np.complex128_t*>&U1[0,0], &V2[0,0], m, nr, nr)
+
+	del U1, U2, V2
+
+	return U, S, V
+
+def _crun_new(list X, np.complex64_t w, float r, int remove_mean):
+
+	# Variables
+	cdef int m, n
+	cdef float[:, ::1] Y
+	cdef float[:, ::1] Z
+	cdef float[:, ::1] U1
+	cdef float[::1] S1
+	cdef float[:, ::1] VT1
+	cdef float[:, ::1] Atilde
+	
+	# Create the snapshot of matrices and separate it into Y, Z
+	Y, Z = _sconcatenate(X, remove_mean)
+	m = Z.shape[0]
+	n = Z.shape[1] + 1
+	# Compute the linear operator in lower dimension
+	U1, S1, VT1, Atilde = _slinear_operator(Y, Z, r)
+	cdef int nr
+	nr = Atilde.shape[1]
+
+	del S1, VT1
+
+	cdef np.complex64_t[:, ::1] U2
+	cdef np.ndarray[np.float32_t,ndim=1] S = np.zeros((nr),dtype=np.float32)
+	cdef np.complex64_t[:, ::1] V2
+
+	U2, S, V2 = _cresolvent(Atilde, w)
+
+	del Atilde
+
+	cdef np.ndarray[np.complex64_t,ndim=2] U = np.zeros((m,nr),dtype=np.complex64)
+	cdef np.ndarray[np.complex64_t,ndim=2] V = np.zeros((m,nr),dtype=np.complex64)
+	c_cmatmul(&U[0,0], <np.complex64_t*>&U1[0,0], &U2[0,0], m, nr, nr)
+	c_cmatmul(&V[0,0], <np.complex64_t*>&U1[0,0], &V2[0,0], m, nr, nr)
+
+	del U1, U2
+
+	return U, S, V
+
+def _zrun_new(list X, np.complex128_t w, double r, int remove_mean):
+
+	# Variables
+	cdef int m, n
+	cdef double[:, ::1] Y
+	cdef double[:, ::1] Z
+	cdef double[:, ::1] U1
+	cdef double[::1] S1
+	cdef double[:, ::1] VT1
+	cdef double[:, ::1] Atilde
+	
+	# Create the snapshot of matrices and separate it into Y, Z
+	Y, Z = _dconcatenate(X, remove_mean)
+	m = Z.shape[0]
+	n = Z.shape[1] + 1
+	# Compute the linear operator in lower dimension
+	U1, S1, VT1, Atilde = _dlinear_operator(Y, Z, r)
+	cdef int nr
+	nr = Atilde.shape[1]
+
+	del S1, VT1
+
+	cdef np.complex128_t[:, ::1] U2
+	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((nr),dtype=np.double)
+	cdef np.complex128_t[:, ::1] V2
+
+	U2, S, V2 = _zresolvent(Atilde, w)
+
+	del Atilde
+
+	cdef np.ndarray[np.complex128_t,ndim=2] U = np.zeros((m,nr),dtype=np.complex128)
+	cdef np.ndarray[np.complex128_t,ndim=2] V = np.zeros((m,nr),dtype=np.complex128)
+	c_zmatmul(&U[0,0], <np.complex128_t*>&U1[0,0], &U2[0,0], m, nr, nr)
+	c_zmatmul(&V[0,0], <np.complex128_t*>&U1[0,0], &V2[0,0], m, nr, nr)
+
+	del U1, U2, V2
+
+	return U, S, V
+
+@cr('RES.run_new')
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def run_new(object X, object w, object r, int remove_mean=True):
+
+	if isinstance(X, list):
+		if X[0].dtype == np.double:
+			print('function1', flush=True)
+			return _zrun_new(X,<np.complex128_t>w,<double>r,remove_mean)
+		else:
+			print('function2', flush=True)
+			return _crun_new(X,<np.complex64_t>w,<float>r,remove_mean)
+	else:
+		if X[0].dtype == np.double:
+			print('function3', flush=True)
+			return _zrun_old(X,<np.complex128_t>w,<double>r,remove_mean)
+		else:
+			print('function4', flush=True)
+			return _crun_old(X,<np.complex64_t>w,<float>r,remove_mean)

@@ -10,7 +10,7 @@ from __future__ import print_function
 import numpy as np
 
 from ..utils.gpu import cp
-from ..vmmath    import vecmat, matmul, svd, cholesky, inv, matmulp, dagger
+from ..vmmath    import vecmat, matmul, svd, cholesky, inv, matmulp, dagger, concatenate, linear_operator, separate, resolvent
 from ..utils     import cr_nvtx as cr, cr_start, cr_stop
 
 @cr('RES.run')
@@ -54,3 +54,24 @@ def run(Phi, delta, omega, f, Q=None):
     V_res = matmul(Phi, matmul(Fhat_inv, V))
 
     return U_res, S, V_res
+
+def run_new(X, w, r, remove_mean = True):
+
+    # Prepare matrices and calculate the linear operator
+    if (type(X) is list):
+        Y, Z = concatenate(X, remove_mean=remove_mean)
+        U1, S1, VT1, Atilde = linear_operator(Y, Z, r)
+
+    else:
+        Y, Z = separate(X, remove_mean=remove_mean)
+        U1, S1, VT1, Atilde = linear_operator(Y, Z, r)
+
+    del S1, VT1
+
+    # Calculate the resolvent of the linear operator
+    U2, S, V = resolvent(Atilde, w)
+
+    # Project the solution
+    U = matmul(U1, U2)
+
+    return U, S, V
