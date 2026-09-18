@@ -13,13 +13,18 @@
 import numpy as np
 import torch
 
-from ..                 import DEVICE
-from ..dataset          import Dataset
-from ...partition_table import PartitionTable
-from ...utils.cr        import cr
-from ...utils.errors    import raiseWarning
-from ...utils.gpu       import gpu_to_cpu, cpu_to_gpu
-from ...inp_out.io_h5   import h5_save_QR, h5_load_QR, h5_load_compressed
+from ..                   import DEVICE
+from ..dataset            import Dataset
+from ...partition_table   import PartitionTable
+from ...utils.cr          import cr
+from ...utils.errors      import raiseWarning
+from ...utils.gpu         import gpu_to_cpu, cpu_to_gpu
+from ...inp_out.io_h5     import h5_save_QR, h5_load_QR, h5_load_compressed
+from ...vmmath.truncation import energy as math_energy
+
+
+def _as(x,device):
+	return torch.as_tensor(x, dtype=torch.float32, device=device)
 
 
 @cr('GAVI.save_QR')
@@ -37,7 +42,6 @@ def save(fname:str,Q:np.ndarray,B:np.ndarray,ptable:PartitionTable,pointData:boo
 	'''
 	h5_save_QR(fname,gpu_to_cpu(Q),None,gpu_to_cpu(B),ptable,nvars=1,pointData=pointData,mode=mode)
 
-## Load the QR factorization
 @cr('GAVI.load_QR')
 def load(fname:str,vars:list=['Q','B'],ptable:PartitionTable=None):
 	r'''
@@ -71,35 +75,69 @@ def load_compressed(fname:str, ptable:PartitionTable, nelxAE:int=1, basedir:str=
 	Qmeans, Qstds, weights, biases, Q, B = h5_load_compressed(fname, basedir, ptable, nelxAE)
 	return Qmeans, Qstds, torch.tensor(weights, device=DEVICE), torch.tensor(biases, device=DEVICE), cpu_to_gpu(Q), cpu_to_gpu(B)
 
-## Create dataset
-@cr('GAVI.create_NNdataset')
-def create_dataset(matrix:np.ndarray, scale:str='max', device:torch.device=DEVICE):
+@cr('GAVI.create_dataset')
+def create_dataset(data:tuple, scale:str='max', device:torch.device=DEVICE, scaler=None):
 	r'''
-	Create the pyLOM.NN dataset for neural network training of the GAVI autoencoders
-	
+	Create the pyLOM.NN dataset for neural network training of the GAVI autoencoders.
+
 	Args:
-		matrix (np.ndarray): data matrix that will be added to the dataset with shape (number of modes, number of variables, number of samples).
-		scale (str, optional): type of scaler applied to the data, 'max' is recommended for the autoencoder on the R matrix and 'meanstd' is recommended for the autoencoder on the Q matrix (default ``'max'``).
-		device (torch.device, optional): device in which the data will be loaded (default: CUDA if available)
+		data (tuple): tuple over variables of data matrices of shape
+			(number of modes, number of samples).
+		scale (str, optional): ``'max'`` (single global maximum, recommended for the
+			R autoencoder), ``'maxchan'`` (one maximum per variable), ``'meanstd'``
+			(recommended for the Q autoencoder), or ``None`` for no scaling
+			(default ``'max'``).
+		device (torch.device, optional): device on which the data is loaded.
+		scaler (optional): a scaler previously returned by this function. When
+			given, it is APPLIED rather than refitted -- use this for validation
+			and test splits so that no statistic is estimated on held-out data.
 
 	Returns:
-		[Dataset, np.ndarray]: pyLOM.NN.Dataset with the scaled data and the scalers used to scale it
+		[Dataset, scaler]: pyLOM.NN.Dataset with the scaled data, and the scaler used.
 	'''
-	if scale == 'max':
-		matmax = np.max(np.abs(matrix))
-		matsca = matrix/matmax
-		scaler = matmax
+	# Generate a matrix from tupled data
+	nchannel = len(data)
+	# matrix (np.ndarray): data matrix that will be added to the dataset with shape (number of modes, number of variables, number of samples).
+	matrix   = torch.zeros((data[0].shape[0], nchannel, data[0].shape[1]), dtype=torch.float32, device=device)
+	for ichannel in range(nchannel):
+		matrix[:,ichannel,:] = torch.tensor(data[ichannel], dtype=torch.float32, device=device)
+	# Scaling
+	if scale is None or scale == 'none':
+		matsca, scaler_out = matrix, None
+	elif scale == 'max':
+		s          = _as(scaler,device) if scaler is not None else torch.max(torch.abs(matrix))
+		matsca     = matrix/s
+		scaler_out = s
+	elif scale == 'maxchan':
+		s          = _as(scaler,device) if scaler is not None else torch.amax(torch.abs(matrix), dim=(0,2))
+		matsca     = matrix/s.view(1,-1,1)
+		scaler_out = s
 	elif scale == 'meanstd':
-		scaler = np.zeros((matrix.shape[1], 2), dtype=np.float32)
-		matsca = np.zeros(matrix.shape, dtype=np.float32)
-		for ivar in range(matrix.shape[1]):
-			matstd  = np.std(matrix[:,ivar,:])
-			matmean = np.mean(matrix[:,ivar,:])
-			matsca[:,ivar,:] = (matrix[:,ivar,:]-matmean)/matstd
-			scaler[ivar]     = np.array([matmean,matstd])
+		if scaler is not None:
+			sc         = _as(scaler,device)
+			mean, std  = sc[:,0], sc[:,1]
+		else:
+			mean = matrix.mean(dim=(0,2))
+			std  = matrix.std(dim=(0,2))
+		matsca     = (matrix - mean.view(1,-1,1))/std.view(1,-1,1)
+		scaler_out = torch.stack((mean, std), dim=1)
 	else:
-		matsca = matrix
-		scaler = None
-		raiseWarning('Scaling method not implemented, setting scaler to None and adding the non-scaled data to the dataset')
-	matsca = torch.tensor((matsca).astype(np.float32), device=device)
-	return Dataset(tuple(matsca[:, i, :] for i in range(matsca.shape[1])), mesh_shape=(matsca.shape[0],), snapshots_by_column=True, squeeze_last_dim=False), scaler
+		matsca, scaler_out = matrix, None
+		raiseWarning('Scaling method "%s" not implemented, setting scaler to None and adding the non-scaled data to the dataset' % str(scale))
+
+	return Dataset(tuple(matsca[:, i, :] for i in range(nchannel)), mesh_shape=(matsca.shape[0],), snapshots_by_column=True, squeeze_last_dim=False), scaler_out
+
+@cr('GAVI.energy')
+def energy(dataset:Dataset,reconstructed:np.array,channel:int):
+	r'''
+	Compute recovered energy from reconstructed data 
+	
+	Args:
+		dataset (Dataset): pyLOM.NN.Dataset containing the original data
+		reconstructed (np.array): reconstructed data
+		channel (int): channel to compute energy from
+
+	Returns:
+		energy: energy kept on the reconstruction 
+	'''
+	return math_energy(dataset.variables_out[:,channel,:].cpu().numpy().T,reconstructed[channel])
