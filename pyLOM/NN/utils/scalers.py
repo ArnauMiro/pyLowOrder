@@ -208,6 +208,62 @@ class MinMaxScaler:
         else:
             return np.hstack(blocks)
 
+    def _reindex_blocks(self, kept_positions):
+        """
+        Recompute self.blocks after dropping/keeping variables, so that the
+        new blocks are contiguous slices matching the widths of the kept
+        original blocks, in the given order.
+        """
+        if self.blocks is None:
+            return None
+
+        def _width(b):
+            if isinstance(b, slice):
+                start, step = b.start or 0, b.step or 1
+                return len(range(start, b.stop, step))
+            return len(b)
+
+        new_blocks, offset = [], 0
+        for i in kept_positions:
+            w = _width(self.blocks[i])
+            new_blocks.append(slice(offset, offset + w))
+            offset += w
+        return new_blocks
+
+    def drop_columns(self, indices):
+        """
+        Remove scaling parameters for the variables at the given 0-based
+        indices (index into blocks/variables as fitted, not raw columns
+        when `blocks` groups multiple columns together).
+        Accepts an int or an iterable of ints.
+        """
+        if not self.is_fitted:
+            raiseError("Scaler must be fitted before dropping columns.")
+        if isinstance(indices, int):
+            indices = [indices]
+        idx_set = set(indices)
+        kept_positions = [i for i in range(len(self.variable_scaling_params)) if i not in idx_set]
+        if len(kept_positions) == len(self.variable_scaling_params):
+            raiseError(f"No matching indices to drop: {indices}")
+        self.variable_scaling_params = [self.variable_scaling_params[i] for i in kept_positions]
+        self.blocks = self._reindex_blocks(kept_positions)
+
+    def keep_columns(self, indices):
+        """
+        Keep only the variables at the given 0-based indices (drops all
+        others). Accepts an int or an iterable of ints.
+        """
+        if not self.is_fitted:
+            raiseError("Scaler must be fitted before keeping columns.")
+        if isinstance(indices, int):
+            indices = [indices]
+        idx_set = set(indices)
+        kept_positions = [i for i in range(len(self.variable_scaling_params)) if i in idx_set]
+        if not kept_positions:
+            raiseError("Keeping zero columns would leave the scaler unusable.")
+        self.variable_scaling_params = [self.variable_scaling_params[i] for i in kept_positions]
+        self.blocks = self._reindex_blocks(kept_positions)
+
     # ------------------------------ API ------------------------------
     def fit(self, variables: Union[List[Union[np.ndarray, torch.tensor]], np.ndarray, torch.tensor]):
         """
