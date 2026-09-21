@@ -309,9 +309,9 @@ cdef tuple _sseparate(float[:,:] X, int remove_mean):
 	if m > n:
 		m_aux = m
 	else:
-		m_aux = n
-	cdef np.ndarray[np.float32_t,ndim=2] Y   = np.zeros((m_aux, n),dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=2] Z   = np.zeros((m, n),dtype=np.float32)
+		m_aux = n-1
+	cdef np.ndarray[np.float32_t,ndim=2] Y   = np.zeros((m_aux, n-1),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=2] Z   = np.zeros((m, n-1),dtype=np.float32)
 
 	# Fill the matrices
 	cdef float *X_mean
@@ -350,9 +350,9 @@ cdef tuple _dseparate(double[:,:] X, int remove_mean):
 	if m > n:
 		m_aux = m
 	else:
-		m_aux = n
-	cdef np.ndarray[np.double_t,ndim=2] Y   = np.zeros((m_aux, n),dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=2] Z   = np.zeros((m, n),dtype=np.double)
+		m_aux = n-1
+	cdef np.ndarray[np.double_t,ndim=2] Y   = np.zeros((m_aux, n-1),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] Z   = np.zeros((m, n-1),dtype=np.double)
 
 	# Fill the matrices
 	cdef double *X_mean
