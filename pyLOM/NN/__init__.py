@@ -53,6 +53,7 @@ from .architectures.pinn              import PINN, BurgersPINN, Euler2DPINN, Nav
 from .architectures.shred             import SHRED
 from .architectures.binary_classifier import BinaryClassifier
 from .architectures.diffusion         import Diffusion
+from .architectures.rbfelm            import RBFELM, MultiRBFELM
 
 from .utils                           import plot_train_test_loss, plot_true_vs_pred, save_experiment_artifacts
 from ..utils.plots                    import plotSnapshot, plotModalErrorBars, plotTimeSeries

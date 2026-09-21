@@ -14,33 +14,35 @@ import numpy               as np
 import torch.nn            as nn
 import torch.nn.functional as F
 
-from   torch.utils.data    import DataLoader
-from   ...utils.cr         import cr
-from   .encoders_decoders  import ShallowDecoder
-from   ..dataset           import Dataset
+from torch.utils.data    import DataLoader
+from ...utils.cr         import cr
+from .encoders_decoders  import ShallowDecoder
+from ..dataset           import Dataset
+from ...utils.errors     import raiseError
+
 
 class SHRED(nn.Module):
 	r'''
-    Shallow recurrent decoder (SHRED) architecture. For more information on the theoretical background of the architecture check the following reference
+	Shallow recurrent decoder (SHRED) architecture. For more information on the theoretical background of the architecture check the following reference
 		Williams, J. P., Zahn, O., & Kutz, J. N. (2023). Sensing with shallow recurrent decoder networks. arXiv preprint arXiv:2301.12011.
 	
 	The model is based on the PyTorch library `torch.nn` (detailed documentation can be found at https://pytorch.org/docs/stable/nn.html). 
 
 	In this implementation we assume that the output are always the POD coefficients of the full dataset.
 
-    Args:
-        output_size (int): Number of POD modes.
+	Args:
+		output_size (int): Number of POD modes.
 		device (torch.device): Device to use.
 		total_sensors (int): Total number of sensors that will be used to ensamble the different configurations.
-        hidden_size (int, optional): Dimension of the LSTM hidden layers (default: ``64``).
+		hidden_size (int, optional): Dimension of the LSTM hidden layers (default: ``64``).
 		hidden_layers (int, optional): Number of LSTM hidden layers (default: ``2``).
 		decoder_sizes (list, optional): Integer list of the decoder layer sizes (default: ``[350, 400]``).
 		input_size (int, optional): Number of sensor signals used as input (default: ``3``).
-        dropouts (float, optional): Dropout probability for the decoder (default: ``0.1``).
-        nconfigs (int, optional): Number of configurations to train SHRED on (default: ``1``).
-        compile (bool, optional): Flag to compile the model (default: ``False``).
-        seed (int, optional): Seed for reproducibility (default: ``-1``).
-    '''
+		dropouts (float, optional): Dropout probability for the decoder (default: ``0.1``).
+		nconfigs (int, optional): Number of configurations to train SHRED on (default: ``1``).
+		compile (bool, optional): Flag to compile the model (default: ``False``).
+		seed (int, optional): Seed for reproducibility (default: ``-1``).
+	'''
 	def __init__(
 			self, 
 			output_size:int, 
@@ -48,14 +50,16 @@ class SHRED(nn.Module):
 			total_sensors:int, 
 			hidden_size:int=64, 
 			hidden_layers:int=2, 
-			decoder_sizes:list=[350, 400], 
+			decoder_sizes:list=None, 
 			input_size:int=3, 
 			dropout:int=0.1, 
 			nconfigs:int=1, 
 			compile:bool=False, 
 			seed:int=-1):
 		super(SHRED,self).__init__()
-		np.random.seed(0) if seed == -1 else np.random.seed(seed)
+		rng = np.random.default_rng(None if seed == -1 else seed)
+		if decoder_sizes is None:
+			decoder_sizes = [350, 400]
 		if compile:
 			self.lstm    = torch.compile(nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=hidden_layers, batch_first=True), mode="max-autotune")
 			self.decoder = torch.compile(ShallowDecoder(output_size, hidden_size, decoder_sizes, dropout), mode="max-autotune")
@@ -66,10 +70,10 @@ class SHRED(nn.Module):
 		self.sensxconfig   = input_size
 		self.nconfigs      = nconfigs
 		self.hidden_layers = hidden_layers
-		self.hidden_size = hidden_size
+		self.hidden_size   = hidden_size
 		self.configs = np.zeros((self.nconfigs, self.sensxconfig), dtype=int)
 		for kk in range(self.nconfigs):
-			self.configs[kk,:] = np.random.choice(total_sensors, size=self.sensxconfig, replace=False)
+			self.configs[kk,:] = rng.choice(total_sensors, size=self.sensxconfig, replace=False)
 		
 		self.device = device
 		self.to(device)
@@ -105,35 +109,60 @@ class SHRED(nn.Module):
 		for param in self.parameters():
 			param.requires_grad = True
 	
-	def _loss_func(self, x:torch.Tensor, recon_x:torch.Tensor, mod_scale:torch.Tensor, reduction:str):
+	def _loss_func(self, x_true:torch.Tensor, x_pred:torch.Tensor, mod_scale:torch.Tensor, reduction:str):
 		r'''
 		Model loss function.
 
 		Args:
-			x (torch.Tensor): correct output.
-			recon_x (torch.Tensor): neural network output.
+			x_true (torch.Tensor): correct output.
+			x_pred (torch.Tensor): neural network output.
 			mod_scale (torch.Tensor): scaling of each POD coefficient according to its energy.
 			reduction (str): type of reduction applied when doing the MSE.
 		Returns:
 			(double): Loss function
 		'''
-		return F.mse_loss(x*mod_scale, recon_x*mod_scale, reduction=reduction)
-	
-	def _mre(self, x:torch.Tensor, recon_x:torch.Tensor, mod_scale:torch.Tensor):
+		return F.mse_loss(x_pred*mod_scale, x_true*mod_scale, reduction=reduction)
+
+	def _mre(self, x_true:torch.Tensor, x_pred:torch.Tensor, mod_scale:torch.Tensor):
 		r'''
 		Mean relative error between the original and the SHRED reconstruction.
 
 		Args:
-			x (torch.Tensor): correct output.
-			recon_x (torch.Tensor): neural network output.
+			x_true (torch.Tensor): correct output.
+			x_pred (torch.Tensor): neural network output.
 			mod_scale (torch.Tensor): scaling of each POD coefficient according to its energy.
 		Returns:
 			(double): Mean relative error
 		'''
-		diff = (x-recon_x)*(x-recon_x)
+		diff = (x_true-x_pred)*(x_true-x_pred)
 		num  = torch.sqrt(torch.sum(diff, axis=0))
-		den  = torch.sqrt(torch.sum(x*x, axis=0))
+		den  = torch.sqrt(torch.sum(x_true*x_true, axis=0))
 		return torch.sum(num/den*mod_scale/len(mod_scale))
+
+	def _validate_dataset(self, dataset, name:str):
+			r'''
+			Check the shape contract before any permute or broadcast can hide a
+			mismatch. variables_in must be (nsensors, nsnapshots, ndelays) and
+			variables_out must be (nsnapshots, noutputs).
+
+			Args:
+				dataset (Dataset): dataset to validate.
+				name (str): label used in the error messages.
+			'''
+			vin, vout = dataset.variables_in, dataset.variables_out
+			if vin is None:
+				raiseError('SHRED.fit: %s dataset has no variables_in' % name)
+			if vin.ndim != 3:
+				raiseError('SHRED.fit: %s variables_in must be 3D (nsensors, nsnapshots, ndelays), got %s'
+						% (name, tuple(vin.shape)))
+			if vout.ndim != 2:
+				raiseError('SHRED.fit: %s variables_out must be 2D (nsnapshots, noutputs), got %s. '
+						'A trailing singleton mesh axis is the usual cause: build the Dataset with '
+						'mesh_shape=(1,) for point data, or squeeze it before calling fit.'
+						% (name, tuple(vout.shape)))
+			if vin.shape[1] != vout.shape[0]:
+				raiseError('SHRED.fit: %s has %d input snapshots but %d output snapshots'
+						% (name, vin.shape[1], vout.shape[0]))
 
 	@cr('SHRED.fit')
 	def fit(self, train_dataset: Dataset, valid_dataset: Dataset, batch_size:int=64, epochs:int=4000, optim:torch.optim.Optimizer=torch.optim.Adam, lr:float=1e-3, reduction:str='mean', verbose:bool=False, patience:int=5, mod_scale:torch.Tensor=None):
@@ -150,6 +179,12 @@ class SHRED(nn.Module):
 			verbose (bool, optional): define level of explicity on the output (default: ``False``). 
 			patience (int, optional): epochs without improvements on the validation loss before stopping the training (default to 5).
 		'''
+		self._validate_dataset(train_dataset, 'training')
+		self._validate_dataset(valid_dataset, 'validation')
+		if train_dataset.variables_out.shape[1] != valid_dataset.variables_out.shape[1]:
+			raiseError('SHRED.fit: training and validation datasets disagree on the number of outputs (%d against %d)' % 
+			  (train_dataset.variables_out.shape[1],valid_dataset.variables_out.shape[1]))
+
 		train_dataset.variables_in  = train_dataset.variables_in.permute(1,2,0).to(self.device)
 		valid_dataset.variables_in  = valid_dataset.variables_in.permute(1,2,0).to(self.device)
 		train_dataset.variables_out = train_dataset.variables_out.to(self.device)
@@ -161,14 +196,17 @@ class SHRED(nn.Module):
 		patience_counter = 0
 		best_params = self.state_dict()
 
-		mod_scale = torch.ones((train_dataset.variables_out.shape[1],), dtype=torch.float32, device=self.device) if mod_scale == None else mod_scale.to(self.device)
+		noutputs  = train_dataset.variables_out.shape[1]
+		mod_scale = torch.ones((noutputs,), dtype=torch.float32, device=self.device) if mod_scale is None else mod_scale.to(self.device)
+		if mod_scale.ndim != 1 or mod_scale.shape[0] != noutputs:
+			raiseError('SHRED.fit: mod_scale must be 1D of length %d, got %s' % (noutputs, tuple(mod_scale.shape)))
 
 		for epoch in range(1, epochs + 1):
 			for k, data in enumerate(train_loader):
 				self.train()
 				outputs = self(data[0])
 				optimizer.zero_grad()
-				loss = self._loss_func(outputs, data[1], mod_scale, reduction)
+				loss = self._loss_func(data[1], outputs, mod_scale, reduction)
 				loss.backward()
 				optimizer.step()
 			scheduler.step()
@@ -203,7 +241,7 @@ class SHRED(nn.Module):
 			sensors (np.array): IDs of the sensors used for the current SHRED configuration.
 		'''
 		torch.save({
-		    'model_state_dict': self.state_dict(),
-		    'scaler_path'     : scaler_path,
-		    'podscale_path'   : podscale_path,
+			'model_state_dict': self.state_dict(),
+			'scaler_path'     : scaler_path,
+			'podscale_path'   : podscale_path,
 			'sensors'         : sensors,}, "%s.pth" % path)
