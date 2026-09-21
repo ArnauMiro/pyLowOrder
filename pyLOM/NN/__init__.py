@@ -33,7 +33,7 @@ from .pipeline                        import Pipeline, ClusteredPipeline
 from .loss                            import BaseLossFunction, TorchLossAdapter, GradientWeightedMSE, NeighborDifferenceMSELoss, HybridGradientNeighborMSELoss, FocalMSELoss
 from .dataset                         import Dataset, NeighborhoodDataset
 from .gns                             import Graph
-from .utils.scalers                   import MinMaxScaler, StandardScaler, RobustScaler
+from .utils.scalers                   import MinMaxScaler, StandardScaler, RobustScaler, load_scaler
 from .utils                           import RegressionEvaluator, ClassificationEvaluator, EarlyStopper
 from .utils                           import GNSModelConfig, GNSTrainingConfig
 from .utils                           import select_device, betaLinearScheduler, create_results_folder, set_seed, load_yaml, dataclass_from_dict
