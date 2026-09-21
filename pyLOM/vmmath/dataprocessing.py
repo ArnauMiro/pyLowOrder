@@ -1,7 +1,8 @@
 import numpy as np
 
 from ..utils.mpi import MPI_RANK, mpi_bcast, mpi_reduce
-from ..utils     import raiseError, is_rank_or_serial 
+from ..utils     import raiseError, is_rank_or_serial, cr_nvtx as cr, cr_start, cr_stop
+
 
 
 def data_splitting(Nt:int, mode:str, seed:int=-1):

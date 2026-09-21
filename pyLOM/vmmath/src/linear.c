@@ -132,7 +132,7 @@ int dlinear_operator(double *U, double *S, double *VT, double *Atilde, double *Y
 void sflip_columns(float *A, float *B, int m, int n) {
 
     int ii, jj;
-
+    // openmp??
     for (ii=0; ii<m; ++ii){
         for (jj=0; jj<n; ++jj){
             AC_MAT(B,n,ii,jj) = AC_MAT(A,n,ii,n-jj-1);
