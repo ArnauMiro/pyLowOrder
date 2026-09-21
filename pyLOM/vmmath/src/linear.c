@@ -1,15 +1,31 @@
 /*
 	Linear operator
 */
-
 #include <math.h>
+#include <complex.h>
 #include <string.h>
+#include <stdlib.h>
 #include "mpi.h"
+typedef float  _Complex scomplex_t;
+typedef double _Complex dcomplex_t;
+
+#ifdef USE_MKL
+#define MKL_Complex8  scomplex_t
+#define MKL_Complex16 dcomplex_t
+#include "mkl.h"
+#include "mkl_lapacke.h"
+#else
+#include "cblas.h"
+#include "lapacke.h"
+#endif
+
 #include "averaging.h"
 #include "vector_matrix.h"
 #include "truncation.h"
 #include "svd.h"
+#include "linear.h"
 
+#define AC_MAT(A,n,i,j) *((A)+(n)*(i)+(j))
 
 int slinear_operator(float *U, float *S, float *VT, float *Atilde, float *Y, float *Z, const float r, const int my, const int mz, const int nn) {
     int icol, irow, retval;
@@ -111,4 +127,48 @@ int dlinear_operator(double *U, double *S, double *VT, double *Atilde, double *Y
     free(Urt);
 
     return retval;
+}
+
+void sflip_columns(float *A, float *B, int m, int n) {
+
+    int ii, jj;
+
+    for (ii=0; ii<m; ++ii){
+        for (jj=0; jj<n; ++jj){
+            AC_MAT(B,n,ii,jj) = AC_MAT(A,n,ii,n-jj-1);
+        }
+    }
+}
+
+void dflip_columns(double *A, double *B, int m, int n) {
+
+    int ii, jj;
+
+    for (ii=0; ii<m; ++ii){
+        for (jj=0; jj<n; ++jj){
+            AC_MAT(B,n,ii,jj) = AC_MAT(A,n,ii,n-jj-1);
+        }
+    }
+}
+
+void cflip_columns(scomplex_t *A, scomplex_t *B, int m, int n) {
+
+    int ii, jj;
+
+    for (ii=0; ii<m; ++ii){
+        for (jj=0; jj<n; ++jj){
+            AC_MAT(B,n,ii,jj) = AC_MAT(A,n,ii,n-jj-1);
+        }
+    }
+}
+
+void zflip_columns(dcomplex_t *A, dcomplex_t *B, int m, int n) {
+
+    int ii, jj;
+
+    for (ii=0; ii<m; ++ii){
+        for (jj=0; jj<n; ++jj){
+            AC_MAT(B,n,ii,jj) = AC_MAT(A,n,ii,n-jj-1);
+        }
+    }
 }

@@ -104,3 +104,9 @@ def resolvent(A, f):
 	S = 1 / S_inv
 	
 	return U, S, V
+
+def flip_columns(A):
+
+	B = np.fliplr(A)
+
+	return B

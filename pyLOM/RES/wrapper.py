@@ -55,7 +55,7 @@ def run(Phi, delta, omega, f, Q=None):
 
     return U_res, S, V_res
 
-def run_new(X, w, r, remove_mean = True):
+def run_new(X, w, r, remove_mean=True):
 
     # Prepare matrices and calculate the linear operator
     if (type(X) is list):
@@ -69,9 +69,10 @@ def run_new(X, w, r, remove_mean = True):
     del S1, VT1
 
     # Calculate the resolvent of the linear operator
-    U2, S, V = resolvent(Atilde, w)
+    U2, S, V2 = resolvent(Atilde, w)
 
     # Project the solution
     U = matmul(U1, U2)
+    V = matmul(U1, V2)
 
     return U, S, V

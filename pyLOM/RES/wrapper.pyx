@@ -330,17 +330,19 @@ def _crun_old(float[:,:] X, np.complex64_t w, float r, int remove_mean):
 
 	del Atilde
 
+	cdef np.ndarray[np.complex64_t, ndim=2] U1_c = np.ascontiguousarray(U1, dtype=np.complex64)
+
 	cdef np.ndarray[np.complex64_t,ndim=2] U = np.zeros((m,nr),dtype=np.complex64)
 	cdef np.ndarray[np.complex64_t,ndim=2] V = np.zeros((m,nr),dtype=np.complex64)
-	c_cmatmul(&U[0,0], <np.complex64_t*>&U1[0,0], &U2[0,0], m, nr, nr)
-	c_cmatmul(&V[0,0], <np.complex64_t*>&U1[0,0], &V2[0,0], m, nr, nr)
+	c_cmatmul(&U[0,0], &U1_c[0,0], &U2[0,0], m, nr, nr)
+	c_cmatmul(&V[0,0], &U1_c[0,0], &V2[0,0], m, nr, nr)
 
-	del U1, U2, V2
+	del U1, U2, V2, U1_c
 
 	return U, S, V
 
 def _zrun_old(double[:,:] X, np.complex128_t w, double r, int remove_mean):
-	print('variables', flush=True)
+
 	# Variables
 	cdef int m, n
 	cdef double[:, ::1] Y
@@ -349,19 +351,19 @@ def _zrun_old(double[:,:] X, np.complex128_t w, double r, int remove_mean):
 	cdef double[::1] S1
 	cdef double[:, ::1] VT1
 	cdef double[:, ::1] Atilde
-	print('snapshots', flush=True)
+
 	# Create the snapshot of matrices and separate it into Y, Z
 	Y, Z = _dseparate(X, remove_mean)
 	m = Z.shape[0]
 	n = Z.shape[1] + 1
-	print('linear operator', flush=True)
+
 	# Compute the linear operator in lower dimension
 	U1, S1, VT1, Atilde = _dlinear_operator(Y, Z, r)
 	cdef int nr
 	nr = Atilde.shape[1]
 
 	del S1, VT1
-	print('resolvent', flush=True)
+
 	cdef np.complex128_t[:, ::1] U2
 	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((nr),dtype=np.double)
 	cdef np.complex128_t[:, ::1] V2
@@ -369,13 +371,15 @@ def _zrun_old(double[:,:] X, np.complex128_t w, double r, int remove_mean):
 	U2, S, V2 = _zresolvent(Atilde, w)
 
 	del Atilde
-	print('project', flush=True)
+	
+	cdef np.ndarray[np.complex128_t, ndim=2] U1_c = np.ascontiguousarray(U1, dtype=np.complex128)
+	
 	cdef np.ndarray[np.complex128_t,ndim=2] U = np.zeros((m,nr),dtype=np.complex128)
 	cdef np.ndarray[np.complex128_t,ndim=2] V = np.zeros((m,nr),dtype=np.complex128)
-	c_zmatmul(&U[0,0], <np.complex128_t*>&U1[0,0], &U2[0,0], m, nr, nr)
-	c_zmatmul(&V[0,0], <np.complex128_t*>&U1[0,0], &V2[0,0], m, nr, nr)
+	c_zmatmul(&U[0,0], &U1_c[0,0], &U2[0,0], m, nr, nr)
+	c_zmatmul(&V[0,0], &U1_c[0,0], &V2[0,0], m, nr, nr)
 
-	del U1, U2, V2
+	del U1, U2, V2, U1_c
 
 	return U, S, V
 
@@ -409,12 +413,14 @@ def _crun_new(list X, np.complex64_t w, float r, int remove_mean):
 
 	del Atilde
 
+	cdef np.ndarray[np.complex64_t, ndim=2] U1_c = np.ascontiguousarray(U1, dtype=np.complex64)
+
 	cdef np.ndarray[np.complex64_t,ndim=2] U = np.zeros((m,nr),dtype=np.complex64)
 	cdef np.ndarray[np.complex64_t,ndim=2] V = np.zeros((m,nr),dtype=np.complex64)
-	c_cmatmul(&U[0,0], <np.complex64_t*>&U1[0,0], &U2[0,0], m, nr, nr)
-	c_cmatmul(&V[0,0], <np.complex64_t*>&U1[0,0], &V2[0,0], m, nr, nr)
+	c_cmatmul(&U[0,0], &U1_c[0,0], &U2[0,0], m, nr, nr)
+	c_cmatmul(&V[0,0], &U1_c[0,0], &V2[0,0], m, nr, nr)
 
-	del U1, U2
+	del U1, U2, V2, U1_c
 
 	return U, S, V
 
@@ -448,12 +454,14 @@ def _zrun_new(list X, np.complex128_t w, double r, int remove_mean):
 
 	del Atilde
 
+	cdef np.ndarray[np.complex128_t, ndim=2] U1_c = np.ascontiguousarray(U1, dtype=np.complex128)
+
 	cdef np.ndarray[np.complex128_t,ndim=2] U = np.zeros((m,nr),dtype=np.complex128)
 	cdef np.ndarray[np.complex128_t,ndim=2] V = np.zeros((m,nr),dtype=np.complex128)
-	c_zmatmul(&U[0,0], <np.complex128_t*>&U1[0,0], &U2[0,0], m, nr, nr)
-	c_zmatmul(&V[0,0], <np.complex128_t*>&U1[0,0], &V2[0,0], m, nr, nr)
+	c_zmatmul(&U[0,0], &U1_c[0,0], &U2[0,0], m, nr, nr)
+	c_zmatmul(&V[0,0], &U1_c[0,0], &V2[0,0], m, nr, nr)
 
-	del U1, U2, V2
+	del U1, U2, V2, U1_c
 
 	return U, S, V
 
@@ -466,15 +474,11 @@ def run_new(object X, object w, object r, int remove_mean=True):
 
 	if isinstance(X, list):
 		if X[0].dtype == np.double:
-			print('function1', flush=True)
-			return _zrun_new(X,<np.complex128_t>w,<double>r,remove_mean)
+			return _zrun_new(X,np.complex128(w),np.double(r),remove_mean)
 		else:
-			print('function2', flush=True)
-			return _crun_new(X,<np.complex64_t>w,<float>r,remove_mean)
+			return _crun_new(X,np.complex64(w),np.float32(r),remove_mean)
 	else:
 		if X[0].dtype == np.double:
-			print('function3', flush=True)
-			return _zrun_old(X,<np.complex128_t>w,<double>r,remove_mean)
+			return _zrun_old(X,np.complex128(w),np.double(r),remove_mean)
 		else:
-			print('function4', flush=True)
-			return _crun_old(X,<np.complex64_t>w,<float>r,remove_mean)
+			return _crun_old(X,np.complex64(w),np.float32(r),remove_mean)

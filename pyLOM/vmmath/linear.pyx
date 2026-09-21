@@ -5,11 +5,13 @@
 # Linear operator module
 #
 # Last rev: 31/08/2026
+
 cimport cython
 cimport numpy as np
 
 import numpy as np
 
+#from libc.complex  cimport creal, cimag
 cdef extern from "<complex.h>" nogil:
 	float  complex I
 	# Decomposing complex values
@@ -21,10 +23,10 @@ cdef double complex J = 1j
 from libc.stdlib     cimport malloc, free
 from libc.string     cimport memcpy, memset
 from ..vmmath.cfuncs cimport real, real_complex, real_float, real_double, real_full
-from ..vmmath.cfuncs cimport c_stranspose, c_smatmul, c_smatmulp, c_stsqr_svd, c_scompute_truncation_residual, c_scompute_truncation, c_stemporal_mean, c_ssubtract_mean
-from ..vmmath.cfuncs cimport c_dtranspose, c_dmatmul, c_dmatmulp, c_dtsqr_svd, c_dcompute_truncation_residual, c_dcompute_truncation, c_dtemporal_mean, c_dsubtract_mean
-from ..vmmath.cfuncs cimport c_csvd, c_cdagger
-from ..vmmath.cfuncs cimport c_zsvd, c_zdagger
+from ..vmmath.cfuncs cimport c_stranspose, c_smatmul, c_smatmulp, c_stsqr_svd, c_scompute_truncation_residual, c_scompute_truncation, c_stemporal_mean, c_ssubtract_mean, c_sflip_columns
+from ..vmmath.cfuncs cimport c_dtranspose, c_dmatmul, c_dmatmulp, c_dtsqr_svd, c_dcompute_truncation_residual, c_dcompute_truncation, c_dtemporal_mean, c_dsubtract_mean, c_dflip_columns
+from ..vmmath.cfuncs cimport c_csvd, c_cdagger, c_cflip_columns
+from ..vmmath.cfuncs cimport c_zsvd, c_zdagger, c_zflip_columns
 
 from ..utils.cr       import cr, cr_start, cr_stop
 from ..utils.errors   import raiseError
@@ -408,18 +410,31 @@ cdef tuple _cresolvent(float[:,:] A, np.complex64_t f):
 			else:
 				H_inv[ii*n + jj] = -A[ii, jj] 	
 
-	cdef np.complex64_t *UT
-	UT  = <np.complex64_t*>malloc(n*n*sizeof(np.complex64_t))
-	cdef np.ndarray[np.float32_t,ndim=1] S_inv   = np.zeros((n),dtype=np.float32)
+	cdef np.complex64_t *UT_flip
+	cdef np.complex64_t *V_flip
+	cdef np.complex64_t *U_flip
+	cdef float *S_inv
+	UT_flip  = <np.complex64_t*>malloc(n*n*sizeof(np.complex64_t))
+	V_flip   = <np.complex64_t*>malloc(n*n*sizeof(np.complex64_t))
+	U_flip   = <np.complex64_t*>malloc(n*n*sizeof(np.complex64_t))
+	S_inv    = <float*>malloc(n*sizeof(np.complex64_t))
 	cdef np.ndarray[np.float32_t,ndim=1] S       = np.zeros((n),dtype=np.float32)
-	cdef np.ndarray[np.complex64_t,ndim=2] V     = np.zeros((n, n),dtype=np.complex64)
-	cdef np.ndarray[np.complex64_t,ndim=2] U     = np.zeros((n, n),dtype=np.complex64)
-	c_csvd(&V[0,0], &S_inv[0], UT, H_inv, n, n)
+	c_csvd(V_flip, S_inv, UT_flip, H_inv, n, n)
+	free(H_inv)
 
 	for ii in range(n):
-		S[ii] = 1 / S_inv[ii]
+		S[ii] = 1 / S_inv[n-1-ii]
+	free(S_inv)
 
-	c_cdagger(UT, &U[0,0], n, n)
+	c_cdagger(UT_flip, U_flip, n, n)
+	free(UT_flip)
+
+	cdef np.ndarray[np.complex64_t,ndim=2] V   = np.zeros((n, n),dtype=np.complex64)
+	cdef np.ndarray[np.complex64_t,ndim=2] U   = np.zeros((n, n),dtype=np.complex64)
+	c_cflip_columns(U_flip, &U[0,0], n, n)
+	c_cflip_columns(V_flip, &V[0,0], n, n)
+	free(U_flip)
+	free(V_flip)
 		
 	return U, S, V
 
@@ -444,19 +459,32 @@ cdef tuple _zresolvent(double[:,:] A, np.complex128_t f):
 			else:
 				H_inv[ii*n + jj] = -A[ii, jj] 	
 
-	cdef np.complex128_t *UT
-	UT  = <np.complex128_t*>malloc(n*n*sizeof(np.complex128_t))
-	cdef np.ndarray[np.double_t,ndim=1] S_inv   = np.zeros((n),dtype=np.double)
+	cdef np.complex128_t *UT_flip
+	cdef np.complex128_t *V_flip
+	cdef np.complex128_t *U_flip
+	cdef double *S_inv
+	UT_flip  = <np.complex128_t*>malloc(n*n*sizeof(np.complex128_t))
+	V_flip   = <np.complex128_t*>malloc(n*n*sizeof(np.complex128_t))
+	U_flip   = <np.complex128_t*>malloc(n*n*sizeof(np.complex128_t))
+	S_inv    = <double*>malloc(n*sizeof(np.complex128_t))
 	cdef np.ndarray[np.double_t,ndim=1] S       = np.zeros((n),dtype=np.double)
-	cdef np.ndarray[np.complex128_t,ndim=2] V   = np.zeros((n, n),dtype=np.complex128)
-	cdef np.ndarray[np.complex128_t,ndim=2] U   = np.zeros((n, n),dtype=np.complex128)
-	c_zsvd(&V[0,0], &S[0], UT, H_inv, n, n)
+	c_zsvd(V_flip, S_inv, UT_flip, H_inv, n, n)
+	free(H_inv)
 
 	for ii in range(n):
-		S[ii] = 1 / S_inv[ii]
+		S[ii] = 1 / S_inv[n-1-ii]
+	free(S_inv)
 
-	c_zdagger(UT, &U[0,0], n, n)
-		
+	c_zdagger(UT_flip, U_flip, n, n)
+	free(UT_flip)
+
+	cdef np.ndarray[np.complex128_t,ndim=2] V   = np.zeros((n, n),dtype=np.complex128)
+	cdef np.ndarray[np.complex128_t,ndim=2] U   = np.zeros((n, n),dtype=np.complex128)
+	c_zflip_columns(U_flip, &U[0,0], n, n)
+	c_zflip_columns(V_flip, &V[0,0], n, n)
+	free(U_flip)
+	free(V_flip)
+
 	return U, S, V
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -466,6 +494,82 @@ cdef tuple _zresolvent(double[:,:] A, np.complex128_t f):
 def resolvent(real[:,:] X, object f):
 
 	if real is double:
-		return _zresolvent(X,<np.complex64_t>f)
+		return _zresolvent(X,np.complex128(f))
 	else:
-		return _cresolvent(X,<np.complex128_t>f)
+		return _cresolvent(X,np.complex64(f))
+
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.float32_t,ndim=2] _sflip_columns(float[:,:] A):
+	'''
+	
+	'''
+	cdef int m = A.shape[0], n = A.shape[1]
+	cdef np.ndarray[np.float32_t,ndim=2] B = np.zeros((m,n),dtype=np.float32)
+	c_sflip_columns(&A[0,0], &B[0,0], m,n)
+	return B
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.double_t,ndim=2] _dflip_columns(double[:,:] A):
+	'''
+	
+	'''
+	cdef int m = A.shape[0], n = A.shape[1]
+	cdef np.ndarray[np.double_t,ndim=2] B = np.zeros((m,n),dtype=np.double)
+	c_dflip_columns(&A[0,0], &B[0,0], m,n)
+	return B
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.complex64_t,ndim=2] _cflip_columns(np.complex64_t[:,:] A):
+	'''
+	
+	'''
+	cdef int m = A.shape[0], n = A.shape[1]
+	cdef np.ndarray[np.complex64_t,ndim=2] B = np.zeros((m,n),dtype=np.complex64)
+	c_cflip_columns(&A[0,0], &B[0,0], m,n)
+	return B
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.complex128_t,ndim=2] _zflip_columns(np.complex128_t[:,:] A):
+	'''
+	
+	'''
+	cdef int m = A.shape[0], n = A.shape[1]
+	cdef np.ndarray[np.complex128_t,ndim=2] B = np.zeros((m,n),dtype=np.complex128)
+	c_zflip_columns(&A[0,0], &B[0,0], m,n)
+	return B
+
+@cr('math.flip_columns')
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def flip_columns(real_full[:,:] A):
+	r'''
+
+	'''
+	if real_full is np.complex128_t:
+		return _zflip_columns(A)
+	elif real_full is np.complex64_t:
+		return _cflip_columns(A)
+	elif real_full is double:
+		return _dflip_columns(A)
+	else:
+		return _sflip_columns(A)

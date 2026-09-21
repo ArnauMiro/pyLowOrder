@@ -27,7 +27,7 @@ from .regression     import least_squares, ridge_regresion
 # Data processing module
 from .dataprocessing import data_splitting, time_delay_embedding, find_random_sensors
 # Linear matrix module
-from .linear         import linear_operator, concatenate, separate, resolvent
+from .linear         import linear_operator, concatenate, separate, resolvent, flip_columns
 
 
 del maths, averaging, truncation, stats, geometric, regression, dataprocessing, linear
