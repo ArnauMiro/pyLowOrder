@@ -159,7 +159,7 @@ class MinMaxScaler:
     def is_fitted(self):
         return self._is_fitted
 
-    # ---------- internal helpers (robustos y retrocompatibles) ----------
+    # ---------- internal helpers ----------
     def _ensure_2d(self, x):
         """Return x as a 2D array/tensor. A 1D input is promoted to a single
         variable: a column when column=False, a row when column=True."""
@@ -209,7 +209,7 @@ class MinMaxScaler:
             return np.hstack(blocks)
 
     # ------------------------------ API ------------------------------
-    def fit(self, variables: Union[List[Union[np.ndarray, torch.tensor]], np.ndarray, torch.tensor]):
+    def fit(self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]):
         """
         Compute the min and max per variable.
         - If `blocks is None`:
@@ -247,7 +247,7 @@ class MinMaxScaler:
         self._fit_from_list = not (is_array or is_tensor)
 
     def transform(
-        self, variables: Union[List[Union[np.ndarray, torch.tensor]], np.ndarray, torch.tensor]
+        self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]
     ):
         """
         Scale variables using min-max.
