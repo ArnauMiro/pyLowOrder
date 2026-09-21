@@ -385,6 +385,10 @@ class StandardScaler:
         x = np.asarray(x)
         return x[:, None] if x.ndim == 1 else x
 
+    def _orient(self, X2d):
+        # No row/column toggle in this scaler (unlike MinMaxScaler), so this is a no-op.
+        return X2d
+
     def fit(self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]):
         is_array  = isinstance(variables, np.ndarray)
         is_tensor = isinstance(variables, torch.Tensor)
@@ -514,6 +518,10 @@ class RobustScaler:
             return x.unsqueeze(1) if x.ndim == 1 else x
         x = np.asarray(x)
         return x[:, None] if x.ndim == 1 else x
+
+    def _orient(self, X2d):
+        # No row/column toggle in this scaler (unlike MinMaxScaler), so this is a no-op.
+        return X2d
 
     def _quantiles(self, block):
         arr = block.detach().cpu().numpy() if isinstance(block, torch.Tensor) else np.asarray(block)
