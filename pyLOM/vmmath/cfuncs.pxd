@@ -178,10 +178,10 @@ cdef extern from "regression.h" nogil:
 	cdef void c_dridge_regression "dridge_regression"(double *out, double *A, double *b, double lam, const int m, const int n)
 cdef extern from "linear.h" nogil:
 	# Single precision
-	cdef int  c_slinear_operator   "slinear_operator"(float *U, float *S, float *VT, float *Atilde, float *Y, float *Z, const float r, const int m, const int n)
+	cdef int  c_slinear_operator   "slinear_operator"(float *U, float *S, float *VT, float *Atilde, float *Y, float *Z, const float r, const int my, const int mz, const int nn)
 	cdef void c_sflip_columns      "sflip_columns"(float *A, float *B, int m, int n) 
 	# Double precision
-	cdef int  c_dlinear_operator   "dlinear_operator"(float *U, float *S, float *VT, float *Atilde, float *Y, float *Z, const float r, const int m, const int n)
+	cdef int  c_dlinear_operator   "dlinear_operator"(double *U, double *S, double *VT, double *Atilde, double *Y, double *Z, const double r, const int my, const int mz, const int nn);
 	cdef void c_dflip_columns      "dflip_columns"(double *A, double *B, int m, int n)
 	# Single complex precision
 	cdef void c_cflip_columns      "cflip_columns"(np.complex64_t *A, np.complex64_t *B, int m, int n)

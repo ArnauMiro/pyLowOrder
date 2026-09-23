@@ -565,6 +565,7 @@ def flip_columns(real_full[:,:] A):
 	r'''
 
 	'''
+	cr_start('flip', 0)
 	if real_full is np.complex128_t:
 		return _zflip_columns(A)
 	elif real_full is np.complex64_t:
@@ -573,3 +574,4 @@ def flip_columns(real_full[:,:] A):
 		return _dflip_columns(A)
 	else:
 		return _sflip_columns(A)
+	cr_stop('flip', 0)

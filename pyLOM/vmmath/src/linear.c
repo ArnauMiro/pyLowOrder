@@ -132,7 +132,9 @@ int dlinear_operator(double *U, double *S, double *VT, double *Atilde, double *Y
 void sflip_columns(float *A, float *B, int m, int n) {
 
     int ii, jj;
-    // openmp??
+    // #ifdef USE_OMP
+	// #pragma omp parallel for collapse(2) private(ii,jj) shared(A,B) firstprivate(m,n)
+	// #endif
     for (ii=0; ii<m; ++ii){
         for (jj=0; jj<n; ++jj){
             AC_MAT(B,n,ii,jj) = AC_MAT(A,n,ii,n-jj-1);
@@ -143,7 +145,9 @@ void sflip_columns(float *A, float *B, int m, int n) {
 void dflip_columns(double *A, double *B, int m, int n) {
 
     int ii, jj;
-
+    // #ifdef USE_OMP
+	// #pragma omp parallel for collapse(2) private(ii,jj) shared(A,B) firstprivate(m,n)
+	// #endif
     for (ii=0; ii<m; ++ii){
         for (jj=0; jj<n; ++jj){
             AC_MAT(B,n,ii,jj) = AC_MAT(A,n,ii,n-jj-1);
@@ -154,7 +158,9 @@ void dflip_columns(double *A, double *B, int m, int n) {
 void cflip_columns(scomplex_t *A, scomplex_t *B, int m, int n) {
 
     int ii, jj;
-
+    // #ifdef USE_OMP
+	// #pragma omp parallel for collapse(2) private(ii,jj) shared(A,B) firstprivate(m,n)
+	// #endif
     for (ii=0; ii<m; ++ii){
         for (jj=0; jj<n; ++jj){
             AC_MAT(B,n,ii,jj) = AC_MAT(A,n,ii,n-jj-1);
@@ -165,7 +171,9 @@ void cflip_columns(scomplex_t *A, scomplex_t *B, int m, int n) {
 void zflip_columns(dcomplex_t *A, dcomplex_t *B, int m, int n) {
 
     int ii, jj;
-
+    // #ifdef USE_OMP
+	// #pragma omp parallel for collapse(2) private(ii,jj) shared(A,B) firstprivate(m,n)
+	// #endif
     for (ii=0; ii<m; ++ii){
         for (jj=0; jj<n; ++jj){
             AC_MAT(B,n,ii,jj) = AC_MAT(A,n,ii,n-jj-1);
