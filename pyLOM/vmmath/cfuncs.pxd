@@ -24,6 +24,8 @@ cdef extern from "vector_matrix.h" nogil:
 	cdef int    c_sinv               "sinv"(float *A, int m, int n)
 	cdef int    c_sinverse           "sinverse"(float *A, int N, char *UoL)
 	cdef void   c_ssort              "ssort"(float *v, int *index, int n)
+	cdef void   c_sdiag              "sdiag"(float *A, float *B, const int m)
+	cdef void   c_sdiag2             "sdiag2"(float *A, float *B, const int m)
 	# Double precision
 	cdef void   c_dtranspose         "dtranspose"(double *A, double *B, const int m, const int n)
 	cdef double c_dvector_sum        "dvector_sum"(double *v, int start, int n)
@@ -37,6 +39,8 @@ cdef extern from "vector_matrix.h" nogil:
 	cdef int    c_dinv               "dinv"(double *A, int m, int n)
 	cdef int    c_dinverse           "dinverse"(double *A, int N, char *UoL)
 	cdef void   c_dsort              "dsort"(double *v, int *index, int n)
+	cdef void   c_ddiag              "ddiag"(double *A, double *B, const int m)
+	cdef void   c_ddiag2             "ddiag2"(double *A, double *B, const int m)
 	# Single complex precision
 	cdef void   c_ctranspose         "ctranspose"(np.complex64_t *A, np.complex64_t *B, const int m, const int n)
 	cdef void   c_cmatmult           "cmatmult"(np.complex64_t *C, np.complex64_t *A, np.complex64_t *B, const int m, const int n, const int k, const char *TA, const char *TB)
@@ -51,6 +55,10 @@ cdef extern from "vector_matrix.h" nogil:
 	cdef void   c_cvandermonde       "cvandermonde"(np.complex64_t *Vand, float *real, float *imag, int m, int n)
 	cdef void   c_cvandermonde_time  "cvandermondeTime"(np.complex64_t *Vand, float *real, float *imag, int m, int n, float* t)
 	cdef void   c_csort              "csort"(np.complex64_t *v, int *index, int n)
+	cdef void   c_cconj              "cconj"(np.complex64_t *A, np.complex64_t *B, const int m, const int n)
+	cdef void   c_cdagger            "cdagger"(np.complex64_t *A, np.complex64_t *B, const int m, const int n)
+	cdef void   c_cdiag              "cdiag"(np.complex64_t *A, np.complex64_t *B, const int m)
+	cdef void   c_cdiag2             "cdiag2"(np.complex64_t *A, np.complex64_t *B, const int m)
 	# Double complex precision
 	cdef void   c_ztranspose         "ztranspose"(np.complex128_t *A, np.complex128_t *B, const int m, const int n)
 	cdef void   c_zmatmult           "zmatmult"(np.complex128_t *C, np.complex128_t *A, np.complex128_t *B, const int m, const int n, const int k, const char *TA, const char *TB)
@@ -65,6 +73,10 @@ cdef extern from "vector_matrix.h" nogil:
 	cdef void   c_zvandermonde       "zvandermonde"(np.complex128_t *Vand, double *real, double *imag, int m, int n)
 	cdef void   c_zvandermonde_time  "zvandermondeTime"(np.complex128_t *Vand, double *real, double *imag, int m, int n, double* t)
 	cdef void   c_zsort              "zsort"(np.complex128_t *v, int *index, int n)
+	cdef void   c_zconj              "zconj"(np.complex128_t *A, np.complex128_t *B, const int m, const int n)
+	cdef void   c_zdagger            "zdagger"(np.complex128_t *A, np.complex128_t *B, const int m, const int n)
+	cdef void   c_zdiag              "zdiag"(np.complex128_t *A, np.complex128_t *B, const int m)
+	cdef void   c_zdiag2             "zdiag2"(np.complex128_t *A, np.complex128_t *B, const int m)
 cdef extern from "averaging.h" nogil:
 	# Single precision
 	cdef void c_stemporal_mean       "stemporal_mean"(float *out, float *X, const int m, const int n)
@@ -164,7 +176,17 @@ cdef extern from "regression.h" nogil:
 	# Double version
 	cdef void c_dleast_squares    "dleast_squares"(double *out, double *A, double *b, const int m, const int n)
 	cdef void c_dridge_regression "dridge_regression"(double *out, double *A, double *b, double lam, const int m, const int n)
-
+cdef extern from "linear.h" nogil:
+	# Single precision
+	cdef int  c_slinear_operator   "slinear_operator"(float *U, float *S, float *VT, float *Atilde, float *Y, float *Z, const float r, const int my, const int mz, const int nn)
+	cdef void c_sflip_columns      "sflip_columns"(float *A, float *B, int m, int n) 
+	# Double precision
+	cdef int  c_dlinear_operator   "dlinear_operator"(double *U, double *S, double *VT, double *Atilde, double *Y, double *Z, const double r, const int my, const int mz, const int nn);
+	cdef void c_dflip_columns      "dflip_columns"(double *A, double *B, int m, int n)
+	# Single complex precision
+	cdef void c_cflip_columns      "cflip_columns"(np.complex64_t *A, np.complex64_t *B, int m, int n)
+	# Double complex precision
+	cdef void c_zflip_columns      "zflip_columns"(np.complex128_t *A, np.complex128_t *B, int m, int n)
 
 ## Fused type between double and complex
 ctypedef fused real:
@@ -177,4 +199,10 @@ ctypedef fused real_full:
 	float
 	double
 	np.complex64_t
+	np.complex128_t
+ctypedef fused real_float:
+	float
+	np.complex64_t
+ctypedef fused real_double:
+	double
 	np.complex128_t
