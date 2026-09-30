@@ -43,7 +43,7 @@ def concatenate(X=[], remove_mean=False):
 	# Create the matrices Y, Z
 	dtype = X[0].dtype
 	m = X[0].shape[0]
-	n = sum([M.shape[1] - 1 for M in X])
+	n = np.sum([M.shape[1] - 1 for M in X])
 	if m > n:
 		Y = np.zeros((m, n), dtype=dtype)
 	else:

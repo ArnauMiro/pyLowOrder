@@ -25,8 +25,10 @@ from libc.stdlib     cimport malloc, free
 from libc.string     cimport memcpy, memset
 from libc.math       cimport sqrt, log, atan2
 from ..vmmath.cfuncs cimport real, real_complex, real_float, real_double
-from ..vmmath.cfuncs cimport c_csvd, c_cdagger, c_cmatmul, c_cmatmulp, c_cvecmat, c_ccholesky, c_cinverse
-from ..vmmath.cfuncs cimport c_zsvd, c_zdagger, c_zmatmul, c_zmatmulp, c_zvecmat, c_zcholesky, c_zinverse
+from ..vmmath.cfuncs cimport c_svecmat, c_sseparate, c_stsqr_svd, c_sremove_rows, c_scompute_truncation_residual, c_scompute_truncation, c_stranspose, c_smatmul, c_smatmulp
+from ..vmmath.cfuncs cimport c_dvecmat, c_dseparate, c_dtsqr_svd, c_dremove_rows, c_dcompute_truncation_residual, c_dcompute_truncation, c_dtranspose, c_dmatmul, c_dmatmulp
+from ..vmmath.cfuncs cimport c_csvd, c_cdagger, c_cmatmul, c_cmatmulp, c_cvecmat, c_ccholesky, c_cinverse, c_cresolvent
+from ..vmmath.cfuncs cimport c_zsvd, c_zdagger, c_zmatmul, c_zmatmulp, c_zvecmat, c_zcholesky, c_zinverse, c_zresolvent
 from ..vmmath.linear cimport _sconcatenate, _slinear_operator, _sseparate, _cresolvent
 from ..vmmath.linear cimport _dconcatenate, _dlinear_operator, _dseparate, _zresolvent
 
@@ -300,86 +302,245 @@ def run(real_complex[:,:] Phi, real[:] delta, real[:] omega, real f, real[:] Q=N
 	else:
 		return _crun(Phi, delta, omega, f, Q)
 
-def _crun_old(float[:,:] X, np.complex64_t w, float r, int remove_mean):
+def _crun_old(float[:,:] X, np.complex64_t w, float r, int remove_mean, float[:] Q):
 
 	# Variables
-	cdef int m, n
-	cdef float[:, ::1] Y
-	cdef float[:, ::1] Z
-	cdef float[:, ::1] U1
-	cdef float[::1] S1
-	cdef float[:, ::1] VT1
-	cdef float[:, ::1] Atilde
-	
+	cdef int m, n, ii, m_aux
+	m = X.shape[0]
+	n = X.shape[1]
+
+	if m > n:
+		m_aux = m
+	else:
+		m_aux = n-1
+
+	cdef float *Y
+	cdef float *Z
+	Y = <float*>malloc(m_aux*(n-1)*sizeof(float))
+	Z = <float*>malloc(m_aux*(n-1)*sizeof(float))
+	if Q is not None:
+		c_svecmat(&Q[0], &X[0,0], m, n)
+
 	# Create the snapshot of matrices and separate it into Y, Z
-	Y, Z = _sseparate(X, remove_mean)
-	m = Z.shape[0]
-	n = Z.shape[1] + 1
+	c_sseparate(Y, Z, &X[0,0], m, n, remove_mean)
+
 	# Compute the linear operator in lower dimension
-	U1, S1, VT1, Atilde = _slinear_operator(Y, Z, r)
+	cdef int icol, irow, retval
+	
+	## Compute SVD
+	cdef float *U_aux
+	cdef float *S_all
+	cdef float *VT_all
+	U_aux  = <float*>malloc(m_aux*(n-1)*sizeof(float))
+	S_all  = <float*>malloc((n-1)*sizeof(float))
+	VT_all = <float*>malloc((n-1)*(n-1)*sizeof(float))
+
+	retval = c_stsqr_svd(U_aux, S_all, VT_all, Y, m_aux, (n-1))
+	free(Y)
+
+	cdef float *U_all
+	U_all = <float*>malloc(m_aux*(n-1)*sizeof(float))
+	c_sremove_rows(U_aux, U_all, m, (n-1))
+	free(U_aux)
+
+	## Truncate
 	cdef int nr
-	nr = Atilde.shape[1]
+	if r > 1:
+		nr = int(r)
+	else:
+		nr = c_scompute_truncation_residual(S_all, r, (n-1))
 
-	del S1, VT1
+	cdef float *Ur
+	cdef float *Sr
+	cdef float *VTr
+	Ur  = <float*>malloc(m*nr*sizeof(float))
+	Sr  = <float*>malloc(nr*sizeof(float))
+	VTr = <float*>malloc(nr*(n-1)*sizeof(float))
 
-	cdef np.complex64_t[:, ::1] U2
+	c_scompute_truncation(Ur, Sr, VTr, U_all, S_all, VT_all, m, (n-1), (n-1), nr)
+	free(U_all)
+	free(S_all)
+	free(VT_all)
+
+	# Project Jacobian of the snapshots into the POD basis
+	cdef float *aux1
+	cdef float *aux2
+	cdef float *aux3
+	cdef float *Atilde
+	cdef float *Urt
+	aux1   = <float*>malloc(nr*(n-1)*sizeof(float))
+	aux2   = <float*>malloc(nr*(n-1)*sizeof(float))
+	aux3   = <float*>malloc(nr*sizeof(float))
+	Atilde = <float*>malloc(nr*nr*sizeof(float))
+	Urt    = <float*>malloc(nr*m*sizeof(float))
+	c_stranspose(Ur, Urt, m, nr)
+	c_smatmulp(aux1, Urt, Z, nr, n-1, m)
+	free(Z)
+
+	for icol in range(n-1):
+		for irow in range(nr):
+			aux2[icol*nr + irow] = VTr[irow*(n-1) + icol]/Sr[irow]
+	c_smatmul(Atilde, aux1, aux2, nr, nr, n-1)
+	free(aux1)
+	free(aux2)
+	free(aux3)
+	free(Urt)
+	free(VTr)
+	free(Sr)
+
 	cdef np.ndarray[np.float32_t,ndim=1] S = np.zeros((nr),dtype=np.float32)
-	cdef np.complex64_t[:, ::1] V2
+	cdef np.complex64_t *U2
+	cdef np.complex64_t *V2
+	U2 = <np.complex64_t*>malloc(nr*nr*sizeof(np.complex64_t))
+	V2 = <np.complex64_t*>malloc(nr*nr*sizeof(np.complex64_t))
 
-	U2, S, V2 = _cresolvent(Atilde, w)
+	c_cresolvent(U2, &S[0], V2, Atilde, w, nr)
+	free(Atilde)
 
-	del Atilde
+	cdef np.complex64_t *U_c
+	U_c = <np.complex64_t*>malloc(m*nr*sizeof(np.complex64_t))
 
-	cdef np.ndarray[np.complex64_t, ndim=2] U1_c = np.ascontiguousarray(U1, dtype=np.complex64)
-
+	for ii in range(m*nr):
+		U_c[ii] = Ur[ii]
+	free(Ur)
+	
 	cdef np.ndarray[np.complex64_t,ndim=2] U = np.zeros((m,nr),dtype=np.complex64)
 	cdef np.ndarray[np.complex64_t,ndim=2] V = np.zeros((m,nr),dtype=np.complex64)
-	c_cmatmul(&U[0,0], &U1_c[0,0], &U2[0,0], m, nr, nr)
-	c_cmatmul(&V[0,0], &U1_c[0,0], &V2[0,0], m, nr, nr)
+	c_cmatmul(&U[0,0], U_c, U2, m, nr, nr)
+	c_cmatmul(&V[0,0], U_c, V2, m, nr, nr)
+	free(U2)
+	free(V2)
+	free(U_c)
 
-	del U1, U2, V2, U1_c
+	cdef np.complex64_t *Q_inv
+	Q_inv = <np.complex64_t*>malloc(m*sizeof(np.complex64_t))
+	if Q is not None:
+		for ii in range(m):
+			Q_inv[ii] = 1.0 / Q[ii]
+		c_cvecmat(Q_inv, &U[0,0], m, nr)
+		c_cvecmat(Q_inv, &V[0,0], m, nr)
+	free(Q_inv)
 
 	return U, S, V
 
-def _zrun_old(double[:,:] X, np.complex128_t w, double r, int remove_mean):
+def _zrun_old(double[:,:] X, np.complex128_t w, double r, int remove_mean, double[:] Q):
 
 	# Variables
-	cdef int m, n
-	cdef double[:, ::1] Y
-	cdef double[:, ::1] Z
-	cdef double[:, ::1] U1
-	cdef double[::1] S1
-	cdef double[:, ::1] VT1
-	cdef double[:, ::1] Atilde
+	cdef int m, n, ii, m_aux
+	m = X.shape[0]
+	n = X.shape[1]
+
+	if m > n:
+		m_aux = m
+	else:
+		m_aux = n-1
+
+	cdef double *Y
+	cdef double *Z
+	Y = <double*>malloc(m_aux*(n-1)*sizeof(double))
+	Z = <double*>malloc(m_aux*(n-1)*sizeof(double))
+	if Q is not None:
+		c_dvecmat(&Q[0], &X[0,0], m, n)
 
 	# Create the snapshot of matrices and separate it into Y, Z
-	Y, Z = _dseparate(X, remove_mean)
-	m = Z.shape[0]
-	n = Z.shape[1] + 1
+	c_dseparate(Y, Z, &X[0,0], m, n, remove_mean)
 
 	# Compute the linear operator in lower dimension
-	U1, S1, VT1, Atilde = _dlinear_operator(Y, Z, r)
-	cdef int nr
-	nr = Atilde.shape[1]
-
-	del S1, VT1
-
-	cdef np.complex128_t[:, ::1] U2
-	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((nr),dtype=np.double)
-	cdef np.complex128_t[:, ::1] V2
-
-	U2, S, V2 = _zresolvent(Atilde, w)
-
-	del Atilde
+	cdef int icol, irow, retval
 	
-	cdef np.ndarray[np.complex128_t, ndim=2] U1_c = np.ascontiguousarray(U1, dtype=np.complex128)
+	## Compute SVD
+	cdef double *U_aux
+	cdef double *S_all
+	cdef double *VT_all
+	U_aux  = <double*>malloc(m_aux*(n-1)*sizeof(double))
+	S_all  = <double*>malloc((n-1)*sizeof(double))
+	VT_all = <double*>malloc((n-1)*(n-1)*sizeof(double))
+
+	retval = c_dtsqr_svd(U_aux, S_all, VT_all, Y, m_aux, (n-1))
+	free(Y)
+
+	cdef double *U_all
+	U_all = <double*>malloc(m_aux*(n-1)*sizeof(double))
+	c_dremove_rows(U_aux, U_all, m, (n-1))
+	free(U_aux)
+
+	## Truncate
+	cdef int nr
+	if r > 1:
+		nr = int(r)
+	else:
+		nr = c_dcompute_truncation_residual(S_all, r, (n-1))
+
+	cdef double *Ur
+	cdef double *Sr
+	cdef double *VTr
+	Ur  = <double*>malloc(m*nr*sizeof(double))
+	Sr  = <double*>malloc(nr*sizeof(double))
+	VTr = <double*>malloc(nr*(n-1)*sizeof(double))
+
+	c_dcompute_truncation(Ur, Sr, VTr, U_all, S_all, VT_all, m, (n-1), (n-1), nr)
+	free(U_all)
+	free(S_all)
+	free(VT_all)
+
+	# Project Jacobian of the snapshots into the POD basis
+	cdef double *aux1
+	cdef double *aux2
+	cdef double *aux3
+	cdef double *Atilde
+	cdef double *Urt
+	aux1   = <double*>malloc(nr*(n-1)*sizeof(double))
+	aux2   = <double*>malloc(nr*(n-1)*sizeof(double))
+	aux3   = <double*>malloc(nr*sizeof(double))
+	Atilde = <double*>malloc(nr*nr*sizeof(double))
+	Urt    = <double*>malloc(nr*m*sizeof(double))
+	c_dtranspose(Ur, Urt, m, nr)
+	c_dmatmulp(aux1, Urt, Z, nr, n-1, m)
+	free(Z)
+
+	for icol in range(n-1):
+		for irow in range(nr):
+			aux2[icol*nr + irow] = VTr[irow*(n-1) + icol]/Sr[irow]
+	c_dmatmul(Atilde, aux1, aux2, nr, nr, n-1)
+	free(aux1)
+	free(aux2)
+	free(aux3)
+	free(Urt)
+	free(VTr)
+	free(Sr)
+
+	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((nr),dtype=np.double)
+	cdef np.complex128_t *U2
+	cdef np.complex128_t *V2
+	U2 = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
+	V2 = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
+
+	c_zresolvent(U2, &S[0], V2, Atilde, w, nr)
+	free(Atilde)
+
+	cdef np.complex128_t *U_c
+	U_c = <np.complex128_t*>malloc(m*nr*sizeof(np.complex128_t))
+
+	for ii in range(m*nr):
+		U_c[ii] = Ur[ii]
+	free(Ur)
 	
 	cdef np.ndarray[np.complex128_t,ndim=2] U = np.zeros((m,nr),dtype=np.complex128)
 	cdef np.ndarray[np.complex128_t,ndim=2] V = np.zeros((m,nr),dtype=np.complex128)
-	c_zmatmul(&U[0,0], &U1_c[0,0], &U2[0,0], m, nr, nr)
-	c_zmatmul(&V[0,0], &U1_c[0,0], &V2[0,0], m, nr, nr)
+	c_zmatmul(&U[0,0], U_c, U2, m, nr, nr)
+	c_zmatmul(&V[0,0], U_c, V2, m, nr, nr)
+	free(U2)
+	free(V2)
+	free(U_c)
 
-	del U1, U2, V2, U1_c
+	cdef np.complex128_t *Q_inv
+	Q_inv = <np.complex128_t*>malloc(m*sizeof(np.complex128_t))
+	if Q is not None:
+		for ii in range(m):
+			Q_inv[ii] = 1.0 / Q[ii]
+		c_zvecmat(Q_inv, &U[0,0], m, nr)
+		c_zvecmat(Q_inv, &V[0,0], m, nr)
+	free(Q_inv)
 
 	return U, S, V
 
@@ -470,7 +631,7 @@ def _zrun_new(list X, np.complex128_t w, double r, int remove_mean):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def run_new(object X, object w, object r, int remove_mean=True):
+def run_new(object X, object w, object r, int remove_mean=True, real[:] Q=None):
 
 	if isinstance(X, list):
 		if X[0].dtype == np.double:
@@ -479,6 +640,6 @@ def run_new(object X, object w, object r, int remove_mean=True):
 			return _crun_new(X,np.complex64(w),np.float32(r),remove_mean)
 	else:
 		if X[0].dtype == np.double:
-			return _zrun_old(X,np.complex128(w),np.double(r),remove_mean)
+			return _zrun_old(X,np.complex128(w),np.double(r),remove_mean, Q)
 		else:
 			return _crun_old(X,np.complex64(w),np.float32(r),remove_mean)

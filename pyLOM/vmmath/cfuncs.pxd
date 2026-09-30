@@ -164,11 +164,13 @@ cdef extern from "truncation.h" nogil:
 	cdef void   c_scompute_truncation          "scompute_truncation"(float *Ur, float *Sr, float *VTr, float *U, float *S, float *VT, const int m, const int n, const int nmod, const int N)
 	cdef float  c_senergy                      "senergy"(float *A, float *B, const int m, const int n)
 	cdef float  c_slocal_energy                "slocal_energy"(float *A, float *B, const int m, const int n)
+	cdef void   c_sremove_rows                 "sremove_rows"(float *A, float *B, int rows, int n)
 	# Double precision
 	cdef int    c_dcompute_truncation_residual "dcompute_truncation_residual"(double *S, double res, const int n)
 	cdef void   c_dcompute_truncation          "dcompute_truncation"(double *Ur, double *Sr, double *VTr, double *U, double *S, double *VT, const int m, const int n, const int nmod, const int N)
 	cdef double c_denergy                      "denergy"(double *A, double *B, const int m, const int n)
 	cdef double c_dlocal_energy                "dlocal_energy"(double *A, double *B, const int m, const int n)
+	cdef void   c_dremove_rows                 "dremove_rows"(double *A, double *B, int rows, int n)
 cdef extern from "regression.h" nogil:
 	# Float version
 	cdef void c_sleast_squares    "sleast_squares"(float *out, float *A, float *b, const int m, const int n)
@@ -180,13 +182,17 @@ cdef extern from "linear.h" nogil:
 	# Single precision
 	cdef int  c_slinear_operator   "slinear_operator"(float *U, float *S, float *VT, float *Atilde, float *Y, float *Z, const float r, const int my, const int mz, const int nn)
 	cdef void c_sflip_columns      "sflip_columns"(float *A, float *B, int m, int n) 
+	cdef void c_sseparate          "sseparate"(float *Y, float *Z, float *X, const int m, const int n, int remove_mean)
 	# Double precision
-	cdef int  c_dlinear_operator   "dlinear_operator"(double *U, double *S, double *VT, double *Atilde, double *Y, double *Z, const double r, const int my, const int mz, const int nn);
+	cdef int  c_dlinear_operator   "dlinear_operator"(double *U, double *S, double *VT, double *Atilde, double *Y, double *Z, const double r, const int my, const int mz, const int nn)
 	cdef void c_dflip_columns      "dflip_columns"(double *A, double *B, int m, int n)
+	cdef void c_dseparate          "dseparate"(double *Y, double *Z, double *X, const int m, const int n, int remove_mean)
 	# Single complex precision
 	cdef void c_cflip_columns      "cflip_columns"(np.complex64_t *A, np.complex64_t *B, int m, int n)
+	cdef void c_cresolvent         "cresolvent"(np.complex64_t *U, float *S, np.complex64_t *V, float *A, np.complex64_t w, const int n)
 	# Double complex precision
 	cdef void c_zflip_columns      "zflip_columns"(np.complex128_t *A, np.complex128_t *B, int m, int n)
+	cdef void c_zresolvent         "zresolvent"(np.complex128_t *U, double *S, np.complex128_t *V, double *A, np.complex128_t w, const int n)
 
 ## Fused type between double and complex
 ctypedef fused real:

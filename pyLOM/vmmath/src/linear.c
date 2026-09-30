@@ -2,6 +2,7 @@
 	Linear operator
 */
 #include <math.h>
+#include <stdbool.h>
 #include <complex.h>
 #include <string.h>
 #include <stdlib.h>
@@ -179,4 +180,134 @@ void zflip_columns(dcomplex_t *A, dcomplex_t *B, int m, int n) {
             AC_MAT(B,n,ii,jj) = AC_MAT(A,n,ii,n-jj-1);
         }
     }
+}
+
+void sseparate(float *Y, float *Z, float *X, const int m, const int n, int remove_mean) {
+
+    int m_aux, ii;
+
+    float *X_mean;
+    float *X_meanless;
+    X_mean       = (float*)malloc(m*sizeof(float));
+	X_meanless   = (float*)malloc(m*n*sizeof(float));
+
+    if (remove_mean){
+        stemporal_mean(X_mean, X, m, n);
+        ssubtract_mean(X_meanless, X, X_mean, m, n);
+        
+        for (ii=0; ii<m; ++ii){
+            memcpy(&Y[ii*(n-1)], &X_meanless[ii*n], (n-1)*sizeof(float));
+            memcpy(&Z[ii*(n-1)], &X_meanless[ii*n], (n-1)*sizeof(float));
+        }
+    }
+    else {
+        memcpy(&Y[ii*(n-1)], &X[ii*n], (n-1)*sizeof(float));
+        memcpy(&Z[ii*(n-1)], &X[ii*n], (n-1)*sizeof(float));
+    }
+}
+
+void dseparate(double *Y, double *Z, double *X, const int m, const int n, int remove_mean) {
+
+    int m_aux, ii;
+
+    double *X_mean;
+    double *X_meanless;
+    X_mean       = (double*)malloc(m*sizeof(double));
+	X_meanless   = (double*)malloc(m*n*sizeof(double));
+
+    if (remove_mean){
+        dtemporal_mean(X_mean, X, m, n);
+        dsubtract_mean(X_meanless, X, X_mean, m, n);
+        
+        for (ii=0; ii<m; ++ii){
+            memcpy(&Y[ii*(n-1)], &X_meanless[ii*n], (n-1)*sizeof(double));
+            memcpy(&Z[ii*(n-1)], &X_meanless[ii*n], (n-1)*sizeof(double));
+        }
+    }
+    else {
+        memcpy(&Y[ii*(n-1)], &X[ii*n], (n-1)*sizeof(double));
+        memcpy(&Z[ii*(n-1)], &X[ii*n], (n-1)*sizeof(double));
+    }
+}
+
+void cresolvent(scomplex_t *U, float *S, scomplex_t *V, float *A, scomplex_t w, const int n) {
+
+    int ii, jj;
+
+    scomplex_t *H_inv;
+    H_inv       = (scomplex_t*)malloc(n*n*sizeof(scomplex_t));
+
+    // Compte els signes
+    for (ii=0; ii<n; ++ii){
+        for (jj=0; jj<n; ++jj){
+            if (ii == jj) H_inv[ii*n + jj] = w - A[ii*n + jj];
+            else H_inv[ii*n + jj] = w - A[ii*n + jj];
+        }
+    }
+
+    scomplex_t *UT_flip;
+    scomplex_t *V_flip;
+    scomplex_t *U_flip;
+    float *S_inv;
+    UT_flip       = (scomplex_t*)malloc(n*n*sizeof(scomplex_t));
+    V_flip        = (scomplex_t*)malloc(n*n*sizeof(scomplex_t));
+    U_flip        = (scomplex_t*)malloc(n*n*sizeof(scomplex_t));
+    S_inv         = (float*)malloc(n*sizeof(float));
+
+    csvd(V_flip, S_inv, UT_flip, H_inv, n, n);
+    free(H_inv);
+
+    for (ii=0; ii<n; ++ii){
+        S[ii] = 1 / S_inv[n-1-ii];
+    }
+    free(S_inv);
+
+    cdagger(UT_flip, U_flip, n, n);
+	free(UT_flip);
+
+    cflip_columns(U_flip, U, n, n);
+	cflip_columns(V_flip, V, n, n);
+	free(U_flip);
+	free(V_flip);
+}
+
+void zresolvent(dcomplex_t *U, double *S, dcomplex_t *V, double *A, dcomplex_t w, const int n) {
+
+    int ii, jj;
+
+    dcomplex_t *H_inv;
+    H_inv       = (dcomplex_t*)malloc(n*n*sizeof(dcomplex_t));
+
+    // Compte els signes
+    for (ii=0; ii<n; ++ii){
+        for (jj=0; jj<n; ++jj){
+            if (ii == jj) H_inv[ii*n + jj] = w - A[ii*n + jj];
+            else H_inv[ii*n + jj] = w - A[ii*n + jj];
+        }
+    }
+
+    dcomplex_t *UT_flip;
+    dcomplex_t *V_flip;
+    dcomplex_t *U_flip;
+    double *S_inv;
+    UT_flip       = (dcomplex_t*)malloc(n*n*sizeof(dcomplex_t));
+    V_flip        = (dcomplex_t*)malloc(n*n*sizeof(dcomplex_t));
+    U_flip        = (dcomplex_t*)malloc(n*n*sizeof(dcomplex_t));
+    S_inv         = (double*)malloc(n*sizeof(double));
+
+    zsvd(V_flip, S_inv, UT_flip, H_inv, n, n);
+    free(H_inv);
+
+    for (ii=0; ii<n; ++ii){
+        S[ii] = 1 / S_inv[n-1-ii];
+    }
+    free(S_inv);
+
+    zdagger(UT_flip, U_flip, n, n);
+	free(UT_flip);
+
+    zflip_columns(U_flip, U, n, n);
+	zflip_columns(V_flip, V, n, n);
+	free(U_flip);
+	free(V_flip);
 }
