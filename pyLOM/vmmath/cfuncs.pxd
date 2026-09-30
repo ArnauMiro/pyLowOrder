@@ -182,10 +182,12 @@ cdef extern from "linear.h" nogil:
 	# Single precision
 	cdef int  c_slinear_operator   "slinear_operator"(float *U, float *S, float *VT, float *Atilde, float *Y, float *Z, const float r, const int my, const int mz, const int nn)
 	cdef void c_sflip_columns      "sflip_columns"(float *A, float *B, int m, int n) 
+	cdef void c_sconcatenate       "sconcatenate"(float *Y, float *Z, float **X, int *n_list, const int n_matrix, const int m, const int n_total, int remove_mean)
 	cdef void c_sseparate          "sseparate"(float *Y, float *Z, float *X, const int m, const int n, int remove_mean)
 	# Double precision
 	cdef int  c_dlinear_operator   "dlinear_operator"(double *U, double *S, double *VT, double *Atilde, double *Y, double *Z, const double r, const int my, const int mz, const int nn)
 	cdef void c_dflip_columns      "dflip_columns"(double *A, double *B, int m, int n)
+	cdef void c_dconcatenate       "dconcatenate"(double *Y, double *Z, double **X, int *n_list, const int n_matrix, const int m, const int n_total, int remove_mean)
 	cdef void c_dseparate          "dseparate"(double *Y, double *Z, double *X, const int m, const int n, int remove_mean)
 	# Single complex precision
 	cdef void c_cflip_columns      "cflip_columns"(np.complex64_t *A, np.complex64_t *B, int m, int n)

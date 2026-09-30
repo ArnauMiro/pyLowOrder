@@ -182,9 +182,73 @@ void zflip_columns(dcomplex_t *A, dcomplex_t *B, int m, int n) {
     }
 }
 
+void sconcatenate(float *Y, float *Z, float **X, int *n_list, const int n_matrix, const int m, const int n_total, int remove_mean) {
+
+    int ii, jj, n_jj; 
+
+    float *X_mean;
+    float *X_meanless;
+    int n_sum = 0;
+    X_mean = (float*)malloc(m*sizeof(float));
+
+    for (jj=0; jj<n_matrix; ++jj){
+        n_jj = n_list[jj];
+	    X_meanless = (float*)malloc(m*n_jj*sizeof(float));
+
+        if (remove_mean){
+            stemporal_mean(X_mean, X[jj], m, n_jj);
+            ssubtract_mean(X_meanless, X[jj], X_mean, m, n_jj);
+
+            for (ii=0; ii<m; ++ii){
+                memcpy(&Y[ii*n_total+n_sum], &X_meanless[ii*n_jj], (n_jj-1)*sizeof(float));
+                memcpy(&Z[ii*n_total+n_sum], &X_meanless[ii*n_jj+1], (n_jj-1)*sizeof(float));
+            }
+        }
+        else {
+            memcpy(&Y[ii*n_total+n_sum], &X[jj][ii*n_jj], (n_jj-1)*sizeof(float));
+            memcpy(&Z[ii*n_total+n_sum], &X[jj][ii*n_jj+1], (n_jj-1)*sizeof(float));
+        }
+        n_sum += n_jj-1;
+        free(X_meanless);
+    }
+    free(X_mean);
+}
+
+void dconcatenate(double *Y, double *Z, double **X, int *n_list, const int n_matrix, const int m, const int n_total, int remove_mean) {
+
+    int ii, jj, n_jj; 
+
+    double *X_mean;
+    double *X_meanless;
+    int n_sum = 0;
+    X_mean = (double*)malloc(m*sizeof(double));
+
+    for (jj=0; jj<n_matrix; ++jj){
+        n_jj = n_list[jj];
+	    X_meanless = (double*)malloc(m*n_jj*sizeof(double));
+
+        if (remove_mean){
+            dtemporal_mean(X_mean, X[jj], m, n_jj);
+            dsubtract_mean(X_meanless, X[jj], X_mean, m, n_jj);
+
+            for (ii=0; ii<m; ++ii){
+                memcpy(&Y[ii*n_total+n_sum], &X_meanless[ii*n_jj], (n_jj-1)*sizeof(double));
+                memcpy(&Z[ii*n_total+n_sum], &X_meanless[ii*n_jj+1], (n_jj-1)*sizeof(double));
+            }
+        }
+        else {
+            memcpy(&Y[ii*n_total+n_sum], &X[jj][ii*n_jj], (n_jj-1)*sizeof(double));
+            memcpy(&Z[ii*n_total+n_sum], &X[jj][ii*n_jj+1], (n_jj-1)*sizeof(double));
+        }
+        n_sum += n_jj-1;
+        free(X_meanless);
+    }
+    free(X_mean);
+}
+
 void sseparate(float *Y, float *Z, float *X, const int m, const int n, int remove_mean) {
 
-    int m_aux, ii;
+    int ii;
 
     float *X_mean;
     float *X_meanless;
@@ -197,12 +261,12 @@ void sseparate(float *Y, float *Z, float *X, const int m, const int n, int remov
         
         for (ii=0; ii<m; ++ii){
             memcpy(&Y[ii*(n-1)], &X_meanless[ii*n], (n-1)*sizeof(float));
-            memcpy(&Z[ii*(n-1)], &X_meanless[ii*n], (n-1)*sizeof(float));
+            memcpy(&Z[ii*(n-1)], &X_meanless[ii*n+1], (n-1)*sizeof(float));
         }
     }
     else {
         memcpy(&Y[ii*(n-1)], &X[ii*n], (n-1)*sizeof(float));
-        memcpy(&Z[ii*(n-1)], &X[ii*n], (n-1)*sizeof(float));
+        memcpy(&Z[ii*(n-1)], &X[ii*n+1], (n-1)*sizeof(float));
     }
 }
 
@@ -221,12 +285,12 @@ void dseparate(double *Y, double *Z, double *X, const int m, const int n, int re
         
         for (ii=0; ii<m; ++ii){
             memcpy(&Y[ii*(n-1)], &X_meanless[ii*n], (n-1)*sizeof(double));
-            memcpy(&Z[ii*(n-1)], &X_meanless[ii*n], (n-1)*sizeof(double));
+            memcpy(&Z[ii*(n-1)], &X_meanless[ii*n+1], (n-1)*sizeof(double));
         }
     }
     else {
         memcpy(&Y[ii*(n-1)], &X[ii*n], (n-1)*sizeof(double));
-        memcpy(&Z[ii*(n-1)], &X[ii*n], (n-1)*sizeof(double));
+        memcpy(&Z[ii*(n-1)], &X[ii*+1], (n-1)*sizeof(double));
     }
 }
 
@@ -241,7 +305,7 @@ void cresolvent(scomplex_t *U, float *S, scomplex_t *V, float *A, scomplex_t w, 
     for (ii=0; ii<n; ++ii){
         for (jj=0; jj<n; ++jj){
             if (ii == jj) H_inv[ii*n + jj] = w - A[ii*n + jj];
-            else H_inv[ii*n + jj] = w - A[ii*n + jj];
+            else H_inv[ii*n + jj] = -A[ii*n + jj];
         }
     }
 
@@ -282,7 +346,7 @@ void zresolvent(dcomplex_t *U, double *S, dcomplex_t *V, double *A, dcomplex_t w
     for (ii=0; ii<n; ++ii){
         for (jj=0; jj<n; ++jj){
             if (ii == jj) H_inv[ii*n + jj] = w - A[ii*n + jj];
-            else H_inv[ii*n + jj] = w - A[ii*n + jj];
+            else H_inv[ii*n + jj] = -A[ii*n + jj];
         }
     }
 
