@@ -262,13 +262,14 @@ clean:
 	-@cd pyLOM; rm -rf POD/__pycache__ POD/*.c POD/*.cpp POD/*.html
 	-@cd pyLOM; rm -rf DMD/__pycache__ DMD/*.c DMD/*.cpp DMD/*.html
 	-@cd pyLOM; rm -rf SPOD/__pycache__ SPOD/*.c SPOD/*.cpp SPOD/*.html
+	-@cd pyLOM; rm -rf RES/__pycache__ RES/*.c RES/*.cpp RES/*.html
 	-@cd pyLOM; rm -rf vmmath/__pycache__ vmmath/*.c vmmath/*.cpp vmmath/*.html
 	-@cd pyLOM; rm -rf inp_out/__pycache__ inp_out/*.c inp_out/*.cpp inp_out/*.html
 	-@cd pyLOM; rm -rf NN/__pycache__ NN/architectures/__pycache__ 
 
 cleanall: clean
 	-@rm -rf build
-	-@cd pyLOM; rm vmmath/*.so POD/*.so DMD/*.so SPOD/*.so
+	-@cd pyLOM; rm vmmath/*.so POD/*.so DMD/*.so SPOD/*.so RES/*.so
 
 ifeq ($(USE_MKL),ON)
 uninstall_vector_matrix: uninstall_mkl 

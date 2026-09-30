@@ -75,3 +75,8 @@ def energy(original, rec):
 
 	# Compute Ek (this will be identical on all ranks)
 	return 1 - global_num / global_den
+
+def remove_rows(A, rows):
+	B = np.zeros((rows, A.shape[1]), dtype=A.dtype)
+	B[:,:] = A[:rows,:]
+	return B

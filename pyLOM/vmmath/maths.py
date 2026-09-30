@@ -28,7 +28,7 @@ def transpose(A:np.ndarray) -> np.ndarray:
 	p = cp if type(A) is cp.ndarray else np
 	return p.transpose(A)
 
-@cr('math.vector_norm')
+@cr('math.vector_sum')
 def vector_sum(v:np.ndarray,start:int=0) -> float:
 	r'''
 	Sum of a vector
@@ -309,3 +309,34 @@ def flip(A:np.ndarray) -> np.ndarray:
 	'''
 	p = cp if type(A) is cp.ndarray else np
 	return p.flip(A)
+
+@cr('math.abs')
+def abs(A:np.ndarray) -> np.ndarray:
+	r'''
+	Returns the pointwise absolute value of complex A
+
+	.. warning::
+	This function is not implemented in the
+	compiled layer and will raise an error if used
+
+	Args:
+		A (np.ndarray): Matrix A (M,N)
+	
+	Result:
+		np.ndarray: Absolute value version of A (M,N)
+	'''
+	p = cp if type(A) is cp.ndarray else np
+	return p.abs(A)
+
+@cr('math.dagger')
+def dagger(A:np.ndarray) -> np.ndarray:
+	r'''
+	Returns the dagger (conjugated transpose) of complex A
+
+	Args:
+		A (np.ndarray): Matrix A (M,N)
+	
+	Result:
+		np.ndarray: Dagger of A (N,M)
+	'''
+	return conj(transpose(A))

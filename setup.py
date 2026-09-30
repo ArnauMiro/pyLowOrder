@@ -177,6 +177,7 @@ Module_cfuncs     = Extension('pyLOM.vmmath.cfuncs',
 										 'pyLOM/vmmath/src/truncation.c',
 										 'pyLOM/vmmath/src/stats.c',
 										 'pyLOM/vmmath/src/regression.c',
+										 'pyLOM/vmmath/src/linear.c',
 									    ],
 						language      = 'c',
 						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
@@ -269,6 +270,20 @@ Module_regression = Extension('pyLOM.vmmath.regression',
 						extra_objects = extra_objects,
 						libraries     = libraries,
 					   )
+Module_linear = Extension('pyLOM.vmmath.linear',
+						sources       = ['pyLOM/vmmath/linear.pyx',
+										 'pyLOM/vmmath/src/vector_matrix.c',
+										 'pyLOM/vmmath/src/qr.c',
+										 'pyLOM/vmmath/src/svd.c',
+										 'pyLOM/vmmath/src/truncation.c',
+										 'pyLOM/vmmath/src/averaging.c',
+										 'pyLOM/vmmath/src/linear.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
 # low-order modules
 Module_POD = Extension('pyLOM.POD.wrapper',
 						sources       = ['pyLOM/POD/wrapper.pyx',
@@ -310,24 +325,41 @@ Module_SPOD = Extension('pyLOM.SPOD.wrapper',
 						libraries     = libraries,
 					   )
 
+Module_RES = Extension('pyLOM.RES.wrapper',
+						sources       = ['pyLOM/RES/wrapper.pyx',
+										 'pyLOM/vmmath/src/vector_matrix.c',
+										 'pyLOM/vmmath/src/averaging.c',
+										 'pyLOM/vmmath/src/qr.c',
+										 'pyLOM/vmmath/src/svd.c',
+										 'pyLOM/vmmath/src/truncation.c',
+										 'pyLOM/vmmath/src/linear.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
+
 
 ## Build modules
 # Math module
 Module_Math  = [Module_cfuncs]
-Module_Math += [Module_maths]      if 'math.maths'      in options['MODULES_COMPILED'] else []
-Module_Math += [Module_averaging]  if 'math.averaging'  in options['MODULES_COMPILED'] else []
-Module_Math += [Module_qr]         if 'math.qr'         in options['MODULES_COMPILED'] else []
-Module_Math += [Module_svd]        if 'math.svd'        in options['MODULES_COMPILED'] else []
-Module_Math += [Module_fft]        if 'math.fft'        in options['MODULES_COMPILED'] else []
-Module_Math += [Module_geometric]  if 'math.geometric'  in options['MODULES_COMPILED'] else []
-Module_Math += [Module_truncation] if 'math.truncation' in options['MODULES_COMPILED'] else []
-Module_Math += [Module_stats]      if 'math.stats'      in options['MODULES_COMPILED'] else []
-Module_Math += [Module_regression] if 'math.regression' in options['MODULES_COMPILED'] else []
+Module_Math += [Module_maths]          if 'math.maths'              in options['MODULES_COMPILED'] else []
+Module_Math += [Module_averaging]      if 'math.averaging'          in options['MODULES_COMPILED'] else []
+Module_Math += [Module_qr]             if 'math.qr'                 in options['MODULES_COMPILED'] else []
+Module_Math += [Module_svd]            if 'math.svd'                in options['MODULES_COMPILED'] else []
+Module_Math += [Module_fft]            if 'math.fft'                in options['MODULES_COMPILED'] else []
+Module_Math += [Module_geometric]      if 'math.geometric'          in options['MODULES_COMPILED'] else []
+Module_Math += [Module_truncation]     if 'math.truncation'         in options['MODULES_COMPILED'] else []
+Module_Math += [Module_stats]          if 'math.stats'              in options['MODULES_COMPILED'] else []
+Module_Math += [Module_regression]     if 'math.regression'         in options['MODULES_COMPILED'] else []
+Module_Math += [Module_linear]         if 'math.linear'             in options['MODULES_COMPILED'] else []
+
 # ROM module
 Module_ROM   = [Module_POD]  if 'rom.pod'  in options['MODULES_COMPILED'] else []
 Module_ROM  += [Module_DMD]  if 'rom.dmd'  in options['MODULES_COMPILED'] else []
 Module_ROM  += [Module_SPOD] if 'rom.spod' in options['MODULES_COMPILED'] else []
-
+Module_ROM  += [Module_RES]  if 'rom.res'  in options['MODULES_COMPILED'] else []
 
 ## Decide which modules to compile
 modules_list = Module_Math + Module_ROM if options['USE_COMPILED'] else []
