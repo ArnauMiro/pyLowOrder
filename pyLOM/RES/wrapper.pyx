@@ -308,6 +308,7 @@ def _crun_old(float[:,:] X, np.complex64_t w, float r, int remove_mean, float[:]
 	cdef int m, n, ii, m_aux
 	m = X.shape[0]
 	n = X.shape[1]
+	cdef float[:, ::1] X_c = np.ascontiguousarray(X, dtype=np.float32)
 
 	if m > (n - 1):
 		m_aux = m
@@ -398,7 +399,7 @@ def _crun_old(float[:,:] X, np.complex64_t w, float r, int remove_mean, float[:]
 	free(Atilde)
 
 	cdef np.complex64_t *U_c
-	U_c = <np.complex64_t*>malloc(m*nr*sizeof(np.complex64_t))
+	U_c = <np.complex64_t*>calloc(m*nr,sizeof(np.complex64_t))
 
 	for ii in range(m*nr):
 		U_c[ii] = Ur[ii]
@@ -429,6 +430,7 @@ def _zrun_old(double[:,:] X, np.complex128_t w, double r, int remove_mean, doubl
 	cdef int m, n, ii, m_aux
 	m = X.shape[0]
 	n = X.shape[1]
+	cdef double[:, ::1] X_c = np.ascontiguousarray(X, dtype=np.double)
 
 	if m > (n - 1):
 		m_aux = m
@@ -440,10 +442,10 @@ def _zrun_old(double[:,:] X, np.complex128_t w, double r, int remove_mean, doubl
 	Y = <double*>calloc(m_aux*(n-1), sizeof(double))
 	Z = <double*>malloc(m*(n-1)*sizeof(double))
 	if Q is not None:
-		c_dvecmat(&Q[0], &X[0,0], m, n)
-
+		c_dvecmat(&Q[0], &X_c[0,0], m, n)
+	
 	# Create the snapshot of matrices and separate it into Y, Z
-	c_dseparate(Y, Z, &X[0,0], m, n, remove_mean)
+	c_dseparate(Y, Z, &X_c[0,0], m, n, remove_mean)
 
 	# Compute the linear operator in lower dimension
 	cdef int icol, irow, retval
@@ -519,7 +521,7 @@ def _zrun_old(double[:,:] X, np.complex128_t w, double r, int remove_mean, doubl
 	free(Atilde)
 
 	cdef np.complex128_t *U_c
-	U_c = <np.complex128_t*>malloc(m*nr*sizeof(np.complex128_t))
+	U_c = <np.complex128_t*>calloc(m*nr,sizeof(np.complex128_t))
 
 	for ii in range(m*nr):
 		U_c[ii] = Ur[ii]
@@ -555,7 +557,7 @@ def _crun_new(list X, np.complex64_t w, float r, int remove_mean, float[:] Q):
 	cdef int *n_list
 	X_pointer = <float**>malloc(n_matrix*sizeof(float*))
 	n_list = <int*>malloc(n_matrix*sizeof(int))
-	### LOOP X
+	
 	n_total = 0
 	cdef float[:, ::1] M 
 	for ii in range(len(X)):
@@ -579,7 +581,7 @@ def _crun_new(list X, np.complex64_t w, float r, int remove_mean, float[:] Q):
 
 	# Create the snapshot of matrices and separate it into Y, Z
 	c_sconcatenate(Y, Z, X_pointer, n_list, n_matrix, m, n_total, remove_mean)
-	### MODIFICAR A SOBRE D'AIXO!!!
+	
 	# Compute the linear operator in lower dimension
 	cdef int icol, irow, retval
 	
@@ -654,7 +656,7 @@ def _crun_new(list X, np.complex64_t w, float r, int remove_mean, float[:] Q):
 	free(Atilde)
 
 	cdef np.complex64_t *U_c
-	U_c = <np.complex64_t*>malloc(m*nr*sizeof(np.complex64_t))
+	U_c = <np.complex64_t*>calloc(m*nr,sizeof(np.complex64_t))
 
 	for ii in range(m*nr):
 		U_c[ii] = Ur[ii]
@@ -789,7 +791,7 @@ def _zrun_new(list X, np.complex128_t w, double r, int remove_mean, double[:] Q)
 	free(Atilde)
 
 	cdef np.complex128_t *U_c
-	U_c = <np.complex128_t*>malloc(m*nr*sizeof(np.complex128_t))
+	U_c = <np.complex128_t*>calloc(m*nr,sizeof(np.complex128_t))
 
 	for ii in range(m*nr):
 		U_c[ii] = Ur[ii]
@@ -823,11 +825,11 @@ def run_new(object X, object w, object r, int remove_mean=True, real[:] Q=None):
 
 	if isinstance(X, list):
 		if X[0].dtype == np.double:
-			return _zrun_new(X,np.complex128(w),np.double(r),remove_mean, Q)
+			return _zrun_new(X,np.complex128(w),np.double(r),remove_mean,Q)
 		else:
-			return _crun_new(X,np.complex64(w),np.float32(r),remove_mean, Q)
+			return _crun_new(X,np.complex64(w),np.float32(r),remove_mean,Q)
 	else:
 		if X[0].dtype == np.double:
-			return _zrun_old(X,np.complex128(w),np.double(r),remove_mean, Q)
+			return _zrun_old(X,np.complex128(w),np.double(r),remove_mean,Q)
 		else:
-			return _crun_old(X,np.complex64(w),np.float32(r),remove_mean, Q)
+			return _crun_old(X,np.complex64(w),np.float32(r),remove_mean,Q)

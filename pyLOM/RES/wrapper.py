@@ -55,15 +55,21 @@ def run(Phi, delta, omega, f, Q=None):
 
     return U_res, S, V_res
 
-def run_new(X, w, r, remove_mean=True):
+def run_new(X, w, r, remove_mean=True, Q=None):
 
     # Prepare matrices and calculate the linear operator
+    X_c = X.copy()
     if (type(X) is list):
-        Y, Z = concatenate(X, remove_mean=remove_mean)
+        if Q is not None:
+            for M, ii in enumerate(X):
+                X_c[ii] = vecmat(Q, M)
+        Y, Z = concatenate(X_c, remove_mean=remove_mean)
         U1, S1, VT1, Atilde = linear_operator(Y, Z, r)
 
     else:
-        Y, Z = separate(X, remove_mean=remove_mean)
+        if Q is not None:
+            X_c = vecmat(Q, X)
+        Y, Z = separate(X_c, remove_mean=remove_mean)
         U1, S1, VT1, Atilde = linear_operator(Y, Z, r)
 
     del S1, VT1
@@ -74,5 +80,9 @@ def run_new(X, w, r, remove_mean=True):
     # Project the solution
     U = matmul(U1, U2)
     V = matmul(U1, V2)
+
+    if Q is not None:
+        U = vecmat(1/Q, U)
+        V = vecmat(1/Q, V)
 
     return U, S, V

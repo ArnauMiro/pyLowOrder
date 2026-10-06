@@ -205,8 +205,10 @@ void sconcatenate(float *Y, float *Z, float **X, int *n_list, const int n_matrix
             }
         }
         else {
-            memcpy(&Y[ii*n_total+n_sum], &X[jj][ii*n_jj], (n_jj-1)*sizeof(float));
-            memcpy(&Z[ii*n_total+n_sum], &X[jj][ii*n_jj+1], (n_jj-1)*sizeof(float));
+            for (ii=0; ii<m; ++ii){
+                memcpy(&Y[ii*n_total+n_sum], &X[jj][ii*n_jj], (n_jj-1)*sizeof(float));
+                memcpy(&Z[ii*n_total+n_sum], &X[jj][ii*n_jj+1], (n_jj-1)*sizeof(float));
+            }
         }
         n_sum += n_jj-1;
         free(X_meanless);
@@ -237,8 +239,11 @@ void dconcatenate(double *Y, double *Z, double **X, int *n_list, const int n_mat
             }
         }
         else {
-            memcpy(&Y[ii*n_total+n_sum], &X[jj][ii*n_jj], (n_jj-1)*sizeof(double));
-            memcpy(&Z[ii*n_total+n_sum], &X[jj][ii*n_jj+1], (n_jj-1)*sizeof(double));
+            for (ii=0; ii<m; ++ii){
+                memcpy(&Y[ii*n_total+n_sum], &X[jj][ii*n_jj], (n_jj-1)*sizeof(double));
+                memcpy(&Z[ii*n_total+n_sum], &X[jj][ii*n_jj+1], (n_jj-1)*sizeof(double));
+        
+            }
         }
         n_sum += n_jj-1;
         free(X_meanless);
@@ -265,9 +270,13 @@ void sseparate(float *Y, float *Z, float *X, const int m, const int n, int remov
         }
     }
     else {
-        memcpy(&Y[ii*(n-1)], &X[ii*n], (n-1)*sizeof(float));
-        memcpy(&Z[ii*(n-1)], &X[ii*n+1], (n-1)*sizeof(float));
+        for (ii=0; ii<m; ++ii){
+            memcpy(&Y[ii*(n-1)], &X[ii*n], (n-1)*sizeof(float));
+            memcpy(&Z[ii*(n-1)], &X[ii*n+1], (n-1)*sizeof(float));
+        }
     }
+    free(X_mean);
+    free(X_meanless);
 }
 
 void dseparate(double *Y, double *Z, double *X, const int m, const int n, int remove_mean) {
@@ -289,9 +298,13 @@ void dseparate(double *Y, double *Z, double *X, const int m, const int n, int re
         }
     }
     else {
-        memcpy(&Y[ii*(n-1)], &X[ii*n], (n-1)*sizeof(double));
-        memcpy(&Z[ii*(n-1)], &X[ii*+1], (n-1)*sizeof(double));
+        for (ii=0; ii<m; ++ii){
+            memcpy(&Y[ii*(n-1)], &X[ii*n], (n-1)*sizeof(double));
+            memcpy(&Z[ii*(n-1)], &X[ii*n+1], (n-1)*sizeof(double));
+        }
     }
+    free(X_mean);
+    free(X_meanless);
 }
 
 void cresolvent(scomplex_t *U, float *S, scomplex_t *V, float *A, scomplex_t w, const int n) {
