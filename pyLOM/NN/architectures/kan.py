@@ -499,43 +499,45 @@ class KAN(nn.Module):
         **kwargs,
     ):
         r"""
-        Predict the target values for the input data. The dataset is loaded into a DataLoader with the provided keyword arguments.
-        The model is set to evaluation mode and the predictions are made using the input data. The output can be rescaled using
-        the dataset scaler.
+        Predict the target values for the input data. The dataset is loaded into a DataLoader with the provided keyword arguments
+        and the model is set to evaluation mode. To make a prediction from a torch tensor, call the model directly.
 
         Args:
             X (torch.utils.data.Dataset): The dataset whose target values are to be predicted using the input data.
-            rescale_output (bool): Whether to rescale the output with the scaler of the dataset (default: ``True``).
-            dataloader_kwargs (dict, optional): Additional keyword arguments to pass to the dataloader (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader. Overrides the following defaults: ``batch_size=256`` ,``shuffle=False``, ``num_workers=0``, ``pin_memory=PIN_MEMORY`` (default: ``False``).
+            return_targets (bool, optional): If ``True``, the true target values will be returned along with the predictions (default: ``False``).
+            dataloader_kwargs (dict, optional): Additional keyword arguments to pass to the dataloader (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader. Overrides the following defaults: ``batch_size`` (the ``batch_size`` keyword argument, ``256`` if not given), ``shuffle=False``, ``num_workers=0``, ``pin_memory=PIN_MEMORY`` (default: ``False``).
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: The predictions and the true target values.
+            np.ndarray or Tuple[np.ndarray, np.ndarray]: The predictions, and the true target values if ``return_targets`` is ``True``.
         """
 
         _dataloader_kwargs = {
             "batch_size": kwargs.get("batch_size", 256),
-            "shuffle": False,
             "num_workers": 0,
             "pin_memory": PIN_MEMORY,
             **dataloader_kwargs,
+            # The predictions must keep the order and the size of the dataset (Pipeline.evaluate passes the training dataloader_kwargs)
+            "shuffle": False,
+            "drop_last": False,
         }
 
-        predict_dataloader = DataLoader(X, **_dataloader_kwargs)
+        predict_dataloader = _create_dataloader(X, **_dataloader_kwargs)
 
         total_rows = len(predict_dataloader.dataset)
         num_columns = self.output_size
         all_predictions = np.empty((total_rows, num_columns))
-        all_targets = np.empty((total_rows, num_columns))
+        all_targets = np.empty((total_rows, num_columns)) if return_targets else None
+        dtype = next(self.parameters()).dtype
 
         self.eval()
         start_idx = 0
         with torch.no_grad():
             for x, y in predict_dataloader:
-                output = self(x.to(self.device))
-                batch_size = x.size(0)
-                end_idx = start_idx + batch_size
+                output = self(x.to(self.device, dtype, non_blocking=True))
+                end_idx = start_idx + len(x)
                 all_predictions[start_idx:end_idx, :] = output.cpu().numpy()
-                all_targets[start_idx:end_idx, :] = y.cpu().numpy()
+                if return_targets:
+                    all_targets[start_idx:end_idx, :] = y.cpu().numpy()
                 start_idx = end_idx
 
         if return_targets:
@@ -1065,3 +1067,7 @@ class SineLayer(nn.Module):
 # Layers that KAN accepts by name and stores by name in its checkpoints
 _LAYER_TYPES = {"ChebyshevLayer": ChebyshevLayer, "JacobiLayer": JacobiLayer}
 
+
+def _layer_type_name(layer_type):
+    name = getattr(layer_type, "__name__", None)
+    return name if _LAYER_TYPES.get(name) is layer_type else None
