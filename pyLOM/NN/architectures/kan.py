@@ -781,7 +781,8 @@ class KAN(nn.Module):
             try: 
                 training_params = {}       
                 for key, params in optimization_params.items():
-                    training_params[key] = suggest_value(key, params, trial)
+                    # input_domain is a (low, high) pair, not a range to search
+                    training_params[key] = params if key == "input_domain" else suggest_value(key, params, trial)
                 training_params["save_logs_path"] = None
                 
                 model = cls(input_size=input_dim, output_size=output_dim, **training_params)
