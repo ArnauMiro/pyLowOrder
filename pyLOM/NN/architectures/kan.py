@@ -779,13 +779,13 @@ def _choice_name(value):
 
 class KAN_SIN(KAN):
     """
-    KAN model with a sine layer at the beginning. This model adds a sin layer at the beggining of a KAN model.
+    KAN model with a sine layer at the beginning: the input layer of the KAN is replaced by ``SineLayer(input_size, nneuron_sin, sigma)``, whose outputs feed the next KAN layer.
     
     Args:
         nneuron_sin (int): The number of neurons in the sine layer.
         sigma (float): The sigma (standard deviation of the weights) parameter for the sine layer. Default is ``1.0``.
         *args: Additional positional arguments to pass to the KAN class.
-        **kwargs: Additional keyword arguments to pass to the KAN class.
+        **kwargs: Additional keyword arguments to pass to the KAN class. ``input_domain`` does not apply, since the inputs go through the sine layer.
     
     """
     
@@ -800,22 +800,30 @@ class KAN_SIN(KAN):
         self.nneuron_sin = nneuron_sin
         self.sigma = sigma
 
-        self.input = SineLayer(self.ninput, self.nneuron_sin, self.sigma)
+        if self.input_domain is not None:
+            raiseWarning("input_domain is not used by KAN_SIN, whose inputs go through the sine layer")
+        self.input = SineLayer(self.input_size, self.nneuron_sin, self.sigma)
 
-        self.kan_layers[0] = self.layer_type(self.nneuron_sin, self.hidden_neur, self.degree)
+        # The sine features are already in [-1, 1], so the next layer gets neither the domain mapping nor tanh
+        if self.n_layers > 0:
+            self.kan_layers[0] = self._create_layer(self.nneuron_sin, self.hidden_size)
+        else:
+            self.output = self._create_layer(self.nneuron_sin, self.output_size)
         self.to(self.device)
 
-        if self.intro:
-            print('Adding sin layer at the beginning:')
+        if kwargs.get("verbose", True):
+            pprint(0, "Adding sin layer at the beginning:")
             keys_print = ['nneuron_sin', 'sigma']
             for key in keys_print:
-                print(f"   {key}: {getattr(self, key)}")
+                pprint(0, f"\t{key}: {getattr(self, key)}")
+            pprint(0,
+                f"\ttotal_size (trained params):\t{sum(p.numel() for p in self.parameters() if p.requires_grad)}"
+            )
                 
     def _define_checkpoint(self):
-        checkpoint = super().define_checkpoint()
+        checkpoint = super()._define_checkpoint()
         checkpoint["sigma"] = self.sigma
         checkpoint["nneuron_sin"] = self.nneuron_sin
-        checkpoint["state_dict"] = self.state_dict()
 
         return checkpoint
 
