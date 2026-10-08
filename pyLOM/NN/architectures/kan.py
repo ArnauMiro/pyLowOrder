@@ -656,6 +656,7 @@ class KAN(nn.Module):
         - A pair of numbers ``(low, high)`` is a range of integers or floats, sampled in log scale if it spans three orders of magnitude or more. A pair of powers of two more than three powers apart is sampled as a list of powers of two.
         - Any other tuple or list is a list of choices. Choices that are not plain values, such as layer classes, are recorded in Optuna by name.
         - A dictionary with a ``"type"`` key is an explicit specification (see ``pyLOM.NN.utils.get_optimizing_value``), and any other dictionary is searched recursively.
+        - ``input_domain`` is always a fixed value, since it is a ``(low, high)`` pair.
 
         Trials whose loss is not finite, or that run out of memory, are pruned.
 
