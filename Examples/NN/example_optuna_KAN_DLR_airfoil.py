@@ -94,7 +94,8 @@ optimization_params = {
     "print_eval_rate": 2,
     "epochs": 10,
     "optimizer_class": torch.optim.Adam,
-    "lr_kwargs":{
+    "scheduler_class": torch.optim.lr_scheduler.StepLR,
+    "scheduler_kwargs":{
         "gamma": (0.95, 0.99),
         "step_size": 7000
     },

@@ -33,10 +33,11 @@ def plot_train_test_loss(train_loss, test_loss, path):
     """
     plt.figure()
     plt.plot(range(1, len(train_loss) + 1), train_loss, label="Training Loss")
-    total_epochs = len(test_loss) # test loss is calculated at the end of each epoch
-    total_iters = len(train_loss) # train loss is calculated at the end of each iteration/batch
-    iters_per_epoch = total_iters // total_epochs
-    plt.plot(np.arange(iters_per_epoch, total_iters+1, step=iters_per_epoch), test_loss, label="Test Loss")
+    if len(test_loss) > 0: # there is no test loss when the model is trained without a validation dataset
+        total_epochs = len(test_loss) # test loss is calculated at the end of each epoch
+        total_iters = len(train_loss) # train loss is calculated at the end of each iteration/batch
+        iters_per_epoch = total_iters // total_epochs
+        plt.plot(np.arange(iters_per_epoch, total_iters+1, step=iters_per_epoch), test_loss, label="Test Loss")
     plt.xlabel("Iterations")
     plt.ylabel("Loss")
     plt.title("Training Loss vs Epoch")
@@ -86,9 +87,10 @@ training_params = {
     'batch_size': 8,
     "print_eval_rate": 1,
     "optimizer_class": torch.optim.Adam,
-    "lr_kwargs":{
+    "scheduler_class": torch.optim.lr_scheduler.StepLR,
+    "scheduler_kwargs":{
         "gamma": 0.95,
-        "step_size": 3 * len(td_train) // 8 # each 3 epochs
+        "step_size": 3 * len(td_train) // 8
     },
     "max_norm_grad": 10,
     "save_logs_path":RESUDIR,

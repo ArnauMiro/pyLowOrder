@@ -109,9 +109,10 @@ training_params = {
     'batch_size': 8,
     "print_eval_rate": 1,
     "optimizer_class": torch.optim.Adam,
-    "lr_kwargs":{
+    "scheduler_class": torch.optim.lr_scheduler.StepLR,
+    "scheduler_kwargs":{
         "gamma": 0.95,
-        "step_size": 3 * len(td_train) // 8 # each 3 epochs
+        "step_size": 3 * len(td_train) // 8
     },
     "max_norm_grad": 0.5,
     "save_logs_path":RESUDIR,
