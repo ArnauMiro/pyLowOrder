@@ -587,8 +587,14 @@ class KAN(nn.Module):
         **kwargs,
     ) -> Tuple[nn.Module, Dict]:
         r"""
-        Create an optimized KAN model using Optuna. The model is trained on the training dataset and the metric to optimize is computed with the evaluation dataset.
+        Create an optimized KAN model using Optuna. The model is trained on the training dataset and the metric to optimize is the loss on the evaluation dataset at the last epoch.
         If the parameters from the optimizer are a tuple, the function will optimize the parameter. If the parameter is a single value, it will be fixed during optimization.
+
+        - A pair of numbers ``(low, high)`` is a range of integers or floats, sampled in log scale if it spans three orders of magnitude or more. A pair of powers of two more than three powers apart is sampled as a list of powers of two.
+        - Any other tuple or list is a list of choices. Choices that are not plain values, such as layer classes, are recorded in Optuna by name.
+        - A dictionary with a ``"type"`` key is an explicit specification (see ``pyLOM.NN.utils.get_optimizing_value``), and any other dictionary is searched recursively.
+
+        Trials whose loss is not finite, or that run out of memory, are pruned.
 
         Args:
             train_dataset (torch.utils.data.Dataset): The training dataset.
@@ -612,16 +618,15 @@ class KAN(nn.Module):
             >>>     "n_layers": (1, 4),
             >>>     "print_eval_rate": 2,
             >>>     "epochs": 10, # non-optimizable parameter
-            >>>    "lr_kwargs":{
-            >>>        "gamma": (0.95, 0.99),
-            >>>        "step_size": 7000
-            >>>    },
+            >>>     "scheduler_class": torch.optim.lr_scheduler.StepLR,
+            >>>     "scheduler_kwargs": {
+            >>>         "gamma": (0.95, 0.99),
+            >>>         "step_size": 1
+            >>>     },
             >>>     "model_name": "kan_test_optuna",
             >>>     'device': device,
             >>>     "layer_type": (pyLOM.NN.ChebyshevLayer, pyLOM.NN.JacobiLayer),
-            >>>     "layer_kwargs": {
-            >>>         "degree": (3, 10),
-            >>>     },
+            >>>     "degree": (3, 10),
             >>> }
             >>>
             >>> # Define the optimizer
@@ -641,9 +646,14 @@ class KAN(nn.Module):
         """
         optimization_params = optuna_optimizer.optimization_params
         input_dim, output_dim = train_dataset[0][0].shape[0], train_dataset[0][1].shape[0]
+        if eval_dataset is None:
+            raiseError("create_optimized_model needs an eval_dataset to compute the metric to optimize")
+        default_epochs = inspect.signature(cls.fit).parameters["epochs"].default
         
         def suggest_value(name, space, trial):
             if isinstance(space, dict):
+                if "type" in space:
+                    return get_optimizing_value(name, space, trial)
                 suggested_dict = {}
                 for key, subspace in space.items():
                     full_name = f"{name}.{key}"
@@ -651,9 +661,10 @@ class KAN(nn.Module):
                 return suggested_dict
             
             if isinstance(space, (tuple, list)):
-                if len(space) == 2:
+                if _is_range(space):
                     low, high = space
-                    if isinstance(low, int) and isinstance(high, int):
+                    if isinstance(low, numbers.Integral) and isinstance(high, numbers.Integral):
+                        low, high = int(low), int(high)
                         
                         def is_power_of_2(n):
                             return n > 0 and (n & (n - 1)) == 0
@@ -663,20 +674,40 @@ class KAN(nn.Module):
                             power_high = int(np.log2(high))
                             power_diff = power_high - power_low
                             
-                            if power_diff > 3:
+                            if power_diff > 1:
                                 choices = [2**p for p in range(power_low, power_high + 1)]
                                 return trial.suggest_categorical(name, choices)
                         
-                        use_log = (high / max(1, low)) >= 1000
-                        return trial.suggest_int(name, low, high, log=use_log)
+                        return trial.suggest_int(name, low, high, log=_log_scale(low, high))
 
-                    if isinstance(low, float) and isinstance(high, float):
-                        use_log = (high / max(1e-12, low)) >= 1000
-                        return trial.suggest_float(name, low, high, log=use_log)
-                else:
-                    return trial.suggest_categorical(name, space)
+                    low, high = float(low), float(high)
+                    return trial.suggest_float(name, low, high, log=_log_scale(low, high))
+
+                if all(_is_plain(choice) for choice in space):
+                    return trial.suggest_categorical(name, list(space))
+                # Optuna storages only keep plain values: other choices are suggested by name
+                names = [_choice_name(choice) for choice in space]
+                if len(set(names)) != len(names):
+                    raiseError(f"The choices of '{name}' must have different names, got: {names}")
+                return space[names.index(trial.suggest_categorical(name, names))]
                 
             return space
+
+        def restore_choices(space, best_params):
+            # Map the choices suggested by name back to the objects
+            for key, value in best_params.items():
+                subspace = space.get(key) if isinstance(space, dict) else None
+                if isinstance(value, dict):
+                    restore_choices(subspace, value)
+                elif isinstance(subspace, (tuple, list)) and not _is_range(subspace) and not all(_is_plain(choice) for choice in subspace):
+                    best_params[key] = subspace[[_choice_name(choice) for choice in subspace].index(value)]
+
+        def last_eval_loss(results, trial):
+            loss_val = results["test_loss"][-1]
+            if not (np.isfinite(loss_val) and np.isfinite(results["train_loss"][-1])):
+                pprint(0, f"Trial {trial.number} diverged (non-finite loss). Pruning the trial.")
+                raise TrialPruned()
+            return loss_val
         
         def optimization_function(trial) -> float:
             if torch.cuda.is_available():
@@ -690,25 +721,26 @@ class KAN(nn.Module):
                     training_params[key] = suggest_value(key, params, trial)
                 training_params["save_logs_path"] = None
                 
-                model = cls(input_dim, output_dim, **training_params)
+                model = cls(input_size=input_dim, output_size=output_dim, **training_params)
                 if optuna_optimizer.pruner is not None:
-                    epochs = training_params["epochs"]
+                    epochs = training_params.get("epochs", default_epochs)
                     training_params["epochs"] = 1
                     for epoch in range(epochs):
                         results = model.fit(train_dataset, eval_dataset, **training_params)
-                        loss_val = results["test_loss"][-1]
+                        loss_val = last_eval_loss(results, trial)
                         trial.report(loss_val, epoch)
                         if trial.should_prune(): 
                             raise TrialPruned()
                 else:
                     results = model.fit(train_dataset, eval_dataset, **training_params)
-                    loss_val = results["test_loss"][-1]
+                    loss_val = last_eval_loss(results, trial)
                 
                 return loss_val
             
             except RuntimeError as e:
-                if "out of memory" in str(e) or "MEMORY" in str(e).upper():
-                    print(f"Trial {trial.number} failed due to out of memory error. Pruning the trial.")
+                message = str(e).lower()
+                if "out of memory" in message or "allocate memory" in message:
+                    pprint(0, f"Trial {trial.number} failed due to out of memory error. Pruning the trial.")
                     if torch.cuda.is_available():
                         torch.cuda.empty_cache()
                     raise TrialPruned()
@@ -721,11 +753,28 @@ class KAN(nn.Module):
                     torch.cuda.empty_cache()
         
         best_params = optuna_optimizer.optimize(objective_function=optimization_function)
+        restore_choices(optimization_params, best_params)
 
         # Update params with best ones
         OptunaOptimizer.apply_to(optimization_params, optimized_params=best_params)
         
-        return cls(input_dim, output_dim, **optimization_params), optimization_params
+        return cls(input_size=input_dim, output_size=output_dim, **optimization_params), optimization_params
+
+
+def _is_plain(value):
+    return value is None or isinstance(value, (bool, int, float, str))
+
+
+def _is_range(space):
+    return len(space) == 2 and all(isinstance(v, numbers.Real) and not isinstance(v, bool) for v in space)
+
+
+def _log_scale(low, high):
+    return low > 0 and high / low >= 1e3 * (1 - 1e-9)
+
+
+def _choice_name(value):
+    return getattr(value, "__name__", None) or repr(value)
 
 
 class KAN_SIN(KAN):
