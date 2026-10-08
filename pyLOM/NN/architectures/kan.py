@@ -769,7 +769,7 @@ def _init_coefficients(coeffs, init, slope=1.0):
 
 class ChebyshevLayer(nn.Module):
     """
-    Chebyshev layer for KAN model.
+    Chebyshev layer for KAN model. Each output is ``y_o = sum_i sum_k c_{i,o,k} T_k(x_i)``, with the Chebyshev polynomials ``T_k`` up to the given degree.
 
     Args:
         input_dim (int): The number of input features.
@@ -793,11 +793,17 @@ class ChebyshevLayer(nn.Module):
 
     def forward(self, x):
         x = _layer_input(x, self.inputdim, self.domain, self.tanh)
+        # Chebyshev polynomials: T_0 = 1, T_1 = x, T_k = 2x T_{k-1} - T_{k-2}
+        cheby = [torch.ones_like(x), x][: self.degree + 1]
+        if self.degree > 1:
+            two_x = 2 * x
+        for _ in range(2, self.degree + 1):
+            cheby.append(two_x * cheby[-1] - cheby[-2])
+        cheby = torch.stack(cheby, dim=-1)  # shape = (batch_size, inputdim, degree + 1)
         # Compute the Chebyshev interpolation
         y = torch.einsum(
             "bid,iod->bo", cheby, self.cheby_coeffs
         )  # shape = (batch_size, outdim)
-        y = y.view(-1, self.outdim)
         return y
 
 
