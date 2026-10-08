@@ -4,17 +4,44 @@
 #
 # KAN (Kolmogorov-Arnold Network) class.
 #
-# Last rev: 06/05/2026
+# Last rev: 06/10/2026
 
-import os, numpy as np, torch, torch.nn as nn, torch.optim as optim
+import os, math, types, pickle, inspect, numbers, numpy as np, torch, torch.nn as nn, torch.optim as optim
 
 from typing             import Dict, Tuple
-from torch.utils.data   import DataLoader
+from torch.utils.data   import DataLoader, RandomSampler, SequentialSampler, BatchSampler
 
 from ..                 import DEVICE, PIN_MEMORY, set_seed
 from ..optimizer        import OptunaOptimizer, TrialPruned
+from ..utils            import get_optimizing_value
 from ...                import pprint, cr
 from ...utils.errors    import raiseWarning, raiseError
+
+
+# Rows per forward pass when fit evaluates the model (the evaluation does not depend on the training batch size)
+_EVAL_BATCH_SIZE = 8192
+# Standard deviation, times sqrt(input_dim), of the coefficients of degree >= 2 with init="linear"
+_LINEAR_INIT_HIGH_STD = 0.01
+_INITS = ("default", "linear")
+_ISSUED_WARNINGS = set()
+
+
+def _warn_once(message):
+    if message not in _ISSUED_WARNINGS:
+        _ISSUED_WARNINGS.add(message)
+        raiseWarning(message)
+
+
+def _parameter_names(*functions):
+    names = set()
+    for function in functions:
+        for name, parameter in inspect.signature(function).parameters.items():
+            if parameter.kind in (parameter.POSITIONAL_OR_KEYWORD, parameter.KEYWORD_ONLY):
+                names.add(name)
+    names.discard("self")
+    return names
+
+
 def _check_kwargs(kwargs, valid, caller):
     r"""
     ``KAN.__init__`` and ``KAN.fit`` receive each other's arguments in ``**kwargs``, because ``Pipeline`` and
@@ -24,6 +51,40 @@ def _check_kwargs(kwargs, valid, caller):
     if unknown:
         raiseError(f"{caller} got unexpected arguments: {', '.join(unknown)}. Valid arguments are: {', '.join(sorted(valid))}")
 
+
+def _create_dataloader(dataset, batch_size, shuffle, drop_last=False, generator=None, **kwargs):
+    r"""
+    ``DataLoader`` that reads each batch with a single ``dataset[indices]`` call when the dataset supports it, as
+    ``pyLOM.NN.Dataset``, ``Subset`` and ``TensorDataset`` do, instead of one ``__getitem__`` per sample and a collate.
+    The batches and their order are the same as with ``DataLoader(dataset, batch_size, shuffle, ...)``.
+    """
+    batched = not any(key in kwargs for key in ("sampler", "batch_sampler", "collate_fn"))
+    if batched:
+        try:
+            x, y = dataset[[0, 1]] if len(dataset) > 1 else dataset[[0]]
+            batched = torch.is_tensor(x) and torch.is_tensor(y) and len(x) == len(y) == min(len(dataset), 2)
+        except Exception:
+            batched = False
+    if not batched:
+        return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, drop_last=drop_last, generator=generator, **kwargs)
+    sampler = RandomSampler(dataset, generator=generator) if shuffle else SequentialSampler(dataset)
+    return DataLoader(dataset, sampler=BatchSampler(sampler, batch_size, drop_last), batch_size=None, generator=generator, **kwargs)
+
+
+class _CheckpointUnpickler(pickle.Unpickler):
+    r"""
+    Unpickler for checkpoints that store the layer class itself, as those saved by previous versions. The class is taken
+    from this module whatever the import path used when saving (e.g. ``pyLowOrder.pyLOM.NN.architectures.kan``).
+    """
+    def find_class(self, module, name):
+        if module.endswith("pyLOM.NN.architectures.kan") and name in globals():
+            return globals()[name]
+        return super().find_class(module, name)
+
+
+_checkpoint_pickle = types.ModuleType("kan_checkpoint_pickle")
+_checkpoint_pickle.Unpickler = _CheckpointUnpickler
+_checkpoint_pickle.load = pickle.load
 
 
 class KAN(nn.Module):
