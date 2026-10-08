@@ -15,25 +15,39 @@ from ..                 import DEVICE, PIN_MEMORY, set_seed
 from ..optimizer        import OptunaOptimizer, TrialPruned
 from ...                import pprint, cr
 from ...utils.errors    import raiseWarning, raiseError
+def _check_kwargs(kwargs, valid, caller):
+    r"""
+    ``KAN.__init__`` and ``KAN.fit`` receive each other's arguments in ``**kwargs``, because ``Pipeline`` and
+    ``create_optimized_model`` pass the same dictionary to both. Any other name is a mistake and is not ignored.
+    """
+    unknown = sorted(set(kwargs) - valid)
+    if unknown:
+        raiseError(f"{caller} got unexpected arguments: {', '.join(unknown)}. Valid arguments are: {', '.join(sorted(valid))}")
+
 
 
 class KAN(nn.Module):
     r"""
     KAN (Kolmogorov-Arnold Network) model for regression tasks. This model is based on https://arxiv.org/abs/2404.19756, inspired by the Kolmogorov-Arnold representation theorem.
+    Each layer learns a polynomial function of each input for each output (Chebyshev or Jacobi basis), and the model is ``input -> [hidden -> dropout] x n_layers -> output``.
 
     Args:
         input_size (int): The number of input features.
         output_size (int): The number of output features.
         n_layers (int): The number of hidden layers.
         hidden_size (int): The number of neurons in the hidden layers.
-        layer_type (nn.Module): The type of layer to use in the model. It can be one of the following: ``JacobiLayer``, ``ChebyshevLayer``.
-        degree (int, Optional): The degree of the polynomial for the layers. It is only used if the layer type is ``JacobiLayer`` or ``ChebyshevLayer`` (default: ``5``).
+        layer_type (nn.Module): The type of layer to use in the model. It can be one of the following: ``JacobiLayer``, ``ChebyshevLayer``, or their names as strings.
+        degree (int, Optional): The degree of the polynomial for the layers (default: ``5``).
         p_dropouts (float, Optional): The dropout probability (default: ``0.0``).
         device (torch.device, Optional): The device where the model is loaded (default: gpu if available).
         seed (int, Optional): The random seed for reproducibility (default: ``None``).
         model_name (str, Optional): The name of the model (default: ``"kan"``).
         verbose (bool, Optional): Whether to print the model information (default: ``True``).
-        **layer_kwargs: Additional keyword arguments to pass to the layer type. For example, the order of the Taylor series or the degree of the Chebyshev polynomial.
+        layer_kwargs (dict, Optional): Additional keyword arguments for the layers, e.g. ``{"a": 0.5, "b": 0.5}`` for ``JacobiLayer`` (default: ``None``).
+        input_domain (Tuple[float, float], Optional): Range of the input data, which the first layer maps onto [-1, 1], where the polynomials are defined. Use ``(0, 1)`` for inputs scaled with ``MinMaxScaler``. If ``None``, the inputs are used as they are (default: ``None``).
+        tanh_between_layers (bool, Optional): Whether to apply ``tanh`` to the inputs of the hidden and output layers, which keeps them in [-1, 1]. Without it the model is an unbounded polynomial, which can overflow in deep or high-degree networks (default: ``False``).
+        init (str, Optional): Initialization of the coefficients: ``"default"``, normal with standard deviation 1/(n_in (degree + 1)), or ``"linear"``, where each layer starts close to a random linear map so that the signal does not vanish with depth (default: ``"default"``).
+        **kwargs: Arguments of ``fit``, which are ignored here so that the same dictionary can be passed to both methods.
     """
 
     def __init__(
@@ -49,11 +63,25 @@ class KAN(nn.Module):
         seed: int = None, 
         model_name: str = "kan",
         verbose: bool = True,
+        layer_kwargs: Dict = None,
+        input_domain: Tuple[float, float] = None,
+        tanh_between_layers: bool = False,
+        init: str = "default",
         **kwargs: Dict,
     ):
         super().__init__()
+        _check_kwargs(kwargs, _parameter_names(KAN.fit) | set(_LEGACY_FIT_KWARGS), f"{type(self).__name__}.__init__")
         if seed is not None:
             set_seed(seed)
+
+        layer_kwargs = dict(layer_kwargs) if layer_kwargs is not None else {}
+        if "degree" in layer_kwargs:
+            _warn_once("Passing the degree in layer_kwargs is deprecated, use the degree argument instead")
+            degree = layer_kwargs.pop("degree")
+        if isinstance(layer_type, str):
+            if layer_type not in _LAYER_TYPES:
+                raiseError(f"Unknown layer_type '{layer_type}', available options are: {', '.join(_LAYER_TYPES)}")
+            layer_type = _LAYER_TYPES[layer_type]
         
         self.input_size = input_size
         self.output_size = output_size
@@ -65,18 +93,22 @@ class KAN(nn.Module):
         self.device = device
         self.seed = seed
         self.model_name = model_name
+        self.layer_kwargs = layer_kwargs
+        self.input_domain = _as_domain(input_domain)
+        self.tanh_between_layers = tanh_between_layers
+        self.init = init
 
         # Hidden layers with dropout
         hidden_layers = []
         for _ in range(self.n_layers):
-            hidden_layers.append(self.layer_type(self.hidden_size, self.hidden_size, self.degree))
+            hidden_layers.append(self._create_layer(self.hidden_size, self.hidden_size, tanh=self.tanh_between_layers))
             hidden_layers.append(nn.Dropout(p=self.p_dropouts))
 
         self.kan_layers = nn.ModuleList(hidden_layers)
 
         # Input and output layers
-        self.input = self.layer_type(self.input_size, self.hidden_size, self.degree)
-        self.output = self.layer_type(self.hidden_size, self.output_size, self.degree)
+        self.input = self._create_layer(self.input_size, self.hidden_size, domain=self.input_domain)
+        self.output = self._create_layer(self.hidden_size, self.output_size, tanh=self.tanh_between_layers)
 
         self.to(self.device)
         if verbose:
@@ -87,7 +119,13 @@ class KAN(nn.Module):
                 "n_layers",
                 "hidden_size",
                 "layer_type",
+                "degree",
+                "layer_kwargs",
                 "p_dropouts",
+                "input_domain",
+                "tanh_between_layers",
+                "init",
+                "seed",
                 "device",
             ]
             for key in keys_print:
@@ -95,6 +133,17 @@ class KAN(nn.Module):
             pprint(0,
                 f"\ttotal_size (trained params):\t{sum(p.numel() for p in self.parameters() if p.requires_grad)}"
             )
+
+    def _create_layer(self, input_dim, output_dim, domain=None, tanh=False):
+        # The options are only passed when used, so that layer classes without them keep working
+        kwargs = dict(self.layer_kwargs)
+        if self.init != "default":
+            kwargs["init"] = self.init
+        if domain is not None:
+            kwargs["domain"] = domain
+        if tanh:
+            kwargs["tanh"] = True
+        return self.layer_type(input_dim, output_dim, self.degree, **kwargs)
 
     def forward(self, x):
         x = self.input(x)
@@ -670,6 +719,54 @@ class KAN_SIN(KAN):
 
         return checkpoint
 
+
+def _as_domain(domain):
+    if domain is None:
+        return None
+    low, high = (float(value) for value in domain)
+    if not low < high:
+        raiseError(f"The domain must be (low, high) with low < high, got {domain}")
+    return (low, high)
+
+
+def _layer_input(x, input_dim, domain, tanh):
+    r"""
+    Input of a polynomial layer as a (batch_size, input_dim) tensor, mapping ``domain`` onto [-1, 1] and bounding it
+    with ``tanh`` when requested.
+    """
+    if x.ndim > 1 and x.shape[-1] != input_dim:
+        raiseError(f"The layer expects {input_dim} input features, got a tensor of shape {tuple(x.shape)}")
+    x = torch.reshape(x, (-1, input_dim))  # shape = (batch_size, inputdim)
+    if domain is not None:
+        low, high = domain
+        x = x * (2 / (high - low)) - (high + low) / (high - low)
+    if tanh:
+        x = torch.tanh(x)
+    return x
+
+
+def _init_coefficients(coeffs, init, slope=1.0):
+    r"""
+    Initialize the coefficients, of shape (input_dim, output_dim, degree + 1), of a polynomial layer.
+
+    - ``"default"``: all of them from N(0, (1/(input_dim (degree + 1)))^2).
+    - ``"linear"``: the layer starts close to a random linear map. The degree-1 coefficients are drawn from
+      N(0, 1/(slope^2 input_dim)), where ``slope`` is the derivative of the degree-1 polynomial, the constant terms are
+      zero and the higher degrees are drawn from N(0, _LINEAR_INIT_HIGH_STD^2/input_dim).
+    """
+    if init not in _INITS:
+        raiseError(f"Unknown init '{init}', available options are: {', '.join(_INITS)}")
+    input_dim, _, n_basis = coeffs.shape
+    if init == "default":
+        nn.init.normal_(coeffs, mean=0.0, std=1 / (input_dim * n_basis))
+        return
+    with torch.no_grad():
+        nn.init.normal_(coeffs, mean=0.0, std=_LINEAR_INIT_HIGH_STD / math.sqrt(input_dim))
+        coeffs[:, :, 0] = 0.0
+        if n_basis > 1:
+            nn.init.normal_(coeffs[:, :, 1], mean=0.0, std=1 / (slope * math.sqrt(input_dim)))
+
+
 class ChebyshevLayer(nn.Module):
     """
     Chebyshev layer for KAN model.
@@ -678,27 +775,24 @@ class ChebyshevLayer(nn.Module):
         input_dim (int): The number of input features.
         output_dim (int): The number of output features.
         degree (int): The degree of the Chebyshev polynomial.
+        domain (Tuple[float, float], Optional): Range of the inputs, which is mapped onto [-1, 1], where the polynomials are defined. If ``None``, the inputs are used as they are (default: ``None``).
+        tanh (bool, Optional): Whether to apply ``tanh`` to the inputs, after the ``domain`` mapping, to keep them in [-1, 1] (default: ``False``).
+        init (str, Optional): Initialization of the coefficients, ``"default"`` or ``"linear"`` (see ``KAN``) (default: ``"default"``).
     """
 
-    def __init__(self, input_dim, output_dim, degree, **kwargs):
+    def __init__(self, input_dim, output_dim, degree, domain=None, tanh=False, init="default", **kwargs):
         super().__init__()
         self.inputdim = input_dim
         self.outdim = output_dim
         self.degree = degree
+        self.domain = _as_domain(domain)
+        self.tanh = tanh
 
         self.cheby_coeffs = nn.Parameter(torch.empty(input_dim, output_dim, degree + 1))
-        nn.init.normal_(self.cheby_coeffs, mean=0.0, std=1 / (input_dim * (degree + 1)))
+        _init_coefficients(self.cheby_coeffs, init)
 
     def forward(self, x):
-        x = torch.reshape(x, (-1, self.inputdim))  # shape = (batch_size, inputdim)
-        # Initialize Chebyshev polynomial tensors
-        cheby = torch.ones(x.shape[0], self.inputdim, self.degree + 1, device=x.device)
-        if self.degree > 0:
-            cheby[:, :, 1] = x
-        for i in range(2, self.degree + 1):
-            cheby[:, :, i] = (
-                2 * x * cheby[:, :, i - 1].clone() - cheby[:, :, i - 2].clone()
-            )
+        x = _layer_input(x, self.inputdim, self.domain, self.tanh)
         # Compute the Chebyshev interpolation
         y = torch.einsum(
             "bid,iod->bo", cheby, self.cheby_coeffs
@@ -715,28 +809,29 @@ class JacobiLayer(nn.Module):
         input_dim (int): The number of input features.
         output_dim (int): The number of output features.
         degree (int): The degree of the Jacobi polynomial.
-        a (float, Optional): The first parameter of the Jacobi polynomial (default: ``1.0``).
-        b (float, Optional): The second parameter of the Jacobi polynomial (default: ``1.0``).
+        domain (Tuple[float, float], Optional): Range of the inputs, which is mapped onto [-1, 1], where the polynomials are defined. If ``None``, the inputs are used as they are (default: ``None``).
+        tanh (bool, Optional): Whether to apply ``tanh`` to the inputs, after the ``domain`` mapping, to keep them in [-1, 1] (default: ``False``).
+        init (str, Optional): Initialization of the coefficients, ``"default"`` or ``"linear"`` (see ``KAN``) (default: ``"default"``).
     """
 
-    def __init__(self, input_dim, output_dim, degree, a=1.0, b=1.0):
+    def __init__(self, input_dim, output_dim, degree, a=1.0, b=1.0, domain=None, tanh=False, init="default"):
         super().__init__()
         self.inputdim = input_dim
         self.outdim = output_dim
         self.a = a
         self.b = b
         self.degree = degree
+        self.domain = _as_domain(domain)
+        self.tanh = tanh
 
         self.jacobi_coeffs = nn.Parameter(
             torch.empty(input_dim, output_dim, degree + 1)
         )
-
-        nn.init.normal_(
-            self.jacobi_coeffs, mean=0.0, std=1 / (input_dim * (degree + 1))
-        )
+        # The degree-1 polynomial is ((a - b) + (a + b + 2) x) / 2
+        _init_coefficients(self.jacobi_coeffs, init, slope=(a + b + 2) / 2)
 
     def forward(self, x):
-        x = torch.reshape(x, (-1, self.inputdim))  # shape = (batch_size, inputdim)
+        x = _layer_input(x, self.inputdim, self.domain, self.tanh)
         # Initialize Jacobian polynomial tensors
         jacobi = torch.ones(x.shape[0], self.inputdim, self.degree + 1, device=x.device)
         if (self.degree > 0):  ## degree = 0: jacobi[:, :, 0] = 1 (already initialized) ; degree = 1: jacobi[:, :, 1] = x ; d
@@ -790,3 +885,7 @@ class SineLayer(nn.Module):
  
     def forward(self, x):
         return torch.sin( self.linear(x))
+
+# Layers that KAN accepts by name and stores by name in its checkpoints
+_LAYER_TYPES = {"ChebyshevLayer": ChebyshevLayer, "JacobiLayer": JacobiLayer}
+
