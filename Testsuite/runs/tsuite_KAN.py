@@ -53,7 +53,8 @@ training_params = {
     "epochs": 5,
     "lr": 1e-5,
     "optimizer_class": torch.optim.Adam,
-    "lr_kwargs":{
+    "scheduler_class": torch.optim.lr_scheduler.StepLR,
+    "scheduler_kwargs":{
         "gamma": 0.95,
         "step_size": len(td_train) // 8
     },
