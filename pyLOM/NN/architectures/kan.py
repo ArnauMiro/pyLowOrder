@@ -70,7 +70,7 @@ class KAN(nn.Module):
         **kwargs: Dict,
     ):
         super().__init__()
-        _check_kwargs(kwargs, _parameter_names(KAN.fit) | set(_LEGACY_FIT_KWARGS), f"{type(self).__name__}.__init__")
+        _check_kwargs(kwargs, _parameter_names(KAN.fit), f"{type(self).__name__}.__init__")
         if seed is not None:
             set_seed(seed)
 
@@ -187,26 +187,40 @@ class KAN(nn.Module):
         **kwargs,
     ):
         r"""
-        Train the model using the provided training dataset. The model is trained using the Adam optimizer with the provided learning rate and learning rate decay factor.
+        Train the model using the provided training dataset. Calling ``fit`` again continues the training with the same optimizer and scheduler.
 
         Args:
             train_dataset (torch.utils.data.Dataset): The training dataset.
             eval_dataset (torch.utils.data.Dataset): The evaluation dataset.
             batch_size (int): The batch size. (default: ``32``).
             epochs (int): The number of epochs to train the model. (default: ``100``).
-            lr (float): The learning rate for the Adam optimizer. (default: ``0.001``).
+            lr (float): The learning rate of the optimizer. (default: ``0.001``).
             optimizer_class (torch.optim, Optional): The optimizer to use. Available all optimizers from PyTorch except AdaDelta. (default: ``optim.Adam``).
-            scheduler_class (torch.optim.lr_scheduler._LRScheduler, optional): Learning rate scheduler class to use. If ``None``, no scheduler will be used (default: ``None``).
+            scheduler_class (torch.optim.lr_scheduler._LRScheduler, optional): Learning rate scheduler class to use. If ``None``, no scheduler will be used (default: ``None``). ``ReduceLROnPlateau`` is stepped with the evaluation loss each time the model is evaluated, or with the training loss every epoch if there is no ``eval_dataset``.
             opti_kwargs (dict, optional): Additional keyword arguments to pass to the optimizer (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/optim.html#torch.optim.Optimizer.
             scheduler_kwargs (dict, optional): Additional keyword arguments to pass to the scheduler (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/optim.html#torch.optim.lr_scheduler._LRScheduler.
             dataloader_kwargs (dict, optional): Additional keyword arguments to pass to the dataloader (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader. Overrides the following defaults: ``batch_size`` (taken from the ``batch_size`` argument),``shuffle=True``, ``num_workers=0``, ``pin_memory=PIN_MEMORY`` (default: ``False``).
             scheduler_step_on_epoch (bool, Optional): Whether to step the scheduler every epoch (default: ``True``). If ``False``, the scheduler will be stepped every batch.
-            print_eval_rate (int, Optional): The model will be evaluated every ``print_eval_rate`` epochs and the losses will be printed. If set to 0, nothing will be printed (default: ``2``).
-            loss_fn (torch.nn.Module, Optional): The loss function (default: ``nn.MSELoss()``).
-            save_logs_path (str, Optional): Path to save the training and evaluation losses (default: ``None``).
+            print_eval_rate (int, Optional): The model is evaluated on ``eval_dataset`` every ``print_eval_rate`` epochs and at the last one. If set to 0, it is only evaluated at the last epoch (default: ``2``).
+            loss_fn (torch.nn.Module, Optional): The loss function, called as ``loss_fn(prediction, target)`` and averaged over the batch (default: ``nn.MSELoss()``).
+            save_logs_path (str, Optional): Path to save the training and evaluation losses, either a ``.npy`` file or a directory (default: ``None``). The file is overwritten, unless the call continues a previous training, whose losses are then extended.
             verbose (bool, Optional): Whether to print the training information (default: ``True``).
-            max_norm_grad (float, Optional): The maximum norm of the gradients (default: ``float('inf')``).
+            max_norm_grad (float, Optional): The maximum norm of the gradients. ``inf`` or ``None`` disable the clipping (default: ``float('inf')``).
+
+        Returns:
+            Dict[str, np.ndarray]: Dictionary containing the training and evaluation results:
+                - "train_loss": Mean training loss of each epoch.
+                - "test_loss": Loss on ``eval_dataset`` at each evaluation, averaged over all its samples.
+                - "lr": Learning rate at the end of each epoch.
+                - "loss_iterations_train": Training loss of each batch.
+                - "loss_iterations_test": Evaluation loss of each evaluation batch.
+                - "grad_norms": Norm of the gradients of each batch, before clipping.
+                - "check": List with a single boolean indicating successful training.
+
+            The training stops at the end of the first epoch whose training or evaluation loss is not finite.
         """
+        _check_kwargs(kwargs, _parameter_names(*(c.__init__ for c in type(self).__mro__ if issubclass(c, KAN))), f"{type(self).__name__}.fit")
+
         _dataloader_kwargs = {
             "batch_size": batch_size,
             "shuffle": True,
@@ -214,10 +228,21 @@ class KAN(nn.Module):
             "pin_memory": PIN_MEMORY,
             **dataloader_kwargs,
         }
+        train_loader = _create_dataloader(train_dataset, **_dataloader_kwargs)
+        if len(train_loader) == 0:
+            raiseError("The training dataset has no batches")
+        eval_loader = None
+        if eval_dataset is not None:
+            eval_loader = _create_dataloader(
+                eval_dataset,
+                **{**_dataloader_kwargs, "batch_size": max(_dataloader_kwargs["batch_size"], _EVAL_BATCH_SIZE), "shuffle": False, "drop_last": False},
+            )
+            if len(eval_loader) == 0:
+                raiseError("The evaluation dataset is empty")
 
         if verbose:
             pprint(0, "")
-            pprint(0, f"TRAINNING MODEL {self._model_name}")
+            pprint(0, f"TRAINING MODEL {self._model_name}")
             pprint(0, "")
             pprint(0, "Conditions:")
             pprint(0, f"\tepochs:     {epochs}")
@@ -246,27 +271,19 @@ class KAN(nn.Module):
                     pprint(0, f"\t{key}: {value}")
             pprint(0, "   ")
         
-        if not hasattr(self, "train_loader"):
-            self.train_loader = DataLoader(train_dataset, **_dataloader_kwargs)
-        
-        if not hasattr(self, "test_loader") and eval_dataset is not None:
-            self.test_loader = DataLoader(eval_dataset, **_dataloader_kwargs)
-
-        train_losses = []
-        test_losses = []
-        loss_iterations_train = []
-        loss_iterations_test = []
-        current_lr_vec = []
-        grad_norms = []
-
-        if not hasattr(self, "optimizer"):
+        # Training continues when the optimizer state comes from a previous call or from a loaded checkpoint
+        continuing = hasattr(self, "optimizer") or hasattr(self, "optimizer_state_dict")
+        if hasattr(self, "optimizer"):
+            if type(self.optimizer) is not optimizer_class or self.optimizer.defaults.get("lr") != lr:
+                raiseWarning("fit continues the previous training with its optimizer: the optimizer_class and lr arguments are ignored")
+        else:
             self.optimizer = optimizer_class(
                 self.parameters(),
                 lr=lr,
                 **opti_kwargs
             )
 
-        if not hasattr(self, "scheduler"):
+        if getattr(self, "scheduler", None) is None:
             if scheduler_class is not None:
                 self.scheduler = scheduler_class(
                     self.optimizer,
@@ -278,86 +295,105 @@ class KAN(nn.Module):
         if hasattr(self, "optimizer_state_dict"):
             self.optimizer.load_state_dict(self.optimizer_state_dict)
             del self.optimizer_state_dict
+            restored_lr = self.optimizer.param_groups[0]["lr"]
+            if restored_lr != lr:
+                raiseWarning(f"Training resumes from the loaded optimizer state, with learning rate {restored_lr:.3e} instead of lr={lr:.3e}")
 
         if hasattr(self, "scheduler_state_dict"):
-            self.scheduler.load_state_dict(self.scheduler_state_dict)
+            if self.scheduler is not None:
+                self.scheduler.load_state_dict(self.scheduler_state_dict)
+            else:
+                raiseWarning("The loaded scheduler state is discarded because no scheduler_class was given")
             del self.scheduler_state_dict
+
+        train_losses = []
+        test_losses = []
+        loss_iterations_train = []
+        loss_iterations_test = []
+        current_lr_vec = []
+        grad_norms = []
+
+        params = [p for p in self.parameters() if p.requires_grad]
+        dtype = params[0].dtype
+        clip_grads = max_norm_grad is not None and math.isfinite(max_norm_grad)
+        plateau_scheduler = isinstance(self.scheduler, optim.lr_scheduler.ReduceLROnPlateau)
+
+        grad_norm = None
+        def closure():
+            nonlocal grad_norm
+            self.optimizer.zero_grad()
+            outputs = self(inputs)
+            loss = loss_fn(outputs, targets)
+            loss.backward()
+            if clip_grads:
+                grad_norm = torch.nn.utils.clip_grad_norm_(params, max_norm=max_norm_grad)
+            else:
+                grad_norm = torch.linalg.vector_norm(torch.stack([torch.linalg.vector_norm(p.grad) for p in params if p.grad is not None]))
+            return loss
 
         for epoch in range(epochs):
             self.train()
-            train_loss = 0.0
-
-            def closure():
-                self.optimizer.zero_grad()
-                outputs = self(inputs)
-                loss = loss_fn(outputs, targets)
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_(
-                    self.parameters(), max_norm=max_norm_grad
-                )
-                loss_iterations_train.append(loss.item())
-                return loss
-
-            for inputs, targets in self.train_loader:
-                inputs, targets = (
-                    inputs.float().to(self.device),
-                    targets.float().to(self.device),
-                )
-                train_loss += self.optimizer.step(closure).item()
-                total_norm = torch.norm(
-                    torch.stack([p.grad.norm() for p in self.parameters() if p.grad is not None])
-                )
-                grad_norms.append(total_norm.item())
-                if scheduler_class is not None and not scheduler_step_on_epoch:
+            batch_losses, batch_norms, batch_sizes = [], [], []
+            for inputs, targets in train_loader:
+                inputs = inputs.to(self.device, dtype, non_blocking=True)
+                targets = targets.to(self.device, dtype, non_blocking=True)
+                batch_losses.append(self.optimizer.step(closure).detach())
+                batch_norms.append(grad_norm)
+                batch_sizes.append(len(inputs))
+                if self.scheduler is not None and not scheduler_step_on_epoch and not plateau_scheduler:
                     self.scheduler.step()
-                    current_lr = self.optimizer.param_groups[0]["lr"]
-                    current_lr_vec.append(current_lr)
 
-            train_loss /= len(self.train_loader)
+            # The losses and gradient norms stay on the device during the epoch: one synchronization per epoch
+            batch_stats = torch.stack([torch.stack(batch_losses).double(), torch.stack(batch_norms).double()]).cpu().numpy()
+            loss_iterations_train.extend(batch_stats[0].tolist())
+            grad_norms.extend(batch_stats[1].tolist())
+            train_loss = float(np.average(batch_stats[0], weights=batch_sizes))
             train_losses.append(train_loss)
+            diverged = not math.isfinite(train_loss)
 
-            if scheduler_class is not None and scheduler_step_on_epoch:
-                self.scheduler.step()
-                current_lr = self.optimizer.param_groups[0]["lr"]
-                current_lr_vec.append(current_lr)
-                
-            test_loss = 0.0
-            if eval_dataset is not None:
-                if (epoch + 1) % print_eval_rate == 0:
-                    self.eval()
-                    with torch.no_grad():
-                        for inputs, targets in self.test_loader:
-                            inputs, targets = (
-                                inputs.float().to(self.device),
-                                targets.float().to(self.device),
-                            )
-                            outputs = self(inputs)
-                            loss = loss_fn(outputs, targets)
-                            loss_iterations_test.append(loss.item())
-                            test_loss += loss.item()
+            test_loss = None
+            last_epoch = epoch == epochs - 1
+            if eval_loader is not None and (diverged or last_epoch or (print_eval_rate > 0 and (epoch + 1) % print_eval_rate == 0)):
+                self.eval()
+                eval_losses, eval_sizes = [], []
+                with torch.no_grad():
+                    for x, y in eval_loader:
+                        x = x.to(self.device, dtype, non_blocking=True)
+                        y = y.to(self.device, dtype, non_blocking=True)
+                        eval_losses.append(loss_fn(self(x), y))
+                        eval_sizes.append(len(x))
+                eval_losses = torch.stack(eval_losses).double().cpu().numpy()
+                loss_iterations_test.extend(eval_losses.tolist())
+                test_loss = float(np.average(eval_losses, weights=eval_sizes))
+                test_losses.append(test_loss)
+                diverged = diverged or not math.isfinite(test_loss)
 
-                    test_loss /= len(self.test_loader)
-                    test_losses.append(test_loss)
-
+            if self.scheduler is not None and not diverged:
+                if plateau_scheduler:
+                    if eval_loader is None:
+                        self.scheduler.step(train_loss)
+                    elif test_loss is not None:
+                        self.scheduler.step(test_loss)
+                elif scheduler_step_on_epoch:
+                    self.scheduler.step()
             current_lr = self.optimizer.param_groups[0]["lr"]
             current_lr_vec.append(current_lr)
 
-            if torch.cuda.is_available():
-                mem_used = torch.cuda.memory_allocated() / (1024**2)  # Memory usage in MB
-                memory_usage_str = f", MEM: {mem_used:.2f} MB"
-            else:
-                memory_usage_str = ""
-
             if verbose:
+                if torch.cuda.is_available():
+                    mem_used = torch.cuda.memory_allocated() / (1024**2)  # Memory usage in MB
+                    memory_usage_str = f", MEM: {mem_used:.2f} MB"
+                else:
+                    memory_usage_str = ""
+                test_log = f", Test Loss: {test_loss:.4e}" if test_loss is not None else ""
                 pprint(
                     0,
-                    f"Epoch {epoch + 1}/{epochs}, Train Loss: {train_loss:.4e}, Test Loss: {test_loss:.4e}, "
+                    f"Epoch {epoch + 1}/{epochs}, Train Loss: {train_loss:.4e}{test_log}, "
                     f"LR: {current_lr:.2e}{memory_usage_str}",
                 )
-            # check if the loss is NaN and stop training
-            if torch.isnan(torch.tensor(test_loss)):
+            if diverged:
                 if verbose:
-                    pprint(0, f"Stopping training at epoch {epoch + 1} due to NaN in test loss.")
+                    pprint(0, f"Stopping training at epoch {epoch + 1} due to a non-finite loss.")
                 break
 
         results = {
@@ -373,20 +409,20 @@ class KAN(nn.Module):
             if save_logs_path.endswith(".npy"):
                 fn = save_logs_path
             else:
-                if not os.path.isdir(save_logs_path):
-                    save_logs_path = '.'
                 fn = os.path.join(save_logs_path, f"training_results_{self._model_name}.npy")
+            os.makedirs(os.path.dirname(fn) or ".", exist_ok=True)
             if verbose:
                 pprint(0, f"Printing losses on path {fn}")
-            if os.path.isfile(fn):
+            # Only a continued training extends the previous results; the file of any other run is overwritten
+            if continuing and os.path.isfile(fn):
                 results_old = np.load(fn, allow_pickle=True).item()
                 for key in results.keys():
                     if key != 'check':
-                        results[key] = np.concatenate((results_old[key], results[key]), axis=0)
+                        results[key] = np.concatenate((results_old.get(key, np.array([])), results[key]), axis=0)
                     else:
-                        results[key] = results_old[key] + results[key][:]
+                        results[key] = list(results_old.get(key, [])) + results[key][:]
                 if verbose:
-                    pprint(0, "Updating previous data in file" + fn)
+                    pprint(0, "Updating previous data in file " + fn)
             np.save(fn, results)
             if verbose:
                 pprint(0, f"Training results saved at {fn}")
