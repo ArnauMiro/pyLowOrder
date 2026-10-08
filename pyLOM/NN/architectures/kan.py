@@ -815,6 +815,8 @@ class JacobiLayer(nn.Module):
         input_dim (int): The number of input features.
         output_dim (int): The number of output features.
         degree (int): The degree of the Jacobi polynomial.
+        a (float, Optional): The first parameter of the Jacobi polynomial, greater than -1 (default: ``1.0``).
+        b (float, Optional): The second parameter of the Jacobi polynomial, greater than -1 (default: ``1.0``).
         domain (Tuple[float, float], Optional): Range of the inputs, which is mapped onto [-1, 1], where the polynomials are defined. If ``None``, the inputs are used as they are (default: ``None``).
         tanh (bool, Optional): Whether to apply ``tanh`` to the inputs, after the ``domain`` mapping, to keep them in [-1, 1] (default: ``False``).
         init (str, Optional): Initialization of the coefficients, ``"default"`` or ``"linear"`` (see ``KAN``) (default: ``"default"``).
@@ -822,6 +824,8 @@ class JacobiLayer(nn.Module):
 
     def __init__(self, input_dim, output_dim, degree, a=1.0, b=1.0, domain=None, tanh=False, init="default"):
         super().__init__()
+        if a <= -1 or b <= -1:
+            raiseError(f"The parameters of the Jacobi polynomials must be greater than -1, got a={a} and b={b}")
         self.inputdim = input_dim
         self.outdim = output_dim
         self.a = a
@@ -838,10 +842,10 @@ class JacobiLayer(nn.Module):
 
     def forward(self, x):
         x = _layer_input(x, self.inputdim, self.domain, self.tanh)
-        # Initialize Jacobian polynomial tensors
-        jacobi = torch.ones(x.shape[0], self.inputdim, self.degree + 1, device=x.device)
-        if (self.degree > 0):  ## degree = 0: jacobi[:, :, 0] = 1 (already initialized) ; degree = 1: jacobi[:, :, 1] = x ; d
-            jacobi[:, :, 1] = ((self.a - self.b) + (self.a + self.b + 2) * x) / 2
+        # Jacobi polynomials by their three-term recurrence
+        jacobi = [torch.ones_like(x)]
+        if self.degree > 0:
+            jacobi.append(((self.a - self.b) + (self.a + self.b + 2) * x) / 2)
         for i in range(2, self.degree + 1):
             theta_k = (
                 (2 * i + self.a + self.b)
@@ -859,15 +863,12 @@ class JacobiLayer(nn.Module):
                 * (2 * i + self.a + self.b)
                 / (i * (i + self.a + self.b) * (2 * i + self.a + self.b - 2))
             )
-            jacobi[:, :, i] = (
-                (theta_k * x + theta_k1) * jacobi[:, :, i - 1].clone()
-                - theta_k2 * jacobi[:, :, i - 2].clone()
-            )  # 2 * x * jacobi[:, :, i - 1].clone() - jacobi[:, :, i - 2].clone()
+            jacobi.append((theta_k * x + theta_k1) * jacobi[i - 1] - theta_k2 * jacobi[i - 2])
+        jacobi = torch.stack(jacobi, dim=-1)  # shape = (batch_size, inputdim, degree + 1)
         # Compute the Jacobian interpolation
         y = torch.einsum(
             "bid,iod->bo", jacobi, self.jacobi_coeffs
         )  # shape = (batch_size, outdim)
-        y = y.view(-1, self.outdim)
         return y
 
 class SineLayer(nn.Module):
