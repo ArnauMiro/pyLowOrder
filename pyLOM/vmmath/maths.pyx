@@ -24,10 +24,10 @@ from libc.stdlib   cimport malloc, free
 from libc.string   cimport memcpy, memset
 from libc.math     cimport sqrt, atan2
 from .cfuncs       cimport real, real_complex, real_full
-from .cfuncs       cimport c_stranspose, c_svector_sum, c_svector_norm, c_svector_mean, c_smatmul, c_smatmulp, c_svecmat, c_svecmatT, c_sinv, c_ssort
-from .cfuncs       cimport c_dtranspose, c_dvector_sum, c_dvector_norm, c_dvector_mean, c_dmatmul, c_dmatmulp, c_dvecmat, c_dvecmatT, c_dinv, c_dsort
-from .cfuncs       cimport c_ctranspose, c_cmatmul, c_cmatmulp, c_cvecmat, c_cvecmatT, c_cinv, c_ceigen, c_ccholesky, c_cvandermonde, c_cvandermonde_time, c_csort
-from .cfuncs       cimport c_ztranspose, c_zmatmul, c_zmatmulp, c_zvecmat, c_zvecmatT,c_zinv, c_zeigen, c_zcholesky, c_zvandermonde, c_zvandermonde_time, c_zsort
+from .cfuncs       cimport c_stranspose, c_svector_sum, c_svector_norm, c_svector_mean, c_smatmul, c_smatmulp, c_svecmat, c_svecmatT, c_sinv, c_ssort, c_sdiag, c_sdiag2
+from .cfuncs       cimport c_dtranspose, c_dvector_sum, c_dvector_norm, c_dvector_mean, c_dmatmul, c_dmatmulp, c_dvecmat, c_dvecmatT, c_dinv, c_dsort, c_ddiag, c_ddiag2
+from .cfuncs       cimport c_ctranspose, c_cmatmul, c_cmatmulp, c_cvecmat, c_cvecmatT, c_cinv, c_ceigen, c_ccholesky, c_cvandermonde, c_cvandermonde_time, c_csort, c_cconj, c_cdagger, c_cdiag, c_cdiag2
+from .cfuncs       cimport c_ztranspose, c_zmatmul, c_zmatmulp, c_zvecmat, c_zvecmatT,c_zinv, c_zeigen, c_zcholesky, c_zvandermonde, c_zvandermonde_time, c_zsort, c_zconj, c_zdagger, c_zdiag, c_zdiag2
 
 from ..utils.cr     import cr
 from ..utils.errors import raiseError
@@ -954,8 +954,7 @@ cdef np.ndarray[np.float32_t,ndim=1] _sdiag(float[:,:] A):
 	cdef int m = A.shape[0]
 	cdef int ii
 	cdef np.ndarray[np.float32_t,ndim=1] B = np.zeros((m,),dtype=np.float32)
-	for ii in range(m):
-			B[ii] = A[ii][ii]
+	c_sdiag(&A[0,0], &B[0], m)
 	return B
 
 @cython.initializedcheck(False)
@@ -970,8 +969,37 @@ cdef np.ndarray[np.double_t,ndim=1] _ddiag(double[:,:] A):
 	cdef int m = A.shape[0]
 	cdef int ii
 	cdef np.ndarray[np.double_t,ndim=1] B = np.zeros((m,),dtype=np.double)
-	for ii in range(m):
-			B[ii] = A[ii][ii]
+	c_ddiag(&A[0,0], &B[0], m)
+	return B
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.complex64_t,ndim=1] _cdiag(np.complex64_t[:,:] A):
+	'''
+	Returns the diagonal of A (A is a square matrix)
+	'''
+	cdef int m = A.shape[0]
+	cdef int ii
+	cdef np.ndarray[np.complex64_t,ndim=1] B = np.zeros((m,),dtype=np.complex64)
+	c_cdiag(&A[0,0], &B[0], m)
+	return B
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.complex128_t,ndim=1] _zdiag(np.complex128_t[:,:] A):
+	'''
+	Returns the diagonal of A (A is a square matrix)
+	'''
+	cdef int m = A.shape[0]
+	cdef int ii
+	cdef np.ndarray[np.complex128_t,ndim=1] B = np.zeros((m,),dtype=np.complex128)
+	c_zdiag(&A[0,0], &B[0], m)
 	return B
 
 @cython.initializedcheck(False)
@@ -987,8 +1015,7 @@ cdef np.ndarray[np.float32_t,ndim=2] _sdiag2(float[:] A):
 	cdef int ii
 	cdef int jj
 	cdef np.ndarray[np.float32_t,ndim=2] B = np.zeros((m,m),dtype=np.float32)
-	for ii in range(m):
-			B[ii,ii] = A[ii]
+	c_sdiag2(&A[0], &B[0,0], m)
 	return B
 
 @cython.initializedcheck(False)
@@ -1003,8 +1030,38 @@ cdef np.ndarray[np.double_t,ndim=2] _ddiag2(double[:] A):
 	cdef int m = A.shape[0]
 	cdef int ii
 	cdef np.ndarray[np.double_t,ndim=2] B = np.zeros((m,m),dtype=np.double)
-	for ii in range(m):
-			B[ii,ii] = A[ii]
+	c_ddiag2(&A[0], &B[0,0], m)
+	return B
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.complex64_t,ndim=2] _cdiag2(np.complex64_t[:] A):
+	'''
+	Returns a matrix with A in its diagonal
+	'''
+	cdef int m = A.shape[0]
+	cdef int ii
+	cdef int jj
+	cdef np.ndarray[np.complex64_t,ndim=2] B = np.zeros((m,m),dtype=np.complex64)
+	c_cdiag2(&A[0], &B[0,0], m)
+	return B
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.complex128_t,ndim=2] _zdiag2(np.complex128_t[:] A):
+	'''
+	Returns a matrix with A in its diagonal
+	'''
+	cdef int m = A.shape[0]
+	cdef int ii
+	cdef np.ndarray[np.complex128_t,ndim=2] B = np.zeros((m,m),dtype=np.complex128)
+	c_zdiag2(&A[0], &B[0,0], m)
 	return B
 
 @cr('math.diag')
@@ -1026,11 +1083,19 @@ def diag(np.ndarray A):
 	if A.ndim == 1:
 		if A.dtype in [np.float64,np.double]:
 			return _ddiag2(A)
+		elif A.dtype == np.complex64:
+			return _cdiag2(A)
+		elif A.dtype == np.complex128:
+			return _zdiag2(A)
 		else:
 			return _sdiag2(A)
 	else:
 		if A.dtype in [np.float64,np.double]:
 			return _ddiag(A)
+		elif A.dtype == np.complex64:
+			return _cdiag(A)
+		elif A.dtype == np.complex128:
+			return _zdiag(A)
 		else:
 			return _sdiag(A)		
 
@@ -1048,9 +1113,7 @@ cdef np.ndarray[np.complex64_t,ndim=2] _cconj(np.complex64_t[:,:] A):
 	cdef int ii
 	cdef int jj
 	cdef np.ndarray[np.complex64_t,ndim=2] B = np.zeros((m,n),dtype=np.complex64)
-	for ii in range(m):
-		for jj in range(n):
-			B[ii, jj] = crealf(A[ii][jj]) - cimagf(A[ii][jj])*I
+	c_cconj(&A[0,0], &B[0,0], m, n)
 	return B
 
 @cython.initializedcheck(False)
@@ -1067,9 +1130,7 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zconj(np.complex128_t[:,:] A):
 	cdef int ii
 	cdef int jj
 	cdef np.ndarray[np.complex128_t,ndim=2] B = np.zeros((m,n),dtype=np.complex128)
-	for ii in range(m):
-		for jj in range(n):
-			B[ii, jj] = creal(A[ii][jj]) - cimag(A[ii][jj])*J
+	c_zconj(&A[0,0], &B[0,0], m, n)
 	return B
 
 @cr('math.conj')
@@ -1187,3 +1248,62 @@ def flip(real[:,:] A):
 		np.ndarray: Flipped version of A (M,N)
 	'''
 	raiseError('Function not implemented in Cython!')
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.complex64_t,ndim=2] _cdagger(np.complex64_t[:,:] A):
+	'''
+	Returns the dagger of A
+	'''
+	cdef int m = A.shape[0]
+	cdef int n = A.shape[1]
+	cdef int ii
+	cdef int jj
+	cdef np.ndarray[np.complex64_t,ndim=2] B = np.zeros((n,m),dtype=np.complex64)
+	c_cdagger(&A[0,0], &B[0,0], m, n)
+	return B
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.complex128_t,ndim=2] _zdagger(np.complex128_t[:,:] A):
+	'''
+	Returns the dagger of A
+	'''
+	cdef int m = A.shape[0]
+	cdef int n = A.shape[1]
+	cdef int ii
+	cdef int jj
+	cdef np.ndarray[np.complex128_t,ndim=2] B = np.zeros((n,m),dtype=np.complex128)
+	c_zdagger(&A[0,0], &B[0,0], m, n)
+	return B
+
+@cr('math.dagger')
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def dagger(real_full[:,:] A):
+	r'''
+	Dagger of matrix A
+
+	Args:
+		A (np.ndarray): Matrix to be daggerd
+	
+	Results
+		np.ndarray: dagger matrix
+	'''
+	if real_full is np.complex128_t:
+		return _zdagger(A)
+	elif real_full is np.complex64_t:
+		return _cdagger(A)
+	elif real_full is double:
+		return _dtranspose(A)
+	else:
+		return _stranspose(A)

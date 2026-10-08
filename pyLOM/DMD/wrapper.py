@@ -10,8 +10,7 @@ from __future__ import print_function
 import numpy as np
 
 from ..utils.gpu import cp
-from ..vmmath    import vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, matmulp, vandermondeTime
-from ..POD       import truncate
+from ..vmmath    import matmul, temporal_mean, subtract_mean, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, vandermondeTime, linear_operator, concatenate, separate
 from ..utils     import cr_nvtx as cr, cr_start, cr_stop
 
 
@@ -60,32 +59,16 @@ def run(X, r, remove_mean = True):
 		- b:        Amplitude of the DMD modes
 		- X_DMD:    Reconstructed flow
 	'''
-	# Remove temporal mean or not, depending on the user choice
-	if remove_mean:
-		cr_start('DMD.temporal_mean',0)
-		#Compute temporal mean
-		X_mean = temporal_mean(X)
-		#Subtract temporal mean
-		Y = subtract_mean(X, X_mean)
-		cr_stop('DMD.temporal_mean',0)
+	# Prepare matrices and calculate the linear operator
+	if (type(X) is list):
+		Y, Z = concatenate(X, remove_mean=remove_mean)
+		U, S, VT, Atilde = linear_operator(Y, Z, r)
+
 	else:
-		Y = X.copy()
+		Y, Z = separate(X, remove_mean=remove_mean)
+		U, S, VT, Atilde = linear_operator(Y, Z, r)
 
-	# Compute SVD
-	cr_start('DMD.SVD',0)
-	U, S, VT = tsqr_svd(Y[:, :-1])
-	cr_stop('DMD.SVD',0)
-	# Truncate according to residual
-	cr_start('DMD.truncate', 0)
-	U, S, VT = truncate(U, S, VT, r)
-	cr_stop('DMD.truncate', 0)
-
-	# Project A (Jacobian of the snapshots) into POD basis
-	cr_start('DMD.linear_mapping',0)
-	aux1   = matmulp(transpose(U), Y[:, 1:])
-	aux2   = transpose(vecmat(1./S, VT))
-	Atilde = matmul(aux1, aux2)
-	cr_stop('DMD.linear_mapping',0)
+	del U
 
 	# Eigendecomposition of Atilde: Eigenvectors given as complex matrix
 	# NOTE: there is no implementation of eig in cupy yet
@@ -96,12 +79,12 @@ def run(X, r, remove_mean = True):
 	w      = cp.asarray(w)      if type(Atilde) is cp.ndarray else w
 
 	# Mode computation
-	Phi =  matmul(matmul(matmul(Y[:, 1:], transpose(VT)), diag(1/S)), w)/(muReal + muImag*1J)
+	Phi =  matmul(matmul(matmul(Z, transpose(VT)), diag(1/S)), w)/(muReal + muImag*1J)
 	cr_stop('DMD.modes',0)
 
 	# Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
 	cr_start('DMD.amplitudes',0)
-	Vand = vandermonde(muReal, muImag, muReal.shape[0], Y.shape[1]-1)
+	Vand = vandermonde(muReal, muImag, muReal.shape[0], Y.shape[1])
 	P    = matmul(transpose(conj(w)), w)*conj(matmul(Vand, transpose(conj(Vand))))
 	Pl   = cholesky(P)
 	G    = matmul(diag(S), VT)
