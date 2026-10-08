@@ -530,7 +530,8 @@ class KAN(nn.Module):
     @classmethod
     def load(cls, path: str, device: torch.device = torch.device("cpu")):
         r"""
-        Loads a model from a checkpoint file.
+        Loads a model from a checkpoint file. The model is returned in evaluation mode. If the checkpoint contains the optimizer and scheduler states,
+        they are restored by the next call to ``fit``, which resumes the training.
 
         Args:
             path (str): Path to the checkpoint file.
@@ -541,21 +542,26 @@ class KAN(nn.Module):
         """
 
         pprint(0, "Loading model...")
-        checkpoint = torch.load(path, map_location=device, weights_only=False)
-        raiseWarning("The model has been loaded with weights_only set to False. According with torch documentation, this is not recommended if you do not trust the source of your saved model, as it could lead to arbitrary code execution.")
-        state_dict = checkpoint['state_dict']
-        optimizer_state = checkpoint.get('optimizer', None)
-        scheduler_state = checkpoint.get('scheduler', None)
-        del checkpoint['state_dict']
-        del checkpoint['optimizer']
-        del checkpoint['scheduler']
+        try:
+            checkpoint = torch.load(path, map_location=device, weights_only=True)
+        except pickle.UnpicklingError:
+            # Checkpoints with Python objects, such as the layer class stored by previous versions
+            checkpoint = torch.load(path, map_location=device, weights_only=False, pickle_module=_checkpoint_pickle)
+            raiseWarning("The model has been loaded with weights_only set to False. According with torch documentation, this is not recommended if you do not trust the source of your saved model, as it could lead to arbitrary code execution.")
+        state_dict = checkpoint.pop("state_dict")
+        optimizer_state = checkpoint.pop("optimizer", None)
+        scheduler_state = checkpoint.pop("scheduler", None)
+        # Passing the seed to the constructor would reseed the global random generators
+        seed = checkpoint.pop("seed", None)
         model = cls(device=device, **checkpoint)
+        model.seed = seed
 
         if optimizer_state is not None:
             model.optimizer_state_dict = optimizer_state
         if scheduler_state is not None:
             model.scheduler_state_dict = scheduler_state
         model.load_state_dict(state_dict)
+        model.eval()
         pprint(0, f"Loaded KAN model: {checkpoint['model_name']}")
         keys_print = [
             "input_size",
@@ -567,7 +573,7 @@ class KAN(nn.Module):
             "degree"
         ]
         for key in keys_print:
-            pprint(0, f"{key}: {checkpoint[key]}")
+            pprint(0, f"{key}: {checkpoint.get(key)}")
 
         return model
 
