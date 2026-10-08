@@ -488,10 +488,15 @@ class KAN(nn.Module):
             "output_size": self.output_size,
             "n_layers": self.n_layers,
             "hidden_size": self.hidden_size,
-            "layer_type": self.layer_type,
+            "layer_type": _layer_type_name(self.layer_type) or self.layer_type,
             "model_name": self._model_name,
             "p_dropouts": self.p_dropouts,
             "degree": self.degree,
+            "layer_kwargs": self.layer_kwargs,
+            "input_domain": self.input_domain,
+            "tanh_between_layers": self.tanh_between_layers,
+            "init": self.init,
+            "seed": self.seed,
             "state_dict": self.state_dict(),
         }
 
@@ -503,18 +508,22 @@ class KAN(nn.Module):
 
         Args:
             path (str): Path to save the model. It can be either a path to a directory or a file name.
-            If it is a directory, the model will be saved with a filename that includes the number of epochs trained.
+            If it is a directory, the model will be saved inside it as ``<model_name>.pth``.
             save_only_model (bool, Optional): Whether to only save the model, or also the optimizer and scheduler. Note that when this is true, you won't be able to resume training from checkpoint.(default: ``False``).
         """
         checkpoint = self._define_checkpoint()
 
         if not save_only_model:
-            checkpoint["optimizer"] = self.optimizer.state_dict()
-            checkpoint["scheduler"] = self.scheduler.state_dict() if self.scheduler is not None else None
+            if hasattr(self, "optimizer"):
+                checkpoint["optimizer"] = self.optimizer.state_dict()
+                checkpoint["scheduler"] = self.scheduler.state_dict() if self.scheduler is not None else None
+            else:
+                # A loaded model keeps the states of its checkpoint until it is trained
+                checkpoint["optimizer"] = getattr(self, "optimizer_state_dict", None)
+                checkpoint["scheduler"] = getattr(self, "scheduler_state_dict", None)
 
         if os.path.isdir(path):
-            filename = f"{self._model_name}.pth"
-            path = path + filename
+            path = os.path.join(path, f"{self._model_name}.pth")
 
         torch.save(checkpoint, path)
 
