@@ -198,7 +198,7 @@ cdef tuple _sconcatenate(list X, int remove_mean):
 	n = sum([M.shape[1] - 1 for M in X])
 
 	# Create the matrices Y, Z
-	if m > n:
+	if m > (n-1):
 		m_aux = m
 	else:
 		m_aux = n
@@ -246,7 +246,7 @@ cdef tuple _dconcatenate(list X, int remove_mean):
 	n = sum([M.shape[1] - 1 for M in X])
 
 	# Create the matrices Y, Z
-	if m > n:
+	if m > (n-1):
 		m_aux = m
 	else:
 		m_aux = n
@@ -306,7 +306,7 @@ cdef tuple _sseparate(float[:,:] X, int remove_mean):
 	n = X.shape[1]
 
 	# Create the matrices Y, Z
-	if m > n:
+	if m > (n-1):
 		m_aux = m
 	else:
 		m_aux = n-1
@@ -347,7 +347,7 @@ cdef tuple _dseparate(double[:,:] X, int remove_mean):
 	n = X.shape[1]
 
 	# Create the matrices Y, Z
-	if m > n:
+	if m > (n-1):
 		m_aux = m
 	else:
 		m_aux = n-1
