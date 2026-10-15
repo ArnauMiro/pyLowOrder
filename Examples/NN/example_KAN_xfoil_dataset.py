@@ -115,7 +115,7 @@ scaled_preds = output_scaler.inverse_transform([preds])[0]
 scaled_y     = output_scaler.inverse_transform([td_test[:][1]])[0]
 
 
-evaluator = pyLOM.NN.RegressionEvaluator(tolerance=1e-10)
+evaluator = pyLOM.NN.RegressionEvaluator()
 evaluator(scaled_y, scaled_preds)
 evaluator.print_metrics()
 

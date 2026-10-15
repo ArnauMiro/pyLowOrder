@@ -33,10 +33,11 @@ def plot_train_test_loss(train_loss, test_loss, path):
     """
     plt.figure()
     plt.plot(range(1, len(train_loss) + 1), train_loss, label="Training Loss")
-    total_epochs = len(test_loss) # test loss is calculated at the end of each epoch
-    total_iters = len(train_loss) # train loss is calculated at the end of each iteration/batch
-    iters_per_epoch = total_iters // total_epochs
-    plt.plot(np.arange(iters_per_epoch, total_iters+1, step=iters_per_epoch), test_loss, label="Test Loss")
+    if len(test_loss) > 0: # there is no test loss when the model is trained without a validation dataset
+        total_epochs = len(test_loss) # test loss is calculated at the end of each epoch
+        total_iters = len(train_loss) # train loss is calculated at the end of each iteration/batch
+        iters_per_epoch = total_iters // total_epochs
+        plt.plot(np.arange(iters_per_epoch, total_iters+1, step=iters_per_epoch), test_loss, label="Test Loss")
     plt.xlabel("Iterations")
     plt.ylabel("Loss")
     plt.title("Training Loss vs Epoch")
@@ -105,7 +106,7 @@ scaled_preds = output_scaler.inverse_transform([preds])[0]
 scaled_y     = output_scaler.inverse_transform([td_test[:][1]])[0]
 
 
-evaluator = pyLOM.NN.RegressionEvaluator(tolerance=1e-10)
+evaluator = pyLOM.NN.RegressionEvaluator()
 evaluator(scaled_y, scaled_preds)
 evaluator.print_metrics()
 
