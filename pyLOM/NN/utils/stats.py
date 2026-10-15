@@ -39,12 +39,12 @@ class RegressionEvaluator():
     mean relative error (MRE), quantiles of the absolute errors, L2 error, and R-squared.
 
     Args:
-        tolerance (float): Tolerance level to consider values close to zero for MRE calculation (default: ``1e-4``).
+        tolerance (float): Lower bound of the denominator of the MRE, as a fraction of the largest absolute true value, so that true values close to zero do not make the relative error blow up (default: ``1e-2``).
     """
 
     def __init__(
         self,
-        tolerance: float = 1e-4,
+        tolerance: float = 1e-2,
     ) -> None:
         self.tolerance = tolerance
 
@@ -58,8 +58,8 @@ class RegressionEvaluator():
             raise raiseError("Tolerance must be a positive value.")
         if value == 0:
             raise raiseError("Tolerance cannot be zero.")
-        if value > 1e-2:
-            raise raiseError("Tolerance should be less than 1e-2.")
+        if value > 1:
+            raise raiseError("Tolerance should not be greater than 1, as it is a fraction of the largest absolute true value.")
         self._tolerance = value
 
     def mean_squared_error(
@@ -94,28 +94,30 @@ class RegressionEvaluator():
     
     def mean_relative_error(
         self,
-        y_pred: np.ndarray,
         y_true: np.ndarray,
+        y_pred: np.ndarray,
     ) -> float:
         r"""
-        Compute the mean relative error (MRE) between the true values and the predicted values,
-        adding a tolerance level to consider values close to zero.
+        Compute the mean relative error (MRE) between the true values and the predicted values, in percent.
+        The denominator is ``max(|y_true|, tolerance * max(|y_true|))``: the true values close to zero (e.g. a pressure
+        coefficient that changes sign) are divided by a fraction of the scale of the data instead of by a value close to zero,
+        so that they do not dominate the mean. All the values are kept.
 
         Args:
             y_true (numpy.ndarray): The true values.
             y_pred (numpy.ndarray): The predicted values.
-            tolerance (float): Tolerance level to consider values close to zero. Default is 1e-4.
 
         Returns:
-            float: The mean relative error excluding cases where y_true is close to zero.
+            float: The mean relative error, in percent.
         """
-        relative_errors = np.abs((y_true - y_pred) / (y_true + self.tolerance))
+        denominator = np.maximum(np.abs(y_true), self.tolerance * np.max(np.abs(y_true)))
+        relative_errors = np.abs(y_true - y_pred) / denominator
         return np.mean(relative_errors) * 100
     
     def ae_q(
         self,
-        y_pred: np.ndarray,
         y_true: np.ndarray,
+        y_pred: np.ndarray,
         quantile: int,
     ) -> float:
         r"""
@@ -134,11 +136,11 @@ class RegressionEvaluator():
 
     def l2_error(
         self,
-        y_pred: np.ndarray,
         y_true: np.ndarray,
+        y_pred: np.ndarray,
     ) -> float:
         r"""
-        Calculate the L2 error between the true and predicted values.
+        Calculate the relative L2 error between the true and predicted values, ``||y_true - y_pred|| / ||y_true||``.
 
         Args:
             y_true (numpy.ndarray): The true values.
