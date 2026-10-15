@@ -226,27 +226,27 @@ class MLP(nn.Module):
             else:
                 self.scheduler = None
         
-        if hasattr(self, "checkpoint"):
-            results_fn = os.path.join(save_logs_path,f"training_results_{self._model_name}.npy")
-            if "optimizer" in self.checkpoint:
-                self.optimizer.load_state_dict(self.checkpoint["optimizer"])
-            if "scheduler" in self.checkpoint and self.scheduler is not None: 
-                self.scheduler.load_state_dict(self.checkpoint["scheduler"])
-            if os.path.isfile(results_fn):
-                results = np.load(results_fn, allow_pickle=True).item()
-                train_losses = results["train_loss"].tolist()
-                test_losses = results["test_loss"].tolist()
-                loss_iterations_train = results["loss_iterations_train"].tolist()
-                loss_iterations_test = results["loss_iterations_test"].tolist()
-                current_lr_vec = results["lr"].tolist()
-                grad_norms = results["grad_norms"].tolist()
-        else:
-            train_losses = []
-            test_losses = []
-            loss_iterations_train = []
-            loss_iterations_test = []
-            current_lr_vec = []
-            grad_norms = []
+        # States of a loaded checkpoint: they are restored once, by the first fit after load, which resumes the training
+        if hasattr(self, "optimizer_state_dict"):
+            self.optimizer.load_state_dict(self.optimizer_state_dict)
+            del self.optimizer_state_dict
+            restored_lr = self.optimizer.param_groups[0]["lr"]
+            if restored_lr != lr:
+                raiseWarning(f"Training resumes from the loaded optimizer state, with learning rate {restored_lr:.3e} instead of lr={lr:.3e}")
+
+        if hasattr(self, "scheduler_state_dict"):
+            if self.scheduler is not None:
+                self.scheduler.load_state_dict(self.scheduler_state_dict)
+            else:
+                raiseWarning("The loaded scheduler state is discarded because no scheduler_class was given")
+            del self.scheduler_state_dict
+
+        train_losses = []
+        test_losses = []
+        loss_iterations_train = []
+        loss_iterations_test = []
+        current_lr_vec = []
+        grad_norms = []
 
         total_epochs = len(train_losses) + epochs
         self.mname = f"{self._model_name}_{total_epochs:05d}"
@@ -449,17 +449,24 @@ class MLP(nn.Module):
             path (str): Path to save the model. It can be either a path to a directory or a file name. 
             save_only_model (bool, optional): If ``True``, only the model state will be saved. If ``False``, the optimizer and scheduler states will also be saved (default: ``False``).
         """
-        self.checkpoint = self._define_checkpoint()
+        checkpoint = self._define_checkpoint()
 
         if not save_only_model:
-            self.checkpoint["optimizer"] = self.optimizer.state_dict()
-            if self.scheduler is not None:
-                self.checkpoint["scheduler"] = self.scheduler.state_dict()
+            if hasattr(self, "optimizer"):
+                checkpoint["optimizer"] = self.optimizer.state_dict()
+                if self.scheduler is not None:
+                    checkpoint["scheduler"] = self.scheduler.state_dict()
+            else:
+                # A loaded model keeps the states of its checkpoint until it is trained
+                if hasattr(self, "optimizer_state_dict"):
+                    checkpoint["optimizer"] = self.optimizer_state_dict
+                if hasattr(self, "scheduler_state_dict"):
+                    checkpoint["scheduler"] = self.scheduler_state_dict
         
         if os.path.isdir(path):
             filename = "/" + str(self.mname) + ".pth"
             path = path + filename
-        torch.save(self.checkpoint, path)
+        torch.save(checkpoint, path)
 
     @classmethod
     def load(
@@ -469,7 +476,8 @@ class MLP(nn.Module):
         verbose: bool = True,
     ):
         r"""
-        Load the model from a checkpoint file. Does not require the model to be instantiated.
+        Load the model from a checkpoint file. Does not require the model to be instantiated. If the checkpoint contains the optimizer and scheduler states,
+        they are restored by the next call to ``fit``, which resumes the training.
 
         Args:
             path (str): Path to the file to load the model from.
@@ -498,7 +506,10 @@ class MLP(nn.Module):
         )
         
         model.load_state_dict(checkpoint["state_dict"])
-        model.checkpoint = checkpoint
+        if checkpoint.get("optimizer") is not None:
+            model.optimizer_state_dict = checkpoint["optimizer"]
+        if checkpoint.get("scheduler") is not None:
+            model.scheduler_state_dict = checkpoint["scheduler"]
         return model
     
     @classmethod
