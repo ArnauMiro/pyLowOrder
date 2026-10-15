@@ -4,7 +4,7 @@
 #
 # KAN (Kolmogorov-Arnold Network) class.
 #
-# Last rev: 06/10/2026
+# Last rev: 09/10/2026
 
 import os, math, types, pickle, inspect, numbers, numpy as np, torch, torch.nn as nn, torch.optim as optim
 
@@ -245,6 +245,8 @@ class KAN(nn.Module):
         save_logs_path=None,
         verbose: bool = True,
         max_norm_grad=float("inf"),
+        save_best: bool = False,
+        early_stopping_patience: int = None,
         **kwargs,
     ):
         r"""
@@ -267,6 +269,8 @@ class KAN(nn.Module):
             save_logs_path (str, Optional): Path to save the training and evaluation losses, either a ``.npy`` file or a directory (default: ``None``). The file is overwritten, unless the call continues a previous training, whose losses are then extended.
             verbose (bool, Optional): Whether to print the training information (default: ``True``).
             max_norm_grad (float, Optional): The maximum norm of the gradients. ``inf`` or ``None`` disable the clipping (default: ``float('inf')``).
+            save_best (bool, Optional): Whether to save the model of the epoch with the lowest evaluation loss of this call to ``fit``, as ``best_model_<model_name>.pth`` in the folder of ``save_logs_path``. The file is written each time the evaluation loss improves, with the optimizer and scheduler states of that epoch. Only the evaluated epochs are compared (see ``print_eval_rate``). The model in memory is the one of the last epoch (default: ``False``).
+            early_stopping_patience (int, Optional): Stop the training when the evaluation loss has not improved for this number of epochs. Only the evaluated epochs are compared (see ``print_eval_rate``). ``None`` disables it (default: ``None``).
 
         Returns:
             Dict[str, np.ndarray]: Dictionary containing the training and evaluation results:
@@ -279,6 +283,7 @@ class KAN(nn.Module):
                 - "check": List with a single boolean indicating successful training.
 
             The training stops at the end of the first epoch whose training or evaluation loss is not finite.
+            ``save_best`` and ``early_stopping_patience`` need ``eval_dataset``, and ``save_best`` also needs ``save_logs_path``: without them, they are ignored with a warning.
         """
         _check_kwargs(kwargs, _parameter_names(*(c.__init__ for c in type(self).__mro__ if issubclass(c, KAN))), f"{type(self).__name__}.fit")
 
@@ -300,6 +305,20 @@ class KAN(nn.Module):
             )
             if len(eval_loader) == 0:
                 raiseError("The evaluation dataset is empty")
+
+        if early_stopping_patience is not None and not (isinstance(early_stopping_patience, numbers.Integral) and early_stopping_patience > 0):
+            raiseError(f"early_stopping_patience must be a positive integer or None, got {early_stopping_patience}")
+        if eval_loader is None and (save_best or early_stopping_patience is not None):
+            raiseWarning("save_best and early_stopping_patience need an eval_dataset: they are ignored")
+            save_best, early_stopping_patience = False, None
+        best_model_file = None
+        if save_best:
+            if save_logs_path is None:
+                raiseWarning("save_best needs a save_logs_path: the model of the best epoch is not saved")
+            else:
+                best_model_dir = os.path.dirname(save_logs_path) if save_logs_path.endswith(".npy") else save_logs_path
+                best_model_file = os.path.join(best_model_dir, f"best_model_{self._model_name}.pth")
+                os.makedirs(best_model_dir or ".", exist_ok=True)
 
         if verbose:
             pprint(0, "")
@@ -379,6 +398,8 @@ class KAN(nn.Module):
         clip_grads = max_norm_grad is not None and math.isfinite(max_norm_grad)
         plateau_scheduler = isinstance(self.scheduler, optim.lr_scheduler.ReduceLROnPlateau)
 
+        best_loss, best_epoch = math.inf, None
+
         grad_norm = None
         def closure():
             nonlocal grad_norm
@@ -440,6 +461,15 @@ class KAN(nn.Module):
             current_lr = self.optimizer.param_groups[0]["lr"]
             current_lr_vec.append(current_lr)
 
+            # Saved after the scheduler step, so that a training resumed from this file continues with the next epoch
+            stop_early = False
+            if test_loss is not None and test_loss < best_loss:
+                best_loss, best_epoch = test_loss, epoch
+                if best_model_file is not None:
+                    self.save(best_model_file)
+            elif test_loss is not None and early_stopping_patience is not None and best_epoch is not None:
+                stop_early = epoch - best_epoch >= early_stopping_patience
+
             if verbose:
                 if torch.cuda.is_available():
                     mem_used = torch.cuda.memory_allocated() / (1024**2)  # Memory usage in MB
@@ -456,6 +486,10 @@ class KAN(nn.Module):
                 if verbose:
                     pprint(0, f"Stopping training at epoch {epoch + 1} due to a non-finite loss.")
                 break
+            if stop_early:
+                if verbose:
+                    pprint(0, f"Stopping training at epoch {epoch + 1}: the evaluation loss has not improved since epoch {best_epoch + 1}.")
+                break
 
         results = {
             "train_loss": np.array(train_losses),
@@ -466,6 +500,8 @@ class KAN(nn.Module):
             "grad_norms": np.array(grad_norms),
             "check": [True],
         }
+        if best_model_file is not None and best_epoch is not None and verbose:
+            pprint(0, f"Model of the best epoch ({best_epoch + 1}, evaluation loss {best_loss:.4e}) saved at {best_model_file}")
         if save_logs_path is not None:
             if save_logs_path.endswith(".npy"):
                 fn = save_logs_path
@@ -650,15 +686,19 @@ class KAN(nn.Module):
         **kwargs,
     ) -> Tuple[nn.Module, Dict]:
         r"""
-        Create an optimized KAN model using Optuna. The model is trained on the training dataset and the metric to optimize is the loss on the evaluation dataset at the last epoch.
+        Create an optimized KAN model using Optuna. The model is trained on the training dataset and the metric to optimize is the loss on the evaluation dataset at the last epoch
+        or, if ``save_best`` is ``True``, the lowest one of the training: the one of the model that ``save_best`` keeps. ``early_stopping_patience`` is applied as in ``fit``.
         If the parameters from the optimizer are a tuple, the function will optimize the parameter. If the parameter is a single value, it will be fixed during optimization.
 
         - A pair of numbers ``(low, high)`` is a range of integers or floats, sampled in log scale if it spans three orders of magnitude or more. A pair of powers of two more than three powers apart is sampled as a list of powers of two.
         - Any other tuple or list is a list of choices. Choices that are not plain values, such as layer classes, are recorded in Optuna by name.
         - A dictionary with a ``"type"`` key is an explicit specification (see ``pyLOM.NN.utils.get_optimizing_value``), and any other dictionary is searched recursively.
+          ``{"type": "pow2", "low": 4, "high": 256}`` is a power of two between ``low`` and ``high``: Optuna samples its exponent as an integer (parameter ``<name>_log2``), so that samplers such as QMC and TPE see an ordered value.
         - ``input_domain`` is always a fixed value, since it is a ``(low, high)`` pair.
 
-        Trials whose loss is not finite, or that run out of memory, are pruned.
+        Trials whose loss is not finite, or that run out of memory, are pruned. With ``save_best``, a trial that diverges keeps the loss of its best epoch, and is only pruned
+        if no evaluation loss is finite. The number of epochs trained is stored in the user attribute ``epochs_trained`` of each trial. The parameters of any trial of the study
+        can be recovered with ``trial_params``.
 
         Args:
             train_dataset (torch.utils.data.Dataset): The training dataset.
@@ -714,64 +754,17 @@ class KAN(nn.Module):
             raiseError("create_optimized_model needs an eval_dataset to compute the metric to optimize")
         default_epochs = inspect.signature(cls.fit).parameters["epochs"].default
         
-        def suggest_value(name, space, trial):
-            if isinstance(space, dict):
-                if "type" in space:
-                    return get_optimizing_value(name, space, trial)
-                suggested_dict = {}
-                for key, subspace in space.items():
-                    full_name = f"{name}.{key}"
-                    suggested_dict[key] = suggest_value(full_name, subspace, trial)
-                return suggested_dict
-            
-            if isinstance(space, (tuple, list)):
-                if _is_range(space):
-                    low, high = space
-                    if isinstance(low, numbers.Integral) and isinstance(high, numbers.Integral):
-                        low, high = int(low), int(high)
-                        
-                        def is_power_of_2(n):
-                            return n > 0 and (n & (n - 1)) == 0
-                        
-                        if is_power_of_2(low) and is_power_of_2(high):
-                            power_low = int(np.log2(low))
-                            power_high = int(np.log2(high))
-                            power_diff = power_high - power_low
-                            
-                            if power_diff > 1:
-                                choices = [2**p for p in range(power_low, power_high + 1)]
-                                return trial.suggest_categorical(name, choices)
-                        
-                        return trial.suggest_int(name, low, high, log=_log_scale(low, high))
-
-                    low, high = float(low), float(high)
-                    return trial.suggest_float(name, low, high, log=_log_scale(low, high))
-
-                if all(_is_plain(choice) for choice in space):
-                    return trial.suggest_categorical(name, list(space))
-                # Optuna storages only keep plain values: other choices are suggested by name
-                names = [_choice_name(choice) for choice in space]
-                if len(set(names)) != len(names):
-                    raiseError(f"The choices of '{name}' must have different names, got: {names}")
-                return space[names.index(trial.suggest_categorical(name, names))]
-                
-            return space
-
-        def restore_choices(space, best_params):
-            # Map the choices suggested by name back to the objects
-            for key, value in best_params.items():
-                subspace = space.get(key) if isinstance(space, dict) else None
-                if isinstance(value, dict):
-                    restore_choices(subspace, value)
-                elif isinstance(subspace, (tuple, list)) and not _is_range(subspace) and not all(_is_plain(choice) for choice in subspace):
-                    best_params[key] = subspace[[_choice_name(choice) for choice in subspace].index(value)]
-
-        def last_eval_loss(results, trial):
-            loss_val = results["test_loss"][-1]
-            if not (np.isfinite(loss_val) and np.isfinite(results["train_loss"][-1])):
-                pprint(0, f"Trial {trial.number} diverged (non-finite loss). Pruning the trial.")
-                raise TrialPruned()
-            return loss_val
+        def trial_loss(results, trial, best):
+            losses = results["test_loss"]
+            if best:
+                # The model that save_best keeps is the one of the best epoch, even if the training diverges later
+                finite = losses[np.isfinite(losses)]
+                if finite.size > 0:
+                    return float(finite.min())
+            elif np.isfinite(losses[-1]) and np.isfinite(results["train_loss"][-1]):
+                return float(losses[-1])
+            pprint(0, f"Trial {trial.number} diverged (non-finite loss). Pruning the trial.")
+            raise TrialPruned()
         
         def optimization_function(trial) -> float:
             if torch.cuda.is_available():
@@ -780,25 +773,34 @@ class KAN(nn.Module):
             model = None
 
             try: 
-                training_params = {}       
-                for key, params in optimization_params.items():
-                    # input_domain is a (low, high) pair, not a range to search
-                    training_params[key] = params if key == "input_domain" else suggest_value(key, params, trial)
+                training_params = _suggest_params(optimization_params, trial)
                 training_params["save_logs_path"] = None
+                # Only the loss of the best epoch is needed here, not its model
+                best = training_params.pop("save_best", False)
                 
                 model = cls(input_size=input_dim, output_size=output_dim, **training_params)
                 if optuna_optimizer.pruner is not None:
                     epochs = training_params.get("epochs", default_epochs)
-                    training_params["epochs"] = 1
+                    patience = training_params.get("early_stopping_patience")
+                    # One epoch per call to fit: the early stopping is applied here
+                    training_params.update(epochs=1, early_stopping_patience=None)
+                    train_losses, test_losses = [], []
                     for epoch in range(epochs):
                         results = model.fit(train_dataset, eval_dataset, **training_params)
-                        loss_val = last_eval_loss(results, trial)
-                        trial.report(loss_val, epoch)
+                        train_losses.extend(results["train_loss"])
+                        test_losses.extend(results["test_loss"])
+                        results = {"train_loss": np.array(train_losses), "test_loss": np.array(test_losses)}
+                        if not (np.isfinite(train_losses[-1]) and np.isfinite(test_losses[-1])):
+                            break
+                        trial.report(trial_loss(results, trial, best), epoch)
                         if trial.should_prune(): 
                             raise TrialPruned()
+                        if patience is not None and epoch - int(np.argmin(test_losses)) >= patience:
+                            break
                 else:
                     results = model.fit(train_dataset, eval_dataset, **training_params)
-                    loss_val = last_eval_loss(results, trial)
+                trial.set_user_attr("epochs_trained", len(results["train_loss"]))
+                loss_val = trial_loss(results, trial, best)
                 
                 return loss_val
             
@@ -818,12 +820,102 @@ class KAN(nn.Module):
                     torch.cuda.empty_cache()
         
         best_params = optuna_optimizer.optimize(objective_function=optimization_function)
-        restore_choices(optimization_params, best_params)
+        best_params = cls.trial_params(optimization_params, _flatten_params(best_params))
 
         # Update params with best ones
         OptunaOptimizer.apply_to(optimization_params, optimized_params=best_params)
         
         return cls(input_size=input_dim, output_size=output_dim, **optimization_params), optimization_params
+
+    @staticmethod
+    def trial_params(optimization_params: Dict, params: Dict) -> Dict:
+        r"""
+        Parameters of the model and of its training in a trial of ``create_optimized_model``: the search space with the values that
+        Optuna sampled in that trial. Useful to train again any trial of a study, not only the best one.
+
+        Args:
+            optimization_params (Dict): The search space given to ``create_optimized_model``.
+            params (Dict): The parameters of the trial as stored by Optuna, e.g. ``study.trials[i].params``.
+
+        Returns:
+            Dict: The parameters, to build the model and to train it.
+
+        Example:
+            >>> study = optuna.load_study(study_name="optuna_study", storage="sqlite:///optuna_studies.db")
+            >>> params = KAN.trial_params(optimization_params, study.best_trial.params)
+            >>> model = KAN(input_size, output_size, **params)
+            >>> model.fit(train_dataset, eval_dataset, **params)
+        """
+        from optuna.trial import FixedTrial
+        return _suggest_params(optimization_params, FixedTrial(params))
+
+
+def _suggest_params(optimization_params, trial):
+    # input_domain is a (low, high) pair, not a range to search
+    return {key: space if key == "input_domain" else _suggest_value(key, space, trial) for key, space in optimization_params.items()}
+
+
+def _suggest_value(name, space, trial):
+    if isinstance(space, dict):
+        if space.get("type") == "pow2":
+            # Sampled through its exponent, so that the samplers see an ordered integer
+            low, high = space["low"], space["high"]
+            if not (_is_power_of_2(low) and _is_power_of_2(high)):
+                raiseError(f"The bounds of '{name}' must be powers of two, got {low} and {high}")
+            return 2 ** trial.suggest_int(f"{name}_log2", int(low).bit_length() - 1, int(high).bit_length() - 1)
+        if "type" in space:
+            return get_optimizing_value(name, space, trial)
+        suggested_dict = {}
+        for key, subspace in space.items():
+            full_name = f"{name}.{key}"
+            suggested_dict[key] = _suggest_value(full_name, subspace, trial)
+        return suggested_dict
+
+    if isinstance(space, (tuple, list)):
+        if _is_range(space):
+            low, high = space
+            if isinstance(low, numbers.Integral) and isinstance(high, numbers.Integral):
+                low, high = int(low), int(high)
+
+                if _is_power_of_2(low) and _is_power_of_2(high):
+                    power_low = int(np.log2(low))
+                    power_high = int(np.log2(high))
+                    power_diff = power_high - power_low
+
+                    if power_diff > 1:
+                        choices = [2**p for p in range(power_low, power_high + 1)]
+                        return trial.suggest_categorical(name, choices)
+
+                return trial.suggest_int(name, low, high, log=_log_scale(low, high))
+
+            low, high = float(low), float(high)
+            return trial.suggest_float(name, low, high, log=_log_scale(low, high))
+
+        if all(_is_plain(choice) for choice in space):
+            return trial.suggest_categorical(name, list(space))
+        # Optuna storages only keep plain values: other choices are suggested by name
+        names = [_choice_name(choice) for choice in space]
+        if len(set(names)) != len(names):
+            raiseError(f"The choices of '{name}' must have different names, got: {names}")
+        return space[names.index(trial.suggest_categorical(name, names))]
+
+    return space
+
+
+def _flatten_params(params, prefix=""):
+    # Nested parameters back to the flat names of Optuna ("scheduler_kwargs.gamma")
+    flat = {}
+    for key, value in params.items():
+        name = f"{prefix}.{key}" if prefix else key
+        if isinstance(value, dict):
+            flat.update(_flatten_params(value, name))
+        else:
+            flat[name] = value
+    return flat
+
+
+def _is_power_of_2(n):
+    return isinstance(n, numbers.Integral) and n > 0 and (n & (n - 1)) == 0
 
 
 def _is_plain(value):
