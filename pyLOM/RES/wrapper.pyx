@@ -557,7 +557,7 @@ def _crun_new(list X, np.complex64_t w, float r, int remove_mean, float[:] Q):
 	m = X[0].shape[0]
 	n_matrix = len(X)
 
-	cdef float **X_list
+	cdef float **X_pointer
 	cdef int *n_list
 	X_pointer = <float**>malloc(n_matrix*sizeof(float*))
 	n_list = <int*>malloc(n_matrix*sizeof(int))
@@ -568,10 +568,11 @@ def _crun_new(list X, np.complex64_t w, float r, int remove_mean, float[:] Q):
 		M = X[ii]
 		n_local = M.shape[1]
 		n_total += n_local - 1
+		X_pointer[ii] = <float*>malloc(m * n_local * sizeof(float))
+		memcpy(X_pointer[ii], &M[0,0], m * n_local * sizeof(float))
 		if Q is not None:
-			c_svecmat(&Q[0], &M[0,0], m, n_local)
+			c_svecmat(&Q[0], X_pointer[ii], m, n_local)
 		n_list[ii] = n_local
-		X_pointer[ii] = &M[0,0]
 
 	if m > n_total:
 		m_aux = m
@@ -692,7 +693,7 @@ def _zrun_new(list X, np.complex128_t w, double r, int remove_mean, double[:] Q)
 	m = X[0].shape[0]
 	n_matrix = len(X)
 
-	cdef double **X_list
+	cdef double **X_pointer
 	cdef int *n_list
 	X_pointer = <double**>malloc(n_matrix*sizeof(double*))
 	n_list = <int*>malloc(n_matrix*sizeof(int))
@@ -703,10 +704,11 @@ def _zrun_new(list X, np.complex128_t w, double r, int remove_mean, double[:] Q)
 		M = X[ii]
 		n_local = M.shape[1]
 		n_total += n_local - 1
+		X_pointer[ii] = <double*>malloc(m * n_local * sizeof(double))
+		memcpy(X_pointer[ii], &M[0,0], m * n_local * sizeof(double))
 		if Q is not None:
-			c_dvecmat(&Q[0], &M[0,0], m, n_local)
+			c_dvecmat(&Q[0], X_pointer[ii], m, n_local)
 		n_list[ii] = n_local
-		X_pointer[ii] = &M[0,0]
 
 	if m > n_total:
 		m_aux = m
@@ -720,7 +722,9 @@ def _zrun_new(list X, np.complex128_t w, double r, int remove_mean, double[:] Q)
 
 	# Create the snapshot of matrices and separate it into Y, Z
 	c_dconcatenate(Y, Z, X_pointer, n_list, n_matrix, m, n_total, remove_mean)
-	### MODIFICAR A SOBRE D'AIXO!!!
+	free(X_pointer)
+	free(n_list)
+
 	# Compute the linear operator in lower dimension
 	cdef int icol, irow, retval
 	
