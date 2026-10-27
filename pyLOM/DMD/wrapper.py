@@ -10,8 +10,7 @@ from __future__ import print_function
 import numpy as np
 
 from ..utils.gpu import cp
-from ..vmmath    import vecmat, matmul, temporal_mean, subtract_mean, tsqr_svd, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, matmulp, vandermondeTime
-from ..POD       import truncate
+from ..vmmath    import matmul, temporal_mean, subtract_mean, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, vandermondeTime, linear_operator, concatenate, separate
 from ..utils     import cr_nvtx as cr, cr_start, cr_stop
 
 
@@ -43,7 +42,6 @@ def _order_modes(muReal, muImag, Phi, bJov):
 			p = True
 			continue
 	return muReal, muImag, Phi, bJov
-
 
 @cr('DMD.run')
 def run(X, r, remove_mean = True):
@@ -102,6 +100,61 @@ def run(X, r, remove_mean = True):
 	# Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
 	cr_start('DMD.amplitudes',0)
 	Vand = vandermonde(muReal, muImag, muReal.shape[0], Y.shape[1]-1)
+	P    = matmul(transpose(conj(w)), w)*conj(matmul(Vand, transpose(conj(Vand))))
+	Pl   = cholesky(P)
+	G    = matmul(diag(S), VT)
+	q    = conj(diag(matmul(matmul(Vand, transpose(conj(G))), w)))
+	bJov = matmul(inv(transpose(conj(Pl))), matmul(inv(Pl), q)) #Amplitudes according to Jovanovic 2014
+	cr_stop('DMD.amplitudes',0)
+
+	# Order modes and eigenvalues according to its amplitude
+	cr_start('DMD.order',0)
+	muReal, muImag, Phi, bJov = _order_modes(muReal, muImag, Phi, bJov)
+	cr_stop('DMD.order',0)
+
+	return muReal, muImag, Phi, bJov
+
+@cr('DMD.run_new')
+def run_new(X, r, remove_mean = True):
+	'''
+	DMD analysis of snapshot matrix X
+	Inputs:
+		- X[ndims*nmesh,n_temp_snapshots]: data matrix
+		- remove_mean:                     whether or not to remove the mean flow
+
+	Returns:
+		- Phi:      DMD Modes
+		- muReal:   Real part of the eigenvalues
+		- muImag:   Imaginary part of the eigenvalues
+		- b:        Amplitude of the DMD modes
+		- X_DMD:    Reconstructed flow
+	'''
+	# Prepare matrices and calculate the linear operator
+	if (type(X) is list):
+		Y, Z = concatenate(X, remove_mean=remove_mean)
+		U, S, VT, Atilde = linear_operator(Y, Z, r)
+
+	else:
+		Y, Z = separate(X, remove_mean=remove_mean)
+		U, S, VT, Atilde = linear_operator(Y, Z, r)
+
+	del U
+
+	# Eigendecomposition of Atilde: Eigenvectors given as complex matrix
+	# NOTE: there is no implementation of eig in cupy yet
+	cr_start('DMD.modes',0)
+	muReal, muImag, w = eigen(Atilde)
+	muReal = cp.asarray(muReal) if type(Atilde) is cp.ndarray else muReal
+	muImag = cp.asarray(muImag) if type(Atilde) is cp.ndarray else muImag
+	w      = cp.asarray(w)      if type(Atilde) is cp.ndarray else w
+
+	# Mode computation
+	Phi =  matmul(matmul(matmul(Z, transpose(VT)), diag(1/S)), w)/(muReal + muImag*1J)
+	cr_stop('DMD.modes',0)
+
+	# Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
+	cr_start('DMD.amplitudes',0)
+	Vand = vandermonde(muReal, muImag, muReal.shape[0], Y.shape[1])
 	P    = matmul(transpose(conj(w)), w)*conj(matmul(Vand, transpose(conj(Vand))))
 	Pl   = cholesky(P)
 	G    = matmul(diag(S), VT)
