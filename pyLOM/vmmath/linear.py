@@ -98,11 +98,13 @@ def separate(X, remove_mean=False):
 def resolvent(A, f):
 
 	# H_inv = (-1j * f - A)
-	H_inv = (f - A) #  COMPTE ELS SGINES!
-	V, S_inv, UT = svd(H_inv)
-	U = dagger(UT)
-	S = 1 / S_inv
-	
+	p = cp if type(A) is cp.ndarray else np
+	H_inv = p.eye(A.shape[0]) * f - A #  COMPTE ELS SGINES!
+	V_flip, S_inv, UT_flip = svd(H_inv)
+	U_flip = dagger(UT_flip)
+	S  = 1 / S_inv[::-1]
+	U  = U_flip[:, ::-1]
+	V  = V_flip[:, ::-1]
 	return U, S, V
 
 def flip_columns(A):

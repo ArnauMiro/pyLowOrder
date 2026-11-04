@@ -326,6 +326,7 @@ def _crun_old(float[:,:] X, np.complex64_t w, float r, int remove_mean, float[:]
 
 	# Create the snapshot of matrices and separate it into Y, Z
 	c_sseparate(Y, Z, X_c, m, n, remove_mean)
+	free(X_c)
 
 	# Compute the linear operator in lower dimension
 	cdef int icol, irow, retval
@@ -450,6 +451,7 @@ def _zrun_old(double[:,:] X, np.complex128_t w, double r, int remove_mean, doubl
 	
 	# Create the snapshot of matrices and separate it into Y, Z
 	c_dseparate(Y, Z, X_c, m, n, remove_mean)
+	free(X_c)
 
 	# Compute the linear operator in lower dimension
 	cdef int icol, irow, retval
@@ -586,6 +588,10 @@ def _crun_new(list X, np.complex64_t w, float r, int remove_mean, float[:] Q):
 
 	# Create the snapshot of matrices and separate it into Y, Z
 	c_sconcatenate(Y, Z, X_pointer, n_list, n_matrix, m, n_total, remove_mean)
+	for ii in range(n_matrix):
+		free(X_pointer[ii])
+	free(X_pointer)
+	free(n_list)
 	
 	# Compute the linear operator in lower dimension
 	cdef int icol, irow, retval
@@ -722,6 +728,8 @@ def _zrun_new(list X, np.complex128_t w, double r, int remove_mean, double[:] Q)
 
 	# Create the snapshot of matrices and separate it into Y, Z
 	c_dconcatenate(Y, Z, X_pointer, n_list, n_matrix, m, n_total, remove_mean)
+	for ii in range(n_matrix):
+		free(X_pointer[ii])
 	free(X_pointer)
 	free(n_list)
 
