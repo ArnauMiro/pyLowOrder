@@ -9,10 +9,10 @@
 import os, numpy as np, torch, torch.nn as nn
 
 from typing             import Dict, List, Tuple, Callable
-from torch.utils.data   import DataLoader
 
 from ..                 import DEVICE, PIN_MEMORY, set_seed
 from ..optimizer        import OptunaOptimizer, TrialPruned
+from .kan               import _create_dataloader
 from ..loss             import BaseLossFunction, TorchLossAdapter
 from ...                import pprint, cr
 from ...utils.errors    import raiseWarning, raiseError
@@ -206,10 +206,10 @@ class MLP(nn.Module):
         }
 
         if not hasattr(self, "train_dataloader"):
-            self.train_dataloader = DataLoader(train_dataset, **_dataloader_kwargs)
+            self.train_dataloader = _create_dataloader(train_dataset, **_dataloader_kwargs)
         
         if not hasattr(self, "eval_dataloader") and eval_dataset is not None:
-            self.eval_dataloader = DataLoader(eval_dataset, **_dataloader_kwargs)
+            self.eval_dataloader = _create_dataloader(eval_dataset, **_dataloader_kwargs)
 
         if not hasattr(self, "optimizer"):
             self.optimizer = optimizer_class(
@@ -395,7 +395,7 @@ class MLP(nn.Module):
             **dataloader_kwargs,
         }
 
-        predict_dataloader = DataLoader(X, **_dataloader_kwargs)
+        predict_dataloader = _create_dataloader(X, **_dataloader_kwargs)
         if hasattr(predict_dataloader.dataset, "eval"):
             predict_dataloader.dataset.eval()
 
