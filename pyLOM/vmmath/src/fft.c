@@ -9,7 +9,6 @@ typedef float  _Complex fcomplex_t;
 typedef double _Complex dcomplex_t;
 
 // External FFT dependences
-#undef USE_MKL
 #ifdef USE_MKL
 	#define MKL_Complex8  scomplex_t
 	#define MKL_Complex16 dcomplex_t
@@ -79,15 +78,20 @@ void sfft1D(fcomplex_t *out, float *y, const int n) {
 		// Use KISSFFT libraries
 		// KISSFFT does not support single precision, we operate in double precision
 		// and convert back to single
+		double *yd; yd = (double*)malloc(n*sizeof(double));
 		dcomplex_t *aux; aux = (dcomplex_t *)malloc(n*sizeof(dcomplex_t));
+		// Convert the input array to double precision
+		for (int ii=0; ii<n; ++ii) yd[ii] = (double)y[ii];
 		kiss_fftr_cfg cfg = kiss_fftr_alloc(n,0,NULL,NULL);
-		kiss_fftr(cfg,(double*)y,(kiss_fft_cpx*)aux);
+		kiss_fftr(cfg,yd,(kiss_fft_cpx*)aux);
 		kiss_fftr_free(cfg);
+		free(yd);
 		#ifdef USE_OMP
 		#pragma omp parallel for private(ii) shared(out,aux) firstprivate(n)
 		#endif
 		for (int ii=0; ii<n; ++ii)
 			out[ii] = (float)creal(aux[ii]) + (float)cimag(aux[ii])*I;
+		free(aux);
 	#endif
 }
 

@@ -953,82 +953,102 @@ int zcompare(const void* a, const void* b) {
 
 void ssort(float *v, int *index, int n){
 	/*
-		Returns the ordered indexes of a complex array according to the 
-		absolute value of its elements
+		Returns the ordered indexes of a real array according to the 
+		absolute value of its elements. Ties are broken by the original
+		order (stable) and every sorted position is consumed once, so
+		index is guaranteed to be a permutation of 0..n-1.
 	*/
 	int ii, jj;
+	int *used;
 	float *w;
-	w = (float*)malloc(n*sizeof(float));
+	w    = (float*)malloc(n*sizeof(float));
+	used = (int*)calloc(n,sizeof(int));
 
 	memcpy(w,v,n*sizeof(float));
 	qsort(w,n,sizeof(float),scompare);
-	
+
 	for (ii = 0; ii < n; ++ii) {
 		for (jj = 0; jj < n; ++jj) {
-			if (v[ii] == w[jj]) { index[ii] = jj; break; }
+			if (!used[jj] && (v[ii] == w[jj])) { index[ii] = jj; used[jj] = 1; break; }
 		}
 	}
 	free(w);
+	free(used);
 }
 
 void dsort(double *v, int *index, int n){
 	/*
-		Returns the ordered indexes of a complex array according to the 
-		absolute value of its elements
+		Returns the ordered indexes of a real array according to the 
+		absolute value of its elements. Ties are broken by the original
+		order (stable) and every sorted position is consumed once, so
+		index is guaranteed to be a permutation of 0..n-1.
 	*/
 	int ii, jj;
+	int *used;
 	double *w;
-	w = (double*)malloc(n*sizeof(double));
+	w    = (double*)malloc(n*sizeof(double));
+	used = (int*)calloc(n,sizeof(int));
 
 	memcpy(w,v,n*sizeof(double));
 	qsort(w,n,sizeof(double),dcompare);
-	
+
 	for (ii = 0; ii < n; ++ii) {
 		for (jj = 0; jj < n; ++jj) {
-			if (v[ii] == w[jj]) { index[ii] = jj; break; }
+			if (!used[jj] && (v[ii] == w[jj])) { index[ii] = jj; used[jj] = 1; break; }
 		}
 	}
 	free(w);
+	free(used);
 }
 
 void csort(scomplex_t *v, int *index, int n){
 	/*
 		Returns the ordered indexes of a complex array according to the 
-		absolute value of its elements
+		absolute value of its elements. Ties are broken by the original
+		order (stable) and every sorted position is consumed once, so
+		index is guaranteed to be a permutation of 0..n-1.
 	*/
 	int ii, jj;
+	int *used;
 	scomplex_t *w;
-	w = (scomplex_t*)malloc(n*sizeof(scomplex_t));
+	w    = (scomplex_t*)malloc(n*sizeof(scomplex_t));
+	used = (int*)calloc(n,sizeof(int));
 
 	memcpy(w,v,n*sizeof(scomplex_t));
 	qsort(w,n,sizeof(scomplex_t),ccompare);
 
 	for (ii = 0; ii < n; ++ii) {
 		for (jj = 0; jj < n; ++jj) {
-			if ((creal(v[ii]) == creal(w[jj])) & (cimag(v[ii]) == cimag(w[jj]))) { index[ii] = jj; break; }
+			if (!used[jj] && (creal(v[ii]) == creal(w[jj])) && (cimag(v[ii]) == cimag(w[jj]))) { index[ii] = jj; used[jj] = 1; break; }
 		}
 	}
 	free(w);
+	free(used);
 }
 
 void zsort(dcomplex_t *v, int *index, int n){
 	/*
 		Returns the ordered indexes of a complex array according to the 
-		absolute value of its elements
+		absolute value of its elements. Ties are broken by the original
+		order (stable) and every sorted position is consumed once, so
+		index is guaranteed to be a permutation of 0..n-1.
 	*/
 	int ii, jj;
+	int *used;
 	dcomplex_t *w;
-	w = (dcomplex_t*)malloc(n*sizeof(dcomplex_t));
+	w    = (dcomplex_t*)malloc(n*sizeof(dcomplex_t));
+	used = (int*)calloc(n,sizeof(int));
 
 	memcpy(w,v,n*sizeof(dcomplex_t));
 	qsort(w,n,sizeof(dcomplex_t),zcompare);
 
 	for (ii = 0; ii < n; ++ii) {
 		for (jj = 0; jj < n; ++jj) {
-			if ((creal(v[ii]) == creal(w[jj])) & (cimag(v[ii]) == cimag(w[jj]))) { index[ii] = jj; break; }
+			if (!used[jj] && (creal(v[ii]) == creal(w[jj])) && (cimag(v[ii]) == cimag(w[jj]))) { index[ii] = jj; used[jj] = 1; break; }
 		}
 	}
 	free(w);
+	free(used);
 }
 
 void srandom_matrix(float *A, int m, int n, unsigned int seed){
