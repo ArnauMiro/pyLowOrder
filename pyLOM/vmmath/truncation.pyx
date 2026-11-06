@@ -11,6 +11,7 @@ cimport numpy as np
 
 import numpy as np
 
+from libc.string   cimport memcpy
 from libc.math  cimport fabs
 from .cfuncs    cimport real, c_svector_norm, c_dvector_norm, c_senergy, c_denergy, c_slocal_energy, c_dlocal_energy
 from ..utils.cr  import cr
@@ -178,3 +179,45 @@ def local_energy(real[:,:] A, real[:,:] B):
 		return _dlocal_energy(A,B)
 	else:
 		return _slocal_energy(A,B)
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef float _sremove_rows(float[:,:] A, int rows):
+	'''
+	Get A with the disired number of rows
+	'''
+	cdef int n = A.shape[1]
+	cdef np.ndarray[np.float32_t,ndim=2] B = np.zeros((rows,n),dtype=np.float32)
+	memcpy(&B[0,0],&A[0,0],rows*n*sizeof(float))
+	return B
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef float _dremove_rows(double[:,:] A, int rows):
+	'''
+	Get A with the disired number of rows
+	'''
+	cdef int n = A.shape[1]
+	cdef np.ndarray[np.double_t,ndim=2] B = np.zeros((rows,n),dtype=np.double)
+	memcpy(&B[0,0],&A[0,0],rows*n*sizeof(double))
+	return B
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def remove_rows(real[:,:] A, int rows):
+	'''
+	Get A with the disired number of rows
+	'''
+	if real is double:
+		return _dremove_rows(A, rows)
+	else:
+		return _sremove_rows(A, rows)

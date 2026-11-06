@@ -241,3 +241,11 @@ double dlocal_energy(double *A, double *B, const int m, const int n) {
 	// Return
 	return 1 - sum1/sum2;
 }
+
+void sremove_rows(float *A, float *B, int rows, int n){
+	memcpy(B, A, rows*n*sizeof(float));
+}
+
+void dremove_rows(double *A, double *B, int rows, int n){
+	memcpy(B, A, rows*n*sizeof(double));
+}
