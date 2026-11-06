@@ -29,6 +29,7 @@ from ..vmmath.cfuncs cimport c_ssort, c_svector_mean, c_stemporal_mean, c_ssubtr
 from ..vmmath.cfuncs cimport c_dsort, c_dvector_mean, c_dtemporal_mean, c_dsubtract_mean, c_dhammwin, c_dfft1D, c_ztsqr_svd
 
 from ..utils.cr       import cr, cr_start, cr_stop
+from ..utils.errors   import raiseError
 
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -72,10 +73,12 @@ cdef void _dfft(np.complex128_t *out, double *Xf, double winWeight, int nDFT, in
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 cdef void _ssort(float *L, float *P, float *f, int M, int nBlks, int nf):
-	cdef int ii, jj, index
-	cdef float tmp
+	cdef int ii, jj, pos
 	cdef float *v
 	cdef int *idx
+	cdef float *Lt
+	cdef float *Pt
+	cdef float *ft
 	v   = <float*>malloc(nf*sizeof(float))
 	idx = <int*>malloc(nf*sizeof(int))
 	# Copy to v
@@ -84,23 +87,26 @@ cdef void _ssort(float *L, float *P, float *f, int M, int nBlks, int nf):
 	# Obtain index array that sorts v
 	c_ssort(v,idx,nf)
 	free(v)
+	# Allocate temporary copies of L, P and f
+	Lt = <float*>malloc(nf*nBlks*sizeof(float))
+	Pt = <float*>malloc(M*nBlks*nf*sizeof(float))
+	ft = <float*>malloc(nf*sizeof(float))
+	memcpy(Lt,L,nf*nBlks*sizeof(float))
+	memcpy(Pt,P,M*nBlks*nf*sizeof(float))
+	memcpy(ft,f,nf*sizeof(float))
 	# Reorder L, P and f arrays
+	# element ii goes to position nf-idx[ii]-1 (descending order)
 	for ii in range(nf):
-		index = nf-idx[ii]-1 # Reversed order
-		# Swap f
-		tmp      = f[index]
-		f[index] = f[ii]
-		f[ii]    = tmp
-		# Swap L
+		pos = nf-idx[ii]-1 # Reversed order
+		# Store f
+		f[pos] = ft[ii]
+		# Store L
 		for jj in range(nBlks):
-			tmp                 = L[nBlks*index + jj]
-			L[nBlks*index + jj] = L[nBlks*ii + jj]
-			L[nBlks*ii + jj]    = tmp
-		# Swap P
+			L[nBlks*pos + jj] = Lt[nBlks*ii + jj]
+		# Store P
 		for jj in range(M*nBlks):
-			tmp              = P[nf*jj + index]
-			P[nf*jj + index] = P[nf*jj + ii]
-			P[nf*jj + ii]    = tmp			
+			P[nf*jj + pos] = Pt[nf*jj + ii]
+	free(Lt); free(Pt); free(ft)
 	free(idx)
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -108,10 +114,12 @@ cdef void _ssort(float *L, float *P, float *f, int M, int nBlks, int nf):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 cdef void _dsort(double *L, double *P, double *f, int M, int nBlks, int nf):
-	cdef int ii, jj, index
-	cdef double tmp
+	cdef int ii, jj, pos
 	cdef double *v
 	cdef int *idx
+	cdef double *Lt
+	cdef double *Pt
+	cdef double *ft
 	v   = <double*>malloc(nf*sizeof(double))
 	idx = <int*>malloc(nf*sizeof(int))
 	# Copy to v
@@ -120,23 +128,26 @@ cdef void _dsort(double *L, double *P, double *f, int M, int nBlks, int nf):
 	# Obtain index array that sorts v
 	c_dsort(v,idx,nf)
 	free(v)
+	# Allocate temporary copies of L, P and f
+	Lt = <double*>malloc(nf*nBlks*sizeof(double))
+	Pt = <double*>malloc(M*nBlks*nf*sizeof(double))
+	ft = <double*>malloc(nf*sizeof(double))
+	memcpy(Lt,L,nf*nBlks*sizeof(double))
+	memcpy(Pt,P,M*nBlks*nf*sizeof(double))
+	memcpy(ft,f,nf*sizeof(double))
 	# Reorder L, P and f arrays
+	# element ii goes to position nf-idx[ii]-1 (descending order)
 	for ii in range(nf):
-		index = nf-idx[ii]-1 # Reversed order
-		# Swap f
-		tmp      = f[index]
-		f[index] = f[ii]
-		f[ii]    = tmp
-		# Swap L
+		pos = nf-idx[ii]-1 # Reversed order
+		# Store f
+		f[pos] = ft[ii]
+		# Store L
 		for jj in range(nBlks):
-			tmp                 = L[nBlks*index + jj]
-			L[nBlks*index + jj] = L[nBlks*ii + jj]
-			L[nBlks*ii + jj]    = tmp
-		# Swap P
+			L[nBlks*pos + jj] = Lt[nBlks*ii + jj]
+		# Store P
 		for jj in range(M*nBlks):
-			tmp              = P[nf*jj + index]
-			P[nf*jj + index] = P[nf*jj + ii]
-			P[nf*jj + ii]    = tmp			
+			P[nf*jj + pos] = Pt[nf*jj + ii]
+	free(Lt); free(Pt); free(ft)
 	free(idx)
 
 
@@ -145,7 +156,7 @@ cdef void _dsort(double *L, double *P, double *f, int M, int nBlks, int nf):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean):
+def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean, float[:] w):
 	'''
 	Run SPOD analysis of a matrix X.
 
@@ -155,6 +166,7 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean):
 		- npwin:             number of points in each window (0 will set default value: ~10% nt)
 		- nolap:             number of overlap points between windows (0 will set default value: 50% nwin)
 		- remove_mean:       whether or not to remove the mean flow
+		- w[ndims*nmesh]:    diagonal of the inner-product weight matrix W (energy norm); None for no weighting
 
 	Returns:
 		- L:  modal energy spectra.
@@ -173,6 +185,9 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean):
 	cdef np.complex64_t *Q
 	cdef np.complex64_t *U
 	cdef np.complex64_t *V
+	cdef np.complex64_t *qf
+	cdef bint weighted
+	cdef float *sw
 
 	# Output arrays
 	cdef np.ndarray[np.float32_t,ndim=2] L
@@ -195,6 +210,10 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean):
 
 	nBlks = <int>(floor((N-nolap)/(nDFT-nolap)))
 
+	# The block SVD (TSQR) requires nBlks <= M (spatial points)
+	if nBlks > M:
+		raiseError('SPOD.run: number of blocks (%d) exceeds the number of spatial points (%d)! Reduce nDFT/nolap to obtain fewer blocks.' % (nBlks,M))
+
 	# Remove temporal mean
 	Y = <float*>malloc(M*N*sizeof(float))
 	if remove_mean:
@@ -208,6 +227,22 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean):
 		cr_stop('SPOD.temporal_mean',0)
 	else:
 		memcpy(Y,&X[0,0],M*N*sizeof(float))
+
+	# Inner-product weight (energy norm): diagonal of the weight matrix W.
+	# The data is scaled by the square root of the diagonal of W so that the
+	# plain SVD below yields the modal energies in the W inner product.
+	# Providing a valid weight vector is the user's responsibility.
+	weighted = w is not None
+	sw = NULL
+	if weighted:
+		# Square root of the diagonal of W
+		sw = <float*>malloc(M*sizeof(float))
+		for i in range(M):
+			sw[i] = sqrt(w[i])
+		# Scale the data rows
+		for i in range(M):
+			for j in range(N):
+				Y[N*i + j] = Y[N*i + j]*sw[i]
 
 	# Set frequency axis
 	nf = <int>(ceil(nDFT/2)) + 1
@@ -249,16 +284,15 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean):
 	# Allocate memory
 	qf = <np.complex64_t*>malloc(M*nBlks*sizeof(np.complex64_t))
 	U  = <np.complex64_t*>malloc(M*nBlks*sizeof(np.complex64_t))
-	S  = <float*>malloc(M*nBlks*sizeof(float))
-	V  = <np.complex64_t*>malloc(M*nBlks*sizeof(np.complex64_t))
+	S  = <float*>malloc(nBlks*sizeof(float))
+	V  = <np.complex64_t*>malloc(nBlks*nBlks*sizeof(np.complex64_t))
 
 	cr_start('SPOD.SVD',0)
 	for ifreq in range(nf):
 		# Load block in qf
 		for i in range(M):
 			for iblk in range(nBlks):
-				winWeight = sqrt(nBlks) # reused variable
-				qf[nBlks*i + iblk] = crealf(Q[nf*nBlks*i + nBlks*ifreq + iblk])/winWeight + cimagf(Q[nf*nBlks*i + nBlks*ifreq + iblk])/winWeight
+				qf[nBlks*i + iblk] = Q[nf*nBlks*i + nBlks*ifreq + iblk]/sqrt(nBlks)
 		# Run SVD
 		c_ctsqr_svd(U,S,V,qf,M,nBlks)
 		# Store P
@@ -276,6 +310,14 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean):
 	free(S)
 	free(V)
 
+	# Recover the physical, W-orthonormal modes from the transformed ones
+	if weighted:
+		for i in range(M):
+			for iblk in range(nBlks):
+				for ifreq in range(nf):
+					P[i + M*iblk,ifreq] = P[i + M*iblk,ifreq]/sw[i]
+	free(sw)
+
 	# Sort
 	cr_start('SPOD.sort',0)
 	_ssort(&L[0,0],&P[0,0],&f[0],M,nBlks,nf)
@@ -287,7 +329,7 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean):
+def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean, double[:] w):
 	'''
 	Run SPOD analysis of a matrix X.
 
@@ -297,6 +339,7 @@ def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean):
 		- npwin:             number of points in each window (0 will set default value: ~10% nt)
 		- nolap:             number of overlap points between windows (0 will set default value: 50% nwin)
 		- remove_mean:       whether or not to remove the mean flow
+		- w[ndims*nmesh]:    diagonal of the inner-product weight matrix W (energy norm); None for no weighting
 
 	Returns:
 		- L:  modal energy spectra.
@@ -315,6 +358,9 @@ def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean):
 	cdef np.complex128_t *U
 	cdef double *S
 	cdef np.complex128_t *V
+	cdef np.complex128_t *qf
+	cdef bint weighted
+	cdef double *sw
 
 	# Output arrays
 	cdef np.ndarray[np.double_t,ndim=2] L
@@ -337,6 +383,10 @@ def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean):
 
 	nBlks = <int>(floor((N-nolap)/(nDFT-nolap)))
 
+	# The block SVD (TSQR) requires nBlks <= M (spatial points)
+	if nBlks > M:
+		raiseError('SPOD.run: number of blocks (%d) exceeds the number of spatial points (%d)! Reduce nDFT/nolap to obtain fewer blocks.' % (nBlks,M))
+
 	# Remove temporal mean
 	Y = <double*>malloc(M*N*sizeof(double))
 	if remove_mean:
@@ -350,6 +400,22 @@ def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean):
 		cr_stop('SPOD.temporal_mean',0)
 	else:
 		memcpy(Y,&X[0,0],M*N*sizeof(double))
+
+	# Inner-product weight (energy norm): diagonal of the weight matrix W.
+	# The data is scaled by the square root of the diagonal of W so that the
+	# plain SVD below yields the modal energies in the W inner product.
+	# Providing a valid weight vector is the user's responsibility.
+	weighted = w is not None
+	sw = NULL
+	if weighted:
+		# Square root of the diagonal of W
+		sw = <double*>malloc(M*sizeof(double))
+		for i in range(M):
+			sw[i] = sqrt(w[i])
+		# Scale the data rows
+		for i in range(M):
+			for j in range(N):
+				Y[N*i + j] = Y[N*i + j]*sw[i]
 
 	# Set frequency axis
 	nf = <int>(ceil(nDFT/2)) + 1
@@ -391,8 +457,8 @@ def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean):
 	# Allocate memory
 	qf = <np.complex128_t*>malloc(M*nBlks*sizeof(np.complex128_t))
 	U  = <np.complex128_t*>malloc(M*nBlks*sizeof(np.complex128_t))
-	S  = <double*>malloc(M*nBlks*sizeof(double))
-	V  = <np.complex128_t*>malloc(M*nBlks*sizeof(np.complex128_t))
+	S  = <double*>malloc(nBlks*sizeof(double))
+	V  = <np.complex128_t*>malloc(nBlks*nBlks*sizeof(np.complex128_t))
 
 	cr_start('SPOD.SVD',0)
 	for ifreq in range(nf):
@@ -417,6 +483,14 @@ def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean):
 	free(S)
 	free(V)
 
+	# Recover the physical, W-orthonormal modes from the transformed ones
+	if weighted:
+		for i in range(M):
+			for iblk in range(nBlks):
+				for ifreq in range(nf):
+					P[i + M*iblk,ifreq] = P[i + M*iblk,ifreq]/sw[i]
+	free(sw)
+
 	# Sort
 	cr_start('SPOD.sort',0)
 	_dsort(&L[0,0],&P[0,0],&f[0],M,nBlks,nf)
@@ -429,7 +503,7 @@ def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def run(real[:,:] X, real[:] t, int nDFT=0, int nolap=0, int remove_mean=True):
+def run(real[:,:] X, real[:] t, int nDFT=0, int nolap=0, remove_mean=True, weights=None):
 	r'''
 	Run SPOD analysis of a matrix X.
 
@@ -439,11 +513,14 @@ def run(real[:,:] X, real[:] t, int nDFT=0, int nolap=0, int remove_mean=True):
 		nDFT (int, optional): number of points in each window (0 will set default value: ~10% nt)
 		nolap (int, optional): number of overlap points between windows (0 will set default value: 50% nwin)
 		remove_mean (bool, optional): whether or not to remove the mean flow (default, ``True``)
+		weights (np.ndarray, optional): 1D array with the diagonal of the inner-product weight matrix
 
 	Returns:
 		[(np.ndarray), (np.ndarray), (np.ndarray)]: where the first array is L, the modal energy spectra, the second array is  P, SPOD modes, whose spatial dimensions are identical to those of X and finally f is the frequency vectors
 	''' 
 	if real is double:
-		return _drun(X,t,nDFT,nolap,remove_mean)
+		w = None if weights is None else np.ascontiguousarray(weights,dtype=np.double)
+		return _drun(X,t,nDFT,nolap,remove_mean,w)
 	else:
-		return _srun(X,t,nDFT,nolap,remove_mean)
+		w = None if weights is None else np.ascontiguousarray(weights,dtype=np.float32)
+		return _srun(X,t,nDFT,nolap,remove_mean,w)

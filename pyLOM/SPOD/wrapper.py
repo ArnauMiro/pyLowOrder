@@ -13,6 +13,7 @@ import scipy
 from ..utils.gpu import cp, gpu_to_cpu, cpu_to_gpu
 from ..vmmath    import temporal_mean, subtract_mean, tsqr_svd, hammwin
 from ..utils     import cr_nvtx as cr, cr_start, cr_stop
+from ..utils.errors import raiseError
 
 
 def _fft(Xf, winWeight, nDFT, nf):
@@ -22,7 +23,7 @@ def _fft(Xf, winWeight, nDFT, nf):
 
 ## SPOD run method
 @cr('SPOD.run')
-def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=True):
+def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=True, weights:np.ndarray=None):
 	r'''
 	Run SPOD analysis of a matrix X.
 
@@ -32,6 +33,7 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 		nDFT (int, optional): number of points in each window (0 will set default value: ~10% nt)
 		nolap (int, optional): number of overlap points between windows (0 will set default value: 50% nwin)
 		remove_mean (bool, optional): whether or not to remove the mean flow (default, ``True``)
+		weights (np.ndarray, optional): 1D array with the diagonal of the inner-product weight matrix W 
 
 	Returns:
 		[(np.ndarray), (np.ndarray), (np.ndarray)]: where the first array is L, the modal energy spectra, the second array is  P, SPOD modes, whose spatial dimensions are identical to those of X and finally f is the frequency vectors
@@ -40,6 +42,10 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 	M,N = X.shape
 	dt  = t[1] - t[0]
 	cdtype = np.complex128 if X.dtype is np.double else np.complex64
+
+	# Inner-product weights (diagonal of the weight matrix W); it is the
+	# user's responsibility to provide a valid weight vector
+	sw = None if weights is None else cpu_to_gpu(np.sqrt(np.ascontiguousarray(gpu_to_cpu(weights),dtype=X.dtype)))
 	
 	if nDFT == 0:
 		nDFT = int(np.power(2,np.floor(np.log2(N/10))))
@@ -47,6 +53,9 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 	if nolap == 0:
 		nolap = int(np.floor(nDFT/2))
 	nBlks = int(np.floor((N-nolap)/(nDFT-nolap)))
+	# The block SVD (TSQR) requires nBlks <= M (spatial points)
+	if nBlks > M:
+		raiseError('SPOD.run: number of blocks (%d) exceeds the number of spatial points (%d)! Reduce nDFT/nolap to obtain fewer blocks.' % (nBlks,M))
 	# Correction for FFT window gain
 	winWeight = 1/np.mean(window)
 
@@ -58,6 +67,11 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 		cr_stop('SPOD.temporal_mean',0)
 	else:
 		Y = X.copy()
+
+	# Energy norm: scale the data by the square root of the diagonal of W
+	# so that the plain SVD below yields the modal energies in the W inner product
+	if sw is not None:
+		Y = Y*sw[:,None]
 
 	# Set frequency axis
 	f  = cnp.arange(np.ceil(nDFT / 2) + 1) / dt / nDFT
@@ -84,6 +98,10 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 		P[:,ifreq] = cnp.real(U.reshape((M*nBlks), order='F'))
 		L[ifreq,:] = cnp.abs(S*S)
 	cr_stop('SPOD.SVD',0)
+
+	# Recover the physical, W-orthonormal modes from the transformed ones
+	if sw is not None:
+		P = P/cnp.tile(sw,nBlks)[:,None]
 
 	cr_start('SPOD.sort',0)
 	order = cnp.argsort(L[:,0])[::-1]
