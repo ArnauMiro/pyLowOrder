@@ -21,16 +21,14 @@ cdef extern from "<complex.h>" nogil:
 	double cimag(double complex z)
 	double creal(double complex z)
 cdef double complex J = 1j
-from libc.stdlib     cimport malloc, free
+from libc.stdlib     cimport malloc, calloc, free
 from libc.string     cimport memcpy, memset
 from libc.math       cimport sqrt, log, atan2
 from ..vmmath.cfuncs cimport real, real_complex
-from ..vmmath.cfuncs cimport c_stranspose, c_smatmul, c_smatmulp, c_svecmat, c_stemporal_mean, c_ssubtract_mean, c_stsqr_svd, c_ssvd, c_scompute_truncation_residual, c_scompute_truncation
-from ..vmmath.cfuncs cimport c_dtranspose, c_dmatmul, c_dmatmulp, c_dvecmat, c_dtemporal_mean, c_dsubtract_mean, c_dtsqr_svd, c_dsvd, c_dcompute_truncation_residual, c_dcompute_truncation
+from ..vmmath.cfuncs cimport c_stranspose, c_smatmul, c_smatmulp, c_svecmat, c_stemporal_mean, c_ssubtract_mean, c_stsqr_svd, c_ssvd, c_scompute_truncation_residual, c_scompute_truncation, c_sremove_rows, c_sseparate, c_sconcatenate
+from ..vmmath.cfuncs cimport c_dtranspose, c_dmatmul, c_dmatmulp, c_dvecmat, c_dtemporal_mean, c_dsubtract_mean, c_dtsqr_svd, c_dsvd, c_dcompute_truncation_residual, c_dcompute_truncation, c_dremove_rows, c_dseparate, c_dconcatenate
 from ..vmmath.cfuncs cimport c_cmatmult, c_cvecmat, c_cinverse, c_ccholesky, c_ceigen, c_cvandermonde, c_cvandermonde_time, c_csort
 from ..vmmath.cfuncs cimport c_zmatmult, c_zvecmat, c_zinverse, c_zcholesky, c_zeigen, c_zvandermonde, c_zvandermonde_time, c_zsort
-from ..vmmath.linear cimport _sconcatenate, _slinear_operator, _sseparate
-from ..vmmath.linear cimport _dconcatenate, _dlinear_operator, _dseparate
 
 
 from ..utils.cr       import cr, cr_start, cr_stop
@@ -194,6 +192,7 @@ def _srun(float[:,:] X, float r, int remove_mean):
 	# Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
 	cdef np.complex64_t *auxbJov
 	cdef np.complex64_t *aux3C
+	cdef np.complex64_t *aux4C
 	cdef np.complex64_t *Vand
 	cdef np.complex64_t *P
 	cdef np.complex64_t *Pinv
@@ -474,6 +473,7 @@ def _drun(double[:,:] X, double r, int remove_mean):
 	# Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
 	cdef np.complex128_t *auxbJov
 	cdef np.complex128_t *aux3C
+	cdef np.complex128_t *aux4C
 	cdef np.complex128_t *Vand
 	cdef np.complex128_t *P
 	cdef np.complex128_t *Pinv
@@ -765,30 +765,90 @@ def _srun_old(float[:,:] X, float r, int remove_mean):
 		- Variables needed to reconstruct flow
 	'''
 	# Variables
-	cdef int m, n, irow, icol, iaux
-	cdef float[:, ::1] Y
-	cdef float[:, ::1] Z
-	cdef float[:, ::1] U
-	cdef float[::1] S
-	cdef float[:, ::1] VT
-	cdef float[:, ::1] Atilde
-	
+	cdef int m, n, irow, icol, iaux, retval
+	cdef int m_aux
+	m = X.shape[0]
+	n = X.shape[1]
+
+	cdef float *X_c = <float*>malloc(m*n*sizeof(float))
+	memcpy(X_c, &X[0,0], m*n*sizeof(float))
+
+	if m > (n-1):
+		m_aux = m
+	else:
+		m_aux = n-1
+
+	cdef float *Y
+	cdef float *Z
+	Y = <float*>calloc(m_aux*(n-1), sizeof(float))
+	Z = <float*>malloc(m*(n-1)*sizeof(float))
+
 	# Create the snapshot of matrices and separate it into Y, Z
-	Y, Z = _sseparate(X, remove_mean)
-	m = Z.shape[0]
-	n = Z.shape[1] + 1
+	if remove_mean: cr_start('DMD.temporal_mean',0)
+	c_sseparate(Y, Z, X_c, m, n, remove_mean)
+	if remove_mean: cr_stop('DMD.temporal_mean',0)
+	free(X_c)
+
 	# Compute the linear operator in lower dimension
-	U, S, VT, Atilde = _slinear_operator(Y, Z, r)
-	
-	# Create auxiliar matrix
-	del Y
+	## Compute SVD
+	cr_start('DMD.SVD',0)
+	cdef float *U_aux
+	cdef float *S_all
+	cdef float *VT_all
+	U_aux  = <float*>malloc(m_aux*(n-1)*sizeof(float))
+	S_all  = <float*>malloc((n-1)*sizeof(float))
+	VT_all = <float*>malloc((n-1)*(n-1)*sizeof(float))
+	retval = c_stsqr_svd(U_aux, S_all, VT_all, Y, m_aux, (n-1))
+	if not retval == 0: raiseError('Problems computing SVD!')
+	free(Y)
+	cr_stop('DMD.SVD',0)
+
+	## Remove artificial 0 rows
+	cdef float *U_all
+	U_all = <float*>malloc(m*(n-1)*sizeof(float))
+	c_sremove_rows(U_aux, U_all, m, (n-1))
+	free(U_aux)
+
+	## Truncate
+	cr_start('DMD.truncate',0)
 	cdef int nr
-	nr = Atilde.shape[1]
+	if r > 1:
+		nr = int(r)
+	else:
+		nr = c_scompute_truncation_residual(S_all, r, (n-1))
+
+	cdef float *Ur
+	cdef float *Sr
+	cdef float *VTr
+	Ur  = <float*>malloc(m*nr*sizeof(float))
+	Sr  = <float*>malloc(nr*sizeof(float))
+	VTr = <float*>malloc(nr*(n-1)*sizeof(float))
+	c_scompute_truncation(Ur, Sr, VTr, U_all, S_all, VT_all, m, (n-1), (n-1), nr)
+	free(U_all)
+	free(S_all)
+	free(VT_all)
+	cr_stop('DMD.truncate',0)
+
+	# Project Jacobian of the snapshots into the POD basis
+	cr_start('DMD.linear_mapping',0)
+	cdef float *aux1
 	cdef float *aux2
+	cdef float *Atilde
+	cdef float *Urt
+	aux1   = <float*>malloc(nr*(n-1)*sizeof(float))
 	aux2   = <float*>malloc(nr*(n-1)*sizeof(float))
+	Atilde = <float*>malloc(nr*nr*sizeof(float))
+	Urt    = <float*>malloc(nr*m*sizeof(float))
+	c_stranspose(Ur, Urt, m, nr)
+	c_smatmulp(aux1, Urt, Z, nr, (n-1), m)
+	free(Urt)
+	free(Ur)
 	for icol in range(n-1):
 		for irow in range(nr):
-			aux2[icol*nr + irow] = VT[irow, icol]/S[irow]
+			aux2[icol*nr + irow] = VTr[irow*(n-1) + icol]/Sr[irow]
+	c_smatmul(Atilde, aux1, aux2, nr, nr, (n-1))
+	free(aux1)
+	cr_stop('DMD.linear_mapping',0)
 
 	# Compute eigenmodes
 	cdef float *auxmuReal
@@ -798,9 +858,10 @@ def _srun_old(float[:,:] X, float r, int remove_mean):
 	auxmuImag = <float*>malloc(nr*sizeof(float))
 	w         = <np.complex64_t*>malloc(nr*nr*sizeof(np.complex64_t))
 	cr_start('DMD.eigendecomposition',0)
-	retval = c_ceigen(auxmuReal,auxmuImag,w,&Atilde[0,0],nr,nr)
+	retval = c_ceigen(auxmuReal,auxmuImag,w,Atilde,nr,nr)
+	if not retval == 0: raiseError('Problems computing the eigendecomposition!')
 	cr_stop('DMD.eigendecomposition',0)
-	del Atilde
+	free(Atilde)
 
 	# Computation of DMD modes
 	cr_start('DMD.modes',0)
@@ -814,11 +875,11 @@ def _srun_old(float[:,:] X, float r, int remove_mean):
 		for icol in range(nr):
 			aux1C[icol] = 0 + 0*I
 			for irow in range(n-1):
-				aux1C[icol] += Z[iaux, irow]*aux2[irow*nr + icol]
+				aux1C[icol] += Z[iaux*(n-1) + irow]*aux2[irow*nr + icol]
 		c_cmatmult(aux2C, aux1C, w, 1, nr, nr, 'N', 'N')
 		memcpy(&auxPhi[iaux*nr], aux2C, nr*sizeof(np.complex64_t))
 	free(aux2)
-	del Z
+	free(Z)
 	cdef float a
 	cdef float b
 	cdef float c
@@ -837,6 +898,7 @@ def _srun_old(float[:,:] X, float r, int remove_mean):
 	# Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
 	cdef np.complex64_t *auxbJov
 	cdef np.complex64_t *aux3C
+	cdef np.complex64_t *aux4C
 	cdef np.complex64_t *Vand
 	cdef np.complex64_t *P
 	cdef np.complex64_t *Pinv
@@ -868,7 +930,7 @@ def _srun_old(float[:,:] X, float r, int remove_mean):
 		for irow in range(nr):
 			aux1C[irow] = 0 + 0*I
 			for icol in range(n-1):# casting Vr to a complex, at the same time, it is multipilied per S and Vand
-				aux1C[irow] += S[irow]*VT[irow, icol]*(crealf(Vand[iaux*(n-1) + icol])+cimagf(Vand[iaux*(n-1) + icol])*I)
+				aux1C[irow] += Sr[irow]*VTr[irow*(n-1) + icol]*(crealf(Vand[iaux*(n-1) + icol])+cimagf(Vand[iaux*(n-1) + icol])*I)
 			aux2C[irow] = w[irow*nr + iaux]
 		c_cmatmult(&q[iaux], aux1C, aux2C, 1, 1, nr, 'N', 'N')
 
@@ -893,9 +955,8 @@ def _srun_old(float[:,:] X, float r, int remove_mean):
 	cr_stop('DMD.amplitudes',0)
 
 	# Free allocated arrays before reordering
-	del U
-	del S
-	del VT
+	free(Sr)
+	free(VTr)
 	free(aux1C)
 	free(aux2C)
 	free(aux3C)
@@ -981,29 +1042,90 @@ def _drun_old(double[:,:] X, double r, int remove_mean):
 		- Variables needed to reconstruct flow
 	'''
 	# Variables
-	cdef int m, n, irow, icol, iaux
-	cdef double[:, ::1] Y
-	cdef double[:, ::1] Z
-	cdef double[:, ::1] U
-	cdef double[::1] S
-	cdef double[:, ::1] VT
-	cdef double[:, ::1] Atilde
-	
+	cdef int m, n, irow, icol, iaux, retval
+	cdef int m_aux
+	m = X.shape[0]
+	n = X.shape[1]
+
+	cdef double *X_c = <double*>malloc(m*n*sizeof(double))
+	memcpy(X_c, &X[0,0], m*n*sizeof(double))
+
+	if m > (n-1):
+		m_aux = m
+	else:
+		m_aux = n-1
+
+	cdef double *Y
+	cdef double *Z
+	Y = <double*>calloc(m_aux*(n-1), sizeof(double))
+	Z = <double*>malloc(m*(n-1)*sizeof(double))
+
 	# Create the snapshot of matrices and separate it into Y, Z
-	Y, Z = _dseparate(X, remove_mean)
-	m = Z.shape[0]
-	n = Z.shape[1] + 1
+	if remove_mean: cr_start('DMD.temporal_mean',0)
+	c_dseparate(Y, Z, X_c, m, n, remove_mean)
+	if remove_mean: cr_stop('DMD.temporal_mean',0)
+	free(X_c)
+
 	# Compute the linear operator in lower dimension
-	U, S, VT, Atilde = _dlinear_operator(Y, Z, r)
-	# Create auxiliar matrix
-	del Y
+	## Compute SVD
+	cr_start('DMD.SVD',0)
+	cdef double *U_aux
+	cdef double *S_all
+	cdef double *VT_all
+	U_aux  = <double*>malloc(m_aux*(n-1)*sizeof(double))
+	S_all  = <double*>malloc((n-1)*sizeof(double))
+	VT_all = <double*>malloc((n-1)*(n-1)*sizeof(double))
+	retval = c_dtsqr_svd(U_aux, S_all, VT_all, Y, m_aux, (n-1))
+	if not retval == 0: raiseError('Problems computing SVD!')
+	free(Y)
+	cr_stop('DMD.SVD',0)
+
+	## Remove artificial 0 rows
+	cdef double *U_all
+	U_all = <double*>malloc(m*(n-1)*sizeof(double))
+	c_dremove_rows(U_aux, U_all, m, (n-1))
+	free(U_aux)
+
+	## Truncate
+	cr_start('DMD.truncate',0)
 	cdef int nr
-	nr = Atilde.shape[1]
+	if r > 1:
+		nr = int(r)
+	else:
+		nr = c_dcompute_truncation_residual(S_all, r, (n-1))
+
+	cdef double *Ur
+	cdef double *Sr
+	cdef double *VTr
+	Ur  = <double*>malloc(m*nr*sizeof(double))
+	Sr  = <double*>malloc(nr*sizeof(double))
+	VTr = <double*>malloc(nr*(n-1)*sizeof(double))
+	c_dcompute_truncation(Ur, Sr, VTr, U_all, S_all, VT_all, m, (n-1), (n-1), nr)
+	free(U_all)
+	free(S_all)
+	free(VT_all)
+	cr_stop('DMD.truncate',0)
+
+	# Project Jacobian of the snapshots into the POD basis
+	cr_start('DMD.linear_mapping',0)
+	cdef double *aux1
 	cdef double *aux2
+	cdef double *Atilde
+	cdef double *Urt
+	aux1   = <double*>malloc(nr*(n-1)*sizeof(double))
 	aux2   = <double*>malloc(nr*(n-1)*sizeof(double))
+	Atilde = <double*>malloc(nr*nr*sizeof(double))
+	Urt    = <double*>malloc(nr*m*sizeof(double))
+	c_dtranspose(Ur, Urt, m, nr)
+	c_dmatmulp(aux1, Urt, Z, nr, (n-1), m)
+	free(Urt)
+	free(Ur)
 	for icol in range(n-1):
 		for irow in range(nr):
-			aux2[icol*nr + irow] = VT[irow, icol]/S[irow]
+			aux2[icol*nr + irow] = VTr[irow*(n-1) + icol]/Sr[irow]
+	c_dmatmul(Atilde, aux1, aux2, nr, nr, (n-1))
+	free(aux1)
+	cr_stop('DMD.linear_mapping',0)
 
 	# Compute eigenmodes
 	cdef double *auxmuReal
@@ -1013,9 +1135,10 @@ def _drun_old(double[:,:] X, double r, int remove_mean):
 	auxmuImag = <double*>malloc(nr*sizeof(double))
 	w         = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
 	cr_start('DMD.eigendecomposition',0)
-	retval = c_zeigen(auxmuReal,auxmuImag,w,&Atilde[0,0],nr,nr)
+	retval = c_zeigen(auxmuReal,auxmuImag,w,Atilde,nr,nr)
+	if not retval == 0: raiseError('Problems computing the eigendecomposition!')
 	cr_stop('DMD.eigendecomposition',0)
-	del Atilde
+	free(Atilde)
 
 	# Computation of DMD modes
 	cr_start('DMD.modes',0)
@@ -1029,11 +1152,11 @@ def _drun_old(double[:,:] X, double r, int remove_mean):
 		for icol in range(nr):
 			aux1C[icol] = 0 + 0*J
 			for irow in range(n-1):
-				aux1C[icol] += Z[iaux, irow]*aux2[irow*nr + icol]
+				aux1C[icol] += Z[iaux*(n-1) + irow]*aux2[irow*nr + icol]
 		c_zmatmult(aux2C, aux1C, w, 1, nr, nr, 'N', 'N')
 		memcpy(&auxPhi[iaux*nr], aux2C, nr*sizeof(np.complex128_t))
 	free(aux2)
-	del Z
+	free(Z)
 	cdef double a
 	cdef double b
 	cdef double c
@@ -1052,6 +1175,7 @@ def _drun_old(double[:,:] X, double r, int remove_mean):
 	# Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
 	cdef np.complex128_t *auxbJov
 	cdef np.complex128_t *aux3C
+	cdef np.complex128_t *aux4C
 	cdef np.complex128_t *Vand
 	cdef np.complex128_t *P
 	cdef np.complex128_t *Pinv
@@ -1083,7 +1207,7 @@ def _drun_old(double[:,:] X, double r, int remove_mean):
 		for irow in range(nr):
 			aux1C[irow] = 0 + 0*J
 			for icol in range(n-1):#casting Vr to a complex, at the same time, it is multipilied per S and Vand
-				aux1C[irow] += S[irow]*VT[irow, icol]*(creal(Vand[iaux*(n-1) + icol])+cimag(Vand[iaux*(n-1) + icol])*J)
+				aux1C[irow] += Sr[irow]*VTr[irow*(n-1) + icol]*(creal(Vand[iaux*(n-1) + icol])+cimag(Vand[iaux*(n-1) + icol])*J)
 			aux2C[irow] = w[irow*nr + iaux]
 		c_zmatmult(&q[iaux], aux1C, aux2C, 1, 1, nr, 'N', 'N')
 
@@ -1108,9 +1232,8 @@ def _drun_old(double[:,:] X, double r, int remove_mean):
 	cr_stop('DMD.amplitudes',0)
 
 	# Free allocated arrays before reordering
-	del U
-	del S
-	del VT
+	free(Sr)
+	free(VTr)
 	free(aux1C)
 	free(aux2C)
 	free(aux3C)
@@ -1197,29 +1320,106 @@ def _srun_new(list X, float r, int remove_mean):
 		- Variables needed to reconstruct flow
 	'''
 	# Variables
-	cdef int m, n, irow, icol, iaux
-	cdef float[:, ::1] Y
-	cdef float[:, ::1] Z
-	cdef float[:, ::1] U
-	cdef float[::1] S
-	cdef float[:, ::1] VT
-	cdef float[:, ::1] Atilde
-	
+	cdef int m, n, irow, icol, iaux, retval
+	cdef int n_matrix, n_local, n_total, m_aux
+	m = X[0].shape[0]
+	n_matrix = len(X)
+
+	cdef float **X_pointer
+	cdef int *n_list
+	X_pointer = <float**>malloc(n_matrix*sizeof(float*))
+	n_list    = <int*>malloc(n_matrix*sizeof(int))
+
+	cdef float[:, ::1] M
+	n_total = 0
+	for iaux in range(n_matrix):
+		M = X[iaux]
+		n_local = M.shape[1]
+		n_total += n_local - 1
+		X_pointer[iaux] = <float*>malloc(m*n_local*sizeof(float))
+		memcpy(X_pointer[iaux], &M[0,0], m*n_local*sizeof(float))
+		n_list[iaux] = n_local
+	n = n_total + 1
+
+	if m > n_total:
+		m_aux = m
+	else:
+		m_aux = n_total
+
+	cdef float *Y
+	cdef float *Z
+	Y = <float*>calloc(m_aux*n_total, sizeof(float))
+	Z = <float*>malloc(m*n_total*sizeof(float))
+
 	# Create the snapshot of matrices and separate it into Y, Z
-	Y, Z = _sconcatenate(X, remove_mean)
-	m = Z.shape[0]
-	n = Z.shape[1] + 1
+	if remove_mean: cr_start('DMD.temporal_mean',0)
+	c_sconcatenate(Y, Z, X_pointer, n_list, n_matrix, m, n_total, remove_mean)
+	if remove_mean: cr_stop('DMD.temporal_mean',0)
+	for iaux in range(n_matrix):
+		free(X_pointer[iaux])
+	free(X_pointer)
+	free(n_list)
+
 	# Compute the linear operator in lower dimension
-	U, S, VT, Atilde = _slinear_operator(Y, Z, r)
-	# Create auxiliar matrix
-	del Y
+	## Compute SVD
+	cr_start('DMD.SVD',0)
+	cdef float *U_aux
+	cdef float *S_all
+	cdef float *VT_all
+	U_aux  = <float*>malloc(m_aux*(n-1)*sizeof(float))
+	S_all  = <float*>malloc((n-1)*sizeof(float))
+	VT_all = <float*>malloc((n-1)*(n-1)*sizeof(float))
+	retval = c_stsqr_svd(U_aux, S_all, VT_all, Y, m_aux, (n-1))
+	if not retval == 0: raiseError('Problems computing SVD!')
+	free(Y)
+	cr_stop('DMD.SVD',0)
+
+	## Remove artificial 0 rows
+	cdef float *U_all
+	U_all = <float*>malloc(m*(n-1)*sizeof(float))
+	c_sremove_rows(U_aux, U_all, m, (n-1))
+	free(U_aux)
+
+	## Truncate
+	cr_start('DMD.truncate',0)
 	cdef int nr
-	nr = Atilde.shape[1]
+	if r > 1:
+		nr = int(r)
+	else:
+		nr = c_scompute_truncation_residual(S_all, r, (n-1))
+
+	cdef float *Ur
+	cdef float *Sr
+	cdef float *VTr
+	Ur  = <float*>malloc(m*nr*sizeof(float))
+	Sr  = <float*>malloc(nr*sizeof(float))
+	VTr = <float*>malloc(nr*(n-1)*sizeof(float))
+	c_scompute_truncation(Ur, Sr, VTr, U_all, S_all, VT_all, m, (n-1), (n-1), nr)
+	free(U_all)
+	free(S_all)
+	free(VT_all)
+	cr_stop('DMD.truncate',0)
+
+	# Project Jacobian of the snapshots into the POD basis
+	cr_start('DMD.linear_mapping',0)
+	cdef float *aux1
 	cdef float *aux2
+	cdef float *Atilde
+	cdef float *Urt
+	aux1   = <float*>malloc(nr*(n-1)*sizeof(float))
 	aux2   = <float*>malloc(nr*(n-1)*sizeof(float))
+	Atilde = <float*>malloc(nr*nr*sizeof(float))
+	Urt    = <float*>malloc(nr*m*sizeof(float))
+	c_stranspose(Ur, Urt, m, nr)
+	c_smatmulp(aux1, Urt, Z, nr, (n-1), m)
+	free(Urt)
+	free(Ur)
 	for icol in range(n-1):
 		for irow in range(nr):
-			aux2[icol*nr + irow] = VT[irow, icol]/S[irow]
+			aux2[icol*nr + irow] = VTr[irow*(n-1) + icol]/Sr[irow]
+	c_smatmul(Atilde, aux1, aux2, nr, nr, (n-1))
+	free(aux1)
+	cr_stop('DMD.linear_mapping',0)
 
 	# Compute eigenmodes
 	cdef float *auxmuReal
@@ -1229,9 +1429,10 @@ def _srun_new(list X, float r, int remove_mean):
 	auxmuImag = <float*>malloc(nr*sizeof(float))
 	w         = <np.complex64_t*>malloc(nr*nr*sizeof(np.complex64_t))
 	cr_start('DMD.eigendecomposition',0)
-	retval = c_ceigen(auxmuReal,auxmuImag,w,&Atilde[0,0],nr,nr)
+	retval = c_ceigen(auxmuReal,auxmuImag,w,Atilde,nr,nr)
+	if not retval == 0: raiseError('Problems computing the eigendecomposition!')
 	cr_stop('DMD.eigendecomposition',0)
-	del Atilde
+	free(Atilde)
 
 	# Computation of DMD modes
 	cr_start('DMD.modes',0)
@@ -1245,11 +1446,11 @@ def _srun_new(list X, float r, int remove_mean):
 		for icol in range(nr):
 			aux1C[icol] = 0 + 0*I
 			for irow in range(n-1):
-				aux1C[icol] += Z[iaux, irow]*aux2[irow*nr + icol]
+				aux1C[icol] += Z[iaux*(n-1) + irow]*aux2[irow*nr + icol]
 		c_cmatmult(aux2C, aux1C, w, 1, nr, nr, 'N', 'N')
 		memcpy(&auxPhi[iaux*nr], aux2C, nr*sizeof(np.complex64_t))
 	free(aux2)
-	del Z
+	free(Z)
 	cdef float a
 	cdef float b
 	cdef float c
@@ -1268,6 +1469,7 @@ def _srun_new(list X, float r, int remove_mean):
 	# Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
 	cdef np.complex64_t *auxbJov
 	cdef np.complex64_t *aux3C
+	cdef np.complex64_t *aux4C
 	cdef np.complex64_t *Vand
 	cdef np.complex64_t *P
 	cdef np.complex64_t *Pinv
@@ -1299,7 +1501,7 @@ def _srun_new(list X, float r, int remove_mean):
 		for irow in range(nr):
 			aux1C[irow] = 0 + 0*I
 			for icol in range(n-1):# casting Vr to a complex, at the same time, it is multipilied per S and Vand
-				aux1C[irow] += S[irow]*VT[irow, icol]*(crealf(Vand[iaux*(n-1) + icol])+cimagf(Vand[iaux*(n-1) + icol])*I)
+				aux1C[irow] += Sr[irow]*VTr[irow*(n-1) + icol]*(crealf(Vand[iaux*(n-1) + icol])+cimagf(Vand[iaux*(n-1) + icol])*I)
 			aux2C[irow] = w[irow*nr + iaux]
 		c_cmatmult(&q[iaux], aux1C, aux2C, 1, 1, nr, 'N', 'N')
 
@@ -1324,9 +1526,8 @@ def _srun_new(list X, float r, int remove_mean):
 	cr_stop('DMD.amplitudes',0)
 
 	# Free allocated arrays before reordering
-	del U
-	del S
-	del VT
+	free(Sr)
+	free(VTr)
 	free(aux1C)
 	free(aux2C)
 	free(aux3C)
@@ -1412,33 +1613,110 @@ def _drun_new(list X, double r, int remove_mean):
 		- Variables needed to reconstruct flow
 	'''
 	# Variables
-	cdef int m, n, irow, icol, iaux
-	cdef double[:, ::1] Y
-	cdef double[:, ::1] Z
-	cdef double[:, ::1] U
-	cdef double[::1] S
-	cdef double[:, ::1] VT
-	cdef double[:, ::1] Atilde
-	
-	# Create the snapshot of matrices and separate it into Y, Z
+	cdef int m, n, irow, icol, iaux, retval
+	cdef int n_matrix, n_local, n_total, m_aux
+	m = X[0].shape[0]
+	n_matrix = len(X)
+
 	cr_start('DMD.concatenate', 0)
-	Y, Z = _dconcatenate(X, remove_mean)
+	cdef double **X_pointer
+	cdef int *n_list
+	X_pointer = <double**>malloc(n_matrix*sizeof(double*))
+	n_list    = <int*>malloc(n_matrix*sizeof(int))
+
+	cdef double[:, ::1] M
+	n_total = 0
+	for iaux in range(n_matrix):
+		M = X[iaux]
+		n_local = M.shape[1]
+		n_total += n_local - 1
+		X_pointer[iaux] = <double*>malloc(m*n_local*sizeof(double))
+		memcpy(X_pointer[iaux], &M[0,0], m*n_local*sizeof(double))
+		n_list[iaux] = n_local
+	n = n_total + 1
+
+	if m > n_total:
+		m_aux = m
+	else:
+		m_aux = n_total
+
+	cdef double *Y
+	cdef double *Z
+	Y = <double*>calloc(m_aux*n_total, sizeof(double))
+	Z = <double*>malloc(m*n_total*sizeof(double))
+
+	# Create the snapshot of matrices and separate it into Y, Z
+	if remove_mean: cr_start('DMD.temporal_mean',0)
+	c_dconcatenate(Y, Z, X_pointer, n_list, n_matrix, m, n_total, remove_mean)
+	if remove_mean: cr_stop('DMD.temporal_mean',0)
+	for iaux in range(n_matrix):
+		free(X_pointer[iaux])
+	free(X_pointer)
+	free(n_list)
 	cr_stop('DMD.concatenate', 0)
-	m = Z.shape[0]
-	n = Z.shape[1] + 1
+
 	# Compute the linear operator in lower dimension
 	cr_start('DMD.linear_operator', 0)
-	U, S, VT, Atilde = _dlinear_operator(Y, Z, r)
-	cr_stop('DMD.linear_operator', 0)
-	# Create auxiliar matrix
-	del Y
+	## Compute SVD
+	cr_start('DMD.SVD',0)
+	cdef double *U_aux
+	cdef double *S_all
+	cdef double *VT_all
+	U_aux  = <double*>malloc(m_aux*(n-1)*sizeof(double))
+	S_all  = <double*>malloc((n-1)*sizeof(double))
+	VT_all = <double*>malloc((n-1)*(n-1)*sizeof(double))
+	retval = c_dtsqr_svd(U_aux, S_all, VT_all, Y, m_aux, (n-1))
+	if not retval == 0: raiseError('Problems computing SVD!')
+	free(Y)
+	cr_stop('DMD.SVD',0)
+
+	## Remove artificial 0 rows
+	cdef double *U_all
+	U_all = <double*>malloc(m*(n-1)*sizeof(double))
+	c_dremove_rows(U_aux, U_all, m, (n-1))
+	free(U_aux)
+
+	## Truncate
+	cr_start('DMD.truncate',0)
 	cdef int nr
-	nr = Atilde.shape[1]
+	if r > 1:
+		nr = int(r)
+	else:
+		nr = c_dcompute_truncation_residual(S_all, r, (n-1))
+
+	cdef double *Ur
+	cdef double *Sr
+	cdef double *VTr
+	Ur  = <double*>malloc(m*nr*sizeof(double))
+	Sr  = <double*>malloc(nr*sizeof(double))
+	VTr = <double*>malloc(nr*(n-1)*sizeof(double))
+	c_dcompute_truncation(Ur, Sr, VTr, U_all, S_all, VT_all, m, (n-1), (n-1), nr)
+	free(U_all)
+	free(S_all)
+	free(VT_all)
+	cr_stop('DMD.truncate',0)
+
+	# Project Jacobian of the snapshots into the POD basis
+	cr_start('DMD.linear_mapping',0)
+	cdef double *aux1
 	cdef double *aux2
+	cdef double *Atilde
+	cdef double *Urt
+	aux1   = <double*>malloc(nr*(n-1)*sizeof(double))
 	aux2   = <double*>malloc(nr*(n-1)*sizeof(double))
+	Atilde = <double*>malloc(nr*nr*sizeof(double))
+	Urt    = <double*>malloc(nr*m*sizeof(double))
+	c_dtranspose(Ur, Urt, m, nr)
+	c_dmatmulp(aux1, Urt, Z, nr, (n-1), m)
+	free(Urt)
+	free(Ur)
 	for icol in range(n-1):
 		for irow in range(nr):
-			aux2[icol*nr + irow] = VT[irow, icol]/S[irow]
+			aux2[icol*nr + irow] = VTr[irow*(n-1) + icol]/Sr[irow]
+	c_dmatmul(Atilde, aux1, aux2, nr, nr, (n-1))
+	free(aux1)
+	cr_stop('DMD.linear_mapping',0)
+	cr_stop('DMD.linear_operator', 0)
 
 	# Compute eigenmodes
 	cdef double *auxmuReal
@@ -1448,9 +1726,10 @@ def _drun_new(list X, double r, int remove_mean):
 	auxmuImag = <double*>malloc(nr*sizeof(double))
 	w         = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
 	cr_start('DMD.eigendecomposition',0)
-	retval = c_zeigen(auxmuReal,auxmuImag,w,&Atilde[0,0],nr,nr)
+	retval = c_zeigen(auxmuReal,auxmuImag,w,Atilde,nr,nr)
+	if not retval == 0: raiseError('Problems computing the eigendecomposition!')
 	cr_stop('DMD.eigendecomposition',0)
-	del Atilde
+	free(Atilde)
 
 	# Computation of DMD modes
 	cr_start('DMD.modes',0)
@@ -1462,13 +1741,13 @@ def _drun_new(list X, double r, int remove_mean):
 	aux2C  = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
 	for iaux in range(m):
 		for icol in range(nr):
-			aux1C[icol] = 0 + 0*I
+			aux1C[icol] = 0 + 0*J
 			for irow in range(n-1):
-				aux1C[icol] += Z[iaux, irow]*aux2[irow*nr + icol]
+				aux1C[icol] += Z[iaux*(n-1) + irow]*aux2[irow*nr + icol]
 		c_zmatmult(aux2C, aux1C, w, 1, nr, nr, 'N', 'N')
 		memcpy(&auxPhi[iaux*nr], aux2C, nr*sizeof(np.complex128_t))
 	free(aux2)
-	del Z
+	free(Z)
 	cdef double a
 	cdef double b
 	cdef double c
@@ -1479,14 +1758,15 @@ def _drun_new(list X, double r, int remove_mean):
 		d = auxmuImag[icol]
 		div = c*c + d*d
 		for iaux in range(m):
-			a = crealf(auxPhi[iaux*nr + icol])
-			b = cimagf(auxPhi[iaux*nr + icol])
-			auxPhi[iaux*nr + icol] = (a*c + b*d)/div + (b*c - a*d)/div*I
+			a = creal(auxPhi[iaux*nr + icol])
+			b = cimag(auxPhi[iaux*nr + icol])
+			auxPhi[iaux*nr + icol] = (a*c + b*d)/div + (b*c - a*d)/div*J
 	cr_stop('DMD.modes',0)
 
 	# Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
 	cdef np.complex128_t *auxbJov
 	cdef np.complex128_t *aux3C
+	cdef np.complex128_t *aux4C
 	cdef np.complex128_t *Vand
 	cdef np.complex128_t *P
 	cdef np.complex128_t *Pinv
@@ -1507,18 +1787,18 @@ def _drun_new(list X, double r, int remove_mean):
 
 	for irow in range(nr):
 		for icol in range(nr): # Loop on the columns of the Vandermonde matrix
-			P[irow*nr + icol]  = crealf(aux3C[irow*nr + icol])*crealf(aux4C[irow*nr + icol])
-			P[irow*nr + icol] += -crealf(aux3C[irow*nr + icol])*cimagf(aux4C[irow*nr + icol])*I 
-			P[irow*nr + icol] += cimagf(aux3C[irow*nr + icol])*crealf(aux4C[irow*nr + icol])*I
-			P[irow*nr + icol] += cimagf(aux3C[irow*nr + icol])*cimagf(aux4C[irow*nr + icol])
+			P[irow*nr + icol]  = creal(aux3C[irow*nr + icol])*creal(aux4C[irow*nr + icol])
+			P[irow*nr + icol] += -creal(aux3C[irow*nr + icol])*cimag(aux4C[irow*nr + icol])*J
+			P[irow*nr + icol] += cimag(aux3C[irow*nr + icol])*creal(aux4C[irow*nr + icol])*J
+			P[irow*nr + icol] += cimag(aux3C[irow*nr + icol])*cimag(aux4C[irow*nr + icol])
 	retval = c_zcholesky(P, nr)
 	if not retval == 0: raiseError('Problems computing Cholesky factorization!')
 
 	for iaux in range(nr):
 		for irow in range(nr):
-			aux1C[irow] = 0 + 0*I
+			aux1C[irow] = 0 + 0*J
 			for icol in range(n-1):# casting Vr to a complex, at the same time, it is multipilied per S and Vand
-				aux1C[irow] += S[irow]*VT[irow, icol]*(crealf(Vand[iaux*(n-1) + icol])+cimagf(Vand[iaux*(n-1) + icol])*I)
+				aux1C[irow] += Sr[irow]*VTr[irow*(n-1) + icol]*(creal(Vand[iaux*(n-1) + icol])+cimag(Vand[iaux*(n-1) + icol])*J)
 			aux2C[irow] = w[irow*nr + iaux]
 		c_zmatmult(&q[iaux], aux1C, aux2C, 1, 1, nr, 'N', 'N')
 
@@ -1526,10 +1806,10 @@ def _drun_new(list X, double r, int remove_mean):
 	cdef int ii
 	cdef int jj
 	for ii in range(nr):
-		q[ii] = crealf(q[ii]) - cimagf(q[ii])*I
+		q[ii] = creal(q[ii]) - cimag(q[ii])*J
 		for jj in range(nr - ii):
-			P[ii*nr + ii+jj]   = crealf(P[(ii+jj)*nr + ii])  - cimagf(P[(ii+jj)*nr + ii])*I
-			P[(ii+jj)*nr + ii] = crealf(Pinv[ii*nr + ii+jj]) - cimagf(Pinv[ii*nr + ii+jj])*I
+			P[ii*nr + ii+jj]   = creal(P[(ii+jj)*nr + ii])  - cimag(P[(ii+jj)*nr + ii])*J
+			P[(ii+jj)*nr + ii] = creal(Pinv[ii*nr + ii+jj]) - cimag(Pinv[ii*nr + ii+jj])*J
 
 	retval = c_zinverse(Pinv, nr, 'L')
 	if not retval == 0: raiseError('Problems computing the Inverse!')
@@ -1543,9 +1823,8 @@ def _drun_new(list X, double r, int remove_mean):
 	cr_stop('DMD.amplitudes',0)
 
 	# Free allocated arrays before reordering
-	del U
-	del S
-	del VT
+	free(Sr)
+	free(VTr)
 	free(aux1C)
 	free(aux2C)
 	free(aux3C)
@@ -1595,11 +1874,11 @@ def _drun_new(list X, double r, int remove_mean):
 		if iimag < 0:
 			muImag[ii]   =  muImag[ii+1]
 			muImag[ii+1] = -muImag[ii]
-			bJov[ii]     = crealf(bJov[ii])   + cimagf(bJov[ii+1])*I
-			bJov[ii+1]   = crealf(bJov[ii+1]) - cimagf(bJov[ii])*I
+			bJov[ii]     = creal(bJov[ii])   + cimag(bJov[ii+1])*J
+			bJov[ii+1]   = creal(bJov[ii+1]) - cimag(bJov[ii])*J
 			for jj in range(m):
-				Phi[jj,ii]   = crealf(Phi[jj,ii])   + cimagf(Phi[jj,ii+1])*I
-				Phi[jj,ii+1] = crealf(Phi[jj,ii+1]) - cimagf(Phi[jj,ii+1])*I
+				Phi[jj,ii]   = creal(Phi[jj,ii])   + cimag(Phi[jj,ii+1])*J
+				Phi[jj,ii+1] = creal(Phi[jj,ii+1]) - cimag(Phi[jj,ii+1])*J
 			p = 1
 			continue
 		if iimag > 0:
