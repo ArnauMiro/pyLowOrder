@@ -73,82 +73,172 @@ cdef void _dfft(np.complex128_t *out, double *Xf, double winWeight, int nDFT, in
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 cdef void _ssort(float *L, float *P, float *f, int M, int nBlks, int nf):
-	cdef int ii, jj, pos
+	cdef int ii, jj, r, i, j, k, icyc, ncyc
 	cdef float *v
-	cdef int *idx
-	cdef float *Lt
-	cdef float *Pt
-	cdef float *ft
-	v   = <float*>malloc(nf*sizeof(float))
-	idx = <int*>malloc(nf*sizeof(int))
+	cdef int *sigma
+	cdef int *start
+	cdef float *tmpl
+	cdef float tmp, tmp2
+	v     = <float*>malloc(nf*sizeof(float))
+	sigma = <int*>malloc(nf*sizeof(int))
+	start = <int*>malloc(nf*sizeof(int))
+	tmpl  = <float*>malloc(nBlks*sizeof(float))
 	# Copy to v
 	for ii in range(nf):
 		v[ii] = L[nBlks*ii + 0]
 	# Obtain index array that sorts v
-	c_ssort(v,idx,nf)
+	c_ssort(v,sigma,nf)
 	free(v)
-	# Allocate temporary copies of L, P and f
-	Lt = <float*>malloc(nf*nBlks*sizeof(float))
-	Pt = <float*>malloc(M*nBlks*nf*sizeof(float))
-	ft = <float*>malloc(nf*sizeof(float))
-	memcpy(Lt,L,nf*nBlks*sizeof(float))
-	memcpy(Pt,P,M*nBlks*nf*sizeof(float))
-	memcpy(ft,f,nf*sizeof(float))
-	# Reorder L, P and f arrays
-	# element ii goes to position nf-idx[ii]-1 (descending order)
+	# Build the destination permutation sigma: element ii goes to
+	# position nf-sigma[ii]-1 (reversed order, i.e. descending)
 	for ii in range(nf):
-		pos = nf-idx[ii]-1 # Reversed order
-		# Store f
-		f[pos] = ft[ii]
-		# Store L
-		for jj in range(nBlks):
-			L[nBlks*pos + jj] = Lt[nBlks*ii + jj]
-		# Store P
-		for jj in range(M*nBlks):
-			P[nf*jj + pos] = Pt[nf*jj + ii]
-	free(Lt); free(Pt); free(ft)
-	free(idx)
+		sigma[ii] = nf-sigma[ii]-1
+	# Decompose sigma into cycles, recording the starting element of each
+	# cycle in start (elements already visited are marked negative).
+	# Cycles of length one need no reordering and are skipped.
+	ncyc = 0
+	for i in range(nf):
+		if sigma[i] < 0: continue # already in a previous cycle
+		if sigma[i] == i: # cycle of length one: mark and skip
+			sigma[i] = -i-1
+			continue
+		start[ncyc] = i
+		ncyc = ncyc + 1
+		j = i
+		while True:
+			k        = sigma[j]
+			sigma[j] = -k-1 # mark as visited
+			if k == i: break # cycle closed
+			j = k
+	# Restore sigma
+	for ii in range(nf):
+		sigma[ii] = -sigma[ii]-1
+	# Reorder f and L in place: rotate each cycle using a single temporary
+	# element (one row of nBlks elements for L), so that no copy of f, L
+	# or P is needed. Element j of the cycle goes to position sigma[j].
+	for icyc in range(ncyc):
+		i   = start[icyc]
+		j   = i
+		tmp = f[i]
+		memcpy(tmpl,&L[nBlks*i],nBlks*sizeof(float))
+		while True:
+			k = sigma[j]
+			if k == i: break # cycle closed
+			# Rotate f
+			tmp2 = f[k]; f[k] = tmp; tmp = tmp2
+			# Rotate L
+			for jj in range(nBlks):
+				tmp2          = L[nBlks*k+jj]
+				L[nBlks*k+jj] = tmpl[jj]
+				tmpl[jj]      = tmp2
+			j = k
+		f[i] = tmp
+		memcpy(&L[nBlks*i],tmpl,nBlks*sizeof(float))
+	# Reorder P in place: the same permutation acts on the columns of each
+	# of the M*nBlks rows of P (contiguous arrays of nf elements), which
+	# are rotated cycle by cycle using a single temporary element
+	for r in range(M*nBlks):
+		for icyc in range(ncyc):
+			i   = start[icyc]
+			j   = i
+			tmp = P[nf*r+i]
+			while True:
+				k = sigma[j]
+				if k == i: break # cycle closed
+				tmp2      = P[nf*r+k]
+				P[nf*r+k] = tmp
+				tmp       = tmp2
+				j         = k
+			P[nf*r+i] = tmp
+	free(start)
+	free(tmpl)
+	free(sigma)
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 cdef void _dsort(double *L, double *P, double *f, int M, int nBlks, int nf):
-	cdef int ii, jj, pos
+	cdef int ii, jj, r, i, j, k, icyc, ncyc
 	cdef double *v
-	cdef int *idx
-	cdef double *Lt
-	cdef double *Pt
-	cdef double *ft
-	v   = <double*>malloc(nf*sizeof(double))
-	idx = <int*>malloc(nf*sizeof(int))
+	cdef int *sigma
+	cdef int *start
+	cdef double *tmpl
+	cdef double tmp, tmp2
+	v     = <double*>malloc(nf*sizeof(double))
+	sigma = <int*>malloc(nf*sizeof(int))
+	start = <int*>malloc(nf*sizeof(int))
+	tmpl  = <double*>malloc(nBlks*sizeof(double))
 	# Copy to v
 	for ii in range(nf):
 		v[ii] = L[nBlks*ii + 0]
 	# Obtain index array that sorts v
-	c_dsort(v,idx,nf)
+	c_dsort(v,sigma,nf)
 	free(v)
-	# Allocate temporary copies of L, P and f
-	Lt = <double*>malloc(nf*nBlks*sizeof(double))
-	Pt = <double*>malloc(M*nBlks*nf*sizeof(double))
-	ft = <double*>malloc(nf*sizeof(double))
-	memcpy(Lt,L,nf*nBlks*sizeof(double))
-	memcpy(Pt,P,M*nBlks*nf*sizeof(double))
-	memcpy(ft,f,nf*sizeof(double))
-	# Reorder L, P and f arrays
-	# element ii goes to position nf-idx[ii]-1 (descending order)
+	# Build the destination permutation sigma: element ii goes to
+	# position nf-sigma[ii]-1 (reversed order, i.e. descending)
 	for ii in range(nf):
-		pos = nf-idx[ii]-1 # Reversed order
-		# Store f
-		f[pos] = ft[ii]
-		# Store L
-		for jj in range(nBlks):
-			L[nBlks*pos + jj] = Lt[nBlks*ii + jj]
-		# Store P
-		for jj in range(M*nBlks):
-			P[nf*jj + pos] = Pt[nf*jj + ii]
-	free(Lt); free(Pt); free(ft)
-	free(idx)
+		sigma[ii] = nf-sigma[ii]-1
+	# Decompose sigma into cycles, recording the starting element of each
+	# cycle in start (elements already visited are marked negative).
+	# Cycles of length one need no reordering and are skipped.
+	ncyc = 0
+	for i in range(nf):
+		if sigma[i] < 0: continue # already in a previous cycle
+		if sigma[i] == i: # cycle of length one: mark and skip
+			sigma[i] = -i-1
+			continue
+		start[ncyc] = i
+		ncyc = ncyc + 1
+		j = i
+		while True:
+			k        = sigma[j]
+			sigma[j] = -k-1 # mark as visited
+			if k == i: break # cycle closed
+			j = k
+	# Restore sigma
+	for ii in range(nf):
+		sigma[ii] = -sigma[ii]-1
+	# Reorder f and L in place: rotate each cycle using a single temporary
+	# element (one row of nBlks elements for L), so that no copy of f, L
+	# or P is needed. Element j of the cycle goes to position sigma[j].
+	for icyc in range(ncyc):
+		i   = start[icyc]
+		j   = i
+		tmp = f[i]
+		memcpy(tmpl,&L[nBlks*i],nBlks*sizeof(double))
+		while True:
+			k = sigma[j]
+			if k == i: break # cycle closed
+			# Rotate f
+			tmp2 = f[k]; f[k] = tmp; tmp = tmp2
+			# Rotate L
+			for jj in range(nBlks):
+				tmp2          = L[nBlks*k+jj]
+				L[nBlks*k+jj] = tmpl[jj]
+				tmpl[jj]      = tmp2
+			j = k
+		f[i] = tmp
+		memcpy(&L[nBlks*i],tmpl,nBlks*sizeof(double))
+	# Reorder P in place: the same permutation acts on the columns of each
+	# of the M*nBlks rows of P (contiguous arrays of nf elements), which
+	# are rotated cycle by cycle using a single temporary element
+	for r in range(M*nBlks):
+		for icyc in range(ncyc):
+			i   = start[icyc]
+			j   = i
+			tmp = P[nf*r+i]
+			while True:
+				k = sigma[j]
+				if k == i: break # cycle closed
+				tmp2      = P[nf*r+k]
+				P[nf*r+k] = tmp
+				tmp       = tmp2
+				j         = k
+			P[nf*r+i] = tmp
+	free(start)
+	free(tmpl)
+	free(sigma)
 
 
 ## SPOD run method
