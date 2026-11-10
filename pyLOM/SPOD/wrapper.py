@@ -23,7 +23,7 @@ def _fft(Xf, winWeight, nDFT, nf):
 
 ## SPOD run method
 @cr('SPOD.run')
-def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=True, weights:np.ndarray=None):
+def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=True, W:np.ndarray=None):
 	r'''
 	Run SPOD analysis of a matrix X.
 
@@ -33,7 +33,7 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 		nDFT (int, optional): number of points in each window (0 will set default value: ~10% nt)
 		nolap (int, optional): number of overlap points between windows (0 will set default value: 50% nwin)
 		remove_mean (bool, optional): whether or not to remove the mean flow (default, ``True``)
-		weights (np.ndarray, optional): 1D array with the diagonal of the inner-product weight matrix W 
+		W (np.ndarray, optional): 1D array with the diagonal of the inner-product weight matrix W
 
 	Returns:
 		[(np.ndarray), (np.ndarray), (np.ndarray)]: where the first array is L, the modal energy spectra, the second array is  P, SPOD modes, whose spatial dimensions are identical to those of X and finally f is the frequency vectors
@@ -43,9 +43,9 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 	dt  = t[1] - t[0]
 	cdtype = np.complex128 if X.dtype is np.double else np.complex64
 
-	# Inner-product weights (diagonal of the weight matrix W); it is the
+	# Inner-product weight matrix W (given by its diagonal); it is the
 	# user's responsibility to provide a valid weight vector
-	sw = None if weights is None else cpu_to_gpu(np.sqrt(np.ascontiguousarray(gpu_to_cpu(weights),dtype=X.dtype)))
+	W_sqrt = None if W is None else cpu_to_gpu(np.sqrt(np.ascontiguousarray(gpu_to_cpu(W),dtype=X.dtype)))
 	
 	if nDFT == 0:
 		nDFT = int(np.power(2,np.floor(np.log2(N/10))))
@@ -70,8 +70,8 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 
 	# Energy norm: scale the data by the square root of the diagonal of W
 	# so that the plain SVD below yields the modal energies in the W inner product
-	if sw is not None:
-		Y = Y*sw[:,None]
+	if W_sqrt is not None:
+		Y = Y*W_sqrt[:,None]
 
 	# Set frequency axis
 	f  = cnp.arange(np.ceil(nDFT / 2) + 1) / dt / nDFT
@@ -100,8 +100,8 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 	cr_stop('SPOD.SVD',0)
 
 	# Recover the physical, W-orthonormal modes from the transformed ones
-	if sw is not None:
-		P = P/cnp.tile(sw,nBlks)[:,None]
+	if W_sqrt is not None:
+		P = P/cnp.tile(W_sqrt,nBlks)[:,None]
 
 	cr_start('SPOD.sort',0)
 	order = cnp.argsort(L[:,0])[::-1]

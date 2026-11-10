@@ -246,7 +246,7 @@ cdef void _dsort(double *L, double *P, double *f, int M, int nBlks, int nf):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean, float[:] w):
+def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean, float[:] W):
 	'''
 	Run SPOD analysis of a matrix X.
 
@@ -256,7 +256,7 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean, float[
 		- npwin:             number of points in each window (0 will set default value: ~10% nt)
 		- nolap:             number of overlap points between windows (0 will set default value: 50% nwin)
 		- remove_mean:       whether or not to remove the mean flow
-		- w[ndims*nmesh]:    diagonal of the inner-product weight matrix W (energy norm); None for no weighting
+		- W[ndims*nmesh]:    diagonal of the inner-product weight matrix (energy norm); None for no weighting
 
 	Returns:
 		- L:  modal energy spectra.
@@ -277,7 +277,7 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean, float[
 	cdef np.complex64_t *V
 	cdef np.complex64_t *qf
 	cdef bint weighted
-	cdef float *sw
+	cdef float *W_sqrt
 
 	# Output arrays
 	cdef np.ndarray[np.float32_t,ndim=2] L
@@ -322,17 +322,17 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean, float[
 	# The data is scaled by the square root of the diagonal of W so that the
 	# plain SVD below yields the modal energies in the W inner product.
 	# Providing a valid weight vector is the user's responsibility.
-	weighted = w is not None
-	sw = NULL
+	weighted = W is not None
+	W_sqrt = NULL
 	if weighted:
 		# Square root of the diagonal of W
-		sw = <float*>malloc(M*sizeof(float))
+		W_sqrt = <float*>malloc(M*sizeof(float))
 		for i in range(M):
-			sw[i] = sqrt(w[i])
+			W_sqrt[i] = sqrt(W[i])
 		# Scale the data rows
 		for i in range(M):
 			for j in range(N):
-				Y[N*i + j] = Y[N*i + j]*sw[i]
+				Y[N*i + j] = Y[N*i + j]*W_sqrt[i]
 
 	# Set frequency axis
 	nf = <int>(ceil(nDFT/2)) + 1
@@ -405,8 +405,8 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean, float[
 		for i in range(M):
 			for iblk in range(nBlks):
 				for ifreq in range(nf):
-					P[i + M*iblk,ifreq] = P[i + M*iblk,ifreq]/sw[i]
-	free(sw)
+					P[i + M*iblk,ifreq] = P[i + M*iblk,ifreq]/W_sqrt[i]
+	free(W_sqrt)
 
 	# Sort
 	cr_start('SPOD.sort',0)
@@ -419,7 +419,7 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean, float[
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean, double[:] w):
+def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean, double[:] W):
 	'''
 	Run SPOD analysis of a matrix X.
 
@@ -429,7 +429,7 @@ def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean, doub
 		- npwin:             number of points in each window (0 will set default value: ~10% nt)
 		- nolap:             number of overlap points between windows (0 will set default value: 50% nwin)
 		- remove_mean:       whether or not to remove the mean flow
-		- w[ndims*nmesh]:    diagonal of the inner-product weight matrix W (energy norm); None for no weighting
+		- W[ndims*nmesh]:    diagonal of the inner-product weight matrix (energy norm); None for no weighting
 
 	Returns:
 		- L:  modal energy spectra.
@@ -450,7 +450,7 @@ def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean, doub
 	cdef np.complex128_t *V
 	cdef np.complex128_t *qf
 	cdef bint weighted
-	cdef double *sw
+	cdef double *W_sqrt
 
 	# Output arrays
 	cdef np.ndarray[np.double_t,ndim=2] L
@@ -495,17 +495,17 @@ def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean, doub
 	# The data is scaled by the square root of the diagonal of W so that the
 	# plain SVD below yields the modal energies in the W inner product.
 	# Providing a valid weight vector is the user's responsibility.
-	weighted = w is not None
-	sw = NULL
+	weighted = W is not None
+	W_sqrt = NULL
 	if weighted:
 		# Square root of the diagonal of W
-		sw = <double*>malloc(M*sizeof(double))
+		W_sqrt = <double*>malloc(M*sizeof(double))
 		for i in range(M):
-			sw[i] = sqrt(w[i])
+			W_sqrt[i] = sqrt(W[i])
 		# Scale the data rows
 		for i in range(M):
 			for j in range(N):
-				Y[N*i + j] = Y[N*i + j]*sw[i]
+				Y[N*i + j] = Y[N*i + j]*W_sqrt[i]
 
 	# Set frequency axis
 	nf = <int>(ceil(nDFT/2)) + 1
@@ -578,8 +578,8 @@ def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean, doub
 		for i in range(M):
 			for iblk in range(nBlks):
 				for ifreq in range(nf):
-					P[i + M*iblk,ifreq] = P[i + M*iblk,ifreq]/sw[i]
-	free(sw)
+					P[i + M*iblk,ifreq] = P[i + M*iblk,ifreq]/W_sqrt[i]
+	free(W_sqrt)
 
 	# Sort
 	cr_start('SPOD.sort',0)
@@ -593,7 +593,7 @@ def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean, doub
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def run(real[:,:] X, real[:] t, int nDFT=0, int nolap=0, remove_mean=True, weights=None):
+def run(real[:,:] X, real[:] t, int nDFT=0, int nolap=0, remove_mean=True, W=None):
 	r'''
 	Run SPOD analysis of a matrix X.
 
@@ -603,14 +603,14 @@ def run(real[:,:] X, real[:] t, int nDFT=0, int nolap=0, remove_mean=True, weigh
 		nDFT (int, optional): number of points in each window (0 will set default value: ~10% nt)
 		nolap (int, optional): number of overlap points between windows (0 will set default value: 50% nwin)
 		remove_mean (bool, optional): whether or not to remove the mean flow (default, ``True``)
-		weights (np.ndarray, optional): 1D array with the diagonal of the inner-product weight matrix
+		W (np.ndarray, optional): 1D array with the diagonal of the inner-product weight matrix
 
 	Returns:
 		[(np.ndarray), (np.ndarray), (np.ndarray)]: where the first array is L, the modal energy spectra, the second array is  P, SPOD modes, whose spatial dimensions are identical to those of X and finally f is the frequency vectors
 	''' 
 	if real is double:
-		w = None if weights is None else np.ascontiguousarray(weights,dtype=np.double)
-		return _drun(X,t,nDFT,nolap,remove_mean,w)
+		W = None if W is None else np.ascontiguousarray(W,dtype=np.double)
+		return _drun(X,t,nDFT,nolap,remove_mean,W)
 	else:
-		w = None if weights is None else np.ascontiguousarray(weights,dtype=np.float32)
-		return _srun(X,t,nDFT,nolap,remove_mean,w)
+		W = None if W is None else np.ascontiguousarray(W,dtype=np.float32)
+		return _srun(X,t,nDFT,nolap,remove_mean,W)
