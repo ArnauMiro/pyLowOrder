@@ -29,8 +29,6 @@ from ..vmmath.cfuncs cimport c_svecmat, c_sconcatenate, c_sseparate, c_stsqr_svd
 from ..vmmath.cfuncs cimport c_dvecmat, c_dconcatenate, c_dseparate, c_dtsqr_svd, c_dremove_rows, c_dcompute_truncation_residual, c_dcompute_truncation, c_dtranspose, c_dmatmul, c_dmatmulp
 from ..vmmath.cfuncs cimport c_csvd, c_cdagger, c_cmatmul, c_cmatmulp, c_cvecmat, c_ccholesky, c_cinverse, c_cresolvent
 from ..vmmath.cfuncs cimport c_zsvd, c_zdagger, c_zmatmul, c_zmatmulp, c_zvecmat, c_zcholesky, c_zinverse, c_zresolvent
-from ..vmmath.linear cimport _sconcatenate, _slinear_operator, _sseparate, _cresolvent
-from ..vmmath.linear cimport _dconcatenate, _dlinear_operator, _dseparate, _zresolvent
 
 from ..utils.cr       import cr, cr_start, cr_stop
 from ..utils.errors   import raiseError

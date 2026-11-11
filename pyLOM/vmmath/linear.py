@@ -11,7 +11,10 @@ import numpy as np
 
 from ..utils.gpu import cp
 from ..vmmath    import vecmat, matmul, tsqr_svd, transpose, matmulp, remove_rows, temporal_mean, subtract_mean, svd, dagger
-from ..POD       import truncate
+# NOTE: truncation is taken from vmmath's own truncation module; reaching up to
+# ..POD for it created a circular import (vmmath -> POD -> pyLOM) when the
+# pure-Python mirrors are used (compiled vmmath calls the C routine directly)
+from .truncation  import compute_truncation_residual
 from ..utils     import cr_nvtx as cr, cr_start, cr_stop
 
 def linear_operator(Y, Z, r):
@@ -29,8 +32,11 @@ def linear_operator(Y, Z, r):
 		U = U_aux.copy()
 
 	# Truncate according to residual
+	# NOTE: inlined POD.truncate (which we cannot import from here); follows the
+	# compiled convention: r > 1 -> number of modes, 0 < r < 1 -> residual
 	cr_start('DMD.truncate', 0)
-	U, S, VT = truncate(U, S, VT, r)
+	nr = int(r) if r > 1 else compute_truncation_residual(S, r)
+	U, S, VT = U[:,:nr], S[:nr], VT[:nr,:]
 	cr_stop('DMD.truncate', 0)
 
 	# Project A (Jacobian of the snapshots) into POD basis

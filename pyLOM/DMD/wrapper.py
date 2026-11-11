@@ -10,7 +10,7 @@ from __future__ import print_function
 import numpy as np
 
 from ..utils.gpu import cp
-from ..vmmath    import matmul, temporal_mean, subtract_mean, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, flip, vandermondeTime, linear_operator, concatenate, separate
+from ..vmmath    import matmul, temporal_mean, subtract_mean, transpose, eigen, cholesky, diag, polar, vandermonde, conj, inv, vandermondeTime, linear_operator, concatenate, separate
 from ..utils     import cr_nvtx as cr, cr_start, cr_stop
 
 
@@ -19,10 +19,12 @@ def _order_modes(muReal, muImag, Phi, bJov):
     Order the modes according to its amplitude, forcing that in case of a conjugate eigenvalue, the positive part always is the first one
 	'''
 	cnp    = cp if type(muReal) is cp.ndarray else np
-	muReal = muReal[flip(cnp.abs(bJov).argsort())]
-	muImag = muImag[flip(cnp.abs(bJov).argsort())]
-	Phi    = transpose(transpose(Phi)[flip(cnp.abs(bJov).argsort())])
-	bJov   = bJov[flip(cnp.abs(bJov).argsort())]
+	# NOTE: vmmath's flip() is not implemented; reversed slicing is equivalent
+	idx    = cnp.abs(bJov).argsort()[::-1]
+	muReal = muReal[idx]
+	muImag = muImag[idx]
+	Phi    = transpose(transpose(Phi)[idx])
+	bJov   = bJov[idx]
 	p = False
 	for ii in range(muImag.shape[0]):
 		if p == True:
@@ -46,81 +48,14 @@ def _order_modes(muReal, muImag, Phi, bJov):
 @cr('DMD.run')
 def run(X, r, remove_mean = True):
 	'''
-	DMD analysis of snapshot matrix X
+	DMD analysis of snapshot matrix X or list of snapshot matrices X
 	Inputs:
-		- X[ndims*nmesh,n_temp_snapshots]: data matrix
+		- X[ndims*nmesh,n_temp_snapshots]: data matrix or list of data matrices
+		                                   with stitched interfaces, i.e.
+		                                   X[i+1][:,0] == X[i][:,-1], sharing
+		                                   the same spatial dimension
 		- remove_mean:                     whether or not to remove the mean flow
-
-	Returns:
-		- Phi:      DMD Modes
-		- muReal:   Real part of the eigenvalues
-		- muImag:   Imaginary part of the eigenvalues
-		- b:        Amplitude of the DMD modes
-		- X_DMD:    Reconstructed flow
-	'''
-	# Remove temporal mean or not, depending on the user choice
-	if remove_mean:
-		cr_start('DMD.temporal_mean',0)
-		#Compute temporal mean
-		X_mean = temporal_mean(X)
-		#Subtract temporal mean
-		Y = subtract_mean(X, X_mean)
-		cr_stop('DMD.temporal_mean',0)
-	else:
-		Y = X.copy()
-
-	# Compute SVD
-	cr_start('DMD.SVD',0)
-	U, S, VT = tsqr_svd(Y[:, :-1])
-	cr_stop('DMD.SVD',0)
-	# Truncate according to residual
-	cr_start('DMD.truncate', 0)
-	U, S, VT = truncate(U, S, VT, r)
-	cr_stop('DMD.truncate', 0)
-
-	# Project A (Jacobian of the snapshots) into POD basis
-	cr_start('DMD.linear_mapping',0)
-	aux1   = matmulp(transpose(U), Y[:, 1:])
-	aux2   = transpose(vecmat(1./S, VT))
-	Atilde = matmul(aux1, aux2)
-	cr_stop('DMD.linear_mapping',0)
-
-	# Eigendecomposition of Atilde: Eigenvectors given as complex matrix
-	# NOTE: there is no implementation of eig in cupy yet
-	cr_start('DMD.modes',0)
-	muReal, muImag, w = eigen(Atilde)
-	muReal = cp.asarray(muReal) if type(Atilde) is cp.ndarray else muReal
-	muImag = cp.asarray(muImag) if type(Atilde) is cp.ndarray else muImag
-	w      = cp.asarray(w)      if type(Atilde) is cp.ndarray else w
-
-	# Mode computation
-	Phi =  matmul(matmul(matmul(Y[:, 1:], transpose(VT)), diag(1/S)), w)/(muReal + muImag*1J)
-	cr_stop('DMD.modes',0)
-
-	# Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
-	cr_start('DMD.amplitudes',0)
-	Vand = vandermonde(muReal, muImag, muReal.shape[0], Y.shape[1]-1)
-	P    = matmul(transpose(conj(w)), w)*conj(matmul(Vand, transpose(conj(Vand))))
-	Pl   = cholesky(P)
-	G    = matmul(diag(S), VT)
-	q    = conj(diag(matmul(matmul(Vand, transpose(conj(G))), w)))
-	bJov = matmul(inv(transpose(conj(Pl))), matmul(inv(Pl), q)) #Amplitudes according to Jovanovic 2014
-	cr_stop('DMD.amplitudes',0)
-
-	# Order modes and eigenvalues according to its amplitude
-	cr_start('DMD.order',0)
-	muReal, muImag, Phi, bJov = _order_modes(muReal, muImag, Phi, bJov)
-	cr_stop('DMD.order',0)
-
-	return muReal, muImag, Phi, bJov
-
-@cr('DMD.run_new')
-def run_new(X, r, remove_mean = True):
-	'''
-	DMD analysis of snapshot matrix X
-	Inputs:
-		- X[ndims*nmesh,n_temp_snapshots]: data matrix
-		- remove_mean:                     whether or not to remove the mean flow
+		- r:                               maximum truncation residual
 
 	Returns:
 		- Phi:      DMD Modes
@@ -132,11 +67,9 @@ def run_new(X, r, remove_mean = True):
 	# Prepare matrices and calculate the linear operator
 	if (type(X) is list):
 		Y, Z = concatenate(X, remove_mean=remove_mean)
-		U, S, VT, Atilde = linear_operator(Y, Z, r)
-
 	else:
 		Y, Z = separate(X, remove_mean=remove_mean)
-		U, S, VT, Atilde = linear_operator(Y, Z, r)
+	U, S, VT, Atilde = linear_operator(Y, Z, r)
 
 	del U
 
@@ -149,7 +82,10 @@ def run_new(X, r, remove_mean = True):
 	w      = cp.asarray(w)      if type(Atilde) is cp.ndarray else w
 
 	# Mode computation
-	Phi =  matmul(matmul(matmul(Z, transpose(VT)), diag(1/S)), w)/(muReal + muImag*1J)
+	# NOTE: the real intermediate is promoted to complex since vmmath's fused
+	# matmul requires both operands to share the same dtype
+	Vr   = matmul(matmul(Z, transpose(VT)), diag(1/S))
+	Phi  = matmul(Vr.astype(np.result_type(Vr.dtype, w.dtype)), w)/(muReal + muImag*1J)
 	cr_stop('DMD.modes',0)
 
 	# Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
@@ -157,9 +93,15 @@ def run_new(X, r, remove_mean = True):
 	Vand = vandermonde(muReal, muImag, muReal.shape[0], Y.shape[1])
 	P    = matmul(transpose(conj(w)), w)*conj(matmul(Vand, transpose(conj(Vand))))
 	Pl   = cholesky(P)
-	G    = matmul(diag(S), VT)
-	q    = conj(diag(matmul(matmul(Vand, transpose(conj(G))), w)))
-	bJov = matmul(inv(transpose(conj(Pl))), matmul(inv(Pl), q)) #Amplitudes according to Jovanovic 2014
+	# NOTE: G is real but is promoted to complex since vmmath's fused matmul
+	# requires both operands to share the same dtype (the compiled core folds
+	# this product into its complex loops)
+	G    = matmul(diag(S), VT).astype(w.dtype)
+	# NOTE: vmmath's conj and matmul only accept matrices, so the vector q is
+	# conjugated with numpy and passed to matmul as a column matrix (the
+	# compiled core does the same, treating q as nr x 1)
+	q    = np.conj(diag(matmul(matmul(Vand, transpose(conj(G))), w)))
+	bJov = matmul(inv(transpose(conj(Pl))), matmul(inv(Pl), q.reshape(-1,1))).ravel() #Amplitudes according to Jovanovic 2014
 	cr_stop('DMD.amplitudes',0)
 
 	# Order modes and eigenvalues according to its amplitude

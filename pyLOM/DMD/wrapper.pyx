@@ -40,770 +40,18 @@ from ..utils.errors   import raiseError
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _srun(float[:,:] X, float r, int remove_mean):
+cdef _srun_core(float *Y, float *Z, int m, int n, int m_aux, float r):
 	'''
-	Run DMD analysis of a matrix X.
-
-	Inputs:
-		- X[ndims*nmesh,n_temp_snapshots]: data matrix
-		- remove_mean:                     whether or not to remove the mean flow
-		- r:                               maximum truncation residual
-
-	Returns:
-		- Phi:      DMD Modes
-		- muReal:   Real part of the eigenvalues
-		- muImag:   Imaginary part of the eigenvalues
-		- b:        Amplitude of the DMD modes
-		- Variables needed to reconstruct flow
+	(float precision) DMD core: computes muReal, muImag, Phi and bJov from the
+	shifted snapshot matrices Y (m_aux x (n-1), zero-padded) and Z (m x (n-1)),
+	where n = (number of snapshots) + 1.
+	Takes ownership of Y and Z: both are freed inside.
+	Call run() instead: it enforces contiguity and dispatches on precision.
 	'''
-	# Variables
-	cdef int m = X.shape[0], n = X.shape[1], mn = min(m,n-1), retval
-	cdef float *X_mean
-	cdef float *Y
-	cdef int iaux, icol, irow
-	# Output arrays:
-	# Allocate memory
-	Y  = <float*>malloc(m*n*sizeof(float))
-
-	# Remove mean if required
-	if remove_mean:
-		cr_start('DMD.temporal_mean',0)
-		X_mean = <float*>malloc(m*sizeof(float))
-		# Compute temporal mean
-		c_stemporal_mean(X_mean,&X[0,0],m,n)
-		# Compute substract temporal mean
-		c_ssubtract_mean(Y,&X[0,0],X_mean,m,n)
-		free(X_mean)
-		cr_stop('DMD.temporal_mean',0)
-	else:
-		memcpy(Y,&X[0,0],m*n*sizeof(float))
-
-	# Get the first N-1 snapshots: Y1 = Y[:,:-1]
-	cr_start('DMD.split_snapshots', 0)
-	cdef float *Y1
-	cdef float *Y2
-	Y1 = <float*>malloc(m*(n-1)*sizeof(float))
-	Y2 = <float*>malloc(m*(n-1)*sizeof(float))
-	for irow in range(m):
-		for icol in range(n-1):
-			Y1[irow*(n-1) + icol] = Y[irow*n + icol]
-			Y2[irow*(n-1) + icol] = Y[irow*n + icol + 1]
-	free(Y)
-	cr_stop('DMD.split_snapshots', 0)
-
-	# Compute SVD
-	cr_start('DMD.SVD',0)
-	cdef float *U
-	cdef float *S
-	cdef float *V
-	U  = <float*>malloc(m*mn*sizeof(float))
-	S  = <float*>malloc(mn*sizeof(float))
-	V  = <float*>malloc((n-1)*mn*sizeof(float))
-	retval = c_stsqr_svd(U, S, V, Y1, m, mn)
-	cr_stop('DMD.SVD',0)
-	if not retval == 0: raiseError('Problems computing SVD!')
-	free(Y1)
-
-	# Truncate
-	cr_start('DMD.truncate',0)
-	cdef int nr
-	cdef float *Ur
-	cdef float *Sr
-	cdef float *Vr
-
-	nr = int(r) if r > 1 else c_scompute_truncation_residual(S,r,n-1)
-	Ur = <float*>malloc(m*nr*sizeof(float))
-	Sr = <float*>malloc(nr*sizeof(float))
-	Vr = <float*>malloc(nr*mn*sizeof(float))
-	c_scompute_truncation(Ur,Sr,Vr,U,S,V,m,n-1,n-1,nr)
-	
-	free(U)
-	free(V)
-	free(S)
-	cr_stop('DMD.truncate',0)
-
-	# Project Jacobian of the snapshots into the POD basis
-	cr_start('DMD.linear_mapping',0)
-	cdef float *aux1
-	cdef float *aux2
-	cdef float *aux3
-	cdef float *Atilde
-	cdef float *Urt
-	aux1   = <float*>malloc(nr*(n-1)*sizeof(float))
-	aux2   = <float*>malloc(nr*(n-1)*sizeof(float))
-	aux3   = <float*>malloc(nr*sizeof(float))
-	Atilde = <float*>malloc(nr*nr*sizeof(float))
-	Urt    = <float*>malloc(nr*m*sizeof(float))
-	c_stranspose(Ur, Urt, m, nr)
-	c_smatmulp(aux1, Urt, Y2, nr, n-1, m)
-	for icol in range(n-1):
-		for irow in range(nr):
-			aux2[icol*nr + irow] = Vr[irow*(n-1) + icol]/Sr[irow]
-	c_smatmul(Atilde, aux1, aux2, nr, nr, n-1)
-	free(aux1)
-	free(aux3)
-	free(Urt)
-	cr_stop('DMD.linear_mapping',0)
-
-	# Compute eigenmodes
-	cdef float *auxmuReal
-	cdef float *auxmuImag
-	cdef np.complex64_t *w
-	auxmuReal = <float*>malloc(nr*sizeof(float))
-	auxmuImag = <float*>malloc(nr*sizeof(float))
-	w         = <np.complex64_t*>malloc(nr*nr*sizeof(np.complex64_t))
-	cr_start('DMD.eigendecomposition',0)
-	retval = c_ceigen(auxmuReal,auxmuImag,w,Atilde,nr,nr)
-	cr_stop('DMD.eigendecomposition',0)
-	free(Atilde)
-
-	# Computation of DMD modes
-	cr_start('DMD.modes',0)
-	cdef np.complex64_t *auxPhi
-	cdef np.complex64_t *aux1C
-	cdef np.complex64_t *aux2C
-	auxPhi = <np.complex64_t*>malloc(m*nr*sizeof(np.complex64_t))
-	aux1C  = <np.complex64_t*>malloc(nr*sizeof(np.complex64_t))
-	aux2C  = <np.complex64_t*>malloc(nr*sizeof(np.complex64_t))
-	for iaux in range(m):
-		for icol in range(nr):
-			aux1C[icol] = 0 + 0*I
-			for irow in range(n-1):
-				aux1C[icol] += Y2[iaux*(n-1) + irow]*aux2[irow*nr + icol]
-		c_cmatmult(aux2C, aux1C, w, 1, nr, nr, 'N', 'N')
-		memcpy(&auxPhi[iaux*nr], aux2C, nr*sizeof(np.complex64_t))
-	free(aux2)
-	free(Y2)
-	cdef float a
-	cdef float b
-	cdef float c
-	cdef float d
-	cdef float div
-	for icol in range(nr):
-		c = auxmuReal[icol]
-		d = auxmuImag[icol]
-		div = c*c + d*d
-		for iaux in range(m):
-			a = crealf(auxPhi[iaux*nr + icol])
-			b = cimagf(auxPhi[iaux*nr + icol])
-			auxPhi[iaux*nr + icol] = (a*c + b*d)/div + (b*c - a*d)/div*I
-	cr_stop('DMD.modes',0)
-
-	# Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
-	cdef np.complex64_t *auxbJov
-	cdef np.complex64_t *aux3C
-	cdef np.complex64_t *aux4C
-	cdef np.complex64_t *Vand
-	cdef np.complex64_t *P
-	cdef np.complex64_t *Pinv
-	cdef np.complex64_t *q
-
-	auxbJov = <np.complex64_t*>malloc(nr*sizeof(np.complex64_t))
-	aux3C   = <np.complex64_t*>malloc(nr*nr*sizeof(np.complex64_t))
-	aux4C   = <np.complex64_t*>malloc(nr*nr*sizeof(np.complex64_t))
-	Vand    = <np.complex64_t*>malloc((nr*(n-1))*sizeof(np.complex64_t))
-	P       = <np.complex64_t*>malloc(nr*nr*sizeof(np.complex64_t))
-	Pinv    = <np.complex64_t*>malloc(nr*nr*sizeof(np.complex64_t))
-	q       = <np.complex64_t*>malloc(nr*sizeof(np.complex64_t))
-
-	cr_start('DMD.amplitudes', 0)
-	c_cvandermonde(Vand, auxmuReal, auxmuImag, nr, n-1)
-	c_cmatmult(aux3C, w, w, nr, nr, nr, 'C', 'N')
-	c_cmatmult(aux4C, Vand, Vand, nr, nr, n-1, 'N', 'C')
-
-	for irow in range(nr):
-		for icol in range(nr): # Loop on the columns of the Vandermonde matrix
-			P[irow*nr + icol]  = crealf(aux3C[irow*nr + icol])*crealf(aux4C[irow*nr + icol])
-			P[irow*nr + icol] += -crealf(aux3C[irow*nr + icol])*cimagf(aux4C[irow*nr + icol])*I 
-			P[irow*nr + icol] += cimagf(aux3C[irow*nr + icol])*crealf(aux4C[irow*nr + icol])*I
-			P[irow*nr + icol] += cimagf(aux3C[irow*nr + icol])*cimagf(aux4C[irow*nr + icol])
-	retval = c_ccholesky(P, nr)
-	if not retval == 0: raiseError('Problems computing Cholesky factorization!')
-
-	for iaux in range(nr):
-		for irow in range(nr):
-			aux1C[irow] = 0 + 0*I
-			for icol in range(n-1):# casting Vr to a complex, at the same time, it is multipilied per S and Vand
-				aux1C[irow] += Sr[irow]*Vr[irow*(n-1) + icol]*(crealf(Vand[iaux*(n-1) + icol])+cimagf(Vand[iaux*(n-1) + icol])*I)
-			aux2C[irow] = w[irow*nr + iaux]
-		c_cmatmult(&q[iaux], aux1C, aux2C, 1, 1, nr, 'N', 'N')
-
-	memcpy(Pinv, P, nr*nr*sizeof(np.complex64_t))
-	cdef int ii
-	cdef int jj
-	for ii in range(nr):
-		q[ii] = crealf(q[ii]) - cimagf(q[ii])*I
-		for jj in range(nr - ii):
-			P[ii*nr + ii+jj]   = crealf(P[(ii+jj)*nr + ii])  - cimagf(P[(ii+jj)*nr + ii])*I
-			P[(ii+jj)*nr + ii] = crealf(Pinv[ii*nr + ii+jj]) - cimagf(Pinv[ii*nr + ii+jj])*I
-
-	retval = c_cinverse(Pinv, nr, 'L')
-	if not retval == 0: raiseError('Problems computing the Inverse!')
-
-	c_cmatmult(aux1C, Pinv, q, nr, 1, nr, 'N', 'N')
-
-	retval = c_cinverse(P, nr, 'U')
-	if not retval == 0: raiseError('Problems computing the Inverse!')
-
-	c_cmatmult(auxbJov, P, aux1C, nr, 1, nr, 'N', 'N')
-	cr_stop('DMD.amplitudes',0)
-
-	# Free allocated arrays before reordering
-	free(Ur)
-	free(Sr)
-	free(Vr)
-	free(aux1C)
-	free(aux2C)
-	free(aux3C)
-	free(aux4C)
-	free(w)
-	free(Vand)
-	free(q)
-	free(P)
-	free(Pinv)
-
-	# Order modes and eigenvalues according to its amplitude
-	cdef int *auxOrd
-	auxOrd = <int*>malloc(nr*sizeof(int))
-	cdef np.ndarray[np.float32_t,ndim=1] muReal   = np.zeros((nr),dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=1] muImag   = np.zeros((nr),dtype=np.float32)
-	cdef np.ndarray[np.complex64_t,ndim=2] Phi  = np.zeros((m,nr),order='C',dtype=np.complex64)
-	cdef np.ndarray[np.complex64_t,ndim=1] bJov = np.zeros((nr,),dtype=np.complex64)
-
-	cr_start('DMD.qsort', 0)
-	c_csort(auxbJov, auxOrd, nr)
-	cr_stop('DMD.qsort', 0)
-	cr_start('DMD.sort', 0)
-	for ii in range(nr):
-		muReal[nr-(auxOrd[ii]+1)] = auxmuReal[ii]
-		muImag[nr-(auxOrd[ii]+1)] = auxmuImag[ii]
-		bJov[nr-(auxOrd[ii]+1)]   = auxbJov[ii]
-		for jj in range(m):
-			Phi[jj,nr-(auxOrd[ii]+1)]  = auxPhi[jj*nr + ii]
-	cr_stop('DMD.sort', 0)
-
-	# Free the variables that had to be ordered
-	free(auxmuReal)
-	free(auxmuImag)
-	free(auxbJov)
-	free(auxPhi)
-	free(auxOrd)
-
-	# Ensure that all conjugate modes are in the same order
-	cr_start('DMD.conjugate', 0)
-	cdef bint p = 0
-	cdef float iimag
-	for ii in range(nr):
-		if p == 1:
-			p = 0
-			continue
-		iimag = muImag[ii]
-		if iimag < 0:
-			muImag[ii]   =  muImag[ii+1]
-			muImag[ii+1] = -muImag[ii]
-			bJov[ii]     = crealf(bJov[ii])   + cimagf(bJov[ii+1])*I
-			bJov[ii+1]   = crealf(bJov[ii+1]) - cimagf(bJov[ii])*I
-			for jj in range(m):
-				Phi[jj,ii]   = crealf(Phi[jj,ii])   + cimagf(Phi[jj,ii+1])*I
-				Phi[jj,ii+1] = crealf(Phi[jj,ii+1]) - cimagf(Phi[jj,ii+1])*I
-			p = 1
-			continue
-		if iimag > 0:
-			p = 1
-			continue
-	cr_stop('DMD.conjugate', 0)
-	
-	# Return
-	return muReal, muImag, Phi, bJov
-	
-
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
-@cython.nonecheck(False)
-@cython.cdivision(True)    # turn off zero division check
-def _drun(double[:,:] X, double r, int remove_mean):
-	'''
-	Run DMD analysis of a matrix X.
-
-	Inputs:
-		- X[ndims*nmesh,n_temp_snapshots]: data matrix
-		- remove_mean:                     whether or not to remove the mean flow
-		- r:                               maximum truncation residual
-
-	Returns:
-		- Phi:      DMD Modes
-		- muReal:   Real part of the eigenvalues
-		- muImag:   Imaginary part of the eigenvalues
-		- b:        Amplitude of the DMD modes
-		- Variables needed to reconstruct flow
-	'''
-	# Variables
-	cdef int m = X.shape[0], n = X.shape[1], mn = min(m,n-1), retval
-	cdef double *X_mean
-	cdef double *Y
-	cdef int iaux, icol, irow
-	# Output arrays:
-	# Allocate memory
-	Y  = <double*>malloc(m*n*sizeof(double))
-
-	# Remove mean if required
-	if remove_mean:
-		cr_start('DMD.temporal_mean',0)
-		X_mean = <double*>malloc(m*sizeof(double))
-		# Compute temporal mean
-		c_dtemporal_mean(X_mean,&X[0,0],m,n)
-		# Compute substract temporal mean
-		c_dsubtract_mean(Y,&X[0,0],X_mean,m,n)
-		free(X_mean)
-		cr_stop('DMD.temporal_mean',0)
-	else:
-		memcpy(Y,&X[0,0],m*n*sizeof(double))
-
-	#Get the first N-1 snapshots: Y1 = Y[:,:-1]
-	cr_start('DMD.split_snapshots', 0)
-	cdef double *Y1
-	cdef double *Y2
-	Y1 = <double*>malloc(m*(n-1)*sizeof(double))
-	Y2 = <double*>malloc(m*(n-1)*sizeof(double))
-	for irow in range(m):
-		for icol in range(n-1):
-			Y1[irow*(n-1) + icol] = Y[irow*n + icol]
-			Y2[irow*(n-1) + icol] = Y[irow*n + icol + 1]
-	free(Y)
-	cr_stop('DMD.split_snapshots', 0)
-
-	# Compute SVD
-	cr_start('DMD.SVD',0)
-	cdef double *U
-	cdef double *S
-	cdef double *V
-	U  = <double*>malloc(m*mn*sizeof(double))
-	S  = <double*>malloc(mn*sizeof(double))
-	V  = <double*>malloc((n-1)*mn*sizeof(double))
-	retval = c_dtsqr_svd(U, S, V, Y1, m, mn)
-	cr_stop('DMD.SVD',0)
-	if not retval == 0: raiseError('Problems computing SVD!')
-	free(Y1)
-
-	# Truncate
-	cr_start('DMD.truncate',0)
-	cdef int nr
-	cdef double *Ur
-	cdef double *Sr
-	cdef double *Vr
-
-	nr = int(r) if r > 1 else c_dcompute_truncation_residual(S,r,n-1)
-	Ur = <double*>malloc(m*nr*sizeof(double))
-	Sr = <double*>malloc(nr*sizeof(double))
-	Vr = <double*>malloc(nr*mn*sizeof(double))
-	c_dcompute_truncation(Ur,Sr,Vr,U,S,V,m,n-1,n-1,nr)
-	
-	free(U)
-	free(V)
-	free(S)
-	cr_stop('DMD.truncate',0)
-
-	# Project Jacobian of the snapshots into the POD basis
-	cr_start('DMD.linear_mapping',0)
-	cdef double *aux1
-	cdef double *aux2
-	cdef double *aux3
-	cdef double *Atilde
-	cdef double *Urt
-	aux1   = <double*>malloc(nr*(n-1)*sizeof(double))
-	aux2   = <double*>malloc(nr*(n-1)*sizeof(double))
-	aux3   = <double*>malloc(nr*sizeof(double))
-	Atilde = <double*>malloc(nr*nr*sizeof(double))
-	Urt    = <double*>malloc(nr*m*sizeof(double))
-	c_dtranspose(Ur, Urt, m, nr)
-	c_dmatmulp(aux1, Urt, Y2, nr, n-1, m)
-	for icol in range(n-1):
-		for irow in range(nr):
-			aux2[icol*nr + irow] = Vr[irow*(n-1) + icol]/Sr[irow]
-	c_dmatmul(Atilde, aux1, aux2, nr, nr, n-1)
-	free(aux1)
-	free(aux3)
-	free(Urt)
-	cr_stop('DMD.linear_mapping',0)
-
-	# Compute eigenmodes
-	cdef double *auxmuReal
-	cdef double *auxmuImag
-	cdef np.complex128_t *w
-	auxmuReal = <double*>malloc(nr*sizeof(double))
-	auxmuImag = <double*>malloc(nr*sizeof(double))
-	w         = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
-	cr_start('DMD.eigendecomposition',0)
-	retval = c_zeigen(auxmuReal,auxmuImag,w,Atilde,nr,nr)
-	cr_stop('DMD.eigendecomposition',0)
-	free(Atilde)
-
-	# Computation of DMD modes
-	cr_start('DMD.modes',0)
-	cdef np.complex128_t *auxPhi
-	cdef np.complex128_t *aux1C
-	cdef np.complex128_t *aux2C
-	auxPhi = <np.complex128_t*>malloc(m*nr*sizeof(np.complex128_t))
-	aux1C  = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
-	aux2C  = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
-	for iaux in range(m):
-		for icol in range(nr):
-			aux1C[icol] = 0 + 0*J
-			for irow in range(n-1):
-				aux1C[icol] += Y2[iaux*(n-1) + irow]*aux2[irow*nr + icol]
-		c_zmatmult(aux2C, aux1C, w, 1, nr, nr, 'N', 'N')
-		memcpy(&auxPhi[iaux*nr], aux2C, nr*sizeof(np.complex128_t))
-	free(aux2)
-	free(Y2)
-	cdef double a
-	cdef double b
-	cdef double c
-	cdef double d
-	cdef double div
-	for icol in range(nr):
-		c = auxmuReal[icol]
-		d = auxmuImag[icol]
-		div = c*c + d*d
-		for iaux in range(m):
-			a = creal(auxPhi[iaux*nr + icol])
-			b = cimag(auxPhi[iaux*nr + icol])
-			auxPhi[iaux*nr + icol] = (a*c + b*d)/div + (b*c - a*d)/div*J
-	cr_stop('DMD.modes',0)
-
-	# Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
-	cdef np.complex128_t *auxbJov
-	cdef np.complex128_t *aux3C
-	cdef np.complex128_t *aux4C
-	cdef np.complex128_t *Vand
-	cdef np.complex128_t *P
-	cdef np.complex128_t *Pinv
-	cdef np.complex128_t *q
-
-	auxbJov = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
-	aux3C   = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
-	aux4C   = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
-	Vand    = <np.complex128_t*>malloc((nr*(n-1))*sizeof(np.complex128_t))
-	P       = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
-	Pinv    = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
-	q       = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
-
-	cr_start('DMD.amplitudes', 0)
-	c_zvandermonde(Vand, auxmuReal, auxmuImag, nr, n-1)
-	c_zmatmult(aux3C, w, w, nr, nr, nr, 'C', 'N')
-	c_zmatmult(aux4C, Vand, Vand, nr, nr, n-1, 'N', 'C')
-
-	for irow in range(nr):
-		for icol in range(nr): #Loop on the columns of the Vandermonde matrix
-			P[irow*nr + icol]  = creal(aux3C[irow*nr + icol])*creal(aux4C[irow*nr + icol])
-			P[irow*nr + icol] += -creal(aux3C[irow*nr + icol])*cimag(aux4C[irow*nr + icol])*J
-			P[irow*nr + icol] += cimag(aux3C[irow*nr + icol])*creal(aux4C[irow*nr + icol])*J
-			P[irow*nr + icol] += cimag(aux3C[irow*nr + icol])*cimag(aux4C[irow*nr + icol])
-	retval = c_zcholesky(P, nr)
-	if not retval == 0: raiseError('Problems computing Cholesky factorization!')
-
-	for iaux in range(nr):
-		for irow in range(nr):
-			aux1C[irow] = 0 + 0*J
-			for icol in range(n-1):#casting Vr to a complex, at the same time, it is multipilied per S and Vand
-				aux1C[irow] += Sr[irow]*Vr[irow*(n-1) + icol]*(creal(Vand[iaux*(n-1) + icol])+cimag(Vand[iaux*(n-1) + icol])*J)
-			aux2C[irow] = w[irow*nr + iaux]
-		c_zmatmult(&q[iaux], aux1C, aux2C, 1, 1, nr, 'N', 'N')
-
-	memcpy(Pinv, P, nr*nr*sizeof(np.complex128_t))
-	cdef int ii
-	cdef int jj
-	for ii in range(nr):
-		q[ii] = creal(q[ii]) - cimag(q[ii])*J
-		for jj in range(nr - ii):
-			P[ii*nr + ii+jj]   = creal(P[(ii+jj)*nr + ii])  - cimag(P[(ii+jj)*nr + ii])*J
-			P[(ii+jj)*nr + ii] = creal(Pinv[ii*nr + ii+jj]) - cimag(Pinv[ii*nr + ii+jj])*J
-
-	retval = c_zinverse(Pinv, nr, 'L')
-	if not retval == 0: raiseError('Problems computing the Inverse!')
-
-	c_zmatmult(aux1C, Pinv, q, nr, 1, nr, 'N', 'N')
-
-	retval = c_zinverse(P, nr, 'U')
-	if not retval == 0: raiseError('Problems computing the Inverse!')
-
-	c_zmatmult(auxbJov, P, aux1C, nr, 1, nr, 'N', 'N')
-	cr_stop('DMD.amplitudes',0)
-
-	# Free allocated arrays before reordering
-	free(Ur)
-	free(Sr)
-	free(Vr)
-	free(aux1C)
-	free(aux2C)
-	free(aux3C)
-	free(aux4C)
-	free(w)
-	free(Vand)
-	free(q)
-	free(P)
-	free(Pinv)
-
-	# Order modes and eigenvalues according to its amplitude
-	cdef int *auxOrd
-	auxOrd = <int*>malloc(nr*sizeof(int))
-	cdef np.ndarray[np.double_t,ndim=1] muReal   = np.zeros((nr),dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=1] muImag   = np.zeros((nr),dtype=np.double)
-	cdef np.ndarray[np.complex128_t,ndim=2] Phi  = np.zeros((m,nr),order='C',dtype=np.complex128)
-	cdef np.ndarray[np.complex128_t,ndim=1] bJov = np.zeros((nr,),dtype=np.complex128)
-
-	cr_start('DMD.qsort', 0)
-	c_zsort(auxbJov, auxOrd, nr)
-	cr_stop('DMD.qsort', 0)
-	cr_start('DMD.sort', 0)
-	for ii in range(nr):
-		muReal[nr-(auxOrd[ii]+1)] = auxmuReal[ii]
-		muImag[nr-(auxOrd[ii]+1)] = auxmuImag[ii]
-		bJov[nr-(auxOrd[ii]+1)]   = auxbJov[ii]
-		for jj in range(m):
-			Phi[jj,nr-(auxOrd[ii]+1)]  = auxPhi[jj*nr + ii]
-	cr_stop('DMD.sort', 0)
-
-	# Free the variables that had to be ordered
-	free(auxmuReal)
-	free(auxmuImag)
-	free(auxbJov)
-	free(auxPhi)
-	free(auxOrd)
-
-	# Ensure that all conjugate modes are in the same order
-	cr_start('DMD.conjugate', 0)
-	cdef bint p = 0
-	cdef double iimag
-	for ii in range(nr):
-		if p == 1:
-			p = 0
-			continue
-		iimag = muImag[ii]
-		if iimag < 0:
-			muImag[ii]   =  muImag[ii+1]
-			muImag[ii+1] = -muImag[ii]
-			bJov[ii]     = creal(bJov[ii])   + cimag(bJov[ii+1])*J
-			bJov[ii+1]   = creal(bJov[ii+1]) - cimag(bJov[ii])*J
-			for jj in range(m):
-				Phi[jj,ii]   = creal(Phi[jj,ii])   + cimag(Phi[jj,ii+1])*J
-				Phi[jj,ii+1] = creal(Phi[jj,ii+1]) - cimag(Phi[jj,ii+1])*J
-			p = 1
-			continue
-		if iimag > 0:
-			p = 1
-			continue
-	cr_stop('DMD.conjugate', 0)
-	
-	# Return
-	return muReal, muImag, Phi, bJov
-
-@cr('DMD.run')
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
-@cython.nonecheck(False)
-@cython.cdivision(True)    # turn off zero division check
-def run(real[:,:] X, real r, int remove_mean=True):
-	'''
-	Run DMD analysis of a matrix X.
-
-	Inputs:
-		- X[ndims*nmesh,n_temp_snapshots]: data matrix
-		- remove_mean:                     whether or not to remove the mean flow
-		- r:                               maximum truncation residual
-
-	Returns:
-		- Phi:      DMD Modes
-		- muReal:   Real part of the eigenvalues
-		- muImag:   Imaginary part of the eigenvalues
-		- b:        Amplitude of the DMD modes
-		- Variables needed to reconstruct flow
-	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	X = np.ascontiguousarray(X)
-
-	if real is double:
-		return _drun(X,r,remove_mean)
-	else:
-		return _srun(X,r,remove_mean)
-
-
-## DMD frequency damping
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
-@cython.nonecheck(False)
-@cython.cdivision(True)    # turn off zero division check
-def _sfrequency_damping(float[:] rreal, float[:] iimag, float dt):
-	'''
-	Computation of the damping ratio and the frequency of each mode
-	'''
-	cdef int ii, n = rreal.shape[0]
-	cdef float mod
-	cdef float arg
-
-	cdef np.ndarray[np.float32_t,ndim=1] delta = np.zeros((n),dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=1] omega = np.zeros((n),dtype=np.float32)
-
-	for ii in range(n):
-		mod       = sqrt(rreal[ii]*rreal[ii] + iimag[ii]*iimag[ii])
-		delta[ii] = log(mod)/dt
-		arg       = atan2(iimag[ii], rreal[ii])
-		omega[ii] = arg/dt
-	return delta, omega
-
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
-@cython.nonecheck(False)
-@cython.cdivision(True)    # turn off zero division check
-def _dfrequency_damping(double[:] rreal, double[:] iimag, double dt):
-	'''
-	Computation of the damping ratio and the frequency of each mode
-	'''
-	cdef int ii, n = rreal.shape[0]
-	cdef double mod
-	cdef double arg
-
-	cdef np.ndarray[np.double_t,ndim=1] delta = np.zeros((n),dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=1] omega = np.zeros((n),dtype=np.double)
-
-	for ii in range(n):
-		mod       = sqrt(rreal[ii]*rreal[ii] + iimag[ii]*iimag[ii])
-		delta[ii] = log(mod)/dt
-		arg       = atan2(iimag[ii], rreal[ii])
-		omega[ii] = arg/dt
-	return delta, omega
-
-@cr('DMD.frequency_damping')
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
-@cython.nonecheck(False)
-@cython.cdivision(True)    # turn off zero division check
-def frequency_damping(real[:] rreal, real[:] iimag, real dt):
-	'''
-	Computation of the damping ratio and the frequency of each mode
-	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	rreal = np.ascontiguousarray(rreal)
-	iimag = np.ascontiguousarray(iimag)
-
-	if real is double:
-		return _dfrequency_damping(rreal,iimag,dt)
-	else:
-		return _sfrequency_damping(rreal,iimag,dt)
-
-
-## Flow reconstruction
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
-@cython.nonecheck(False)
-@cython.cdivision(True)    # turn off zero division check
-def _sreconstruction_jovanovic(np.complex64_t[:,:] Phi, float[:] muReal, float[:] muImag, float[:] t, np.complex64_t[:] bJov):
-	'''
-	Computation of the reconstructed flow from the DMD computations
-	'''
-	cdef int m  = Phi.shape[0], n  = t.shape[0], nr = Phi.shape[1]
-	cdef np.complex64_t *Vand
-	cdef np.ndarray[np.complex64_t,ndim=2] Zdmd = np.zeros((m,n),order='C',dtype=np.complex64)
-
-	Vand = <np.complex64_t*>malloc(nr*n*sizeof(np.complex64_t))
-
-	c_cvandermonde_time(Vand, &muReal[0], &muImag[0], nr, n, &t[0])
-	c_cvecmat(&bJov[0], Vand, nr, n)
-	c_cmatmult(&Zdmd[0,0], &Phi[0,0], Vand, m, n, nr, 'N', 'N')
-	
-	free(Vand)
-
-	return Zdmd.real
-
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
-@cython.nonecheck(False)
-@cython.cdivision(True)    # turn off zero division check
-def _dreconstruction_jovanovic(np.complex128_t[:,:] Phi, double[:] muReal, double[:] muImag, double[:] t, np.complex128_t[:] bJov):
-	'''
-	Computation of the reconstructed flow from the DMD computations
-	'''
-	cdef int m  = Phi.shape[0], n  = t.shape[0], nr = Phi.shape[1]
-	cdef np.complex128_t *Vand
-	cdef np.ndarray[np.complex128_t,ndim=2] Zdmd = np.zeros((m,n),order='C',dtype=np.complex128)
-
-	Vand = <np.complex128_t*>malloc(nr*n*sizeof(np.complex128_t))
-
-	c_zvandermonde_time(Vand, &muReal[0], &muImag[0], nr, n, &t[0])
-	c_zvecmat(&bJov[0], Vand, nr, n)
-	c_zmatmult(&Zdmd[0,0], &Phi[0,0], Vand, m, n, nr, 'N', 'N')
-	
-	free(Vand)
-
-	return Zdmd.real
-
-@cr('DMD.reconstruction_jovanovic')
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
-@cython.nonecheck(False)
-@cython.cdivision(True)    # turn off zero division check
-def reconstruction_jovanovic(real_complex[:,:] Phi, real[:] muReal, real[:] muImag, real[:] t, real_complex[:] bJov):
-	'''
-	Computation of the reconstructed flow from the DMD computations
-	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	Phi = np.ascontiguousarray(Phi)
-	muReal = np.ascontiguousarray(muReal)
-	muImag = np.ascontiguousarray(muImag)
-	t = np.ascontiguousarray(t)
-	bJov = np.ascontiguousarray(bJov)
-
-	if real_complex is np.complex128_t:
-		return _dreconstruction_jovanovic(Phi,muReal,muImag,t,bJov)
-	else:
-		return _sreconstruction_jovanovic(Phi,muReal,muImag,t,bJov)
-
-
-@cython.boundscheck(False) # turn off bounds-checking for entire function
-@cython.wraparound(False)  # turn off negative index wrapping for entire function
-@cython.nonecheck(False)
-@cython.cdivision(True)    # turn off zero division check
-def _srun_old(float[:,:] X, float r, int remove_mean):
-	'''
-	Run DMD analysis of a matrix X.
-
-	Inputs:
-		- X[ndims*nmesh,n_temp_snapshots]: data matrix
-		- remove_mean:                     whether or not to remove the mean flow
-		- r:                               maximum truncation residual
-
-	Returns:
-		- Phi:      DMD Modes
-		- muReal:   Real part of the eigenvalues
-		- muImag:   Imaginary part of the eigenvalues
-		- b:        Amplitude of the DMD modes
-		- Variables needed to reconstruct flow
-	'''
-	# Variables
-	cdef int m, n, irow, icol, iaux, retval
-	cdef int m_aux
-	m = X.shape[0]
-	n = X.shape[1]
-
-	cdef float *X_c = <float*>malloc(m*n*sizeof(float))
-	memcpy(X_c, &X[0,0], m*n*sizeof(float))
-
-	if m > (n-1):
-		m_aux = m
-	else:
-		m_aux = n-1
-
-	cdef float *Y
-	cdef float *Z
-	Y = <float*>calloc(m_aux*(n-1), sizeof(float))
-	Z = <float*>malloc(m*(n-1)*sizeof(float))
-
-	# Create the snapshot of matrices and separate it into Y, Z
-	if remove_mean: cr_start('DMD.temporal_mean',0)
-	c_sseparate(Y, Z, X_c, m, n, remove_mean)
-	if remove_mean: cr_stop('DMD.temporal_mean',0)
-	free(X_c)
+	cdef int irow, icol, iaux, retval
 
 	# Compute the linear operator in lower dimension
+	cr_start('DMD.linear_operator', 0)
 	## Compute SVD
 	cr_start('DMD.SVD',0)
 	cdef float *U_aux
@@ -863,6 +111,7 @@ def _srun_old(float[:,:] X, float r, int remove_mean):
 	c_smatmul(Atilde, aux1, aux2, nr, nr, (n-1))
 	free(aux1)
 	cr_stop('DMD.linear_mapping',0)
+	cr_stop('DMD.linear_operator', 0)
 
 	# Compute eigenmodes
 	cdef float *auxmuReal
@@ -1031,7 +280,7 @@ def _srun_old(float[:,:] X, float r, int remove_mean):
 			p = 1
 			continue
 	cr_stop('DMD.conjugate', 0)
-	
+
 	# Return
 	return muReal, muImag, Phi, bJov
 
@@ -1039,306 +288,58 @@ def _srun_old(float[:,:] X, float r, int remove_mean):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _drun_old(double[:,:] X, double r, int remove_mean):
+def _srun_matrix(float[:,:] X, float r, int remove_mean):
 	'''
-	Run DMD analysis of a matrix X.
-
-	Inputs:
-		- X[ndims*nmesh,n_temp_snapshots]: data matrix
-		- remove_mean:                     whether or not to remove the mean flow
-		- r:                               maximum truncation residual
-
-	Returns:
-		- Phi:      DMD Modes
-		- muReal:   Real part of the eigenvalues
-		- muImag:   Imaginary part of the eigenvalues
-		- b:        Amplitude of the DMD modes
-		- Variables needed to reconstruct flow
+	(float precision) DMD of a single data matrix X.
+	Call run() instead: it enforces contiguity and dispatches on precision.
 	'''
-	# Variables
-	cdef int m, n, irow, icol, iaux, retval
-	cdef int m_aux
+	cdef int m, n, m_aux
 	m = X.shape[0]
 	n = X.shape[1]
 
-	cdef double *X_c = <double*>malloc(m*n*sizeof(double))
-	memcpy(X_c, &X[0,0], m*n*sizeof(double))
-
+	# Y = X[:, :-1] zero-padded up to m_aux rows, Z = X[:, 1:]
+	# The zero padding guarantees a tall matrix for the TSQR SVD, keeping
+	# all the information when m < n - 1: S and VT are unchanged and the
+	# artificial rows of U are removed right after the SVD (see _srun_core).
 	if m > (n-1):
 		m_aux = m
 	else:
 		m_aux = n-1
 
-	cdef double *Y
-	cdef double *Z
-	Y = <double*>calloc(m_aux*(n-1), sizeof(double))
-	Z = <double*>malloc(m*(n-1)*sizeof(double))
+	cdef float *Y
+	cdef float *Z
+	Y = <float*>calloc(m_aux*(n-1), sizeof(float))
+	Z = <float*>malloc(m*(n-1)*sizeof(float))
 
-	# Create the snapshot of matrices and separate it into Y, Z
+	# Create the shifted snapshot matrices Y, Z
+	cr_start('DMD.separate', 0)
+	cdef float *X_c = <float*>malloc(m*n*sizeof(float))
+	memcpy(X_c, &X[0,0], m*n*sizeof(float))
 	if remove_mean: cr_start('DMD.temporal_mean',0)
-	c_dseparate(Y, Z, X_c, m, n, remove_mean)
+	c_sseparate(Y, Z, X_c, m, n, remove_mean)
 	if remove_mean: cr_stop('DMD.temporal_mean',0)
 	free(X_c)
+	cr_stop('DMD.separate', 0)
 
-	# Compute the linear operator in lower dimension
-	## Compute SVD
-	cr_start('DMD.SVD',0)
-	cdef double *U_aux
-	cdef double *S_all
-	cdef double *VT_all
-	U_aux  = <double*>malloc(m_aux*(n-1)*sizeof(double))
-	S_all  = <double*>malloc((n-1)*sizeof(double))
-	VT_all = <double*>malloc((n-1)*(n-1)*sizeof(double))
-	retval = c_dtsqr_svd(U_aux, S_all, VT_all, Y, m_aux, (n-1))
-	if not retval == 0: raiseError('Problems computing SVD!')
-	free(Y)
-	cr_stop('DMD.SVD',0)
-
-	## Remove artificial 0 rows
-	cdef double *U_all
-	U_all = <double*>malloc(m*(n-1)*sizeof(double))
-	c_dremove_rows(U_aux, U_all, m, (n-1))
-	free(U_aux)
-
-	## Truncate
-	cr_start('DMD.truncate',0)
-	cdef int nr
-	if r > 1:
-		nr = int(r)
-	else:
-		nr = c_dcompute_truncation_residual(S_all, r, (n-1))
-
-	cdef double *Ur
-	cdef double *Sr
-	cdef double *VTr
-	Ur  = <double*>malloc(m*nr*sizeof(double))
-	Sr  = <double*>malloc(nr*sizeof(double))
-	VTr = <double*>malloc(nr*(n-1)*sizeof(double))
-	c_dcompute_truncation(Ur, Sr, VTr, U_all, S_all, VT_all, m, (n-1), (n-1), nr)
-	free(U_all)
-	free(S_all)
-	free(VT_all)
-	cr_stop('DMD.truncate',0)
-
-	# Project Jacobian of the snapshots into the POD basis
-	cr_start('DMD.linear_mapping',0)
-	cdef double *aux1
-	cdef double *aux2
-	cdef double *Atilde
-	cdef double *Urt
-	aux1   = <double*>malloc(nr*(n-1)*sizeof(double))
-	aux2   = <double*>malloc(nr*(n-1)*sizeof(double))
-	Atilde = <double*>malloc(nr*nr*sizeof(double))
-	Urt    = <double*>malloc(nr*m*sizeof(double))
-	c_dtranspose(Ur, Urt, m, nr)
-	c_dmatmulp(aux1, Urt, Z, nr, (n-1), m)
-	free(Urt)
-	free(Ur)
-	for icol in range(n-1):
-		for irow in range(nr):
-			aux2[icol*nr + irow] = VTr[irow*(n-1) + icol]/Sr[irow]
-	c_dmatmul(Atilde, aux1, aux2, nr, nr, (n-1))
-	free(aux1)
-	cr_stop('DMD.linear_mapping',0)
-
-	# Compute eigenmodes
-	cdef double *auxmuReal
-	cdef double *auxmuImag
-	cdef np.complex128_t *w
-	auxmuReal = <double*>malloc(nr*sizeof(double))
-	auxmuImag = <double*>malloc(nr*sizeof(double))
-	w         = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
-	cr_start('DMD.eigendecomposition',0)
-	retval = c_zeigen(auxmuReal,auxmuImag,w,Atilde,nr,nr)
-	if not retval == 0: raiseError('Problems computing the eigendecomposition!')
-	cr_stop('DMD.eigendecomposition',0)
-	free(Atilde)
-
-	# Computation of DMD modes
-	cr_start('DMD.modes',0)
-	cdef np.complex128_t *auxPhi
-	cdef np.complex128_t *aux1C
-	cdef np.complex128_t *aux2C
-	auxPhi = <np.complex128_t*>malloc(m*nr*sizeof(np.complex128_t))
-	aux1C  = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
-	aux2C  = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
-	for iaux in range(m):
-		for icol in range(nr):
-			aux1C[icol] = 0 + 0*J
-			for irow in range(n-1):
-				aux1C[icol] += Z[iaux*(n-1) + irow]*aux2[irow*nr + icol]
-		c_zmatmult(aux2C, aux1C, w, 1, nr, nr, 'N', 'N')
-		memcpy(&auxPhi[iaux*nr], aux2C, nr*sizeof(np.complex128_t))
-	free(aux2)
-	free(Z)
-	cdef double a
-	cdef double b
-	cdef double c
-	cdef double d
-	cdef double div
-	for icol in range(nr):
-		c = auxmuReal[icol]
-		d = auxmuImag[icol]
-		div = c*c + d*d
-		for iaux in range(m):
-			a = creal(auxPhi[iaux*nr + icol])
-			b = cimag(auxPhi[iaux*nr + icol])
-			auxPhi[iaux*nr + icol] = (a*c + b*d)/div + (b*c - a*d)/div*J
-	cr_stop('DMD.modes',0)
-
-	# Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
-	cdef np.complex128_t *auxbJov
-	cdef np.complex128_t *aux3C
-	cdef np.complex128_t *aux4C
-	cdef np.complex128_t *Vand
-	cdef np.complex128_t *P
-	cdef np.complex128_t *Pinv
-	cdef np.complex128_t *q
-
-	auxbJov = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
-	aux3C   = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
-	aux4C   = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
-	Vand    = <np.complex128_t*>malloc((nr*(n-1))*sizeof(np.complex128_t))
-	P       = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
-	Pinv    = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
-	q       = <np.complex128_t*>malloc(nr*sizeof(np.complex128_t))
-
-	cr_start('DMD.amplitudes', 0)
-	c_zvandermonde(Vand, auxmuReal, auxmuImag, nr, n-1)
-	c_zmatmult(aux3C, w, w, nr, nr, nr, 'C', 'N')
-	c_zmatmult(aux4C, Vand, Vand, nr, nr, n-1, 'N', 'C')
-
-	for irow in range(nr):
-		for icol in range(nr): #Loop on the columns of the Vandermonde matrix
-			P[irow*nr + icol]  = creal(aux3C[irow*nr + icol])*creal(aux4C[irow*nr + icol])
-			P[irow*nr + icol] += -creal(aux3C[irow*nr + icol])*cimag(aux4C[irow*nr + icol])*J
-			P[irow*nr + icol] += cimag(aux3C[irow*nr + icol])*creal(aux4C[irow*nr + icol])*J
-			P[irow*nr + icol] += cimag(aux3C[irow*nr + icol])*cimag(aux4C[irow*nr + icol])
-	retval = c_zcholesky(P, nr)
-	if not retval == 0: raiseError('Problems computing Cholesky factorization!')
-
-	for iaux in range(nr):
-		for irow in range(nr):
-			aux1C[irow] = 0 + 0*J
-			for icol in range(n-1):#casting Vr to a complex, at the same time, it is multipilied per S and Vand
-				aux1C[irow] += Sr[irow]*VTr[irow*(n-1) + icol]*(creal(Vand[iaux*(n-1) + icol])+cimag(Vand[iaux*(n-1) + icol])*J)
-			aux2C[irow] = w[irow*nr + iaux]
-		c_zmatmult(&q[iaux], aux1C, aux2C, 1, 1, nr, 'N', 'N')
-
-	memcpy(Pinv, P, nr*nr*sizeof(np.complex128_t))
-	cdef int ii
-	cdef int jj
-	for ii in range(nr):
-		q[ii] = creal(q[ii]) - cimag(q[ii])*J
-		for jj in range(nr - ii):
-			P[ii*nr + ii+jj]   = creal(P[(ii+jj)*nr + ii])  - cimag(P[(ii+jj)*nr + ii])*J
-			P[(ii+jj)*nr + ii] = creal(Pinv[ii*nr + ii+jj]) - cimag(Pinv[ii*nr + ii+jj])*J
-
-	retval = c_zinverse(Pinv, nr, 'L')
-	if not retval == 0: raiseError('Problems computing the Inverse!')
-
-	c_zmatmult(aux1C, Pinv, q, nr, 1, nr, 'N', 'N')
-
-	retval = c_zinverse(P, nr, 'U')
-	if not retval == 0: raiseError('Problems computing the Inverse!')
-
-	c_zmatmult(auxbJov, P, aux1C, nr, 1, nr, 'N', 'N')
-	cr_stop('DMD.amplitudes',0)
-
-	# Free allocated arrays before reordering
-	free(Sr)
-	free(VTr)
-	free(aux1C)
-	free(aux2C)
-	free(aux3C)
-	free(aux4C)
-	free(w)
-	free(Vand)
-	free(q)
-	free(P)
-	free(Pinv)
-
-	# Order modes and eigenvalues according to its amplitude
-	cdef int *auxOrd
-	auxOrd = <int*>malloc(nr*sizeof(int))
-	cdef np.ndarray[np.double_t,ndim=1] muReal   = np.zeros((nr),dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=1] muImag   = np.zeros((nr),dtype=np.double)
-	cdef np.ndarray[np.complex128_t,ndim=2] Phi  = np.zeros((m,nr),order='C',dtype=np.complex128)
-	cdef np.ndarray[np.complex128_t,ndim=1] bJov = np.zeros((nr,),dtype=np.complex128)
-
-	cr_start('DMD.qsort', 0)
-	c_zsort(auxbJov, auxOrd, nr)
-	cr_stop('DMD.qsort', 0)
-	cr_start('DMD.sort', 0)
-	for ii in range(nr):
-		muReal[nr-(auxOrd[ii]+1)] = auxmuReal[ii]
-		muImag[nr-(auxOrd[ii]+1)] = auxmuImag[ii]
-		bJov[nr-(auxOrd[ii]+1)]   = auxbJov[ii]
-		for jj in range(m):
-			Phi[jj,nr-(auxOrd[ii]+1)]  = auxPhi[jj*nr + ii]
-	cr_stop('DMD.sort', 0)
-
-	# Free the variables that had to be ordered
-	free(auxmuReal)
-	free(auxmuImag)
-	free(auxbJov)
-	free(auxPhi)
-	free(auxOrd)
-
-	# Ensure that all conjugate modes are in the same order
-	cr_start('DMD.conjugate', 0)
-	cdef bint p = 0
-	cdef double iimag
-	for ii in range(nr):
-		if p == 1:
-			p = 0
-			continue
-		iimag = muImag[ii]
-		if iimag < 0:
-			muImag[ii]   =  muImag[ii+1]
-			muImag[ii+1] = -muImag[ii]
-			bJov[ii]     = creal(bJov[ii])   + cimag(bJov[ii+1])*J
-			bJov[ii+1]   = creal(bJov[ii+1]) - cimag(bJov[ii])*J
-			for jj in range(m):
-				Phi[jj,ii]   = creal(Phi[jj,ii])   + cimag(Phi[jj,ii+1])*J
-				Phi[jj,ii+1] = creal(Phi[jj,ii+1]) - cimag(Phi[jj,ii+1])*J
-			p = 1
-			continue
-		if iimag > 0:
-			p = 1
-			continue
-	cr_stop('DMD.conjugate', 0)
-	
-	# Return
-	return muReal, muImag, Phi, bJov
-
+	return _srun_core(Y, Z, m, n, m_aux, r)
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _srun_new(list X, float r, int remove_mean):
+def _srun_list(list X, float r, int remove_mean):
 	'''
-	Run DMD analysis of a matrix X.
-
-	Inputs:
-		- X[ndims*nmesh,n_temp_snapshots]: data matrix
-		- remove_mean:                     whether or not to remove the mean flow
-		- r:                               maximum truncation residual
-
-	Returns:
-		- Phi:      DMD Modes
-		- muReal:   Real part of the eigenvalues
-		- muImag:   Imaginary part of the eigenvalues
-		- b:        Amplitude of the DMD modes
-		- Variables needed to reconstruct flow
+	(float precision) DMD of a list of data matrices with stitched
+	interfaces, i.e. X[i+1][:,0] == X[i][:,-1]. All matrices in the list
+	must share the same spatial dimension m.
+	Call run() instead: it enforces contiguity and dispatches on precision.
 	'''
-	# Variables
-	cdef int m, n, irow, icol, iaux, retval
+	cdef int m, iaux
 	cdef int n_matrix, n_local, n_total, m_aux
 	m = X[0].shape[0]
 	n_matrix = len(X)
 
+	cr_start('DMD.separate', 0)
 	cdef float **X_pointer
 	cdef int *n_list
 	X_pointer = <float**>malloc(n_matrix*sizeof(float*))
@@ -1353,8 +354,11 @@ def _srun_new(list X, float r, int remove_mean):
 		X_pointer[iaux] = <float*>malloc(m*n_local*sizeof(float))
 		memcpy(X_pointer[iaux], &M[0,0], m*n_local*sizeof(float))
 		n_list[iaux] = n_local
-	n = n_total + 1
 
+	# Y = X[:, :-1] zero-padded up to m_aux rows, Z = X[:, 1:]
+	# The zero padding guarantees a tall matrix for the TSQR SVD, keeping
+	# all the information when m < n_total: S and VT are unchanged and the
+	# artificial rows of U are removed right after the SVD (see _srun_core).
 	if m > n_total:
 		m_aux = m
 	else:
@@ -1365,7 +369,7 @@ def _srun_new(list X, float r, int remove_mean):
 	Y = <float*>calloc(m_aux*n_total, sizeof(float))
 	Z = <float*>malloc(m*n_total*sizeof(float))
 
-	# Create the snapshot of matrices and separate it into Y, Z
+	# Create the shifted snapshot matrices Y, Z
 	if remove_mean: cr_start('DMD.temporal_mean',0)
 	c_sconcatenate(Y, Z, X_pointer, n_list, n_matrix, m, n_total, remove_mean)
 	if remove_mean: cr_stop('DMD.temporal_mean',0)
@@ -1373,301 +377,23 @@ def _srun_new(list X, float r, int remove_mean):
 		free(X_pointer[iaux])
 	free(X_pointer)
 	free(n_list)
+	cr_stop('DMD.separate', 0)
 
-	# Compute the linear operator in lower dimension
-	## Compute SVD
-	cr_start('DMD.SVD',0)
-	cdef float *U_aux
-	cdef float *S_all
-	cdef float *VT_all
-	U_aux  = <float*>malloc(m_aux*(n-1)*sizeof(float))
-	S_all  = <float*>malloc((n-1)*sizeof(float))
-	VT_all = <float*>malloc((n-1)*(n-1)*sizeof(float))
-	retval = c_stsqr_svd(U_aux, S_all, VT_all, Y, m_aux, (n-1))
-	if not retval == 0: raiseError('Problems computing SVD!')
-	free(Y)
-	cr_stop('DMD.SVD',0)
-
-	## Remove artificial 0 rows
-	cdef float *U_all
-	U_all = <float*>malloc(m*(n-1)*sizeof(float))
-	c_sremove_rows(U_aux, U_all, m, (n-1))
-	free(U_aux)
-
-	## Truncate
-	cr_start('DMD.truncate',0)
-	cdef int nr
-	if r > 1:
-		nr = int(r)
-	else:
-		nr = c_scompute_truncation_residual(S_all, r, (n-1))
-
-	cdef float *Ur
-	cdef float *Sr
-	cdef float *VTr
-	Ur  = <float*>malloc(m*nr*sizeof(float))
-	Sr  = <float*>malloc(nr*sizeof(float))
-	VTr = <float*>malloc(nr*(n-1)*sizeof(float))
-	c_scompute_truncation(Ur, Sr, VTr, U_all, S_all, VT_all, m, (n-1), (n-1), nr)
-	free(U_all)
-	free(S_all)
-	free(VT_all)
-	cr_stop('DMD.truncate',0)
-
-	# Project Jacobian of the snapshots into the POD basis
-	cr_start('DMD.linear_mapping',0)
-	cdef float *aux1
-	cdef float *aux2
-	cdef float *Atilde
-	cdef float *Urt
-	aux1   = <float*>malloc(nr*(n-1)*sizeof(float))
-	aux2   = <float*>malloc(nr*(n-1)*sizeof(float))
-	Atilde = <float*>malloc(nr*nr*sizeof(float))
-	Urt    = <float*>malloc(nr*m*sizeof(float))
-	c_stranspose(Ur, Urt, m, nr)
-	c_smatmulp(aux1, Urt, Z, nr, (n-1), m)
-	free(Urt)
-	free(Ur)
-	for icol in range(n-1):
-		for irow in range(nr):
-			aux2[icol*nr + irow] = VTr[irow*(n-1) + icol]/Sr[irow]
-	c_smatmul(Atilde, aux1, aux2, nr, nr, (n-1))
-	free(aux1)
-	cr_stop('DMD.linear_mapping',0)
-
-	# Compute eigenmodes
-	cdef float *auxmuReal
-	cdef float *auxmuImag
-	cdef np.complex64_t *w
-	auxmuReal = <float*>malloc(nr*sizeof(float))
-	auxmuImag = <float*>malloc(nr*sizeof(float))
-	w         = <np.complex64_t*>malloc(nr*nr*sizeof(np.complex64_t))
-	cr_start('DMD.eigendecomposition',0)
-	retval = c_ceigen(auxmuReal,auxmuImag,w,Atilde,nr,nr)
-	if not retval == 0: raiseError('Problems computing the eigendecomposition!')
-	cr_stop('DMD.eigendecomposition',0)
-	free(Atilde)
-
-	# Computation of DMD modes
-	cr_start('DMD.modes',0)
-	cdef np.complex64_t *auxPhi
-	cdef np.complex64_t *aux1C
-	cdef np.complex64_t *aux2C
-	auxPhi = <np.complex64_t*>malloc(m*nr*sizeof(np.complex64_t))
-	aux1C  = <np.complex64_t*>malloc(nr*sizeof(np.complex64_t))
-	aux2C  = <np.complex64_t*>malloc(nr*sizeof(np.complex64_t))
-	for iaux in range(m):
-		for icol in range(nr):
-			aux1C[icol] = 0 + 0*I
-			for irow in range(n-1):
-				aux1C[icol] += Z[iaux*(n-1) + irow]*aux2[irow*nr + icol]
-		c_cmatmult(aux2C, aux1C, w, 1, nr, nr, 'N', 'N')
-		memcpy(&auxPhi[iaux*nr], aux2C, nr*sizeof(np.complex64_t))
-	free(aux2)
-	free(Z)
-	cdef float a
-	cdef float b
-	cdef float c
-	cdef float d
-	cdef float div
-	for icol in range(nr):
-		c = auxmuReal[icol]
-		d = auxmuImag[icol]
-		div = c*c + d*d
-		for iaux in range(m):
-			a = crealf(auxPhi[iaux*nr + icol])
-			b = cimagf(auxPhi[iaux*nr + icol])
-			auxPhi[iaux*nr + icol] = (a*c + b*d)/div + (b*c - a*d)/div*I
-	cr_stop('DMD.modes',0)
-
-	# Amplitudes according to: Jovanovic et. al. 2014 DOI: 10.1063
-	cdef np.complex64_t *auxbJov
-	cdef np.complex64_t *aux3C
-	cdef np.complex64_t *aux4C
-	cdef np.complex64_t *Vand
-	cdef np.complex64_t *P
-	cdef np.complex64_t *Pinv
-	cdef np.complex64_t *q
-
-	auxbJov = <np.complex64_t*>malloc(nr*sizeof(np.complex64_t))
-	aux3C   = <np.complex64_t*>malloc(nr*nr*sizeof(np.complex64_t))
-	aux4C   = <np.complex64_t*>malloc(nr*nr*sizeof(np.complex64_t))
-	Vand    = <np.complex64_t*>malloc((nr*(n-1))*sizeof(np.complex64_t))
-	P       = <np.complex64_t*>malloc(nr*nr*sizeof(np.complex64_t))
-	Pinv    = <np.complex64_t*>malloc(nr*nr*sizeof(np.complex64_t))
-	q       = <np.complex64_t*>malloc(nr*sizeof(np.complex64_t))
-
-	cr_start('DMD.amplitudes', 0)
-	c_cvandermonde(Vand, auxmuReal, auxmuImag, nr, n-1)
-	c_cmatmult(aux3C, w, w, nr, nr, nr, 'C', 'N')
-	c_cmatmult(aux4C, Vand, Vand, nr, nr, n-1, 'N', 'C')
-
-	for irow in range(nr):
-		for icol in range(nr): # Loop on the columns of the Vandermonde matrix
-			P[irow*nr + icol]  = crealf(aux3C[irow*nr + icol])*crealf(aux4C[irow*nr + icol])
-			P[irow*nr + icol] += -crealf(aux3C[irow*nr + icol])*cimagf(aux4C[irow*nr + icol])*I 
-			P[irow*nr + icol] += cimagf(aux3C[irow*nr + icol])*crealf(aux4C[irow*nr + icol])*I
-			P[irow*nr + icol] += cimagf(aux3C[irow*nr + icol])*cimagf(aux4C[irow*nr + icol])
-	retval = c_ccholesky(P, nr)
-	if not retval == 0: raiseError('Problems computing Cholesky factorization!')
-
-	for iaux in range(nr):
-		for irow in range(nr):
-			aux1C[irow] = 0 + 0*I
-			for icol in range(n-1):# casting Vr to a complex, at the same time, it is multipilied per S and Vand
-				aux1C[irow] += Sr[irow]*VTr[irow*(n-1) + icol]*(crealf(Vand[iaux*(n-1) + icol])+cimagf(Vand[iaux*(n-1) + icol])*I)
-			aux2C[irow] = w[irow*nr + iaux]
-		c_cmatmult(&q[iaux], aux1C, aux2C, 1, 1, nr, 'N', 'N')
-
-	memcpy(Pinv, P, nr*nr*sizeof(np.complex64_t))
-	cdef int ii
-	cdef int jj
-	for ii in range(nr):
-		q[ii] = crealf(q[ii]) - cimagf(q[ii])*I
-		for jj in range(nr - ii):
-			P[ii*nr + ii+jj]   = crealf(P[(ii+jj)*nr + ii])  - cimagf(P[(ii+jj)*nr + ii])*I
-			P[(ii+jj)*nr + ii] = crealf(Pinv[ii*nr + ii+jj]) - cimagf(Pinv[ii*nr + ii+jj])*I
-
-	retval = c_cinverse(Pinv, nr, 'L')
-	if not retval == 0: raiseError('Problems computing the Inverse!')
-
-	c_cmatmult(aux1C, Pinv, q, nr, 1, nr, 'N', 'N')
-
-	retval = c_cinverse(P, nr, 'U')
-	if not retval == 0: raiseError('Problems computing the Inverse!')
-
-	c_cmatmult(auxbJov, P, aux1C, nr, 1, nr, 'N', 'N')
-	cr_stop('DMD.amplitudes',0)
-
-	# Free allocated arrays before reordering
-	free(Sr)
-	free(VTr)
-	free(aux1C)
-	free(aux2C)
-	free(aux3C)
-	free(aux4C)
-	free(w)
-	free(Vand)
-	free(q)
-	free(P)
-	free(Pinv)
-
-	# Order modes and eigenvalues according to its amplitude
-	cdef int *auxOrd
-	auxOrd = <int*>malloc(nr*sizeof(int))
-	cdef np.ndarray[np.float32_t,ndim=1] muReal   = np.zeros((nr),dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=1] muImag   = np.zeros((nr),dtype=np.float32)
-	cdef np.ndarray[np.complex64_t,ndim=2] Phi  = np.zeros((m,nr),order='C',dtype=np.complex64)
-	cdef np.ndarray[np.complex64_t,ndim=1] bJov = np.zeros((nr,),dtype=np.complex64)
-
-	cr_start('DMD.qsort', 0)
-	c_csort(auxbJov, auxOrd, nr)
-	cr_stop('DMD.qsort', 0)
-	cr_start('DMD.sort', 0)
-	for ii in range(nr):
-		muReal[nr-(auxOrd[ii]+1)] = auxmuReal[ii]
-		muImag[nr-(auxOrd[ii]+1)] = auxmuImag[ii]
-		bJov[nr-(auxOrd[ii]+1)]   = auxbJov[ii]
-		for jj in range(m):
-			Phi[jj,nr-(auxOrd[ii]+1)]  = auxPhi[jj*nr + ii]
-	cr_stop('DMD.sort', 0)
-
-	# Free the variables that had to be ordered
-	free(auxmuReal)
-	free(auxmuImag)
-	free(auxbJov)
-	free(auxPhi)
-	free(auxOrd)
-
-	# Ensure that all conjugate modes are in the same order
-	cr_start('DMD.conjugate', 0)
-	cdef bint p = 0
-	cdef float iimag
-	for ii in range(nr):
-		if p == 1:
-			p = 0
-			continue
-		iimag = muImag[ii]
-		if iimag < 0:
-			muImag[ii]   =  muImag[ii+1]
-			muImag[ii+1] = -muImag[ii]
-			bJov[ii]     = crealf(bJov[ii])   + cimagf(bJov[ii+1])*I
-			bJov[ii+1]   = crealf(bJov[ii+1]) - cimagf(bJov[ii])*I
-			for jj in range(m):
-				Phi[jj,ii]   = crealf(Phi[jj,ii])   + cimagf(Phi[jj,ii+1])*I
-				Phi[jj,ii+1] = crealf(Phi[jj,ii+1]) - cimagf(Phi[jj,ii+1])*I
-			p = 1
-			continue
-		if iimag > 0:
-			p = 1
-			continue
-	cr_stop('DMD.conjugate', 0)
-
-	# Return
-	return muReal, muImag, Phi, bJov
+	return _srun_core(Y, Z, m, n_total+1, m_aux, r)
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _drun_new(list X, double r, int remove_mean):
+cdef _drun_core(double *Y, double *Z, int m, int n, int m_aux, double r):
 	'''
-	Run DMD analysis of a matrix X.
-
-	Inputs:
-		- X[ndims*nmesh,n_temp_snapshots]: data matrix
-		- remove_mean:                     whether or not to remove the mean flow
-		- r:                               maximum truncation residual
-
-	Returns:
-		- Phi:      DMD Modes
-		- muReal:   Real part of the eigenvalues
-		- muImag:   Imaginary part of the eigenvalues
-		- b:        Amplitude of the DMD modes
-		- Variables needed to reconstruct flow
+	(double precision) DMD core: computes muReal, muImag, Phi and bJov from
+	the shifted snapshot matrices Y (m_aux x (n-1), zero-padded) and
+	Z (m x (n-1)), where n = (number of snapshots) + 1.
+	Takes ownership of Y and Z: both are freed inside.
+	Call run() instead: it enforces contiguity and dispatches on precision.
 	'''
-	# Variables
-	cdef int m, n, irow, icol, iaux, retval
-	cdef int n_matrix, n_local, n_total, m_aux
-	m = X[0].shape[0]
-	n_matrix = len(X)
-
-	cr_start('DMD.concatenate', 0)
-	cdef double **X_pointer
-	cdef int *n_list
-	X_pointer = <double**>malloc(n_matrix*sizeof(double*))
-	n_list    = <int*>malloc(n_matrix*sizeof(int))
-
-	cdef double[:, ::1] M
-	n_total = 0
-	for iaux in range(n_matrix):
-		M = X[iaux]
-		n_local = M.shape[1]
-		n_total += n_local - 1
-		X_pointer[iaux] = <double*>malloc(m*n_local*sizeof(double))
-		memcpy(X_pointer[iaux], &M[0,0], m*n_local*sizeof(double))
-		n_list[iaux] = n_local
-	n = n_total + 1
-
-	if m > n_total:
-		m_aux = m
-	else:
-		m_aux = n_total
-
-	cdef double *Y
-	cdef double *Z
-	Y = <double*>calloc(m_aux*n_total, sizeof(double))
-	Z = <double*>malloc(m*n_total*sizeof(double))
-
-	# Create the snapshot of matrices and separate it into Y, Z
-	if remove_mean: cr_start('DMD.temporal_mean',0)
-	c_dconcatenate(Y, Z, X_pointer, n_list, n_matrix, m, n_total, remove_mean)
-	if remove_mean: cr_stop('DMD.temporal_mean',0)
-	for iaux in range(n_matrix):
-		free(X_pointer[iaux])
-	free(X_pointer)
-	free(n_list)
-	cr_stop('DMD.concatenate', 0)
+	cdef int irow, icol, iaux, retval
 
 	# Compute the linear operator in lower dimension
 	cr_start('DMD.linear_operator', 0)
@@ -1903,17 +629,117 @@ def _drun_new(list X, double r, int remove_mean):
 	# Return
 	return muReal, muImag, Phi, bJov
 
-@cr('DMD.run_new')
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def run_new(object X, object r, int remove_mean=True):
+def _drun_matrix(double[:,:] X, double r, int remove_mean):
 	'''
-	Run DMD analysis of a matrix X.
+	(double precision) DMD of a single data matrix X.
+	Call run() instead: it enforces contiguity and dispatches on precision.
+	'''
+	cdef int m, n, m_aux
+	m = X.shape[0]
+	n = X.shape[1]
+
+	# Y = X[:, :-1] zero-padded up to m_aux rows, Z = X[:, 1:]
+	# The zero padding guarantees a tall matrix for the TSQR SVD, keeping
+	# all the information when m < n - 1: S and VT are unchanged and the
+	# artificial rows of U are removed right after the SVD (see _drun_core).
+	if m > (n-1):
+		m_aux = m
+	else:
+		m_aux = n-1
+
+	cdef double *Y
+	cdef double *Z
+	Y = <double*>calloc(m_aux*(n-1), sizeof(double))
+	Z = <double*>malloc(m*(n-1)*sizeof(double))
+
+	# Create the shifted snapshot matrices Y, Z
+	cr_start('DMD.separate', 0)
+	cdef double *X_c = <double*>malloc(m*n*sizeof(double))
+	memcpy(X_c, &X[0,0], m*n*sizeof(double))
+	if remove_mean: cr_start('DMD.temporal_mean',0)
+	c_dseparate(Y, Z, X_c, m, n, remove_mean)
+	if remove_mean: cr_stop('DMD.temporal_mean',0)
+	free(X_c)
+	cr_stop('DMD.separate', 0)
+
+	return _drun_core(Y, Z, m, n, m_aux, r)
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def _drun_list(list X, double r, int remove_mean):
+	'''
+	(double precision) DMD of a list of data matrices with stitched
+	interfaces, i.e. X[i+1][:,0] == X[i][:,-1]. All matrices in the list
+	must share the same spatial dimension m.
+	Call run() instead: it enforces contiguity and dispatches on precision.
+	'''
+	cdef int m, iaux
+	cdef int n_matrix, n_local, n_total, m_aux
+	m = X[0].shape[0]
+	n_matrix = len(X)
+
+	cr_start('DMD.separate', 0)
+	cdef double **X_pointer
+	cdef int *n_list
+	X_pointer = <double**>malloc(n_matrix*sizeof(double*))
+	n_list    = <int*>malloc(n_matrix*sizeof(int))
+
+	cdef double[:, ::1] M
+	n_total = 0
+	for iaux in range(n_matrix):
+		M = X[iaux]
+		n_local = M.shape[1]
+		n_total += n_local - 1
+		X_pointer[iaux] = <double*>malloc(m*n_local*sizeof(double))
+		memcpy(X_pointer[iaux], &M[0,0], m*n_local*sizeof(double))
+		n_list[iaux] = n_local
+
+	# Y = X[:, :-1] zero-padded up to m_aux rows, Z = X[:, 1:]
+	# The zero padding guarantees a tall matrix for the TSQR SVD, keeping
+	# all the information when m < n_total: S and VT are unchanged and the
+	# artificial rows of U are removed right after the SVD (see _drun_core).
+	if m > n_total:
+		m_aux = m
+	else:
+		m_aux = n_total
+
+	cdef double *Y
+	cdef double *Z
+	Y = <double*>calloc(m_aux*n_total, sizeof(double))
+	Z = <double*>malloc(m*n_total*sizeof(double))
+
+	# Create the shifted snapshot matrices Y, Z
+	if remove_mean: cr_start('DMD.temporal_mean',0)
+	c_dconcatenate(Y, Z, X_pointer, n_list, n_matrix, m, n_total, remove_mean)
+	if remove_mean: cr_stop('DMD.temporal_mean',0)
+	for iaux in range(n_matrix):
+		free(X_pointer[iaux])
+	free(X_pointer)
+	free(n_list)
+	cr_stop('DMD.separate', 0)
+
+	return _drun_core(Y, Z, m, n_total+1, m_aux, r)
+
+@cr('DMD.run')
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def run(object X, object r, int remove_mean=True):
+	'''
+	Run DMD analysis of a matrix X or a list of matrices.
 
 	Inputs:
-		- X[ndims*nmesh,n_temp_snapshots]: data matrix
+		- X[ndims*nmesh,n_temp_snapshots]: data matrix or list of data matrices
+		                                   with stitched interfaces, i.e.
+		                                   X[i+1][:,0] == X[i][:,-1], sharing
+		                                   the same spatial dimension
 		- remove_mean:                     whether or not to remove the mean flow
 		- r:                               maximum truncation residual
 
@@ -1927,16 +753,149 @@ def run_new(object X, object r, int remove_mean=True):
 	# Ensure C-contiguous input (C routines assume a dense layout)
 	if isinstance(X, list):
 		X = [np.ascontiguousarray(M) for M in X]
+		dtype = X[0].dtype
 	else:
 		X = np.ascontiguousarray(X)
+		dtype = X.dtype
 
-	if isinstance(X, list):
-		if X[0].dtype == np.double:
-			return _drun_new(X,<double>r,remove_mean)
+	if dtype == np.double:
+		if isinstance(X, list):
+			return _drun_list(X, <double>r, remove_mean)
 		else:
-			return _srun_new(X,<float>r,remove_mean)
+			return _drun_matrix(X, <double>r, remove_mean)
 	else:
-		if X[0].dtype == np.double:
-			return _drun_old(X,<double>r,remove_mean)
+		if isinstance(X, list):
+			return _srun_list(X, <float>r, remove_mean)
 		else:
-			return _srun_old(X,<float>r,remove_mean)
+			return _srun_matrix(X, <float>r, remove_mean)
+
+
+## DMD frequency damping
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def _sfrequency_damping(float[:] rreal, float[:] iimag, float dt):
+	'''
+	Computation of the damping ratio and the frequency of each mode
+	'''
+	cdef int ii, n = rreal.shape[0]
+	cdef float mod
+	cdef float arg
+
+	cdef np.ndarray[np.float32_t,ndim=1] delta = np.zeros((n),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=1] omega = np.zeros((n),dtype=np.float32)
+
+	for ii in range(n):
+		mod       = sqrt(rreal[ii]*rreal[ii] + iimag[ii]*iimag[ii])
+		delta[ii] = log(mod)/dt
+		arg       = atan2(iimag[ii], rreal[ii])
+		omega[ii] = arg/dt
+	return delta, omega
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def _dfrequency_damping(double[:] rreal, double[:] iimag, double dt):
+	'''
+	Computation of the damping ratio and the frequency of each mode
+	'''
+	cdef int ii, n = rreal.shape[0]
+	cdef double mod
+	cdef double arg
+
+	cdef np.ndarray[np.double_t,ndim=1] delta = np.zeros((n),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=1] omega = np.zeros((n),dtype=np.double)
+
+	for ii in range(n):
+		mod       = sqrt(rreal[ii]*rreal[ii] + iimag[ii]*iimag[ii])
+		delta[ii] = log(mod)/dt
+		arg       = atan2(iimag[ii], rreal[ii])
+		omega[ii] = arg/dt
+	return delta, omega
+
+@cr('DMD.frequency_damping')
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def frequency_damping(real[:] rreal, real[:] iimag, real dt):
+	'''
+	Computation of the damping ratio and the frequency of each mode
+	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	rreal = np.ascontiguousarray(rreal)
+	iimag = np.ascontiguousarray(iimag)
+
+	if real is double:
+		return _dfrequency_damping(rreal,iimag,dt)
+	else:
+		return _sfrequency_damping(rreal,iimag,dt)
+
+
+## Flow reconstruction
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def _sreconstruction_jovanovic(np.complex64_t[:,:] Phi, float[:] muReal, float[:] muImag, float[:] t, np.complex64_t[:] bJov):
+	'''
+	Computation of the reconstructed flow from the DMD computations
+	'''
+	cdef int m  = Phi.shape[0], n  = t.shape[0], nr = Phi.shape[1]
+	cdef np.complex64_t *Vand
+	cdef np.ndarray[np.complex64_t,ndim=2] Zdmd = np.zeros((m,n),order='C',dtype=np.complex64)
+
+	Vand = <np.complex64_t*>malloc(nr*n*sizeof(np.complex64_t))
+
+	c_cvandermonde_time(Vand, &muReal[0], &muImag[0], nr, n, &t[0])
+	c_cvecmat(&bJov[0], Vand, nr, n)
+	c_cmatmult(&Zdmd[0,0], &Phi[0,0], Vand, m, n, nr, 'N', 'N')
+	
+	free(Vand)
+
+	return Zdmd.real
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def _dreconstruction_jovanovic(np.complex128_t[:,:] Phi, double[:] muReal, double[:] muImag, double[:] t, np.complex128_t[:] bJov):
+	'''
+	Computation of the reconstructed flow from the DMD computations
+	'''
+	cdef int m  = Phi.shape[0], n  = t.shape[0], nr = Phi.shape[1]
+	cdef np.complex128_t *Vand
+	cdef np.ndarray[np.complex128_t,ndim=2] Zdmd = np.zeros((m,n),order='C',dtype=np.complex128)
+
+	Vand = <np.complex128_t*>malloc(nr*n*sizeof(np.complex128_t))
+
+	c_zvandermonde_time(Vand, &muReal[0], &muImag[0], nr, n, &t[0])
+	c_zvecmat(&bJov[0], Vand, nr, n)
+	c_zmatmult(&Zdmd[0,0], &Phi[0,0], Vand, m, n, nr, 'N', 'N')
+	
+	free(Vand)
+
+	return Zdmd.real
+
+@cr('DMD.reconstruction_jovanovic')
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def reconstruction_jovanovic(real_complex[:,:] Phi, real[:] muReal, real[:] muImag, real[:] t, real_complex[:] bJov):
+	'''
+	Computation of the reconstructed flow from the DMD computations
+	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	Phi = np.ascontiguousarray(Phi)
+	muReal = np.ascontiguousarray(muReal)
+	muImag = np.ascontiguousarray(muImag)
+	t = np.ascontiguousarray(t)
+	bJov = np.ascontiguousarray(bJov)
+
+	if real_complex is np.complex128_t:
+		return _dreconstruction_jovanovic(Phi,muReal,muImag,t,bJov)
+	else:
+		return _sreconstruction_jovanovic(Phi,muReal,muImag,t,bJov)

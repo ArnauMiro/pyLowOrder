@@ -23,8 +23,8 @@ cdef double complex J = 1j
 from libc.stdlib     cimport malloc, free
 from libc.string     cimport memcpy, memset
 from ..vmmath.cfuncs cimport real, real_complex, real_float, real_double, real_full
-from ..vmmath.cfuncs cimport c_stranspose, c_smatmul, c_smatmulp, c_stsqr_svd, c_scompute_truncation_residual, c_scompute_truncation, c_stemporal_mean, c_ssubtract_mean, c_sflip_columns
-from ..vmmath.cfuncs cimport c_dtranspose, c_dmatmul, c_dmatmulp, c_dtsqr_svd, c_dcompute_truncation_residual, c_dcompute_truncation, c_dtemporal_mean, c_dsubtract_mean, c_dflip_columns
+from ..vmmath.cfuncs cimport c_stranspose, c_smatmul, c_smatmulp, c_stsqr_svd, c_scompute_truncation_residual, c_scompute_truncation, c_sseparate, c_sconcatenate, c_sflip_columns
+from ..vmmath.cfuncs cimport c_dtranspose, c_dmatmul, c_dmatmulp, c_dtsqr_svd, c_dcompute_truncation_residual, c_dcompute_truncation, c_dseparate, c_dconcatenate, c_dflip_columns
 from ..vmmath.cfuncs cimport c_csvd, c_cdagger, c_cflip_columns
 from ..vmmath.cfuncs cimport c_zsvd, c_zdagger, c_zflip_columns
 
@@ -190,45 +190,41 @@ def linear_operator(real[:,:] Y, real[:,:] Z, real r):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 cdef tuple _sconcatenate(list X, int remove_mean):
-	cdef int ii, jj, m, m_aux, n, ni, offset
+	cdef int ii, m, n_local, n_total, n_matrix, m_aux
+	cdef int *n_list
+	cdef float **X_pointer
+	cdef float[:, ::1] M
 
-	m = X[0].shape[0]
-	n = sum([M.shape[1] - 1 for M in X])
+	m        = X[0].shape[0]
+	n_matrix = len(X)
+
+	# Build the array of pointers to the data matrices and the list of
+	# column counts; compute the total number of shifted snapshots
+	X_pointer = <float**>malloc(n_matrix*sizeof(float*))
+	n_list    = <int*>malloc(n_matrix*sizeof(int))
+	n_total   = 0
+	for ii in range(n_matrix):
+		M = X[ii]
+		n_local = M.shape[1]
+		n_total += n_local - 1
+		X_pointer[ii] = &M[0,0]
+		n_list[ii]    = n_local
 
 	# Create the matrices Y, Z
-	if m > (n-1):
+	# Y = X[i][:,:-1] zero-padded up to m_aux rows, Z = X[i][:,1:]
+	if m > n_total:
 		m_aux = m
 	else:
-		m_aux = n
-	cdef np.ndarray[np.float32_t,ndim=2] Y   = np.zeros((m_aux, n),dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=2] Z   = np.zeros((m, n),dtype=np.float32)
+		m_aux = n_total
+	cdef np.ndarray[np.float32_t,ndim=2] Y = np.zeros((m_aux, n_total),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=2] Z = np.zeros((m, n_total),dtype=np.float32)
 
-	# Fill the matrices
-	offset = 0
-	cdef float *X_mean
-	cdef float *X_meanless
-	cdef float[:, ::1] M 
-	X_mean     = <float*>malloc(m*sizeof(float))
-	for ii in range(len(X)):
-		M = X[ii]
-		ni = M.shape[1]
-		X_meanless = <float*>malloc(m*ni*sizeof(float))
-		if remove_mean:
-			cr_start('DMD.temporal_mean',0)
-			c_stemporal_mean(X_mean,&M[0,0],m,ni)
-			c_ssubtract_mean(X_meanless,&M[0,0],X_mean,m,ni)
-			for jj in range(m):
-				memcpy(&Y[jj, offset], &X_meanless[jj*ni], (ni-1)*sizeof(float))
-				memcpy(&Z[jj, offset], &X_meanless[jj*ni+1], (ni-1)*sizeof(float))
-			offset += (ni-1)
-			cr_stop('DMD.temporal_mean',0)
-		else:
-			Y[:m,offset:offset + ni-1] = M[:,:-1]
-			Z[:,offset:offset + ni-1] = M[:,1:]
-			offset += (ni-1)
-		free(X_meanless)
-    
-	free(X_mean)
+	if remove_mean: cr_start('DMD.temporal_mean',0)
+	c_sconcatenate(&Y[0,0], &Z[0,0], X_pointer, n_list, n_matrix, m, n_total, remove_mean)
+	if remove_mean: cr_stop('DMD.temporal_mean',0)
+
+	free(X_pointer)
+	free(n_list)
 
 	return Y, Z
 
@@ -238,45 +234,41 @@ cdef tuple _sconcatenate(list X, int remove_mean):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 cdef tuple _dconcatenate(list X, int remove_mean):
-	cdef int ii, jj, m, m_aux, n, ni, offset
+	cdef int ii, m, n_local, n_total, n_matrix, m_aux
+	cdef int *n_list
+	cdef double **X_pointer
+	cdef double[:, ::1] M
 
-	m = X[0].shape[0]
-	n = sum([M.shape[1] - 1 for M in X])
+	m        = X[0].shape[0]
+	n_matrix = len(X)
+
+	# Build the array of pointers to the data matrices and the list of
+	# column counts; compute the total number of shifted snapshots
+	X_pointer = <double**>malloc(n_matrix*sizeof(double*))
+	n_list    = <int*>malloc(n_matrix*sizeof(int))
+	n_total   = 0
+	for ii in range(n_matrix):
+		M = X[ii]
+		n_local = M.shape[1]
+		n_total += n_local - 1
+		X_pointer[ii] = &M[0,0]
+		n_list[ii]    = n_local
 
 	# Create the matrices Y, Z
-	if m > (n-1):
+	# Y = X[i][:,:-1] zero-padded up to m_aux rows, Z = X[i][:,1:]
+	if m > n_total:
 		m_aux = m
 	else:
-		m_aux = n
-	cdef np.ndarray[np.double_t,ndim=2] Y   = np.zeros((m_aux, n),dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=2] Z   = np.zeros((m, n),dtype=np.double)
+		m_aux = n_total
+	cdef np.ndarray[np.double_t,ndim=2] Y = np.zeros((m_aux, n_total),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] Z = np.zeros((m, n_total),dtype=np.double)
 
-	# Fill the matrices
-	offset = 0
-	cdef double *X_mean
-	cdef double *X_meanless
-	cdef double[:, ::1] M 
-	X_mean     = <double*>malloc(m*sizeof(double))
-	for ii in range(len(X)):
-		M = X[ii]
-		ni = M.shape[1]
-		X_meanless = <double*>malloc(m*ni*sizeof(double))  
-		if remove_mean:
-			cr_start('DMD.temporal_mean',0)
-			c_dtemporal_mean(X_mean,&M[0,0],m,ni)
-			c_dsubtract_mean(X_meanless,&M[0,0],X_mean,m,ni)
-			for jj in range(m):
-				memcpy(&Y[jj, offset], &X_meanless[jj*ni], (ni-1)*sizeof(double))
-				memcpy(&Z[jj, offset], &X_meanless[jj*ni+1], (ni-1)*sizeof(double))
-			offset += (ni-1)
-			cr_stop('DMD.temporal_mean',0)
-		else:
-			Y[:m,offset:offset + ni-1] = M[:,:-1]
-			Z[:,offset:offset + ni-1] = M[:,1:]
-			offset += (ni-1)
-		free(X_meanless)
-    	
-	free(X_mean)
+	if remove_mean: cr_start('DMD.temporal_mean',0)
+	c_dconcatenate(&Y[0,0], &Z[0,0], X_pointer, n_list, n_matrix, m, n_total, remove_mean)
+	if remove_mean: cr_stop('DMD.temporal_mean',0)
+
+	free(X_pointer)
+	free(n_list)
 
 	return Y, Z
 
@@ -285,7 +277,15 @@ cdef tuple _dconcatenate(list X, int remove_mean):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def concatenate(list X, remove_mean=False):
+	r'''
+	Compute the shifted snapshot matrices Y = X[i][:,:-1] and Z = X[i][:,1:]
+	of a list of data matrices with stitched interfaces, i.e.
+	X[i+1][:,0] == X[i][:,-1]. All matrices in the list must share the
+	same spatial dimension m.
 
+	Y is zero-padded up to max(m, n_total) rows so that it is tall enough
+	for the TSQR SVD used by the DMD module.
+	'''
 	# Ensure C-contiguous input (C routines assume a dense layout)
 	X = [np.ascontiguousarray(M) for M in X]
 
@@ -301,38 +301,21 @@ def concatenate(list X, remove_mean=False):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 cdef tuple _sseparate(float[:,:] X, int remove_mean):
-	cdef int jj, m, m_aux, n
-
-	m = X.shape[0]
-	n = X.shape[1]
+	cdef int m = X.shape[0], n = X.shape[1]
+	cdef int m_aux
 
 	# Create the matrices Y, Z
+	# Y = X[:,:-1] zero-padded up to m_aux rows, Z = X[:,1:]
 	if m > (n-1):
 		m_aux = m
 	else:
 		m_aux = n-1
-	cdef np.ndarray[np.float32_t,ndim=2] Y   = np.zeros((m_aux, n-1),dtype=np.float32)
-	cdef np.ndarray[np.float32_t,ndim=2] Z   = np.zeros((m, n-1),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=2] Y = np.zeros((m_aux, n-1),dtype=np.float32)
+	cdef np.ndarray[np.float32_t,ndim=2] Z = np.zeros((m, n-1),dtype=np.float32)
 
-	# Fill the matrices
-	cdef float *X_mean
-	cdef float *X_meanless
-	X_mean     = <float*>malloc(m*sizeof(float))
-	X_meanless = <float*>malloc(m*n*sizeof(float))
-	if remove_mean:
-		cr_start('DMD.temporal_mean',0)
-		c_stemporal_mean(X_mean,&X[0,0],m,n)
-		c_ssubtract_mean(X_meanless,&X[0,0],X_mean,m,n)
-		for jj in range(m):
-			memcpy(&Y[jj, 0], &X_meanless[jj*n], (n-1)*sizeof(float))
-			memcpy(&Z[jj, 0], &X_meanless[jj*n+1], (n-1)*sizeof(float))
-		cr_stop('DMD.temporal_mean',0)
-	else:
-		Y[:m,:] = X[:,:-1]
-		Z[:,:] = X[:,1:]
-
-	free(X_meanless)
-	free(X_mean)
+	if remove_mean: cr_start('DMD.temporal_mean',0)
+	c_sseparate(&Y[0,0], &Z[0,0], &X[0,0], m, n, remove_mean)
+	if remove_mean: cr_stop('DMD.temporal_mean',0)
 
 	return Y, Z
 
@@ -342,48 +325,36 @@ cdef tuple _sseparate(float[:,:] X, int remove_mean):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 cdef tuple _dseparate(double[:,:] X, int remove_mean):
-	cdef int jj, m, m_aux, n
-
-	m = X.shape[0]
-	n = X.shape[1]
+	cdef int m = X.shape[0], n = X.shape[1]
+	cdef int m_aux
 
 	# Create the matrices Y, Z
+	# Y = X[:,:-1] zero-padded up to m_aux rows, Z = X[:,1:]
 	if m > (n-1):
 		m_aux = m
 	else:
 		m_aux = n-1
-	cdef np.ndarray[np.double_t,ndim=2] Y   = np.zeros((m_aux, n-1),dtype=np.double)
-	cdef np.ndarray[np.double_t,ndim=2] Z   = np.zeros((m, n-1),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] Y = np.zeros((m_aux, n-1),dtype=np.double)
+	cdef np.ndarray[np.double_t,ndim=2] Z = np.zeros((m, n-1),dtype=np.double)
 
-	# Fill the matrices
-	cdef double *X_mean
-	cdef double *X_meanless
-	X_mean     = <double*>malloc(m*sizeof(double))
-	X_meanless = <double*>malloc(m*n*sizeof(double))
-	if remove_mean:
-		cr_start('DMD.temporal_mean',0)
-		c_dtemporal_mean(X_mean,&X[0,0],m,n)
-		c_dsubtract_mean(X_meanless,&X[0,0],X_mean,m,n)
-		for jj in range(m):
-			memcpy(&Y[jj, 0], &X_meanless[jj*n], (n-1)*sizeof(double))
-			memcpy(&Z[jj, 0], &X_meanless[jj*n+1], (n-1)*sizeof(double))
-		cr_stop('DMD.temporal_mean',0)
-	else:
-		Y[:m,:] = X[:,:-1]
-		Z[:,:] = X[:,1:]
-
-	free(X_meanless)
-	free(X_mean)
+	if remove_mean: cr_start('DMD.temporal_mean',0)
+	c_dseparate(&Y[0,0], &Z[0,0], &X[0,0], m, n, remove_mean)
+	if remove_mean: cr_stop('DMD.temporal_mean',0)
 
 	return Y, Z
-
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def separate(real[:,:] X, remove_mean=False):
+	r'''
+	Compute the shifted snapshot matrices Y = X[:,:-1] and Z = X[:,1:]
+	of snapshot matrix X.
 
+	Y is zero-padded up to max(m, n-1) rows so that it is tall enough
+	for the TSQR SVD used by the DMD module.
+	'''
 	# Ensure C-contiguous input (C routines assume a dense layout)
 	X = np.ascontiguousarray(X)
 
