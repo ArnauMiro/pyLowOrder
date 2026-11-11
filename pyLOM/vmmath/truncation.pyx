@@ -89,6 +89,9 @@ def compute_truncation_residual(real[:] S, real r):
 		- r > 0: target residual
 		- r < 0: fraction of cumulative energy to retain
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	S = np.ascontiguousarray(S)
+
 	if real is double:
 		return _dcompute_truncation_residual(S,r)
 	else:
@@ -132,6 +135,10 @@ def energy(real[:,:] A, real[:,:] B):
 	'''
 	Compute RMSE between X_POD and X
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+	B = np.ascontiguousarray(B)
+
 	if real is double:
 		return _denergy(A,B)
 	else:
@@ -175,6 +182,10 @@ def local_energy(real[:,:] A, real[:,:] B):
 	'''
 	Compute RMSE between X_POD and X
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+	B = np.ascontiguousarray(B)
+
 	if real is double:
 		return _dlocal_energy(A,B)
 	else:
@@ -217,6 +228,9 @@ def remove_rows(real[:,:] A, int rows):
 	'''
 	Get A with the disired number of rows
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+
 	if real is double:
 		return _dremove_rows(A, rows)
 	else:

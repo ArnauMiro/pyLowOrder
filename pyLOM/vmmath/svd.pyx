@@ -152,6 +152,9 @@ def svd(real_full[:,:] A, int do_copy=True):
 		S(n)     are the singular values.
 		V(n,n)   are the right singular vectors.
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+
 	if real_full is np.complex128_t:
 		return _zsvd(A,do_copy)
 	elif real_full is np.complex64_t:
@@ -262,6 +265,9 @@ def tsqr_svd(real_full[:,:] A):
 		S(n)     are the singular values.
 		V(n,n)   are the right singular vectors.
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+
 	if real_full is np.complex128_t:
 		return _ztsqr_svd(A)
 	elif real_full is np.complex64_t:
@@ -328,6 +334,8 @@ def randomized_svd(real[:,:] A, const int r, const int q, const int seed=-1):
 		S(n)     are the singular values.
 		V(n,n)   are the right singular vectors.
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
 	seed = <int>time(NULL) if seed < 0 else seed
 	if real is double:
 		return _drandomized_svd(A,r,q,seed)

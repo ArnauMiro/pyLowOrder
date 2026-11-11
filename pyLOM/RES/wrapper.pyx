@@ -41,7 +41,7 @@ from ..utils.errors   import raiseError
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _crun(np.complex64_t[:,:] Phi, float[:] delta, float[:] omega, float f, float[:] Q=None):
+def _crun(np.complex64_t[:,:] Phi, float[:] delta, float[:] omega, float f, float[:] W=None):
 	'''
     Resolvent Analysis of snapshot matrix X
     Inputs:
@@ -49,7 +49,7 @@ def _crun(np.complex64_t[:,:] Phi, float[:] delta, float[:] omega, float f, floa
         - delta: damping ratio of each mode
         - omega: frequency of each mode
         - f: target frequency
-        - Q: weighting matrix
+        - W: diagonal matrix (1D) of the inner-product
     Returns:
         - U_res: response modes
         - S: emergy gains
@@ -71,26 +71,26 @@ def _crun(np.complex64_t[:,:] Phi, float[:] delta, float[:] omega, float f, floa
 	free(Omega)
 	cr_stop('RES.resolvent_operator', 0)
 
-	# Compute the Qhat (named Fhat_dagger for convenience)
-	cr_start('RES.Qhat', 0)
+	# Compute the What (named Fhat_dagger for convenience)
+	cr_start('RES.What', 0)
 	cdef np.complex64_t *Phi_dagger
 	cdef np.complex64_t *Phi_aux
 	cdef np.complex64_t *Fhat_dagger
 	Phi_dagger = <np.complex64_t*>malloc(n*m*sizeof(np.complex64_t))
 	Phi_aux = <np.complex64_t*>malloc(m*n*sizeof(np.complex64_t))
 	Fhat_dagger = <np.complex64_t*>malloc(n*n*sizeof(np.complex64_t))
-	cdef np.ndarray[np.complex64_t, ndim=1] Q_aux = np.zeros((m),dtype=np.complex64)
+	cdef np.ndarray[np.complex64_t, ndim=1] W_aux = np.zeros((m),dtype=np.complex64)
 	c_cdagger(&Phi[0,0], Phi_dagger, m, n)
-	if Q is None:
+	if W is None:
 		c_cmatmulp(Fhat_dagger, Phi_dagger, &Phi[0,0], n, n, m)
 	else:
 		memcpy(Phi_aux, &Phi[0,0], m*n*sizeof(np.complex64_t))
-		Q_aux = np.array(Q, dtype=np.complex64)
-		c_cvecmat(&Q_aux[0], Phi_aux, m, n) # Phi_aux is overwritten
+		W_aux = np.array(W, dtype=np.complex64)
+		c_cvecmat(&W_aux[0], Phi_aux, m, n) # Phi_aux is overwritten
 		c_cmatmulp(Fhat_dagger, Phi_dagger, Phi_aux, n, n, m)
 	free(Phi_aux)
 	free(Phi_dagger)
-	cr_stop('RES.Qhat', 0)
+	cr_stop('RES.What', 0)
 
 	# Compute the Choleski decomposition
 	cr_start('RES.Choleski', 0)
@@ -161,7 +161,7 @@ def _crun(np.complex64_t[:,:] Phi, float[:] delta, float[:] omega, float f, floa
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _zrun(np.complex128_t[:,:] Phi, double[:] delta, double[:] omega, double f, double[:] Q=None):
+def _zrun(np.complex128_t[:,:] Phi, double[:] delta, double[:] omega, double f, double[:] W=None):
 	'''
     Resolvent Analysis of snapshot matrix X
     Inputs:
@@ -169,7 +169,7 @@ def _zrun(np.complex128_t[:,:] Phi, double[:] delta, double[:] omega, double f, 
         - delta: damping ratio of each mode
         - omega: frequency of each mode
         - f: target frequency
-        - Q: weighting matrix
+        - W: diagonal matrix (1D) of the inner-product
     Returns:
         - U_res: response modes
         - S: emergy gains
@@ -191,26 +191,26 @@ def _zrun(np.complex128_t[:,:] Phi, double[:] delta, double[:] omega, double f, 
 	free(Omega)
 	cr_stop('RES.resolvent_operator', 0)
 
-	# Compute the Qhat (named Fhat for convenience)
-	cr_start('RES.Qhat', 0)
+	# Compute the What (named Fhat for convenience)
+	cr_start('RES.What', 0)
 	cdef np.complex128_t *Phi_dagger
 	cdef np.complex128_t *Phi_aux
 	cdef np.complex128_t *Fhat_dagger
 	Phi_dagger = <np.complex128_t*>malloc(n*m*sizeof(np.complex128_t))
 	Phi_aux = <np.complex128_t*>malloc(m*n*sizeof(np.complex128_t))
 	Fhat_dagger = <np.complex128_t*>malloc(n*n*sizeof(np.complex128_t))
-	cdef np.ndarray[np.complex128_t,ndim=1] Q_aux = np.zeros((m),dtype=np.complex128)
+	cdef np.ndarray[np.complex128_t,ndim=1] W_aux = np.zeros((m),dtype=np.complex128)
 	c_zdagger(&Phi[0,0], Phi_dagger, m, n)
-	if Q is None:
+	if W is None:
 		c_zmatmulp(Fhat_dagger, Phi_dagger, &Phi[0,0], n, n, m)
 	else:
 		memcpy(Phi_aux, &Phi[0,0], m*n*sizeof(np.complex128_t))
-		Q_aux = np.array(Q, dtype=np.complex128)
-		c_zvecmat(&Q_aux[0], Phi_aux, m, n) # Phi_aux is overwritten
+		W_aux = np.array(W, dtype=np.complex128)
+		c_zvecmat(&W_aux[0], Phi_aux, m, n) # Phi_aux is overwritten
 		c_zmatmulp(Fhat_dagger, Phi_dagger, Phi_aux, n, n, m)
 	free(Phi_aux)
 	free(Phi_dagger)
-	cr_stop('RES.Qhat', 0)
+	cr_stop('RES.What', 0)
 
 	# Compute the Choleski decomposition
 	cr_start('RES.Choleski', 0)
@@ -283,7 +283,7 @@ def _zrun(np.complex128_t[:,:] Phi, double[:] delta, double[:] omega, double f, 
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def run(real_complex[:,:] Phi, real[:] delta, real[:] omega, real f, real[:] Q=None):
+def run(real_complex[:,:] Phi, real[:] delta, real[:] omega, real f, real[:] W=None):
 	'''
     Resolvent Analysis of snapshot matrix X
     Inputs:
@@ -291,18 +291,18 @@ def run(real_complex[:,:] Phi, real[:] delta, real[:] omega, real f, real[:] Q=N
         - delta: damping ratio of each mode
         - omega: frequency of each mode
         - f: target frequency
-        - Q: weighting matrix
+        - W: diagonal matrix (1D) of the inner-product
     Returns:
         - U_res: response modes
         - S: emergy gains
         - V_res: forcing modes
     '''
 	if real_complex is np.complex128_t:
-		return _zrun(Phi, delta, omega, f, Q)
+		return _zrun(Phi, delta, omega, f, W)
 	else:
-		return _crun(Phi, delta, omega, f, Q)
+		return _crun(Phi, delta, omega, f, W)
 
-def _crun_old(float[:,:] X, np.complex64_t w, float r, int remove_mean, float[:] Q):
+def _crun_old(float[:,:] X, np.complex64_t w, float r, int remove_mean, float[:] W):
 
 	# Variables
 	cdef int m, n, ii, m_aux
@@ -319,10 +319,14 @@ def _crun_old(float[:,:] X, np.complex64_t w, float r, int remove_mean, float[:]
 
 	cdef float *Y
 	cdef float *Z
+	cdef float *W_sqrt
 	Y = <float*>calloc(m_aux*(n-1), sizeof(float))
 	Z = <float*>malloc(m*(n-1)*sizeof(float))
-	if Q is not None:
-		c_svecmat(&Q[0], X_c, m, n)
+	W_sqrt = <float*>malloc(m*sizeof(float))
+	if W is not None:
+		for ii in range(m):
+			W_sqrt[ii] = <float>sqrt(<double>W[ii])
+		c_svecmat(W_sqrt, X_c, m, n)
 
 	# Create the snapshot of matrices and separate it into Y, Z
 	c_sseparate(Y, Z, X_c, m, n, remove_mean)
@@ -416,18 +420,19 @@ def _crun_old(float[:,:] X, np.complex64_t w, float r, int remove_mean, float[:]
 	free(V2)
 	free(U_c)
 
-	cdef np.complex64_t *Q_inv
-	Q_inv = <np.complex64_t*>malloc(m*sizeof(np.complex64_t))
-	if Q is not None:
+	cdef np.complex64_t *W_inv
+	W_inv = <np.complex64_t*>malloc(m*sizeof(np.complex64_t))
+	if W is not None:
 		for ii in range(m):
-			Q_inv[ii] = 1.0 / Q[ii]
-		c_cvecmat(Q_inv, &U[0,0], m, nr)
-		c_cvecmat(Q_inv, &V[0,0], m, nr)
-	free(Q_inv)
+			W_inv[ii] = 1.0 / W_sqrt[ii]
+		c_cvecmat(W_inv, &U[0,0], m, nr)
+		c_cvecmat(W_inv, &V[0,0], m, nr)
+	free(W_inv)
+	free(W_sqrt)
 
 	return U, S, V
 
-def _zrun_old(double[:,:] X, np.complex128_t w, double r, int remove_mean, double[:] Q):
+def _zrun_old(double[:,:] X, np.complex128_t w, double r, int remove_mean, double[:] W):
 
 	# Variables
 	cdef int m, n, ii, m_aux
@@ -444,10 +449,14 @@ def _zrun_old(double[:,:] X, np.complex128_t w, double r, int remove_mean, doubl
 
 	cdef double *Y
 	cdef double *Z
+	cdef double *W_sqrt
 	Y = <double*>calloc(m_aux*(n-1), sizeof(double))
 	Z = <double*>malloc(m*(n-1)*sizeof(double))
-	if Q is not None:
-		c_dvecmat(&Q[0], X_c, m, n)
+	W_sqrt = <double*>malloc(m*sizeof(double))
+	if W is not None:
+		for ii in range(m):
+			W_sqrt[ii] = sqrt(W[ii])
+		c_dvecmat(W_sqrt, X_c, m, n)
 	
 	# Create the snapshot of matrices and separate it into Y, Z
 	c_dseparate(Y, Z, X_c, m, n, remove_mean)
@@ -541,18 +550,19 @@ def _zrun_old(double[:,:] X, np.complex128_t w, double r, int remove_mean, doubl
 	free(V2)
 	free(U_c)
 
-	cdef np.complex128_t *Q_inv
-	Q_inv = <np.complex128_t*>malloc(m*sizeof(np.complex128_t))
-	if Q is not None:
+	cdef np.complex128_t *W_inv
+	W_inv = <np.complex128_t*>malloc(m*sizeof(np.complex128_t))
+	if W is not None:
 		for ii in range(m):
-			Q_inv[ii] = 1.0 / Q[ii]
-		c_zvecmat(Q_inv, &U[0,0], m, nr)
-		c_zvecmat(Q_inv, &V[0,0], m, nr)
-	free(Q_inv)
+			W_inv[ii] = 1.0 / W_sqrt[ii]
+		c_zvecmat(W_inv, &U[0,0], m, nr)
+		c_zvecmat(W_inv, &V[0,0], m, nr)
+	free(W_inv)
+	free(W_sqrt)
 
 	return U, S, V
 
-def _crun_new(list X, np.complex64_t w, float r, int remove_mean, float[:] Q):
+def _crun_new(list X, np.complex64_t w, float r, int remove_mean, float[:] W):
 
 	# Variables
 	cdef int m, ii, m_aux, n_total, n_matrix, n_local
@@ -565,15 +575,20 @@ def _crun_new(list X, np.complex64_t w, float r, int remove_mean, float[:] Q):
 	n_list = <int*>malloc(n_matrix*sizeof(int))
 	
 	n_total = 0
+	cdef float *W_sqrt
 	cdef float[:, ::1] M 
+	W_sqrt = <float*>malloc(m*sizeof(float))
+	if W is not None:
+		for ii in range(m):
+			W_sqrt[ii] = <float>sqrt(<double>W[ii])
 	for ii in range(len(X)):
 		M = X[ii]
 		n_local = M.shape[1]
 		n_total += n_local - 1
 		X_pointer[ii] = <float*>malloc(m * n_local * sizeof(float))
 		memcpy(X_pointer[ii], &M[0,0], m * n_local * sizeof(float))
-		if Q is not None:
-			c_svecmat(&Q[0], X_pointer[ii], m, n_local)
+		if W is not None:
+			c_svecmat(W_sqrt, X_pointer[ii], m, n_local)
 		n_list[ii] = n_local
 
 	if m > n_total:
@@ -681,18 +696,19 @@ def _crun_new(list X, np.complex64_t w, float r, int remove_mean, float[:] Q):
 	free(V2)
 	free(U_c)
 
-	cdef np.complex64_t *Q_inv
-	Q_inv = <np.complex64_t*>malloc(m*sizeof(np.complex64_t))
-	if Q is not None:
+	cdef np.complex64_t *W_inv
+	W_inv = <np.complex64_t*>malloc(m*sizeof(np.complex64_t))
+	if W is not None:
 		for ii in range(m):
-			Q_inv[ii] = 1.0 / Q[ii]
-		c_cvecmat(Q_inv, &U[0,0], m, nr)
-		c_cvecmat(Q_inv, &V[0,0], m, nr)
-	free(Q_inv)
+			W_inv[ii] = 1.0 / W_sqrt[ii]
+		c_cvecmat(W_inv, &U[0,0], m, nr)
+		c_cvecmat(W_inv, &V[0,0], m, nr)
+	free(W_inv)
+	free(W_sqrt)
 
 	return U, S, V
 
-def _zrun_new(list X, np.complex128_t w, double r, int remove_mean, double[:] Q):
+def _zrun_new(list X, np.complex128_t w, double r, int remove_mean, double[:] W):
 
 	# Variables
 	cdef int m, ii, m_aux, n_total, n_matrix, n_local
@@ -705,15 +721,20 @@ def _zrun_new(list X, np.complex128_t w, double r, int remove_mean, double[:] Q)
 	n_list = <int*>malloc(n_matrix*sizeof(int))
 	### LOOP X
 	n_total = 0
+	cdef double *W_sqrt
 	cdef double[:, ::1] M 
+	W_sqrt = <double*>malloc(m*sizeof(double))
+	if W is not None:
+		for ii in range(m):
+			W_sqrt[ii] = sqrt(W[ii])
 	for ii in range(len(X)):
 		M = X[ii]
 		n_local = M.shape[1]
 		n_total += n_local - 1
 		X_pointer[ii] = <double*>malloc(m * n_local * sizeof(double))
 		memcpy(X_pointer[ii], &M[0,0], m * n_local * sizeof(double))
-		if Q is not None:
-			c_dvecmat(&Q[0], X_pointer[ii], m, n_local)
+		if W is not None:
+			c_dvecmat(W_sqrt, X_pointer[ii], m, n_local)
 		n_list[ii] = n_local
 
 	if m > n_total:
@@ -821,14 +842,15 @@ def _zrun_new(list X, np.complex128_t w, double r, int remove_mean, double[:] Q)
 	free(V2)
 	free(U_c)
 
-	cdef np.complex128_t *Q_inv
-	Q_inv = <np.complex128_t*>malloc(m*sizeof(np.complex128_t))
-	if Q is not None:
+	cdef np.complex128_t *W_inv
+	W_inv = <np.complex128_t*>malloc(m*sizeof(np.complex128_t))
+	if W is not None:
 		for ii in range(m):
-			Q_inv[ii] = 1.0 / Q[ii]
-		c_zvecmat(Q_inv, &U[0,0], m, nr)
-		c_zvecmat(Q_inv, &V[0,0], m, nr)
-	free(Q_inv)
+			W_inv[ii] = 1.0 / W_sqrt[ii]
+		c_zvecmat(W_inv, &U[0,0], m, nr)
+		c_zvecmat(W_inv, &V[0,0], m, nr)
+	free(W_inv)
+	free(W_sqrt)
 
 	return U, S, V
 
@@ -837,15 +859,15 @@ def _zrun_new(list X, np.complex128_t w, double r, int remove_mean, double[:] Q)
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def run_new(object X, object w, object r, int remove_mean=True, real[:] Q=None):
+def run_new(object X, object w, object r, int remove_mean=True, real[:] W=None):
 
 	if isinstance(X, list):
 		if X[0].dtype == np.double:
-			return _zrun_new(X,np.complex128(w),np.double(r),remove_mean,Q)
+			return _zrun_new(X,np.complex128(w),np.double(r),remove_mean,W)
 		else:
-			return _crun_new(X,np.complex64(w),np.float32(r),remove_mean,Q)
+			return _crun_new(X,np.complex64(w),np.float32(r),remove_mean,W)
 	else:
 		if X[0].dtype == np.double:
-			return _zrun_old(X,np.complex128(w),np.double(r),remove_mean,Q)
+			return _zrun_old(X,np.complex128(w),np.double(r),remove_mean,W)
 		else:
-			return _crun_old(X,np.complex64(w),np.float32(r),remove_mean,Q)
+			return _crun_old(X,np.complex64(w),np.float32(r),remove_mean,W)

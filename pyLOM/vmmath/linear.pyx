@@ -81,11 +81,9 @@ cdef tuple _slinear_operator(float[:,:] Y, float[:,:] Z, float r):
 	cr_start('DMD.linear_mapping',0)
 	cdef float *aux1
 	cdef float *aux2
-	cdef float *aux3
 	cdef float *Urt
 	aux1   = <float*>malloc(nr*nn*sizeof(float))
-	aux2   = <float*>malloc(nr*nn*sizeof(float))
-	aux3   = <float*>malloc(nr*sizeof(float))
+	aux2   = <float*>malloc(nr*nn*sizeof(float))	
 	Urt    = <float*>malloc(nr*mz*sizeof(float))
 	cdef np.ndarray[np.float32_t,ndim=2] Atilde = np.zeros((nr, nr),dtype=np.float32)
 	c_stranspose(&Ur[0,0], Urt, mz, nr)
@@ -96,7 +94,6 @@ cdef tuple _slinear_operator(float[:,:] Y, float[:,:] Z, float r):
 	c_smatmul(&Atilde[0,0], aux1, aux2, nr, nr, nn)
 	free(aux1)
 	free(aux2)
-	free(aux3)
 	free(Urt)
 	cr_stop('DMD.linear_mapping',0)
 
@@ -152,11 +149,9 @@ cdef tuple _dlinear_operator(double[:,:] Y, double[:,:] Z, double r):
 	cr_start('DMD.linear_mapping',0)
 	cdef double *aux1
 	cdef double *aux2
-	cdef double *aux3
 	cdef double *Urt
 	aux1   = <double*>malloc(nr*nn*sizeof(double))
 	aux2   = <double*>malloc(nr*nn*sizeof(double))
-	aux3   = <double*>malloc(nr*sizeof(double))
 	Urt    = <double*>malloc(nr*mz*sizeof(double))
 	cdef np.ndarray[np.double_t,ndim=2] Atilde = np.zeros((nr, nr),dtype=np.double)
 	c_dtranspose(&Ur[0,0], Urt, mz, nr)
@@ -167,7 +162,6 @@ cdef tuple _dlinear_operator(double[:,:] Y, double[:,:] Z, double r):
 	c_dmatmul(&Atilde[0,0], aux1, aux2, nr, nr, nn)
 	free(aux1)
 	free(aux2)
-	free(aux3)
 	free(Urt)
 	cr_stop('DMD.linear_mapping',0)
 
@@ -181,6 +175,10 @@ def linear_operator(real[:,:] Y, real[:,:] Z, real r):
 	'''
 
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	Y = np.ascontiguousarray(Y)
+	Z = np.ascontiguousarray(Z)
+
 	if real is double:
 		return _dlinear_operator(Y,Z,r)
 	else:
@@ -288,6 +286,9 @@ cdef tuple _dconcatenate(list X, int remove_mean):
 @cython.cdivision(True)    # turn off zero division check
 def concatenate(list X, remove_mean=False):
 
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	X = [np.ascontiguousarray(M) for M in X]
+
 	if X[0].dtype == np.double:
 		return _dconcatenate(X,remove_mean)
 	else:
@@ -382,6 +383,9 @@ cdef tuple _dseparate(double[:,:] X, int remove_mean):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def separate(real[:,:] X, remove_mean=False):
+
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	X = np.ascontiguousarray(X)
 
 	if real is double:
 		return _dseparate(X,remove_mean)
@@ -493,6 +497,9 @@ cdef tuple _zresolvent(double[:,:] A, np.complex128_t f):
 @cython.cdivision(True)    # turn off zero division check
 def resolvent(real[:,:] X, object f):
 
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	X = np.ascontiguousarray(X)
+
 	if real is double:
 		return _zresolvent(X,np.complex128(f))
 	else:
@@ -566,12 +573,16 @@ def flip_columns(real_full[:,:] A):
 
 	'''
 	cr_start('flip', 0)
+	cdef object B
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
 	if real_full is np.complex128_t:
-		return _zflip_columns(A)
+		B = _zflip_columns(A)
 	elif real_full is np.complex64_t:
-		return _cflip_columns(A)
+		B = _cflip_columns(A)
 	elif real_full is double:
-		return _dflip_columns(A)
+		B = _dflip_columns(A)
 	else:
-		return _sflip_columns(A)
+		B = _sflip_columns(A)
 	cr_stop('flip', 0)
+	return B

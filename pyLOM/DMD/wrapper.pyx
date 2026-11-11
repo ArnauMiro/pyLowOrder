@@ -618,6 +618,9 @@ def run(real[:,:] X, real r, int remove_mean=True):
 		- b:        Amplitude of the DMD modes
 		- Variables needed to reconstruct flow
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	X = np.ascontiguousarray(X)
+
 	if real is double:
 		return _drun(X,r,remove_mean)
 	else:
@@ -678,6 +681,10 @@ def frequency_damping(real[:] rreal, real[:] iimag, real dt):
 	'''
 	Computation of the damping ratio and the frequency of each mode
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	rreal = np.ascontiguousarray(rreal)
+	iimag = np.ascontiguousarray(iimag)
+
 	if real is double:
 		return _dfrequency_damping(rreal,iimag,dt)
 	else:
@@ -738,6 +745,13 @@ def reconstruction_jovanovic(real_complex[:,:] Phi, real[:] muReal, real[:] muIm
 	'''
 	Computation of the reconstructed flow from the DMD computations
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	Phi = np.ascontiguousarray(Phi)
+	muReal = np.ascontiguousarray(muReal)
+	muImag = np.ascontiguousarray(muImag)
+	t = np.ascontiguousarray(t)
+	bJov = np.ascontiguousarray(bJov)
+
 	if real_complex is np.complex128_t:
 		return _dreconstruction_jovanovic(Phi,muReal,muImag,t,bJov)
 	else:
@@ -1910,6 +1924,12 @@ def run_new(object X, object r, int remove_mean=True):
 		- b:        Amplitude of the DMD modes
 		- Variables needed to reconstruct flow
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	if isinstance(X, list):
+		X = [np.ascontiguousarray(M) for M in X]
+	else:
+		X = np.ascontiguousarray(X)
+
 	if isinstance(X, list):
 		if X[0].dtype == np.double:
 			return _drun_new(X,<double>r,remove_mean)

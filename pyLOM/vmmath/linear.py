@@ -16,6 +16,10 @@ from ..utils     import cr_nvtx as cr, cr_start, cr_stop
 
 def linear_operator(Y, Z, r):
 
+	# compiled vmmath helpers assume C-contiguous input
+	Y = np.ascontiguousarray(Y)
+	Z = np.ascontiguousarray(Z)
+
 	cr_start('DMD.SVD',0)
 	U_aux, S, VT = tsqr_svd(Y)
 	cr_stop('DMD.SVD',0)
@@ -56,10 +60,13 @@ def concatenate(X=[], remove_mean=False):
 		ni = M.shape[1]
 		if remove_mean:
 			cr_start('DMD.temporal_mean',0)
+			# compiled vmmath helpers assume C-contiguous input
+			p = cp if type(M) is cp.ndarray else np
+			M = p.ascontiguousarray(M)
 			mean = temporal_mean(M)
 
-			Y[:m,offset:offset + ni-1] = subtract_mean(M[:,:-1], mean)
-			Z[:,offset:offset + ni-1] = subtract_mean(M[:,1:], mean)
+			Y[:m,offset:offset + ni-1] = subtract_mean(p.ascontiguousarray(M[:,:-1]), mean)
+			Z[:,offset:offset + ni-1] = subtract_mean(p.ascontiguousarray(M[:,1:]), mean)
 			offset += (ni-1)
 			cr_stop('DMD.temporal_mean',0)
 		else:
@@ -75,19 +82,22 @@ def separate(X, remove_mean=False):
 	dtype = X[0].dtype
 	m = X.shape[0]
 	n = X.shape[1]
-	if m > n:
-		Y = np.zeros((m, n), dtype=dtype)
+	if m > (n-1):
+		Y = np.zeros((m, n-1), dtype=dtype)
 	else:
-		Y = np.zeros((n, n), dtype=dtype)
-	Z = np.zeros((m, n), dtype=dtype)
+		Y = np.zeros((n-1, n-1), dtype=dtype)
+	Z = np.zeros((m, n-1), dtype=dtype)
 
 	# Fill the matrices
 	if remove_mean:
 		cr_start('DMD.temporal_mean',0)
+		# compiled vmmath helpers assume C-contiguous input
+		p = cp if type(X) is cp.ndarray else np
+		X = p.ascontiguousarray(X)
 		mean = temporal_mean(X)
 
-		Y[:m,:] = subtract_mean(X[:,:-1], mean)
-		Z[:,:] = subtract_mean(X[:,1:], mean)
+		Y[:m,:] = subtract_mean(p.ascontiguousarray(X[:,:-1]), mean)
+		Z[:,:] = subtract_mean(p.ascontiguousarray(X[:,1:]), mean)
 		cr_stop('DMD.temporal_mean',0)
 	else:
 		Y[:m,:] = X[:,:-1].copy()

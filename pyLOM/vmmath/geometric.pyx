@@ -72,6 +72,10 @@ def cellCenters(real[:,:] xyz, int[:,:] conec):
 	Returns:
 		np.ndarray: center positions
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	xyz = np.ascontiguousarray(xyz)
+	conec = np.ascontiguousarray(conec)
+
 	if real is double:
 		return _dcellCenters(xyz,conec)
 	else:
@@ -129,6 +133,10 @@ def normals(real[:,:] xyz, int[:,:] conec):
 	Returns:
 		np.ndarray: cell normals
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	xyz = np.ascontiguousarray(xyz)
+	conec = np.ascontiguousarray(conec)
+
 	if real is double:
 		return _dnormals(xyz,conec)
 	else:
@@ -194,6 +202,9 @@ def euclidean_d(real[:,:] X):
 	Returns:
 		np.ndarray: MxM distance matrix 
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	X = np.ascontiguousarray(X)
+
 	if real is double:
 		return _deuclidean_d(X)
 	else:
@@ -467,6 +478,11 @@ def wall_normals(int[:] nodes_idx, real[:,:] nodes_xyz, real[:] surf_normal):
 		- cell_edges: List of graph edges representing the element walls (node indices)
 		- wall_normals: List of the unitary wall normals
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	nodes_idx = np.ascontiguousarray(nodes_idx)
+	nodes_xyz = np.ascontiguousarray(nodes_xyz)
+	surf_normal = np.ascontiguousarray(surf_normal)
+
 	if real is double:
 		return _dwall_normals(nodes_idx, nodes_xyz, surf_normal)
 	else:

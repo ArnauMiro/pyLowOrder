@@ -14,7 +14,7 @@ from ..vmmath    import vecmat, matmul, svd, cholesky, inv, matmulp, dagger, con
 from ..utils     import cr_nvtx as cr, cr_start, cr_stop
 
 @cr('RES.run')
-def run(Phi, delta, omega, f, Q=None):
+def run(Phi, delta, omega, f, W=None):
     '''
     Resolvent Analysis of snapshot matrix X
     Inputs:
@@ -22,7 +22,7 @@ def run(Phi, delta, omega, f, Q=None):
         - delta: damping ratio of each mode
         - omega: frequency of each mode
         - f: target frequency
-        - Q: weighting matrix
+        - W: diagonal matrix (1D) of the inner-product
     Returns:
         - U_res: response modes
         - S: emergy gains
@@ -35,13 +35,13 @@ def run(Phi, delta, omega, f, Q=None):
     H = 1 / (-1j * f - Omega) 
     
     # Compute the metric
-    if Q is None: 
-        Qhat = matmulp(dagger(Phi), Phi) 
+    if W is None: 
+        What = matmulp(dagger(Phi), Phi) 
     
     else:
-        Qhat = matmulp(dagger(Phi), vecmat(Q, Phi))
+        What = matmulp(dagger(Phi), vecmat(W, Phi))
     
-    Fhat = dagger(cholesky(Qhat))
+    Fhat = dagger(cholesky(What))
     Fhat_inv = inv(Fhat)
 
     # Solve the optimization problem
@@ -55,20 +55,21 @@ def run(Phi, delta, omega, f, Q=None):
 
     return U_res, S, V_res
 
-def run_new(X, w, r, remove_mean=True, Q=None):
+def run_new(X, w, r, remove_mean=True, W=None):
 
     # Prepare matrices and calculate the linear operator
     X_c = X.copy()
+    W_sqrt = np.sqrt(W) if W is not None else None
     if (type(X) is list):
-        if Q is not None:
+        if W is not None:
             for M, ii in enumerate(X):
-                X_c[ii] = vecmat(Q, M)
+                X_c[ii] = vecmat(W_sqrt, M)
         Y, Z = concatenate(X_c, remove_mean=remove_mean)
         U1, S1, VT1, Atilde = linear_operator(Y, Z, r)
 
     else:
-        if Q is not None:
-            X_c = vecmat(Q, X)
+        if W is not None:
+            X_c = vecmat(W_sqrt, X)
         Y, Z = separate(X_c, remove_mean=remove_mean)
         U1, S1, VT1, Atilde = linear_operator(Y, Z, r)
 
@@ -81,8 +82,8 @@ def run_new(X, w, r, remove_mean=True, Q=None):
     U = matmul(U1, U2)
     V = matmul(U1, V2)
 
-    if Q is not None:
-        U = vecmat(1/Q, U)
-        V = vecmat(1/Q, V)
+    if W is not None:
+        U = vecmat(1/W_sqrt, U)
+        V = vecmat(1/W_sqrt, V)
 
     return U, S, V

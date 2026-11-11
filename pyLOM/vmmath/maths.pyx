@@ -106,6 +106,9 @@ def transpose(real_full[:,:] A):
 	Results
 		np.ndarray: Transposed matrix
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+
 	if real_full is np.complex128_t:
 		return _ztranspose(A)
 	elif real_full is np.complex64_t:
@@ -160,6 +163,9 @@ def vector_sum(real[:] v, int start=0):
 	Result:
 		float: sum of the vector
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	v = np.ascontiguousarray(v)
+
 	if real is double:
 		return _dvector_sum(v,start)
 	else:
@@ -210,6 +216,9 @@ def vector_norm(real[:] v, int start=0):
 	Result:
 		float: norm of the vector
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	v = np.ascontiguousarray(v)
+
 	if real is double:
 		return _dvector_norm(v,start)
 	else:
@@ -260,6 +269,9 @@ def vector_mean(real[:] v, int start=0):
 	Result:
 		float: mean of the vector
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	v = np.ascontiguousarray(v)
+
 	if real is double:
 		return _dvector_mean(v,start)
 	else:
@@ -340,6 +352,10 @@ def matmul(real_full[:,:] A, real_full[:,:] B):
 		np.ndarray: Resulting matrix C (M,N)
 	'''
 	# Select type
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+	B = np.ascontiguousarray(B)
+
 	if real_full is np.complex128_t:
 		return _zmatmul(A,B)
 	elif real_full is np.complex64_t:
@@ -426,6 +442,10 @@ def matmulp(real_full[:,:] A, real_full[:,:] B):
 	Result:
 		np.ndarray: Resulting matrix C (M,N)
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+	B = np.ascontiguousarray(B)
+
 	if real_full is np.complex128_t:
 		return _zmatmulp(A,B)
 	elif real_full is np.complex64_t:
@@ -573,6 +593,10 @@ def vecmat(real_full[:] v, real_full[:,:] A, transposed=False):
 	Result:
 		np.ndarray: Resulting matrix C (M,N)
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	v = np.ascontiguousarray(v)
+	A = np.ascontiguousarray(A)
+
 	if real_full is np.complex128_t:
 		return _zvecmat(v,A) if not transposed else _zvecmatT(v,A)
 	elif real_full is np.complex64_t:
@@ -646,6 +670,8 @@ def argsort(real_full[:] v):
 	Result:
 		np.ndarray: Indices that sort v (M,)
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	v = np.ascontiguousarray(v)
 	cdef int n = v.shape[0]
 	cdef np.ndarray[np.int32_t,ndim=1] index = np.zeros((n,),dtype=np.int32)
 	if real_full is np.complex128_t:
@@ -722,6 +748,9 @@ def eigen(real[:,:] A):
 		np.ndarray: the imaginary eigenvalues, imag(M)
 		np.ndarray: the right eigenvectors, vecs(M,M)
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+
 	if real is double:
 		return _zeigen(A)
 	else:
@@ -779,6 +808,10 @@ def polar(real[:] rreal, real[:] iimag):
 		np.ndarray: the modulus
 		np.ndarray: the argument
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	rreal = np.ascontiguousarray(rreal)
+	iimag = np.ascontiguousarray(iimag)
+
 	if real is double:
 		return _dpolar(rreal,iimag)
 	else:
@@ -828,6 +861,9 @@ def cholesky(real_complex[:,:] A):
 	Result:
 		np.ndarray: Conjugate of A
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+
 	if real_complex is np.complex128_t:
 		return _zcholesky(A)
 	else:
@@ -881,6 +917,10 @@ def vandermonde(real[:] rreal, real[:] iimag, int m, int n):
 	Result:
 		np.ndarray: the Vandermonde matrix
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	rreal = np.ascontiguousarray(rreal)
+	iimag = np.ascontiguousarray(iimag)
+
 	if real is double:
 		return _zvandermonde(rreal,iimag,m,n)
 	else:
@@ -937,6 +977,11 @@ def vandermondeTime(real[:] rreal, real[:] iimag, int m, real[:] t):
 	Result:
 		np.ndarray: the Vandermonde matrix
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	rreal = np.ascontiguousarray(rreal)
+	iimag = np.ascontiguousarray(iimag)
+	t = np.ascontiguousarray(t)
+
 	if real is double:
 		return _zvandermondeTime(rreal,iimag,m,t)
 	else:
@@ -1080,6 +1125,9 @@ def diag(np.ndarray A):
 	Result:
 		np.ndarray: Diagonal of A (M,)
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+
 	if A.ndim == 1:
 		if A.dtype in [np.float64,np.double]:
 			return _ddiag2(A)
@@ -1149,6 +1197,9 @@ def conj(real_complex[:,:] A):
 	Result:
 		np.ndarray: Conjugate of A
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+
 	if real_complex is np.complex128_t:
 		return _zconj(A)
 	else:
@@ -1218,6 +1269,9 @@ def inv(real_full[:,:] A):
 	Result:
 		np.ndarray: Inverse of A (M,N)
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+
 	if real_full is np.complex128_t:
 		return _zinv(A)
 	elif real_full is np.complex64_t:
@@ -1299,6 +1353,9 @@ def dagger(real_full[:,:] A):
 	Results
 		np.ndarray: dagger matrix
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+
 	if real_full is np.complex128_t:
 		return _zdagger(A)
 	elif real_full is np.complex64_t:
