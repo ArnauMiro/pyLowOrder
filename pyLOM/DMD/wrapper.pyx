@@ -22,11 +22,11 @@ cdef extern from "<complex.h>" nogil:
 	double creal(double complex z)
 cdef double complex J = 1j
 from libc.stdlib     cimport malloc, calloc, free
-from libc.string     cimport memcpy, memset
+from libc.string     cimport memcpy
 from libc.math       cimport sqrt, log, atan2
 from ..vmmath.cfuncs cimport real, real_complex
-from ..vmmath.cfuncs cimport c_stranspose, c_smatmul, c_smatmulp, c_svecmat, c_stemporal_mean, c_ssubtract_mean, c_stsqr_svd, c_ssvd, c_scompute_truncation_residual, c_scompute_truncation, c_sremove_rows, c_sseparate, c_sconcatenate
-from ..vmmath.cfuncs cimport c_dtranspose, c_dmatmul, c_dmatmulp, c_dvecmat, c_dtemporal_mean, c_dsubtract_mean, c_dtsqr_svd, c_dsvd, c_dcompute_truncation_residual, c_dcompute_truncation, c_dremove_rows, c_dseparate, c_dconcatenate
+from ..vmmath.cfuncs cimport c_stranspose, c_smatmul, c_smatmulp, c_stsqr_svd, c_scompute_truncation_residual, c_scompute_truncation, c_sremove_rows, c_sseparate, c_sconcatenate
+from ..vmmath.cfuncs cimport c_dtranspose, c_dmatmul, c_dmatmulp, c_dtsqr_svd, c_dcompute_truncation_residual, c_dcompute_truncation, c_dremove_rows, c_dseparate, c_dconcatenate
 from ..vmmath.cfuncs cimport c_cmatmult, c_cvecmat, c_cinverse, c_ccholesky, c_ceigen, c_cvandermonde, c_cvandermonde_time, c_csort
 from ..vmmath.cfuncs cimport c_zmatmult, c_zvecmat, c_zinverse, c_zcholesky, c_zeigen, c_zvandermonde, c_zvandermonde_time, c_zsort
 
@@ -292,10 +292,6 @@ def _srun_matrix(float[:,:] X, float r, int remove_mean):
 	m = X.shape[0]
 	n = X.shape[1]
 
-	# Y = X[:, :-1] zero-padded up to m_aux rows, Z = X[:, 1:]
-	# The zero padding guarantees a tall matrix for the TSQR SVD, keeping
-	# all the information when m < n - 1: S and VT are unchanged and the
-	# artificial rows of U are removed right after the SVD (see _srun_core).
 	if m > (n-1):
 		m_aux = m
 	else:
@@ -347,10 +343,6 @@ def _srun_list(list X, float r, int remove_mean):
 		memcpy(X_pointer[iaux], &M[0,0], m*n_local*sizeof(float))
 		n_list[iaux] = n_local
 
-	# Y = X[:, :-1] zero-padded up to m_aux rows, Z = X[:, 1:]
-	# The zero padding guarantees a tall matrix for the TSQR SVD, keeping
-	# all the information when m < n_total: S and VT are unchanged and the
-	# artificial rows of U are removed right after the SVD (see _srun_core).
 	if m > n_total:
 		m_aux = m
 	else:
@@ -629,10 +621,6 @@ def _drun_matrix(double[:,:] X, double r, int remove_mean):
 	m = X.shape[0]
 	n = X.shape[1]
 
-	# Y = X[:, :-1] zero-padded up to m_aux rows, Z = X[:, 1:]
-	# The zero padding guarantees a tall matrix for the TSQR SVD, keeping
-	# all the information when m < n - 1: S and VT are unchanged and the
-	# artificial rows of U are removed right after the SVD (see _drun_core).
 	if m > (n-1):
 		m_aux = m
 	else:
@@ -684,10 +672,6 @@ def _drun_list(list X, double r, int remove_mean):
 		memcpy(X_pointer[iaux], &M[0,0], m*n_local*sizeof(double))
 		n_list[iaux] = n_local
 
-	# Y = X[:, :-1] zero-padded up to m_aux rows, Z = X[:, 1:]
-	# The zero padding guarantees a tall matrix for the TSQR SVD, keeping
-	# all the information when m < n_total: S and VT are unchanged and the
-	# artificial rows of U are removed right after the SVD (see _drun_core).
 	if m > n_total:
 		m_aux = m
 	else:
@@ -725,11 +709,10 @@ def run(object X, object r, int remove_mean=True):
 		- r:                               maximum truncation residual
 
 	Returns:
-		- Phi:      DMD Modes
 		- muReal:   Real part of the eigenvalues
 		- muImag:   Imaginary part of the eigenvalues
-		- b:        Amplitude of the DMD modes
-		- Variables needed to reconstruct flow
+		- Phi:      DMD Modes
+		- bJov:        Amplitude of the DMD modes
 	'''
 	# Ensure C-contiguous input (C routines assume a dense layout)
 	if isinstance(X, list):

@@ -18,7 +18,22 @@ from .truncation  import compute_truncation_residual
 from ..utils     import cr_nvtx as cr, cr_start, cr_stop
 
 def linear_operator(Y, Z, r):
+	r'''
+	Reduced order version of the linear operator (Jacobian)
 
+	Args:
+		Y (ndarray): snapshot matrix at time t
+		Z (ndarray): snapshot matrix at time t + dt
+		r (int or float): maximum truncation residual
+			- r > 0: target residual
+			- r < 0: fraction of cumulative energy to retain
+
+	Results:
+		U (ndarray): left singular vectors of Y
+		S (ndarray): singular values of Y
+		VT (ndarray): right singular vectors of Y
+		Atilde (ndarray): reduced-order linear operator (Jacobian)
+	'''
 	# compiled vmmath helpers assume C-contiguous input
 	p = cp if type(Y) is cp.ndarray else np
 	Y = p.ascontiguousarray(Y)
@@ -50,7 +65,17 @@ def linear_operator(Y, Z, r):
 	return U, S, VT, Atilde
 
 def concatenate(X=[], remove_mean=False):
-	
+	r'''
+	Joins a list of snapshot matrices for the purpose of computing the linear operator (Jacobian) from them
+
+	Args:
+		X (list of ndarray): list of snapshot matrices
+		remove_mean (bool): whether to remove the temporal mean from each snapshot matrix
+
+	Results:
+		Y (ndarray): snapshot matrix at time t
+		Z (ndarray): snapshot matrix at time t + dt
+	'''
 	# Create the matrices Y, Z
 	p = cp if type(X[0]) is cp.ndarray else np
 	dtype = X[0].dtype
@@ -84,7 +109,17 @@ def concatenate(X=[], remove_mean=False):
 	return Y, Z
 
 def separate(X, remove_mean=False):
-	
+	r'''
+	Separates a snapshot matrix into two matrices for the purpose of computing the linear operator (Jacobian) from them
+
+	Args:
+		X (ndarray): snapshot matrix
+		remove_mean (bool): whether to remove the temporal mean from the snapshot matrix
+
+	Results:
+		Y (ndarray): snapshot matrix at time t
+		Z (ndarray): snapshot matrix at time t + dt
+	'''
 	# Create the matrices Y, Z
 	p = cp if type(X) is cp.ndarray else np
 	dtype = X[0].dtype
@@ -113,10 +148,21 @@ def separate(X, remove_mean=False):
 	return Y, Z
 
 def resolvent(A, w):
+	r'''
+	Resolvent of a matrix A at a given frequency w
 
+	Args:
+		A (ndarray): the matrix for which to compute the resolvent
+		w (int or float): the frequency at which to compute the resolvent
+
+	Returns:
+		U (ndarray): response modes
+		S (ndarray): energy gains
+		V (ndarray): forcing modes
+	'''
 	# H_inv = (w * I - A)
 	p = cp if type(A) is cp.ndarray else np
-	H_inv = p.eye(A.shape[0]) * w - A #  COMPTE ELS SGINES!
+	H_inv = p.eye(A.shape[0]) * w - A 
 	V_flip, S_inv, UT_flip = svd(H_inv)
 	U_flip = dagger(UT_flip)
 	S  = 1 / S_inv[::-1]
@@ -125,7 +171,15 @@ def resolvent(A, w):
 	return U, S, V
 
 def flip_columns(A):
+	r'''
+	Flips the columns of a matrix A in a reverse order
 
+	Args:
+		A (ndarray): the matrix whose columns to flip
+
+	Returns:
+		B (ndarray): the matrix with flipped columns
+	'''
 	p = cp if type(A) is cp.ndarray else np
 	B = p.fliplr(A)
 

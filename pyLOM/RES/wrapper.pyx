@@ -22,11 +22,11 @@ cdef extern from "<complex.h>" nogil:
 	double creal(double complex z)
 cdef double complex J = 1j
 from libc.stdlib     cimport malloc, calloc, free
-from libc.string     cimport memcpy, memset
-from libc.math       cimport sqrt, log, atan2
-from ..vmmath.cfuncs cimport real, real_complex, real_float, real_double
-from ..vmmath.cfuncs cimport c_svecmat, c_sconcatenate, c_sseparate, c_stsqr_svd, c_sremove_rows, c_scompute_truncation_residual, c_scompute_truncation, c_stranspose, c_smatmul, c_smatmulp
-from ..vmmath.cfuncs cimport c_dvecmat, c_dconcatenate, c_dseparate, c_dtsqr_svd, c_dremove_rows, c_dcompute_truncation_residual, c_dcompute_truncation, c_dtranspose, c_dmatmul, c_dmatmulp
+from libc.string     cimport memcpy
+from libc.math       cimport sqrt
+from ..vmmath.cfuncs cimport real, real_complex
+from ..vmmath.cfuncs cimport c_svecmat, c_sconcatenate, c_stsqr_svd, c_sremove_rows, c_scompute_truncation_residual, c_scompute_truncation, c_stranspose, c_smatmul, c_smatmulp
+from ..vmmath.cfuncs cimport c_dvecmat, c_dconcatenate, c_dtsqr_svd, c_dremove_rows, c_dcompute_truncation_residual, c_dcompute_truncation, c_dtranspose, c_dmatmul, c_dmatmulp
 from ..vmmath.cfuncs cimport c_csvd, c_cdagger, c_cmatmul, c_cmatmulp, c_cvecmat, c_ccholesky, c_cinverse, c_cresolvent
 from ..vmmath.cfuncs cimport c_zsvd, c_zdagger, c_zmatmul, c_zmatmulp, c_zvecmat, c_zcholesky, c_zinverse, c_zresolvent
 
@@ -40,18 +40,8 @@ from ..utils.errors   import raiseError
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def _crun(np.complex64_t[:,:] Phi, float[:] delta, float[:] omega, float f, float[:] W=None):
-	'''
+	r'''
     Resolvent Analysis of snapshot matrix X
-    Inputs:
-        - X[ndims*nmesh,n_temp_snapshots]: data matrix
-        - delta: damping ratio of each mode
-        - omega: frequency of each mode
-        - f: target frequency
-        - W: diagonal matrix (1D) of the inner-product
-    Returns:
-        - U_res: response modes
-        - S: emergy gains
-        - V_res: forcing modes
     '''
 	# Variables
 	cdef int m = Phi.shape[0], n = Phi.shape[1]
@@ -160,18 +150,8 @@ def _crun(np.complex64_t[:,:] Phi, float[:] delta, float[:] omega, float f, floa
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def _zrun(np.complex128_t[:,:] Phi, double[:] delta, double[:] omega, double f, double[:] W=None):
-	'''
+	r'''
     Resolvent Analysis of snapshot matrix X
-    Inputs:
-        - X[ndims*nmesh,n_temp_snapshots]: data matrix
-        - delta: damping ratio of each mode
-        - omega: frequency of each mode
-        - f: target frequency
-        - W: diagonal matrix (1D) of the inner-product
-    Returns:
-        - U_res: response modes
-        - S: emergy gains
-        - V_res: forcing modes
     '''
 	# Variables
 	cdef int m = Phi.shape[0], n = Phi.shape[1]
@@ -282,312 +262,82 @@ def _zrun(np.complex128_t[:,:] Phi, double[:] delta, double[:] omega, double f, 
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def run(real_complex[:,:] Phi, real[:] delta, real[:] omega, real f, real[:] W=None):
-	'''
+	r'''
     Resolvent Analysis of snapshot matrix X
+
     Inputs:
         - X[ndims*nmesh,n_temp_snapshots]: data matrix
         - delta: damping ratio of each mode
         - omega: frequency of each mode
         - f: target frequency
         - W: diagonal matrix (1D) of the inner-product
+
     Returns:
         - U_res: response modes
         - S: emergy gains
         - V_res: forcing modes
     '''
+	Phi = np.ascontiguousarray(Phi)
+
 	if real_complex is np.complex128_t:
 		return _zrun(Phi, delta, omega, f, W)
 	else:
 		return _crun(Phi, delta, omega, f, W)
 
-def _crun_old(float[:,:] X, np.complex64_t w, float r, int remove_mean, float[:] W):
-
+def _crun_new(object X, np.complex64_t w, float r, int remove_mean, float[:] W):
+	r'''
+	Resolvent Analysis of snapshot matrix X
+	'''
 	# Variables
-	cdef int m, n, ii, m_aux
-	m = X.shape[0]
-	n = X.shape[1]
-	
-	cdef float *X_c = <float*>malloc(m * n * sizeof(float))
-	memcpy(X_c, &X[0, 0], m * n * sizeof(float))
-
-	if m > (n - 1):
-		m_aux = m
-	else:
-		m_aux = n-1
-
-	cdef float *Y
-	cdef float *Z
-	cdef float *W_sqrt
-	Y = <float*>calloc(m_aux*(n-1), sizeof(float))
-	Z = <float*>malloc(m*(n-1)*sizeof(float))
-	W_sqrt = <float*>malloc(m*sizeof(float))
-	if W is not None:
-		for ii in range(m):
-			W_sqrt[ii] = <float>sqrt(<double>W[ii])
-		c_svecmat(W_sqrt, X_c, m, n)
-
-	# Create the snapshot of matrices and separate it into Y, Z
-	c_sseparate(Y, Z, X_c, m, n, remove_mean)
-	free(X_c)
-
-	# Compute the linear operator in lower dimension
-	cdef int icol, irow, retval
-	
-	## Compute SVD
-	cdef float *U_aux
-	cdef float *S_all
-	cdef float *VT_all
-	U_aux  = <float*>malloc(m_aux*(n-1)*sizeof(float))
-	S_all  = <float*>malloc((n-1)*sizeof(float))
-	VT_all = <float*>malloc((n-1)*(n-1)*sizeof(float))
-
-	retval = c_stsqr_svd(U_aux, S_all, VT_all, Y, m_aux, (n-1))
-	free(Y)
-
-	cdef float *U_all
-	U_all = <float*>malloc(m_aux*(n-1)*sizeof(float))
-	c_sremove_rows(U_aux, U_all, m, (n-1))
-	free(U_aux)
-
-	## Truncate
-	cdef int nr
-	if r > 1:
-		nr = int(r)
-	else:
-		nr = c_scompute_truncation_residual(S_all, r, (n-1))
-
-	cdef float *Ur
-	cdef float *Sr
-	cdef float *VTr
-	Ur  = <float*>malloc(m*nr*sizeof(float))
-	Sr  = <float*>malloc(nr*sizeof(float))
-	VTr = <float*>malloc(nr*(n-1)*sizeof(float))
-
-	c_scompute_truncation(Ur, Sr, VTr, U_all, S_all, VT_all, m, (n-1), (n-1), nr)
-	free(U_all)
-	free(S_all)
-	free(VT_all)
-
-	# Project Jacobian of the snapshots into the POD basis
-	cdef float *aux1
-	cdef float *aux2
-	cdef float *aux3
-	cdef float *Atilde
-	cdef float *Urt
-	aux1   = <float*>malloc(nr*(n-1)*sizeof(float))
-	aux2   = <float*>malloc(nr*(n-1)*sizeof(float))
-	aux3   = <float*>malloc(nr*sizeof(float))
-	Atilde = <float*>malloc(nr*nr*sizeof(float))
-	Urt    = <float*>malloc(nr*m*sizeof(float))
-	c_stranspose(Ur, Urt, m, nr)
-	c_smatmulp(aux1, Urt, Z, nr, n-1, m)
-	free(Z)
-
-	for icol in range(n-1):
-		for irow in range(nr):
-			aux2[icol*nr + irow] = VTr[irow*(n-1) + icol]/Sr[irow]
-	c_smatmul(Atilde, aux1, aux2, nr, nr, n-1)
-	free(aux1)
-	free(aux2)
-	free(aux3)
-	free(Urt)
-	free(VTr)
-	free(Sr)
-
-	cdef np.ndarray[np.float32_t,ndim=1] S = np.zeros((nr),dtype=np.float32)
-	cdef np.complex64_t *U2
-	cdef np.complex64_t *V2
-	U2 = <np.complex64_t*>malloc(nr*nr*sizeof(np.complex64_t))
-	V2 = <np.complex64_t*>malloc(nr*nr*sizeof(np.complex64_t))
-
-	c_cresolvent(U2, &S[0], V2, Atilde, w, nr)
-	free(Atilde)
-
-	cdef np.complex64_t *U_c
-	U_c = <np.complex64_t*>calloc(m*nr,sizeof(np.complex64_t))
-
-	for ii in range(m*nr):
-		U_c[ii] = Ur[ii]
-	free(Ur)
-	
-	cdef np.ndarray[np.complex64_t,ndim=2] U = np.zeros((m,nr),dtype=np.complex64)
-	cdef np.ndarray[np.complex64_t,ndim=2] V = np.zeros((m,nr),dtype=np.complex64)
-	c_cmatmul(&U[0,0], U_c, U2, m, nr, nr)
-	c_cmatmul(&V[0,0], U_c, V2, m, nr, nr)
-	free(U2)
-	free(V2)
-	free(U_c)
-
-	cdef np.complex64_t *W_inv
-	W_inv = <np.complex64_t*>malloc(m*sizeof(np.complex64_t))
-	if W is not None:
-		for ii in range(m):
-			W_inv[ii] = 1.0 / W_sqrt[ii]
-		c_cvecmat(W_inv, &U[0,0], m, nr)
-		c_cvecmat(W_inv, &V[0,0], m, nr)
-	free(W_inv)
-	free(W_sqrt)
-
-	return U, S, V
-
-def _zrun_old(double[:,:] X, np.complex128_t w, double r, int remove_mean, double[:] W):
-
-	# Variables
-	cdef int m, n, ii, m_aux
-	m = X.shape[0]
-	n = X.shape[1]
-
-	cdef double *X_c = <double*>malloc(m * n * sizeof(double))
-	memcpy(X_c, &X[0, 0], m * n * sizeof(double))
-
-	if m > (n - 1):
-		m_aux = m
-	else:
-		m_aux = n-1
-
-	cdef double *Y
-	cdef double *Z
-	cdef double *W_sqrt
-	Y = <double*>calloc(m_aux*(n-1), sizeof(double))
-	Z = <double*>malloc(m*(n-1)*sizeof(double))
-	W_sqrt = <double*>malloc(m*sizeof(double))
-	if W is not None:
-		for ii in range(m):
-			W_sqrt[ii] = sqrt(W[ii])
-		c_dvecmat(W_sqrt, X_c, m, n)
-	
-	# Create the snapshot of matrices and separate it into Y, Z
-	c_dseparate(Y, Z, X_c, m, n, remove_mean)
-	free(X_c)
-
-	# Compute the linear operator in lower dimension
-	cdef int icol, irow, retval
-	
-	## Compute SVD
-	cdef double *U_aux
-	cdef double *S_all
-	cdef double *VT_all
-	U_aux  = <double*>malloc(m_aux*(n-1)*sizeof(double))
-	S_all  = <double*>malloc((n-1)*sizeof(double))
-	VT_all = <double*>malloc((n-1)*(n-1)*sizeof(double))
-
-	retval = c_dtsqr_svd(U_aux, S_all, VT_all, Y, m_aux, (n-1))
-	free(Y)
-
-	cdef double *U_all
-	U_all = <double*>malloc(m_aux*(n-1)*sizeof(double))
-	c_dremove_rows(U_aux, U_all, m, (n-1))
-	free(U_aux)
-
-	## Truncate
-	cdef int nr
-	if r > 1:
-		nr = int(r)
-	else:
-		nr = c_dcompute_truncation_residual(S_all, r, (n-1))
-
-	cdef double *Ur
-	cdef double *Sr
-	cdef double *VTr
-	Ur  = <double*>malloc(m*nr*sizeof(double))
-	Sr  = <double*>malloc(nr*sizeof(double))
-	VTr = <double*>malloc(nr*(n-1)*sizeof(double))
-
-	c_dcompute_truncation(Ur, Sr, VTr, U_all, S_all, VT_all, m, (n-1), (n-1), nr)
-	free(U_all)
-	free(S_all)
-	free(VT_all)
-
-	# Project Jacobian of the snapshots into the POD basis
-	cdef double *aux1
-	cdef double *aux2
-	cdef double *aux3
-	cdef double *Atilde
-	cdef double *Urt
-	aux1   = <double*>malloc(nr*(n-1)*sizeof(double))
-	aux2   = <double*>malloc(nr*(n-1)*sizeof(double))
-	aux3   = <double*>malloc(nr*sizeof(double))
-	Atilde = <double*>malloc(nr*nr*sizeof(double))
-	Urt    = <double*>malloc(nr*m*sizeof(double))
-	c_dtranspose(Ur, Urt, m, nr)
-	c_dmatmulp(aux1, Urt, Z, nr, n-1, m)
-	free(Z)
-
-	for icol in range(n-1):
-		for irow in range(nr):
-			aux2[icol*nr + irow] = VTr[irow*(n-1) + icol]/Sr[irow]
-	c_dmatmul(Atilde, aux1, aux2, nr, nr, n-1)
-	free(aux1)
-	free(aux2)
-	free(aux3)
-	free(Urt)
-	free(VTr)
-	free(Sr)
-
-	cdef np.ndarray[np.double_t,ndim=1] S = np.zeros((nr),dtype=np.double)
-	cdef np.complex128_t *U2
-	cdef np.complex128_t *V2
-	U2 = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
-	V2 = <np.complex128_t*>malloc(nr*nr*sizeof(np.complex128_t))
-
-	c_zresolvent(U2, &S[0], V2, Atilde, w, nr)
-	free(Atilde)
-
-	cdef np.complex128_t *U_c
-	U_c = <np.complex128_t*>calloc(m*nr,sizeof(np.complex128_t))
-
-	for ii in range(m*nr):
-		U_c[ii] = Ur[ii]
-	free(Ur)
-	
-	cdef np.ndarray[np.complex128_t,ndim=2] U = np.zeros((m,nr),dtype=np.complex128)
-	cdef np.ndarray[np.complex128_t,ndim=2] V = np.zeros((m,nr),dtype=np.complex128)
-	c_zmatmul(&U[0,0], U_c, U2, m, nr, nr)
-	c_zmatmul(&V[0,0], U_c, V2, m, nr, nr)
-	free(U2)
-	free(V2)
-	free(U_c)
-
-	cdef np.complex128_t *W_inv
-	W_inv = <np.complex128_t*>malloc(m*sizeof(np.complex128_t))
-	if W is not None:
-		for ii in range(m):
-			W_inv[ii] = 1.0 / W_sqrt[ii]
-		c_zvecmat(W_inv, &U[0,0], m, nr)
-		c_zvecmat(W_inv, &V[0,0], m, nr)
-	free(W_inv)
-	free(W_sqrt)
-
-	return U, S, V
-
-def _crun_new(list X, np.complex64_t w, float r, int remove_mean, float[:] W):
-
-	# Variables
-	cdef int m, ii, m_aux, n_total, n_matrix, n_local
-	m = X[0].shape[0]
-	n_matrix = len(X)
-
+	cdef int m, n, ii, m_aux, n_total, n_matrix, n_local
 	cdef float **X_pointer
 	cdef int *n_list
-	X_pointer = <float**>malloc(n_matrix*sizeof(float*))
-	n_list = <int*>malloc(n_matrix*sizeof(int))
-	
-	n_total = 0
-	cdef float *W_sqrt
-	cdef float[:, ::1] M 
-	W_sqrt = <float*>malloc(m*sizeof(float))
-	if W is not None:
-		for ii in range(m):
-			W_sqrt[ii] = <float>sqrt(<double>W[ii])
-	for ii in range(len(X)):
-		M = X[ii]
-		n_local = M.shape[1]
-		n_total += n_local - 1
-		X_pointer[ii] = <float*>malloc(m * n_local * sizeof(float))
-		memcpy(X_pointer[ii], &M[0,0], m * n_local * sizeof(float))
+	cdef float *W_sqrt = NULL
+	cdef float[:, ::1] M
+
+	if isinstance(X, list):
+		# List of snapshot matrices with the same spatial dimension m
+		n_matrix = len(X)
+		m = X[0].shape[0]
+		X_pointer = <float**>malloc(n_matrix*sizeof(float*))
+		n_list = <int*>malloc(n_matrix*sizeof(int))
 		if W is not None:
-			c_svecmat(W_sqrt, X_pointer[ii], m, n_local)
-		n_list[ii] = n_local
+			W_sqrt = <float*>malloc(m*sizeof(float))
+			for ii in range(m):
+				W_sqrt[ii] = <float>sqrt(<double>W[ii])
+		n_total = 0
+		for ii in range(n_matrix):
+			M = X[ii]
+			n_local = M.shape[1]
+			n_total += n_local - 1
+			if W is not None:
+				# Copy the input matrix: the weighting below is done in place
+				X_pointer[ii] = <float*>malloc(m * n_local * sizeof(float))
+				memcpy(X_pointer[ii], &M[0,0], m * n_local * sizeof(float))
+				c_svecmat(W_sqrt, X_pointer[ii], m, n_local)
+			else:
+				X_pointer[ii] = &M[0,0]
+			n_list[ii] = n_local
+	else:
+		# Single snapshot matrix
+		M = X
+		m = M.shape[0]
+		n = M.shape[1]
+		n_matrix = 1
+		n_total = n - 1
+		X_pointer = <float**>malloc(n_matrix*sizeof(float*))
+		n_list = <int*>malloc(n_matrix*sizeof(int))
+		if W is not None:
+			# Copy the input matrix: the weighting below is done in place
+			W_sqrt = <float*>malloc(m*sizeof(float))
+			for ii in range(m):
+				W_sqrt[ii] = <float>sqrt(<double>W[ii])
+			X_pointer[0] = <float*>malloc(m * n * sizeof(float))
+			memcpy(X_pointer[0], &M[0,0], m * n * sizeof(float))
+			c_svecmat(W_sqrt, X_pointer[0], m, n)
+		else:
+			X_pointer[0] = &M[0,0]
+		n_list[0] = n
 
 	if m > n_total:
 		m_aux = m
@@ -601,8 +351,9 @@ def _crun_new(list X, np.complex64_t w, float r, int remove_mean, float[:] W):
 
 	# Create the snapshot of matrices and separate it into Y, Z
 	c_sconcatenate(Y, Z, X_pointer, n_list, n_matrix, m, n_total, remove_mean)
-	for ii in range(n_matrix):
-		free(X_pointer[ii])
+	if W is not None:
+		for ii in range(n_matrix):
+			free(X_pointer[ii])
 	free(X_pointer)
 	free(n_list)
 	
@@ -647,12 +398,10 @@ def _crun_new(list X, np.complex64_t w, float r, int remove_mean, float[:] W):
 	# Project Jacobian of the snapshots into the POD basis
 	cdef float *aux1
 	cdef float *aux2
-	cdef float *aux3
 	cdef float *Atilde
 	cdef float *Urt
 	aux1   = <float*>malloc(nr*n_total*sizeof(float))
 	aux2   = <float*>malloc(nr*n_total*sizeof(float))
-	aux3   = <float*>malloc(nr*sizeof(float))
 	Atilde = <float*>malloc(nr*nr*sizeof(float))
 	Urt    = <float*>malloc(nr*m*sizeof(float))
 	c_stranspose(Ur, Urt, m, nr)
@@ -665,7 +414,6 @@ def _crun_new(list X, np.complex64_t w, float r, int remove_mean, float[:] W):
 	c_smatmul(Atilde, aux1, aux2, nr, nr, n_total)
 	free(aux1)
 	free(aux2)
-	free(aux3)
 	free(Urt)
 	free(VTr)
 	free(Sr)
@@ -694,46 +442,72 @@ def _crun_new(list X, np.complex64_t w, float r, int remove_mean, float[:] W):
 	free(V2)
 	free(U_c)
 
-	cdef np.complex64_t *W_inv
-	W_inv = <np.complex64_t*>malloc(m*sizeof(np.complex64_t))
+	cdef np.complex64_t *W_inv = NULL
 	if W is not None:
+		W_inv = <np.complex64_t*>malloc(m*sizeof(np.complex64_t))
 		for ii in range(m):
 			W_inv[ii] = 1.0 / W_sqrt[ii]
 		c_cvecmat(W_inv, &U[0,0], m, nr)
 		c_cvecmat(W_inv, &V[0,0], m, nr)
-	free(W_inv)
+		free(W_inv)
 	free(W_sqrt)
 
 	return U, S, V
 
-def _zrun_new(list X, np.complex128_t w, double r, int remove_mean, double[:] W):
-
+def _zrun_new(object X, np.complex128_t w, double r, int remove_mean, double[:] W):
+	r'''
+	Resolvent Analysis of snapshot matrix X
+	'''
 	# Variables
-	cdef int m, ii, m_aux, n_total, n_matrix, n_local
-	m = X[0].shape[0]
-	n_matrix = len(X)
-
+	cdef int m, n, ii, m_aux, n_total, n_matrix, n_local
 	cdef double **X_pointer
 	cdef int *n_list
-	X_pointer = <double**>malloc(n_matrix*sizeof(double*))
-	n_list = <int*>malloc(n_matrix*sizeof(int))
-	### LOOP X
-	n_total = 0
-	cdef double *W_sqrt
-	cdef double[:, ::1] M 
-	W_sqrt = <double*>malloc(m*sizeof(double))
-	if W is not None:
-		for ii in range(m):
-			W_sqrt[ii] = sqrt(W[ii])
-	for ii in range(len(X)):
-		M = X[ii]
-		n_local = M.shape[1]
-		n_total += n_local - 1
-		X_pointer[ii] = <double*>malloc(m * n_local * sizeof(double))
-		memcpy(X_pointer[ii], &M[0,0], m * n_local * sizeof(double))
+	cdef double *W_sqrt = NULL
+	cdef double[:, ::1] M
+
+	if isinstance(X, list):
+		# List of snapshot matrices with the same spatial dimension m
+		n_matrix = len(X)
+		m = X[0].shape[0]
+		X_pointer = <double**>malloc(n_matrix*sizeof(double*))
+		n_list = <int*>malloc(n_matrix*sizeof(int))
 		if W is not None:
-			c_dvecmat(W_sqrt, X_pointer[ii], m, n_local)
-		n_list[ii] = n_local
+			W_sqrt = <double*>malloc(m*sizeof(double))
+			for ii in range(m):
+				W_sqrt[ii] = sqrt(W[ii])
+		n_total = 0
+		for ii in range(n_matrix):
+			M = X[ii]
+			n_local = M.shape[1]
+			n_total += n_local - 1
+			if W is not None:
+				# Copy the input matrix: the weighting below is done in place
+				X_pointer[ii] = <double*>malloc(m * n_local * sizeof(double))
+				memcpy(X_pointer[ii], &M[0,0], m * n_local * sizeof(double))
+				c_dvecmat(W_sqrt, X_pointer[ii], m, n_local)
+			else:
+				X_pointer[ii] = &M[0,0]
+			n_list[ii] = n_local
+	else:
+		# Single snapshot matrix
+		M = X
+		m = M.shape[0]
+		n = M.shape[1]
+		n_matrix = 1
+		n_total = n - 1
+		X_pointer = <double**>malloc(n_matrix*sizeof(double*))
+		n_list = <int*>malloc(n_matrix*sizeof(int))
+		if W is not None:
+			# Copy the input matrix: the weighting below is done in place
+			W_sqrt = <double*>malloc(m*sizeof(double))
+			for ii in range(m):
+				W_sqrt[ii] = sqrt(W[ii])
+			X_pointer[0] = <double*>malloc(m * n * sizeof(double))
+			memcpy(X_pointer[0], &M[0,0], m * n * sizeof(double))
+			c_dvecmat(W_sqrt, X_pointer[0], m, n)
+		else:
+			X_pointer[0] = &M[0,0]
+		n_list[0] = n
 
 	if m > n_total:
 		m_aux = m
@@ -747,8 +521,10 @@ def _zrun_new(list X, np.complex128_t w, double r, int remove_mean, double[:] W)
 
 	# Create the snapshot of matrices and separate it into Y, Z
 	c_dconcatenate(Y, Z, X_pointer, n_list, n_matrix, m, n_total, remove_mean)
-	for ii in range(n_matrix):
-		free(X_pointer[ii])
+	if W is not None:
+		# Free the input copies (only made when W was given)
+		for ii in range(n_matrix):
+			free(X_pointer[ii])
 	free(X_pointer)
 	free(n_list)
 
@@ -793,12 +569,10 @@ def _zrun_new(list X, np.complex128_t w, double r, int remove_mean, double[:] W)
 	# Project Jacobian of the snapshots into the POD basis
 	cdef double *aux1
 	cdef double *aux2
-	cdef double *aux3
 	cdef double *Atilde
 	cdef double *Urt
 	aux1   = <double*>malloc(nr*n_total*sizeof(double))
 	aux2   = <double*>malloc(nr*n_total*sizeof(double))
-	aux3   = <double*>malloc(nr*sizeof(double))
 	Atilde = <double*>malloc(nr*nr*sizeof(double))
 	Urt    = <double*>malloc(nr*m*sizeof(double))
 	c_dtranspose(Ur, Urt, m, nr)
@@ -811,7 +585,6 @@ def _zrun_new(list X, np.complex128_t w, double r, int remove_mean, double[:] W)
 	c_dmatmul(Atilde, aux1, aux2, nr, nr, n_total)
 	free(aux1)
 	free(aux2)
-	free(aux3)
 	free(Urt)
 	free(VTr)
 	free(Sr)
@@ -840,14 +613,14 @@ def _zrun_new(list X, np.complex128_t w, double r, int remove_mean, double[:] W)
 	free(V2)
 	free(U_c)
 
-	cdef np.complex128_t *W_inv
-	W_inv = <np.complex128_t*>malloc(m*sizeof(np.complex128_t))
+	cdef np.complex128_t *W_inv = NULL
 	if W is not None:
+		W_inv = <np.complex128_t*>malloc(m*sizeof(np.complex128_t))
 		for ii in range(m):
 			W_inv[ii] = 1.0 / W_sqrt[ii]
 		c_zvecmat(W_inv, &U[0,0], m, nr)
 		c_zvecmat(W_inv, &V[0,0], m, nr)
-	free(W_inv)
+		free(W_inv)
 	free(W_sqrt)
 
 	return U, S, V
@@ -858,14 +631,31 @@ def _zrun_new(list X, np.complex128_t w, double r, int remove_mean, double[:] W)
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def run_new(object X, object w, object r, int remove_mean=True, real[:] W=None):
+	r'''
+    Resolvent Analysis of snapshot matrix X
 
+    Inputs:
+        - X[ndims*nmesh,n_temp_snapshots]: data matrix or list of data matrices
+        - w: eigenvalue
+        - r: maximum truncation residual
+			- r > 0: target residual
+			- r < 0: fraction of cumulative energy to retain
+		- remove_mean: whether to remove the mean from the snapshots
+        - W: diagonal matrix (1D) of the inner-product
+
+    Returns:
+        - U_res: response modes
+        - S: emergy gains
+        - V_res: forcing modes
+    '''
 	if isinstance(X, list):
-		if X[0].dtype == np.double:
-			return _zrun_new(X,np.complex128(w),np.double(r),remove_mean,W)
-		else:
-			return _crun_new(X,np.complex64(w),np.float32(r),remove_mean,W)
+		X = [np.ascontiguousarray(M) for M in X]
+		dtype = X[0].dtype
 	else:
-		if X[0].dtype == np.double:
-			return _zrun_old(X,np.complex128(w),np.double(r),remove_mean,W)
-		else:
-			return _crun_old(X,np.complex64(w),np.float32(r),remove_mean,W)
+		X = np.ascontiguousarray(X)
+		dtype = X.dtype
+
+	if dtype == np.double:
+		return _zrun_new(X, np.complex128(w), np.double(r), remove_mean, W)
+	else:
+		return _crun_new(X, np.complex64(w), np.float32(r), remove_mean, W)

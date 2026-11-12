@@ -38,8 +38,8 @@ from ..utils.errors   import raiseError
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 cdef tuple _slinear_operator(float[:,:] Y, float[:,:] Z, float r):
-	'''
-	I dont understand mn here (old version). I think it is to avoid a m<n matrix. New method is implemented.
+	r'''
+	Reduced order version of the linear operator (Jacobian)
 	'''
 	cdef int my = Y.shape[0], mz = Z.shape[0], nn = Y.shape[1], retval 
 	cdef int icol, irow
@@ -106,8 +106,8 @@ cdef tuple _slinear_operator(float[:,:] Y, float[:,:] Z, float r):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 cdef tuple _dlinear_operator(double[:,:] Y, double[:,:] Z, double r):
-	'''
-	I dont understand mn here (old version). I think it is to avoid a m<n matrix. New method is implemented.
+	r'''
+	Reduced order version of the linear operator (Jacobian)
 	'''
 	cdef int my = Y.shape[0], mz = Z.shape[0], nn = Y.shape[1], retval 
 	cdef int icol, irow
@@ -172,10 +172,22 @@ cdef tuple _dlinear_operator(double[:,:] Y, double[:,:] Z, double r):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def linear_operator(real[:,:] Y, real[:,:] Z, real r):
-	'''
+	r'''
+	Reduced order version of the linear operator (Jacobian)
 
+	Args:
+		Y (ndarray): snapshot matrix at time t
+		Z (ndarray): snapshot matrix at time t + dt
+		r (int or float): maximum truncation residual
+			- r > 0: target residual
+			- r < 0: fraction of cumulative energy to retain
+
+	Results:
+		U (ndarray): left singular vectors of Y
+		S (ndarray): singular values of Y
+		VT (ndarray): right singular vectors of Y
+		Atilde (ndarray): reduced-order linear operator (Jacobian)
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
 	Y = np.ascontiguousarray(Y)
 	Z = np.ascontiguousarray(Z)
 
@@ -190,6 +202,9 @@ def linear_operator(real[:,:] Y, real[:,:] Z, real r):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 cdef tuple _sconcatenate(list X, int remove_mean):
+	r'''
+	Joins a list of snapshot matrices for the purpose of computing the linear operator (Jacobian) from them
+	'''
 	cdef int ii, m, n_local, n_total, n_matrix, m_aux
 	cdef int *n_list
 	cdef float **X_pointer
@@ -198,8 +213,6 @@ cdef tuple _sconcatenate(list X, int remove_mean):
 	m        = X[0].shape[0]
 	n_matrix = len(X)
 
-	# Build the array of pointers to the data matrices and the list of
-	# column counts; compute the total number of shifted snapshots
 	X_pointer = <float**>malloc(n_matrix*sizeof(float*))
 	n_list    = <int*>malloc(n_matrix*sizeof(int))
 	n_total   = 0
@@ -210,8 +223,6 @@ cdef tuple _sconcatenate(list X, int remove_mean):
 		X_pointer[ii] = &M[0,0]
 		n_list[ii]    = n_local
 
-	# Create the matrices Y, Z
-	# Y = X[i][:,:-1] zero-padded up to m_aux rows, Z = X[i][:,1:]
 	if m > n_total:
 		m_aux = m
 	else:
@@ -234,6 +245,9 @@ cdef tuple _sconcatenate(list X, int remove_mean):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 cdef tuple _dconcatenate(list X, int remove_mean):
+	r'''
+	Joins a list of snapshot matrices for the purpose of computing the linear operator (Jacobian) from them
+	'''
 	cdef int ii, m, n_local, n_total, n_matrix, m_aux
 	cdef int *n_list
 	cdef double **X_pointer
@@ -242,8 +256,6 @@ cdef tuple _dconcatenate(list X, int remove_mean):
 	m        = X[0].shape[0]
 	n_matrix = len(X)
 
-	# Build the array of pointers to the data matrices and the list of
-	# column counts; compute the total number of shifted snapshots
 	X_pointer = <double**>malloc(n_matrix*sizeof(double*))
 	n_list    = <int*>malloc(n_matrix*sizeof(int))
 	n_total   = 0
@@ -254,8 +266,6 @@ cdef tuple _dconcatenate(list X, int remove_mean):
 		X_pointer[ii] = &M[0,0]
 		n_list[ii]    = n_local
 
-	# Create the matrices Y, Z
-	# Y = X[i][:,:-1] zero-padded up to m_aux rows, Z = X[i][:,1:]
 	if m > n_total:
 		m_aux = m
 	else:
@@ -278,15 +288,16 @@ cdef tuple _dconcatenate(list X, int remove_mean):
 @cython.cdivision(True)    # turn off zero division check
 def concatenate(list X, remove_mean=False):
 	r'''
-	Compute the shifted snapshot matrices Y = X[i][:,:-1] and Z = X[i][:,1:]
-	of a list of data matrices with stitched interfaces, i.e.
-	X[i+1][:,0] == X[i][:,-1]. All matrices in the list must share the
-	same spatial dimension m.
+	Joins a list of snapshot matrices for the purpose of computing the linear operator (Jacobian) from them
 
-	Y is zero-padded up to max(m, n_total) rows so that it is tall enough
-	for the TSQR SVD used by the DMD module.
+	Args:
+		X (list of ndarray): list of snapshot matrices
+		remove_mean (bool): whether to remove the temporal mean from each snapshot matrix
+
+	Results:
+		Y (ndarray): snapshot matrix at time t
+		Z (ndarray): snapshot matrix at time t + dt
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
 	X = [np.ascontiguousarray(M) for M in X]
 
 	if X[0].dtype == np.double:
@@ -301,11 +312,12 @@ def concatenate(list X, remove_mean=False):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 cdef tuple _sseparate(float[:,:] X, int remove_mean):
+	r'''
+	Separates a snapshot matrix into two matrices for the purpose of computing the linear operator (Jacobian) from them
+	'''
 	cdef int m = X.shape[0], n = X.shape[1]
 	cdef int m_aux
 
-	# Create the matrices Y, Z
-	# Y = X[:,:-1] zero-padded up to m_aux rows, Z = X[:,1:]
 	if m > (n-1):
 		m_aux = m
 	else:
@@ -325,11 +337,12 @@ cdef tuple _sseparate(float[:,:] X, int remove_mean):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 cdef tuple _dseparate(double[:,:] X, int remove_mean):
+	r'''
+	Separates a snapshot matrix into two matrices for the purpose of computing the linear operator (Jacobian) from them
+	'''
 	cdef int m = X.shape[0], n = X.shape[1]
 	cdef int m_aux
 
-	# Create the matrices Y, Z
-	# Y = X[:,:-1] zero-padded up to m_aux rows, Z = X[:,1:]
 	if m > (n-1):
 		m_aux = m
 	else:
@@ -349,13 +362,16 @@ cdef tuple _dseparate(double[:,:] X, int remove_mean):
 @cython.cdivision(True)    # turn off zero division check
 def separate(real[:,:] X, remove_mean=False):
 	r'''
-	Compute the shifted snapshot matrices Y = X[:,:-1] and Z = X[:,1:]
-	of snapshot matrix X.
+	Separates a snapshot matrix into two matrices for the purpose of computing the linear operator (Jacobian) from them
 
-	Y is zero-padded up to max(m, n-1) rows so that it is tall enough
-	for the TSQR SVD used by the DMD module.
+	Args:
+		X (ndarray): snapshot matrix
+		remove_mean (bool): whether to remove the temporal mean from the snapshot matrix
+
+	Results:
+		Y (ndarray): snapshot matrix at time t
+		Z (ndarray): snapshot matrix at time t + dt
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
 	X = np.ascontiguousarray(X)
 
 	if real is double:
@@ -370,14 +386,15 @@ def separate(real[:,:] X, remove_mean=False):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 cdef tuple _cresolvent(float[:,:] A, np.complex64_t w):
-
+	r'''
+	Resolvent of a matrix A at a given frequency w
+	'''
 	cdef int ii, jj, n
 	n = A.shape[0]
 
 	cdef np.complex64_t *H_inv
 	H_inv  = <np.complex64_t*>malloc(n*n*sizeof(np.complex64_t))
 	
-	# COMPTE ELS SIGNES!
 	for ii in range(n):
 		for jj in range(n):
 			if ii == jj:
@@ -419,14 +436,15 @@ cdef tuple _cresolvent(float[:,:] A, np.complex64_t w):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 cdef tuple _zresolvent(double[:,:] A, np.complex128_t w):
-
+	r'''
+	Resolvent of a matrix A at a given frequency w
+	'''
 	cdef int ii, jj, n
 	n = A.shape[0]
 
 	cdef np.complex128_t *H_inv
 	H_inv  = <np.complex128_t*>malloc(n*n*sizeof(np.complex128_t))
 	
-	# COMPTE ELS SIGNES!
 	for ii in range(n):
 		for jj in range(n):
 			if ii == jj:
@@ -467,8 +485,18 @@ cdef tuple _zresolvent(double[:,:] A, np.complex128_t w):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 def resolvent(real[:,:] A, object w):
+	r'''
+	Resolvent of a matrix A at a given frequency w
 
-	# Ensure C-contiguous input (C routines assume a dense layout)
+	Args:
+		A (ndarray): the matrix for which to compute the resolvent
+		w (int or float): the frequency at which to compute the resolvent
+
+	Returns:
+		U (ndarray): response modes
+		S (ndarray): energy gains
+		V (ndarray): forcing modes
+	'''
 	A = np.ascontiguousarray(A)
 
 	if real is double:
@@ -483,8 +511,8 @@ def resolvent(real[:,:] A, object w):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 cdef np.ndarray[np.float32_t,ndim=2] _sflip_columns(float[:,:] A):
-	'''
-	
+	r'''
+	Flips the columns of a matrix A in a reverse order
 	'''
 	cdef int m = A.shape[0], n = A.shape[1]
 	cdef np.ndarray[np.float32_t,ndim=2] B = np.zeros((m,n),dtype=np.float32)
@@ -497,8 +525,8 @@ cdef np.ndarray[np.float32_t,ndim=2] _sflip_columns(float[:,:] A):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 cdef np.ndarray[np.double_t,ndim=2] _dflip_columns(double[:,:] A):
-	'''
-	
+	r'''
+	Flips the columns of a matrix A in a reverse order
 	'''
 	cdef int m = A.shape[0], n = A.shape[1]
 	cdef np.ndarray[np.double_t,ndim=2] B = np.zeros((m,n),dtype=np.double)
@@ -511,8 +539,8 @@ cdef np.ndarray[np.double_t,ndim=2] _dflip_columns(double[:,:] A):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 cdef np.ndarray[np.complex64_t,ndim=2] _cflip_columns(np.complex64_t[:,:] A):
-	'''
-	
+	r'''
+	Flips the columns of a matrix A in a reverse order
 	'''
 	cdef int m = A.shape[0], n = A.shape[1]
 	cdef np.ndarray[np.complex64_t,ndim=2] B = np.zeros((m,n),dtype=np.complex64)
@@ -525,8 +553,8 @@ cdef np.ndarray[np.complex64_t,ndim=2] _cflip_columns(np.complex64_t[:,:] A):
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
 cdef np.ndarray[np.complex128_t,ndim=2] _zflip_columns(np.complex128_t[:,:] A):
-	'''
-	
+	r'''
+	Flips the columns of a matrix A in a reverse order
 	'''
 	cdef int m = A.shape[0], n = A.shape[1]
 	cdef np.ndarray[np.complex128_t,ndim=2] B = np.zeros((m,n),dtype=np.complex128)
@@ -541,10 +569,15 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zflip_columns(np.complex128_t[:,:] A):
 @cython.cdivision(True)    # turn off zero division check
 def flip_columns(real_full[:,:] A):
 	r'''
+	Flips the columns of a matrix A in a reverse order
 
+	Args:
+		A (ndarray): the matrix whose columns to flip
+
+	Returns:
+		B (ndarray): the matrix with flipped columns
 	'''
 	cdef object B
-	# Ensure C-contiguous input (C routines assume a dense layout)
 	A = np.ascontiguousarray(A)
 	if real_full is np.complex128_t:
 		B = _zflip_columns(A)

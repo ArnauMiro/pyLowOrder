@@ -15,14 +15,16 @@ from ..utils     import cr_nvtx as cr, cr_start, cr_stop
 
 @cr('RES.run')
 def run(Phi, delta, omega, f, W=None):
-    '''
+    r'''
     Resolvent Analysis of snapshot matrix X
+
     Inputs:
         - X[ndims*nmesh,n_temp_snapshots]: data matrix
         - delta: damping ratio of each mode
         - omega: frequency of each mode
         - f: target frequency
         - W: diagonal matrix (1D) of the inner-product
+
     Returns:
         - U_res: response modes
         - S: emergy gains
@@ -56,34 +58,49 @@ def run(Phi, delta, omega, f, W=None):
     return U_res, S, V_res
 
 def run_new(X, w, r, remove_mean=True, W=None):
+    r'''
+    Resolvent Analysis of snapshot matrix X
 
+    Inputs:
+        - X[ndims*nmesh,n_temp_snapshots]: data matrix or list of data matrices
+        - w: eigenvalue
+        - r: maximum truncation residual
+			- r > 0: target residual
+			- r < 0: fraction of cumulative energy to retain
+		- remove_mean: whether to remove the mean from the snapshots
+        - W: diagonal matrix (1D) of the inner-product
+
+    Returns:
+        - U_res: response modes
+        - S: emergy gains
+        - V_res: forcing modes
+    '''
     # Prepare matrices and calculate the linear operator
-    X_c = X.copy()
-    W_sqrt = np.sqrt(W) if W is not None else None
-    if (type(X) is list):
+    if isinstance(X, list):
+        p = cp if type(X[0]) is cp.ndarray else np
         if W is not None:
-            for M, ii in enumerate(X):
-                X_c[ii] = vecmat(W_sqrt, M)
-        Y, Z = concatenate(X_c, remove_mean=remove_mean)
-        U1, S1, VT1, Atilde = linear_operator(Y, Z, r)
-
+            W_sqrt = p.sqrt(W)
+            X = [vecmat(W_sqrt, M) for M in X]
+        Y, Z = concatenate(X, remove_mean=remove_mean)
     else:
+        p = cp if type(X) is cp.ndarray else np
         if W is not None:
-            X_c = vecmat(W_sqrt, X)
-        Y, Z = separate(X_c, remove_mean=remove_mean)
-        U1, S1, VT1, Atilde = linear_operator(Y, Z, r)
-
-    del S1, VT1
+            W_sqrt = p.sqrt(W)
+            X = vecmat(W_sqrt, X)
+        Y, Z = separate(X, remove_mean=remove_mean)
+    U1, S1, VT1, Atilde = linear_operator(Y, Z, r)
 
     # Calculate the resolvent of the linear operator
     U2, S, V2 = resolvent(Atilde, w)
 
     # Project the solution
-    U = matmul(U1, U2)
-    V = matmul(U1, V2)
+    U1c = U1.astype(U2.dtype)
+    U = matmul(U1c, U2)
+    V = matmul(U1c, V2)
 
     if W is not None:
-        U = vecmat(1/W_sqrt, U)
-        V = vecmat(1/W_sqrt, V)
+        W_inv = (1/W_sqrt).astype(U.dtype)
+        U = vecmat(W_inv, U)
+        V = vecmat(W_inv, V)
 
     return U, S, V

@@ -55,11 +55,10 @@ def run(X, r, remove_mean = True):
 		- r:                               maximum truncation residual
 
 	Returns:
-		- Phi:      DMD Modes
 		- muReal:   Real part of the eigenvalues
 		- muImag:   Imaginary part of the eigenvalues
-		- b:        Amplitude of the DMD modes
-		- X_DMD:    Reconstructed flow
+		- Phi:      DMD Modes
+		- bJov:        Amplitude of the DMD modes
 	'''
 	# Prepare matrices and calculate the linear operator
 	if isinstance(X, list):
@@ -67,8 +66,6 @@ def run(X, r, remove_mean = True):
 	else:
 		Y, Z = separate(X, remove_mean=remove_mean)
 	U, S, VT, Atilde = linear_operator(Y, Z, r)
-
-	del U
 
 	# Eigendecomposition of Atilde: Eigenvectors given as complex matrix
 	# NOTE: there is no implementation of eig in cupy yet
