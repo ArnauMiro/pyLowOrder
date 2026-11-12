@@ -20,8 +20,9 @@ from ..utils     import cr_nvtx as cr, cr_start, cr_stop
 def linear_operator(Y, Z, r):
 
 	# compiled vmmath helpers assume C-contiguous input
-	Y = np.ascontiguousarray(Y)
-	Z = np.ascontiguousarray(Z)
+	p = cp if type(Y) is cp.ndarray else np
+	Y = p.ascontiguousarray(Y)
+	Z = p.ascontiguousarray(Z)
 
 	cr_start('DMD.SVD',0)
 	U_aux, S, VT = tsqr_svd(Y)
@@ -51,14 +52,15 @@ def linear_operator(Y, Z, r):
 def concatenate(X=[], remove_mean=False):
 	
 	# Create the matrices Y, Z
+	p = cp if type(X[0]) is cp.ndarray else np
 	dtype = X[0].dtype
 	m = X[0].shape[0]
 	n = np.sum([M.shape[1] - 1 for M in X])
 	if m > n:
-		Y = np.zeros((m, n), dtype=dtype)
+		Y = p.zeros((m, n), dtype=dtype)
 	else:
-		Y = np.zeros((n, n), dtype=dtype)
-	Z = np.zeros((m, n), dtype=dtype)
+		Y = p.zeros((n, n), dtype=dtype)
+	Z = p.zeros((m, n), dtype=dtype)
 
 	# Fill the matrices
 	offset = 0
@@ -67,7 +69,6 @@ def concatenate(X=[], remove_mean=False):
 		if remove_mean:
 			cr_start('DMD.temporal_mean',0)
 			# compiled vmmath helpers assume C-contiguous input
-			p = cp if type(M) is cp.ndarray else np
 			M = p.ascontiguousarray(M)
 			mean = temporal_mean(M)
 
@@ -85,20 +86,20 @@ def concatenate(X=[], remove_mean=False):
 def separate(X, remove_mean=False):
 	
 	# Create the matrices Y, Z
+	p = cp if type(X) is cp.ndarray else np
 	dtype = X[0].dtype
 	m = X.shape[0]
 	n = X.shape[1]
 	if m > (n-1):
-		Y = np.zeros((m, n-1), dtype=dtype)
+		Y = p.zeros((m, n-1), dtype=dtype)
 	else:
-		Y = np.zeros((n-1, n-1), dtype=dtype)
-	Z = np.zeros((m, n-1), dtype=dtype)
+		Y = p.zeros((n-1, n-1), dtype=dtype)
+	Z = p.zeros((m, n-1), dtype=dtype)
 
 	# Fill the matrices
 	if remove_mean:
 		cr_start('DMD.temporal_mean',0)
 		# compiled vmmath helpers assume C-contiguous input
-		p = cp if type(X) is cp.ndarray else np
 		X = p.ascontiguousarray(X)
 		mean = temporal_mean(X)
 
@@ -111,11 +112,11 @@ def separate(X, remove_mean=False):
 
 	return Y, Z
 
-def resolvent(A, f):
+def resolvent(A, w):
 
-	# H_inv = (-1j * f - A)
+	# H_inv = (w * I - A)
 	p = cp if type(A) is cp.ndarray else np
-	H_inv = p.eye(A.shape[0]) * f - A #  COMPTE ELS SGINES!
+	H_inv = p.eye(A.shape[0]) * w - A #  COMPTE ELS SGINES!
 	V_flip, S_inv, UT_flip = svd(H_inv)
 	U_flip = dagger(UT_flip)
 	S  = 1 / S_inv[::-1]
@@ -125,6 +126,7 @@ def resolvent(A, f):
 
 def flip_columns(A):
 
-	B = np.fliplr(A)
+	p = cp if type(A) is cp.ndarray else np
+	B = p.fliplr(A)
 
 	return B

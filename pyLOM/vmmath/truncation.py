@@ -77,6 +77,7 @@ def energy(original, rec):
 	return 1 - global_num / global_den
 
 def remove_rows(A, rows):
-	B = np.zeros((rows, A.shape[1]), dtype=A.dtype)
+	p = cp if type(A) is cp.ndarray else np
+	B = p.zeros((rows, A.shape[1]), dtype=A.dtype)
 	B[:,:] = A[:rows,:]
 	return B

@@ -51,9 +51,6 @@ def run(X, r, remove_mean = True):
 	DMD analysis of snapshot matrix X or list of snapshot matrices X
 	Inputs:
 		- X[ndims*nmesh,n_temp_snapshots]: data matrix or list of data matrices
-		                                   with stitched interfaces, i.e.
-		                                   X[i+1][:,0] == X[i][:,-1], sharing
-		                                   the same spatial dimension
 		- remove_mean:                     whether or not to remove the mean flow
 		- r:                               maximum truncation residual
 
@@ -65,7 +62,7 @@ def run(X, r, remove_mean = True):
 		- X_DMD:    Reconstructed flow
 	'''
 	# Prepare matrices and calculate the linear operator
-	if (type(X) is list):
+	if isinstance(X, list):
 		Y, Z = concatenate(X, remove_mean=remove_mean)
 	else:
 		Y, Z = separate(X, remove_mean=remove_mean)
@@ -82,8 +79,6 @@ def run(X, r, remove_mean = True):
 	w      = cp.asarray(w)      if type(Atilde) is cp.ndarray else w
 
 	# Mode computation
-	# NOTE: the real intermediate is promoted to complex since vmmath's fused
-	# matmul requires both operands to share the same dtype
 	Vr   = matmul(matmul(Z, transpose(VT)), diag(1/S))
 	Phi  = matmul(Vr.astype(np.result_type(Vr.dtype, w.dtype)), w)/(muReal + muImag*1J)
 	cr_stop('DMD.modes',0)
@@ -93,13 +88,7 @@ def run(X, r, remove_mean = True):
 	Vand = vandermonde(muReal, muImag, muReal.shape[0], Y.shape[1])
 	P    = matmul(transpose(conj(w)), w)*conj(matmul(Vand, transpose(conj(Vand))))
 	Pl   = cholesky(P)
-	# NOTE: G is real but is promoted to complex since vmmath's fused matmul
-	# requires both operands to share the same dtype (the compiled core folds
-	# this product into its complex loops)
 	G    = matmul(diag(S), VT).astype(w.dtype)
-	# NOTE: vmmath's conj and matmul only accept matrices, so the vector q is
-	# conjugated with numpy and passed to matmul as a column matrix (the
-	# compiled core does the same, treating q as nr x 1)
 	q    = np.conj(diag(matmul(matmul(Vand, transpose(conj(G))), w)))
 	bJov = matmul(inv(transpose(conj(Pl))), matmul(inv(Pl), q.reshape(-1,1))).ravel() #Amplitudes according to Jovanovic 2014
 	cr_stop('DMD.amplitudes',0)

@@ -41,7 +41,7 @@ cdef tuple _slinear_operator(float[:,:] Y, float[:,:] Z, float r):
 	'''
 	I dont understand mn here (old version). I think it is to avoid a m<n matrix. New method is implemented.
 	'''
-	cdef int my = Y.shape[0], mz = Z.shape[0], nn = Y.shape[1], n = (nn+1), retval 
+	cdef int my = Y.shape[0], mz = Z.shape[0], nn = Y.shape[1], retval 
 	cdef int icol, irow
 
     # Compute SVD
@@ -109,7 +109,7 @@ cdef tuple _dlinear_operator(double[:,:] Y, double[:,:] Z, double r):
 	'''
 	I dont understand mn here (old version). I think it is to avoid a m<n matrix. New method is implemented.
 	'''
-	cdef int my = Y.shape[0], mz = Z.shape[0], nn = Y.shape[1], n = (nn+1), retval 
+	cdef int my = Y.shape[0], mz = Z.shape[0], nn = Y.shape[1], retval 
 	cdef int icol, irow
 
     # Compute SVD
@@ -134,7 +134,7 @@ cdef tuple _dlinear_operator(double[:,:] Y, double[:,:] Z, double r):
 	cr_start('DMD.truncate',0)
 	cdef int nr
 
-	nr = int(r) if r > 1 else c_dcompute_truncation_residual(S,r,n-1)
+	nr = int(r) if r > 1 else c_dcompute_truncation_residual(S,r,nn)
 	cdef np.ndarray[np.double_t,ndim=2] Ur   = np.zeros((mz, nr),dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=1] Sr   = np.zeros((nr),dtype=np.double)
 	cdef np.ndarray[np.double_t,ndim=2] Vr   = np.zeros((nr, nn),dtype=np.double)
@@ -369,7 +369,7 @@ def separate(real[:,:] X, remove_mean=False):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef tuple _cresolvent(float[:,:] A, np.complex64_t f):
+cdef tuple _cresolvent(float[:,:] A, np.complex64_t w):
 
 	cdef int ii, jj, n
 	n = A.shape[0]
@@ -381,7 +381,7 @@ cdef tuple _cresolvent(float[:,:] A, np.complex64_t f):
 	for ii in range(n):
 		for jj in range(n):
 			if ii == jj:
-				H_inv[ii*n + jj] = f - A[ii, jj]
+				H_inv[ii*n + jj] = w - A[ii, jj]
 			else:
 				H_inv[ii*n + jj] = -A[ii, jj] 	
 
@@ -392,7 +392,7 @@ cdef tuple _cresolvent(float[:,:] A, np.complex64_t f):
 	UT_flip  = <np.complex64_t*>malloc(n*n*sizeof(np.complex64_t))
 	V_flip   = <np.complex64_t*>malloc(n*n*sizeof(np.complex64_t))
 	U_flip   = <np.complex64_t*>malloc(n*n*sizeof(np.complex64_t))
-	S_inv    = <float*>malloc(n*sizeof(np.complex64_t))
+	S_inv    = <float*>malloc(n*sizeof(float))
 	cdef np.ndarray[np.float32_t,ndim=1] S       = np.zeros((n),dtype=np.float32)
 	c_csvd(V_flip, S_inv, UT_flip, H_inv, n, n)
 	free(H_inv)
@@ -418,7 +418,7 @@ cdef tuple _cresolvent(float[:,:] A, np.complex64_t f):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef tuple _zresolvent(double[:,:] A, np.complex128_t f):
+cdef tuple _zresolvent(double[:,:] A, np.complex128_t w):
 
 	cdef int ii, jj, n
 	n = A.shape[0]
@@ -430,7 +430,7 @@ cdef tuple _zresolvent(double[:,:] A, np.complex128_t f):
 	for ii in range(n):
 		for jj in range(n):
 			if ii == jj:
-				H_inv[ii*n + jj] = f - A[ii, jj]
+				H_inv[ii*n + jj] = w - A[ii, jj]
 			else:
 				H_inv[ii*n + jj] = -A[ii, jj] 	
 
@@ -441,7 +441,7 @@ cdef tuple _zresolvent(double[:,:] A, np.complex128_t f):
 	UT_flip  = <np.complex128_t*>malloc(n*n*sizeof(np.complex128_t))
 	V_flip   = <np.complex128_t*>malloc(n*n*sizeof(np.complex128_t))
 	U_flip   = <np.complex128_t*>malloc(n*n*sizeof(np.complex128_t))
-	S_inv    = <double*>malloc(n*sizeof(np.complex128_t))
+	S_inv    = <double*>malloc(n*sizeof(double))
 	cdef np.ndarray[np.double_t,ndim=1] S       = np.zeros((n),dtype=np.double)
 	c_zsvd(V_flip, S_inv, UT_flip, H_inv, n, n)
 	free(H_inv)
@@ -466,15 +466,15 @@ cdef tuple _zresolvent(double[:,:] A, np.complex128_t f):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def resolvent(real[:,:] X, object f):
+def resolvent(real[:,:] A, object w):
 
 	# Ensure C-contiguous input (C routines assume a dense layout)
-	X = np.ascontiguousarray(X)
+	A = np.ascontiguousarray(A)
 
 	if real is double:
-		return _zresolvent(X,np.complex128(f))
+		return _zresolvent(A,np.complex128(w))
 	else:
-		return _cresolvent(X,np.complex64(f))
+		return _cresolvent(A,np.complex64(w))
 
 
 @cython.initializedcheck(False)
@@ -543,7 +543,6 @@ def flip_columns(real_full[:,:] A):
 	r'''
 
 	'''
-	cr_start('flip', 0)
 	cdef object B
 	# Ensure C-contiguous input (C routines assume a dense layout)
 	A = np.ascontiguousarray(A)
@@ -555,5 +554,4 @@ def flip_columns(real_full[:,:] A):
 		B = _dflip_columns(A)
 	else:
 		B = _sflip_columns(A)
-	cr_stop('flip', 0)
 	return B

@@ -42,11 +42,7 @@ from ..utils.errors   import raiseError
 @cython.cdivision(True)    # turn off zero division check
 cdef _srun_core(float *Y, float *Z, int m, int n, int m_aux, float r):
 	'''
-	(float precision) DMD core: computes muReal, muImag, Phi and bJov from the
-	shifted snapshot matrices Y (m_aux x (n-1), zero-padded) and Z (m x (n-1)),
-	where n = (number of snapshots) + 1.
-	Takes ownership of Y and Z: both are freed inside.
-	Call run() instead: it enforces contiguity and dispatches on precision.
+	Computes muReal, muImag, Phi and bJov from the shifted snapshot matrices Y and Z
 	'''
 	cdef int irow, icol, iaux, retval
 
@@ -290,8 +286,7 @@ cdef _srun_core(float *Y, float *Z, int m, int n, int m_aux, float r):
 @cython.cdivision(True)    # turn off zero division check
 def _srun_matrix(float[:,:] X, float r, int remove_mean):
 	'''
-	(float precision) DMD of a single data matrix X.
-	Call run() instead: it enforces contiguity and dispatches on precision.
+	DMD of a single data matrix X
 	'''
 	cdef int m, n, m_aux
 	m = X.shape[0]
@@ -329,10 +324,7 @@ def _srun_matrix(float[:,:] X, float r, int remove_mean):
 @cython.cdivision(True)    # turn off zero division check
 def _srun_list(list X, float r, int remove_mean):
 	'''
-	(float precision) DMD of a list of data matrices with stitched
-	interfaces, i.e. X[i+1][:,0] == X[i][:,-1]. All matrices in the list
-	must share the same spatial dimension m.
-	Call run() instead: it enforces contiguity and dispatches on precision.
+	DMD of a list of data matrices with same spatial dimension m
 	'''
 	cdef int m, iaux
 	cdef int n_matrix, n_local, n_total, m_aux
@@ -387,11 +379,7 @@ def _srun_list(list X, float r, int remove_mean):
 @cython.cdivision(True)    # turn off zero division check
 cdef _drun_core(double *Y, double *Z, int m, int n, int m_aux, double r):
 	'''
-	(double precision) DMD core: computes muReal, muImag, Phi and bJov from
-	the shifted snapshot matrices Y (m_aux x (n-1), zero-padded) and
-	Z (m x (n-1)), where n = (number of snapshots) + 1.
-	Takes ownership of Y and Z: both are freed inside.
-	Call run() instead: it enforces contiguity and dispatches on precision.
+	Computes muReal, muImag, Phi and bJov from the shifted snapshot matrices Y and Z
 	'''
 	cdef int irow, icol, iaux, retval
 
@@ -635,8 +623,7 @@ cdef _drun_core(double *Y, double *Z, int m, int n, int m_aux, double r):
 @cython.cdivision(True)    # turn off zero division check
 def _drun_matrix(double[:,:] X, double r, int remove_mean):
 	'''
-	(double precision) DMD of a single data matrix X.
-	Call run() instead: it enforces contiguity and dispatches on precision.
+	DMD of a single data matrix X
 	'''
 	cdef int m, n, m_aux
 	m = X.shape[0]
@@ -674,10 +661,7 @@ def _drun_matrix(double[:,:] X, double r, int remove_mean):
 @cython.cdivision(True)    # turn off zero division check
 def _drun_list(list X, double r, int remove_mean):
 	'''
-	(double precision) DMD of a list of data matrices with stitched
-	interfaces, i.e. X[i+1][:,0] == X[i][:,-1]. All matrices in the list
-	must share the same spatial dimension m.
-	Call run() instead: it enforces contiguity and dispatches on precision.
+	DMD of a list of data matrices with same spatial dimension m
 	'''
 	cdef int m, iaux
 	cdef int n_matrix, n_local, n_total, m_aux
@@ -737,9 +721,6 @@ def run(object X, object r, int remove_mean=True):
 
 	Inputs:
 		- X[ndims*nmesh,n_temp_snapshots]: data matrix or list of data matrices
-		                                   with stitched interfaces, i.e.
-		                                   X[i+1][:,0] == X[i][:,-1], sharing
-		                                   the same spatial dimension
 		- remove_mean:                     whether or not to remove the mean flow
 		- r:                               maximum truncation residual
 

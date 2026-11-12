@@ -91,9 +91,9 @@ void sconcatenate(float *Y, float *Z, float **X, int *n_list, const int n_matrix
 
     for (jj=0; jj<n_matrix; ++jj){
         n_jj = n_list[jj];
-	    X_meanless = (float*)malloc(m*n_jj*sizeof(float));
 
         if (remove_mean){
+            X_meanless = (float*)malloc(m*n_jj*sizeof(float));
             stemporal_mean(X_mean, X[jj], m, n_jj);
             ssubtract_mean(X_meanless, X[jj], X_mean, m, n_jj);
 
@@ -101,6 +101,7 @@ void sconcatenate(float *Y, float *Z, float **X, int *n_list, const int n_matrix
                 memcpy(&Y[ii*n_total+n_sum], &X_meanless[ii*n_jj], (n_jj-1)*sizeof(float));
                 memcpy(&Z[ii*n_total+n_sum], &X_meanless[ii*n_jj+1], (n_jj-1)*sizeof(float));
             }
+            free(X_meanless);
         }
         else {
             for (ii=0; ii<m; ++ii){
@@ -109,7 +110,6 @@ void sconcatenate(float *Y, float *Z, float **X, int *n_list, const int n_matrix
             }
         }
         n_sum += n_jj-1;
-        free(X_meanless);
     }
     free(X_mean);
 }
@@ -125,9 +125,9 @@ void dconcatenate(double *Y, double *Z, double **X, int *n_list, const int n_mat
 
     for (jj=0; jj<n_matrix; ++jj){
         n_jj = n_list[jj];
-	    X_meanless = (double*)malloc(m*n_jj*sizeof(double));
 
         if (remove_mean){
+            X_meanless = (double*)malloc(m*n_jj*sizeof(double));
             dtemporal_mean(X_mean, X[jj], m, n_jj);
             dsubtract_mean(X_meanless, X[jj], X_mean, m, n_jj);
 
@@ -135,6 +135,7 @@ void dconcatenate(double *Y, double *Z, double **X, int *n_list, const int n_mat
                 memcpy(&Y[ii*n_total+n_sum], &X_meanless[ii*n_jj], (n_jj-1)*sizeof(double));
                 memcpy(&Z[ii*n_total+n_sum], &X_meanless[ii*n_jj+1], (n_jj-1)*sizeof(double));
             }
+            free(X_meanless);
         }
         else {
             for (ii=0; ii<m; ++ii){
@@ -144,7 +145,6 @@ void dconcatenate(double *Y, double *Z, double **X, int *n_list, const int n_mat
             }
         }
         n_sum += n_jj-1;
-        free(X_meanless);
     }
     free(X_mean);
 }
@@ -156,9 +156,9 @@ void sseparate(float *Y, float *Z, float *X, const int m, const int n, int remov
     float *X_mean;
     float *X_meanless;
     X_mean       = (float*)malloc(m*sizeof(float));
-	X_meanless   = (float*)malloc(m*n*sizeof(float));
 
     if (remove_mean){
+        X_meanless = (float*)malloc(m*n*sizeof(float));
         stemporal_mean(X_mean, X, m, n);
         ssubtract_mean(X_meanless, X, X_mean, m, n);
         
@@ -166,6 +166,7 @@ void sseparate(float *Y, float *Z, float *X, const int m, const int n, int remov
             memcpy(&Y[ii*(n-1)], &X_meanless[ii*n], (n-1)*sizeof(float));
             memcpy(&Z[ii*(n-1)], &X_meanless[ii*n+1], (n-1)*sizeof(float));
         }
+        free(X_meanless);
     }
     else {
         for (ii=0; ii<m; ++ii){
@@ -174,19 +175,18 @@ void sseparate(float *Y, float *Z, float *X, const int m, const int n, int remov
         }
     }
     free(X_mean);
-    free(X_meanless);
 }
 
 void dseparate(double *Y, double *Z, double *X, const int m, const int n, int remove_mean) {
 
-    int m_aux, ii;
+    int ii;
 
     double *X_mean;
     double *X_meanless;
     X_mean       = (double*)malloc(m*sizeof(double));
-	X_meanless   = (double*)malloc(m*n*sizeof(double));
 
     if (remove_mean){
+        X_meanless = (double*)malloc(m*n*sizeof(double));
         dtemporal_mean(X_mean, X, m, n);
         dsubtract_mean(X_meanless, X, X_mean, m, n);
         
@@ -194,6 +194,7 @@ void dseparate(double *Y, double *Z, double *X, const int m, const int n, int re
             memcpy(&Y[ii*(n-1)], &X_meanless[ii*n], (n-1)*sizeof(double));
             memcpy(&Z[ii*(n-1)], &X_meanless[ii*n+1], (n-1)*sizeof(double));
         }
+        free(X_meanless);
     }
     else {
         for (ii=0; ii<m; ++ii){
@@ -202,7 +203,6 @@ void dseparate(double *Y, double *Z, double *X, const int m, const int n, int re
         }
     }
     free(X_mean);
-    free(X_meanless);
 }
 
 void cresolvent(scomplex_t *U, float *S, scomplex_t *V, float *A, scomplex_t w, const int n) {
