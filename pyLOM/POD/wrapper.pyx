@@ -172,6 +172,9 @@ def run(real[:,:] X, bint remove_mean=True, bint divide_variance=False, bint ran
 		[(np.ndarray), (np.ndarray), (np.ndarray)]: POD spatial modes (left singular vectors), singular values and temporal coefficients (right singular vectors).
 	'''
 	seed = <int>time(NULL) if seed < 0 else seed
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	X = np.ascontiguousarray(X)
+
 	if real is double:
 		return _drun(X,remove_mean, divide_variance, randomized, r, q, seed)
 	else:
@@ -275,6 +278,11 @@ def truncate(real[:,:] U, real[:] S, real[:,:] V, real r=1e-8):
 		[(np.array), (np.array), (np.array)]: Truncated POD spatial modes (left singular vectors), singular values and temporal coefficients (right singular vectors).
 
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	U = np.ascontiguousarray(U)
+	S = np.ascontiguousarray(S)
+	V = np.ascontiguousarray(V)
+
 	if real is double:
 		return _dtruncate(U,S,V,r)
 	else:
@@ -371,6 +379,11 @@ def reconstruct(real[:,:] U, real[:] S, real[:,:] V):
 	Returns:
 		(np.array): Reconstructed flow.
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	U = np.ascontiguousarray(U)
+	S = np.ascontiguousarray(S)
+	V = np.ascontiguousarray(V)
+
 	if real is double:
 		return _dreconstruct(U,S,V)
 	else:

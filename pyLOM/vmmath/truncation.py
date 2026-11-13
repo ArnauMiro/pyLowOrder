@@ -75,3 +75,9 @@ def energy(original, rec):
 
 	# Compute Ek (this will be identical on all ranks)
 	return 1 - global_num / global_den
+
+def remove_rows(A, rows):
+	p = cp if type(A) is cp.ndarray else np
+	B = p.zeros((rows, A.shape[1]), dtype=A.dtype)
+	B[:,:] = A[:rows,:]
+	return B
