@@ -8,4 +8,4 @@
 
 from .wrapper import run
 from .utils   import extract_modes, save, load
-from .plots import plotMode, plotSpectra
+from .plots import plotMode, plotSpectra, plotConvergence

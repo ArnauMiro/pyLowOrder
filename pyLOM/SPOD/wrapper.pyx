@@ -613,8 +613,10 @@ def run(real[:,:] X, real[:] t, int nDFT=0, int nolap=0, remove_mean=True, W=Non
 	t = np.ascontiguousarray(t)
 
 	if real is double:
+		X = np.ascontiguousarray(X,dtype=np.double)
 		W = None if W is None else np.ascontiguousarray(W,dtype=np.double)
 		return _drun(X,t,nDFT,nolap,remove_mean,W)
 	else:
+		X = np.ascontiguousarray(X,dtype=np.float32)
 		W = None if W is None else np.ascontiguousarray(W,dtype=np.float32)
 		return _srun(X,t,nDFT,nolap,remove_mean,W)

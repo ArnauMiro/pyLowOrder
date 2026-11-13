@@ -23,8 +23,8 @@ def extract_modes(L:np.ndarray,P:np.ndarray,ivar:int,npoints:int,iblock:int=1,mo
 		P (np.ndarray): SPOD spatial modes
 		ivar (int): ID of the variable (i. e.) position in which it was concatenated to the rest of data (min=1, max=number of concatenated variables)
 		npoints (int): number of points in the domain per variable
-		modes (list, optional): list containing the id of the modes to separate (default ``[]``).
-		iblock (int, optional): block ID which we want to extract the modes from.
+		modes (list, optional): list containing the ids of the frequencies whose modes are to be extracted (default ``[]``, i. e. all frequencies).
+		iblock (int, optional): block ID of the modes to extract, i. e. the index of the mode within each frequency, sorted by decreasing energy (default ``1``, i. e. the leading mode).
 		reshape (bool, optional): if true the output will be given as (len(modes)*npoints,) if not it the result will be (npoints, len(modes)) (default `` True ``)
 
 	Returns:
@@ -37,10 +37,10 @@ def extract_modes(L:np.ndarray,P:np.ndarray,ivar:int,npoints:int,iblock:int=1,mo
 	if len(modes) == 0: modes = p.arange(1,P.shape[1]+1,dtype=p.int32)
 	# Allocate output array
 	out = p.zeros((npoints,len(modes)),L.dtype)
-	for m in modes:
-		# Extract the block
-		Pb         = P[(iblock-1)*nvars*npoints:iblock*nvars*npoints]
-		out[:,m-1] = Pb[ivar-1:nvars*npoints:nvars,m-1]
+	# Extract the block
+	Pb = P[(iblock-1)*nvars*npoints:iblock*nvars*npoints]
+	for im,m in enumerate(modes):
+		out[:,im] = Pb[ivar-1:nvars*npoints:nvars,m-1]
 	# Return reshaped output
 	return out.reshape((len(modes)*npoints,),order='C') if reshape else out
 
