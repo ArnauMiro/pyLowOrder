@@ -309,3 +309,17 @@ def flip(A:np.ndarray) -> np.ndarray:
 	'''
 	p = cp if type(A) is cp.ndarray else np
 	return p.flip(A)
+
+@cr('math.abs')
+def abs(v:np.ndarray) -> np.ndarray:
+	r'''
+	Returns the pointwise absolute value of vector v
+
+	Args:
+		v (np.ndarray): Vector v (M,)
+	
+	Result:
+		np.ndarray: Absolute value version of v (M,)
+	'''
+	p = cp if type(v) is cp.ndarray else np
+	return p.abs(v)

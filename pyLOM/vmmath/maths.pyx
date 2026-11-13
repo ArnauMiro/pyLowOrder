@@ -1187,3 +1187,88 @@ def flip(real[:,:] A):
 		np.ndarray: Flipped version of A (M,N)
 	'''
 	raiseError('Function not implemented in Cython!')
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.float32_t,ndim=1] _sabs(float[:] v):
+	'''
+	Pointwise absolute value of a real vector
+	'''
+	cdef int i, n = v.shape[0]
+	cdef np.ndarray[np.float32_t,ndim=1] out = np.zeros((n,),dtype=np.float32)
+	for i in range(n):
+		out[i] = sqrt(v[i]*v[i])
+	return out
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.double_t,ndim=1] _dabs(double[:] v):
+	'''
+	Pointwise absolute value of a real vector
+	'''
+	cdef int i, n = v.shape[0]
+	cdef np.ndarray[np.double_t,ndim=1] out = np.zeros((n,),dtype=np.double)
+	for i in range(n):
+		out[i] = sqrt(v[i]*v[i])
+	return out
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.float32_t,ndim=1] _cabs(np.complex64_t[:] v):
+	'''
+	Pointwise absolute value of a complex vector
+	'''
+	cdef int i, n = v.shape[0]
+	cdef np.ndarray[np.float32_t,ndim=1] out = np.zeros((n,),dtype=np.float32)
+	for i in range(n):
+		out[i] = sqrt(v[i].real*v[i].real + v[i].imag*v[i].imag)
+	return out
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.ndarray[np.double_t,ndim=1] _zabs(np.complex128_t[:] v):
+	'''
+	Pointwise absolute value of a complex vector
+	'''
+	cdef int i, n = v.shape[0]
+	cdef np.ndarray[np.double_t,ndim=1] out = np.zeros((n,),dtype=np.double)
+	for i in range(n):
+		out[i] = sqrt(v[i].real*v[i].real + v[i].imag*v[i].imag)
+	return out
+
+@cr('math.abs')
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def abs(real_full[:] v):
+	r'''
+	Returns the pointwise absolute value of vector v
+
+	Args:
+		v (np.ndarray): Vector v (M,)
+	
+	Result:
+		np.ndarray: Absolute value version of v (M,)
+	'''
+	if real_full is np.complex128_t:
+		return _zabs(v)
+	elif real_full is np.complex64_t:
+		return _cabs(v)
+	elif real_full is double:
+		return _dabs(v)
+	else:
+		return _sabs(v)
