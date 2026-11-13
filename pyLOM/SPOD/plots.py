@@ -129,6 +129,9 @@ def plotConvergence(PRef, PRed1, PRed2, W=None, f=None, fig:plt.figure=None, ax:
 		x, mu1, mu2 = f[order], mu1[order], mu2[order]
 	else:
 		x = np.arange(1,mu1.shape[0]+1)
+
+	ax.axhline(0.95, color='k', linestyle='--')
+	ax.set_ylim(0, 1)
 	ax.plot(x, mu1, 'o-', color='blue', label='Reduced 1')
 	ax.plot(x, mu2, 'o-', color='red', label='Reduced 2')
 	ax.set_xlabel('St' if f is not None else 'Mode')
