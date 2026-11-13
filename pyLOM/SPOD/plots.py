@@ -86,7 +86,7 @@ def plotConvergence(PRef, PRed1, PRed2, W=None, f=None, fig:plt.figure=None, ax:
 		PRed1 (np.ndarray): modes of the first reduced dataset, (npoints, nmodes) array as returned by extract_modes with reshape=False
 		PRed2 (np.ndarray): modes of the second reduced dataset, (npoints, nmodes) array as returned by extract_modes with reshape=False
 		W (np.ndarray, optional): diagonal of the inner product weighting matrix (default: ``None``)
-		f (np.ndarray, optional): frequencies corresponding to the columns of the modes, used as x axis (default: ``None``, i. e. mode id)
+		f (np.ndarray, optional): frequencies corresponding to the columns of the modes, used as x axis and sorted in increasing order before plotting (default: ``None``, i. e. mode id)
 		fig (plt.figure, optional): figure object in which the plot will be done (default: ``[]``)
 		ax (plt.axes, optional): axes object in which the plot will be done (default: ``[]``)
 
@@ -119,8 +119,16 @@ def plotConvergence(PRef, PRed1, PRed2, W=None, f=None, fig:plt.figure=None, ax:
 		fig = plt.figure(figsize=(8,6),dpi=100)
 	if ax is None:
 		ax = fig.add_subplot(1,1,1)
-	x = np.arange(1,mu1.shape[0]+1) if f is None else gpu_to_cpu(f)
 	mu1, mu2 = gpu_to_cpu(mu1), gpu_to_cpu(mu2)
+	if f is not None:
+		# Plot in increasing frequency order: the columns of the modes are
+		# sorted by energy, not by frequency, and an unsorted x axis would
+		# draw the curves as a set of crossing chords
+		f = gpu_to_cpu(f)
+		order = np.argsort(f)
+		x, mu1, mu2 = f[order], mu1[order], mu2[order]
+	else:
+		x = np.arange(1,mu1.shape[0]+1)
 	ax.plot(x, mu1, 'o-', color='blue', label='Reduced 1')
 	ax.plot(x, mu2, 'o-', color='red', label='Reduced 2')
 	ax.set_xlabel('St' if f is not None else 'Mode')
