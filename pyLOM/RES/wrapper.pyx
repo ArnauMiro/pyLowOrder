@@ -25,8 +25,8 @@ from libc.stdlib     cimport malloc, calloc, free
 from libc.string     cimport memcpy
 from libc.math       cimport sqrt
 from ..vmmath.cfuncs cimport real, real_complex
-from ..vmmath.cfuncs cimport c_svecmat, c_sconcatenate, c_stsqr_svd, c_sremove_rows, c_scompute_truncation_residual, c_scompute_truncation, c_stranspose, c_smatmul, c_smatmulp
-from ..vmmath.cfuncs cimport c_dvecmat, c_dconcatenate, c_dtsqr_svd, c_dremove_rows, c_dcompute_truncation_residual, c_dcompute_truncation, c_dtranspose, c_dmatmul, c_dmatmulp
+from ..vmmath.cfuncs cimport c_svecmat, c_sconcatenate, c_sseparate, c_stsqr_svd, c_sremove_rows, c_scompute_truncation_residual, c_scompute_truncation, c_stranspose, c_smatmul, c_smatmulp
+from ..vmmath.cfuncs cimport c_dvecmat, c_dconcatenate, c_dseparate, c_dtsqr_svd, c_dremove_rows, c_dcompute_truncation_residual, c_dcompute_truncation, c_dtranspose, c_dmatmul, c_dmatmulp
 from ..vmmath.cfuncs cimport c_csvd, c_cdagger, c_cmatmul, c_cmatmulp, c_cvecmat, c_ccholesky, c_cinverse, c_cresolvent
 from ..vmmath.cfuncs cimport c_zsvd, c_zdagger, c_zmatmul, c_zmatmulp, c_zvecmat, c_zcholesky, c_zinverse, c_zresolvent
 
@@ -284,81 +284,12 @@ def run(real_complex[:,:] Phi, real[:] delta, real[:] omega, real f, real[:] W=N
 	else:
 		return _crun(Phi, delta, omega, f, W)
 
-def _crun_new(object X, np.complex64_t w, float r, int remove_mean, float[:] W):
+cdef tuple _crun_new_core(float *Y, float *Z, int m, int n_total, int m_aux, np.complex64_t w, float r, float *W_sqrt):
 	r'''
-	Resolvent Analysis of snapshot matrix X
+	Resolvent Analysis of the shifted snapshot matrices Y, Z
 	'''
-	# Variables
-	cdef int m, n, ii, m_aux, n_total, n_matrix, n_local
-	cdef float **X_pointer
-	cdef int *n_list
-	cdef float *W_sqrt = NULL
-	cdef float[:, ::1] M
-
-	if isinstance(X, list):
-		# List of snapshot matrices with the same spatial dimension m
-		n_matrix = len(X)
-		m = X[0].shape[0]
-		X_pointer = <float**>malloc(n_matrix*sizeof(float*))
-		n_list = <int*>malloc(n_matrix*sizeof(int))
-		if W is not None:
-			W_sqrt = <float*>malloc(m*sizeof(float))
-			for ii in range(m):
-				W_sqrt[ii] = <float>sqrt(<double>W[ii])
-		n_total = 0
-		for ii in range(n_matrix):
-			M = X[ii]
-			n_local = M.shape[1]
-			n_total += n_local - 1
-			if W is not None:
-				# Copy the input matrix: the weighting below is done in place
-				X_pointer[ii] = <float*>malloc(m * n_local * sizeof(float))
-				memcpy(X_pointer[ii], &M[0,0], m * n_local * sizeof(float))
-				c_svecmat(W_sqrt, X_pointer[ii], m, n_local)
-			else:
-				X_pointer[ii] = &M[0,0]
-			n_list[ii] = n_local
-	else:
-		# Single snapshot matrix
-		M = X
-		m = M.shape[0]
-		n = M.shape[1]
-		n_matrix = 1
-		n_total = n - 1
-		X_pointer = <float**>malloc(n_matrix*sizeof(float*))
-		n_list = <int*>malloc(n_matrix*sizeof(int))
-		if W is not None:
-			# Copy the input matrix: the weighting below is done in place
-			W_sqrt = <float*>malloc(m*sizeof(float))
-			for ii in range(m):
-				W_sqrt[ii] = <float>sqrt(<double>W[ii])
-			X_pointer[0] = <float*>malloc(m * n * sizeof(float))
-			memcpy(X_pointer[0], &M[0,0], m * n * sizeof(float))
-			c_svecmat(W_sqrt, X_pointer[0], m, n)
-		else:
-			X_pointer[0] = &M[0,0]
-		n_list[0] = n
-
-	if m > n_total:
-		m_aux = m
-	else:
-		m_aux = n_total
-
-	cdef float *Y
-	cdef float *Z
-	Y = <float*>calloc(m_aux*n_total, sizeof(float))
-	Z = <float*>malloc(m*n_total*sizeof(float))
-
-	# Create the snapshot of matrices and separate it into Y, Z
-	c_sconcatenate(Y, Z, X_pointer, n_list, n_matrix, m, n_total, remove_mean)
-	if W is not None:
-		for ii in range(n_matrix):
-			free(X_pointer[ii])
-	free(X_pointer)
-	free(n_list)
-	
 	# Compute the linear operator in lower dimension
-	cdef int icol, irow, retval
+	cdef int icol, irow, ii, retval
 	
 	## Compute SVD
 	cdef float *U_aux
@@ -442,85 +373,107 @@ def _crun_new(object X, np.complex64_t w, float r, int remove_mean, float[:] W):
 	free(V2)
 	free(U_c)
 
+	# Undo the inner-product weighting on the modes 
 	cdef np.complex64_t *W_inv = NULL
-	if W is not None:
+	if W_sqrt != NULL:
 		W_inv = <np.complex64_t*>malloc(m*sizeof(np.complex64_t))
 		for ii in range(m):
 			W_inv[ii] = 1.0 / W_sqrt[ii]
 		c_cvecmat(W_inv, &U[0,0], m, nr)
 		c_cvecmat(W_inv, &V[0,0], m, nr)
 		free(W_inv)
-	free(W_sqrt)
 
 	return U, S, V
 
-def _zrun_new(object X, np.complex128_t w, double r, int remove_mean, double[:] W):
-	r'''
-	Resolvent Analysis of snapshot matrix X
+def _crun_new_matrix(float[:,:] X, np.complex64_t w, float r, int remove_mean, float[:] W):
 	'''
-	# Variables
-	cdef int m, n, ii, m_aux, n_total, n_matrix, n_local
-	cdef double **X_pointer
-	cdef int *n_list
-	cdef double *W_sqrt = NULL
-	cdef double[:, ::1] M
+	Resolvent analysis of a single data matrix X
+	'''
+	cdef int m, n, ii, m_aux, n_total
+	cdef float *W_sqrt = NULL
+	cdef float *X_c
+	cdef float *Y
+	cdef float *Z
+	cdef tuple out
 
-	if isinstance(X, list):
-		# List of snapshot matrices with the same spatial dimension m
-		n_matrix = len(X)
-		m = X[0].shape[0]
-		X_pointer = <double**>malloc(n_matrix*sizeof(double*))
-		n_list = <int*>malloc(n_matrix*sizeof(int))
-		if W is not None:
-			W_sqrt = <double*>malloc(m*sizeof(double))
-			for ii in range(m):
-				W_sqrt[ii] = sqrt(W[ii])
-		n_total = 0
-		for ii in range(n_matrix):
-			M = X[ii]
-			n_local = M.shape[1]
-			n_total += n_local - 1
-			if W is not None:
-				# Copy the input matrix: the weighting below is done in place
-				X_pointer[ii] = <double*>malloc(m * n_local * sizeof(double))
-				memcpy(X_pointer[ii], &M[0,0], m * n_local * sizeof(double))
-				c_dvecmat(W_sqrt, X_pointer[ii], m, n_local)
-			else:
-				X_pointer[ii] = &M[0,0]
-			n_list[ii] = n_local
-	else:
-		# Single snapshot matrix
-		M = X
-		m = M.shape[0]
-		n = M.shape[1]
-		n_matrix = 1
-		n_total = n - 1
-		X_pointer = <double**>malloc(n_matrix*sizeof(double*))
-		n_list = <int*>malloc(n_matrix*sizeof(int))
-		if W is not None:
-			# Copy the input matrix: the weighting below is done in place
-			W_sqrt = <double*>malloc(m*sizeof(double))
-			for ii in range(m):
-				W_sqrt[ii] = sqrt(W[ii])
-			X_pointer[0] = <double*>malloc(m * n * sizeof(double))
-			memcpy(X_pointer[0], &M[0,0], m * n * sizeof(double))
-			c_dvecmat(W_sqrt, X_pointer[0], m, n)
-		else:
-			X_pointer[0] = &M[0,0]
-		n_list[0] = n
+	m = X.shape[0]
+	n = X.shape[1]
+	n_total = n - 1
 
 	if m > n_total:
 		m_aux = m
 	else:
 		m_aux = n_total
 
-	cdef double *Y
-	cdef double *Z
-	Y = <double*>calloc(m_aux*n_total, sizeof(double))
-	Z = <double*>malloc(m*n_total*sizeof(double))
+	Y = <float*>calloc(m_aux*n_total, sizeof(float))
+	Z = <float*>malloc(m*n_total*sizeof(float))
 
-	# Create the snapshot of matrices and separate it into Y, Z
-	c_dconcatenate(Y, Z, X_pointer, n_list, n_matrix, m, n_total, remove_mean)
+	# Create the shifted snapshot matrices Y, Z
+	if W is not None:
+		# Copy the input matrix: the weighting below is done in place
+		W_sqrt = <float*>malloc(m*sizeof(float))
+		for ii in range(m):
+			W_sqrt[ii] = <float>sqrt(<double>W[ii])
+		X_c = <float*>malloc(m*n*sizeof(float))
+		memcpy(X_c, &X[0,0], m*n*sizeof(float))
+		c_svecmat(W_sqrt, X_c, m, n)
+	else:
+		X_c = &X[0,0]
+	c_sseparate(Y, Z, X_c, m, n, remove_mean)
+	if W is not None:
+		free(X_c)
+
+	out = _crun_new_core(Y, Z, m, n_total, m_aux, w, r, W_sqrt)
+	if W is not None:
+		free(W_sqrt)
+	return out
+
+def _crun_new_list(list X, np.complex64_t w, float r, int remove_mean, float[:] W):
+	'''
+	Resolvent analysis of a list of data matrices X
+	'''
+	cdef int m, ii, m_aux, n_total, n_matrix, n_local
+	cdef float **X_pointer
+	cdef int *n_list
+	cdef float *W_sqrt = NULL
+	cdef float[:, ::1] M
+	cdef float *Y
+	cdef float *Z
+	cdef tuple out
+
+	# List of snapshot matrices with the same spatial dimension m
+	n_matrix = len(X)
+	m = X[0].shape[0]
+	X_pointer = <float**>malloc(n_matrix*sizeof(float*))
+	n_list = <int*>malloc(n_matrix*sizeof(int))
+	if W is not None:
+		W_sqrt = <float*>malloc(m*sizeof(float))
+		for ii in range(m):
+			W_sqrt[ii] = <float>sqrt(<double>W[ii])
+	n_total = 0
+	for ii in range(n_matrix):
+		M = X[ii]
+		n_local = M.shape[1]
+		n_total += n_local - 1
+		if W is not None:
+			# Copy the input matrix: the weighting below is done in place
+			X_pointer[ii] = <float*>malloc(m * n_local * sizeof(float))
+			memcpy(X_pointer[ii], &M[0,0], m * n_local * sizeof(float))
+			c_svecmat(W_sqrt, X_pointer[ii], m, n_local)
+		else:
+			X_pointer[ii] = &M[0,0]
+		n_list[ii] = n_local
+
+	if m > n_total:
+		m_aux = m
+	else:
+		m_aux = n_total
+
+	Y = <float*>calloc(m_aux*n_total, sizeof(float))
+	Z = <float*>malloc(m*n_total*sizeof(float))
+
+	# Create the shifted snapshot matrices Y, Z
+	c_sconcatenate(Y, Z, X_pointer, n_list, n_matrix, m, n_total, remove_mean)
 	if W is not None:
 		# Free the input copies (only made when W was given)
 		for ii in range(n_matrix):
@@ -528,8 +481,17 @@ def _zrun_new(object X, np.complex128_t w, double r, int remove_mean, double[:] 
 	free(X_pointer)
 	free(n_list)
 
+	out = _crun_new_core(Y, Z, m, n_total, m_aux, w, r, W_sqrt)
+	if W is not None:
+		free(W_sqrt)
+	return out
+
+cdef tuple _zrun_new_core(double *Y, double *Z, int m, int n_total, int m_aux, np.complex128_t w, double r, double *W_sqrt):
+	r'''
+	Resolvent Analysis of the shifted snapshot matrices Y, Z
+	'''
 	# Compute the linear operator in lower dimension
-	cdef int icol, irow, retval
+	cdef int icol, irow, ii, retval
 	
 	## Compute SVD
 	cdef double *U_aux
@@ -613,17 +575,118 @@ def _zrun_new(object X, np.complex128_t w, double r, int remove_mean, double[:] 
 	free(V2)
 	free(U_c)
 
+	# Undo the inner-product weighting on the modes
 	cdef np.complex128_t *W_inv = NULL
-	if W is not None:
+	if W_sqrt != NULL:
 		W_inv = <np.complex128_t*>malloc(m*sizeof(np.complex128_t))
 		for ii in range(m):
 			W_inv[ii] = 1.0 / W_sqrt[ii]
 		c_zvecmat(W_inv, &U[0,0], m, nr)
 		c_zvecmat(W_inv, &V[0,0], m, nr)
 		free(W_inv)
-	free(W_sqrt)
 
 	return U, S, V
+
+def _zrun_new_matrix(double[:,:] X, np.complex128_t w, double r, int remove_mean, double[:] W):
+	'''
+	Resolvent analysis of a single data matrix X
+	'''
+	cdef int m, n, ii, m_aux, n_total
+	cdef double *W_sqrt = NULL
+	cdef double *X_c
+	cdef double *Y
+	cdef double *Z
+	cdef tuple out
+
+	m = X.shape[0]
+	n = X.shape[1]
+	n_total = n - 1
+
+	if m > n_total:
+		m_aux = m
+	else:
+		m_aux = n_total
+
+	Y = <double*>calloc(m_aux*n_total, sizeof(double))
+	Z = <double*>malloc(m*n_total*sizeof(double))
+
+	# Create the shifted snapshot matrices Y, Z
+	if W is not None:
+		# Copy the input matrix: the weighting below is done in place
+		W_sqrt = <double*>malloc(m*sizeof(double))
+		for ii in range(m):
+			W_sqrt[ii] = sqrt(W[ii])
+		X_c = <double*>malloc(m*n*sizeof(double))
+		memcpy(X_c, &X[0,0], m*n*sizeof(double))
+		c_dvecmat(W_sqrt, X_c, m, n)
+	else:
+		X_c = &X[0,0]
+	c_dseparate(Y, Z, X_c, m, n, remove_mean)
+	if W is not None:
+		free(X_c)
+
+	out = _zrun_new_core(Y, Z, m, n_total, m_aux, w, r, W_sqrt)
+	if W is not None:
+		free(W_sqrt)
+	return out
+
+def _zrun_new_list(list X, np.complex128_t w, double r, int remove_mean, double[:] W):
+	'''
+	Resolvent analysis of a list of data matrices X
+	'''
+	cdef int m, ii, m_aux, n_total, n_matrix, n_local
+	cdef double **X_pointer
+	cdef int *n_list
+	cdef double *W_sqrt = NULL
+	cdef double[:, ::1] M
+	cdef double *Y
+	cdef double *Z
+	cdef tuple out
+
+	# List of snapshot matrices with the same spatial dimension m
+	n_matrix = len(X)
+	m = X[0].shape[0]
+	X_pointer = <double**>malloc(n_matrix*sizeof(double*))
+	n_list = <int*>malloc(n_matrix*sizeof(int))
+	if W is not None:
+		W_sqrt = <double*>malloc(m*sizeof(double))
+		for ii in range(m):
+			W_sqrt[ii] = sqrt(W[ii])
+	n_total = 0
+	for ii in range(n_matrix):
+		M = X[ii]
+		n_local = M.shape[1]
+		n_total += n_local - 1
+		if W is not None:
+			# Copy the input matrix: the weighting below is done in place
+			X_pointer[ii] = <double*>malloc(m * n_local * sizeof(double))
+			memcpy(X_pointer[ii], &M[0,0], m * n_local * sizeof(double))
+			c_dvecmat(W_sqrt, X_pointer[ii], m, n_local)
+		else:
+			X_pointer[ii] = &M[0,0]
+		n_list[ii] = n_local
+
+	if m > n_total:
+		m_aux = m
+	else:
+		m_aux = n_total
+
+	Y = <double*>calloc(m_aux*n_total, sizeof(double))
+	Z = <double*>malloc(m*n_total*sizeof(double))
+
+	# Create the shifted snapshot matrices Y, Z
+	c_dconcatenate(Y, Z, X_pointer, n_list, n_matrix, m, n_total, remove_mean)
+	if W is not None:
+		# Free the input copies (only made when W was given)
+		for ii in range(n_matrix):
+			free(X_pointer[ii])
+	free(X_pointer)
+	free(n_list)
+
+	out = _zrun_new_core(Y, Z, m, n_total, m_aux, w, r, W_sqrt)
+	if W is not None:
+		free(W_sqrt)
+	return out
 
 @cr('RES.run_new')
 @cython.boundscheck(False) # turn off bounds-checking for entire function
@@ -656,6 +719,12 @@ def run_new(object X, object w, object r, int remove_mean=True, real[:] W=None):
 		dtype = X.dtype
 
 	if dtype == np.double:
-		return _zrun_new(X, np.complex128(w), np.double(r), remove_mean, W)
+		if isinstance(X, list):
+			return _zrun_new_list(X, np.complex128(w), np.double(r), remove_mean, W)
+		else:
+			return _zrun_new_matrix(X, np.complex128(w), np.double(r), remove_mean, W)
 	else:
-		return _crun_new(X, np.complex64(w), np.float32(r), remove_mean, W)
+		if isinstance(X, list):
+			return _crun_new_list(X, np.complex64(w), np.float32(r), remove_mean, W)
+		else:
+			return _crun_new_matrix(X, np.complex64(w), np.float32(r), remove_mean, W)
