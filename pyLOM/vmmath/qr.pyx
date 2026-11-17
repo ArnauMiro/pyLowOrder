@@ -107,6 +107,9 @@ def qr(real_full[:,:] A):
 		Q(m,n) is the Q matrix
 		R(n,n) is the R matrix
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+
 	if real_full is np.complex128_t:
 		return _zqr(A)
 	elif real_full is np.complex64_t:
@@ -208,6 +211,9 @@ def tsqr(real_full[:,:] A):
 		Q(m,n) is the Q matrix
 		R(n,n) is the R matrix
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+
 	if real_full is np.complex128_t:
 		return _ztsqr(A)
 	elif real_full is np.complex64_t:
@@ -269,6 +275,8 @@ def local_randomized_qr(real[:,:] A, const int r, const int q, const int seed=-1
 		Q(m,r)   
 		B(n,r)   
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
 	seed = <int>time(NULL) if seed < 0 else seed
 	if real is double:
 		return _dlocal_randomized_qr(A,r,q,seed)
@@ -327,6 +335,8 @@ def randomized_qr(real[:,:] A, const int r, const int q, const int seed=-1, cons
 		Q(m,r)   
 		B(n,r)   
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
 	seed = <int>time(NULL) if seed < 0 else seed
 	if real is double:
 		return _drandomized_qr(A,r,q,seed,local)
@@ -387,6 +397,8 @@ def init_qr_streaming(real[:,:] A, const int r, const int q, seed=None):
 		Q(m,r)   
 		B(n,r)   
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
 	cdef unsigned int seed2 = <int>time(NULL) if seed == None else int(seed)
 	if real is double:
 		return _dinit_qr_streaming(A,r,q,seed2)
@@ -449,6 +461,11 @@ def update_qr_streaming(real[:,:] A, real [:,:] Q1, real[:,:] B1, real[:,:] Yo, 
 		Q(m,r)   
 		B(n,r)   
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+	Q1 = np.ascontiguousarray(Q1)
+	B1 = np.ascontiguousarray(B1)
+	Yo = np.ascontiguousarray(Yo)
 	cdef unsigned int seed = <int>time(NULL)
 	if real is double:
 		return _dupdate_qr_streaming(Q1,B1,Yo,A,r,q,seed)

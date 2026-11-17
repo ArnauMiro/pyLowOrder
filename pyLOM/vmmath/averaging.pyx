@@ -67,6 +67,9 @@ def temporal_mean(real[:,:] X):
 	Returns:
 		numpy.ndarray: Averaged snapshot matrix (m,).
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	X = np.ascontiguousarray(X)
+
 	if real is double:
 		return _dtemporal_mean(X)
 	else:
@@ -123,6 +126,10 @@ def temporal_variance(real[:,:] X, real[:] X_mean):
 	Returns:
 		numpy.ndarray: Averaged snapshot matrix (m,).
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	X = np.ascontiguousarray(X)
+	X_mean = np.ascontiguousarray(X_mean)
+
 	if real is double:
 		return _dtemporal_variance(X, X_mean)
 	else:
@@ -180,6 +187,10 @@ def subtract_mean(real[:,:] X, real[:] X_mean):
 	Returns:
 		numpy.ndarray: Snapshot matrix without the average(m,n).
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	X = np.ascontiguousarray(X)
+	X_mean = np.ascontiguousarray(X_mean)
+
 	if real is double:
 		return _dsubtract_mean(X,X_mean)
 	else:
@@ -261,6 +272,11 @@ def norm_variance(real[:,:] X, real[:] X_mean, real[:] X_var):
 	Returns:
 		numpy.ndarray: Snapshot matrix without the average(m,n).
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	X = np.ascontiguousarray(X)
+	X_mean = np.ascontiguousarray(X_mean)
+	X_var = np.ascontiguousarray(X_var)
+
 	if real is double:
 		return _dnorm_variance(X,X_mean,X_var)
 	else:

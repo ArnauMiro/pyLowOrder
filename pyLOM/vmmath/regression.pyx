@@ -57,6 +57,10 @@ def least_squares(real[:,:] A, real[:] b):
 	Least squares regression
 	(A^T * A)^-1 * A^T * b
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+	b = np.ascontiguousarray(b)
+
 	if real is double:
 		return _dleast_squares(A,b)
 	else:
@@ -102,6 +106,10 @@ def ridge_regresion(real[:,:] A, real[:] b, real lam):
 	'''
 	Ridge regression
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+	b = np.ascontiguousarray(b)
+
 	if real is double:
 		return _dridge_regression(A,b,lam)
 	else:

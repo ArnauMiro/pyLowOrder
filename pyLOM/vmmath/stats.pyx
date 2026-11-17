@@ -44,6 +44,10 @@ def RMSE(realM A, realM B, int relative=True):
 	Returns:
 		(float): Root mean square error.
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+	B = np.ascontiguousarray(B)
+
 	cdef int m = A.shape[0], n = A.shape[1] if A.ndim > 1 else 1
 	if realM is double[:]:
 		return c_dRMSE_relative(&A[0],&B[0],m,n) if relative else c_dRMSE(&A[0],&B[0],m,n)
@@ -71,6 +75,10 @@ def MAE(realM A, realM B):
 	Returns:
 		(float): Mean absolute error.
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+	B = np.ascontiguousarray(B)
+
 	cdef int m = A.shape[0], n = A.shape[1] if A.ndim > 1 else 1
 	if realM is double[:]:
 		return c_dMAE(&A[0],&B[0],m,n)
@@ -98,6 +106,10 @@ def r2(realM A, realM B):
 	Returns:
 		(float): r2 score .
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+	B = np.ascontiguousarray(B)
+
 	cdef int m = A.shape[0], n = A.shape[1] if A.ndim > 1 else 1
 	if realM is double[:]:
 		return c_dr2(&A[0],&B[0],m,n)
@@ -154,6 +166,10 @@ def MRE_array(real[:,:] A, real[:,:] B, int axis=1):
 	Returns:
 		(np.ndarray): Mean relative error.
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	A = np.ascontiguousarray(A)
+	B = np.ascontiguousarray(B)
+
 	if real is double:
 		return _dMRE_array(A,B,axis)
 	else:

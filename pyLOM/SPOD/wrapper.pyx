@@ -443,6 +443,10 @@ def run(real[:,:] X, real[:] t, int nDFT=0, int nolap=0, int remove_mean=True):
 	Returns:
 		[(np.ndarray), (np.ndarray), (np.ndarray)]: where the first array is L, the modal energy spectra, the second array is  P, SPOD modes, whose spatial dimensions are identical to those of X and finally f is the frequency vectors
 	''' 
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	X = np.ascontiguousarray(X)
+	t = np.ascontiguousarray(t)
+
 	if real is double:
 		return _drun(X,t,nDFT,nolap,remove_mean)
 	else:

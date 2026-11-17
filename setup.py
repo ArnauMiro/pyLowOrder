@@ -4,7 +4,7 @@
 #
 # Setup and cythonize code.
 #
-# Last rev: 28/10/2021
+# Last rev: 13/11/2026
 from __future__ import print_function, division
 
 import os, sys, numpy as np, mpi4py
@@ -269,6 +269,20 @@ Module_regression = Extension('pyLOM.vmmath.regression',
 						extra_objects = extra_objects,
 						libraries     = libraries,
 					   )
+Module_linear = Extension('pyLOM.vmmath.linear',
+						sources       = ['pyLOM/vmmath/linear.pyx',
+										 'pyLOM/vmmath/src/vector_matrix.c',
+										 'pyLOM/vmmath/src/qr.c',
+										 'pyLOM/vmmath/src/svd.c',
+										 'pyLOM/vmmath/src/truncation.c',
+										 'pyLOM/vmmath/src/averaging.c',
+										 'pyLOM/vmmath/src/linear.c',
+									    ],
+						language      = 'c',
+						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
+						extra_objects = extra_objects,
+						libraries     = libraries,
+					   )
 # low-order modules
 Module_POD = Extension('pyLOM.POD.wrapper',
 						sources       = ['pyLOM/POD/wrapper.pyx',
@@ -290,6 +304,7 @@ Module_DMD = Extension('pyLOM.DMD.wrapper',
 										 'pyLOM/vmmath/src/qr.c',
 										 'pyLOM/vmmath/src/svd.c',
 										 'pyLOM/vmmath/src/truncation.c',
+										 'pyLOM/vmmath/src/linear.c',
 									    ],
 						language      = 'c',
 						include_dirs  = include_dirs + ['pyLOM/vmmath/src',np.get_include(),mpi4py.get_include()],
@@ -323,6 +338,8 @@ Module_Math += [Module_geometric]  if 'math.geometric'  in options['MODULES_COMP
 Module_Math += [Module_truncation] if 'math.truncation' in options['MODULES_COMPILED'] else []
 Module_Math += [Module_stats]      if 'math.stats'      in options['MODULES_COMPILED'] else []
 Module_Math += [Module_regression] if 'math.regression' in options['MODULES_COMPILED'] else []
+Module_Math += [Module_linear]         if 'math.linear'             in options['MODULES_COMPILED'] else []
+
 # ROM module
 Module_ROM   = [Module_POD]  if 'rom.pod'  in options['MODULES_COMPILED'] else []
 Module_ROM  += [Module_DMD]  if 'rom.dmd'  in options['MODULES_COMPILED'] else []

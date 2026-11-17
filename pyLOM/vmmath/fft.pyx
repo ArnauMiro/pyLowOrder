@@ -121,6 +121,10 @@ def fft(real[:] t, real[:] y, int equispaced=True):
 		numpy.ndarray: frequency.
 		numpy.ndarray: power density spectra.
 	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	t = np.ascontiguousarray(t)
+	y = np.ascontiguousarray(y)
+
 	if real is double:
 		return _dfft(t,y,equispaced)
 	else:
