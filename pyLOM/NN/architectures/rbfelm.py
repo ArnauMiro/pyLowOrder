@@ -17,7 +17,6 @@ from ..                     import DEVICE, PIN_MEMORY, set_seed
 from ..                     import Dataset as NNDataset, RobustScaler
 from ..optimizer            import OptunaOptimizer
 from ...utils.errors        import raiseError
-from ...utils.cr            import CHANNEL_DICT
 from ...                    import pprint, cr
 
 try:
@@ -692,9 +691,6 @@ class RBFELM(nn.Module):
                     pprint(0, f"Trial {trial.number} failed due to a singular matrix (ill-conditioned HtH). Pruning the trial.")
                     if torch.cuda.is_available():
                         torch.cuda.empty_cache()
-                    for ch in CHANNEL_DICT.values():
-                        if ch.is_running():
-                            ch.restart()
                     raise TrialPruned()
                 raise
 
@@ -1291,9 +1287,6 @@ class MultiRBFELM:
                     pprint(0, f"Trial {trial.number} failed due to a singular matrix (ill-conditioned HtH). Pruning the trial.")
                     if torch.cuda.is_available():
                         torch.cuda.empty_cache()
-                    for ch in CHANNEL_DICT.values():
-                        if ch.is_running():
-                            ch.restart()
                     raise TrialPruned()
                 raise
 
