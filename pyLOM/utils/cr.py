@@ -239,9 +239,10 @@ def cr(ch_name,suff=0):
 		@functools.wraps(func)
 		def wrapper(*args,**kwargs):
 			cr_start(ch_name,suff)
-			out = func(*args,**kwargs)
-			cr_stop(ch_name,suff)
-			return out
+			try:
+				return func(*args,**kwargs)
+			finally:
+				cr_stop(ch_name,suff)
 		return wrapper
 	return decorator
 
@@ -256,10 +257,11 @@ try:
 			@functools.wraps(func)
 			def wrapper(*args,**kwargs):
 				cr_start(ch_name,suff)
-				with nvtx.annotate(message=ch_name,color=color):
-					out = func(*args,**kwargs)
-				cr_stop(ch_name,suff)
-				return out
+				try:
+					with nvtx.annotate(message=ch_name,color=color):
+						return func(*args,**kwargs)
+				finally:
+					cr_stop(ch_name,suff)
 			return wrapper
 		return decorator
 
@@ -274,8 +276,9 @@ except:
 			@functools.wraps(func)
 			def wrapper(*args,**kwargs):
 				cr_start(ch_name,suff)
-				out = func(*args,**kwargs)
-				cr_stop(ch_name,suff)
-				return out
+				try:
+					return func(*args,**kwargs)
+				finally:
+					cr_stop(ch_name,suff)
 			return wrapper
 		return decorator
