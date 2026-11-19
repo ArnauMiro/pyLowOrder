@@ -70,9 +70,13 @@ P2_ = pyLOM.SPOD.extract_modes(L2, P2, 1, len(d), iblock=1, modes=modes2, reshap
 ## Plot the convergence of the modes
 #The modes are stored as real arrays, so the convergence is measured with the
 #absolute value of the cosine of the angle between the reference and the
-#reduced modes. Note that the windows of the last reduced run are shifted in
-#time by tau, so its curve is expected to show mu ~ |cos(2*pi*f*tau)| at each
-#frequency f.
+#reduced modes. With FRAC = 0.75 and this windowing recipe the windows of
+#the reduced runs coincide with two of the three windows of the reference
+#run (there is no time shift of the window grid), so for a perfectly
+#periodic flow the expected value is mu = 1 at every frequency, up to the
+#per-run SVD gauge. A drop below 1 at a frequency is therefore a property
+#of the flow itself (shedding-frequency wander, envelope change) and/or of
+#the gauge, not a bookkeeping artifact of the windowing.
 if pyLOM.utils.is_rank_or_serial(root=0):
 	pyLOM.SPOD.plotConvergence(Pr_, P1_, P2_, f=fr)
 

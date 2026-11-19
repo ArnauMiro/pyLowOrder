@@ -79,7 +79,8 @@ def plotConvergence(PRef, PRed1, PRed2, W=None, f=None, fig:plt.figure=None, ax:
 	r'''
 	Plot the convergence of the SPOD modes of a block with respect to the reference ones.
 	The modes of the same block must have been extracted with extract_modes from runs using
-	the same nDFT, nolap and dt so that the frequencies match. 
+	the same nDFT, nolap and dt so that the frequencies match. The y axis is fixed to [0, 1]
+	and a dashed reference line is drawn at mu = 0.95.
 
 	Args:
 		PRef (np.ndarray): reference modes, (npoints, nmodes) array as returned by extract_modes with reshape=False
