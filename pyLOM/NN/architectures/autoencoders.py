@@ -685,10 +685,10 @@ class VariationalAutoencoder(Autoencoder):
 
         Args:
             dataset (torch.utils.data.Dataset): Dataset to compute the latent space.
-            sample (bool, optional): if ``True`` return a reparameterised draw
-                ``mu + sigma*eps``; if ``False`` (default) return the posterior
-                mean ``mu``, which is deterministic and is what downstream
-                surrogates should be trained against.
+            sample (bool, optional): if ``True`` (default) return a reparameterised
+                draw ``mu + sigma*eps``; if ``False`` return the posterior mean ``mu``,
+                which is deterministic and is what downstream surrogates should be
+                trained against.
 
         Returns:
             torch.Tensor: Latent coordinates, shape (num_samples, latent_dim).
@@ -975,10 +975,10 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
 
         Args:
             dataset (torch.utils.data.Dataset): Dataset to compute the latent space.
-            sample (bool, optional): if ``True`` return a reparameterised draw
-                ``mu + sigma*eps``; if ``False`` (default) return the posterior
-                mean ``mu``, which is deterministic and is what downstream
-                surrogates should be trained against.
+            sample (bool, optional): if ``True`` (default) return a reparameterised
+                draw ``mu + sigma*eps``; if ``False`` return the posterior mean ``mu``,
+                which is deterministic and is what downstream surrogates should be
+                trained against.
 
         Returns:
             torch.Tensor: Latent coordinates, shape (num_samples, latent_dim).
