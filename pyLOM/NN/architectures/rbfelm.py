@@ -196,7 +196,7 @@ class RBFELM(nn.Module):
         all_x: torch.Tensor,
         n_centers: int,
         method: str,
-        gen: torch.Generator,
+        gen: Optional[torch.Generator],
     ) -> torch.Tensor:
         """
         Select ``n_centers`` rows from ``all_x`` as RBF centers.
@@ -205,7 +205,7 @@ class RBFELM(nn.Module):
             all_x (torch.Tensor): All training inputs, shape ``(N, D)``.
             n_centers (int): Number of centers to select.
             method (str): Sampling method, either ``"random"`` or ``"uniform"``.
-            gen (torch.Generator): RNG state (for reproducibility).
+            gen (torch.Generator, optional): RNG state (for reproducibility). ``None`` uses the global torch RNG.
 
         Returns:
             torch.Tensor: Selected center rows, shape ``(n_centers, D)``.
@@ -330,9 +330,7 @@ class RBFELM(nn.Module):
         N = all_x.shape[0]
         L = self.n_centers
         
-        gen = torch.Generator(device="cpu")
-        if self.seed is not None:
-            gen.manual_seed(self.seed)
+        gen = torch.Generator(device="cpu").manual_seed(self.seed) if self.seed is not None else None
 
         selected_centers = self._sample_centers(
             all_x = all_x, 

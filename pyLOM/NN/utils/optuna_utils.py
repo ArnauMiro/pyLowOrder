@@ -8,7 +8,7 @@ from torch import Tensor
 
 from .. import DEVICE
 
-def set_seed(seed: Optional[int] = None) -> None:
+def set_seed(seed: int = -1) -> None:
     """
     Set the random seed for full reproducibility across Python, NumPy, and PyTorch.
     
@@ -32,12 +32,12 @@ def set_seed(seed: Optional[int] = None) -> None:
     Args
     ----
     seed : int, optional
-        The seed value to use for all RNGs. If ``None``, uses current UNIX time.
+        The seed value to use for all RNGs. If ``-1`` (default), uses current UNIX time.
     """
     # -------------------------------
     # Python & NumPy RNGs
     # -------------------------------
-    if seed is None:
+    if seed == -1:
         seed = int(time.time())
 
     os.environ["PYTHONHASHSEED"] = str(seed)  # enforce deterministic hashing in Python

@@ -70,9 +70,9 @@ class BinaryClassifier:
         self.mname = f"{self._model_name}_{self.n_estimators:05d}"
         self.device = device
 
+        self.random_state = seed
         if seed is not None:
             set_seed(seed)
-            self.random_state = seed
 
         self.model = None
         self.checkpoint = None
