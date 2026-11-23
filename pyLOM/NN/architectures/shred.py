@@ -189,11 +189,12 @@ class SHRED(nn.Module):
 			raiseError('SHRED.fit: training and validation datasets disagree on the number of outputs (%d against %d)' % 
 			  (train_dataset.variables_out.shape[1],valid_dataset.variables_out.shape[1]))
 
-		# Local tensors in (nsnapshots, ndelays, nsensors) layout, the datasets passed in are left unchanged
-		train_in     = train_dataset.variables_in.permute(1,2,0).to(self.device)
-		valid_in     = valid_dataset.variables_in.permute(1,2,0).to(self.device)
-		train_out    = train_dataset.variables_out.to(self.device)
-		valid_out    = valid_dataset.variables_out.to(self.device)
+		# Local tensors in (nsnapshots, ndelays, nsensors) layout and in the model's own dtype, the datasets passed in are left unchanged
+		dtype        = next(self.parameters()).dtype
+		train_in     = train_dataset.variables_in.permute(1,2,0).to(self.device, dtype=dtype)
+		valid_in     = valid_dataset.variables_in.permute(1,2,0).to(self.device, dtype=dtype)
+		train_out    = train_dataset.variables_out.to(self.device, dtype=dtype)
+		valid_out    = valid_dataset.variables_out.to(self.device, dtype=dtype)
 		train_loader = DataLoader(TensorDataset(train_in, train_out), shuffle=True, batch_size=batch_size)
 		optimizer    = optim(self.parameters(), lr = lr)
 		scheduler    = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, epochs, eta_min=lr*1e-4)

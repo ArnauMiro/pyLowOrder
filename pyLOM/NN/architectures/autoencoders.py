@@ -71,6 +71,13 @@ class Autoencoder(nn.Module):
         recon = self.decoder(z)
         return recon, z
 
+    @property
+    def _dtype(self):
+        r'''
+        Dtype of the model's parameters; data is converted to it when it enters the model.
+        '''
+        return next(self.parameters()).dtype
+
     @cr('AE.fit')
     def fit(
         self,
@@ -125,7 +132,7 @@ class Autoencoder(nn.Module):
             num_batches = 0
             tr_loss = 0
             for batch0 in train_data:
-                batch = batch0.to(self._device)
+                batch = batch0.to(self._device, dtype=self._dtype)
                 recon, _ = self(batch)
                 loss = self._lossfunc(batch, recon, reduction)
                 optimizer.zero_grad()
@@ -142,7 +149,7 @@ class Autoencoder(nn.Module):
                 with torch.no_grad():
                     val_batches = 0
                     for val_batch0 in eval_data:
-                        val_batch = val_batch0.to(self._device)
+                        val_batch = val_batch0.to(self._device, dtype=self._dtype)
                         val_recon, _ = self(val_batch)
                         vali_loss = self._lossfunc(val_batch, val_recon, reduction)
                         va_loss += vali_loss.item()
@@ -191,7 +198,7 @@ class Autoencoder(nn.Module):
         with torch.no_grad():
             ## Energy recovered in reconstruction
             for energy_batch in loader:
-                energy_batch = energy_batch.to(self._device)
+                energy_batch = energy_batch.to(self._device, dtype=self._dtype)
                 x_recon,_ = self(energy_batch)
 
                 for i in range(num_samples):
@@ -227,7 +234,7 @@ class Autoencoder(nn.Module):
         with torch.no_grad():
             instant  = iter(loader)
             batch    = next(instant)
-            batch    = batch.to(self._device)
+            batch    = batch.to(self._device, dtype=self._dtype)
             _,z = self(batch)
         return z
 
@@ -292,6 +299,13 @@ class FullyConnectedAutoencoder(nn.Module):
         recon = self.decoder(z)
         return recon, z
 
+    @property
+    def _dtype(self):
+        r'''
+        Dtype of the model's parameters; data is converted to it when it enters the model.
+        '''
+        return next(self.parameters()).dtype
+
     def fit(
         self,
         train_dataset: torch.utils.data.Dataset,
@@ -343,7 +357,7 @@ class FullyConnectedAutoencoder(nn.Module):
             num_batches = 0
             tr_loss = 0
             for batch0 in train_data:
-                batch = batch0.to(self._device)
+                batch = batch0.to(self._device, dtype=self._dtype)
                 recon, _ = self(batch)
                 loss = self._lossfunc(batch, recon, reduction)
                 optimizer.zero_grad()
@@ -358,7 +372,7 @@ class FullyConnectedAutoencoder(nn.Module):
                 with torch.no_grad():
                     val_batches = 0
                     for val_batch0 in eval_data:
-                        val_batch = val_batch0.to(self._device)
+                        val_batch = val_batch0.to(self._device, dtype=self._dtype)
                         val_recon, _ = self(val_batch)
                         vali_loss = self._lossfunc(val_batch, val_recon, reduction)
                         va_loss += vali_loss.item()
@@ -403,7 +417,7 @@ class FullyConnectedAutoencoder(nn.Module):
         with torch.no_grad():
             ## Energy recovered in reconstruction
             for energy_batch in loader:
-                energy_batch = energy_batch.to(self._device)
+                energy_batch = energy_batch.to(self._device, dtype=self._dtype)
                 x_recon,_ = self(energy_batch)
 
                 for i in range(num_samples):
@@ -440,7 +454,7 @@ class FullyConnectedAutoencoder(nn.Module):
         with torch.no_grad():
             instant  = iter(loader)
             batch    = next(instant)
-            batch    = batch.to(self._device)
+            batch    = batch.to(self._device, dtype=self._dtype)
             _,z = self(batch)
         return z
 
@@ -554,7 +568,7 @@ class VariationalAutoencoder(Autoencoder):
             kld     = 0
             beta    = betasch.getBeta(epoch) if betasch is not None else 1
             for batch0 in train_data:
-                batch = batch0.to(self._device)
+                batch = batch0.to(self._device, dtype=self._dtype)
                 optimizer.zero_grad()
                 with autocast(device_type=self._device):
                     recon, mu, logvar, _ = self(batch)
@@ -578,7 +592,7 @@ class VariationalAutoencoder(Autoencoder):
             if eval_dataset is not None:
                 with torch.no_grad():
                     for val_batch0 in eval_data:
-                        val_batch = val_batch0.to(self._device)
+                        val_batch = val_batch0.to(self._device, dtype=self._dtype)
                         with autocast(device_type=self._device):
                             val_recon, val_mu, val_logvar, _ = self(val_batch)
                             mse_i     = self._lossfunc(val_batch, val_recon, reduction='sum')
@@ -629,7 +643,7 @@ class VariationalAutoencoder(Autoencoder):
         with torch.no_grad():
             ## Energy recovered in reconstruction
             for energy_batch in loader:
-                energy_batch = energy_batch.to(self._device)
+                energy_batch = energy_batch.to(self._device, dtype=self._dtype)
                 x_recon,_,_,_ = self(energy_batch)
 
                 for i in range(num_samples):
@@ -706,7 +720,7 @@ class VariationalAutoencoder(Autoencoder):
         was_training = self.training
         self.eval()
         with torch.no_grad():
-            batch      = next(iter(loader)).to(self._device)
+            batch      = next(iter(loader)).to(self._device, dtype=self._dtype)
             mu, logvar = self.encoder(batch)
             z          = self._reparamatrizate(mu, logvar) if sample else mu
         if was_training:
@@ -888,7 +902,7 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
             kld     = 0
             beta    = betasch.getBeta(epoch) if betasch is not None else 0
             for batch0 in train_data:
-                batch = batch0.to(self._device)
+                batch = batch0.to(self._device, dtype=self._dtype)
                 optimizer.zero_grad()
                 with autocast(device_type=self._device):
                     recon, mu, logvar, _ = self(batch)
@@ -912,7 +926,7 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
             if eval_dataset is not None:
                 with torch.no_grad():
                     for val_batch0 in eval_data:
-                        val_batch = val_batch0.to(self._device)
+                        val_batch = val_batch0.to(self._device, dtype=self._dtype)
                         with autocast(device_type=self._device):
                             val_recon, val_mu, val_logvar, _ = self(val_batch)
                             mse_i     = self._lossfunc(val_batch, val_recon, reduction='sum')
@@ -960,7 +974,7 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
         with torch.no_grad():
             ## Energy recovered in reconstruction
             for energy_batch in loader:
-                energy_batch = energy_batch.to(self._device)
+                energy_batch = energy_batch.to(self._device, dtype=self._dtype)
                 x_recon,_,_,_ = self(energy_batch)
 
                 for i in range(num_samples):
@@ -1000,7 +1014,7 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
         was_training = self.training
         self.eval()
         with torch.no_grad():
-            batch      = next(iter(loader)).to(self._device)
+            batch      = next(iter(loader)).to(self._device, dtype=self._dtype)
             mu, logvar = self.encoder(batch)
             z          = self._reparamatrizate(mu, logvar) if sample else mu
         if was_training:

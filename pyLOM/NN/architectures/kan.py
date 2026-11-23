@@ -234,6 +234,8 @@ class KAN(nn.Module):
             self.scheduler.load_state_dict(self.scheduler_state_dict)
             del self.scheduler_state_dict
 
+        # Batches keep the dataset precision, the model works in its own dtype
+        dtype = next(self.parameters()).dtype
         for epoch in range(epochs):
             self.train()
             train_loss = 0.0
@@ -251,8 +253,8 @@ class KAN(nn.Module):
 
             for inputs, targets in self.train_loader:
                 inputs, targets = (
-                    inputs.float().to(self.device),
-                    targets.float().to(self.device),
+                    inputs.to(self.device, dtype=dtype),
+                    targets.to(self.device, dtype=dtype),
                 )
                 train_loss += self.optimizer.step(closure).item()
                 total_norm = torch.norm(
@@ -279,8 +281,8 @@ class KAN(nn.Module):
                     with torch.no_grad():
                         for inputs, targets in self.test_loader:
                             inputs, targets = (
-                                inputs.float().to(self.device),
-                                targets.float().to(self.device),
+                                inputs.to(self.device, dtype=dtype),
+                                targets.to(self.device, dtype=dtype),
                             )
                             outputs = self(inputs)
                             loss = loss_fn(outputs, targets)
@@ -385,7 +387,7 @@ class KAN(nn.Module):
         start_idx = 0
         with torch.no_grad():
             for x, y in predict_dataloader:
-                output = self(x.to(self.device))
+                output = self(x.to(self.device, dtype=next(self.parameters()).dtype))
                 batch_size = x.size(0)
                 end_idx = start_idx + batch_size
                 all_predictions[start_idx:end_idx, :] = output.cpu().numpy()

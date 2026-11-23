@@ -270,6 +270,8 @@ class MLP(nn.Module):
             else:
                 raiseError(f"Unknown mode: {mode}")
 
+        # Batches keep the dataset precision, the model works in its own dtype
+        dtype = next(self.parameters()).dtype
         for epoch in range(1+len(train_losses), 1+total_epochs):
             train_loss = 0.0
             self.train()
@@ -284,7 +286,7 @@ class MLP(nn.Module):
                 return loss_val
 
             for b_idx, batch in enumerate(self.train_dataloader):
-                batch = tuple(b.to(self.device) for b in batch)
+                batch = tuple(b.to(self.device, dtype=dtype) for b in batch)
                 batch_loss = self.optimizer.step(closure).item()
                 train_loss += batch_loss
                 total_norm = torch.norm(torch.stack([p.grad.norm() for p in self.parameters() if p.grad is not None]))
@@ -310,7 +312,7 @@ class MLP(nn.Module):
                     self.eval_dataloader.dataset.eval()
                 with torch.no_grad():
                     for n_idx, sample in enumerate(self.eval_dataloader):
-                        sample = tuple(s.to(self.device) for s in sample)
+                        sample = tuple(s.to(self.device, dtype=dtype) for s in sample)
                         loss_val = compute_loss(sample, mode="eval")
                         loss_iterations_test.append(loss_val.item())
                         test_loss += loss_val.item()
@@ -408,7 +410,7 @@ class MLP(nn.Module):
         start_idx = 0
         with torch.no_grad():
             for x, y in predict_dataloader:
-                output = self(x.to(self.device))
+                output = self(x.to(self.device, dtype=next(self.parameters()).dtype))
                 batch_size = x.size(0)
                 end_idx = start_idx + batch_size
                 all_predictions[start_idx:end_idx, :] = output.cpu().numpy()

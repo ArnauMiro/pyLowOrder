@@ -106,7 +106,7 @@ class Dataset(torch.utils.data.Dataset):
         # --- inputs / parameters ---
         if variables_in is not None:
             self.parameters = self._process_parameters(parameters, combine_parameters_with_cartesian_prod)
-            self.variables_in = torch.tensor(variables_in, dtype=torch.float32) if type(variables_in) != torch.Tensor else variables_in.clone().detach()
+            self.variables_in = torch.tensor(variables_in) if type(variables_in) != torch.Tensor else variables_in.clone().detach()
 
             if self.inputs_scaler is not None:
                 # Build column-wise list: [variables_in columns] + [parameters columns]
@@ -135,9 +135,9 @@ class Dataset(torch.utils.data.Dataset):
                     transformed_tensors.append(tb)
 
                 n_in_cols = self.variables_in.shape[1]
-                self.variables_in = torch.cat(transformed_tensors[:n_in_cols], dim=1).float()
+                self.variables_in = torch.cat(transformed_tensors[:n_in_cols], dim=1)
                 if self.parameters is not None:
-                    self.parameters = torch.cat(transformed_tensors[n_in_cols:], dim=1).float()
+                    self.parameters = torch.cat(transformed_tensors[n_in_cols:], dim=1)
         else:
             self.variables_in = None
             if parameters is not None:
@@ -200,7 +200,7 @@ class Dataset(torch.utils.data.Dataset):
                     out = out.squeeze(-1)
                 if out.ndim > 2 and out.shape[1] == 1:    # singleton channel -> (N, *mesh)
                     out = out.squeeze(1)
-        return out.float()
+        return out
 
 
     def _process_parameters(self, parameters, combine_parameters_with_cartesian_prod):
@@ -217,7 +217,7 @@ class Dataset(torch.utils.data.Dataset):
                 parameters = torch.tensor(parameters[0])
             else:
                 parameters = torch.tensor(list(product(*parameters)))
-        return parameters.float()
+        return parameters
 
     @property
     def shape(self):

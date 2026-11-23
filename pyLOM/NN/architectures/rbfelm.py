@@ -498,7 +498,7 @@ class RBFELM(nn.Module):
         start_idx = 0
         with torch.no_grad():
             for x, y in predict_dataloader:
-                output = self(x.to(self.device))
+                output = self(x.to(self.device, dtype=self.hidden.centers.dtype))
                 batch_size = x.size(0)
                 end_idx = start_idx + batch_size
                 all_predictions[start_idx:end_idx, :] = output.cpu().numpy()
