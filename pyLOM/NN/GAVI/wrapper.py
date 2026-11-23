@@ -122,7 +122,7 @@ def vae_Q(fname:str,Q:tuple,mesh:Mesh,porder:int,r:int,nlayers:int=1,conv_chan:i
 	activ   = [func for _ in range(nlayers)]
 	encoder = Encoder1DNoLatent(nlayers, nmod, nvars, conv_chan, kernel, padding, activ)
 	decoder = Decoder1DNoLatent(nlayers, nmod, nvars, conv_chan, kernel, padding, activ)
-	vae     = Autoencoder((nmod,), nvars, encoder, decoder, verbose=False)
+	vae     = Autoencoder((nmod,), nvars, encoder, decoder, verbose=False, save=False)
 	## Create the file where the AEs parameters and latents will be saved
 	h5_create_compressed(fname, basedir, r, nmod, nvars, nlayers, conv_chan, kernel, nAEsG, nptxAE, dtype)
 	means   = np.zeros((nAEs,nvars), dtype=dtype)
@@ -151,7 +151,7 @@ def vae_Q(fname:str,Q:tuple,mesh:Mesh,porder:int,r:int,nlayers:int=1,conv_chan:i
 		for ivar in range(nvars):
 			ener[ivar] += local_energy(rectrL[:,ivar,:].T.cpu().detach().numpy()*scaler[ivar,1]+scaler[ivar,0], Qtrain[:,ivar,:])
 		if np.mod(iAE,1000)==0:
-			pprint(0, iAE, ener/iAE, flush=True)
+			pprint(0, iAE, ener/(iAE+1), flush=True)
 		means[iAE] = scaler[:,0]
 		stds[iAE]  = scaler[:,1]
 		weights[iAE,:,:,:] = vae.state_dict()['decoder.deconv_layers.0.weight'].detach().clone()
