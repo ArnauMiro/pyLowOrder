@@ -24,9 +24,6 @@ ALLOW_TF32 = True
 PIN_MEMORY = True if torch.cuda.is_available() else False
 
 
-from fluidFlow.dit import DiT
-from fluidFlow.unet import Unet1D
-
 from .                                import GAVI
 
 from .pipeline                        import Pipeline, ClusteredPipeline
@@ -52,7 +49,7 @@ from .architectures.encoders_decoders import Encoder1D, Decoder1D, Encoder2D, Fu
 from .architectures.pinn              import PINN, BurgersPINN, Euler2DPINN, NavierStokesIncompressible2DPINN, BoundaryCondition
 from .architectures.shred             import SHRED
 from .architectures.binary_classifier import BinaryClassifier
-from .architectures.diffusion         import Diffusion
+from .architectures.diffusion         import Diffusion, DiT, Unet1D
 from .architectures.rbfelm            import RBFELM, MultiRBFELM
 
 from .utils                           import plot_train_test_loss, plot_true_vs_pred, save_experiment_artifacts

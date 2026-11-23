@@ -153,13 +153,13 @@ rocm-4-0 = [
 # Dependencies to work with the NN module
 NN = [
   "torch>=2.3.0,<=2.11.0",
+  "torch-geometric",
   "torchvision",
   "torchsummary",
   "tensorflow",
   "tensorboard",
   "xgboost",
   "scikit-learn",
-  "fluidflow",
 ]
 # Dependencies to work with the GPR module
 GPR = [
@@ -173,6 +173,7 @@ optionals = [
   "optuna",
   "nvtx",
   "scikit-sparse>=0.4.16,<0.5.0",
+  "fluidflow",
 ]
 # Dependencies for the RL module
 rl = [

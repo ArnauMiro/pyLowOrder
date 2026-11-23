@@ -1,15 +1,56 @@
-
-from .. import DiT, Unet1D
-from fluidFlow.flow_matching import create_flow_matching
-from fluidFlow.trainer import Trainer
+git di#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# Diffusion architecture for NN Module, based on fluidFlow (optional dependency).
+#
+# Last rev: 23/11/2026
 
 import shutil
-from typing import Union, Optional
+from typing  import Union, Optional
 from pathlib import Path
 
-from torch.utils.data import Dataset
-import torch
 import numpy as np
+import torch
+from torch.utils.data import Dataset
+
+from ...utils.errors import raiseError
+
+
+# fluidFlow is optional: without it (or if its import fails) the classes below raise an error when used
+try:
+    from fluidFlow.dit           import DiT
+    from fluidFlow.unet          import Unet1D
+    from fluidFlow.flow_matching import create_flow_matching
+    from fluidFlow.trainer       import Trainer
+
+except Exception:
+    class DiT():
+        r'''
+        Placeholder for fluidFlow's DiT, raises an error when created because fluidFlow is not available.
+        '''
+        def __init__(self,*args,**kwargs):
+            raiseError('Package <fluidFlow> should be installed or fixed to use <DiT>')
+
+    class Unet1D():
+        r'''
+        Placeholder for fluidFlow's Unet1D, raises an error when created because fluidFlow is not available.
+        '''
+        def __init__(self,*args,**kwargs):
+            raiseError('Package <fluidFlow> should be installed or fixed to use <Unet1D>')
+
+    class Trainer():
+        r'''
+        Placeholder for fluidFlow's Trainer, raises an error when created because fluidFlow is not available.
+        '''
+        def __init__(self,*args,**kwargs):
+            raiseError('Package <fluidFlow> should be installed or fixed to use <Trainer>')
+
+    def create_flow_matching(*args,**kwargs):
+        r'''
+        Placeholder for fluidFlow's create_flow_matching, raises an error when created because fluidFlow is not available.
+        '''
+        raiseError('Package <fluidFlow> should be installed or fixed to use <create_flow_matching>')        
 
 
 class Diffusion:
@@ -44,7 +85,7 @@ class Diffusion:
         use_cpu=False,
         **transport_kwargs,
     ):
-        
+    
         self.flow_matching = create_flow_matching(
             model,
             input_size=input_size,
@@ -87,7 +128,7 @@ class Diffusion:
     ):
         """
         Train the flow matching model on the provided dataset.
-        
+    
         Args:
             dataset (Dataset): The training dataset.
             train_batch_size (int, optional): Batch size for training. Defaults to 16.
@@ -107,7 +148,7 @@ class Diffusion:
             compile_model (bool, optional): Whether to compile the model. Defaults to False.
             use_fsdop (bool, optional): Whether to use fully sharded data parallel. Defaults to False.
             use_muon (bool, optional): Whether to use Muon optimizer. Defaults to False.
-        
+    
         Returns:
             dict: A dictionary containing training history with keys:
                 - 'train_loss': List of training loss values.
@@ -161,16 +202,16 @@ class Diffusion:
 
         return samples.cpu().numpy()
 
- # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
     # Internal milestone label used to bridge Trainer's naming convention
     # ------------------------------------------------------------------
     _MILESTONE = "checkpoint"
- 
+
     def save(self, path: str) -> None:
         """Save a checkpoint to an arbitrary file path."""
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
- 
+
         staging_folder = path.parent / f"_tmp_{path.stem}"
         staging_folder.mkdir(parents=True, exist_ok=True)
         original_folder = self.trainer.results_folder
@@ -183,13 +224,13 @@ class Diffusion:
             self.trainer.results_folder = original_folder
             if staging_folder.exists():
                 shutil.rmtree(staging_folder)
- 
+
     def load(self, path: str) -> "Diffusion":
         """Restore a checkpoint from an arbitrary file path."""
         path = Path(path)
         if not path.exists():
             raise FileNotFoundError(f"Checkpoint not found: {path}")
- 
+
         staging_folder = path.parent / f"_tmp_{path.stem}"
         staging_folder.mkdir(parents=True, exist_ok=True)
         original_folder = self.trainer.results_folder
