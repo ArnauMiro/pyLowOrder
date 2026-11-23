@@ -775,15 +775,19 @@ class VariationalAutoencoder(Autoencoder):
         Output shape matches ``reconstruct``: (inp_chan, N, num_samples).
 
         Args:
-            z (np.ndarray): Element(s) of the latent space, shape (num_samples, latent_dim).
+            z (np.ndarray or torch.Tensor): Element(s) of the latent space, shape (num_samples, latent_dim).
 
         Returns:
             np.ndarray: Decoded data, shape (inp_chan, N, num_samples).
         """
-        zt = torch.tensor(z, dtype=torch.float32, device=self._device)
+        zt = torch.as_tensor(z, dtype=torch.float32, device=self._device)
+        was_training = self.training
+        self.eval()
         with torch.no_grad():
             var = self.decoder(zt)
-        var_np = var.cpu().detach().numpy()
+        if was_training:
+            self.train()
+        var_np = var.cpu().numpy()
         # Reshape to (num_samples, inp_chan, N) then transpose to (inp_chan, N, num_samples)
         var_flat = var_np.reshape(var_np.shape[0], self.inp_chan, self.N)
         return np.transpose(var_flat, (1, 2, 0)) 
