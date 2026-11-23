@@ -14,7 +14,7 @@ import numpy               as np
 import torch.nn            as nn
 import torch.nn.functional as F
 
-from torch.utils.data    import DataLoader
+from torch.utils.data    import DataLoader, TensorDataset
 from ...utils.cr         import cr
 from .encoders_decoders  import ShallowDecoder
 from ..dataset           import Dataset
@@ -189,18 +189,19 @@ class SHRED(nn.Module):
 			raiseError('SHRED.fit: training and validation datasets disagree on the number of outputs (%d against %d)' % 
 			  (train_dataset.variables_out.shape[1],valid_dataset.variables_out.shape[1]))
 
-		train_dataset.variables_in  = train_dataset.variables_in.permute(1,2,0).to(self.device)
-		valid_dataset.variables_in  = valid_dataset.variables_in.permute(1,2,0).to(self.device)
-		train_dataset.variables_out = train_dataset.variables_out.to(self.device)
-		valid_dataset.variables_out = valid_dataset.variables_out.to(self.device)
-		train_loader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size)
+		# Local tensors in (nsnapshots, ndelays, nsensors) layout, the datasets passed in are left unchanged
+		train_in     = train_dataset.variables_in.permute(1,2,0).to(self.device)
+		valid_in     = valid_dataset.variables_in.permute(1,2,0).to(self.device)
+		train_out    = train_dataset.variables_out.to(self.device)
+		valid_out    = valid_dataset.variables_out.to(self.device)
+		train_loader = DataLoader(TensorDataset(train_in, train_out), shuffle=True, batch_size=batch_size)
 		optimizer    = optim(self.parameters(), lr = lr)
 		scheduler    = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, epochs, eta_min=lr*1e-4)
 		valid_error_list = []
 		patience_counter = 0
 		best_params = self.state_dict()
 
-		noutputs  = train_dataset.variables_out.shape[1]
+		noutputs  = train_out.shape[1]
 		mod_scale = torch.ones((noutputs,), dtype=torch.float32, device=self.device) if mod_scale is None else mod_scale.to(self.device)
 		if mod_scale.ndim != 1 or mod_scale.shape[0] != noutputs:
 			raiseError('SHRED.fit: mod_scale must be 1D of length %d, got %s' % (noutputs, tuple(mod_scale.shape)))
@@ -216,8 +217,8 @@ class SHRED(nn.Module):
 			scheduler.step()
 			self.eval()
 			with torch.no_grad():
-				train_error = self._mre(train_dataset.variables_out, self(train_dataset.variables_in), mod_scale)
-				valid_error = self._mre(valid_dataset.variables_out, self(valid_dataset.variables_in), mod_scale)
+				train_error = self._mre(train_out, self(train_in), mod_scale)
+				valid_error = self._mre(valid_out, self(valid_in), mod_scale)
 				valid_error_list.append(valid_error)
 			if verbose == True:
 				print("Epoch %i : Training loss = %.5e Validation loss = %.5e \r" % (epoch, train_error, valid_error), flush=True)
@@ -230,8 +231,8 @@ class SHRED(nn.Module):
 				break
 
 		self.load_state_dict(best_params)
-		train_error = self._mre(train_dataset.variables_out, self(train_dataset.variables_in), mod_scale)
-		valid_error = self._mre(valid_dataset.variables_out, self(valid_dataset.variables_in), mod_scale)
+		train_error = self._mre(train_out, self(train_in), mod_scale)
+		valid_error = self._mre(valid_out, self(valid_in), mod_scale)
 		print("Training done: Training loss = %.2f Validation loss = %.2f \r" % (train_error*100, valid_error*100), flush=True)
 
 	def save(self, path:str, scaler_path:str, podscale_path:str, sensors:np.array):
