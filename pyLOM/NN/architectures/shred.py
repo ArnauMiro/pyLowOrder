@@ -41,7 +41,7 @@ class SHRED(nn.Module):
 		dropouts (float, optional): Dropout probability for the decoder (default: ``0.1``).
 		nconfigs (int, optional): Number of configurations to train SHRED on (default: ``1``).
 		compile (bool, optional): Flag to compile the model (default: ``False``).
-		seed (int, optional): Seed for reproducibility (default: ``-1``).
+		seed (int, optional): Seed for the sensor selection, ``-1`` picks a random seed and ``0`` or higher fixes it (default: ``-1``).
 	'''
 	def __init__(
 			self, 
@@ -72,8 +72,11 @@ class SHRED(nn.Module):
 		self.hidden_layers = hidden_layers
 		self.hidden_size   = hidden_size
 		self.configs = np.zeros((self.nconfigs, self.sensxconfig), dtype=int)
+		# Each configuration picks input_size different sensors, so there must be at least that many
+		if self.sensxconfig > total_sensors:
+			raiseError('SHRED: input_size <%d> is larger than total_sensors <%d>' % (self.sensxconfig, total_sensors))
 		for kk in range(self.nconfigs):
-			self.configs[kk,:] = rng.choice(total_sensors, size=self.sensxconfig, replace=True)
+			self.configs[kk,:] = rng.choice(total_sensors, size=self.sensxconfig, replace=False)
 		
 		self.device = device
 		self.to(device)
@@ -165,7 +168,8 @@ class SHRED(nn.Module):
 						% (name, vin.shape[1], vout.shape[0]))
 
 	@cr('SHRED.fit')
-	def fit(self, train_dataset: Dataset, valid_dataset: Dataset, batch_size:int=64, epochs:int=4000, optim:torch.optim.Optimizer=torch.optim.Adam, lr:float=1e-3, reduction:str='mean', verbose:bool=False, patience:int=5, mod_scale:torch.Tensor=None):
+	def fit(self, train_dataset: Dataset, valid_dataset: Dataset, batch_size:int=64, epochs:int=4000, optim:torch.optim.Optimizer=torch.optim.Adam, 
+	        lr:float=1e-3, reduction:str='mean', verbose:bool=False, patience:int=5, mod_scale:torch.Tensor=None):
 		r'''
 		Fit of the SHRED model.
 
