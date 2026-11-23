@@ -1,3 +1,9 @@
+# Precision: a Dataset keeps the precision it was given, and the data is converted to
+# the model's own dtype when it enters the model. The model's dtype is the dtype of the
+# network's weights, next(self.model.parameters()).dtype: float32 by default, float64 if
+# the model is converted after building (.double() or .to(torch.float64)) or built after
+# torch.set_default_dtype(torch.float64).
+
 from abc import ABC, abstractmethod
 from pathlib import Path
 

@@ -5,6 +5,12 @@
 # Autoencoder architecture for NN Module
 #
 # Last rev: 09/10/2024
+#
+# Precision: a Dataset keeps the precision it was given, and the data is converted to
+# the model's own dtype when it enters the model. The model's dtype is the dtype of its
+# weights, read by the _dtype property (next(self.parameters()).dtype): float32 by
+# default, float64 if the model is converted after building (.double() or
+# .to(torch.float64)) or built after torch.set_default_dtype(torch.float64).
 
 import torch
 import torch.nn            as nn

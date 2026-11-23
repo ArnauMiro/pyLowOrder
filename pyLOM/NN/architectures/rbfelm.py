@@ -5,6 +5,13 @@
 # RBF-ELM (Radial Basis Function-augmented Extreme Learning Machine) class.
 #
 # Last rev: 09/06/2026
+#
+# Precision: a Dataset keeps the precision it was given, and the data is converted to
+# the model's own dtype when it enters the model. The model's dtype is the dtype of its
+# RBF layer, self.hidden.centers.dtype (its weights are buffers, not parameters, so
+# next(self.parameters()) cannot be used): float32 by default, float64 if the model is
+# converted after building (.double() or .to(torch.float64)) or built after
+# torch.set_default_dtype(torch.float64).
 
 import math, os, numpy as np, torch, torch.nn as nn, scipy.sparse as sp
 

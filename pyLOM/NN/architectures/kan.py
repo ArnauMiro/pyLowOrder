@@ -5,6 +5,12 @@
 # KAN (Kolmogorov-Arnold Network) class.
 #
 # Last rev: 06/05/2026
+#
+# Precision: a Dataset keeps the precision it was given, and the data is converted to
+# the model's own dtype when it enters the model. The model's dtype is the dtype of its
+# weights, next(self.parameters()).dtype: float32 by default, float64 if the model is
+# converted after building (.double() or .to(torch.float64)) or built after
+# torch.set_default_dtype(torch.float64).
 
 import os, numpy as np, torch, torch.nn as nn, torch.optim as optim
 
