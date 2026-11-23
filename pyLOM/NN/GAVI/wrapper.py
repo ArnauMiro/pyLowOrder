@@ -318,24 +318,17 @@ def save_vae_R(vae, BASEDIR:str='./', modelstr:str='gavi_R_latent', save_weights
 def load_vae_R(latent_dim:int, *, nlayers:int=None, conv_chan:int=None, hid_dim:int=None, kernel:int=None, padding:int=None, func:object=None,
                BASEDIR:str='./', modelstr:str='gavi_R_latent', strict:bool=True):
 	r"""
-	Load a trained GAVI R-VAE from a saved state_dict (no training).
+	Load a trained GAVI R-VAE (no training). The architecture is read from
+	``<BASEDIR>/<modelstr>_<latent_dim>.json`` and the weights from the ``.pth``
+	with the same stem, both written by :func:`vae_R`::
 
-	When ``<BASEDIR>/<modelstr>_<latent_dim>.json`` exists the architecture is read
-	from it and nothing else is required::
-
-		vae = pyLOM.NN.GAVI.load_vae_R(BASEDIR='gavi_folds/fold00')
-
-	If ``latent_dim`` is omitted the folder is globbed and must contain exactly one
-	configuration. When no configuration is found the previous behaviour applies:
-	``data`` and ``latent_dim`` become mandatory and the architecture defaults are
-	used, with a warning, since nothing then guarantees the network matches the
-	weights.
+		vae = pyLOM.NN.GAVI.load_vae_R(6, BASEDIR='gavi_reconstruct_R/')
 
 	Args:
-		latent_dim (int, optional): number of latent vectors.
+		latent_dim (int): number of latent vectors.
 		nlayers, conv_chan, hid_dim, kernel, padding, func (optional): override the
 			stored architecture. A warning is raised on disagreement.
-		BASEDIR (str, optional): folder holding the ``.pth`` and ``.json``.
+		BASEDIR (str, optional): folder holding the ``.pth`` and ``.json`` (default ``"./"``).
 		modelstr (str, optional): file stem (default ``"gavi_R_latent"``).
 		strict (bool, optional): passed to ``load_state_dict`` (default ``True``).
 
@@ -343,20 +336,24 @@ def load_vae_R(latent_dim:int, *, nlayers:int=None, conv_chan:int=None, hid_dim:
 		VariationalAutoencoder: model with the weights loaded, in eval mode, with
 		``vae.gavi_config`` reattached.
 	"""
-	# Locate the configuration
-	_, cfgfile = _gavi_paths(BASEDIR, modelstr, latent_dim)
+	pthfile, cfgfile = _gavi_paths(BASEDIR, modelstr, latent_dim)
+	# Both files written by vae_R are needed to rebuild the model
+	for fname in (cfgfile, pthfile):
+		if not os.path.isfile(fname):
+			raiseError('GAVI.load_vae_R: file <%s> not found' % fname)
+
 	with open(cfgfile, 'r') as f:
-			cfg = json.load(f)
-	given = dict(nlayers=nlayers, conv_chan=conv_chan, hid_dim=hid_dim, kernel=kernel, padding=padding)
-	keys = ('latent_dim','nmod','input_chan','nlayers','conv_chan','hid_dim','kernel','padding')
-	arch = {k: cfg[k] for k in keys}
+		cfg = json.load(f)
+	given = dict(nlayers=nlayers, conv_chan=conv_chan, hid_dim=hid_dim, kernel=kernel, padding=padding,
+	             activation=_activation_to_str(func) if func is not None else None)
+	keys  = ('latent_dim','nmod','input_chan','nlayers','conv_chan','hid_dim','kernel','padding','activation')
+	arch  = {k: cfg[k] for k in keys}
 	arch['batch_norm'] = cfg.get('batch_norm', False)
-	arch['activation'] = cfg['activation']
 	for k, v in given.items():
 		if v is not None and v != arch[k]:
 			raiseWarning('%s=%r overrides the stored value %r' % (k, v, arch[k]))
 			arch[k] = v
-	if func is not None: arch['activation'] = _activation_to_str(func)
+
 	# Rebuild and load
 	activ      = _activation_from_str(arch['activation'])
 	activation = [activ for _ in range(arch['nlayers'] + 2)]
@@ -368,8 +365,7 @@ def load_vae_R(latent_dim:int, *, nlayers:int=None, conv_chan:int=None, hid_dim:
 	                       arch['hid_dim'], batch_norm=arch['batch_norm'])
 	vae        = VariationalAutoencoder(arch['latent_dim'], (arch['nmod'],), arch['input_chan'],
 	                                    encoder, decoder)
-	ckpt, _    = _gavi_paths(BASEDIR, modelstr, arch['latent_dim'])
-	vae.load_state_dict(torch.load(ckpt, map_location=DEVICE, weights_only=True), strict=strict)
+	vae.load_state_dict(torch.load(pthfile, map_location=DEVICE, weights_only=True), strict=strict)
 	vae.eval()
-	vae.gavi_config = cfg if cfg is not None else arch
+	vae.gavi_config = {**cfg, **arch}
 	return vae
