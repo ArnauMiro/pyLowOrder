@@ -234,21 +234,25 @@ class Autoencoder(nn.Module):
     def decode(self, z):
         r"""
         Decode the latent space to the original space.
+        Output shape matches ``reconstruct``: (inp_chan, N, num_samples).
 
         Args:
-            z (np.ndarray): Element of the latent space.
+            z (np.ndarray or torch.Tensor): Element(s) of the latent space, shape (num_samples, latent_dim).
 
         Returns:
-            np.ndarray: Decoded latent space.
+            np.ndarray: Decoded data, shape (inp_chan, N, num_samples).
         """
-        zt  = torch.tensor(z, dtype=torch.float32)
-        var = self.decoder(zt)
-        var = var.cpu()
-        varr = np.zeros((self.N,var.shape[0]),dtype=float)
-        for it in range(var.shape[0]):
-            varaux = var[it,0,:,:].detach().numpy()
-            varr[:,it] = varaux.reshape((self.N,), order='C')
-        return varr 
+        zt = torch.as_tensor(z, dtype=torch.float32, device=self._device)
+        was_training = self.training
+        self.eval()
+        with torch.no_grad():
+            var = self.decoder(zt)
+        if was_training:
+            self.train()
+        var_np = var.cpu().numpy()
+        # Reshape to (num_samples, inp_chan, N) then transpose to (inp_chan, N, num_samples)
+        var_flat = var_np.reshape(var_np.shape[0], self.inp_chan, self.N)
+        return np.transpose(var_flat, (1, 2, 0))
 
 
 class FullyConnectedAutoencoder(nn.Module):
@@ -445,14 +449,19 @@ class FullyConnectedAutoencoder(nn.Module):
         Decode the latent space to the original space.
 
         Args:
-            z (np.ndarray): Element of the latent space.
+            z (np.ndarray or torch.Tensor): Element(s) of the latent space, shape (num_samples, latent_dim).
 
         Returns:
-            np.ndarray: Decoded latent space.
+            np.ndarray: Decoded data, shape (num_samples, in_size).
         """
-        zt  = torch.tensor(z, dtype=torch.float32)
-        var = self.decoder(zt)
-        return var.cpu().detach().numpy()
+        zt = torch.as_tensor(z, dtype=torch.float32, device=self._device)
+        was_training = self.training
+        self.eval()
+        with torch.no_grad():
+            var = self.decoder(zt)
+        if was_training:
+            self.train()
+        return var.cpu().numpy()
 
 
 ## Wrapper of a variational autoencoder
@@ -1068,11 +1077,16 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
         Decode a latent space element to the original space.
 
         Args:
-            z (np.ndarray): Element of the latent space.
+            z (np.ndarray or torch.Tensor): Element(s) of the latent space, shape (num_samples, latent_dim).
 
         Returns:
-            np.ndarray: Decoded latent space.
+            np.ndarray: Decoded data, shape (num_samples, in_size).
         """
-        zt  = torch.tensor(z, dtype=torch.float32)
-        var = self.decoder(zt)
-        return var.cpu().detach().numpy()
+        zt = torch.as_tensor(z, dtype=torch.float32, device=self._device)
+        was_training = self.training
+        self.eval()
+        with torch.no_grad():
+            var = self.decoder(zt)
+        if was_training:
+            self.train()
+        return var.cpu().numpy()
