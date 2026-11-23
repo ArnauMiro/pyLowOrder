@@ -18,7 +18,7 @@ from   torch.utils.data    import DataLoader
 from   ...utils.cr         import cr
 from   .encoders_decoders  import ShallowDecoder
 from   ..dataset           import Dataset
-from ..utils.errors        import raiseError
+from ...utils.errors        import raiseError
 
 
 class SHRED(nn.Module):
@@ -73,7 +73,7 @@ class SHRED(nn.Module):
 		self.hidden_size   = hidden_size
 		self.configs = np.zeros((self.nconfigs, self.sensxconfig), dtype=int)
 		for kk in range(self.nconfigs):
-			self.configs[kk,:] = rng.choice(total_sensors, size=self.sensxconfig, replace=False)
+			self.configs[kk,:] = rng.choice(total_sensors, size=self.sensxconfig, replace=True)
 		
 		self.device = device
 		self.to(device)
