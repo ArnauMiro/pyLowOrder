@@ -89,6 +89,7 @@ class Dataset(torch.utils.data.Dataset):
         self.num_channels = len(variables_out)
         self.mesh_shape = mesh_shape
         self.channels_last = channels_last
+        self.squeeze_last_dim = squeeze_last_dim
 
         # Attach scalers on the instance
         self.inputs_scaler = inputs_scaler
@@ -537,14 +538,15 @@ class Dataset(torch.utils.data.Dataset):
 
                 # Create a new dataset instance with the split data
                 split_dataset = self._build_new(
-                    variables_out=tuple([split_variables_out[:, i].reshape(-1, *self.mesh_shape).numpy()
-                                    for i in range(self.num_channels)]),
+                    variables_out=tuple(v.numpy() for v in self._split_channels(split_variables_out)),
                     mesh_shape=self.mesh_shape,
                     variables_in=split_variables_in.numpy() if split_variables_in is not None else None,
                     # Parameters must be transposed to pass only as many list as the number of variables
                     parameters=split_parameters.T.tolist() if split_parameters is not None else None,
                     combine_parameters_with_cartesian_prod=False,
-                    snapshots_by_column=False  # Since the data is already reshaped
+                    snapshots_by_column=False,  # Since the data is already reshaped
+                    squeeze_last_dim=self.squeeze_last_dim,
+                    channels_last=self.channels_last,
                 )
                 split_datasets.append(split_dataset)
             else:
@@ -707,27 +709,35 @@ class Dataset(torch.utils.data.Dataset):
         
         return self._create_subset_from_indices(indices, return_views)
 
+    def _split_channels(self, out):
+        r'''
+        Split output data with this dataset's layout into one tensor per channel.
+
+        Args:
+            out (torch.Tensor): output rows as returned by the dataset, with any squeezed axes.
+
+        Returns:
+            tuple: one tensor of shape (N, *mesh_shape) per channel.
+        '''
+        # Restore the axes removed by squeeze_last_dim, then take each channel
+        if self.channels_last:
+            out = out.reshape(-1, *self.mesh_shape, self.num_channels)
+            return tuple(out[..., i] for i in range(self.num_channels))
+        out = out.reshape(-1, self.num_channels, *self.mesh_shape)
+        return tuple(out[:, i] for i in range(self.num_channels))
+
     def _create_subset_from_indices(self, indices, return_views):
         if not return_views:
             data = self[indices]
-            if self.variables_in is None:
-                dataset = self._build_new(
-                    variables_out=tuple([data[:, i].reshape(-1, *self.mesh_shape)
-                                 for i in range(self.num_channels)]),
-                    mesh_shape=self.mesh_shape,
-                    variables_in=None,
-                    combine_parameters_with_cartesian_prod=False,
-                    snapshots_by_column=False  # Since the data is already reshaped
-                )
-            else:
-                dataset = self._build_new(
-                    variables_out=tuple([data[1][:, i].reshape(-1, *self.mesh_shape)
-                                for i in range(self.num_channels)]),
-                    mesh_shape=self.mesh_shape,
-                    variables_in=data[0],
-                    combine_parameters_with_cartesian_prod=False,
-                    snapshots_by_column=False  # Since the data is already reshaped
-                )
+            dataset = self._build_new(
+                variables_out=self._split_channels(data if self.variables_in is None else data[1]),
+                mesh_shape=self.mesh_shape,
+                variables_in=None if self.variables_in is None else data[0],
+                combine_parameters_with_cartesian_prod=False,
+                snapshots_by_column=False,  # Since the data is already reshaped
+                squeeze_last_dim=self.squeeze_last_dim,
+                channels_last=self.channels_last,
+            )
             return dataset
         else:
             return Subset(self, indices)       
