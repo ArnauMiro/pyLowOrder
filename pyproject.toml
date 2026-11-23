@@ -172,6 +172,7 @@ optionals = [
   "pyvista",
   "optuna",
   "nvtx",
+  "scikit-sparse>=0.4.16,<0.5.0",
 ]
 # Dependencies for the RL module
 rl = [
