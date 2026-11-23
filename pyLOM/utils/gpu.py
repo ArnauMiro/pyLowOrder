@@ -103,4 +103,11 @@ except:
 		return np.ascontiguousarray(X)
 
 	def from_dlpack(X):
-		return X
+		'''
+		Without cupy all the math runs on the CPU, so return X (e.g. a torch tensor)
+		as a numpy array, moving it to the CPU first when it lives on a GPU
+		'''
+		# Device type 1 is the CPU in DLPack, a CUDA tensor has to be copied to the CPU before numpy can read it
+		if X.__dlpack_device__()[0] != 1:
+			X = X.cpu()
+		return np.from_dlpack(X)

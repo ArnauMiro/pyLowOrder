@@ -146,7 +146,7 @@ def vae_Q(fname:str,Q:tuple,mesh:Mesh,porder:int,r:int,nlayers:int=1,conv_chan:i
 		vae.eval()
 		latent  = vae.latent_space(datatra)
 		Q2, B2  = randomized_qr(from_dlpack(latent.T), r+10, 1,local=True)
-		latr    = torch.tensor(matmul(Q2[:,:r],B2[:r,:])).T
+		latr    = torch.as_tensor(matmul(Q2[:,:r],B2[:r,:]), dtype=torch.float32, device=DEVICE).T
 		rectrL  = vae.decoder(latr)
 		for ivar in range(nvars):
 			ener[ivar] += local_energy(rectrL[:,ivar,:].T.cpu().detach().numpy()*scaler[ivar,1]+scaler[ivar,0], Qtrain[:,ivar,:])
@@ -160,7 +160,7 @@ def vae_Q(fname:str,Q:tuple,mesh:Mesh,porder:int,r:int,nlayers:int=1,conv_chan:i
 		Bs[iAE] = B2[:r,:]
 	
 	mpi_barrier()
-	h5_flush_compressed(fname, basedir, ist, ien, means, stds, weights.detach().cpu().numpy(), biases.detach().cpu().numpy(), gpu_to_cpu(Qs.get()), gpu_to_cpu(Bs.get()))
+	h5_flush_compressed(fname, basedir, ist, ien, means, stds, weights.detach().cpu().numpy(), biases.detach().cpu().numpy(), gpu_to_cpu(Qs), gpu_to_cpu(Bs))
 	
 
 ## Reconstruct_Q
@@ -201,7 +201,7 @@ def reconstruct_Q(mesh:Mesh,nelxAE:int,nmod:int,Qmeans:np.ndarray,Qstds:np.ndarr
 		_,idx  = np.unique(conecE.flatten(), return_index=True)
 		nodes  = conecE.flatten()[np.sort(idx)]
 		lat = matmul(Qs[iel,:,:], Bs[iel,:,:])
-		lat = torch.tensor(lat).T
+		lat = torch.as_tensor(lat, dtype=torch.float32, device=DEVICE).T
 		cr_start('GAVI.decode', 0)
 		with torch.no_grad():
 			decoder.deconv_layers[0].weight.copy_(weights[iel])
