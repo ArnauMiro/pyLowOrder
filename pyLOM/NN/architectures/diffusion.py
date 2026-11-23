@@ -1,4 +1,4 @@
-git di#!/usr/bin/env python
+#!/usr/bin/env python
 #
 # pyLOM - Python Low Order Modeling.
 #
@@ -48,9 +48,9 @@ except Exception:
 
     def create_flow_matching(*args,**kwargs):
         r'''
-        Placeholder for fluidFlow's create_flow_matching, raises an error when created because fluidFlow is not available.
+        Placeholder for fluidFlow's create_flow_matching, raises an error when called because fluidFlow is not available.
         '''
-        raiseError('Package <fluidFlow> should be installed or fixed to use <create_flow_matching>')        
+        raiseError('Package <fluidFlow> should be installed or fixed to use <create_flow_matching>')
 
 
 class Diffusion:
