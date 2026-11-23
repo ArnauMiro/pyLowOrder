@@ -1,0 +1,13 @@
+# NN with a full GPU pipeline: torch and cupy both on CUDA.
+# The CUDA versions of torch and cupy must match: torch>=2.11 wheels on PyPI use CUDA 13, hence cupy-cuda13x.
+# Keep both CUDA versions matched in future upgrades.
+# cupy-cuda13x needs a local CUDA 13 toolkit; cupy-cuda13x[ctk] would install the CUDA libraries from PyPI instead.
+torch>=2.11.0
+torch-geometric
+torchvision
+torchsummary
+tensorflow
+tensorboard
+xgboost
+scikit-learn
+cupy-cuda13x
