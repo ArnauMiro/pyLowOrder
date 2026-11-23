@@ -929,7 +929,7 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
 
         writer.flush()
         writer.close()
-        torch.save(self.state_dict(), '%s/model_state' % BASEDIR)
+        torch.save(self.state_dict(), '%s/model_state.pth' % BASEDIR)
 
     @cr('VAEfc.reconstruct')
     def reconstruct(self, dataset):
