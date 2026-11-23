@@ -8,7 +8,7 @@
 #
 # Last rev: 11/03/2025
 
-import torch
+import copy, torch
 
 import numpy               as np
 import torch.nn            as nn
@@ -219,7 +219,7 @@ class SHRED(nn.Module):
 				print("Epoch %i : Training loss = %.5e Validation loss = %.5e \r" % (epoch, train_error, valid_error), flush=True)
 			if valid_error == torch.min(torch.tensor(valid_error_list)):
 				patience_counter = 0
-				best_params = self.state_dict().copy()
+				best_params = copy.deepcopy(self.state_dict())
 			else:
 				patience_counter += 1
 			if patience_counter == patience:
