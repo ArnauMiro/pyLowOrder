@@ -743,7 +743,7 @@ class VariationalAutoencoder(Autoencoder):
                     with autocast(device_type=self._device):
                         val_in_data   = val_batch[:, :self.lat_dim]
                         val_recon     = decoder_model(val_in_data)
-                        vali_loss     = self._lossfunc(torch.reshape(batch[:, self.lat_dim:], val_recon.shape), val_recon, reduction='mean')
+                        vali_loss     = self._lossfunc(torch.reshape(val_batch[:, self.lat_dim:], val_recon.shape), val_recon, reduction='mean')
                         
                     va_loss  += vali_loss.item()
 
