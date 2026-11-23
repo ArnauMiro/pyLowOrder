@@ -140,7 +140,8 @@ def vae_Q(fname:str,Q:tuple,mesh:Mesh,porder:int,r:int,nlayers:int=1,conv_chan:i
 		for ivar in range(nvars):
 			Qtrain[:,ivar,:] = Q[ivar][nodes,:].T
 		vae.train()
-		datatra, scaler = create_dataset(Qtrain, scale='meanstd')
+		datatra, scaler = create_dataset(tuple(Qtrain[:,ivar,:] for ivar in range(nvars)), scale='meanstd')
+		scaler          = scaler.cpu().numpy()
 		vae.fit(datatra, eval_dataset=None, batch_size=nptxAE, epochs=epochs, lr=learning_r, BASEDIR='./', pin_memory=False, shuffle=False, conv_loss=1e-2)
 		vae.eval()
 		latent  = vae.latent_space(datatra)
