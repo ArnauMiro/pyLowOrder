@@ -4,7 +4,7 @@
 #
 # NN utility routines.
 #
-# Last rev:
+# Last rev: 24/11/2026
 
 # Built-in modules
 import os
@@ -266,6 +266,11 @@ class MinMaxScaler:
             X = self._orient(self._ensure_2d(variables))
             blocks = self._split_into_blocks(X)
 
+            if len(blocks) != len(self.variable_scaling_params):
+                raiseError(
+                    f"Number of variables to transform ({len(blocks)}) does not match the number fitted ({len(self.variable_scaling_params)})"
+                )
+
             if is_tensor:
                 scaled_blocks = [
                     _scale_block(block, p, self.feature_range) for block, p in zip(blocks, self.variable_scaling_params)
@@ -280,6 +285,10 @@ class MinMaxScaler:
                 return out.T if self._column else out
 
         # --- Case 2: list input (backward-compatible) ---
+        if len(variables) != len(self.variable_scaling_params):
+            raiseError(
+                f"Number of variables to transform ({len(variables)}) does not match the number fitted ({len(self.variable_scaling_params)})"
+            )
         scaled_list = []
         for i, v in enumerate(variables):
             v2d = self._ensure_2d(v)
