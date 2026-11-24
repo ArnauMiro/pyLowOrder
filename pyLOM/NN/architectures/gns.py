@@ -5,6 +5,11 @@
 # Message passing graph neural network architecture for NN Module
 #
 # Last rev: 30/03/2025
+#
+# Precision: the Graph keeps the precision of its mesh and is converted to the model's own
+# dtype when it is set; input and target batches are converted when they enter the model
+# (see gns/trainer.py). The model's dtype is the dtype of its weights: float32 by default,
+# float64 if the model is built after torch.set_default_dtype(torch.float64).
 
 import json
 import getpass
@@ -280,6 +285,12 @@ class GNS(torch.nn.Module):
         if graph.device != self.device:
             pprint(0, f"Moving graph to device {self.device}.")
             graph = graph.to(self.device)
+
+        # The graph keeps the mesh precision, convert its features to the model's dtype. The
+        # layers are built after the graph is set, with torch's default dtype.
+        dtype = torch.get_default_dtype()
+        if graph.x.dtype != dtype or graph.edge_attr.dtype != dtype:
+            graph = graph.apply(lambda t: t.to(dtype) if t.is_floating_point() else t)
 
         # Update dependent dims (model_config must be set before assigning graph)
         self._encoder_input_dim = graph.x.shape[1] + self.model_config.input_dim
