@@ -285,7 +285,7 @@ class RBFELM(nn.Module):
         distances, _ = nbrs.kneighbors(centers_np)
         local_spacing = distances[:, 1:].mean(axis=1)
         sigma = local_spacing
-        sigma = np.where(sigma > 0, sigma, np.finfo(np.float32).eps)
+        sigma = np.where(sigma > 0, sigma, np.finfo(centers_np.dtype).eps)
         gamma = alpha / (sigma ** 2)
         return torch.tensor(gamma, device=centers.device, dtype=centers.dtype)
 
@@ -509,20 +509,27 @@ class RBFELM(nn.Module):
         predict_dataloader = DataLoader(X, **_dataloader_kwargs)
         total_rows = len(predict_dataloader.dataset)
         total_cols = self.output_size
-        all_predictions = np.empty((total_rows, total_cols), dtype=np.float32)
-        all_targets = np.empty((total_rows, total_cols), dtype=np.float32)
+        # Predictions in the model's dtype, targets in the dataset's own precision
+        dtype = self.hidden.centers.dtype
+        all_predictions = np.empty((total_rows, total_cols), dtype=torch.empty((), dtype=dtype).numpy().dtype)
+        all_targets = None
 
         self.eval()
         start_idx = 0
         with torch.no_grad():
             for x, y in predict_dataloader:
-                output = self(x.to(self.device, dtype=self.hidden.centers.dtype))
+                output = self(x.to(self.device, dtype=dtype))
                 batch_size = x.size(0)
                 end_idx = start_idx + batch_size
                 all_predictions[start_idx:end_idx, :] = output.cpu().numpy()
                 if return_targets:
-                    all_targets[start_idx:end_idx, :] = y.cpu().numpy()
+                    y_np = y.cpu().numpy()
+                    if all_targets is None:
+                        all_targets = np.empty((total_rows, total_cols), dtype=y_np.dtype)
+                    all_targets[start_idx:end_idx, :] = y_np
                 start_idx = end_idx
+        if return_targets and all_targets is None: # empty dataset
+            all_targets = np.empty((0, total_cols), dtype=all_predictions.dtype)
 
         return (all_predictions, all_targets) if return_targets else all_predictions
 
@@ -1059,6 +1066,7 @@ class MultiRBFELM:
         weighted_sum = np.zeros((N, output_size), dtype=np.float64)
         weight_total = np.zeros((N, 1), dtype=np.float64)
         targets_out  = np.empty((N, output_size), dtype=np.float64)
+        out_dtype    = weighted_sum.dtype # replaced by the cluster models' precision below
 
         # Group points by their active-cluster sets to minimise repeated model calls
         cluster_to_points: List[List[int]] = [[] for _ in range(self.n_clusters)]
@@ -1100,9 +1108,11 @@ class MultiRBFELM:
             w_i = 1.0 / (d_sq_i + self.blend_eps)
 
             weighted_sum[point_indices_i] += w_i[:, np.newaxis] * y_pred
+            out_dtype = y_pred_scaled.dtype
             weight_total[point_indices_i] += w_i[:, np.newaxis]
 
-        preds_out = (weighted_sum / weight_total).astype(np.float32)
+        # Blend in float64, then return in the precision of the cluster models' predictions
+        preds_out = (weighted_sum / weight_total).astype(out_dtype)
 
         if return_targets:
             return preds_out, targets_out

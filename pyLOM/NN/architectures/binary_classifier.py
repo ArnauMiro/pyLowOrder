@@ -1,3 +1,6 @@
+# Precision: XGBoost stores its data in float32 whatever the input precision, so the
+# float32 conversions in this file are on purpose: they match what XGBoost uses anyway.
+
 import numpy as np, os, pickle, torch, xgboost as xgb
 
 from typing             import Dict, List, Tuple, Callable
@@ -110,7 +113,7 @@ class BinaryClassifier:
         for x, y in loader:
             xs.append(x.detach().cpu().numpy())
             ys.append(y.detach().cpu().numpy())
-        X = np.concatenate(xs, axis=0).astype(np.float32)
+        X = np.concatenate(xs, axis=0).astype(np.float32) # XGBoost works in float32
         y = np.concatenate(ys, axis=0).reshape(-1).astype(np.int64)
         return X, y
 
@@ -270,6 +273,7 @@ class BinaryClassifier:
 
         predict_dataloader = DataLoader(X, **dataloader_params)
         total_rows = len(predict_dataloader.dataset)
+        # XGBoost works in float32 and predict_proba returns float32
         all_prob = np.empty((total_rows, self.output_size), dtype=np.float32)
         all_targets = np.empty((total_rows, self.output_size), dtype=np.float32)
 
