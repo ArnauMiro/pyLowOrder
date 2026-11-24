@@ -5,6 +5,10 @@
 # NN utility routines.
 #
 # Last rev: 02/10/2024
+#
+# Precision: a Graph keeps the precision of the mesh it is built from (the dtype of
+# mesh.xyz), is saved in that precision and is loaded back without any conversion. The
+# GNS model converts the graph to its own dtype when the graph is set.
 
 # Built-in modules
 import os
@@ -33,8 +37,7 @@ def _to_tensor_dict_strict(features: Dict[str, Any]) -> Dict[str, torch.Tensor]:
         a = np.asarray(arr)
         if a.dtype == np.dtype('O') or a.dtype.kind in ('U', 'S'):
             raiseError(f"Non-numeric feature '{key}' with dtype={a.dtype} found in HDF5.")
-        a = a.astype(np.float32, copy=False)
-        out[key] = torch.as_tensor(a)
+        out[key] = torch.as_tensor(a) # keep the stored precision
     return out
 
 
@@ -198,10 +201,10 @@ class Graph(Data):
         - /GRAPH/edgeIndex : i4[2,E]
         - /GRAPH/NODEFEATRS : group
             * attrs['feature_names'] : S[]
-            * <feat_name> : float32[N, k_i]
+            * <feat_name> : [N, k_i], in the graph's own precision
         - /GRAPH/EDGEFEATRS : group
             * attrs['feature_names'] : S[]
-            * <feat_name> : float32[E, k_i]
+            * <feat_name> : [E, k_i], in the graph's own precision
 
         Parameters
         ----------
@@ -223,11 +226,9 @@ class Graph(Data):
         fmt = os.path.splitext(fname)[1][1:].lower()
 
         if fmt == 'h5':
-            # Flat numeric dicts
-            x_np = {k: v.detach().cpu().numpy().astype(np.float32, copy=False)
-                    for k, v in self.node_features_dict.items()}
-            e_np = {k: v.detach().cpu().numpy().astype(np.float32, copy=False)
-                    for k, v in self.edge_features_dict.items()}
+            # Flat numeric dicts, in the graph's own precision
+            x_np = {k: v.detach().cpu().numpy() for k, v in self.node_features_dict.items()}
+            e_np = {k: v.detach().cpu().numpy() for k, v in self.edge_features_dict.items()}
 
             # Early type check (reject objects/strings)
             for name, arr in list(x_np.items()) + list(e_np.items()):
@@ -311,14 +312,16 @@ class Graph(Data):
         Returns:
             Dict[str, torch.Tensor]: Node attributes of the graph.
         '''
+        # The graph keeps the mesh precision
+        dtype = mesh.xyz.dtype
         # Get the cell centers
-        xyzc = mesh.xyzc
+        xyzc = np.asarray(mesh.xyzc, dtype=dtype)
         # Get the surface normals
-        surface_normals = mesh.normal
+        surface_normals = np.asarray(mesh.normal, dtype=dtype)
         
         node_features_dict = {
-            'xyz': torch.tensor(xyzc, dtype=torch.float32),
-            'normals': torch.tensor(surface_normals, dtype=torch.float32)
+            'xyz': torch.tensor(xyzc),
+            'normals': torch.tensor(surface_normals)
         }
 
         return node_features_dict
@@ -395,10 +398,12 @@ class Graph(Data):
             raiseError("No dual edges were constructed. Check wall_normals and edge mapping.")
 
         edge_index_np = np.asarray(pairs, dtype=np.int64).T  # [2, E]
-        wall_normals_tensor = torch.tensor(np.asarray(wn_list), dtype=torch.float32)
+        # The graph keeps the mesh precision (wall_normals works in float64)
+        dtype = mesh.xyz.dtype
+        wall_normals_tensor = torch.tensor(np.asarray(wn_list, dtype=dtype))
 
         # --- edge geometric attributes (spherical direction i->j)
-        xyzc = mesh.xyzc
+        xyzc = np.asarray(mesh.xyzc, dtype=dtype)
         c_i = xyzc[edge_index_np[0, :]]
         c_j = xyzc[edge_index_np[1, :]]
         d_ij = c_j - c_i
@@ -420,9 +425,9 @@ class Graph(Data):
 
         edge_index = torch.tensor(edge_index_np, dtype=torch.int64)
         edge_features_dict = {
-            'edges_spherical': torch.stack((torch.from_numpy(r).float(),
-                                            torch.from_numpy(theta).float(),
-                                            torch.from_numpy(phi).float()), dim=1),
+            'edges_spherical': torch.stack((torch.from_numpy(r),
+                                            torch.from_numpy(theta),
+                                            torch.from_numpy(phi)), dim=1),
             'wall_normals': wall_normals_tensor
         }
         return edge_index, edge_features_dict
