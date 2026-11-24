@@ -4,16 +4,17 @@
 #
 # NN utility routines.
 #
-# Last rev:
+# Last rev: 24/11/2026
 
 class betaLinearScheduler:
     r"""
     Linear scheduler for beta parameter in the loss function of the Autoencoders.
 
     Args:
-        start_value (float): initial value of beta
+        start_value (float): value of beta until ``start_epoch``
         end_value (float): final value of beta
-        warmup (int): number of epochs to reach final value
+        start_epoch (int): epoch where beta starts growing linearly
+        warmup (int): epoch where beta reaches ``end_value``
     """
 
     def __init__(self, start_value, end_value, start_epoch, warmup):
@@ -30,7 +31,7 @@ class betaLinearScheduler:
             epoch (int): current epoch
         """
         if epoch < self.start_epoch:
-            return 0
+            return self.start_value
         else:
             if epoch < self.warmup:
                 beta = self.start_value + (self.end_value - self.start_value) * (

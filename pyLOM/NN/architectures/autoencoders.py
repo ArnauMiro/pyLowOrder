@@ -512,6 +512,15 @@ class VariationalAutoencoder(Autoencoder):
         return  sample
              
     def _kld(self, mu, logvar):
+        r'''
+        KL term of the loss, which ``fit`` subtracts as ``mse - beta*kld``.
+
+        This is a batch-level term on purpose, not the per-sample KL divergence
+        to N(0, I): the mu term uses the batch mean of ``mu``, so it only pulls
+        the mean of the batch to zero, and the variance term uses the exponential
+        of the batch mean of ``logvar``. The sum runs over the batch and the
+        latent dimensions, like the reconstruction error.
+        '''
         mum     = torch.mean(mu, axis=0)
         logvarm = torch.mean(logvar, axis=0)
         return 0.5*torch.sum(1 + logvar - mum**2 - logvarm.exp())
@@ -544,8 +553,9 @@ class VariationalAutoencoder(Autoencoder):
         Args:
             train_dataset (torch.utils.data.Dataset): Training dataset.
             eval_dataset (torch.utils.data.Dataset): Evaluation dataset.
+            betasch: Scheduler that gives the value of beta, the weight of the KL term, at each epoch (e.g. ``betaLinearScheduler``). When ``None`` beta is ``1``. Default is ``None``.
             epochs (int): Number of epochs to train the model. Default is ``100``.
-            callback: Callback object to change the value of beta during training. Default is ``None``.
+            callback: Early stopping object, its ``early_stop`` method decides when to stop training. Default is ``None``.
             lr (float): Learning rate. Default is ``1e-3``.
             BASEDIR (str): Directory to save the model. Default is ``"./"``.
             reduction (str): Reduction method for the loss function. Default is ``"mean"``.
@@ -863,6 +873,15 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
         return sample
              
     def _kld(self, mu, logvar):
+        r'''
+        KL term of the loss, which ``fit`` subtracts as ``mse - beta*kld``.
+
+        This is a batch-level term on purpose, not the per-sample KL divergence
+        to N(0, I): the mu term uses the batch mean of ``mu``, so it only pulls
+        the mean of the batch to zero, and the variance term uses the exponential
+        of the batch mean of ``logvar``. The sum runs over the batch and the
+        latent dimensions, like the reconstruction error.
+        '''
         mum     = torch.mean(mu, axis=0)
         logvarm = torch.mean(logvar, axis=0)
         return 0.5*torch.sum(1 + logvar - mum**2 - logvarm.exp())
@@ -894,8 +913,9 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
         Args:
             train_dataset (torch.utils.data.Dataset): Training dataset.
             eval_dataset (torch.utils.data.Dataset): Evaluation dataset.
+            betasch: Scheduler that gives the value of beta, the weight of the KL term, at each epoch (e.g. ``betaLinearScheduler``). When ``None`` beta is ``1``. Default is ``None``.
             epochs (int): Number of epochs to train the model. Default is ``100``.
-            callback: Callback object to change the value of beta during training. Default is ``None``.
+            callback: Early stopping object, its ``early_stop`` method decides when to stop training. Default is ``None``.
             lr (float): Learning rate. Default is ``1e-3``.
             BASEDIR (str): Directory to save the model. Default is ``"./"``.
             reduction (str): Reduction method for the loss function. Default is ``"mean"``.
@@ -925,7 +945,7 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
             tr_loss = 0
             mse     = 0
             kld     = 0
-            beta    = betasch.getBeta(epoch) if betasch is not None else 0
+            beta    = betasch.getBeta(epoch) if betasch is not None else 1
             for batch0 in train_data:
                 batch = batch0.to(self._device, dtype=self._dtype)
                 optimizer.zero_grad()
