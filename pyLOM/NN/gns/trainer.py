@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+#
+# Precision: a Dataset keeps the precision it was given, and the input and target batches
+# are converted to the model's own dtype when they enter the model. The model's dtype is
+# the dtype of its weights, next(model.parameters()).dtype: float32 by default.
 from __future__ import annotations
 
 import copy
@@ -252,15 +256,18 @@ class _GNSTrainingLoop:
         num_losses = 0
         logged_first_batch_stats = False
 
+        # Batches are converted to the model's own dtype, the Dataset keeps the input precision
+        dtype = next(model.parameters()).dtype
+
         model._debug_print("Starting main loop over input batches...")
         with context:
             model._debug_print("Entering input dataloader loop...")
             for batch in input_dataloader:
                 input_batches += 1
                 model._debug_print("Processing new input batch...")
-                inputs_batch = batch[0].to(model.device)
+                inputs_batch = batch[0].to(model.device, dtype=dtype)
                 try:
-                    targets_batch = batch[1].to(model.device)
+                    targets_batch = batch[1].to(model.device, dtype=dtype)
                 except IndexError:
                     targets_batch = None
                 model._debug_print(
