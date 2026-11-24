@@ -209,7 +209,7 @@ class SHRED(nn.Module):
 		best_params = self.state_dict()
 
 		noutputs  = train_out.shape[1]
-		mod_scale = torch.ones((noutputs,), dtype=torch.float32, device=self.device) if mod_scale is None else mod_scale.to(self.device)
+		mod_scale = torch.ones((noutputs,), dtype=dtype, device=self.device) if mod_scale is None else mod_scale.to(self.device, dtype=dtype)
 		if mod_scale.ndim != 1 or mod_scale.shape[0] != noutputs:
 			raiseError('SHRED.fit: mod_scale must be 1D of length %d, got %s' % (noutputs, tuple(mod_scale.shape)))
 

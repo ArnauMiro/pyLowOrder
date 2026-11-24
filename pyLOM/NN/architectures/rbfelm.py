@@ -330,7 +330,9 @@ class RBFELM(nn.Module):
             **dataloader_kwargs,
         }
 
-        dtype = torch.float32
+        # The model's dtype is the dtype of its RBF layer, the numpy arrays of the CHOLMOD path follow it
+        dtype    = self.hidden.centers.dtype
+        np_dtype = torch.empty((), dtype=dtype).numpy().dtype
 
         # Pass 1: sample centers and set up the RBFLayer
         all_x = train_dataset[:][0].to(self.device, dtype=dtype)
@@ -359,8 +361,8 @@ class RBFELM(nn.Module):
             self.train_dataloader = DataLoader(train_dataset, **_dataloader_kwargs)
 
         if use_cholmod:
-            HtH_sparse = sp.csc_matrix((L, L), dtype=np.float32)
-            Hty_np = np.zeros((L, self.output_size), dtype=np.float32)
+            HtH_sparse = sp.csc_matrix((L, L), dtype=np_dtype)
+            Hty_np = np.zeros((L, self.output_size), dtype=np_dtype)
             if verbose:
                 pprint(0, f"\n[fit_cholmod] Accumulating H^T H  (N={N}, L={L}, threshold={sparsity_threshold})")
         else:
@@ -384,12 +386,12 @@ class RBFELM(nn.Module):
                 HtH_blk = H_blk_sparse.T @ H_blk_sparse
                 mask_HtH = HtH_blk.abs() >= sparsity_threshold
                 nz_rows, nz_cols = mask_HtH.nonzero(as_tuple=True)
-                nz_vals = HtH_blk[nz_rows, nz_cols].numpy().astype(np.float32)
+                nz_vals = HtH_blk[nz_rows, nz_cols].numpy().astype(np_dtype)
 
                 block_sparse = sp.csc_matrix(
                     (nz_vals, (nz_rows.numpy(), nz_cols.numpy())),
                     shape=(L, L),
-                    dtype=np.float32,
+                    dtype=np_dtype,
                 )
                 HtH_sparse = HtH_sparse + block_sparse
                 Hty_np += (H_blk_sparse.T @ y_blk.cpu()).numpy()
@@ -427,12 +429,12 @@ class RBFELM(nn.Module):
         if use_cholmod:
             if verbose:
                 final_sparsity = 1.0 - HtH_sparse.nnz / (L * L)
-                mem_mb = HtH_sparse.nnz * 4 / 1024 ** 2
+                mem_mb = HtH_sparse.nnz * HtH_sparse.dtype.itemsize / 1024 ** 2
                 pprint(0, f"\n[fit_cholmod] H^T H assembled — nnz={HtH_sparse.nnz:,}  "
                       f"sparsity={final_sparsity:.3%}  mem≈{mem_mb:.1f} MB")
                 pprint(0, f"[fit_cholmod] Factorising with CHOLMOD...")
 
-            A = HtH_sparse + self.reg_lambda * sp.eye(L, format="csc", dtype=np.float32)
+            A = HtH_sparse + self.reg_lambda * sp.eye(L, format="csc", dtype=np_dtype)
             A = sp.csc_matrix(A)
             del HtH_sparse
 
@@ -442,7 +444,7 @@ class RBFELM(nn.Module):
             if verbose:
                 pprint(0, f"[fit_cholmod] Solving for {self.output_size} output dim(s)...")
 
-            beta_np = np.empty((L, self.output_size), dtype=np.float32)
+            beta_np = np.empty((L, self.output_size), dtype=np_dtype)
             for o in range(self.output_size):
                 beta_np[:, o] = factor(Hty_np[:, o])
 

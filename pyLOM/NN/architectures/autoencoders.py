@@ -20,7 +20,6 @@ import numpy               as np
 from   torch.utils.data        import DataLoader
 from   torch.amp               import GradScaler, autocast
 from   torch.utils.tensorboard import SummaryWriter
-from   torchsummary            import summary
 
 from   functools               import reduce
 from   operator                import mul
@@ -66,8 +65,10 @@ class Autoencoder(nn.Module):
         encoder.to(self._device)
         decoder.to(self._device)
         self.to(self._device)
+        # Diagnostic print of the model, valid for any dtype and device
         if self._verb:
-            summary(self, input_size=(self.inp_chan, *self.in_shape),device=device)
+            pprint(0, self, flush=True)
+            pprint(0, 'Total parameters: %d' % sum(p.numel() for p in self.parameters()), flush=True)
       
     def _lossfunc(self, x, recon_x, reduction):
         return  F.mse_loss(recon_x.view(-1, self.N), x.view(-1, self.N),reduction=reduction)
@@ -255,7 +256,7 @@ class Autoencoder(nn.Module):
         Returns:
             np.ndarray: Decoded data, shape (inp_chan, N, num_samples).
         """
-        zt = torch.as_tensor(z, dtype=torch.float32, device=self._device)
+        zt = torch.as_tensor(z, dtype=self._dtype, device=self._device)
         was_training = self.training
         self.eval()
         with torch.no_grad():
@@ -294,7 +295,9 @@ class FullyConnectedAutoencoder(nn.Module):
         encoder.to(self._device)
         decoder.to(self._device)
         self.to(self._device)
-        summary(self, input_size=(self.in_size,),device=device)
+        # Diagnostic print of the model, valid for any dtype and device
+        pprint(0, self, flush=True)
+        pprint(0, 'Total parameters: %d' % sum(p.numel() for p in self.parameters()), flush=True)
         return None
 
     def _lossfunc(self, x, recon_x, reduction):
@@ -474,7 +477,7 @@ class FullyConnectedAutoencoder(nn.Module):
         Returns:
             np.ndarray: Decoded data, shape (num_samples, in_size).
         """
-        zt = torch.as_tensor(z, dtype=torch.float32, device=self._device)
+        zt = torch.as_tensor(z, dtype=self._dtype, device=self._device)
         was_training = self.training
         self.eval()
         with torch.no_grad():
@@ -698,8 +701,7 @@ class VariationalAutoencoder(Autoencoder):
             np.ndarray: Modes of the latent space.
         """
         zmode = np.diag(np.ones((self.lat_dim,),dtype=float))
-        zmodt = torch.tensor(zmode, dtype=torch.float32)
-        zmodt = zmodt.to(self._device)
+        zmodt = torch.as_tensor(zmode, dtype=self._dtype, device=self._device)
         modes = self.decoder(zmodt)
         mymod = np.zeros((self.N,self.lat_dim),dtype=float)
         modes = modes.cpu()
@@ -734,8 +736,8 @@ class VariationalAutoencoder(Autoencoder):
         return z
 
     def fine_tune(self, train_dataset, shape_, eval_dataset=None, epochs=1000, callback=None, lr=1e-4, BASEDIR='./', **dataloader_params):
-        train_data = DataLoader(torch.from_numpy(train_dataset).to(torch.float32), **dataloader_params)
-        eval_data  = DataLoader(torch.from_numpy(eval_dataset).to(torch.float32), **dataloader_params)
+        train_data = DataLoader(torch.from_numpy(train_dataset), **dataloader_params)
+        eval_data  = DataLoader(torch.from_numpy(eval_dataset), **dataloader_params)
         prev_train_loss = 1e99
         writer    = SummaryWriter(BASEDIR)
         decoder_model = self.decoder
@@ -748,7 +750,7 @@ class VariationalAutoencoder(Autoencoder):
             decoder_model.train()
             tr_loss = 0
             for batch0 in train_data:
-                batch = batch0.to(self._device)
+                batch = batch0.to(self._device, dtype=self._dtype)
                 optimizer.zero_grad()
                 with autocast(device_type=self._device):
                     in_data = batch[:, :self.lat_dim]
@@ -768,7 +770,7 @@ class VariationalAutoencoder(Autoencoder):
             va_loss     = 0
             with torch.no_grad():
                 for val_batch0 in eval_data:
-                    val_batch = val_batch0.to(self._device)
+                    val_batch = val_batch0.to(self._device, dtype=self._dtype)
                     with autocast(device_type=self._device):
                         val_in_data   = val_batch[:, :self.lat_dim]
                         val_recon     = decoder_model(val_in_data)
@@ -809,7 +811,7 @@ class VariationalAutoencoder(Autoencoder):
         Returns:
             np.ndarray: Decoded data, shape (inp_chan, N, num_samples).
         """
-        zt = torch.as_tensor(z, dtype=torch.float32, device=self._device)
+        zt = torch.as_tensor(z, dtype=self._dtype, device=self._device)
         was_training = self.training
         self.eval()
         with torch.no_grad():
@@ -1028,8 +1030,8 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
         return z
 
     def fine_tune(self, train_dataset, shape_, eval_dataset=None, epochs=1000, callback=None, lr=1e-4, BASEDIR='./', **dataloader_params):
-        train_data = DataLoader(torch.from_numpy(train_dataset).to(torch.float32), **dataloader_params)
-        eval_data  = DataLoader(torch.from_numpy(eval_dataset).to(torch.float32), **dataloader_params)
+        train_data = DataLoader(torch.from_numpy(train_dataset), **dataloader_params)
+        eval_data  = DataLoader(torch.from_numpy(eval_dataset), **dataloader_params)
         prev_train_loss = 1e99
         writer    = SummaryWriter(BASEDIR)
         decoder_model = self.decoder
@@ -1042,7 +1044,7 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
             decoder_model.train()
             tr_loss = 0
             for batch0 in train_data:
-                batch = batch0.to(self._device)
+                batch = batch0.to(self._device, dtype=self._dtype)
                 optimizer.zero_grad()
                 with autocast(device_type=self._device):
                     in_data = batch[:, :, :self.lat_dim]
@@ -1062,7 +1064,7 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
             va_loss     = 0
             with torch.no_grad():
                 for val_batch0 in eval_data:
-                    val_batch = val_batch0.to(self._device)
+                    val_batch = val_batch0.to(self._device, dtype=self._dtype)
                     with autocast(device_type=self._device):
                         val_in_data   = val_batch[:, :, :self.lat_dim]
                         val_recon     = decoder_model(val_in_data)
@@ -1102,7 +1104,7 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
         Returns:
             np.ndarray: Decoded data, shape (num_samples, in_size).
         """
-        zt = torch.as_tensor(z, dtype=torch.float32, device=self._device)
+        zt = torch.as_tensor(z, dtype=self._dtype, device=self._device)
         was_training = self.training
         self.eval()
         with torch.no_grad():
