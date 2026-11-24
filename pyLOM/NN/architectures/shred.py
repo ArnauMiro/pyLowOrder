@@ -25,6 +25,7 @@ from ...utils.cr         import cr
 from .encoders_decoders  import ShallowDecoder
 from ..dataset           import Dataset
 from ...utils.errors     import raiseError
+from ...utils.parall     import pprint
 
 
 class SHRED(nn.Module):
@@ -228,7 +229,7 @@ class SHRED(nn.Module):
 				valid_error = self._mre(valid_out, self(valid_in), mod_scale)
 				valid_error_list.append(valid_error)
 			if verbose == True:
-				print("Epoch %i : Training loss = %.5e Validation loss = %.5e \r" % (epoch, train_error, valid_error), flush=True)
+				pprint(0, "Epoch %i : Training loss = %.5e Validation loss = %.5e \r" % (epoch, train_error, valid_error), flush=True)
 			if valid_error == torch.min(torch.tensor(valid_error_list)):
 				patience_counter = 0
 				best_params = copy.deepcopy(self.state_dict())
@@ -240,7 +241,7 @@ class SHRED(nn.Module):
 		self.load_state_dict(best_params)
 		train_error = self._mre(train_out, self(train_in), mod_scale)
 		valid_error = self._mre(valid_out, self(valid_in), mod_scale)
-		print("Training done: Training loss = %.2f Validation loss = %.2f \r" % (train_error*100, valid_error*100), flush=True)
+		pprint(0, "Training done: Training loss = %.2f Validation loss = %.2f \r" % (train_error*100, valid_error*100), flush=True)
 
 	def save(self, path:str, scaler_path:str, podscale_path:str, sensors:np.array):
 		r'''

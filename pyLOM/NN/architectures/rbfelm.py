@@ -192,10 +192,10 @@ class RBFELM(nn.Module):
     @model_name.setter
     def model_name(self, value: str) -> None:
         if not isinstance(value, str):
-            raise TypeError("model_name must be a string")
+            raiseError("model_name must be a string")
         value = value.strip()
         if not value:
-            raise ValueError("model_name cannot be empty")
+            raiseError("model_name cannot be empty")
         self._model_name = value
 
     @staticmethod

@@ -616,7 +616,7 @@ class KAN(nn.Module):
             
             except RuntimeError as e:
                 if "out of memory" in str(e) or "MEMORY" in str(e).upper():
-                    print(f"Trial {trial.number} failed due to out of memory error. Pruning the trial.")
+                    pprint(0, f"Trial {trial.number} failed due to out of memory error. Pruning the trial.")
                     if torch.cuda.is_available():
                         torch.cuda.empty_cache()
                     raise TrialPruned()
@@ -665,10 +665,10 @@ class KAN_SIN(KAN):
         self.to(self.device)
 
         if self.intro:
-            print('Adding sin layer at the beginning:')
+            pprint(0, 'Adding sin layer at the beginning:')
             keys_print = ['nneuron_sin', 'sigma']
             for key in keys_print:
-                print(f"   {key}: {getattr(self, key)}")
+                pprint(0, f"   {key}: {getattr(self, key)}")
                 
     def _define_checkpoint(self):
         checkpoint = super().define_checkpoint()

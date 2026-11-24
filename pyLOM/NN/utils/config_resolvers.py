@@ -173,13 +173,13 @@ def instantiate_from_config(spec: Optional[Mapping[str, Any]]) -> Any:
     if not spec:
         return None
     if "type" not in spec:
-        raise ValueError("Spec must contain a 'type' key.")
+        raiseError("Spec must contain a 'type' key.")
 
     cls_or_fn = resolve_import(spec["type"])
 
     args = spec.get("args", [])
     if not isinstance(args, (list, tuple)):
-        raise TypeError("'args' must be a list or tuple if provided.")
+        raiseError("'args' must be a list or tuple if provided.")
 
     kwargs = {k: v for k, v in spec.items() if k not in ("type", "args")}
     return cls_or_fn(*args, **kwargs)

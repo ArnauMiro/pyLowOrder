@@ -655,7 +655,7 @@ class MLP(nn.Module):
             
             except RuntimeError as e:
                 if "out of memory" in str(e) or "MEMORY" in str(e).upper():
-                    print(f"Trial {trial.number} failed due to out of memory error. Pruning the trial.")
+                    pprint(0, f"Trial {trial.number} failed due to out of memory error. Pruning the trial.")
                     if torch.cuda.is_available():
                         torch.cuda.empty_cache()
                     raise TrialPruned()

@@ -9,6 +9,8 @@
 import torch.nn as nn
 import torch
 
+from ...utils.errors import raiseError
+
 class Encoder1D(nn.Module):
 	r"""
 	Encoder1D class for the 1D Convolutional Autoencoder.
@@ -85,9 +87,9 @@ class Encoder1D(nn.Module):
 			out = conv_layer(out)
 			if self.batch_norm:
 				out = self.norm_layers[ilayer](out)
-			out = self.funcs[ilayer](out)
-		out = self.funcs[ilayer + 1](self.flat(out))
-		out = self.funcs[ilayer + 2](self.fc1(out))
+			out = self.dropout(self.funcs[ilayer](out))
+		out = self.dropout(self.funcs[ilayer+1](self.flat(out)))
+		out = self.dropout(self.funcs[ilayer+2](self.fc1(out)))
 		if self.isvae:
 			return self.mu(out), self.logvar(out)
 		else:
@@ -162,8 +164,8 @@ class Decoder1D(nn.Module):
 				nn.init.xavier_uniform_(layer.weight)
 
 	def forward(self, x):
-		out = self.funcs[self.nlayers + 1](self.fc1(x))
-		out = self.funcs[self.nlayers](self.fc2(out))
+		out = self.dropout(self.funcs[self.nlayers+1](self.fc1(x)))
+		out = self.dropout(self.funcs[self.nlayers](self.fc2(out)))
 
 		conv1d_channels = self.filt_chan * (1 << (self.nlayers - 1))
 		deconv_length = out.shape[1] // conv1d_channels
@@ -172,7 +174,7 @@ class Decoder1D(nn.Module):
 		for ilayer, deconv_layer in enumerate(self.deconv_layers[:-1]):
 			if self.batch_norm:
 				out = self.norm_layers[ilayer](out)
-			out = self.funcs[self.nlayers - ilayer - 1](deconv_layer(out))
+			out = self.dropout(self.funcs[self.nlayers-ilayer-1](deconv_layer(out)))
 
 		return self.deconv_layers[-1](out)
 
@@ -273,9 +275,9 @@ class Encoder2D(nn.Module):
 			out = conv_layer(out)
 			if self.batch_norm:
 				out = self.norm_layers[ilayer](out)
-			out = self.funcs[ilayer](out)
-		out = self.funcs[ilayer+1](self.flat(out))
-		out = self.funcs[ilayer+2](self.fc1(out))
+			out = self.dropout(self.funcs[ilayer](out))
+		out = self.dropout(self.funcs[ilayer+1](self.flat(out)))
+		out = self.dropout(self.funcs[ilayer+2](self.fc1(out)))
 		if self.isvae:
 			return self.mu(out), self.logvar(out)
 		else:
@@ -312,7 +314,7 @@ class FullyConnectedEncoder2D(nn.Module):
 		self.encoding_layers = nn.ModuleList()
 
 		if len(self.hidden_layer_sizes) != len(self.funcs):
-			raise ValueError("Incorrect number of layers! 'hidden_layer_sizes' and 'funcs' must have the same length.")
+			raiseError("Incorrect number of layers! 'hidden_layer_sizes' and 'funcs' must have the same length.")
 		
 		current_dim = self.in_size
 		for idx, hidden_dim in enumerate(self.hidden_layer_sizes):
@@ -443,13 +445,13 @@ class Decoder2D(nn.Module):
 		Returns:
 			(torch.Tensor): Prediction of the neural network.
 		'''
-		out = self.funcs[self.nlayers+1](self.fc1(x))
-		out = self.funcs[self.nlayers](self.fc2(out))
+		out = self.dropout(self.funcs[self.nlayers+1](self.fc1(x)))
+		out = self.dropout(self.funcs[self.nlayers](self.fc2(out)))
 		out = out.view(out.size(0), self.filt_chan * (1 << (self.nlayers-1)), int(self.nh // (1 << self.nlayers)), int(self.nw // (1 << self.nlayers)))
 		for ilayer, (deconv_layer) in enumerate(self.deconv_layers[:-1]):
 			if self.batch_norm:
 				out = self.norm_layers[ilayer](out)
-			out = self.funcs[self.nlayers-ilayer-1](deconv_layer(out))
+			out = self.dropout(self.funcs[self.nlayers-ilayer-1](deconv_layer(out)))
 		return self.deconv_layers[-1](out)
 
 
@@ -480,7 +482,7 @@ class FullyConnectedDecoder2D(nn.Module):
 		self.decoding_layers = nn.ModuleList()
 
 		if len(self.hidden_layer_sizes) != len(self.funcs):
-			raise ValueError("Incorrect number of layers! 'hidden_layer_sizes' and 'funcs' must have the same length.")
+			raiseError("Incorrect number of layers! 'hidden_layer_sizes' and 'funcs' must have the same length.")
 
 		current_dim = self.lat_dim
 		for idx, hidden_dim in enumerate(self.hidden_layer_sizes):
@@ -615,9 +617,9 @@ class Encoder3D(nn.Module):
 			out = conv_layer(out)
 			if self.batch_norm:
 				out=self.norm_layers[ilayer](out)
-			out = self.funcs[ilayer](out)
-		out = self.funcs[ilayer+1](self.flat(out))
-		out = self.funcs[ilayer+2](self.fc1(out))
+			out = self.dropout(self.funcs[ilayer](out))
+		out = self.dropout(self.funcs[ilayer+1](self.flat(out)))
+		out = self.dropout(self.funcs[ilayer+2](self.fc1(out)))
 		if self._isvae:
 			return self.mu(out), self.logvar(out)
 		else:
@@ -715,13 +717,13 @@ class Decoder3D(nn.Module):
 		Returns:
 			(torch.Tensor): Prediction of the neural network.
 		'''
-		out = self.funcs[self.nlayers+1](self.fc1(x))
-		out = self.funcs[self.nlayers](self.fc2(out))
+		out = self.dropout(self.funcs[self.nlayers+1](self.fc1(x)))
+		out = self.dropout(self.funcs[self.nlayers](self.fc2(out)))
 		out = out.view(out.size(0), self.filt_chan * (1 << (self.nlayers-1)), int(self.nx // (1 << self.nlayers)), int(self.ny // (1 << self.nlayers)), int(self.nz // (1 << self.nlayers)))
 		for ilayer, (deconv_layer) in enumerate(self.deconv_layers[:-1]):
 			if self.batch_norm:
 				out = self.norm_layers[ilayer](out)
-			out = self.funcs[self.nlayers-ilayer-1](deconv_layer(out))
+			out = self.dropout(self.funcs[self.nlayers-ilayer-1](deconv_layer(out)))
 		return self.deconv_layers[-1](out)
 
 class ShallowDecoder(nn.Module):
@@ -822,7 +824,7 @@ class Encoder1DNoLatent(nn.Module):
 			out = conv_layer(out)
 			if self.batch_norm:
 				out = self.norm_layers[ilayer](out)
-			out = self.funcs[ilayer](out)
+			out = self.dropout(self.funcs[ilayer](out))
 		out = self.funcs[self.nlayers - ilayer - 1](self.flat(out))
 		return out
 
@@ -898,6 +900,6 @@ class Decoder1DNoLatent(nn.Module):
 		for ilayer, deconv_layer in enumerate(self.deconv_layers[:-1]):
 			if self.batch_norm:
 				out = self.norm_layers[ilayer](out)
-			out = self.funcs[self.nlayers - ilayer - 1](deconv_layer(out))
+			out = self.dropout(self.funcs[self.nlayers-ilayer-1](deconv_layer(out)))
 
 		return self.deconv_layers[-1](out)

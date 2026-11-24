@@ -418,7 +418,7 @@ class Dataset(torch.utils.data.Dataset):
             subset_lengths: List[int] = []
             for i, frac in enumerate(sizes):
                 if frac < 0 or frac > 1:
-                    raise ValueError(f"Fraction at index {i} is not between 0 and 1")
+                    raiseError(f"Fraction at index {i} is not between 0 and 1")
                 n_items_in_split = int(
                     np.floor(len(self) * frac)  # type: ignore[arg-type]
                 )
@@ -490,7 +490,7 @@ class Dataset(torch.utils.data.Dataset):
             subset_lengths: List[int] = []
             for i, frac in enumerate(sizes):
                 if frac < 0 or frac > 1:
-                    raise ValueError(f"Fraction at index {i} is not between 0 and 1")
+                    raiseError(f"Fraction at index {i} is not between 0 and 1")
                 n_items_in_split = int(
                     np.floor(len(self.parameters) * frac)  # type: ignore[arg-type]
                 )
@@ -958,19 +958,19 @@ class NeighborhoodDataset(Dataset):
         super().__init__(*args, **kwargs)
 
         if self.variables_in is None:
-            raise ValueError("NeighborhoodDataset requires input variables (coordinates).")
+            raiseError("NeighborhoodDataset requires input variables (coordinates).")
 
         input_dim = self.variables_in.shape[1]
 
         if geom_dim is None:
             if input_dim < 2:
-                raise ValueError("At least 2 input columns are required for geometry.")
+                raiseError("At least 2 input columns are required for geometry.")
             self.geom_dim = min(3, input_dim)
         else:
             if geom_dim not in (2, 3):
-                raise ValueError("geom_dim must be 2 or 3.")
+                raiseError("geom_dim must be 2 or 3.")
             if input_dim < geom_dim:
-                raise ValueError(
+                raiseError(
                     f"geom_dim={geom_dim} but only {input_dim} input columns available."
                 )
             self.geom_dim = geom_dim

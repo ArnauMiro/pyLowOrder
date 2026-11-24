@@ -7,6 +7,8 @@ import torch
 from torch import Tensor
 
 from .. import DEVICE
+from ...utils.errors import raiseError
+from ...utils.parall import pprint
 
 def set_seed(seed: int = -1) -> None:
     """
@@ -99,9 +101,9 @@ def create_results_folder(RESUDIR: str, verbose: bool=True):
     if not os.path.exists(RESUDIR):
         os.makedirs(RESUDIR)
         if verbose: 
-            print(f"Folder created: {RESUDIR}")
+            pprint(0, f"Folder created: {RESUDIR}")
     elif verbose:
-        print(f"Folder already exists: {RESUDIR}")
+        pprint(0, f"Folder already exists: {RESUDIR}")
         
 
 def select_device(device: str = DEVICE):
@@ -169,7 +171,7 @@ def get_optimizing_value(name: str, spec: Any, trial):
     elif ptype == "categorical":
         return trial.suggest_categorical(name, spec["choices"])
     else:
-        raise ValueError(f"Unsupported param type '{ptype}' for '{name}'")
+        raiseError(f"Unsupported param type '{ptype}' for '{name}'")
 
 
 def sample_params(space: dict, trial, prefix="") -> dict:
@@ -204,7 +206,7 @@ def _materialize_space(space: dict, flat: dict, prefix: str = "") -> dict:
         path = f"{prefix}.{k}" if prefix else k
         if _is_dist_spec(v):
             if path not in flat:
-                raise ValueError(f"Missing sampled value for '{path}'")
+                raiseError(f"Missing sampled value for '{path}'")
             out[k] = flat[path]
         elif isinstance(v, dict):
             out[k] = _materialize_space(v, flat, path)

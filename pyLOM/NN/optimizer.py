@@ -213,9 +213,9 @@ try:
             OptunaOptimizer._deep_update(base_params, optimized_params)
 
             if verbose:
-                print("\nApplying optimized hyperparameters:")
+                pprint(0, "\nApplying optimized hyperparameters:")
                 for k, v in optimized_params.items():
-                    print(f"    {k}: {v}")
+                    pprint(0, f"    {k}: {v}")
 
             return base_params
 

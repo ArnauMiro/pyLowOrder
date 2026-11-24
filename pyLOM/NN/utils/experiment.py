@@ -123,29 +123,29 @@ def _ensure_sample_major(
         elif nsnaps_hint is not None and arr.size == nsnaps_hint:
             arr = arr[:, None, None]
         else:
-            raise ValueError("1D arrays must match either ncells or nsnaps length")
+            raiseError("1D arrays must match either ncells or nsnaps length")
     elif arr.ndim == 2:
         if arr.shape[1] == ncells:
             arr = arr[:, :, None]
         elif arr.shape[0] == ncells:
             arr = arr.T[:, :, None]
         else:
-            raise ValueError("2D arrays must include ncells in one axis")
+            raiseError("2D arrays must include ncells in one axis")
     elif arr.ndim == 3:
         if arr.shape[1] == ncells:
             pass
         elif arr.shape[0] == ncells:
             arr = arr.swapaxes(0, 1)
         else:
-            raise ValueError("3D arrays must include ncells in axis 0 or 1")
+            raiseError("3D arrays must include ncells in axis 0 or 1")
     else:
-        raise ValueError("Unsupported array rank for sample-major conversion")
+        raiseError("Unsupported array rank for sample-major conversion")
 
     if nsnaps_hint is not None:
         if arr.shape[0] == 1 and nsnaps_hint > 1:
             arr = np.broadcast_to(arr, (nsnaps_hint, arr.shape[1], arr.shape[2]))
         elif arr.shape[0] not in (nsnaps_hint, 1):
-            raise ValueError("Snapshot dimension mismatch with provided hint")
+            raiseError("Snapshot dimension mismatch with provided hint")
 
     return arr.astype(np.float64, copy=False)
 
@@ -172,7 +172,7 @@ def _build_dataset(
     """Create a pyLOM Dataset with provided cell fields and snapshot metadata."""
 
     if not cell_fields:
-        raise ValueError("At least one field must be supplied for ParaView export")
+        raiseError("At least one field must be supplied for ParaView export")
 
     sample_field = next(iter(cell_fields.values()))
     _, nsnaps, _ = sample_field.shape
@@ -184,13 +184,13 @@ def _build_dataset(
             values_np = np.asarray(values_np)
             if values_np.ndim == 1:
                 if values_np.size not in (nsnaps, 1):
-                    raise ValueError(f"Metadata '{name}' must have length 1 or nsnaps")
+                    raiseError(f"Metadata '{name}' must have length 1 or nsnaps")
                 if values_np.size == 1 and nsnaps > 1:
                     values_np = np.broadcast_to(values_np, (nsnaps,))
                 vars_dict[name] = {"idim": 0, "value": values_np.astype(np.float64, copy=False)}
             elif values_np.ndim == 2:
                 if values_np.shape[0] not in (nsnaps, 1):
-                    raise ValueError(f"Metadata '{name}' must align with snapshot count")
+                    raiseError(f"Metadata '{name}' must align with snapshot count")
                 if values_np.shape[0] == 1 and nsnaps > 1:
                     values_np = np.broadcast_to(values_np, (nsnaps, values_np.shape[1]))
                 vars_dict[name] = {
@@ -198,7 +198,7 @@ def _build_dataset(
                     "value": values_np.astype(np.float64, copy=False),
                 }
             else:
-                raise ValueError(f"Metadata '{name}' must be 1D or 2D array")
+                raiseError(f"Metadata '{name}' must be 1D or 2D array")
 
     dataset = pyLOM.Dataset(
         xyz=config.mesh.xyzc,
@@ -252,14 +252,14 @@ def export_predictions_to_paraview(
     true_samples = _ensure_sample_major(y_true, ncells)
 
     if pred_samples.shape != true_samples.shape:
-        raise ValueError("Predictions and targets must share the same shape")
+        raiseError("Predictions and targets must share the same shape")
 
     nsnaps = pred_samples.shape[0]
 
     instants = np.asarray(config.instants, dtype=np.int32)
     times = np.asarray(config.times, dtype=np.float64)
     if instants.shape[0] != nsnaps or times.shape[0] != nsnaps:
-        raise ValueError("Instants/times length must match number of snapshots")
+        raiseError("Instants/times length must match number of snapshots")
 
     cell_fields: Dict[str, np.ndarray] = {}
 
@@ -268,9 +268,9 @@ def export_predictions_to_paraview(
         metric_result = fn(pred_samples, true_samples)
         metric_samples = _ensure_sample_major(metric_result, ncells, nsnaps_hint=nsnaps)
         if metric_samples.shape != pred_samples.shape:
-            raise ValueError(f"Metric '{name}' must return the same shape as inputs")
+            raiseError(f"Metric '{name}' must return the same shape as inputs")
         if name in cell_fields:
-            raise ValueError(f"Duplicate field name detected: {name}")
+            raiseError(f"Duplicate field name detected: {name}")
         cell_fields[name] = _sample_to_cell_major(metric_samples)
 
     metadata_arrays: Dict[str, np.ndarray] = {}
@@ -278,7 +278,7 @@ def export_predictions_to_paraview(
         for name, values in config.snapshot_metadata.items():
             arr = np.asarray(to_numpy(values), dtype=float).reshape(-1)
             if arr.size not in (1, nsnaps):
-                raise ValueError(f"Metadata '{name}' must have length 1 or nsnaps")
+                raiseError(f"Metadata '{name}' must have length 1 or nsnaps")
             if arr.size == 1 and nsnaps > 1:
                 arr = np.broadcast_to(arr, nsnaps)
             metadata_arrays[name] = arr
@@ -289,7 +289,7 @@ def export_predictions_to_paraview(
     if config.extra_cell_fields:
         for name, values in config.extra_cell_fields.items():
             if name in cell_fields:
-                raise ValueError(f"Duplicate field name detected: {name}")
+                raiseError(f"Duplicate field name detected: {name}")
             extra_samples = _ensure_sample_major(values, ncells, nsnaps_hint=nsnaps)
             cell_fields[name] = _sample_to_cell_major(extra_samples)
 
@@ -375,7 +375,7 @@ def export_predictions_to_paraview(
             )
             written.append(output_dir / f"{casestr}.vtk.hdf")
     else:
-        raise ValueError("mode must be either 'single' or 'per_snapshot'")
+        raiseError("mode must be either 'single' or 'per_snapshot'")
 
     return written
 
@@ -391,7 +391,7 @@ def plot_true_vs_pred(y_true: np.ndarray,
     Plot predicted vs. true values with equal axis limits and 1:1 scale.
     """
     if y_true.shape != y_pred.shape:
-        raise ValueError("Shapes of y_true and y_pred must match.")
+        raiseError("Shapes of y_true and y_pred must match.")
 
     num_outputs = y_true.shape[1]
     fig, axs = plt.subplots(num_outputs, 1, figsize=(6, 6 * num_outputs), squeeze=False)
@@ -530,7 +530,7 @@ def save_experiment_artifacts(
     if extra_files:
         for filename, generator_fn in extra_files.items():
             if not callable(generator_fn):
-                raise TypeError(f"Expected a callable for file '{filename}'")
+                raiseError(f"Expected a callable for file '{filename}'")
             generator_fn(out_dir / filename)
 
     pprint(0, f"Experiment artifacts saved to: {out_dir}")

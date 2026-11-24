@@ -192,7 +192,7 @@ class Diffusion:
             np.ndarray  shape (N, channels, seq_len) — only meaningful on rank 0.
         """
         if self.trainer is None:
-            raise RuntimeError("Call fit() or load() before predict().")
+            raiseError("Call fit() or load() before predict().")
 
         bs = batch_size or self.trainer.batch_size
         samples, _ = self.trainer.eval_model(dataset, batch_size=bs, use_autocast=True, **sampling_kwargs)
@@ -229,7 +229,7 @@ class Diffusion:
         """Restore a checkpoint from an arbitrary file path."""
         path = Path(path)
         if not path.exists():
-            raise FileNotFoundError(f"Checkpoint not found: {path}")
+            raiseError(f"Checkpoint not found: {path}")
 
         staging_folder = path.parent / f"_tmp_{path.stem}"
         staging_folder.mkdir(parents=True, exist_ok=True)

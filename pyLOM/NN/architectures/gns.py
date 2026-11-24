@@ -795,7 +795,7 @@ class GNS(torch.nn.Module):
         training_cfg = optimization_params.get("training")
 
         if graph_path is None:
-            raise ValueError("Missing required key 'graph_path' in optimization_params['model'].")
+            raiseError("Missing required key 'graph_path' in optimization_params['model'].")
 
         return graph_path, {
             "model": model_cfg,

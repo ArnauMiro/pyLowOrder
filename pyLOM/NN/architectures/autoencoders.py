@@ -71,7 +71,7 @@ class Autoencoder(nn.Module):
             pprint(0, 'Total parameters: %d' % sum(p.numel() for p in self.parameters()), flush=True)
       
     def _lossfunc(self, x, recon_x, reduction):
-        return  F.mse_loss(recon_x.view(-1, self.N), x.view(-1, self.N),reduction=reduction)
+        return  F.mse_loss(recon_x.reshape(-1, self.N), x.reshape(-1, self.N),reduction=reduction)
     
     def forward(self, x):
         z     = self.encoder(x)
@@ -736,8 +736,24 @@ class VariationalAutoencoder(Autoencoder):
         return z
 
     def fine_tune(self, train_dataset, shape_, eval_dataset=None, epochs=1000, callback=None, lr=1e-4, BASEDIR='./', **dataloader_params):
+        r"""
+        Fine-tune the decoder only, on pairs of latent vectors and targets.
+
+        Args:
+            train_dataset (np.ndarray): training rows, each holding a latent vector followed by its flattened target, shape (num_samples, latent_dim + inp_chan*N).
+            shape_: not used.
+            eval_dataset (np.ndarray, optional): validation rows with the same layout. ``None`` (default) skips validation and reports a validation loss of 0.
+            epochs (int, optional): number of training epochs (default ``1000``).
+            callback (optional): early stopping callback (default ``None``).
+            lr (float, optional): learning rate (default ``1e-4``).
+            BASEDIR (str, optional): folder for the TensorBoard logs and ``decoder_state.pth`` (default ``'./'``).
+            **dataloader_params: arguments passed to the DataLoaders.
+
+        Returns:
+            int: 0.
+        """
         train_data = DataLoader(torch.from_numpy(train_dataset), **dataloader_params)
-        eval_data  = DataLoader(torch.from_numpy(eval_dataset), **dataloader_params)
+        eval_data  = DataLoader(torch.from_numpy(eval_dataset), **dataloader_params) if eval_dataset is not None else None
         prev_train_loss = 1e99
         writer    = SummaryWriter(BASEDIR)
         decoder_model = self.decoder
@@ -768,18 +784,19 @@ class VariationalAutoencoder(Autoencoder):
             ## Validation
             decoder_model.eval()
             va_loss     = 0
-            with torch.no_grad():
-                for val_batch0 in eval_data:
-                    val_batch = val_batch0.to(self._device, dtype=self._dtype)
-                    with autocast(device_type=self._device):
-                        val_in_data   = val_batch[:, :self.lat_dim]
-                        val_recon     = decoder_model(val_in_data)
-                        vali_loss     = self._lossfunc(torch.reshape(val_batch[:, self.lat_dim:], val_recon.shape), val_recon, reduction='mean')
+            if eval_data is not None:
+                with torch.no_grad():
+                    for val_batch0 in eval_data:
+                        val_batch = val_batch0.to(self._device, dtype=self._dtype)
+                        with autocast(device_type=self._device):
+                            val_in_data   = val_batch[:, :self.lat_dim]
+                            val_recon     = decoder_model(val_in_data)
+                            vali_loss     = self._lossfunc(torch.reshape(val_batch[:, self.lat_dim:], val_recon.shape), val_recon, reduction='mean')
                         
-                    va_loss  += vali_loss.item()
+                        va_loss  += vali_loss.item()
 
-            num_batches = len(eval_data)
-            va_loss    /=num_batches
+                num_batches = len(eval_data)
+                va_loss    /=num_batches
             writer.add_scalar("Ft/Loss/train",tr_loss,epoch+1)
             writer.add_scalar("Ft/Loss/vali", va_loss,epoch+1)
             
@@ -794,9 +811,9 @@ class VariationalAutoencoder(Autoencoder):
 
         writer.flush()
         writer.close()
-        torch.save(decoder_model.state_dict(), '%s/decoder_state' % BASEDIR)
+        torch.save(decoder_model.state_dict(), '%s/decoder_state.pth' % BASEDIR)
         
-        self.decoder.load_state_dict(torch.load('%s/decoder_state' % BASEDIR, weights_only=True))
+        self.decoder.load_state_dict(torch.load('%s/decoder_state.pth' % BASEDIR, weights_only=True))
 
         return 0
 
@@ -1030,8 +1047,24 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
         return z
 
     def fine_tune(self, train_dataset, shape_, eval_dataset=None, epochs=1000, callback=None, lr=1e-4, BASEDIR='./', **dataloader_params):
+        r"""
+        Fine-tune the decoder only, on pairs of latent vectors and targets.
+
+        Args:
+            train_dataset (np.ndarray): training rows, each holding a latent vector followed by its flattened target, shape (num_samples, n, latent_dim + in_size), with the latent vector and target along the last axis.
+            shape_: not used.
+            eval_dataset (np.ndarray, optional): validation rows with the same layout. ``None`` (default) skips validation and reports a validation loss of 0.
+            epochs (int, optional): number of training epochs (default ``1000``).
+            callback (optional): early stopping callback (default ``None``).
+            lr (float, optional): learning rate (default ``1e-4``).
+            BASEDIR (str, optional): folder for the TensorBoard logs and ``decoder_state.pth`` (default ``'./'``).
+            **dataloader_params: arguments passed to the DataLoaders.
+
+        Returns:
+            int: 0.
+        """
         train_data = DataLoader(torch.from_numpy(train_dataset), **dataloader_params)
-        eval_data  = DataLoader(torch.from_numpy(eval_dataset), **dataloader_params)
+        eval_data  = DataLoader(torch.from_numpy(eval_dataset), **dataloader_params) if eval_dataset is not None else None
         prev_train_loss = 1e99
         writer    = SummaryWriter(BASEDIR)
         decoder_model = self.decoder
@@ -1062,18 +1095,19 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
             ## Validation
             decoder_model.eval()
             va_loss     = 0
-            with torch.no_grad():
-                for val_batch0 in eval_data:
-                    val_batch = val_batch0.to(self._device, dtype=self._dtype)
-                    with autocast(device_type=self._device):
-                        val_in_data   = val_batch[:, :, :self.lat_dim]
-                        val_recon     = decoder_model(val_in_data)
-                        vali_loss     = self._lossfunc(val_batch[:, :, self.lat_dim:], val_recon, reduction='sum')
+            if eval_data is not None:
+                with torch.no_grad():
+                    for val_batch0 in eval_data:
+                        val_batch = val_batch0.to(self._device, dtype=self._dtype)
+                        with autocast(device_type=self._device):
+                            val_in_data   = val_batch[:, :, :self.lat_dim]
+                            val_recon     = decoder_model(val_in_data)
+                            vali_loss     = self._lossfunc(val_batch[:, :, self.lat_dim:], val_recon, reduction='sum')
                         
-                    va_loss  += vali_loss.item()
+                        va_loss  += vali_loss.item()
 
-            num_batches = len(eval_data)
-            va_loss    /=num_batches
+                num_batches = len(eval_data)
+                va_loss    /=num_batches
             writer.add_scalar("Ft/Loss/train",tr_loss,epoch+1)
             writer.add_scalar("Ft/Loss/vali", va_loss,epoch+1)
             
@@ -1088,9 +1122,9 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
 
         writer.flush()
         writer.close()
-        torch.save(decoder_model.state_dict(), '%s/decoder_state' % BASEDIR)
+        torch.save(decoder_model.state_dict(), '%s/decoder_state.pth' % BASEDIR)
         
-        self.decoder.load_state_dict(torch.load('%s/decoder_state' % BASEDIR, weights_only=True))
+        self.decoder.load_state_dict(torch.load('%s/decoder_state.pth' % BASEDIR, weights_only=True))
 
         return 0
 
