@@ -687,9 +687,13 @@ class VariationalAutoencoder(Autoencoder):
         r"""
         Compute the correlation between the latent variables of the given dataset.
 
+        It uses the encoder means (``latent_space(dataset, sample=False)``), so the
+        result is repeatable. Sampled latent vectors add independent noise, which
+        hides the correlation between the latent variables and raises ``detR``.
+
         Args:
             dataset (torch.utils.data.Dataset): Dataset to compute the correlation.
-            savepath (str, optional): if given, the latent coordinates are saved
+            savepath (str, optional): if given, the latent coordinates (the means) are saved
                 there as a ``.npy``. Nothing is written when ``None`` (default).
 
         Returns:
