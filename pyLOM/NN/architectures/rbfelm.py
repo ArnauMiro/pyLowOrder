@@ -11,8 +11,9 @@
 # RBF layer, self.hidden.centers.dtype (its weights are buffers, not parameters, so
 # next(self.parameters()) cannot be used): float32 by default, float64 if the model is
 # converted after building (.double() or .to(torch.float64)) or built after
-# torch.set_default_dtype(torch.float64). The CHOLMOD path of fit runs on the CPU and
-# solves in float64 on purpose, then converts beta to the model's dtype.
+# torch.set_default_dtype(torch.float64). The dense path of fit solves with a streaming QR
+# in the model's dtype. The CHOLMOD path runs on the CPU and solves in float64 on purpose,
+# then converts beta to the model's dtype.
 
 import math, os, numpy as np, torch, torch.nn as nn, scipy.sparse as sp
 
@@ -309,7 +310,7 @@ class RBFELM(nn.Module):
             train_dataset (torch.utils.data.Dataset): Training dataset to fit the model.
             batch_size (int, optional): Block size for DataLoader during fitting (default: ``10_000``).
             dataloader_kwargs (dict, optional): Additional keyword arguments to pass to the dataloader (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader. Overrides the following defaults: ``batch_size`` (taken from the ``batch_size`` argument),``shuffle=True``, ``num_workers=0``, ``pin_memory=PIN_MEMORY`` (default: ``False``).
-            use_cholmod (bool, optional): If ``True``, uses sparse CHOLMOD solver for the normal equations. Requires scikit-sparse to be installed. If ``False`` (default), uses classical dense PyTorch solver.
+            use_cholmod (bool, optional): If ``True``, uses sparse CHOLMOD solver for the normal equations. Requires scikit-sparse to be installed. If ``False`` (default), uses a dense PyTorch streaming QR of H, in the model's dtype.
             sparsity_threshold (float, optional): Threshold for zeroing small values in H and H^T H when using CHOLMOD (default: ``1e-6``). Higher values produce sparser matrices but may affect accuracy.
             save_logs_path (str, optional): Path to save the training results. If ``None``, no results will be saved (default: ``None``).
             print_rate_batch (int, optional): Print progress every N batches (default: ``1``). Set to ``0`` to disable intermediate prints.
@@ -370,10 +371,13 @@ class RBFELM(nn.Module):
             if verbose:
                 pprint(0, f"\n[fit_cholmod] Accumulating H^T H  (N={N}, L={L}, threshold={sparsity_threshold})")
         else:
-            HtH_dense = torch.zeros((L, L), device=self.device, dtype=dtype)
-            Hty_dense = torch.zeros((L, self.output_size), device=self.device, dtype=dtype)
+            # Streaming QR of [H y], one batch of rows at a time, in the model's dtype. It works
+            # with cond(H) instead of cond(H)^2 (H^T H), so float32 stays accurate on the GPU.
+            # Rz keeps [R z]; starting with R = sqrt(lambda) I adds the Tikhonov term.
+            Rz = torch.zeros((L, L + self.output_size), device=self.device, dtype=dtype)
+            Rz[:, :L] = math.sqrt(self.reg_lambda) * torch.eye(L, device=self.device, dtype=dtype)
             if verbose:
-                pprint(0, f"\n[fit] Accumulating H^T H  (N={N}, L={L})")
+                pprint(0, f"\n[fit] Streaming QR of H  (N={N}, L={L})")
 
         for b_idx, batch in enumerate(self.train_dataloader):
             x_blk, y_blk = batch[0].to(self.device, dtype=dtype), batch[1].to(self.device, dtype=dtype)
@@ -413,8 +417,9 @@ class RBFELM(nn.Module):
                     )
             else:
                 H_blk = self.hidden(x_blk)
-                HtH_dense += H_blk.T @ H_blk
-                Hty_dense += H_blk.T @ y_blk
+                # Only the first L rows of the new R are needed: the rest is the residual,
+                # which does not depend on beta
+                Rz = torch.linalg.qr(torch.cat([Rz, torch.cat([H_blk, y_blk], dim=1)]), mode="r")[1][:L]
 
                 if verbose and print_rate_batch != 0 and (b_idx % print_rate_batch) == 0:
                     threshold = 1e-6
@@ -454,8 +459,8 @@ class RBFELM(nn.Module):
 
             self.beta = torch.tensor(beta_np, dtype=dtype, device=self.device)
         else:
-            I = torch.eye(L, device=self.device, dtype=dtype)
-            self.beta = torch.linalg.solve(HtH_dense + self.reg_lambda * I, Hty_dense)
+            # R beta = z, the least squares solution of (H^T H + lambda I) beta = H^T y
+            self.beta = torch.linalg.solve_triangular(Rz[:, :L], Rz[:, L:], upper=True)
 
         if verbose:
             pprint(0, f"\n[fit] Done. Beta shape: {tuple(self.beta.shape)}")
