@@ -292,6 +292,35 @@ try:
 			return wrapper
 		return decorator
 
+	class cr_nvtx_block(cr_block):
+		'''
+		CR NVTX context manager, times the code inside a with block
+		and marks it as an NVTX range, like the cr_nvtx decorator:
+
+			with cr_nvtx_block('POD.SVD'):
+				...
+
+		The channel is stopped even if the block raises.
+		'''
+		__slots__ = ('_annot',)
+
+		def __init__(self,ch_name,suff=0,color="green"):
+			super().__init__(ch_name,suff)
+			self._annot = nvtx.annotate(message=ch_name,color=color)
+
+		def __enter__(self):
+			cr_start(self._name,self._suff)
+			self._annot.__enter__()
+			return self
+
+		def __exit__(self,exc_type,exc_value,traceback):
+			# Same order as cr_nvtx: close the NVTX range, then stop the channel
+			try:
+				self._annot.__exit__(exc_type,exc_value,traceback)
+			finally:
+				cr_stop(self._name,self._suff)
+			return False # do not hide the exception
+
 except:
 	raiseWarning('Import - NVTX not present!',False)
 
@@ -310,3 +339,13 @@ except:
 					cr_stop(ch_name,suff)
 			return wrapper
 		return decorator
+
+	class cr_nvtx_block(cr_block):
+		'''
+		CR NVTX context manager, same as cr_block since NVTX
+		is not present (color is accepted and ignored)
+		'''
+		__slots__ = ()
+
+		def __init__(self,ch_name,suff=0,color="green"):
+			super().__init__(ch_name,suff)
