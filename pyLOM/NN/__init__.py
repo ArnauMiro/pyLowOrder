@@ -4,7 +4,7 @@
 #
 # NN Module
 #
-# Last rev: 09/10/2024
+# Last rev: 23/11/2026
 
 # Supress prints from tensorflow
 import os, torch

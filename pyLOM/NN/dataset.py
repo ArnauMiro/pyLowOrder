@@ -4,7 +4,7 @@
 #
 # NN datasets.
 #
-# Last rev:
+# Last rev: 24/11/2026
 
 import numpy as np
 import torch
@@ -164,8 +164,7 @@ class Dataset(torch.utils.data.Dataset):
         # 1) Normalise every channel to a torch tensor without leaving its device.
         #    torch.as_tensor is a no-op for a tensor that is already of the right
         #    type and wraps a numpy array without copying, so neither input path
-        #    round-trips. detach() keeps autograd history out of the dataset;
-        #    np.asarray used to raise outright on a grad-requiring tensor.
+        #    round-trips. detach() keeps autograd history out of the dataset.
         t_vars = [(v if isinstance(v, torch.Tensor) else torch.as_tensor(v)).detach()
                   for v in variables_out]
         flat_list = [t.reshape(-1, 1) for t in t_vars]
@@ -182,7 +181,7 @@ class Dataset(torch.utils.data.Dataset):
 
         # 3) Rebuild tensors and stack along the channel axis
         stacked = []
-        for scaled, orig in zip(flat_scaled, t_vars):
+        for scaled in flat_scaled:
             s = scaled if isinstance(scaled, torch.Tensor) else torch.as_tensor(scaled)
             stacked.append(s.reshape(-1, *self.mesh_shape))
 
@@ -633,7 +632,7 @@ class Dataset(torch.utils.data.Dataset):
     
     @cr("NN.Dataset.map")
     def map(self, function: Callable, fn_kwargs: dict = {}, batched: bool = False, batch_size: int = 1000):
-        '''
+        r'''
         Apply a function to the dataset.
 
         Args:
@@ -673,7 +672,7 @@ class Dataset(torch.utils.data.Dataset):
         batch_size: int = 1000,
         return_views: bool = True,
     ):
-        """
+        r"""
         Filter the dataset using a function.
 
         Args:
@@ -709,7 +708,7 @@ class Dataset(torch.utils.data.Dataset):
         
         return self._create_subset_from_indices(indices, return_views)
 
-    def _split_channels(self, out):
+    def _split_channels(self,out):
         r'''
         Split output data with this dataset's layout into one tensor per channel.
 

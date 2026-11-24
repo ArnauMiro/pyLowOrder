@@ -6,7 +6,7 @@
 #
 # Williams, J. P., Zahn, O., & Kutz, J. N. (2023). Sensing with shallow recurrent decoder networks. arXiv preprint arXiv:2301.12011.
 #
-# Last rev: 11/03/2025
+# Last rev: 24/11/2026
 #
 # Precision: a Dataset keeps the precision it was given, and the data is converted to
 # the model's own dtype when it enters the model. The model's dtype is the dtype of its
@@ -45,23 +45,23 @@ class SHRED(nn.Module):
 		hidden_layers (int, optional): Number of LSTM hidden layers (default: ``2``).
 		decoder_sizes (list, optional): Integer list of the decoder layer sizes (default: ``[350, 400]``).
 		input_size (int, optional): Number of sensor signals used as input (default: ``3``).
-		dropouts (float, optional): Dropout probability for the decoder (default: ``0.1``).
+		dropout (float, optional): Dropout probability for the decoder (default: ``0.1``).
 		nconfigs (int, optional): Number of configurations to train SHRED on (default: ``1``).
 		compile (bool, optional): Flag to compile the model (default: ``False``).
 		seed (int, optional): Seed for the sensor selection, ``-1`` picks a random seed and ``0`` or higher fixes it (default: ``-1``).
 	'''
 	def __init__(
-			self, 
-			output_size:int, 
-			device:torch.device, 
-			total_sensors:int, 
-			hidden_size:int=64, 
-			hidden_layers:int=2, 
-			decoder_sizes:list=None, 
-			input_size:int=3, 
-			dropout:int=0.1, 
-			nconfigs:int=1, 
-			compile:bool=False, 
+			self,
+			output_size:int,
+			device:torch.device,
+			total_sensors:int,
+			hidden_size:int=64,
+			hidden_layers:int=2,
+			decoder_sizes:list=None,
+			input_size:int=3,
+			dropout:float=0.1,
+			nconfigs:int=1,
+			compile:bool=False,
 			seed:int=-1):
 		super(SHRED,self).__init__()
 		rng = np.random.default_rng(None if seed == -1 else seed)
@@ -119,7 +119,7 @@ class SHRED(nn.Module):
 		for param in self.parameters():
 			param.requires_grad = True
 	
-	def _loss_func(self, x_true:torch.Tensor, x_pred:torch.Tensor, mod_scale:torch.Tensor, reduction:str):
+	def _loss_func(self,x_true:torch.Tensor,x_pred:torch.Tensor,mod_scale:torch.Tensor,reduction:str):
 		r'''
 		Model loss function.
 
@@ -133,7 +133,7 @@ class SHRED(nn.Module):
 		'''
 		return F.mse_loss(x_pred*mod_scale, x_true*mod_scale, reduction=reduction)
 
-	def _mre(self, x_true:torch.Tensor, x_pred:torch.Tensor, mod_scale:torch.Tensor):
+	def _mre(self,x_true:torch.Tensor,x_pred:torch.Tensor,mod_scale:torch.Tensor):
 		r'''
 		Mean relative error between the original and the SHRED reconstruction.
 
@@ -149,34 +149,34 @@ class SHRED(nn.Module):
 		den  = torch.sqrt(torch.sum(x_true*x_true, axis=0))
 		return torch.sum(num/den*mod_scale/len(mod_scale))
 
-	def _validate_dataset(self, dataset, name:str):
-			r'''
-			Check the shape contract before any permute or broadcast can hide a
-			mismatch. variables_in must be (nsensors, nsnapshots, ndelays) and
-			variables_out must be (nsnapshots, noutputs).
+	def _validate_dataset(self,dataset,name:str):
+		r'''
+		Check the shape contract before any permute or broadcast can hide a
+		mismatch. variables_in must be (nsensors, nsnapshots, ndelays) and
+		variables_out must be (nsnapshots, noutputs).
 
-			Args:
-				dataset (Dataset): dataset to validate.
-				name (str): label used in the error messages.
-			'''
-			vin, vout = dataset.variables_in, dataset.variables_out
-			if vin is None:
-				raiseError('SHRED.fit: %s dataset has no variables_in' % name)
-			if vin.ndim != 3:
-				raiseError('SHRED.fit: %s variables_in must be 3D (nsensors, nsnapshots, ndelays), got %s'
-						% (name, tuple(vin.shape)))
-			if vout.ndim != 2:
-				raiseError('SHRED.fit: %s variables_out must be 2D (nsnapshots, noutputs), got %s. '
-						'A trailing singleton mesh axis is the usual cause: build the Dataset with '
-						'mesh_shape=(1,) for point data, or squeeze it before calling fit.'
-						% (name, tuple(vout.shape)))
-			if vin.shape[1] != vout.shape[0]:
-				raiseError('SHRED.fit: %s has %d input snapshots but %d output snapshots'
-						% (name, vin.shape[1], vout.shape[0]))
+		Args:
+			dataset (Dataset): dataset to validate.
+			name (str): label used in the error messages.
+		'''
+		vin, vout = dataset.variables_in, dataset.variables_out
+		if vin is None:
+			raiseError('SHRED.fit: %s dataset has no variables_in' % name)
+		if vin.ndim != 3:
+			raiseError('SHRED.fit: %s variables_in must be 3D (nsensors, nsnapshots, ndelays), got %s'
+					% (name, tuple(vin.shape)))
+		if vout.ndim != 2:
+			raiseError('SHRED.fit: %s variables_out must be 2D (nsnapshots, noutputs), got %s. '
+					'A trailing singleton mesh axis is the usual cause: build the Dataset with '
+					'mesh_shape=(1,) for point data, or squeeze it before calling fit.'
+					% (name, tuple(vout.shape)))
+		if vin.shape[1] != vout.shape[0]:
+			raiseError('SHRED.fit: %s has %d input snapshots but %d output snapshots'
+					% (name, vin.shape[1], vout.shape[0]))
 
 	@cr('SHRED.fit')
-	def fit(self, train_dataset: Dataset, valid_dataset: Dataset, batch_size:int=64, epochs:int=4000, optim:torch.optim.Optimizer=torch.optim.Adam, 
-	        lr:float=1e-3, reduction:str='mean', verbose:bool=False, patience:int=5, mod_scale:torch.Tensor=None):
+	def fit(self,train_dataset:Dataset,valid_dataset:Dataset,batch_size:int=64,epochs:int=4000,optim:torch.optim.Optimizer=torch.optim.Adam,
+	        lr:float=1e-3,reduction:str='mean',verbose:bool=False,patience:int=5,mod_scale:torch.Tensor=None):
 		r'''
 		Fit of the SHRED model.
 

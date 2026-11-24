@@ -4,7 +4,7 @@
 #
 # Autoencoder architecture for NN Module
 #
-# Last rev: 09/10/2024
+# Last rev: 24/11/2026
 #
 # Precision: a Dataset keeps the precision it was given, and the data is converted to
 # the model's own dtype when it enters the model. The model's dtype is the dtype of its
@@ -673,7 +673,7 @@ class VariationalAutoencoder(Autoencoder):
 
         return rec.cpu().numpy()
   
-    def correlation(self, dataset, savepath: str = None):
+    def correlation(self,dataset,savepath:str=None):
         r"""
         Compute the correlation between the latent variables of the given dataset.
 
@@ -710,7 +710,7 @@ class VariationalAutoencoder(Autoencoder):
             mymod[:,imode] = modesr.reshape((self.N,), order='C')
         return mymod.reshape((self.N*self.lat_dim,),order='C')
 
-    def latent_space(self, dataset: torch.utils.data.Dataset, sample: bool = True):
+    def latent_space(self,dataset:torch.utils.data.Dataset,sample:bool=True):
         r"""
         Compute the latent space of the elements of a given dataset.
 
@@ -1021,7 +1021,7 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
 
         return rec.cpu().numpy()
           
-    def latent_space(self, dataset: torch.utils.data.Dataset, sample: bool = True):
+    def latent_space(self,dataset:torch.utils.data.Dataset,sample:bool=True):
         r"""
         Compute the latent space of the elements of a given dataset.
 

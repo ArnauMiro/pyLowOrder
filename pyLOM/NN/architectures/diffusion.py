@@ -4,7 +4,7 @@
 #
 # Diffusion architecture for NN Module, based on fluidFlow (optional dependency).
 #
-# Last rev: 23/11/2026
+# Last rev: 24/11/2026
 
 import shutil
 from typing  import Union, Optional

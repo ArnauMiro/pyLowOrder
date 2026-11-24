@@ -4,7 +4,7 @@
 #
 # RBF-ELM (Radial Basis Function-augmented Extreme Learning Machine) class.
 #
-# Last rev: 09/06/2026
+# Last rev: 24/11/2026
 #
 # Precision: a Dataset keeps the precision it was given, and the data is converted to
 # the model's own dtype when it enters the model. The model's dtype is the dtype of its
@@ -202,10 +202,10 @@ class RBFELM(nn.Module):
 
     @staticmethod
     def _sample_centers(
-        all_x: torch.Tensor,
-        n_centers: int,
-        method: str,
-        gen: Optional[torch.Generator],
+        all_x:torch.Tensor,
+        n_centers:int,
+        method:str,
+        gen:Optional[torch.Generator],
     ) -> torch.Tensor:
         """
         Select ``n_centers`` rows from ``all_x`` as RBF centers.

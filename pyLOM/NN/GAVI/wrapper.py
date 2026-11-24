@@ -10,7 +10,7 @@
 #
 # CITA PROCEEDINGS MADRID
 #
-# Last rev: 13/11/2025
+# Last rev: 24/11/2026
 #
 # Precision: the data keeps the precision it was given (create_dataset computes the
 # scaling statistics in it) and is converted to the network's own dtype when it enters a
@@ -59,7 +59,7 @@ def _activation_from_str(path:str):
 	return getattr(importlib.import_module(module), name)()
 
 
-def _gavi_paths(BASEDIR:str, modelstr:str, latent_dim:int):
+def _gavi_paths(BASEDIR:str,modelstr:str,latent_dim:int):
 	r'''Checkpoint and configuration paths, sharing the stem written by ``fit``.'''
 	stem = os.path.join(BASEDIR.rstrip('/'), '%s_%i' % (modelstr, latent_dim))
 	return stem + '.pth', stem + '.json'
@@ -220,8 +220,8 @@ def reconstruct_Q(mesh:Mesh,nelxAE:int,nmod:int,Qmeans:np.ndarray,Qstds:np.ndarr
 
 ## Autoencoder on the R
 @cr('GAVI.vae_R')
-def vae_R(data:Dataset, latent_dim:int, *, eval_data:Dataset=None, nepochs:int=2500, nlayers:int=3, conv_chan:int=64, hid_dim:int=32, kernel:int=4, padding:int=1, func:object=silu(), 
-		batch_size:int=64, lr:float=5e-4, beta_start:float=0.0, beta_end:float=2.5e-2, beta_first:int=500, beta_last:int=1000, seed:int=None, BASEDIR:str='./', modelstr='gavi_R_latent'):
+def vae_R(data:Dataset,latent_dim:int,*,eval_data:Dataset=None,nepochs:int=2500,nlayers:int=3,conv_chan:int=64,hid_dim:int=32,kernel:int=4,padding:int=1,func:object=silu(),
+		batch_size:int=64,lr:float=5e-4,beta_start:float=0.,beta_end:float=2.5e-2,beta_first:int=500,beta_last:int=1000,seed:int=None,BASEDIR:str='./',modelstr='gavi_R_latent'):
 	r"""
 	Function to get a disentangled latent representation of the B matrix from the
 	randomized QR factorization.
@@ -241,9 +241,25 @@ def vae_R(data:Dataset, latent_dim:int, *, eval_data:Dataset=None, nepochs:int=2
 			is ``beta_start`` until epoch ``beta_first`` and reaches ``beta_end``
 			at epoch ``beta_last``; a run shorter than ``beta_last`` never
 			reaches ``beta_end``.
+		nlayers (int, optional): number of convolutional layers in the encoder and
+			the decoder (default ``3``).
+		conv_chan (int, optional): filter channels of the first convolutional
+			layer, doubled at each following layer (default ``64``).
+		hid_dim (int, optional): neurons of the linear layer between the
+			convolutions and the latent space (default ``32``).
+		kernel (int, optional): kernel size of the convolutional layers (default ``4``).
+		padding (int, optional): padding of the convolutional layers (default ``1``).
+		func (object, optional): activation function used after every layer
+			(default ``silu()``).
+		batch_size (int, optional): training batch size (default ``64``).
+		lr (float, optional): learning rate (default ``5e-4``).
 		seed (int, optional): seed for weight initialisation and the
 			reparameterisation draw (default ``None``, unseeded).
-		...
+		BASEDIR (str, optional): folder where the checkpoint (``.pth``) and the
+			configuration (``.json``) are written (default ``"./"``).
+		modelstr (str, optional): file stem of the checkpoint and the
+			configuration, ``latent_dim`` is appended to it
+			(default ``"gavi_R_latent"``).
 
 	Returns:
 		VariationalAutoencoder
@@ -282,7 +298,7 @@ def vae_R(data:Dataset, latent_dim:int, *, eval_data:Dataset=None, nepochs:int=2
 
 
 @cr('GAVI.save_vae_R')
-def save_vae_R(vae, BASEDIR:str='./', modelstr:str='gavi_R_latent', save_weights:bool=False, **extra):
+def save_vae_R(vae,BASEDIR:str='./',modelstr:str='gavi_R_latent',save_weights:bool=False,**extra):
 	r"""
 	Save a GAVI R-VAE configuration so it can be reloaded without restating the
 	architecture.
@@ -303,7 +319,7 @@ def save_vae_R(vae, BASEDIR:str='./', modelstr:str='gavi_R_latent', save_weights
 		str: path to the JSON file written.
 	"""
 	if not hasattr(vae, 'gavi_config'):
-		raiseError('This model carries no gavi_config: it was not built by GAVI.vae_R, or predates the configuration-saving change.')
+		raiseError('This model carries no gavi_config: it was not built by GAVI.vae_R or loaded by GAVI.load_vae_R.')
 	cfg              = dict(vae.gavi_config)
 	pthfile, cfgfile = _gavi_paths(BASEDIR, modelstr, cfg['latent_dim'])
 	cfg['config_version'] = GAVI_R_CONFIG_VERSION
@@ -320,8 +336,8 @@ def save_vae_R(vae, BASEDIR:str='./', modelstr:str='gavi_R_latent', save_weights
 	return cfgfile
 
 @cr('GAVI.load_vae_R')
-def load_vae_R(latent_dim:int, *, nlayers:int=None, conv_chan:int=None, hid_dim:int=None, kernel:int=None, padding:int=None, func:object=None,
-               BASEDIR:str='./', modelstr:str='gavi_R_latent', strict:bool=True):
+def load_vae_R(latent_dim:int,*,nlayers:int=None,conv_chan:int=None,hid_dim:int=None,kernel:int=None,padding:int=None,func:object=None,
+               BASEDIR:str='./',modelstr:str='gavi_R_latent',strict:bool=True):
 	r"""
 	Load a trained GAVI R-VAE (no training). The architecture is read from
 	``<BASEDIR>/<modelstr>_<latent_dim>.json`` and the weights from the ``.pth``

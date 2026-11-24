@@ -4,7 +4,7 @@
 #
 # NN utility routines.
 #
-# Last rev: 02/10/2024
+# Last rev: 24/11/2026
 #
 # Precision: a Graph keeps the precision of the mesh it is built from (the dtype of
 # mesh.xyz), is saved in that precision and is loaded back without any conversion. The

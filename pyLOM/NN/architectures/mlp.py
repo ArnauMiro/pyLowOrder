@@ -4,7 +4,7 @@
 #
 # MLP (Multilayer Perceptron) class.
 #
-# Last rev: 06/05/2026
+# Last rev: 24/11/2026
 #
 # Precision: a Dataset keeps the precision it was given, and the data is converted to
 # the model's own dtype when it enters the model. The model's dtype is the dtype of its

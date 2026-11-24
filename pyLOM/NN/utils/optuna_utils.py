@@ -10,7 +10,7 @@ from .. import DEVICE
 from ...utils.errors import raiseError
 from ...utils.parall import pprint
 
-def set_seed(seed: int = -1) -> None:
+def set_seed(seed:int=-1) -> None:
     """
     Set the random seed for full reproducibility across Python, NumPy, and PyTorch.
     

@@ -4,7 +4,7 @@
 #
 # Message passing graph neural network architecture for NN Module
 #
-# Last rev: 30/03/2025
+# Last rev: 24/11/2026
 #
 # Precision: the Graph keeps the precision of its mesh and is converted to the model's own
 # dtype when it is set; input and target batches are converted when they enter the model

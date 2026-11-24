@@ -8,7 +8,7 @@
 # On the integration of geometry agnostic variational-autoencoders into large-scale SVD based models. 
 # Computers & Fluids, 302, 106797. https://doi.org/10.1016/j.compfluid.2025.106797
 #
-# Last rev: 24/10/2025
+# Last rev: 24/11/2026
 #
 # Precision: the data keeps the precision it was given (create_dataset computes the
 # scaling statistics in it) and is converted to the network's own dtype when it enters a
@@ -83,7 +83,7 @@ def load_compressed(fname:str, ptable:PartitionTable, nelxAE:int=1, basedir:str=
 	return Qmeans, Qstds, torch.tensor(weights, device=DEVICE), torch.tensor(biases, device=DEVICE), cpu_to_gpu(Q), cpu_to_gpu(B)
 
 @cr('GAVI.create_dataset')
-def create_dataset(data:tuple, scale:str='max', device:torch.device=DEVICE, scaler=None):
+def create_dataset(data:tuple,scale:str='max',device:torch.device=DEVICE,scaler=None):
 	r'''
 	Create the pyLOM.NN dataset for neural network training of the GAVI autoencoders.
 
@@ -104,7 +104,7 @@ def create_dataset(data:tuple, scale:str='max', device:torch.device=DEVICE, scal
 	'''
 	# Generate a matrix from tupled data
 	nchannel = len(data)
-	# matrix (np.ndarray): data matrix that will be added to the dataset with shape (number of modes, number of variables, number of samples).
+	# matrix (torch.Tensor): data matrix that will be added to the dataset with shape (number of modes, number of variables, number of samples).
 	# The data keeps its own precision, the scaling statistics are computed in it and the model converts to its dtype later
 	matrix   = torch.stack([torch.as_tensor(data[ichannel], device=device) for ichannel in range(nchannel)], dim=1)
 	# Scaling

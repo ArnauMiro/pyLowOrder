@@ -4,7 +4,7 @@
 #
 # NN config resolver routines.
 #
-# Last rev: 15/04/2026
+# Last rev: 24/11/2026
 import importlib
 import yaml
 import numpy as np
