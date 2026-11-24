@@ -33,7 +33,7 @@ from ..utils.activations 			   import silu
 from ..dataset						   import Dataset
 from ...mesh                           import Mesh
 from ...vmmath                         import temporal_mean, subtract_mean, randomized_qr, matmul, local_energy
-from ...utils.cr                       import cr, cr_start, cr_stop
+from ...utils.cr                       import cr, cr_block
 from ...utils.parall                   import pprint
 from ...utils.mpi                      import mpi_reduce, mpi_barrier, MPI_RANK
 from ...utils.gpu                      import cpu_to_gpu, gpu_to_cpu, from_dlpack
@@ -209,12 +209,10 @@ def reconstruct_Q(mesh:Mesh,nelxAE:int,nmod:int,Qmeans:np.ndarray,Qstds:np.ndarr
 		nodes  = conecE.flatten()[np.sort(idx)]
 		lat = matmul(Qs[iel,:,:], Bs[iel,:,:])
 		lat = torch.as_tensor(lat, dtype=next(decoder.parameters()).dtype, device=DEVICE).T
-		cr_start('GAVI.decode', 0)
-		with torch.no_grad():
+		with cr_block('GAVI.decode'), torch.no_grad():
 			decoder.deconv_layers[0].weight.copy_(weights[iel])
 			decoder.deconv_layers[0].bias.copy_(biases[iel])
 			out = decoder(lat)
-		cr_stop('GAVI.decode', 0)
 		Q[nodes] = (out[:,ivar,:].detach().cpu().numpy()*Qstds[iel,ivar]+Qmeans[iel,ivar])
 	
 	return Q
