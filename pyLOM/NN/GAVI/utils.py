@@ -23,8 +23,8 @@ from ...inp_out.io_h5     import h5_save_QR, h5_load_QR, h5_load_compressed
 from ...vmmath.truncation import energy as math_energy
 
 
-def _as(x,device):
-	return torch.as_tensor(x, dtype=torch.float32, device=device)
+def _as(x,dtype,device):
+	return torch.as_tensor(x, dtype=dtype, device=device)
 
 
 @cr('GAVI.save_QR')
@@ -98,23 +98,22 @@ def create_dataset(data:tuple, scale:str='max', device:torch.device=DEVICE, scal
 	# Generate a matrix from tupled data
 	nchannel = len(data)
 	# matrix (np.ndarray): data matrix that will be added to the dataset with shape (number of modes, number of variables, number of samples).
-	matrix   = torch.zeros((data[0].shape[0], nchannel, data[0].shape[1]), dtype=torch.float32, device=device)
-	for ichannel in range(nchannel):
-		matrix[:,ichannel,:] = torch.tensor(data[ichannel], dtype=torch.float32, device=device)
+	# The data keeps its own precision, the scaling statistics are computed in it and the model converts to its dtype later
+	matrix   = torch.stack([torch.as_tensor(data[ichannel], device=device) for ichannel in range(nchannel)], dim=1)
 	# Scaling
 	if scale is None or scale == 'none':
 		matsca, scaler_out = matrix, None
 	elif scale == 'max':
-		s          = _as(scaler,device) if scaler is not None else torch.max(torch.abs(matrix))
+		s          = _as(scaler,matrix.dtype,device) if scaler is not None else torch.max(torch.abs(matrix))
 		matsca     = matrix/s
 		scaler_out = s
 	elif scale == 'maxchan':
-		s          = _as(scaler,device) if scaler is not None else torch.amax(torch.abs(matrix), dim=(0,2))
+		s          = _as(scaler,matrix.dtype,device) if scaler is not None else torch.amax(torch.abs(matrix), dim=(0,2))
 		matsca     = matrix/s.view(1,-1,1)
 		scaler_out = s
 	elif scale == 'meanstd':
 		if scaler is not None:
-			sc         = _as(scaler,device)
+			sc         = _as(scaler,matrix.dtype,device)
 			mean, std  = sc[:,0], sc[:,1]
 		else:
 			mean = matrix.mean(dim=(0,2))
