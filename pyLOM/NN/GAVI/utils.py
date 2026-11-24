@@ -9,6 +9,13 @@
 # Computers & Fluids, 302, 106797. https://doi.org/10.1016/j.compfluid.2025.106797
 #
 # Last rev: 24/10/2025
+#
+# Precision: the data keeps the precision it was given (create_dataset computes the
+# scaling statistics in it) and is converted to the network's own dtype when it enters a
+# VAE, an autoencoder or a decoder. The network's dtype is the dtype of its weights:
+# float32 by default, float64 if the network is built after
+# torch.set_default_dtype(torch.float64). load_vae_R restores the dtype the weights were
+# saved with.
 
 import numpy as np
 import torch

@@ -11,6 +11,13 @@
 # CITA PROCEEDINGS MADRID
 #
 # Last rev: 13/11/2025
+#
+# Precision: the data keeps the precision it was given (create_dataset computes the
+# scaling statistics in it) and is converted to the network's own dtype when it enters a
+# VAE, an autoencoder or a decoder. The network's dtype is the dtype of its weights:
+# float32 by default, float64 if the network is built after
+# torch.set_default_dtype(torch.float64). load_vae_R restores the dtype the weights were
+# saved with.
 
 # General python imports
 import os, json, importlib, datetime, numpy as np
@@ -365,7 +372,10 @@ def load_vae_R(latent_dim:int, *, nlayers:int=None, conv_chan:int=None, hid_dim:
 	                       arch['hid_dim'], batch_norm=arch['batch_norm'])
 	vae        = VariationalAutoencoder(arch['latent_dim'], (arch['nmod'],), arch['input_chan'],
 	                                    encoder, decoder)
-	vae.load_state_dict(torch.load(pthfile, map_location=DEVICE, weights_only=True), strict=strict)
+	state      = torch.load(pthfile, map_location=DEVICE, weights_only=True)
+	# Use the precision the weights were saved with, so a float64 model does not come back as float32
+	vae.to(next(iter(state.values())).dtype)
+	vae.load_state_dict(state, strict=strict)
 	vae.eval()
 	vae.gavi_config = {**cfg, **arch}
 	return vae
