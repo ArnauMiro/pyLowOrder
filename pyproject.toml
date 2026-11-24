@@ -204,9 +204,9 @@ rl = [
 # maintainers, and where to support the project financially. The key is
 # what's used to render the link text on PyPI.
 [project.urls]  # Optional
-"Homepage"    = "https://ArnauMiro@github.com/ArnauMiro/pyLowOrder"
-"Bug Reports" = "https://ArnauMiro@github.com/ArnauMiro/pyLowOrder/issues"
-"Source"      = "https://ArnauMiro@github.com/ArnauMiro/pyLowOrder"
+"Homepage"    = "https://github.com/ArnauMiro/pyLowOrder"
+"Bug Reports" = "https://github.com/ArnauMiro/pyLowOrder/issues"
+"Source"      = "https://github.com/ArnauMiro/pyLowOrder"
 
 # This is configuration specific to the `setuptools` build backend.
 # If you are using a different build backend, you will need to change this.
