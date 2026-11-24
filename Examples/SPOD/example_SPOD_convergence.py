@@ -42,11 +42,12 @@ nolap = nDFT//2  #Number of overlapping snapshots between windows
 
 ## Run SPOD
 #Reference run on the full dataset and reduced runs on the first and the
-#last FRAC fraction of the snapshots
+#last FRAC fraction of the snapshots. The complex modes are kept so that
+#the convergence below is measured with the phase-matched cosine.
 i75      = int(FRAC*N)
-Lr, Pr, fr = pyLOM.SPOD.run(X,          t,          nDFT=nDFT, nolap=nolap, remove_mean=True)
-L1, P1, f1 = pyLOM.SPOD.run(X[:, :i75], t[:i75],    nDFT=nDFT, nolap=nolap, remove_mean=True)
-L2, P2, f2 = pyLOM.SPOD.run(X[:, N-i75:], t[N-i75:], nDFT=nDFT, nolap=nolap, remove_mean=True)
+Lr, Pr, fr = pyLOM.SPOD.run(X,          t,          nDFT=nDFT, nolap=nolap, remove_mean=True, complex=True)
+L1, P1, f1 = pyLOM.SPOD.run(X[:, :i75], t[:i75],    nDFT=nDFT, nolap=nolap, remove_mean=True, complex=True)
+L2, P2, f2 = pyLOM.SPOD.run(X[:, N-i75:], t[N-i75:], nDFT=nDFT, nolap=nolap, remove_mean=True, complex=True)
 
 
 ## Extract the leading block of modes
@@ -54,6 +55,8 @@ L2, P2, f2 = pyLOM.SPOD.run(X[:, N-i75:], t[N-i75:], nDFT=nDFT, nolap=nolap, rem
 #so column j may correspond to a different frequency in each run. Check
 #whether the frequencies appear in the same order; if not, realign the mode
 #ids of the reduced runs with the reference frequencies.
+#The modes are extracted with kind='complex': plotConvergence needs the full
+#complex values to compute the phase-matched cosine.
 def col_of(freqs, f):
 	'''1-based id of the mode column at frequency f'''
 	return int(np.where(np.isclose(freqs, f))[0][0]) + 1
@@ -62,23 +65,26 @@ modes  = list(range(1, fr.shape[0]+1)) #Ids of all the frequencies, reference or
 modes1 = modes if np.allclose(f1, fr) else [col_of(f1, v) for v in fr]
 modes2 = modes if np.allclose(f2, fr) else [col_of(f2, v) for v in fr]
 
-Pr_ = pyLOM.SPOD.extract_modes(Lr, Pr, 1, len(d), iblock=1, modes=modes,  reshape=False)
-P1_ = pyLOM.SPOD.extract_modes(L1, P1, 1, len(d), iblock=1, modes=modes1, reshape=False)
-P2_ = pyLOM.SPOD.extract_modes(L2, P2, 1, len(d), iblock=1, modes=modes2, reshape=False)
+Pr_ = pyLOM.SPOD.extract_modes(Lr, Pr, 1, len(d), iblock=1, modes=modes,  reshape=False, kind='complex')
+P1_ = pyLOM.SPOD.extract_modes(L1, P1, 1, len(d), iblock=1, modes=modes1, reshape=False, kind='complex')
+P2_ = pyLOM.SPOD.extract_modes(L2, P2, 1, len(d), iblock=1, modes=modes2, reshape=False, kind='complex')
 
 
 ## Plot the convergence of the modes
-#The modes are stored as real arrays, so the convergence is measured with the
-#absolute value of the cosine of the angle between the reference and the
-#reduced modes. With FRAC = 0.75 and this windowing recipe the windows of
-#the reduced runs coincide with two of the three windows of the reference
-#run (there is no time shift of the window grid), so for a perfectly
-#periodic flow the expected value is mu = 1 at every frequency, up to the
-#per-run SVD gauge. A drop below 1 at a frequency is therefore a property
-#of the flow itself (shedding-frequency wander, envelope change) and/or of
-#the gauge, not a bookkeeping artifact of the windowing.
-if pyLOM.utils.is_rank_or_serial(root=0):
-	pyLOM.SPOD.plotConvergence(Pr_, P1_, P2_, f=fr)
+#The modes are complex, so the convergence is measured with the phase-matched
+#cosine: the modulus of the complex inner product between the reference and
+#the reduced modes, normalized by their norms. It is insensitive to the
+#arbitrary phase (gauge) that each SPOD run assigns to its modes. With
+#FRAC = 0.75 and this windowing recipe the windows of the reduced runs
+#coincide with two of the three windows of the reference run (there is no
+#time shift of the window grid), so for a perfectly periodic flow the
+#expected value is mu = 1 at every frequency. A drop below 1 is therefore
+#a property of the flow itself (shedding-frequency wander, envelope change),
+#not a bookkeeping artifact of the windowing.
+#plotConvergence reduces the per-mode sums over the whole domain, which is
+#a collective MPI operation: every rank must call it, and only the root
+#rank draws the figure.
+pyLOM.SPOD.plotConvergence(Pr_, P1_, P2_, f=fr)
 
 
 ## Show and print timings

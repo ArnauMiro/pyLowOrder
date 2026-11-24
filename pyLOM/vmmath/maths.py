@@ -73,6 +73,22 @@ def vector_mean(v:np.ndarray,start:int=0) -> float:
 	p = cp if type(v) is cp.ndarray else np
 	return p.mean(v[start:])
 
+@cr('math.vdot')
+def vdot(u:np.ndarray,v:np.ndarray) -> complex:
+	r'''
+	Inner product of two complex vectors, conjugating the first
+	argument (numpy vdot convention): vdot(u,v) = sum(conj(u)*v)
+
+	Args:
+		u (np.ndarray): first complex vector (conjugated)
+		v (np.ndarray): second complex vector
+
+	Result:
+		complex: inner product of u and v
+	'''
+	p = cp if type(u) is cp.ndarray else np
+	return p.vdot(u,v)
+
 @cr('math.matmul')
 def matmul(A:np.ndarray,B:np.ndarray) -> np.ndarray:
 	r'''

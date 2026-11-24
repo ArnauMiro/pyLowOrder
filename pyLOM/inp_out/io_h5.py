@@ -1045,7 +1045,7 @@ def h5_load_SPOD(fname,vars,nmod,ptable=None):
 		nvars   = int(file['SPOD']['n_variables'][0])
 		nblocks = int(file['SPOD']['n_blocks'][0])
 		point   = bool(file['SPOD']['pointData'][0])
-		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars*nblocks,point=point)
+		istart, iend = ptable.partition_bounds(MPI_RANK,ndim=nvars*nblocks,points=point)
 		varList.append( np.array(file['SPOD']['P'][istart:iend,:nmod]) )
 	if 'L' in vars: 
 		varList.append( np.array(file['SPOD']['L'][:,:]) )

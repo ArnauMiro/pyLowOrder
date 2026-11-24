@@ -52,6 +52,7 @@ void   cmatmul(scomplex_t *C, scomplex_t *A, scomplex_t *B, const int m, const i
 void   cmatmulp(scomplex_t *C, scomplex_t *A, scomplex_t *B, const int m, const int n, const int k);
 void   cvecmat(scomplex_t *v, scomplex_t *A, const int m, const int n);
 void   cvecmatT(scomplex_t *v, scomplex_t *A, const int m, const int n);
+scomplex_t  cvector_dot(const scomplex_t *u, const scomplex_t *v, int start, int n);
 int    cinv(scomplex_t *A, int m, int n);
 int    cinverse(scomplex_t *A, int N, char *UoL);
 int    ceigen(float *real, float *imag, scomplex_t *vecs, float *A, const int m, const int n);
@@ -70,6 +71,7 @@ void   zmatmul(dcomplex_t *C, dcomplex_t *A, dcomplex_t *B, const int m, const i
 void   zmatmulp(dcomplex_t *C, dcomplex_t *A, dcomplex_t *B, const int m, const int n, const int k);
 void   zvecmat(dcomplex_t *v, dcomplex_t *A, const int m, const int n);
 void   zvecmatT(dcomplex_t *v, dcomplex_t *A, const int m, const int n);
+dcomplex_t  zvector_dot(const dcomplex_t *u, const dcomplex_t *v, int start, int n);
 int    zinv(dcomplex_t *A, int m, int n);
 int    zinverse(dcomplex_t *A, int N, char *UoL);
 int    zeigen(double *real, double *imag, dcomplex_t *vecs, double *A, const int m, const int n);

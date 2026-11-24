@@ -23,7 +23,7 @@ def _fft(Xf, winWeight, nDFT, nf):
 
 ## SPOD run method
 @cr('SPOD.run')
-def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=True, W:np.ndarray=None):
+def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=True, W:np.ndarray=None, complex:bool=False):
 	r'''
 	Run SPOD analysis of a matrix X.
 
@@ -34,9 +34,10 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 		nolap (int, optional): number of overlap points between windows (0 will set default value: 50% nwin)
 		remove_mean (bool, optional): whether or not to remove the mean flow (default, ``True``)
 		W (np.ndarray, optional): 1D array with the diagonal of the inner-product weight matrix W
+		complex (bool, optional): if ``True`` the modes are returned in their complex form, if ``False`` only their real part is stored (default, ``False``)
 
 	Returns:
-		[(np.ndarray), (np.ndarray), (np.ndarray)]: where the first array is L, the modal energy spectra, the second array is  P, SPOD modes, whose spatial dimensions are identical to those of X and finally f is the frequency vectors
+		[(np.ndarray), (np.ndarray), (np.ndarray)]: where the first array is L, the modal energy spectra, the second array is  P, SPOD modes (complex if ``complex`` is true, real otherwise), whose spatial dimensions are identical to those of X and finally f is the frequency vectors
 	''' 
 	cnp = cp if type(X) is cp.ndarray else np
 	# Ensure a C-contiguous buffer, as the compiled vmmath routines
@@ -44,7 +45,7 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 	X = cnp.ascontiguousarray(X)
 	M,N = X.shape
 	dt  = t[1] - t[0]
-	cdtype = np.complex128 if X.dtype is np.double else np.complex64
+	cdtype = np.complex128 if X.dtype == np.double else np.complex64
 
 	# Inner-product weight matrix W (given by its diagonal); it is the
 	# user's responsibility to provide a valid weight vector
@@ -93,12 +94,13 @@ def run(X:np.ndarray, t:np.ndarray, nDFT:int=0, nolap:int=0, remove_mean:bool=Tr
 	cr_stop('SPOD.fft',0)
 
 	L  = cnp.zeros((nf,nBlks),X.dtype)
-	P  = cnp.zeros((M*nBlks,nf),X.dtype)
+	P  = cnp.zeros((M*nBlks,nf),cdtype if complex else X.dtype)
 	cr_start('SPOD.SVD',0)
 	for ifreq, freq in enumerate(f):
 		qf         = Q[ifreq*M:(ifreq+1)*M, :].copy()/cnp.sqrt(nBlks)
 		U, S, V    = tsqr_svd(qf)
-		P[:,ifreq] = cnp.real(U.reshape((M*nBlks), order='F'))
+		Uf         = U.reshape((M*nBlks), order='F')
+		P[:,ifreq] = Uf if complex else cnp.real(Uf)
 		L[ifreq,:] = cnp.abs(S*S)
 	cr_stop('SPOD.SVD',0)
 

@@ -103,6 +103,40 @@ double dvector_sum(double *v, int start, int n) {
 	return sum;
 }
 
+scomplex_t cvector_dot(const scomplex_t *u, const scomplex_t *v, int start, int n) {
+	/*
+		Compute the inner product of the n-dim complex vectors u and v from
+		the position start, conjugating the first vector (numpy vdot convention)
+	*/
+	int ii;
+	float re = 0, im = 0;
+	#ifdef USE_OMP
+	#pragma omp parallel for reduction(+:re,im) private(ii) shared(u,v) firstprivate(start,n)
+	#endif
+	for(ii = start; ii < n; ++ii) {
+		re += crealf(u[ii])*crealf(v[ii]) + cimagf(u[ii])*cimagf(v[ii]);
+		im += crealf(u[ii])*cimagf(v[ii]) - cimagf(u[ii])*crealf(v[ii]);
+	}
+	return CMPLXF(re,im);
+}
+
+dcomplex_t zvector_dot(const dcomplex_t *u, const dcomplex_t *v, int start, int n) {
+	/*
+		Compute the inner product of the n-dim complex vectors u and v from
+		the position start, conjugating the first vector (numpy vdot convention)
+	*/
+	int ii;
+	double re = 0, im = 0;
+	#ifdef USE_OMP
+	#pragma omp parallel for reduction(+:re,im) private(ii) shared(u,v) firstprivate(start,n)
+	#endif
+	for(ii = start; ii < n; ++ii) {
+		re += creal(u[ii])*creal(v[ii]) + cimag(u[ii])*cimag(v[ii]);
+		im += creal(u[ii])*cimag(v[ii]) - cimag(u[ii])*creal(v[ii]);
+	}
+	return CMPLX(re,im);
+}
+
 float svector_norm(float *v, int start, int n) {
 	/*
 		Compute the norm of the n-dim vector v from the position start

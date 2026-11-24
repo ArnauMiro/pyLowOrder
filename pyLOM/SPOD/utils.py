@@ -14,7 +14,7 @@ from ..          import inp_out as io, PartitionTable
 from ..utils     import cr_nvtx as cr, gpu_to_cpu
 
 @cr('SPOD.extract_modes')
-def extract_modes(L:np.ndarray,P:np.ndarray,ivar:int,npoints:int,iblock:int=1,modes:list=[],reshape:bool=True):
+def extract_modes(L:np.ndarray,P:np.ndarray,ivar:int,npoints:int,iblock:int=1,modes:list=[],reshape:bool=True,kind:str='real'):
 	r'''
 	When performing POD of several variables simultaneously, this function separates the spatial modes from each of the variables.
 
@@ -26,6 +26,12 @@ def extract_modes(L:np.ndarray,P:np.ndarray,ivar:int,npoints:int,iblock:int=1,mo
 		modes (list, optional): list containing the ids of the frequencies whose modes are to be extracted (default ``[]``, i. e. all frequencies).
 		iblock (int, optional): block ID of the modes to extract, i. e. the index of the mode within each frequency, sorted by decreasing energy (default ``1``, i. e. the leading mode).
 		reshape (bool, optional): if true the output will be given as (len(modes)*npoints,) if not it the result will be (npoints, len(modes)) (default `` True ``)
+		kind (str, optional): the form of the mode to return. The options are:
+			* 'real': Returns the real part.
+			* 'imag': Returns the imaginary part.
+			* 'abs': Returns the magnitude (absolute value).
+			* 'complex': Returns the complex mode itself.
+			(default ``'real'``)
 
 	Returns:
 		np.ndarray: modes of the variable ivar
@@ -35,10 +41,24 @@ def extract_modes(L:np.ndarray,P:np.ndarray,ivar:int,npoints:int,iblock:int=1,mo
 	nvars   = P.shape[0]//(npoints*nblocks)
 	# Define modes to extract
 	if len(modes) == 0: modes = p.arange(1,P.shape[1]+1,dtype=p.int32)
-	# Allocate output array
-	out = p.zeros((npoints,len(modes)),L.dtype)
+	# Select the form of the mode: the real forms are stored in a real
+	# array of the working precision, 'complex' returns the mode verbatim
+	if kind == 'complex':
+		Pb = P
+		out = p.zeros((npoints,len(modes)),P.dtype)
+	elif kind == 'real':
+		Pb = P.real
+		out = p.zeros((npoints,len(modes)),P.real.dtype)
+	elif kind == 'imag':
+		Pb = P.imag
+		out = p.zeros((npoints,len(modes)),P.real.dtype)
+	elif kind == 'abs':
+		Pb = p.abs(P)
+		out = p.zeros((npoints,len(modes)),P.real.dtype)
+	else:
+		raise ValueError("kind must be: real, imag, abs, complex")
 	# Extract the block
-	Pb = P[(iblock-1)*nvars*npoints:iblock*nvars*npoints]
+	Pb = Pb[(iblock-1)*nvars*npoints:iblock*nvars*npoints]
 	for im,m in enumerate(modes):
 		out[:,im] = Pb[ivar-1:nvars*npoints:nvars,m-1]
 	# Return reshaped output

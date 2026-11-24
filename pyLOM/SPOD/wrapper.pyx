@@ -240,13 +240,187 @@ cdef void _dsort(double *L, double *P, double *f, int M, int nBlks, int nf):
 	free(tmpl)
 	free(sigma)
 
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef void _csort(float *L, np.complex64_t *P, float *f, int M, int nBlks, int nf):
+	cdef int ii, jj, r, i, j, k, icyc, ncyc
+	cdef float *v
+	cdef int *sigma
+	cdef int *start
+	cdef float *tmpl
+	cdef float tmp, tmp2
+	cdef np.complex64_t tmpc, tmp2c
+	v     = <float*>malloc(nf*sizeof(float))
+	sigma = <int*>malloc(nf*sizeof(int))
+	start = <int*>malloc(nf*sizeof(int))
+	tmpl  = <float*>malloc(nBlks*sizeof(float))
+	# Copy to v
+	for ii in range(nf):
+		v[ii] = L[nBlks*ii + 0]
+	# Obtain index array that sorts v
+	c_ssort(v,sigma,nf)
+	free(v)
+	# Build the destination permutation sigma: element ii goes to
+	# position nf-sigma[ii]-1 (reversed order, i.e. descending)
+	for ii in range(nf):
+		sigma[ii] = nf-sigma[ii]-1
+	# Decompose sigma into cycles, recording the starting element of each
+	# cycle in start (elements already visited are marked negative).
+	# Cycles of length one need no reordering and are skipped.
+	ncyc = 0
+	for i in range(nf):
+		if sigma[i] < 0: continue # already in a previous cycle
+		if sigma[i] == i: # cycle of length one: mark and skip
+			sigma[i] = -i-1
+			continue
+		start[ncyc] = i
+		ncyc = ncyc + 1
+		j = i
+		while True:
+			k        = sigma[j]
+			sigma[j] = -k-1 # mark as visited
+			if k == i: break # cycle closed
+			j = k
+	# Restore sigma
+	for ii in range(nf):
+		sigma[ii] = -sigma[ii]-1
+	# Reorder f and L in place: rotate each cycle using a single temporary
+	# element (one row of nBlks elements for L), so that no copy of f, L
+	# or P is needed. Element j of the cycle goes to position sigma[j].
+	for icyc in range(ncyc):
+		i   = start[icyc]
+		j   = i
+		tmp = f[i]
+		memcpy(tmpl,&L[nBlks*i],nBlks*sizeof(float))
+		while True:
+			k = sigma[j]
+			if k == i: break # cycle closed
+			# Rotate f
+			tmp2 = f[k]; f[k] = tmp; tmp = tmp2
+			# Rotate L
+			for jj in range(nBlks):
+				tmp2          = L[nBlks*k+jj]
+				L[nBlks*k+jj] = tmpl[jj]
+				tmpl[jj]      = tmp2
+			j = k
+		f[i] = tmp
+		memcpy(&L[nBlks*i],tmpl,nBlks*sizeof(float))
+	# Reorder P in place: the same permutation acts on the (complex) columns
+	# of each of the M*nBlks rows of P (contiguous arrays of nf elements),
+	# which are rotated cycle by cycle using a single temporary element
+	for r in range(M*nBlks):
+		for icyc in range(ncyc):
+			i   = start[icyc]
+			j   = i
+			tmpc = P[nf*r+i]
+			while True:
+				k = sigma[j]
+				if k == i: break # cycle closed
+				tmp2c      = P[nf*r+k]
+				P[nf*r+k] = tmpc
+				tmpc       = tmp2c
+				j         = k
+			P[nf*r+i] = tmpc
+	free(start)
+	free(tmpl)
+	free(sigma)
+
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef void _zsort(double *L, np.complex128_t *P, double *f, int M, int nBlks, int nf):
+	cdef int ii, jj, r, i, j, k, icyc, ncyc
+	cdef double *v
+	cdef int *sigma
+	cdef int *start
+	cdef double *tmpl
+	cdef double tmp, tmp2
+	cdef np.complex128_t tmpc, tmp2c
+	v     = <double*>malloc(nf*sizeof(double))
+	sigma = <int*>malloc(nf*sizeof(int))
+	start = <int*>malloc(nf*sizeof(int))
+	tmpl  = <double*>malloc(nBlks*sizeof(double))
+	# Copy to v
+	for ii in range(nf):
+		v[ii] = L[nBlks*ii + 0]
+	# Obtain index array that sorts v
+	c_dsort(v,sigma,nf)
+	free(v)
+	# Build the destination permutation sigma: element ii goes to
+	# position nf-sigma[ii]-1 (reversed order, i.e. descending)
+	for ii in range(nf):
+		sigma[ii] = nf-sigma[ii]-1
+	# Decompose sigma into cycles, recording the starting element of each
+	# cycle in start (elements already visited are marked negative).
+	# Cycles of length one need no reordering and are skipped.
+	ncyc = 0
+	for i in range(nf):
+		if sigma[i] < 0: continue # already in a previous cycle
+		if sigma[i] == i: # cycle of length one: mark and skip
+			sigma[i] = -i-1
+			continue
+		start[ncyc] = i
+		ncyc = ncyc + 1
+		j = i
+		while True:
+			k        = sigma[j]
+			sigma[j] = -k-1 # mark as visited
+			if k == i: break # cycle closed
+			j = k
+	# Restore sigma
+	for ii in range(nf):
+		sigma[ii] = -sigma[ii]-1
+	# Reorder f and L in place: rotate each cycle using a single temporary
+	# element (one row of nBlks elements for L), so that no copy of f, L
+	# or P is needed. Element j of the cycle goes to position sigma[j].
+	for icyc in range(ncyc):
+		i   = start[icyc]
+		j   = i
+		tmp = f[i]
+		memcpy(tmpl,&L[nBlks*i],nBlks*sizeof(double))
+		while True:
+			k = sigma[j]
+			if k == i: break # cycle closed
+			# Rotate f
+			tmp2 = f[k]; f[k] = tmp; tmp = tmp2
+			# Rotate L
+			for jj in range(nBlks):
+				tmp2          = L[nBlks*k+jj]
+				L[nBlks*k+jj] = tmpl[jj]
+				tmpl[jj]      = tmp2
+			j = k
+		f[i] = tmp
+		memcpy(&L[nBlks*i],tmpl,nBlks*sizeof(double))
+	# Reorder P in place: the same permutation acts on the (complex) columns
+	# of each of the M*nBlks rows of P (contiguous arrays of nf elements),
+	# which are rotated cycle by cycle using a single temporary element
+	for r in range(M*nBlks):
+		for icyc in range(ncyc):
+			i   = start[icyc]
+			j   = i
+			tmpc = P[nf*r+i]
+			while True:
+				k = sigma[j]
+				if k == i: break # cycle closed
+				tmp2c      = P[nf*r+k]
+				P[nf*r+k] = tmpc
+				tmpc       = tmp2c
+				j         = k
+			P[nf*r+i] = tmpc
+	free(start)
+	free(tmpl)
+	free(sigma)
+
 
 ## SPOD run method
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean, float[:] W):
+def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean, float[:] W, bint complex_out):
 	'''
 	Run SPOD analysis of a matrix X.
 
@@ -257,10 +431,11 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean, float[
 		- nolap:             number of overlap points between windows (0 will set default value: 50% nwin)
 		- remove_mean:       whether or not to remove the mean flow
 		- W[ndims*nmesh]:    diagonal of the inner-product weight matrix (energy norm); None for no weighting
+		- complex_out:       whether to keep the complex modes or store only their real part
 
 	Returns:
 		- L:  modal energy spectra.
-		- P:  SPOD modes, whose spatial dimensions are identical to those of X.
+		- P:  SPOD modes (complex if complex_out, real otherwise), whose spatial dimensions are identical to those of X.
 		- f:  frequency vector.
 	''' 
 	cdef int i, iblk, ifreq, ip, i0, nBlks, nf, M = X.shape[0], N = X.shape[1]
@@ -282,6 +457,7 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean, float[
 	# Output arrays
 	cdef np.ndarray[np.float32_t,ndim=2] L
 	cdef np.ndarray[np.float32_t,ndim=2] P
+	cdef np.ndarray[np.complex64_t,ndim=2] Pc
 	cdef np.ndarray[np.float32_t,ndim=1] f
 
 	# Deal with the window gain
@@ -339,7 +515,10 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean, float[
 
 	f = np.zeros((nf,)       ,dtype=np.float32)
 	L = np.zeros((nf,nBlks)  ,dtype=np.float32)
-	P = np.zeros((M*nBlks,nf),dtype=np.float32)
+	if complex_out:
+		Pc = np.zeros((M*nBlks,nf),dtype=np.complex64)
+	else:
+		P  = np.zeros((M*nBlks,nf),dtype=np.float32)
 
 	# Set frequency axis
 	for i in range(nf):
@@ -385,10 +564,15 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean, float[
 				qf[nBlks*i + iblk] = Q[nf*nBlks*i + nBlks*ifreq + iblk]/sqrt(nBlks)
 		# Run SVD
 		c_ctsqr_svd(U,S,V,qf,M,nBlks)
-		# Store P
-		for i in range(M):
-			for iblk in range(nBlks):
-				P[i + M*iblk,ifreq] = crealf(U[nBlks*i + iblk])
+		# Store P, keeping the complex modes or only their real part depending on complex_out
+		if complex_out:
+			for i in range(M):
+				for iblk in range(nBlks):
+					Pc[i + M*iblk,ifreq] = U[nBlks*i + iblk]
+		else:
+			for i in range(M):
+				for iblk in range(nBlks):
+					P[i + M*iblk,ifreq] = crealf(U[nBlks*i + iblk])
 		# Store L
 		for iblk in range(nBlks):
 			L[ifreq,iblk] = S[iblk]*S[iblk]
@@ -402,24 +586,33 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean, float[
 
 	# Recover the physical, W-orthonormal modes from the transformed ones
 	if weighted:
-		for i in range(M):
-			for iblk in range(nBlks):
-				for ifreq in range(nf):
-					P[i + M*iblk,ifreq] = P[i + M*iblk,ifreq]/W_sqrt[i]
+		if complex_out:
+			for i in range(M):
+				for iblk in range(nBlks):
+					for ifreq in range(nf):
+						Pc[i + M*iblk,ifreq] = Pc[i + M*iblk,ifreq]/W_sqrt[i]
+		else:
+			for i in range(M):
+				for iblk in range(nBlks):
+					for ifreq in range(nf):
+						P[i + M*iblk,ifreq] = P[i + M*iblk,ifreq]/W_sqrt[i]
 	free(W_sqrt)
 
 	# Sort
 	cr_start('SPOD.sort',0)
-	_ssort(&L[0,0],&P[0,0],&f[0],M,nBlks,nf)
+	if complex_out:
+		_csort(&L[0,0],&Pc[0,0],&f[0],M,nBlks,nf)
+	else:
+		_ssort(&L[0,0],&P[0,0],&f[0],M,nBlks,nf)
 	cr_stop('SPOD.sort',0)
 
-	return L, P, f
+	return L, (Pc if complex_out else P), f
 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean, double[:] W):
+def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean, double[:] W, bint complex_out):
 	'''
 	Run SPOD analysis of a matrix X.
 
@@ -430,10 +623,11 @@ def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean, doub
 		- nolap:             number of overlap points between windows (0 will set default value: 50% nwin)
 		- remove_mean:       whether or not to remove the mean flow
 		- W[ndims*nmesh]:    diagonal of the inner-product weight matrix (energy norm); None for no weighting
+		- complex_out:       whether to keep the complex modes or store only their real part
 
 	Returns:
 		- L:  modal energy spectra.
-		- P:  SPOD modes, whose spatial dimensions are identical to those of X.
+		- P:  SPOD modes (complex if complex_out, real otherwise), whose spatial dimensions are identical to those of X.
 		- f:  frequency vector.
 	''' 
 	cdef int i, iblk, ifreq, ip, i0, nBlks, nf, M = X.shape[0], N = X.shape[1]
@@ -455,6 +649,7 @@ def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean, doub
 	# Output arrays
 	cdef np.ndarray[np.double_t,ndim=2] L
 	cdef np.ndarray[np.double_t,ndim=2] P
+	cdef np.ndarray[np.complex128_t,ndim=2] Pc
 	cdef np.ndarray[np.double_t,ndim=1] f
 
 	# Deal with the window gain
@@ -512,7 +707,10 @@ def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean, doub
 
 	f = np.zeros((nf,)       ,dtype=np.double)
 	L = np.zeros((nf,nBlks)  ,dtype=np.double)
-	P = np.zeros((M*nBlks,nf),dtype=np.double)
+	if complex_out:
+		Pc = np.zeros((M*nBlks,nf),dtype=np.complex128)
+	else:
+		P  = np.zeros((M*nBlks,nf),dtype=np.double)
 
 	# Set frequency axis
 	for i in range(nf):
@@ -558,10 +756,15 @@ def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean, doub
 				qf[nBlks*i + iblk] = Q[nf*nBlks*i + nBlks*ifreq + iblk]/sqrt(nBlks)
 		# Run SVD
 		c_ztsqr_svd(U,S,V,qf,M,nBlks)
-		# Store P
-		for i in range(M):
-			for iblk in range(nBlks):
-				P[i + M*iblk,ifreq] = creal(U[nBlks*i + iblk])
+		# Store P, keeping the complex modes or only their real part depending on complex_out
+		if complex_out:
+			for i in range(M):
+				for iblk in range(nBlks):
+					Pc[i + M*iblk,ifreq] = U[nBlks*i + iblk]
+		else:
+			for i in range(M):
+				for iblk in range(nBlks):
+					P[i + M*iblk,ifreq] = creal(U[nBlks*i + iblk])
 		# Store L
 		for iblk in range(nBlks):
 			L[ifreq,iblk] = S[iblk]*S[iblk]
@@ -575,25 +778,34 @@ def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean, doub
 
 	# Recover the physical, W-orthonormal modes from the transformed ones
 	if weighted:
-		for i in range(M):
-			for iblk in range(nBlks):
-				for ifreq in range(nf):
-					P[i + M*iblk,ifreq] = P[i + M*iblk,ifreq]/W_sqrt[i]
+		if complex_out:
+			for i in range(M):
+				for iblk in range(nBlks):
+					for ifreq in range(nf):
+						Pc[i + M*iblk,ifreq] = Pc[i + M*iblk,ifreq]/W_sqrt[i]
+		else:
+			for i in range(M):
+				for iblk in range(nBlks):
+					for ifreq in range(nf):
+						P[i + M*iblk,ifreq] = P[i + M*iblk,ifreq]/W_sqrt[i]
 	free(W_sqrt)
 
 	# Sort
 	cr_start('SPOD.sort',0)
-	_dsort(&L[0,0],&P[0,0],&f[0],M,nBlks,nf)
+	if complex_out:
+		_zsort(&L[0,0],&Pc[0,0],&f[0],M,nBlks,nf)
+	else:
+		_dsort(&L[0,0],&P[0,0],&f[0],M,nBlks,nf)
 	cr_stop('SPOD.sort',0)
 
-	return L, P, f
+	return L, (Pc if complex_out else P), f
 
 @cr('SPOD.run')
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def run(real[:,:] X, real[:] t, int nDFT=0, int nolap=0, remove_mean=True, W=None):
+def run(real[:,:] X, real[:] t, int nDFT=0, int nolap=0, remove_mean=True, W=None, complex=False):
 	r'''
 	Run SPOD analysis of a matrix X.
 
@@ -604,9 +816,10 @@ def run(real[:,:] X, real[:] t, int nDFT=0, int nolap=0, remove_mean=True, W=Non
 		nolap (int, optional): number of overlap points between windows (0 will set default value: 50% nwin)
 		remove_mean (bool, optional): whether or not to remove the mean flow (default, ``True``)
 		W (np.ndarray, optional): 1D array with the diagonal of the inner-product weight matrix
+		complex (bool, optional): if ``True`` the modes are returned in their complex form, if ``False`` only their real part is stored (default, ``False``)
 
 	Returns:
-		[(np.ndarray), (np.ndarray), (np.ndarray)]: where the first array is L, the modal energy spectra, the second array is  P, SPOD modes, whose spatial dimensions are identical to those of X and finally f is the frequency vectors
+		[(np.ndarray), (np.ndarray), (np.ndarray)]: where the first array is L, the modal energy spectra, the second array is  P, SPOD modes (complex if ``complex`` is true, real otherwise), whose spatial dimensions are identical to those of X and finally f is the frequency vectors
 	''' 
 	# Ensure C-contiguous input (C routines assume a dense layout)
 	X = np.ascontiguousarray(X)
@@ -615,8 +828,8 @@ def run(real[:,:] X, real[:] t, int nDFT=0, int nolap=0, remove_mean=True, W=Non
 	if real is double:
 		X = np.ascontiguousarray(X,dtype=np.double)
 		W = None if W is None else np.ascontiguousarray(W,dtype=np.double)
-		return _drun(X,t,nDFT,nolap,remove_mean,W)
+		return _drun(X,t,nDFT,nolap,remove_mean,W,complex)
 	else:
 		X = np.ascontiguousarray(X,dtype=np.float32)
 		W = None if W is None else np.ascontiguousarray(W,dtype=np.float32)
-		return _srun(X,t,nDFT,nolap,remove_mean,W)
+		return _srun(X,t,nDFT,nolap,remove_mean,W,complex)

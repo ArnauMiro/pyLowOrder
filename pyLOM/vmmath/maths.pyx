@@ -26,8 +26,8 @@ from libc.math     cimport sqrt, atan2
 from .cfuncs       cimport real, real_complex, real_full
 from .cfuncs       cimport c_stranspose, c_svector_sum, c_svector_norm, c_svector_mean, c_smatmul, c_smatmulp, c_svecmat, c_svecmatT, c_sinv, c_ssort, c_sdiag, c_sdiag2
 from .cfuncs       cimport c_dtranspose, c_dvector_sum, c_dvector_norm, c_dvector_mean, c_dmatmul, c_dmatmulp, c_dvecmat, c_dvecmatT, c_dinv, c_dsort, c_ddiag, c_ddiag2
-from .cfuncs       cimport c_ctranspose, c_cmatmul, c_cmatmulp, c_cvecmat, c_cvecmatT, c_cinv, c_ceigen, c_ccholesky, c_cvandermonde, c_cvandermonde_time, c_csort, c_cconj, c_cdagger, c_cdiag, c_cdiag2
-from .cfuncs       cimport c_ztranspose, c_zmatmul, c_zmatmulp, c_zvecmat, c_zvecmatT,c_zinv, c_zeigen, c_zcholesky, c_zvandermonde, c_zvandermonde_time, c_zsort, c_zconj, c_zdagger, c_zdiag, c_zdiag2
+from .cfuncs       cimport c_ctranspose, c_cmatmul, c_cmatmulp, c_cvecmat, c_cvecmatT, c_cvector_dot, c_cinv, c_ceigen, c_ccholesky, c_cvandermonde, c_cvandermonde_time, c_csort, c_cconj, c_cdagger, c_cdiag, c_cdiag2
+from .cfuncs       cimport c_ztranspose, c_zmatmul, c_zmatmulp, c_zvecmat, c_zvecmatT, c_zvector_dot, c_zinv, c_zeigen, c_zcholesky, c_zvandermonde, c_zvandermonde_time, c_zsort, c_zconj, c_zdagger, c_zdiag, c_zdiag2
 
 from ..utils.cr     import cr
 from ..utils.errors import raiseError
@@ -276,6 +276,57 @@ def vector_mean(real[:] v, int start=0):
 		return _dvector_mean(v,start)
 	else:
 		return _svector_mean(v,start)
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.complex64_t _cvector_dot(np.complex64_t[:] u, np.complex64_t[:] v):
+	'''
+	Inner product of two complex vectors, conjugating the first
+	'''
+	cdef int n = u.shape[0]
+	return c_cvector_dot(&u[0],&v[0],0,n)
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef np.complex128_t _zvector_dot(np.complex128_t[:] u, np.complex128_t[:] v):
+	'''
+	Inner product of two complex vectors, conjugating the first
+	'''
+	cdef int n = u.shape[0]
+	return c_zvector_dot(&u[0],&v[0],0,n)
+
+@cr('math.vdot')
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def vdot(real_complex[:] u, real_complex[:] v):
+	r'''
+	Inner product of two complex vectors, conjugating the first
+	argument (numpy vdot convention): vdot(u,v) = sum(conj(u)*v)
+
+	Args:
+		u (np.ndarray): first complex vector (conjugated)
+		v (np.ndarray): second complex vector
+
+	Result:
+		complex: inner product of u and v
+	'''
+	# Ensure C-contiguous input (C routines assume a dense layout)
+	u = np.ascontiguousarray(u)
+	v = np.ascontiguousarray(v)
+
+	if real_complex is np.complex128_t:
+		return _zvector_dot(u,v)
+	else:
+		return _cvector_dot(u,v)
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
