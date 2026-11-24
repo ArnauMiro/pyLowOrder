@@ -11,7 +11,8 @@
 # RBF layer, self.hidden.centers.dtype (its weights are buffers, not parameters, so
 # next(self.parameters()) cannot be used): float32 by default, float64 if the model is
 # converted after building (.double() or .to(torch.float64)) or built after
-# torch.set_default_dtype(torch.float64).
+# torch.set_default_dtype(torch.float64). The CHOLMOD path of fit runs on the CPU and
+# solves in float64 on purpose, then converts beta to the model's dtype.
 
 import math, os, numpy as np, torch, torch.nn as nn, scipy.sparse as sp
 
@@ -330,9 +331,12 @@ class RBFELM(nn.Module):
             **dataloader_kwargs,
         }
 
-        # The model's dtype is the dtype of its RBF layer, the numpy arrays of the CHOLMOD path follow it
+        # The model's dtype is the dtype of its RBF layer
         dtype    = self.hidden.centers.dtype
-        np_dtype = torch.empty((), dtype=dtype).numpy().dtype
+        # The CHOLMOD path runs on the CPU and is done in float64 on purpose, whatever the
+        # model's dtype: H^T H squares the condition number of H, which float32 cannot
+        # resolve. beta is converted to the model's dtype at the end.
+        np_dtype = np.float64
 
         # Pass 1: sample centers and set up the RBFLayer
         all_x = train_dataset[:][0].to(self.device, dtype=dtype)
@@ -378,7 +382,7 @@ class RBFELM(nn.Module):
 
             if use_cholmod:
                 with torch.no_grad():
-                    H_blk = self.hidden(x_blk).cpu()
+                    H_blk = self.hidden(x_blk).cpu().to(torch.float64)
                 
                 mask_H = H_blk.abs() >= sparsity_threshold
                 H_blk_sparse = H_blk * mask_H
@@ -394,7 +398,7 @@ class RBFELM(nn.Module):
                     dtype=np_dtype,
                 )
                 HtH_sparse = HtH_sparse + block_sparse
-                Hty_np += (H_blk_sparse.T @ y_blk.cpu()).numpy()
+                Hty_np += (H_blk_sparse.T @ y_blk.cpu().to(torch.float64)).numpy()
 
                 if verbose and print_rate_batch != 0 and (b_idx % print_rate_batch) == 0:
                     sparsity_H = 1.0 - mask_H.sum().item() / H_blk.numel()
