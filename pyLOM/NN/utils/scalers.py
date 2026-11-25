@@ -386,6 +386,7 @@ class MinMaxScaler:
         if not self.is_fitted:
             raiseError("Scaler must be fitted before it can be saved")
         save_dict = {
+            "type": "minmax",
             "feature_range": self.feature_range,
             "variable_scaling_params": self.variable_scaling_params,
             "column": self._column,
@@ -432,6 +433,10 @@ class StandardScaler:
             return x.unsqueeze(1) if x.ndim == 1 else x
         x = np.asarray(x)
         return x[:, None] if x.ndim == 1 else x
+
+    def _orient(self, X2d):
+        # No row/column toggle in this scaler (unlike MinMaxScaler), so this is a no-op.
+        return X2d
 
     def fit(self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]):
         is_array  = isinstance(variables, np.ndarray)
@@ -563,6 +568,10 @@ class RobustScaler:
         x = np.asarray(x)
         return x[:, None] if x.ndim == 1 else x
 
+    def _orient(self, X2d):
+        # No row/column toggle in this scaler (unlike MinMaxScaler), so this is a no-op.
+        return X2d
+
     def _quantiles(self, block):
         arr = block.detach().cpu().numpy() if isinstance(block, torch.Tensor) else np.asarray(block)
         q1  = float(np.percentile(arr, 25.0))
@@ -677,3 +686,28 @@ class RobustScaler:
         scaler.variable_scaling_params = loaded["variable_scaling_params"]
         scaler._is_fitted = True
         return scaler
+
+
+_SCALER_TYPES = {
+    "minmax":   MinMaxScaler,
+    "standard": StandardScaler,
+    "robust":   RobustScaler,
+}
+
+
+def load_scaler(filepath: str) -> ScalerProtocol:
+    """
+    Load a scaler previously saved with `.save()`, dispatching to the right
+    class based on the "type" field in the saved file. Files saved by
+    MinMaxScaler before it started writing "type" are assumed to be "minmax".
+    """
+    if not os.path.exists(filepath):
+        raiseError(f"No file found at {filepath}")
+    with open(filepath, "r") as f:
+        loaded = json.load(f)
+
+    scaler_type = loaded.get("type", "minmax")
+    if scaler_type not in _SCALER_TYPES:
+        raiseError(f"Unknown scaler type '{scaler_type}' in {filepath}")
+
+    return _SCALER_TYPES[scaler_type].load(filepath)
