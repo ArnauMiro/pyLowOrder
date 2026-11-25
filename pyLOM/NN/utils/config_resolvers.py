@@ -4,18 +4,17 @@
 #
 # NN config resolver routines.
 #
-# Last rev: 15/04/2026
-import importlib
-import yaml
-import numpy as np
-from dataclasses import fields, is_dataclass
-from typing import Any, Mapping, Optional, Union, get_args, get_origin
-from pathlib import Path
+# Last rev: 23/11/2026
 
-import torch
-from torch import nn, optim
+import importlib, yaml, numpy as np, torch
+
+from dataclasses import fields, is_dataclass
+from typing      import Any, Mapping, Optional, Union, get_args, get_origin
+from pathlib     import Path
+from torch       import nn, optim
 
 from ...utils.errors import raiseError
+
 
 def load_yaml(path: Union[str, Path]) -> dict:
     """Load a YAML file into a Python dict."""
@@ -144,12 +143,10 @@ def resolve_scheduler(scheduler_path: str):
     if scheduler_path is None:
         return None
     cls = resolve_import(scheduler_path)
-    # _LRScheduler is internal; comprobamos interfaz básica
+    # _LRScheduler is internal: only check that it is a class
     if not isinstance(cls, type):
         raiseError(f"Scheduler '{scheduler_path}' must be a class.")
     return cls
-
-# pyLOM/utils/factory.py
 
 
 def instantiate_from_config(spec: Optional[Mapping[str, Any]]) -> Any:

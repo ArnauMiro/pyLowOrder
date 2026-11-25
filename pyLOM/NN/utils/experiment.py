@@ -1,6 +1,10 @@
-"""
-Utilites for running and saving experiments with NN modules in pyLOM.
-"""
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# NN utilities to run and save experiments (artifacts, plots and ParaView export).
+#
+# Last rev: 23/11/2026
 
 from pathlib import Path
 import os
@@ -32,7 +36,7 @@ import pyLOM
 
 from ... import pprint
 from ...utils import get_git_commit, raiseError
-from ..utils.config_resolvers import to_native
+from .config_resolvers import to_native
 
 
 if TYPE_CHECKING:
@@ -420,12 +424,12 @@ def plot_true_vs_pred(y_true: np.ndarray,
 
 def save_experiment_artifacts(
     base_path: Path,
-    model: any,
+    model: Any,
     metrics_dict: dict[str, float],
-    inputs_scaler: any = None,
-    outputs_scaler: any = None,
+    inputs_scaler: Any = None,
+    outputs_scaler: Any = None,
     full_run_config: dict[str, Any] | None = None,
-    extra_files: dict[str, any] | None = None,
+    extra_files: dict[str, Any] | None = None,
     return_path: bool = False,
 ) -> Path | None:
     """
@@ -440,13 +444,13 @@ def save_experiment_artifacts(
     # 1) Decide output directory (timestamped subfolder if 'base_path' is a dir)
     if base_path.is_dir() or not base_path.suffix:
         timestamp = datetime.datetime.now().isoformat(timespec="seconds").replace(":", "-")
-        model_name = getattr(model, "__class__", type("X",(object,),{})).__name__
+        model_name = type(model).__name__
         out_dir = base_path / f"{timestamp}_{model_name}"
     else:
         out_dir = base_path
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # 2) Build the resolved reproducibility document we’ll save AND hash
+    # 2) Build the resolved reproducibility document we'll save AND hash
     model_cfg_dict = _asdict_safe(getattr(model, "model_config", None))
     train_cfg_dict = _asdict_safe(getattr(model, "last_training_config", None)) if getattr(model, "last_training_config", None) else None
     graph_spec_obj = getattr(model, "graph_spec", None)
@@ -483,7 +487,7 @@ def save_experiment_artifacts(
     canonical = json.dumps(config_doc, sort_keys=True, separators=(",", ":")).encode("utf-8")
     config_sha256 = hashlib.sha256(canonical).hexdigest()
 
-    # 4) Write config.yaml (human‑readable) and meta.yaml
+    # 4) Write config.yaml (human-readable) and meta.yaml
     yaml_config_path = out_dir / "config.yaml"
     with yaml_config_path.open("w") as f:
         yaml.safe_dump(config_doc, f, sort_keys=False)
@@ -664,10 +668,8 @@ def plot_train_test_loss(
     """
 
     # Prepare figure/axes
-    created_fig = False
     if ax is None:
         fig, ax = plt.subplots(figsize=(8, 5))
-        created_fig = True
     else:
         fig = ax.figure
 
@@ -747,14 +749,13 @@ def plot_train_test_loss(
     if save and final_save_path is None:
         final_save_path = os.path.join(".", "plots", "train_test_losses.png")
     if final_save_path is not None:
-        os.makedirs(os.path.dirname(final_save_path), exist_ok=True)
+        save_dir = os.path.dirname(final_save_path)
+        if save_dir:
+            os.makedirs(save_dir, exist_ok=True)
         fig.savefig(final_save_path, dpi=dpi)
 
+    # If the figure is not shown, it is returned so that the caller can manage it
     if show:
         plt.show()
-    elif created_fig:
-        # If we created the figure and user does not want to show it,
-        # it's still returned so the caller can manage it.
-        pass
 
     return fig, ax, summary

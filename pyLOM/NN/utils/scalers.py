@@ -2,20 +2,14 @@
 #
 # pyLOM - Python Low Order Modeling.
 #
-# NN utility routines.
+# NN scalers.
 #
-# Last rev:
+# Last rev: 23/11/2026
 
-# Built-in modules
-import os
-import json
-from typing import List, Union, Optional,Protocol
+import os, json, numpy as np, torch
 
-# Third-party libraries
-import numpy as np
-import torch
+from typing import List, Union, Optional, Protocol
 
-# Local modules
 from ...utils.errors import raiseError
 
 
@@ -153,13 +147,12 @@ class MinMaxScaler:
         self.feature_range = feature_range
         self._is_fitted = False
         self._column    = column
-        self.blocks     = blocks  # NEW
+        self.blocks     = blocks
 
     @property
     def is_fitted(self):
         return self._is_fitted
 
-    # ---------- internal helpers (robustos y retrocompatibles) ----------
     def _ensure_2d(self, x):
         """Return x as a 2D array/tensor. A 1D input is promoted to a single
         variable: a column when column=False, a row when column=True."""
@@ -264,8 +257,7 @@ class MinMaxScaler:
         self.variable_scaling_params = [self.variable_scaling_params[i] for i in kept_positions]
         self.blocks = self._reindex_blocks(kept_positions)
 
-    # ------------------------------ API ------------------------------
-    def fit(self, variables: Union[List[Union[np.ndarray, torch.tensor]], np.ndarray, torch.tensor]):
+    def fit(self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]):
         """
         Compute the min and max per variable.
         - If `blocks is None`:
@@ -303,7 +295,7 @@ class MinMaxScaler:
         self._fit_from_list = not (is_array or is_tensor)
 
     def transform(
-        self, variables: Union[List[Union[np.ndarray, torch.tensor]], np.ndarray, torch.tensor]
+        self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]
     ):
         """
         Scale variables using min-max.
@@ -317,7 +309,7 @@ class MinMaxScaler:
         is_array  = isinstance(variables, np.ndarray)
         is_tensor = isinstance(variables, torch.Tensor)
 
-        # --- Case 1: array/tensor input ---
+        # Case 1: array/tensor input
         if is_array or is_tensor:
             X = self._orient(self._ensure_2d(variables))
             blocks = self._split_into_blocks(X)
@@ -335,7 +327,7 @@ class MinMaxScaler:
                 out = self._stack_blocks(scaled_blocks, as_tensor=False)
                 return out.T if self._column else out
 
-        # --- Case 2: list input (backward-compatible) ---
+        # Case 2: list input
         scaled_list = []
         for i, v in enumerate(variables):
             v2d = self._ensure_2d(v)
@@ -394,6 +386,7 @@ class MinMaxScaler:
         if not self.is_fitted:
             raiseError("Scaler must be fitted before it can be saved")
         save_dict = {
+            "type": "minmax",
             "feature_range": self.feature_range,
             "variable_scaling_params": self.variable_scaling_params,
             "column": self._column,
@@ -440,6 +433,10 @@ class StandardScaler:
             return x.unsqueeze(1) if x.ndim == 1 else x
         x = np.asarray(x)
         return x[:, None] if x.ndim == 1 else x
+
+    def _orient(self, X2d):
+        # No row/column toggle in this scaler (unlike MinMaxScaler), so this is a no-op.
+        return X2d
 
     def fit(self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]):
         is_array  = isinstance(variables, np.ndarray)
@@ -571,6 +568,10 @@ class RobustScaler:
         x = np.asarray(x)
         return x[:, None] if x.ndim == 1 else x
 
+    def _orient(self, X2d):
+        # No row/column toggle in this scaler (unlike MinMaxScaler), so this is a no-op.
+        return X2d
+
     def _quantiles(self, block):
         arr = block.detach().cpu().numpy() if isinstance(block, torch.Tensor) else np.asarray(block)
         q1  = float(np.percentile(arr, 25.0))
@@ -685,3 +686,28 @@ class RobustScaler:
         scaler.variable_scaling_params = loaded["variable_scaling_params"]
         scaler._is_fitted = True
         return scaler
+
+
+_SCALER_TYPES = {
+    "minmax":   MinMaxScaler,
+    "standard": StandardScaler,
+    "robust":   RobustScaler,
+}
+
+
+def load_scaler(filepath: str) -> ScalerProtocol:
+    """
+    Load a scaler previously saved with `.save()`, dispatching to the right
+    class based on the "type" field in the saved file. Files saved by
+    MinMaxScaler before it started writing "type" are assumed to be "minmax".
+    """
+    if not os.path.exists(filepath):
+        raiseError(f"No file found at {filepath}")
+    with open(filepath, "r") as f:
+        loaded = json.load(f)
+
+    scaler_type = loaded.get("type", "minmax")
+    if scaler_type not in _SCALER_TYPES:
+        raiseError(f"Unknown scaler type '{scaler_type}' in {filepath}")
+
+    return _SCALER_TYPES[scaler_type].load(filepath)

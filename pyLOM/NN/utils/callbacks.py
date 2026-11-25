@@ -4,8 +4,7 @@
 #
 # NN callback routines.
 #
-# Last rev: 02/10/2024
-from __future__ import print_function
+# Last rev: 23/11/2026
 
 import numpy as np
 

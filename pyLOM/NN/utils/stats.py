@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# NN evaluation metrics.
+#
+# Last rev: 23/11/2026
+
 import numpy as np, torch
 
 from typing import Optional, Dict
@@ -47,6 +55,7 @@ class RegressionEvaluator():
         tolerance: float = 1e-2,
     ) -> None:
         self.tolerance = tolerance
+        self._metrics: Optional[dict] = None
 
     @property
     def tolerance(self) -> float:
@@ -55,11 +64,11 @@ class RegressionEvaluator():
     @tolerance.setter
     def tolerance(self, value: float) -> None:
         if value < 0:
-            raise raiseError("Tolerance must be a positive value.")
+            raiseError("Tolerance must be a positive value.")
         if value == 0:
-            raise raiseError("Tolerance cannot be zero.")
+            raiseError("Tolerance cannot be zero.")
         if value > 1:
-            raise raiseError("Tolerance should not be greater than 1, as it is a fraction of the largest absolute true value.")
+            raiseError("Tolerance should not be greater than 1, as it is a fraction of the largest absolute true value.")
         self._tolerance = value
 
     def mean_squared_error(
@@ -197,7 +206,7 @@ class RegressionEvaluator():
         Print the calculated regression metrics.
         """
         if self._metrics is None:
-            raise raiseError("No metrics have been calculated yet.")
+            raiseError("No metrics have been calculated yet.")
 
         def _print_block(label, metrics):
             pprint(0, f"\n{label}")
@@ -423,9 +432,10 @@ class ClassificationEvaluator:
         """
         # Ensure arrays
         if isinstance(y_true, torch.Tensor):
-            y_true = self._to_1d(y_true.detach().cpu().numpy()).astype(int)
+            y_true = y_true.detach().cpu().numpy()
         elif not isinstance(y_true, np.ndarray):
             raiseError("y_true must be a numpy array.")
+        y_true = self._to_1d(y_true).astype(int)
         
         if isinstance(y_pred, np.ndarray):
             y_in = y_pred
@@ -436,11 +446,11 @@ class ClassificationEvaluator:
 
         # Validate inputs
         if len(np.unique(y_true)) < 2:
-            raiseError(f"y_true must contain two classes to choose threshold.")
+            raiseError("y_true must contain two classes to choose threshold.")
         if np.any((y_true != 0) & (y_true != 1)):
             raiseError("y_true must contain only binary labels {0, 1}.")
         if len(y_in) != len(y_true):
-            raiseError(f"y_pred and y_true must have the same length.")
+            raiseError("y_pred and y_true must have the same length.")
         if np.any(y_in < 0) or np.any(y_in > 1):
             raiseError("y_pred must contain valid probabilities in [0, 1].")
 

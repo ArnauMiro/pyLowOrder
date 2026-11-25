@@ -48,40 +48,51 @@ class GradientWeightedMSE(BaseLossFunction):
         alpha: Weighting factor for the gradient term. Higher values give more importance to the gradient weighting (default: ``1.0``).
         geom_dim: Number of geometric input dimensions to consider for the gradient (e.g., 3 for 3D spatial coordinates; default: ``3``).
         eps: Small constant to prevent division by zero when normalizing the gradient magnitude (default: ``1e-8``).
+        max_weight: Upper bound for the normalized gradient weight. The weight is normalized by its batch mean, so a handful of points whose gradient is much larger than the rest of the batch (shocks, for instance) can reach a weight of order the batch size and dominate the update. ``None`` (default) leaves it unbounded.
         per_output: If ``False`` (default), a single shared gradient weight is computed per point by differentiating the sum of all outputs. If ``True``, an independent gradient weight is computed for each output variable separately.
+        detach_weight: If ``True``, the weight is a constant of each point for the backward pass (it is detached, with no double backward): the model is trained to reduce the weighted error only. If ``False`` (default), the weight is also differentiated (double backward), so the training also changes the gradient of the predictions with respect to the inputs, which reduces the weight where the error is large.
     """
     def __init__(
         self,
         alpha: float = 1.0,
         geom_dim: int = 3,
         eps: float = 1e-8,
+        max_weight: float = None,
         per_output: bool = False,
+        detach_weight: bool = False,
     ):
         super().__init__()
         self.alpha = alpha
         self.geom_dim = geom_dim
         self.eps = eps
+        self.max_weight = max_weight
         self.per_output = per_output
+        self.detach_weight = detach_weight
 
     def _shared_grad_weight(
-        self, 
-        pred, 
+        self,
+        pred,
         x
     ) -> torch.Tensor:
         r"""
         Compute scalar weight per point, shared across all outputs.
         Differentiates the sum of all outputs w.r.t. x, so the gradient reflects the aggregate spatial sensitivity of the model.
+        The weight is detached if ``detach_weight`` is ``True``.
         """
         grads_full = torch.autograd.grad(
             outputs=pred,
             inputs=x,
             grad_outputs=torch.ones_like(pred),
-            create_graph=True,
-            retain_graph=True,
+            create_graph=not self.detach_weight,                    # double backward only if the weight is differentiated
+            retain_graph=True,                                      # the graph of pred is still needed by the loss
         )[0]                                                        # [N, input_dim]
         grads_geom = grads_full[:, 0:self.geom_dim]                 # [N, geom_dim]
         grad_norm = torch.norm(grads_geom, dim=1)                   # [N]
         grad_weight = grad_norm / (grad_norm.mean() + self.eps)     # [N]
+        if self.max_weight is not None:
+            grad_weight = grad_weight.clamp(max=self.max_weight)    # [N]
+        if self.detach_weight:
+            grad_weight = grad_weight.detach()                      # [N]
         return grad_weight.unsqueeze(-1)                            # [N, 1]
 
     def _per_output_grad_weight(
@@ -92,19 +103,24 @@ class GradientWeightedMSE(BaseLossFunction):
         r"""
         Compute one scalar weight per (point, output) pair.
         Differentiates each output independently, capturing output-specific spatial sensitivity.
+        The weights are detached if ``detach_weight`` is ``True``.
         """
         grad_weights = []
         for j in range(pred.shape[1]):
             grad_j = torch.autograd.grad(
                 outputs=pred[:, j].sum(),
                 inputs=x,
-                create_graph=True,
-                retain_graph=True,
+                create_graph=not self.detach_weight,                    # double backward only if the weight is differentiated
+                retain_graph=True,                                      # the graph of pred is still needed
             )[0]                                                        # [N, input_dim]
             geom_grad_j = grad_j[:, 0:self.geom_dim]                    # [N, geom_dim]
             norm_j = torch.norm(geom_grad_j, dim=1)                     # [N]
-            grad_weights.append(norm_j / (norm_j.mean() + self.eps))    # [N]
-        return torch.stack(grad_weights, dim=1)                         # [N, M]
+            weight_j = norm_j / (norm_j.mean() + self.eps)              # [N]
+            if self.max_weight is not None:
+                weight_j = weight_j.clamp(max=self.max_weight)          # [N]
+            grad_weights.append(weight_j)                               # [N]
+        grad_weights = torch.stack(grad_weights, dim=1)                 # [N, M]
+        return grad_weights.detach() if self.detach_weight else grad_weights
 
     def forward(
         self, 
@@ -191,6 +207,8 @@ class HybridGradientNeighborMSELoss(BaseLossFunction):
         beta: Weighting factor for the neighbor difference term (default: ``1.0``).
         geom_dim: Number of geometric input dimensions to consider for the gradient (e.g., 3 for 3D spatial coordinates; default: ``3``).
         eps: Small constant to prevent division by zero when normalizing the neighbor differences (default: ``1e-8``).
+        max_weight: Upper bound for the normalized gradient weight (see ``GradientWeightedMSE``). ``None`` (default) leaves it unbounded.
+        detach_weight: Whether the gradient weight is detached (see ``GradientWeightedMSE``; default: ``False``).
     """
     def __init__(
         self,
@@ -198,12 +216,16 @@ class HybridGradientNeighborMSELoss(BaseLossFunction):
         beta: float = 1.0,
         geom_dim: int = 3,
         eps: float = 1e-8,
+        max_weight: float = None,
+        detach_weight: bool = False,
     ):
         super().__init__()
         self.alpha = alpha
         self.beta = beta
         self.geom_dim = geom_dim
         self.eps = eps
+        self.max_weight = max_weight
+        self.detach_weight = detach_weight
 
     def forward(
         self,
@@ -227,13 +249,17 @@ class HybridGradientNeighborMSELoss(BaseLossFunction):
             outputs=pred_center,
             inputs=center_x_req,
             grad_outputs=torch.ones_like(pred_center),
-            create_graph=True,
-            retain_graph=True,
+            create_graph=not self.detach_weight,                    # double backward only if the weight is differentiated
+            retain_graph=True,                                      # the graph of pred_center is still needed by the loss
         )[0]
 
         grads_geom = grads_full[:, :self.geom_dim]
         grad_norm = torch.norm(grads_geom, dim=1)
         grad_weight = grad_norm / (grad_norm.mean() + self.eps)
+        if self.max_weight is not None:
+            grad_weight = grad_weight.clamp(max=self.max_weight)
+        if self.detach_weight:
+            grad_weight = grad_weight.detach()                      # constant of each point for the backward pass
 
         loss_weighted_mse = torch.mean((1.0 + self.alpha * grad_weight.unsqueeze(-1)) * mse_pointwise)
 
