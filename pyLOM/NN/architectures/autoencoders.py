@@ -250,6 +250,10 @@ class Autoencoder(nn.Module):
         Decode the latent space to the original space.
         Output shape matches ``reconstruct``: (inp_chan, N, num_samples).
 
+        For a nonlinear decoder, decoding a mean latent state does not give the mean
+        field: D(E[z]) is not E[D(z)]. To estimate an expected field, decode samples of
+        the latent space and average the decoded outputs instead.
+
         Args:
             z (np.ndarray or torch.Tensor): Element(s) of the latent space, shape (num_samples, latent_dim).
 
@@ -470,6 +474,10 @@ class FullyConnectedAutoencoder(nn.Module):
     def decode(self, z):
         r"""
         Decode the latent space to the original space.
+
+        For a nonlinear decoder, decoding a mean latent state does not give the mean
+        field: D(E[z]) is not E[D(z)]. To estimate an expected field, decode samples of
+        the latent space and average the decoded outputs instead.
 
         Args:
             z (np.ndarray or torch.Tensor): Element(s) of the latent space, shape (num_samples, latent_dim).

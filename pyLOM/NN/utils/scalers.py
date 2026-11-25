@@ -383,6 +383,10 @@ class StandardScaler:
 
     Supports both matrix/tensor input and list-of-blocks input, mirroring
     MinMaxScaler behavior used by Dataset.
+
+    Each column of a matrix or tensor, or each item of a list, is one variable.
+    Unlike MinMaxScaler there is no ``column`` or ``blocks`` option: to scale
+    variables stored by rows, pass the data transposed.
     """
 
     def __init__(self, eps: float = 1e-12):
@@ -519,6 +523,10 @@ class RobustScaler:
     Robust scaler using median and IQR: z = (x - median) / IQR.
 
     Supports both matrix/tensor input and list-of-blocks input.
+
+    Each column of a matrix or tensor, or each item of a list, is one variable.
+    Unlike MinMaxScaler there is no ``column`` or ``blocks`` option: to scale
+    variables stored by rows, pass the data transposed.
     """
 
     def __init__(self, eps: float = 1e-12):

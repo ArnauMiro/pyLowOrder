@@ -6,7 +6,7 @@
 #
 # Williams, J. P., Zahn, O., & Kutz, J. N. (2023). Sensing with shallow recurrent decoder networks. arXiv preprint arXiv:2301.12011.
 #
-# Last rev: 24/11/2026
+# Last rev: 25/11/2026
 #
 # Precision: a Dataset keeps the precision it was given, and the data is converted to
 # the model's own dtype when it enters the model. The model's dtype is the dtype of its
@@ -185,7 +185,9 @@ class SHRED(nn.Module):
 			valid_dataset (torch.utils.data.Dataset): validation dataset.
 			batch_size (int, optional): length of each training batch (default: ``64``).
 			epochs (int, optional): number of epochs to extend the training (default: ``4000``).
-			optim (torch.optim, optional): optimizer used (default: ``torch.optim.Adam``).
+			optim (callable, optional): optimizer class or function, called as ``optim(self.parameters(), lr=lr)`` (default: ``torch.optim.Adam``).
+				To pass other options, such as weight decay, wrap it:
+				``optim=lambda p, lr: torch.optim.AdamW(p, lr=lr, weight_decay=1e-4)``.
 			lr (float, optional): learning rate (default: ``0.001``).
 			verbose (bool, optional): define level of explicity on the output (default: ``False``). 
 			patience (int, optional): epochs without improvements on the validation loss before stopping the training (default to 5).
