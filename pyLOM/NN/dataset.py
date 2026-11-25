@@ -4,7 +4,7 @@
 #
 # NN datasets.
 #
-# Last rev: 24/11/2026
+# Last rev: 25/11/2026
 
 import numpy as np
 import torch
@@ -67,7 +67,7 @@ class Dataset(torch.utils.data.Dataset):
         outputs_scaler (MinMaxScaler): Scaler to scale the output variables. If the scaler is not fitted, it will be fitted. Default is ``None``.
         snapshots_by_column (bool): If the snapshots from `variables_out` are stored by column. The snapshots on `pyLOM.Dataset`s have this format. Default is ``True``.
         combine_parameters_with_cartesian_prod (bool): If ``True``, parameters are combined using the Cartesian product when building the parameter grid. Default is ``False``.
-        squeeze_last_dim (bool): If ``True``, a singleton trailing dimension in the output variables is squeezed after processing. Default is ``True``.
+        squeeze_last_dim (bool): If ``True``, the output variables lose a dummy mesh axis (``mesh_shape=(1,)``) and a singleton channel axis, wherever they sit, so point data with C channels gives (N, C) and a single channel gives (N, *mesh_shape). Both ``channels_last`` layouts give the same shape unless the channel and mesh axes are both larger than 1. Default is ``True``.
         channels_last (bool): If ``True``, output variables are returned with channels last ordering. Default is ``False``.
     """
     @cr("NN.Dataset.__init__")
@@ -160,6 +160,8 @@ class Dataset(torch.utils.data.Dataset):
         (one block per channel) and transforms accordingly (per-channel min/max).
         - Rebuilds a torch.Tensor with shape (N, C, *mesh_shape) by default.
           If ``channels_last=True`` it returns (N, *mesh_shape, C).
+        - With ``squeeze_last_dim`` the dummy mesh axis (``mesh_shape=(1,)``) and a
+          singleton channel axis are removed, in either layout.
         """
         # 1) Normalise every channel to a torch tensor without leaving its device.
         #    torch.as_tensor is a no-op for a tensor that is already of the right
