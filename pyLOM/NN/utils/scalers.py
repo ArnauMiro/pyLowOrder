@@ -2,20 +2,14 @@
 #
 # pyLOM - Python Low Order Modeling.
 #
-# NN utility routines.
+# NN scalers.
 #
-# Last rev:
+# Last rev: 23/11/2026
 
-# Built-in modules
-import os
-import json
-from typing import List, Union, Optional,Protocol
+import os, json, numpy as np, torch
 
-# Third-party libraries
-import numpy as np
-import torch
+from typing import List, Union, Optional, Protocol
 
-# Local modules
 from ...utils.errors import raiseError
 
 
@@ -153,13 +147,12 @@ class MinMaxScaler:
         self.feature_range = feature_range
         self._is_fitted = False
         self._column    = column
-        self.blocks     = blocks  # NEW
+        self.blocks     = blocks
 
     @property
     def is_fitted(self):
         return self._is_fitted
 
-    # ---------- internal helpers (robustos y retrocompatibles) ----------
     def _ensure_2d(self, x):
         """Return x as a 2D array/tensor. A 1D input is promoted to a single
         variable: a column when column=False, a row when column=True."""
@@ -264,8 +257,7 @@ class MinMaxScaler:
         self.variable_scaling_params = [self.variable_scaling_params[i] for i in kept_positions]
         self.blocks = self._reindex_blocks(kept_positions)
 
-    # ------------------------------ API ------------------------------
-    def fit(self, variables: Union[List[Union[np.ndarray, torch.tensor]], np.ndarray, torch.tensor]):
+    def fit(self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]):
         """
         Compute the min and max per variable.
         - If `blocks is None`:
@@ -303,7 +295,7 @@ class MinMaxScaler:
         self._fit_from_list = not (is_array or is_tensor)
 
     def transform(
-        self, variables: Union[List[Union[np.ndarray, torch.tensor]], np.ndarray, torch.tensor]
+        self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]
     ):
         """
         Scale variables using min-max.
@@ -317,7 +309,7 @@ class MinMaxScaler:
         is_array  = isinstance(variables, np.ndarray)
         is_tensor = isinstance(variables, torch.Tensor)
 
-        # --- Case 1: array/tensor input ---
+        # Case 1: array/tensor input
         if is_array or is_tensor:
             X = self._orient(self._ensure_2d(variables))
             blocks = self._split_into_blocks(X)
@@ -335,7 +327,7 @@ class MinMaxScaler:
                 out = self._stack_blocks(scaled_blocks, as_tensor=False)
                 return out.T if self._column else out
 
-        # --- Case 2: list input (backward-compatible) ---
+        # Case 2: list input
         scaled_list = []
         for i, v in enumerate(variables):
             v2d = self._ensure_2d(v)
