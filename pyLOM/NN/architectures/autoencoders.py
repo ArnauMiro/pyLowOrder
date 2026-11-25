@@ -845,29 +845,6 @@ class VariationalAutoencoder(Autoencoder):
 
         return 0
 
-    def decode(self, z):
-        r"""
-        Decode a latent space element to the original space.
-        Output shape matches ``reconstruct``: (inp_chan, N, num_samples).
-
-        Args:
-            z (np.ndarray or torch.Tensor): Element(s) of the latent space, shape (num_samples, latent_dim).
-
-        Returns:
-            np.ndarray: Decoded data, shape (inp_chan, N, num_samples).
-        """
-        zt = torch.as_tensor(z, dtype=self._dtype, device=self._device)
-        was_training = self.training
-        self.eval()
-        with torch.no_grad():
-            var = self.decoder(zt)
-        if was_training:
-            self.train()
-        var_np = var.cpu().numpy()
-        # Reshape to (num_samples, inp_chan, N) then transpose to (inp_chan, N, num_samples)
-        var_flat = var_np.reshape(var_np.shape[0], self.inp_chan, self.N)
-        return np.transpose(var_flat, (1, 2, 0)) 
-
 
 class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
     r"""
@@ -1165,22 +1142,3 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
         self.decoder.load_state_dict(torch.load('%s/decoder_state.pth' % BASEDIR, weights_only=True))
 
         return 0
-
-    def decode(self, z):
-        r"""
-        Decode a latent space element to the original space.
-
-        Args:
-            z (np.ndarray or torch.Tensor): Element(s) of the latent space, shape (num_samples, latent_dim).
-
-        Returns:
-            np.ndarray: Decoded data, shape (num_samples, in_size).
-        """
-        zt = torch.as_tensor(z, dtype=self._dtype, device=self._device)
-        was_training = self.training
-        self.eval()
-        with torch.no_grad():
-            var = self.decoder(zt)
-        if was_training:
-            self.train()
-        return var.cpu().numpy()
