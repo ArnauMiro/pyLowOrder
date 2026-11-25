@@ -4,7 +4,7 @@
 #
 # Autoencoder architecture for NN Module
 #
-# Last rev: 24/11/2026
+# Last rev: 25/11/2026
 #
 # Precision: a Dataset keeps the precision it was given, and the data is converted to
 # the model's own dtype when it enters the model. The model's dtype is the dtype of its
@@ -25,7 +25,7 @@ from   functools               import reduce
 from   operator                import mul
 
 from   ..                      import DEVICE, PIN_MEMORY
-from   ...utils                import cr, pprint
+from   ...utils                import cr, pprint, raiseError
 
 
 ## Wrapper of a variational autoencoder
@@ -707,22 +707,36 @@ class VariationalAutoencoder(Autoencoder):
         pprint(0, 'Orthogonality between modes %.2f' % (detR), flush=True)
         return corr, detR
 
-    def modes(self):
+    def modes(self,ivar:int=1):
         r"""
-        Compute the modes of the latent space.
+        Compute the modes of the latent space for one channel, in the flattened
+        layout of ``pyLOM.POD.extract_modes`` (with ``reshape=True``), so the result
+        can be added to a pyLOM Dataset in the same way as POD, SPOD or DMD modes.
+
+        Mode 1 is D(0), the decoder output at the origin of the latent space, and
+        mode i+1 is D(e_i) - D(0), the change produced by a unit step along latent
+        direction i (one standard deviation of the prior). This parallels a POD run
+        without removing the mean: its first mode carries the mean-like content and
+        the rest carry the fluctuations. The data is already mean-subtracted before
+        it enters the autoencoder, so D(0) is not the data mean; it is the offset of
+        the decoder. For a nonlinear decoder these modes are not orthogonal, are not
+        ordered by energy and have no singular values.
+
+        Args:
+            ivar (int, optional): channel to return, counted from 1 like
+                ``pyLOM.POD.extract_modes`` (default ``1``).
 
         Returns:
-            np.ndarray: Modes of the latent space.
+            np.ndarray: modes of channel ``ivar``, shape (N*(latent_dim+1),), where the
+            value of point p in mode m (counted from 1) is at p*(latent_dim+1) + m-1.
         """
-        zmode = np.diag(np.ones((self.lat_dim,),dtype=float))
-        zmodt = torch.as_tensor(zmode, dtype=self._dtype, device=self._device)
-        modes = self.decoder(zmodt)
-        mymod = np.zeros((self.N,self.lat_dim),dtype=float)
-        modes = modes.cpu()
-        for imode in range(self.lat_dim):
-            modesr = modes[imode,0,:,:].detach().numpy()
-            mymod[:,imode] = modesr.reshape((self.N,), order='C')
-        return mymod.reshape((self.N*self.lat_dim,),order='C')
+        if ivar < 1 or ivar > self.inp_chan:
+            raiseError('ivar=%d is out of range, the model has %d channels (counted from 1)' % (ivar, self.inp_chan))
+        # Latent vectors 0, e_1, ..., e_L, decoded in eval mode to (inp_chan, N, latent_dim+1)
+        z    = np.vstack((np.zeros((1, self.lat_dim)), np.eye(self.lat_dim)))
+        dmod = self.decode(z)[ivar-1]
+        dmod[:,1:] -= dmod[:,:1]
+        return dmod.reshape((self.N*(self.lat_dim+1),), order='C')
 
     def latent_space(self,dataset:torch.utils.data.Dataset,sample:bool=True):
         r"""
