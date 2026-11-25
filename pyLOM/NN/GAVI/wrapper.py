@@ -97,6 +97,8 @@ def vae_Q(fname:str,Q:tuple,mesh:Mesh,porder:int,r:int,nlayers:int=1,conv_chan:i
 	r"""
 	Function to compress the Q matrix from the randomized QR factorization following the strategy from CITA PROCEEDINGS MADRID and keeping the same partition as in the running mesh
 
+	Despite its name, the Q stage uses a deterministic autoencoder (not a variational one), so its latent space is not sampled.
+
 	Args:
 		fname (str): file name where the compressed data will be saved
 		Q (tuple): Q matrices to compress
