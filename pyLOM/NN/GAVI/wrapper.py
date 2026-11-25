@@ -10,7 +10,7 @@
 #
 # CITA PROCEEDINGS MADRID
 #
-# Last rev: 24/11/2026
+# Last rev: 25/11/2026
 #
 # Precision: the data keeps the precision it was given (create_dataset computes the
 # scaling statistics in it) and is converted to the network's own dtype when it enters a
@@ -152,11 +152,14 @@ def vae_Q(fname:str,Q:tuple,mesh:Mesh,porder:int,r:int,nlayers:int=1,conv_chan:i
 		vae.fit(datatra, eval_dataset=None, batch_size=nptxAE, epochs=epochs, lr=learning_r, BASEDIR='./', pin_memory=False, shuffle=False, conv_loss=1e-2)
 		vae.eval()
 		latent  = vae.latent_space(datatra)
-		Q2, B2  = randomized_qr(from_dlpack(latent.T), r+10, 1,local=True)
-		latr    = torch.as_tensor(matmul(Q2[:,:r],B2[:r,:]), dtype=vae._dtype, device=DEVICE).T
+		# Compiled routines need C-contiguous arrays: latent.T is a transposed view, Q2[:,:r] a column slice
+		Q2, B2  = randomized_qr(from_dlpack(latent.T.contiguous()), r+10, 1,local=True)
+		latr    = torch.as_tensor(matmul(Q2[:,:r].copy(),B2[:r,:]), dtype=vae._dtype, device=DEVICE).T
 		rectrL  = vae.decoder(latr)
 		for ivar in range(nvars):
-			ener[ivar] += local_energy(rectrL[:,ivar,:].T.cpu().detach().numpy()*scaler[ivar,1]+scaler[ivar,0], Qtrain[:,ivar,:])
+			rec         = rectrL[:,ivar,:].T.cpu().detach().numpy()*scaler[ivar,1]+scaler[ivar,0]
+			# Original first; compiled routines need C-contiguous arrays (rec is transposed, Qtrain sliced)
+			ener[ivar] += local_energy(np.ascontiguousarray(Qtrain[:,ivar,:]), np.ascontiguousarray(rec))
 		if np.mod(iAE,1000)==0:
 			pprint(0, iAE, ener/(iAE+1), flush=True)
 		means[iAE] = scaler[:,0]

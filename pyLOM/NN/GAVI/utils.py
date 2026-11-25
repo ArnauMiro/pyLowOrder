@@ -146,4 +146,5 @@ def energy(dataset:Dataset,reconstructed:np.array,channel:int):
 	Returns:
 		energy: energy kept on the reconstruction 
 	'''
-	return math_energy(dataset.variables_out[:,channel,:].cpu().numpy().T,reconstructed[channel])
+	# The compiled routine needs C-contiguous arrays: both inputs are transposed views
+	return math_energy(np.ascontiguousarray(dataset.variables_out[:,channel,:].cpu().numpy().T),np.ascontiguousarray(reconstructed[channel]))
