@@ -4,7 +4,7 @@
 #
 # NN utility routines.
 #
-# Last rev: 24/11/2026
+# Last rev: 25/11/2026
 
 # Built-in modules
 import os
@@ -416,7 +416,8 @@ class StandardScaler:
         params = []
         for b in blocks:
             mean = float(b.mean())
-            std  = float(b.std())
+            # Divide by n for both inputs: torch divides by n-1 unless told otherwise
+            std  = float(b.std(correction=0)) if isinstance(b, torch.Tensor) else float(b.std())
             if std < self.eps:
                 std = 1.0
             params.append({"mean": mean, "std": std})

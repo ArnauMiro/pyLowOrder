@@ -8,7 +8,7 @@
 # On the integration of geometry agnostic variational-autoencoders into large-scale SVD based models. 
 # Computers & Fluids, 302, 106797. https://doi.org/10.1016/j.compfluid.2025.106797
 #
-# Last rev: 24/11/2026
+# Last rev: 25/11/2026
 #
 # Precision: the data keeps the precision it was given (create_dataset computes the
 # scaling statistics in it) and is converted to the network's own dtype when it enters a
@@ -124,7 +124,7 @@ def create_dataset(data:tuple,scale:str='max',device:torch.device=DEVICE,scaler=
 			mean, std  = sc[:,0], sc[:,1]
 		else:
 			mean = matrix.mean(dim=(0,2))
-			std  = matrix.std(dim=(0,2))
+			std  = matrix.std(dim=(0,2), correction=0) # divide by n, like np.std
 		matsca     = (matrix - mean.view(1,-1,1))/std.view(1,-1,1)
 		scaler_out = torch.stack((mean, std), dim=1)
 	else:
