@@ -93,11 +93,16 @@ def QR(X:np.ndarray,k:int,q:int=1,osampl:int=10):
 
 ## Compress the randomized QR factorization
 @cr('GAVI.vae_Q')
-def vae_Q(fname:str,Q:tuple,mesh:Mesh,porder:int,r:int,nlayers:int=1,conv_chan:int=4,kernel:int=4,padding:int=1,func:object=silu(),epochs:int=1000,learning_r:float=5e-3,basedir:str='./',dtype:np.dtype=np.float32):
+def vae_Q(fname:str,Q:tuple,mesh:Mesh,porder:int,r:int,nlayers:int=1,conv_chan:int=4,kernel:int=4,padding:int=1,func:object=silu(),epochs:int=1000,learning_r:float=5e-3,basedir:str='./',dtype:np.dtype=np.float32,seed:int=None):
 	r"""
 	Function to compress the Q matrix from the randomized QR factorization following the strategy from CITA PROCEEDINGS MADRID and keeping the same partition as in the running mesh
 
 	Despite its name, the Q stage uses a deterministic autoencoder (not a variational one), so its latent space is not sampled.
+
+	The blocks of one MPI rank are trained one after another with the same network, so each block
+	starts from the weights of the previous one: a warm start that speeds up training. The result
+	therefore depends on the order of the blocks and on how many blocks each rank gets. With ``seed``,
+	a run is reproducible for the same number of ranks.
 
 	Args:
 		fname (str): file name where the compressed data will be saved
@@ -105,7 +110,6 @@ def vae_Q(fname:str,Q:tuple,mesh:Mesh,porder:int,r:int,nlayers:int=1,conv_chan:i
 		mesh (Mesh): mesh in which the data is represented
 		porder (int): pOrder of the original CFD mesh
 		r (int): number of modes to retain from the latent space
-		nvars (int): number of variables to compress
 		nlayers (int, optional): number of convolutional layers in the autoencoders (default ``1``)
 		conv_chan (int, optional): number of convolutional channels in each layer (default ``4``)
 		kernel (int, optional): size of the kernel of the convolutions (default ``4``)
@@ -115,6 +119,8 @@ def vae_Q(fname:str,Q:tuple,mesh:Mesh,porder:int,r:int,nlayers:int=1,conv_chan:i
 		learning_r (float, optional): learning rate (default ``5e-3``)
 		basedir (str, optional): directory where the compressed file will be saved (default ``./``)
 		dtype (np.dtype, optional): data type used to save the arrays (default ``np.float32``)
+		seed (int, optional): seed for the initial weights and for the randomized QR of every block
+			(default ``None``, unseeded).
 
 	"""
 	## Get Q dimensions
@@ -127,6 +133,11 @@ def vae_Q(fname:str,Q:tuple,mesh:Mesh,porder:int,r:int,nlayers:int=1,conv_chan:i
 	nAEsG   = mpi_reduce(nAEs, op='sum', all=True)
 	ist,ien = mesh.partition_table.partition_bounds(MPI_RANK, points=False)
 	ist,ien = int(ist/nelxAE), int(ien/nelxAE)
+	## Seed the initial weights; the blocks then continue from the previous block's weights (warm start)
+	if seed is not None:
+		torch.manual_seed(seed)
+		if torch.cuda.is_available():
+			torch.cuda.manual_seed_all(seed)
 	## Define the AE architecture
 	activ   = [func for _ in range(nlayers)]
 	encoder = Encoder1DNoLatent(nlayers, nmod, nvars, conv_chan, kernel, padding, activ)
@@ -155,7 +166,7 @@ def vae_Q(fname:str,Q:tuple,mesh:Mesh,porder:int,r:int,nlayers:int=1,conv_chan:i
 		vae.eval()
 		latent  = vae.latent_space(datatra)
 		# Compiled routines need C-contiguous arrays of one dtype: latent.T is a transposed view, Q2[:,:r] a column slice
-		Q2, B2  = randomized_qr(from_dlpack(latent.T.contiguous()), r+10, 1,local=True)
+		Q2, B2  = randomized_qr(from_dlpack(latent.T.contiguous()), r+10, 1, seed=-1 if seed is None else seed, local=True)
 		latr    = torch.as_tensor(matmul(*_same_precision(Q2[:,:r].copy(),B2[:r,:])), dtype=vae._dtype, device=DEVICE).T
 		rectrL  = vae.decoder(latr)
 		for ivar in range(nvars):
@@ -206,7 +217,8 @@ def reconstruct_Q(mesh:Mesh,nelxAE:int,nmod:int,Qmeans:np.ndarray,Qstds:np.ndarr
 	activ     = [func for _ in range(nlayers)]
 	decoder = Decoder1DNoLatent(nlayers, nmod, nvars, conv_chan, kernel, padding, activ)
 	decoder.to(DEVICE)
-	Q = np.zeros((mesh.xyz.shape[0],nmod))
+	# The reconstructed Q keeps the precision the Q stage was stored in
+	Q = np.zeros((mesh.xyz.shape[0],nmod), dtype=Qmeans.dtype)
 	for iel in range(nAEs):
 		# Get global node numbering
 		conecE = mesh.connectivity[iel*nelxAE:(iel+1)*nelxAE]
@@ -226,7 +238,7 @@ def reconstruct_Q(mesh:Mesh,nelxAE:int,nmod:int,Qmeans:np.ndarray,Qstds:np.ndarr
 ## Autoencoder on the R
 @cr('GAVI.vae_R')
 def vae_R(data:Dataset,latent_dim:int,*,eval_data:Dataset=None,nepochs:int=2500,nlayers:int=3,conv_chan:int=64,hid_dim:int=32,kernel:int=4,padding:int=1,func:object=silu(),
-		batch_size:int=64,lr:float=5e-4,beta_start:float=0.,beta_end:float=2.5e-2,beta_first:int=500,beta_last:int=1000,seed:int=None,BASEDIR:str='./',modelstr='gavi_R_latent'):
+		batch_size:int=64,lr:float=5e-4,beta_start:float=0.,beta_end:float=1.25e-2,beta_first:int=500,beta_last:int=1000,seed:int=None,BASEDIR:str='./',modelstr='gavi_R_latent'):
 	r"""
 	Function to get a disentangled latent representation of the B matrix from the
 	randomized QR factorization.
@@ -245,7 +257,7 @@ def vae_R(data:Dataset,latent_dim:int,*,eval_data:Dataset=None,nepochs:int=2500,
 		beta_start, beta_end, beta_first, beta_last: linear KL schedule. ``beta``
 			is ``beta_start`` until epoch ``beta_first`` and reaches ``beta_end``
 			at epoch ``beta_last``; a run shorter than ``beta_last`` never
-			reaches ``beta_end``.
+			reaches ``beta_end`` (defaults ``0.``, ``1.25e-2``, ``500`` and ``1000``).
 		nlayers (int, optional): number of convolutional layers in the encoder and
 			the decoder (default ``3``).
 		conv_chan (int, optional): filter channels of the first convolutional
