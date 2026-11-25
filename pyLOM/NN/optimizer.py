@@ -4,16 +4,57 @@
 #
 # NN optimizer routines using optuna.
 #
-# Last rev: 02/10/2024
+# Last rev: 25/11/2026
 
-import json
+import json, os, math, random, inspect, numbers, numpy as np, torch
 
-import os
-from typing         import Callable, Dict
-from pathlib        import Path
-from itertools      import count
-from ..utils.errors import raiseError
-from ..             import pprint
+from typing             import Callable, Dict, Sequence
+from pathlib            import Path
+from itertools          import count
+
+from ..utils.errors     import raiseError, raiseWarning
+from ..                 import pprint
+from .utils.callbacks   import EarlyStopper
+
+
+def _check_seeds(seeds):
+    if seeds is None:
+        return None
+    if isinstance(seeds, numbers.Integral):
+        seeds = [seeds]
+    seeds = list(seeds)
+    if len(seeds) == 0 or not all(isinstance(seed, numbers.Integral) and not isinstance(seed, bool) for seed in seeds):
+        raiseError(f"seeds must be a non-empty sequence of integers or None, got {seeds}")
+    if len(set(seeds)) != len(seeds):
+        raiseError(f"seeds must be different, got {seeds}")
+    return [int(seed) for seed in seeds]
+
+
+def _get_rng_state():
+    return (
+        random.getstate(),
+        np.random.get_state(),
+        torch.get_rng_state(),
+        torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
+    )
+
+
+def _set_rng_state(state):
+    python_state, numpy_state, torch_state, cuda_state = state
+    random.setstate(python_state)
+    np.random.set_state(numpy_state)
+    torch.set_rng_state(torch_state)
+    if cuda_state is not None:
+        torch.cuda.set_rng_state_all(cuda_state)
+
+
+def _empty_cuda_cache():
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+
+_ISSUED_WARNINGS = set()
+
 
 # Add optuna as an optional dependency
 try:
@@ -32,6 +73,7 @@ try:
             storage (str): The storage URL to use for the study. Default is ``None``.
             study_name (str): The name of the study. Default is ``None``.
             load_if_exists (bool): Whether to load the study if it exists. Default is ``True``.
+            seeds (Sequence[int], optional): Seeds of the models trained in each trial. If given, every trial trains one model per seed and its value is the mean over the seeds of the value of each model. The ``seed`` of ``optimization_params``, if any, is then ignored. If ``None``, each trial trains a single model with the ``seed`` of ``optimization_params`` (default: ``None``).
         """
         def __init__(
             self,
@@ -44,6 +86,7 @@ try:
             storage: str | None = None,
             study_name: str | None = None,
             load_if_exists: bool = True,
+            seeds: Sequence[int] | None = None,
         ):
             self.num_trials = n_trials
             self.direction = direction
@@ -54,6 +97,7 @@ try:
             self.storage = storage
             self.study_name = study_name
             self.load_if_exists = load_if_exists
+            self.seeds = _check_seeds(seeds)
 
         @property
         def optimization_params(self) -> Dict:
@@ -120,6 +164,12 @@ try:
                 Dict: The best parameters obtained from the optimization.
             """
             study = self._create_study()
+            if self.seeds is not None:
+                # The values of the trials are only comparable if all of them average the same seeds
+                previous_seeds = study.user_attrs.get("seeds")
+                if previous_seeds is not None and list(previous_seeds) != self.seeds:
+                    raiseWarning(f"The study was run with the seeds {previous_seeds}, and it continues with {self.seeds}")
+                study.set_user_attr("seeds", self.seeds)
             study.optimize(objective_function, n_trials=self.num_trials)
             OptunaOptimizer._print_optimization_report(study)
 
@@ -242,6 +292,166 @@ try:
             nested_params = OptunaOptimizer._unflatten_dict(flat_params)
             OptunaOptimizer.apply_to(base_params, optimized_params=nested_params, verbose=verbose)
             return base_params
+
+
+    def run_trial(
+        trial: "optuna.Trial",
+        optuna_optimizer: OptunaOptimizer,
+        build_model: Callable[[Dict], torch.nn.Module],
+        training_params: Dict,
+        train_dataset: torch.utils.data.Dataset,
+        eval_dataset: torch.utils.data.Dataset,
+        default_epochs: int = 100,
+    ) -> float:
+        r"""
+        Train the models of one trial of ``create_optimized_model`` and return the value of the trial: the evaluation loss of each
+        model, averaged over the seeds of ``optuna_optimizer.seeds`` (one model per seed, all with the same hyperparameters), or the
+        evaluation loss of a single model trained with the ``seed`` of ``training_params`` if the optimizer has no seeds.
+
+        The evaluation loss of a model is the one of its last epoch or, if ``save_best`` is ``True`` in ``training_params``, the lowest
+        one of its training, which is the one of the model that ``save_best`` keeps. ``early_stopping_patience`` stops each model on
+        its own, as in ``fit``.
+
+        - With a pruner, the models are trained one epoch at a time and at the same pace, and the mean over the seeds of the current
+          value of each model is reported to the pruner every epoch (a model already stopped keeps its value). Each model keeps its
+          own random state, so that it is trained as if it were trained alone.
+        - Without a pruner, the models are trained one after the other.
+
+        The trial is pruned if the loss of any of its models is not finite (with ``save_best``, only if none of its evaluation losses
+        is finite), or if it runs out of memory. The number of epochs trained is stored in the user attribute ``epochs_trained`` of
+        the trial (with seeds, a list with one value per seed, and also the user attributes ``seeds`` and ``seed_values``, the value
+        of each model).
+
+        Args:
+            trial (optuna.Trial): The trial.
+            optuna_optimizer (OptunaOptimizer): The optimizer of the study, which gives the pruner and the seeds.
+            build_model (Callable): Function that builds a new model from a dictionary of parameters, which includes its ``seed``.
+            training_params (Dict): The parameters of the trial, passed both to ``build_model`` and to the ``fit`` method of the model.
+            train_dataset (torch.utils.data.Dataset): The training dataset.
+            eval_dataset (torch.utils.data.Dataset): The evaluation dataset.
+            default_epochs (int): The number of epochs if ``training_params`` has no ``epochs`` (default: ``100``).
+
+        Returns:
+            float: The value of the trial.
+        """
+        params = dict(training_params)
+        params["save_logs_path"] = None
+        
+        # Only the loss of the best epoch is needed here, not its model
+        best = params.pop("save_best", False)
+        patience = params.get("early_stopping_patience")
+        epochs = params.get("epochs", default_epochs)
+        multi_seed = optuna_optimizer.seeds is not None
+        if multi_seed:
+            if params.get("seed") is not None and "seed_ignored" not in _ISSUED_WARNINGS:
+                _ISSUED_WARNINGS.add("seed_ignored")
+                raiseWarning(f"The seed {params['seed']} of the optimization parameters is ignored: each trial trains one model per seed of {optuna_optimizer.seeds}")
+            seeds = optuna_optimizer.seeds
+        else:
+            seeds = [params.get("seed")]
+
+        def model_value(run):
+            train_losses = np.asarray(run["train"], dtype=float)
+            test_losses = np.asarray(run["test"], dtype=float)
+            if best:
+                # The model that save_best keeps is the one of the best epoch, even if the training diverges later
+                finite = test_losses[np.isfinite(test_losses)]
+                if finite.size > 0:
+                    return float(finite.min())
+            elif test_losses.size > 0 and train_losses.size > 0 and np.isfinite(test_losses[-1]) and np.isfinite(train_losses[-1]):
+                return float(test_losses[-1])
+            return None
+
+        def check_values(runs):
+            for run in runs:
+                if model_value(run) is None:
+                    seed_info = f" with seed {run['seed']}" if multi_seed else ""
+                    pprint(0, f"Trial {trial.number} diverged (non-finite loss{seed_info}). Pruning the trial.")
+                    raise TrialPruned()
+            return [model_value(run) for run in runs]
+
+        runs = []
+        _empty_cuda_cache()
+        
+        try:
+            if optuna_optimizer.pruner is not None:
+                for seed in seeds:
+                    run_params = {**params, "seed": seed}
+                    model = build_model(run_params)
+                    # Random state right after the model is built (and seeded), the one its training starts from
+                    runs.append({
+                        "seed": seed, "model": model, "rng": _get_rng_state(), "train": [], "test": [], "active": True,
+                        # One epoch per call to fit: the early stopping is applied here, with the same EarlyStopper as fit
+                        "params": {**run_params, "epochs": 1, "early_stopping_patience": None},
+                        "stopper": EarlyStopper(patience=patience) if patience is not None else None,
+                    })
+                # The models are evaluated every epoch here: early stopping and save_best only match fit if fit also evaluates every epoch
+                fit_signature = inspect.signature(type(runs[0]["model"]).fit).parameters
+                if "print_eval_rate" in fit_signature:
+                    eval_rate = params.get("print_eval_rate", fit_signature["print_eval_rate"].default)
+                    if eval_rate != 1 and (best or patience is not None) and "eval_rate" not in _ISSUED_WARNINGS:
+                        _ISSUED_WARNINGS.add("eval_rate")
+                        raiseWarning(f"With a pruner, the models of each trial are trained one epoch at a time and evaluated every epoch, while fit evaluates them "
+                                     f"every print_eval_rate={eval_rate} epochs: early_stopping_patience and save_best count every epoch in the trials. "
+                                     f"Use print_eval_rate=1 so that the trials and the final training stop and keep the same epochs")
+                for epoch in range(epochs):
+                    for run in runs:
+                        if not run["active"]:
+                            continue
+                        _set_rng_state(run["rng"])
+                        results = run["model"].fit(train_dataset, eval_dataset, **run["params"])
+                        run["rng"] = _get_rng_state()
+                        run["train"].extend(np.asarray(results["train_loss"], dtype=float).tolist())
+                        run["test"].extend(np.asarray(results["test_loss"], dtype=float).tolist())
+                        if not (np.isfinite(run["train"][-1]) and len(run["test"]) > 0 and np.isfinite(run["test"][-1])):
+                            run["active"] = False
+                        elif run["stopper"] is not None:
+                            prev_train = run["train"][-2] if len(run["train"]) > 1 else math.inf
+                            run["active"] = not run["stopper"].early_stop(run["test"][-1], prev_train, run["train"][-1])
+                    values = check_values(runs)
+                    trial.report(float(np.mean(values)), epoch)
+                    if trial.should_prune():
+                        raise TrialPruned()
+                    if not any(run["active"] for run in runs):
+                        break
+            else:
+                for seed in seeds:
+                    run_params = {**params, "seed": seed}
+                    model = build_model(run_params)
+                    try:
+                        results = model.fit(train_dataset, eval_dataset, **run_params)
+                    finally:
+                        del model
+                        _empty_cuda_cache()
+                    runs.append({"seed": seed, "train": list(results["train_loss"]), "test": list(results["test_loss"])})
+                    # A diverged model prunes the trial without training the remaining seeds
+                    check_values(runs[-1:])
+            
+            values = check_values(runs)
+
+        except RuntimeError as e:
+            message = str(e).lower()
+            if "out of memory" in message or "allocate memory" in message:
+                pprint(0, f"Trial {trial.number} failed due to out of memory error. Pruning the trial.")
+                raise TrialPruned()
+            raise
+
+        finally:
+            for run in runs:
+                run.pop("model", None)
+            _empty_cuda_cache()
+
+        epochs_trained = [len(run["train"]) for run in runs]
+        value = float(np.mean(values))
+        if multi_seed:
+            trial.set_user_attr("epochs_trained", epochs_trained)
+            trial.set_user_attr("seeds", list(seeds))
+            trial.set_user_attr("seed_values", values)
+            pprint(0, f"Trial {trial.number}: mean value {value:.4e} over the seeds {list(seeds)} "
+                      f"({', '.join(f'{v:.4e}' for v in values)}), epochs trained {epochs_trained}")
+        else:
+            trial.set_user_attr("epochs_trained", epochs_trained[0])
+        return value
 
 
     class OptunaStudyManager():
@@ -557,6 +767,9 @@ except:
         raiseError("Package optuna should be installed")
     
     def TrialPruned():
+        raiseError("Package optuna should be installed")
+
+    def run_trial(*args, **kwargs):
         raiseError("Package optuna should be installed")
 
     class OptunaOptimizer():
