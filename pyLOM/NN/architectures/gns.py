@@ -4,7 +4,7 @@
 #
 # Message passing graph neural network architecture for NN Module
 #
-# Last rev: 24/11/2026
+# Last rev: 25/11/2026
 #
 # Precision: the Graph keeps the precision of its mesh and is converted to the model's own
 # dtype when it is set; input and target batches are converted when they enter the model
@@ -29,6 +29,7 @@ from .. import set_seed
 from ... import pprint, cr
 from ...utils import (
     raiseError,
+    raiseWarning,
     get_git_commit,
 )
 from ..utils import (
@@ -94,7 +95,14 @@ class GNS(torch.nn.Module):
         config : GNSModelConfig
             Pure DTO with model hyperparameters.
         graph : Graph
-            Fully loaded in-memory Graph object.
+            Fully loaded in-memory Graph object. It is moved to the model's device and
+            converted to the model's dtype in place, so the object passed in changes too
+            (a warning is raised when its dtype changes). Later calls to ``.to()``,
+            ``.double()`` or ``.float()`` on the model convert the graph in the same way.
+            Converting back does not restore lost precision: a float64 graph used by a
+            float32 model is cut to float32. For a float64 model, call
+            ``torch.set_default_dtype(torch.float64)`` before building it, or load the
+            graph again.
         graph_spec : Optional[GraphSpec]
             Optional provenance info (e.g., path/id). Not a hyperparameter.
         """
@@ -287,10 +295,9 @@ class GNS(torch.nn.Module):
             graph = graph.to(self.device)
 
         # The graph keeps the mesh precision, convert its features to the model's dtype. The
-        # layers are built after the graph is set, with torch's default dtype.
-        dtype = torch.get_default_dtype()
-        if graph.x.dtype != dtype or graph.edge_attr.dtype != dtype:
-            graph = graph.apply(lambda t: t.to(dtype) if t.is_floating_point() else t)
+        # layers are built after the graph is set, with torch's default dtype. The conversion
+        # is in place (like the device move) so a graph can be shared between models.
+        graph = self._graph_to(graph, dtype=torch.get_default_dtype())
 
         # Update dependent dims (model_config must be set before assigning graph)
         self._encoder_input_dim = graph.x.shape[1] + self.model_config.input_dim
@@ -299,6 +306,32 @@ class GNS(torch.nn.Module):
         # Assign and fingerprint
         self._graph = graph
         self.graph_fingerprint = graph.fingerprint()
+
+    @staticmethod
+    def _graph_to(graph: Graph, dtype: torch.dtype) -> Graph:
+        """Convert the floating point tensors of the graph to ``dtype``, in place, with a warning."""
+        if graph.x.dtype != dtype or graph.edge_attr.dtype != dtype:
+            raiseWarning(f"GNS: converting the graph in place from {graph.x.dtype} to {dtype}; the Graph object passed in is changed too.")
+            graph = graph.apply(lambda t: t.to(dtype) if t.is_floating_point() else t)
+        return graph
+
+    def _apply(self, fn, recurse=True):
+        """
+        Keep the graph and the stored devices in step with the parameters after ``.to()``,
+        ``.double()``, ``.float()``, ``.cuda()`` or ``.cpu()``. The graph is not a parameter
+        or buffer, so torch alone would leave it behind.
+        """
+        super()._apply(fn, recurse)
+        p = next(self.parameters(), None)
+        if p is None or getattr(self, "_graph", None) is None:
+            return self
+        self.device = p.device
+        for helper in (getattr(self, "injector", None), getattr(self, "_helpers", None)):
+            if helper is not None: helper.device = p.device
+        if self._graph.x.device != p.device:
+            self._graph = self._graph.to(p.device)
+        self._graph = self._graph_to(self._graph, dtype=p.dtype)
+        return self
 
     @cr('GNS.forward')
     def forward(self, graph: Union[Data, Graph]) -> Tensor:
