@@ -217,6 +217,9 @@ class MinMaxScaler:
             - If `variables` is a list, each item is treated as an independent variable.
         - If `blocks` provided and `variables` is array/tensor:
             - Group by the blocks for min/max.
+
+        Returns:
+            MinMaxScaler: the fitted scaler, so calls can be chained.
         """
         # Normalize inputs to a single 2D matrix for easier handling
         is_array  = isinstance(variables, np.ndarray)
@@ -245,6 +248,7 @@ class MinMaxScaler:
         # When fitting from a single 2D matrix, we remember how to split/stack later.
         # If a list is passed, we know we should return a list on transform if a list was passed.
         self._fit_from_list = not (is_array or is_tensor)
+        return self
 
     def transform(
         self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]
@@ -420,6 +424,7 @@ class StandardScaler:
         self.variable_scaling_params = params
         self._fit_from_list = not (is_array or is_tensor)
         self._is_fitted = True
+        return self
 
     def transform(self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]):
         if not self._is_fitted:
@@ -561,6 +566,7 @@ class RobustScaler:
         self.variable_scaling_params = params
         self._fit_from_list = not (is_array or is_tensor)
         self._is_fitted = True
+        return self
 
     def transform(self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]):
         if not self._is_fitted:
