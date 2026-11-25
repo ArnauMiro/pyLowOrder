@@ -6,16 +6,19 @@
 #
 # Last rev: 06/05/2026
 
-import os, numpy as np, torch, torch.nn as nn
+import os, math, inspect, numbers, numpy as np, torch, torch.nn as nn
 
-from typing             import Dict, List, Tuple, Callable
+from typing                 import Dict, List, Tuple, Callable
 
-from ..                 import DEVICE, PIN_MEMORY, set_seed
-from ..optimizer        import OptunaOptimizer, TrialPruned
-from .kan               import _create_dataloader
-from ..loss             import BaseLossFunction, TorchLossAdapter
-from ...                import pprint, cr
-from ...utils.errors    import raiseWarning, raiseError
+from ..                     import DEVICE, PIN_MEMORY, set_seed
+from ..optimizer            import OptunaOptimizer, run_trial
+from .kan                   import _create_dataloader, _EVAL_BATCH_SIZE
+from ..utils                import suggest_params
+from ..utils.optuna_utils   import trial_params as _trial_params, _flatten_params
+from ..loss                 import BaseLossFunction, TorchLossAdapter
+from ..utils.callbacks      import EarlyStopper
+from ...                    import pprint, cr
+from ...utils.errors        import raiseWarning, raiseError
 
 
 class MLP(nn.Module):
@@ -164,10 +167,11 @@ class MLP(nn.Module):
         print_rate_batch: int = 0,
         print_rate_epoch: int = 1,
         save_best: bool = False,
+        early_stopping_patience: int = None,
         **kwargs,
     )-> Dict[str, List[float]]:
         r"""
-        Fit the model to the training data. If eval_set is provided, the model will be evaluated on this set after each epoch. 
+        Fit the model to the training data. If eval_set is provided, the model will be evaluated on this set after each epoch. Calling ``fit`` again continues the training with the same optimizer and scheduler.
         
         Args:
             train_dataset (torch.utils.data.Dataset): Training dataset to fit the model.
@@ -185,7 +189,12 @@ class MLP(nn.Module):
             save_logs_path (str, optional): Path to save the training results. If ``None``, no results will be saved (default: ``None``).
             print_rate_batch (int, optional): Print loss every ``print_rate_batch`` batches (default: ``1``). If set to ``0``, no print will be done.
             print_rate_epoch (int, optional): Print loss every ``print_rate_epoch`` epochs (default: ``1``). If set to ``0``, no print will be done.
-            save_best (bool, optional): Wheter to save the best model during training (default: ``False``). If ``True``, the model will be saved in the `save_logs_path` directory with the name `best_model_{model_name}.pth`.
+            save_best (bool, optional): Whether to save the model of the epoch with the lowest evaluation loss of this call to ``fit``, as ``best_model_<model_name>.pth`` in the folder of ``save_logs_path`` (the folder itself, or the one of the ``.npy`` file). The file is written each time the evaluation loss improves, with the optimizer and scheduler states of that epoch. The model in memory is the one of the last epoch (default: ``False``).
+            early_stopping_patience (int, optional): Stop the training when the evaluation loss has not improved for this number of epochs, with ``pyLOM.NN.EarlyStopper(patience=early_stopping_patience)`` (an epoch whose evaluation loss equals the best one exactly only counts if the training loss increased). ``None`` disables it (default: ``None``).
+
+            The model is evaluated on ``eval_dataset`` every epoch, in batches of at least ``8192`` samples and without shuffling; the evaluation loss is the mean squared error over all its samples.
+            The training stops at the end of the first epoch whose training or evaluation loss is not finite. ``save_best`` and ``early_stopping_patience`` need ``eval_dataset``, and
+            ``save_best`` also needs ``save_logs_path``: without them, they are ignored with a warning.
 
         Returns:
             Dict[str, List[float]]: Dictionary containing the training and evaluation results:
@@ -209,7 +218,25 @@ class MLP(nn.Module):
             self.train_dataloader = _create_dataloader(train_dataset, **_dataloader_kwargs)
         
         if not hasattr(self, "eval_dataloader") and eval_dataset is not None:
-            self.eval_dataloader = _create_dataloader(eval_dataset, **_dataloader_kwargs)
+            # The evaluation does not depend on the training batch size nor on the order of the samples
+            self.eval_dataloader = _create_dataloader(
+                eval_dataset,
+                **{**_dataloader_kwargs, "batch_size": max(_dataloader_kwargs["batch_size"], _EVAL_BATCH_SIZE), "shuffle": False, "drop_last": False},
+            )
+
+        if early_stopping_patience is not None and not (isinstance(early_stopping_patience, numbers.Integral) and early_stopping_patience > 0):
+            raiseError(f"early_stopping_patience must be a positive integer or None, got {early_stopping_patience}")
+        if eval_dataset is None and (save_best or early_stopping_patience is not None):
+            raiseWarning("save_best and early_stopping_patience need an eval_dataset: they are ignored")
+            save_best, early_stopping_patience = False, None
+        best_model_file = None
+        if save_best:
+            if save_logs_path is None:
+                raiseWarning("save_best needs a save_logs_path: the model of the best epoch is not saved")
+            else:
+                best_model_dir = os.path.dirname(save_logs_path) if save_logs_path.endswith(".npy") else save_logs_path
+                best_model_file = os.path.join(best_model_dir, f"best_model_{self._model_name}.pth")
+                os.makedirs(best_model_dir or ".", exist_ok=True)
 
         if not hasattr(self, "optimizer"):
             self.optimizer = optimizer_class(
@@ -270,6 +297,11 @@ class MLP(nn.Module):
             else:
                 raiseError(f"Unknown mode: {mode}")
 
+        # Best evaluation loss of this call to fit (epochs numbered from 1), for save_best and the messages
+        best_loss, best_epoch = math.inf, None
+        stopper = EarlyStopper(patience=early_stopping_patience) if early_stopping_patience is not None else None
+        prev_train_loss = math.inf
+
         for epoch in range(1+len(train_losses), 1+total_epochs):
             train_loss = 0.0
             self.train()
@@ -303,31 +335,37 @@ class MLP(nn.Module):
             if self.scheduler is not None:
                 self.scheduler.step()
             
+            diverged = not math.isfinite(train_loss)
+
             test_loss = 0.0
             if eval_dataset is not None:
                 self.eval()
                 if hasattr(self.eval_dataloader.dataset, "eval"):
                     self.eval_dataloader.dataset.eval()
+                eval_losses, eval_sizes = [], []
                 with torch.no_grad():
-                    for n_idx, sample in enumerate(self.eval_dataloader):
+                    for sample in self.eval_dataloader:
                         sample = tuple(s.to(self.device) for s in sample)
-                        loss_val = compute_loss(sample, mode="eval")
-                        loss_iterations_test.append(loss_val.item())
-                        test_loss += loss_val.item()
-
-                test_loss = test_loss / (n_idx + 1)
+                        eval_losses.append(compute_loss(sample, mode="eval").detach())
+                        eval_sizes.append(len(sample[0]))
+                # One synchronization per evaluation; the loss is the mean over all the samples
+                eval_losses = torch.stack(eval_losses).double().cpu().numpy()
+                loss_iterations_test.extend(eval_losses.tolist())
+                test_loss = float(np.average(eval_losses, weights=eval_sizes))
                 test_losses.append(test_loss)
+                diverged = diverged or not math.isfinite(test_loss)
 
-                if save_best and (len(test_losses) == 1 or test_loss < min(test_losses[:-1])):
-                    if save_logs_path is not None:
-                        best_model_file = os.path.join(save_logs_path, f"best_model_{self._model_name}.pth")
-                        self.save(best_model_file)
-                    elif save_best:
-                        raiseWarning("The argument save_best is set to True but no save_logs_path is provided. The best model will not be saved.")
-            
+            # Saved after the scheduler step, so that a training resumed from this file continues with the next epoch
+            if eval_dataset is not None and test_loss < best_loss:
+                best_loss, best_epoch = test_loss, epoch
+                if best_model_file is not None:
+                    self.save(best_model_file)
+            stop_early = stopper is not None and stopper.early_stop(test_loss, prev_train_loss, train_loss)
+            prev_train_loss = train_loss
+
             current_lr = self.optimizer.param_groups[0]["lr"]
             current_lr_vec.append(current_lr)
-            
+
             if print_rate_epoch != 0 and (epoch % print_rate_epoch) == 0:
                 if torch.cuda.is_available():
                     mem_used = torch.cuda.memory_allocated() / (1024**2)  # Memory usage in MB
@@ -341,6 +379,16 @@ class MLP(nn.Module):
                     f"LR: {current_lr:.2e}{memory_usage_str}",
                     flush=True
                 )
+
+            if diverged:
+                pprint(0, f"Stopping training at epoch {epoch}/{total_epochs} due to a non-finite loss.", flush=True)
+                break
+            if stop_early:
+                pprint(0, f"Stopping training at epoch {epoch}/{total_epochs}: the evaluation loss has not improved since epoch {best_epoch}.", flush=True)
+                break
+
+        if best_model_file is not None and best_epoch is not None and print_rate_epoch != 0:
+            pprint(0, f"Model of the best epoch ({best_epoch}, evaluation loss {best_loss:.4e}) saved at {best_model_file}")
 
         if hasattr(self.train_dataloader.dataset, "eval"):
                 self.train_dataloader.dataset.eval()
@@ -500,11 +548,13 @@ class MLP(nn.Module):
             checkpoint["device"],
             checkpoint["initialization"],
             checkpoint["initialization_kwargs"],
-            checkpoint["seed"],
+            # Passing the seed to the constructor would reseed the global random generators
+            None,
             checkpoint["model_name"],
             verbose=verbose,
         )
-        
+        model.seed = checkpoint["seed"]
+
         model.load_state_dict(checkpoint["state_dict"])
         if checkpoint.get("optimizer") is not None:
             model.optimizer_state_dict = checkpoint["optimizer"]
@@ -522,8 +572,20 @@ class MLP(nn.Module):
         **kwargs,
     ) -> Tuple[nn.Module, Dict]:
         r"""
-        Create an optimized model using Optuna. The model is trained on the training dataset and evaluated on the validation dataset.
-        
+        Create an optimized model using Optuna. The model is trained on the training dataset and the metric to optimize is the loss on the evaluation dataset at the last epoch
+        or, if ``save_best`` is ``True``, the lowest one of the training: the one of the model that ``save_best`` keeps. ``early_stopping_patience`` is applied as in ``fit``.
+        The search space is sampled with ``pyLOM.NN.utils.suggest_params``: a pair of numbers ``(low, high)`` is a range, any other tuple or list is a list of choices
+        (e.g. activation functions), a dictionary with a ``"type"`` key is an explicit specification (``"int"``, ``"float"``, ``"categorical"``, ``"pow2"``, ``"towards_one"``, ``"batch_scaled"``),
+        any other dictionary is searched recursively, and any other value is fixed. ``"pow2"``, ``"towards_one"`` and ``"batch_scaled"`` are ordered values, as samplers such as QMC
+        (which samples categorical parameters at random) need.
+
+        Trials whose loss is not finite, or that run out of memory, are pruned. With ``save_best``, a trial that diverges keeps the loss of its best epoch, and is only pruned
+        if no evaluation loss is finite. The number of epochs trained is stored in the user attribute ``epochs_trained`` of each trial. The parameters of any trial of the study
+        can be recovered with ``trial_params``.
+
+        If ``optuna_optimizer`` has ``seeds``, each trial trains one model per seed, and its value is the mean over the seeds of the metric of each model
+        (see ``pyLOM.NN.optimizer.run_trial``).
+
         Args:
             train_dataset (torch.utils.data.Dataset): The training dataset.
             eval_dataset (torch.utils.data.Dataset): The evaluation dataset.
@@ -567,115 +629,47 @@ class MLP(nn.Module):
         """
         optimization_params = optuna_optimizer.optimization_params
         input_dim, output_dim = train_dataset[0][0].shape[0], train_dataset[0][1].shape[0]
-        
-        def suggest_value(name, space, trial):
-            if isinstance(space, dict):
-                suggested_dict = {}
-                for key, subspace in space.items():
-                    full_name = f"{name}.{key}"
-                    suggested_dict[key] = suggest_value(full_name, subspace, trial)
-                return suggested_dict
-            
-            if isinstance(space, (tuple, list)):
-                low, high = space
-                if isinstance(low, int) and isinstance(high, int):
-                    
-                    def is_power_of_2(n):
-                        return n > 0 and (n & (n - 1)) == 0
-                    
-                    if is_power_of_2(low) and is_power_of_2(high):
-                        power_low = int(np.log2(low))
-                        power_high = int(np.log2(high))
-                        power_diff = power_high - power_low
-                        
-                        if power_diff > 1:
-                            choices = [2**p for p in range(power_low, power_high + 1)]
-                            return trial.suggest_categorical(name, choices)
-                    
-                    use_log = (high / max(1, low)) >= 1000
-                    return trial.suggest_int(name, low, high, log=use_log)
+        if eval_dataset is None:
+            raiseError("create_optimized_model needs an eval_dataset to compute the metric to optimize")
+        default_epochs = inspect.signature(cls.fit).parameters["epochs"].default
 
-                if isinstance(low, float) and isinstance(high, float):
-                    
-                    def generate_geometric_grid_towards_one(low, high, tol=1e-4, decimals=4):
-                        ratio = 1 - low / high
-                        values = [round(low, decimals)]
-                        current = low
+        def build_model(params):
+            return cls(input_dim, output_dim, **{"verbose": False, **params})
 
-                        max_points = 1000
-
-                        for _ in range(max_points):
-                            step = (high - current) * ratio
-                            current = current + step
-                            current = min(current, high)
-                            current = round(current, decimals)
-                            if current == values[-1]:
-                                break
-
-                            values.append(current)
-
-                            if (high - current) <= tol:
-                                break
-
-                        return values
-                    
-                    if high == 1.0 and (1.0 - low) < 0.2:
-                        choices = generate_geometric_grid_towards_one(low, high)
-                        return trial.suggest_categorical(name, choices)
-
-                    use_log = (high / max(1e-12, low)) >= 1000
-                    return trial.suggest_float(name, low, high, log=use_log)
-
-            return space
-        
         def optimization_function(trial) -> float:
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
+            training_params = suggest_params(optimization_params, trial)
+            return run_trial(trial, optuna_optimizer, build_model, training_params, train_dataset, eval_dataset, default_epochs)
 
-            model = None
-
-            try: 
-                training_params = {}       
-                for key, params in optimization_params.items():
-                    training_params[key] = suggest_value(key, params, trial)
-                training_params["save_logs_path"] = None
-                
-                model = cls(input_dim, output_dim, verbose=False, **training_params)
-                if optuna_optimizer.pruner is not None:
-                    epochs = training_params["epochs"]
-                    training_params["epochs"] = 1
-                    for epoch in range(epochs):
-                        results = model.fit(train_dataset, eval_dataset, **training_params)
-                        loss_val = results["test_loss"][-1]
-                        trial.report(loss_val, epoch)
-                        if trial.should_prune(): 
-                            raise TrialPruned()
-                else:
-                    results = model.fit(train_dataset, eval_dataset, **training_params)
-                    loss_val = results["test_loss"][-1]
-                
-                return loss_val
-            
-            except RuntimeError as e:
-                if "out of memory" in str(e) or "MEMORY" in str(e).upper():
-                    print(f"Trial {trial.number} failed due to out of memory error. Pruning the trial.")
-                    if torch.cuda.is_available():
-                        torch.cuda.empty_cache()
-                    raise TrialPruned()
-                raise
-
-            finally:
-                if model is not None:
-                    del model
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-        
         best_params = optuna_optimizer.optimize(objective_function=optimization_function)
+        # The values of the parameters sampled through another one (e.g. pow2, through its exponent)
+        best_params = cls.trial_params(optimization_params, _flatten_params(best_params))
 
         # Update params with best ones
         OptunaOptimizer.apply_to(optimization_params, optimized_params=best_params)
-        
+
         return cls(input_dim, output_dim, **optimization_params), optimization_params
+
+    @staticmethod
+    def trial_params(optimization_params: Dict, params: Dict) -> Dict:
+        r"""
+        Parameters of the model and of its training in a trial of ``create_optimized_model``: the search space with the values that
+        Optuna sampled in that trial. Useful to train again any trial of a study, not only the best one.
+
+        Args:
+            optimization_params (Dict): The search space given to ``create_optimized_model``.
+            params (Dict): The parameters of the trial as stored by Optuna, e.g. ``study.trials[i].params``.
+
+        Returns:
+            Dict: The parameters, to build the model and to train it.
+
+        Example:
+            >>> study = optuna.load_study(study_name="optuna_study", storage="sqlite:///optuna_studies.db")
+            >>> params = MLP.trial_params(optimization_params, study.best_trial.params)
+            >>> model = MLP(input_size, output_size, **params)
+            >>> model.fit(train_dataset, eval_dataset, **params)
+        """
+        return _trial_params(optimization_params, params)
+
 
 
 class MLP_JIT(MLP):
