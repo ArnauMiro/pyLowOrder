@@ -78,7 +78,7 @@ pipeline.run()
 
 ## Reconstruct dataset and compute accuracy
 rec = model.reconstruct(td)
-rd  = pyLOM.NN.Dataset((rec,), (nh, nw))
+rd  = pyLOM.NN.Dataset((rec,), (nh, nw), squeeze_last_dim=False)
 rd.pad(n0h, n0w)
 td.pad(n0h, n0w)
 d.add_field('urec',1,rd[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
@@ -105,7 +105,7 @@ dataloader_params = {
 
 model.fine_tune(train_dataset=dataset_train, eval_dataset=dataset_train, epochs=50, shape_=td_ft.shape, BASEDIR=RESUDIR_FT, **dataloader_params)
 rec_ft = model.reconstruct(td_ft)
-rd_ft  = pyLOM.NN.Dataset((rec_ft,), (nh, nw))
+rd_ft  = pyLOM.NN.Dataset((rec_ft,), (nh, nw), squeeze_last_dim=False)
 rd_ft.pad(n0h, n0w)
 td_ft.pad(n0h, n0w)
 d.add_field('urec_ft',1,rd_ft[:,0,:,:].numpy().reshape((len(time),n0w*n0h)).T)
