@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# Binary classifier based on XGBoost.
+#
+# Last rev: 25/11/2026
+#
 # Precision: XGBoost stores its data in float32 whatever the input precision, so the
 # float32 conversions in this file are on purpose: they match what XGBoost uses anyway.
 

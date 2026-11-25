@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 #
+# pyLOM - Python Low Order Modeling.
+#
+# Training loop of the GNS model.
+#
+# Last rev: 25/11/2026
+#
 # Precision: a Dataset keeps the precision it was given, and the input and target batches
 # are converted to the model's own dtype when they enter the model. The model's dtype is
 # the dtype of its weights, next(model.parameters()).dtype: float32 by default.

@@ -4,7 +4,7 @@
 #
 # NN utility routines.
 #
-# Last rev: 24/11/2026
+# Last rev: 25/11/2026
 #
 # Precision: a Graph keeps the precision of the mesh it is built from (the dtype of
 # mesh.xyz), is saved in that precision and is loaded back without any conversion. The
@@ -359,23 +359,23 @@ class Graph(Data):
         # --- 2) geometry: per-cell wall normals (Cython expects intc/float64)
         wall_normal_map: dict[tuple[int, tuple[int, int]], np.ndarray] = {}
         for cell_id in range(mesh.ncells):
-            # dtypes/contiguity para Cython
-            cell_nodes_intc = np.ascontiguousarray(mesh.connectivity[cell_id], dtype=np.intc)     # GLOBAL ids pero intc
+            # dtypes and contiguity for Cython
+            cell_nodes_intc = np.ascontiguousarray(mesh.connectivity[cell_id], dtype=np.intc)     # GLOBAL ids, as intc
             nodes_xyz_f64   = np.ascontiguousarray(mesh.xyz[cell_nodes_intc], dtype=np.float64)
             cell_norm_f64   = np.asarray(mesh.normal[cell_id], dtype=np.float64)
 
-            # Cálculo geométrico
-            # Devuelve listas alineadas por índice: i ↔ arista (i, i+1)
+            # Geometric computation
+            # Returns lists aligned by index: i ↔ edge (i, i+1)
             _, cell_wall_normals = wall_normals(cell_nodes_intc, nodes_xyz_f64, cell_norm_f64)
 
-            # Usamos SIEMPRE el par global tomado de connectivity por posición (i, i+1)
+            # ALWAYS use the global pair taken from the connectivity by position (i, i+1)
             cell_nodes_global = np.asarray(mesh.connectivity[cell_id], dtype=np.int64)
             n = int(cell_nodes_global.size)
             for i, wn in enumerate(cell_wall_normals):
                 u = int(cell_nodes_global[i])
                 v = int(cell_nodes_global[(i + 1) % n])
-                gk = _canon_pair(u, v)  # clave canónica global
-                # Solo guardamos si la arista existe en la incidencia (interior o borde)
+                gk = _canon_pair(u, v)  # global canonical key
+                # Only store it if the edge is in the incidence map (interior or boundary)
                 if gk in incidence:
                     wall_normal_map[(cell_id, gk)] = np.asarray(wn, dtype=float)
 

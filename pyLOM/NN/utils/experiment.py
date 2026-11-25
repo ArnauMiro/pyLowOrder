@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# Utilities to export and plot the results of NN experiments.
+#
+# Last rev: 25/11/2026
+
 """
 Utilites for running and saving experiments with NN modules in pyLOM.
 """

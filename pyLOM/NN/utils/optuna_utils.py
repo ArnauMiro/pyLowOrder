@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# Utilities for seeding, devices and Optuna hyperparameter optimisation.
+#
+# Last rev: 25/11/2026
+
 from typing import Optional, Union, Dict, Tuple, List, Any
 import os
 import random
@@ -131,7 +139,7 @@ def cleanup_tensors(tensors: Union[Tensor, Dict, None, Tuple, List]) -> None:
     if tensors is None:
         return
 
-    # Eliminar referencias dentro de estructuras
+    # Remove the references inside containers
     if isinstance(tensors, dict):
         for key in list(tensors.keys()):
             tensors[key] = None
@@ -198,8 +206,8 @@ def _is_dist_spec(x: object) -> bool:
 
 def _materialize_space(space: dict, flat: dict, prefix: str = "") -> dict:
     """
-    Reemplaza specs {type:...} en `space` por valores de `flat` (claves punteadas).
-    Mantiene constantes y recorre recursivamente dicts anidados.
+    Replace the {type:...} specs in `space` with the values in `flat` (dotted keys).
+    Constants are kept and nested dicts are walked recursively.
     """
     out = {}
     for k, v in space.items():

@@ -710,8 +710,8 @@ class GNS(torch.nn.Module):
         Returns
         -------
         (GNS, Dict[str, Any]):
-            - trained_model (GNS): instancia del modelo (no entrenado).
-            - fit_kwargs (dict): kwargs para GNS.fit, p.ej. {"config": GNSTrainingConfig}.
+            - trained_model (GNS): model instance (not trained).
+            - fit_kwargs (dict): kwargs for GNS.fit, e.g. {"config": GNSTrainingConfig}.
         """
         if eval_dataset is None:
             raiseError("Optuna optimization requires a validation dataset (eval_dataset).")
@@ -734,7 +734,7 @@ class GNS(torch.nn.Module):
             model_cfg = dataclass_from_dict(GNSModelConfig, model_dict, strict=True)
             training_cfg = dataclass_from_dict(GNSTrainingConfig, training_dict, strict=True)
 
-            # 3) Build model (no resolvers here; __init__ y fit se encargan internamente)
+            # 3) Build model (no resolvers here; __init__ and fit handle them internally)
             model = cls(config=model_cfg, graph=shared_graph, graph_spec=GraphSpec(path=str(graph_path)))
 
             # 4) Logging (DTOs -> dicts)
@@ -748,7 +748,7 @@ class GNS(torch.nn.Module):
                 if trial.should_prune():
                     raise TrialPruned()
 
-            # 6) Train (fit se encarga de resolver loss/optimizer/scheduler)
+            # 6) Train (fit resolves the loss, optimizer and scheduler)
             try:
                 if optuna_optimizer.pruner is not None:
                     losses = model.fit(
@@ -798,7 +798,7 @@ class GNS(torch.nn.Module):
         # ---- Run optimization ----
         best_params_flat = optuna_optimizer.optimize(objective_function=objective)
 
-        # ---- Reconstruct best dicts for model and training (solo claves buscadas) ----
+        # ---- Reconstruct best dicts for model and training (only the searched keys) ----
         best_model_cfg_dict    = _materialize_space(model_space,    best_params_flat)
         best_training_cfg_dict = _materialize_space(training_space, best_params_flat)
 

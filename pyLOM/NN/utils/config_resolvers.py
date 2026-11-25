@@ -4,7 +4,7 @@
 #
 # NN config resolver routines.
 #
-# Last rev: 24/11/2026
+# Last rev: 25/11/2026
 import importlib
 import yaml
 import numpy as np
@@ -144,7 +144,7 @@ def resolve_scheduler(scheduler_path: str):
     if scheduler_path is None:
         return None
     cls = resolve_import(scheduler_path)
-    # _LRScheduler is internal; comprobamos interfaz básica
+    # _LRScheduler is internal; check the basic interface only
     if not isinstance(cls, type):
         raiseError(f"Scheduler '{scheduler_path}' must be a class.")
     return cls

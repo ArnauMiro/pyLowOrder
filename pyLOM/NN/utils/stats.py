@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# Regression and classification evaluators.
+#
+# Last rev: 25/11/2026
+
 import numpy as np, torch
 
 from typing import Optional, Dict
