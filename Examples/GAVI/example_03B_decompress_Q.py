@@ -4,7 +4,7 @@
 #
 # ADD CITATION AFTER PUBLICATION OF MADRID PROCEEDINGS
 #
-# Last revision: 17/11/2025
+# Last revision: 25/11/2026
 import torch
 import numpy as np
 import pyLOM, pyLOM.NN
@@ -30,13 +30,16 @@ Qmeans, Qstds, weights, biases, Qs, Bs = pyLOM.NN.GAVI.load_compressed(fcomp, me
 
 ## Inference and reconstruct Qx to do velox
 Qx = pyLOM.NN.GAVI.reconstruct_Q(mesh, nelxAE, nmod, Qmeans, Qstds, weights, biases, Qs, Bs, ivar=0)
-velox = pyLOM.math.matmul(Qx, Rx[:,0])
+# pyLOM.math.matmul needs 2D C-contiguous arrays of one dtype (float32 if either is float32)
+dt    = np.float32 if np.float32 in (Qx.dtype, Rx.dtype) else Qx.dtype
+velox = pyLOM.math.matmul(Qx.astype(dt, copy=False), np.ascontiguousarray(Rx[:,:1], dtype=dt))[:,0]
 del Qx
 pyLOM.pprint(0, 'velox is reconstructed', flush=True)
 
 ## Inference and reconstruct Qy to do veloy
 Qy = pyLOM.NN.GAVI.reconstruct_Q(mesh, nelxAE, nmod, Qmeans, Qstds, weights, biases, Qs, Bs, ivar=1)
-veloy = pyLOM.math.matmul(Qy, Ry[:,0])
+dt    = np.float32 if np.float32 in (Qy.dtype, Ry.dtype) else Qy.dtype
+veloy = pyLOM.math.matmul(Qy.astype(dt, copy=False), np.ascontiguousarray(Ry[:,:1], dtype=dt))[:,0]
 del Qy
 pyLOM.pprint(0, 'veloy is reconstructed', flush=True)
 

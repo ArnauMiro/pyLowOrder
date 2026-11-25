@@ -34,6 +34,16 @@ def _as(x,dtype,device):
 	return torch.as_tensor(x, dtype=dtype, device=device)
 
 
+def _same_precision(*arrays):
+	r'''
+	Return the arrays in one dtype for the compiled routines, which accept float32
+	or float64 but not both at once: float32 if any of them is float32, otherwise
+	their common dtype. Arrays already in that dtype are not copied.
+	'''
+	dtype = np.float32 if any(a.dtype == np.float32 for a in arrays) else np.result_type(*[a.dtype for a in arrays])
+	return tuple(a.astype(dtype, copy=False) for a in arrays)
+
+
 @cr('GAVI.save_QR')
 def save(fname:str,Q:np.ndarray,B:np.ndarray,ptable:PartitionTable,pointData:bool=True,mode:str='w'):
 	r'''
@@ -146,5 +156,5 @@ def energy(dataset:Dataset,reconstructed:np.array,channel:int):
 	Returns:
 		energy: energy kept on the reconstruction 
 	'''
-	# The compiled routine needs C-contiguous arrays: both inputs are transposed views
-	return math_energy(np.ascontiguousarray(dataset.variables_out[:,channel,:].cpu().numpy().T),np.ascontiguousarray(reconstructed[channel]))
+	# The compiled routine needs C-contiguous arrays (both inputs are transposed views) of one dtype
+	return math_energy(*_same_precision(np.ascontiguousarray(dataset.variables_out[:,channel,:].cpu().numpy().T),np.ascontiguousarray(reconstructed[channel])))
