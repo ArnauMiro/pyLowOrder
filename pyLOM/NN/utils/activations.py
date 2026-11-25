@@ -1,6 +1,14 @@
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# NN activation constructors.
+#
+# Last rev: 23/11/2026
+
 import torch
 
-# Activation constructors shared across NN modules
+
 def tanh() -> torch.nn.Module:
     return torch.nn.Tanh()
 

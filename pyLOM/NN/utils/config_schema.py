@@ -1,14 +1,20 @@
-# config_schema.py
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# NN configuration dataclasses (GNS).
+#
+# Last rev: 23/11/2026
 
 from dataclasses import dataclass, field
-from typing import Optional, Union, Sequence
-from torch import Tensor
+from typing      import Optional, Union, Sequence
+from torch       import Tensor
 
-from .. import DEVICE
+from ..          import DEVICE
 
 
 # ----------------------------------------------------------------------
-# Base Configs (DTOs puros: strings y primitivos; nada "vivo")
+# Base Configs (pure DTOs: strings and primitive types only, no live objects)
 # ----------------------------------------------------------------------
 
 @dataclass(frozen=True, kw_only=True)
@@ -67,7 +73,7 @@ class GNSModelConfig(ModelConfigBase):
     decoder_hidden_layers: int
     message_hidden_layers: int
     update_hidden_layers: int
-    groupnorm_groups: int = 2  # verificar divisibilidad en el constructor del modelo
+    groupnorm_groups: int = 2  # latent_dim must be divisible by it (checked by the model)
     debug: bool = False
 
 
