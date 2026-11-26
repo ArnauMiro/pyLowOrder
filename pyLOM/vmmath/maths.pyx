@@ -32,6 +32,12 @@ from .cfuncs       cimport c_ztranspose, c_zmatmul, c_zmatmulp, c_zvecmat, c_zve
 from ..utils.cr     import cr
 from ..utils.errors import raiseError
 
+ctypedef fused complexM:
+	np.complex64_t[::1]
+	np.complex128_t[::1]
+	np.complex64_t[:,::1]
+	np.complex128_t[:,::1]
+
 
 ## Cython functions
 @cython.initializedcheck(False)
@@ -1139,20 +1145,25 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zconj(np.complex128_t[:,::1] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def conj(real_complex[:,::1] A):
+def conj(complexM A):
 	r'''
 	Conjugates complex number A
 
 	Args:
-		A (np.ndarray): Vector, matrix or number A
+		A (np.ndarray): Vector (N) or matrix (M,N) A
 	
 	Result:
-		np.ndarray: Conjugate of A
+		np.ndarray: Conjugate of A, with the shape of A
 	'''
-	if real_complex is np.complex128_t:
+	# A vector is conjugated as a single row (1,N) and returned as a vector (N)
+	if complexM is np.complex128_t[:,::1]:
 		return _zconj(A)
-	else:
+	elif complexM is np.complex64_t[:,::1]:
 		return _cconj(A)
+	elif complexM is np.complex128_t[::1]:
+		return _zconj(np.asarray(A).reshape(1,-1)).reshape(-1)
+	else:
+		return _cconj(np.asarray(A).reshape(1,-1)).reshape(-1)
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
