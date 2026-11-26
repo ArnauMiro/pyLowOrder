@@ -4,7 +4,13 @@
 #
 # Autoencoder architecture for NN Module
 #
-# Last rev: 09/10/2024
+# Last rev: 25/11/2026
+#
+# Precision: a Dataset keeps the precision it was given, and the data is converted to
+# the model's own dtype when it enters the model. The model's dtype is the dtype of its
+# weights, read by the _dtype property (next(self.parameters()).dtype): float32 by
+# default, float64 if the model is converted after building (.double() or
+# .to(torch.float64)) or built after torch.set_default_dtype(torch.float64).
 
 import torch
 import torch.nn            as nn
@@ -14,13 +20,12 @@ import numpy               as np
 from   torch.utils.data        import DataLoader
 from   torch.amp               import GradScaler, autocast
 from   torch.utils.tensorboard import SummaryWriter
-from   torchsummary            import summary
 
 from   functools               import reduce
 from   operator                import mul
 
 from   ..                      import DEVICE, PIN_MEMORY
-from   ...utils                import cr, pprint
+from   ...utils                import cr, pprint, raiseError
 
 
 ## Wrapper of a variational autoencoder
@@ -60,16 +65,25 @@ class Autoencoder(nn.Module):
         encoder.to(self._device)
         decoder.to(self._device)
         self.to(self._device)
+        # Diagnostic print of the model, valid for any dtype and device
         if self._verb:
-            summary(self, input_size=(self.inp_chan, *self.in_shape),device=device)
+            pprint(0, self, flush=True)
+            pprint(0, 'Total parameters: %d' % sum(p.numel() for p in self.parameters()), flush=True)
       
     def _lossfunc(self, x, recon_x, reduction):
-        return  F.mse_loss(recon_x.view(-1, self.N), x.view(-1, self.N),reduction=reduction)
+        return  F.mse_loss(recon_x.reshape(-1, self.N), x.reshape(-1, self.N),reduction=reduction)
     
     def forward(self, x):
         z     = self.encoder(x)
         recon = self.decoder(z)
         return recon, z
+
+    @property
+    def _dtype(self):
+        r'''
+        Dtype of the model's parameters; data is converted to it when it enters the model.
+        '''
+        return next(self.parameters()).dtype
 
     @cr('AE.fit')
     def fit(
@@ -125,7 +139,7 @@ class Autoencoder(nn.Module):
             num_batches = 0
             tr_loss = 0
             for batch0 in train_data:
-                batch = batch0.to(self._device)
+                batch = batch0.to(self._device, dtype=self._dtype)
                 recon, _ = self(batch)
                 loss = self._lossfunc(batch, recon, reduction)
                 optimizer.zero_grad()
@@ -142,7 +156,7 @@ class Autoencoder(nn.Module):
                 with torch.no_grad():
                     val_batches = 0
                     for val_batch0 in eval_data:
-                        val_batch = val_batch0.to(self._device)
+                        val_batch = val_batch0.to(self._device, dtype=self._dtype)
                         val_recon, _ = self(val_batch)
                         vali_loss = self._lossfunc(val_batch, val_recon, reduction)
                         va_loss += vali_loss.item()
@@ -191,7 +205,7 @@ class Autoencoder(nn.Module):
         with torch.no_grad():
             ## Energy recovered in reconstruction
             for energy_batch in loader:
-                energy_batch = energy_batch.to(self._device)
+                energy_batch = energy_batch.to(self._device, dtype=self._dtype)
                 x_recon,_ = self(energy_batch)
 
                 for i in range(num_samples):
@@ -227,28 +241,36 @@ class Autoencoder(nn.Module):
         with torch.no_grad():
             instant  = iter(loader)
             batch    = next(instant)
-            batch    = batch.to(self._device)
+            batch    = batch.to(self._device, dtype=self._dtype)
             _,z = self(batch)
         return z
 
     def decode(self, z):
         r"""
         Decode the latent space to the original space.
+        Output shape matches ``reconstruct``: (inp_chan, N, num_samples).
+
+        For a nonlinear decoder, decoding a mean latent state does not give the mean
+        field: D(E[z]) is not E[D(z)]. To estimate an expected field, decode samples of
+        the latent space and average the decoded outputs instead.
 
         Args:
-            z (np.ndarray): Element of the latent space.
+            z (np.ndarray or torch.Tensor): Element(s) of the latent space, shape (num_samples, latent_dim).
 
         Returns:
-            np.ndarray: Decoded latent space.
+            np.ndarray: Decoded data, shape (inp_chan, N, num_samples).
         """
-        zt  = torch.tensor(z, dtype=torch.float32)
-        var = self.decoder(zt)
-        var = var.cpu()
-        varr = np.zeros((self.N,var.shape[0]),dtype=float)
-        for it in range(var.shape[0]):
-            varaux = var[it,0,:,:].detach().numpy()
-            varr[:,it] = varaux.reshape((self.N,), order='C')
-        return varr 
+        zt = torch.as_tensor(z, dtype=self._dtype, device=self._device)
+        was_training = self.training
+        self.eval()
+        with torch.no_grad():
+            var = self.decoder(zt)
+        if was_training:
+            self.train()
+        var_np = var.cpu().numpy()
+        # Reshape to (num_samples, inp_chan, N) then transpose to (inp_chan, N, num_samples)
+        var_flat = var_np.reshape(var_np.shape[0], self.inp_chan, self.N)
+        return np.transpose(var_flat, (1, 2, 0))
 
 
 class FullyConnectedAutoencoder(nn.Module):
@@ -277,7 +299,9 @@ class FullyConnectedAutoencoder(nn.Module):
         encoder.to(self._device)
         decoder.to(self._device)
         self.to(self._device)
-        summary(self, input_size=(self.in_size,),device=device)
+        # Diagnostic print of the model, valid for any dtype and device
+        pprint(0, self, flush=True)
+        pprint(0, 'Total parameters: %d' % sum(p.numel() for p in self.parameters()), flush=True)
         return None
 
     def _lossfunc(self, x, recon_x, reduction):
@@ -287,6 +311,13 @@ class FullyConnectedAutoencoder(nn.Module):
         z     = self.encoder(x)
         recon = self.decoder(z)
         return recon, z
+
+    @property
+    def _dtype(self):
+        r'''
+        Dtype of the model's parameters; data is converted to it when it enters the model.
+        '''
+        return next(self.parameters()).dtype
 
     def fit(
         self,
@@ -339,7 +370,7 @@ class FullyConnectedAutoencoder(nn.Module):
             num_batches = 0
             tr_loss = 0
             for batch0 in train_data:
-                batch = batch0.to(self._device)
+                batch = batch0.to(self._device, dtype=self._dtype)
                 recon, _ = self(batch)
                 loss = self._lossfunc(batch, recon, reduction)
                 optimizer.zero_grad()
@@ -354,7 +385,7 @@ class FullyConnectedAutoencoder(nn.Module):
                 with torch.no_grad():
                     val_batches = 0
                     for val_batch0 in eval_data:
-                        val_batch = val_batch0.to(self._device)
+                        val_batch = val_batch0.to(self._device, dtype=self._dtype)
                         val_recon, _ = self(val_batch)
                         vali_loss = self._lossfunc(val_batch, val_recon, reduction)
                         va_loss += vali_loss.item()
@@ -399,7 +430,7 @@ class FullyConnectedAutoencoder(nn.Module):
         with torch.no_grad():
             ## Energy recovered in reconstruction
             for energy_batch in loader:
-                energy_batch = energy_batch.to(self._device)
+                energy_batch = energy_batch.to(self._device, dtype=self._dtype)
                 x_recon,_ = self(energy_batch)
 
                 for i in range(num_samples):
@@ -436,7 +467,7 @@ class FullyConnectedAutoencoder(nn.Module):
         with torch.no_grad():
             instant  = iter(loader)
             batch    = next(instant)
-            batch    = batch.to(self._device)
+            batch    = batch.to(self._device, dtype=self._dtype)
             _,z = self(batch)
         return z
 
@@ -444,15 +475,24 @@ class FullyConnectedAutoencoder(nn.Module):
         r"""
         Decode the latent space to the original space.
 
+        For a nonlinear decoder, decoding a mean latent state does not give the mean
+        field: D(E[z]) is not E[D(z)]. To estimate an expected field, decode samples of
+        the latent space and average the decoded outputs instead.
+
         Args:
-            z (np.ndarray): Element of the latent space.
+            z (np.ndarray or torch.Tensor): Element(s) of the latent space, shape (num_samples, latent_dim).
 
         Returns:
-            np.ndarray: Decoded latent space.
+            np.ndarray: Decoded data, shape (num_samples, in_size).
         """
-        zt  = torch.tensor(z, dtype=torch.float32)
-        var = self.decoder(zt)
-        return var.cpu().detach().numpy()
+        zt = torch.as_tensor(z, dtype=self._dtype, device=self._device)
+        was_training = self.training
+        self.eval()
+        with torch.no_grad():
+            var = self.decoder(zt)
+        if was_training:
+            self.train()
+        return var.cpu().numpy()
 
 
 ## Wrapper of a variational autoencoder
@@ -480,6 +520,15 @@ class VariationalAutoencoder(Autoencoder):
         return  sample
              
     def _kld(self, mu, logvar):
+        r'''
+        KL term of the loss, which ``fit`` subtracts as ``mse - beta*kld``.
+
+        This is a batch-level term on purpose, not the per-sample KL divergence
+        to N(0, I): the mu term uses the batch mean of ``mu``, so it only pulls
+        the mean of the batch to zero, and the variance term uses the exponential
+        of the batch mean of ``logvar``. The sum runs over the batch and the
+        latent dimensions, like the reconstruction error.
+        '''
         mum     = torch.mean(mu, axis=0)
         logvarm = torch.mean(logvar, axis=0)
         return 0.5*torch.sum(1 + logvar - mum**2 - logvarm.exp())
@@ -512,8 +561,9 @@ class VariationalAutoencoder(Autoencoder):
         Args:
             train_dataset (torch.utils.data.Dataset): Training dataset.
             eval_dataset (torch.utils.data.Dataset): Evaluation dataset.
+            betasch: Scheduler that gives the value of beta, the weight of the KL term, at each epoch (e.g. ``betaLinearScheduler``). When ``None`` beta is ``1``. Default is ``None``.
             epochs (int): Number of epochs to train the model. Default is ``100``.
-            callback: Callback object to change the value of beta during training. Default is ``None``.
+            callback: Early stopping object, its ``early_stop`` method decides when to stop training. Default is ``None``.
             lr (float): Learning rate. Default is ``1e-3``.
             BASEDIR (str): Directory to save the model. Default is ``"./"``.
             reduction (str): Reduction method for the loss function. Default is ``"mean"``.
@@ -545,7 +595,7 @@ class VariationalAutoencoder(Autoencoder):
             kld     = 0
             beta    = betasch.getBeta(epoch) if betasch is not None else 1
             for batch0 in train_data:
-                batch = batch0.to(self._device)
+                batch = batch0.to(self._device, dtype=self._dtype)
                 optimizer.zero_grad()
                 with autocast(device_type=self._device):
                     recon, mu, logvar, _ = self(batch)
@@ -569,7 +619,7 @@ class VariationalAutoencoder(Autoencoder):
             if eval_dataset is not None:
                 with torch.no_grad():
                     for val_batch0 in eval_data:
-                        val_batch = val_batch0.to(self._device)
+                        val_batch = val_batch0.to(self._device, dtype=self._dtype)
                         with autocast(device_type=self._device):
                             val_recon, val_mu, val_logvar, _ = self(val_batch)
                             mse_i     = self._lossfunc(val_batch, val_recon, reduction='sum')
@@ -620,7 +670,7 @@ class VariationalAutoencoder(Autoencoder):
         with torch.no_grad():
             ## Energy recovered in reconstruction
             for energy_batch in loader:
-                energy_batch = energy_batch.to(self._device)
+                energy_batch = energy_batch.to(self._device, dtype=self._dtype)
                 x_recon,_,_,_ = self(energy_batch)
 
                 for i in range(num_samples):
@@ -641,13 +691,17 @@ class VariationalAutoencoder(Autoencoder):
 
         return rec.cpu().numpy()
   
-    def correlation(self, dataset, savepath: str = None):
+    def correlation(self,dataset,savepath:str=None):
         r"""
         Compute the correlation between the latent variables of the given dataset.
 
+        It uses the encoder means (``latent_space(dataset, sample=False)``), so the
+        result is repeatable. Sampled latent vectors add independent noise, which
+        hides the correlation between the latent variables and raises ``detR``.
+
         Args:
             dataset (torch.utils.data.Dataset): Dataset to compute the correlation.
-            savepath (str, optional): if given, the latent coordinates are saved
+            savepath (str, optional): if given, the latent coordinates (the means) are saved
                 there as a ``.npy``. Nothing is written when ``None`` (default).
 
         Returns:
@@ -661,34 +715,47 @@ class VariationalAutoencoder(Autoencoder):
         pprint(0, 'Orthogonality between modes %.2f' % (detR), flush=True)
         return corr, detR
 
-    def modes(self):
+    def modes(self,ivar:int=1):
         r"""
-        Compute the modes of the latent space.
+        Compute the modes of the latent space for one channel, in the flattened
+        layout of ``pyLOM.POD.extract_modes`` (with ``reshape=True``), so the result
+        can be added to a pyLOM Dataset in the same way as POD, SPOD or DMD modes.
+
+        Mode 1 is D(0), the decoder output at the origin of the latent space, and
+        mode i+1 is D(e_i) - D(0), the change produced by a unit step along latent
+        direction i (one standard deviation of the prior). This parallels a POD run
+        without removing the mean: its first mode carries the mean-like content and
+        the rest carry the fluctuations. The data is already mean-subtracted before
+        it enters the autoencoder, so D(0) is not the data mean; it is the offset of
+        the decoder. For a nonlinear decoder these modes are not orthogonal, are not
+        ordered by energy and have no singular values.
+
+        Args:
+            ivar (int, optional): channel to return, counted from 1 like
+                ``pyLOM.POD.extract_modes`` (default ``1``).
 
         Returns:
-            np.ndarray: Modes of the latent space.
+            np.ndarray: modes of channel ``ivar``, shape (N*(latent_dim+1),), where the
+            value of point p in mode m (counted from 1) is at p*(latent_dim+1) + m-1.
         """
-        zmode = np.diag(np.ones((self.lat_dim,),dtype=float))
-        zmodt = torch.tensor(zmode, dtype=torch.float32)
-        zmodt = zmodt.to(self._device)
-        modes = self.decoder(zmodt)
-        mymod = np.zeros((self.N,self.lat_dim),dtype=float)
-        modes = modes.cpu()
-        for imode in range(self.lat_dim):
-            modesr = modes[imode,0,:,:].detach().numpy()
-            mymod[:,imode] = modesr.reshape((self.N,), order='C')
-        return mymod.reshape((self.N*self.lat_dim,),order='C')
+        if ivar < 1 or ivar > self.inp_chan:
+            raiseError('ivar=%d is out of range, the model has %d channels (counted from 1)' % (ivar, self.inp_chan))
+        # Latent vectors 0, e_1, ..., e_L, decoded in eval mode to (inp_chan, N, latent_dim+1)
+        z    = np.vstack((np.zeros((1, self.lat_dim)), np.eye(self.lat_dim)))
+        dmod = self.decode(z)[ivar-1]
+        dmod[:,1:] -= dmod[:,:1]
+        return dmod.reshape((self.N*(self.lat_dim+1),), order='C')
 
-    def latent_space(self, dataset: torch.utils.data.Dataset, sample: bool = True):
+    def latent_space(self,dataset:torch.utils.data.Dataset,sample:bool=True):
         r"""
         Compute the latent space of the elements of a given dataset.
 
         Args:
             dataset (torch.utils.data.Dataset): Dataset to compute the latent space.
-            sample (bool, optional): if ``True`` return a reparameterised draw
-                ``mu + sigma*eps``; if ``False`` (default) return the posterior
-                mean ``mu``, which is deterministic and is what downstream
-                surrogates should be trained against.
+            sample (bool, optional): if ``True`` (default) return a reparameterised
+                draw ``mu + sigma*eps``; if ``False`` return the posterior mean ``mu``,
+                which is deterministic and is what downstream surrogates should be
+                trained against.
 
         Returns:
             torch.Tensor: Latent coordinates, shape (num_samples, latent_dim).
@@ -697,7 +764,7 @@ class VariationalAutoencoder(Autoencoder):
         was_training = self.training
         self.eval()
         with torch.no_grad():
-            batch      = next(iter(loader)).to(self._device)
+            batch      = next(iter(loader)).to(self._device, dtype=self._dtype)
             mu, logvar = self.encoder(batch)
             z          = self._reparamatrizate(mu, logvar) if sample else mu
         if was_training:
@@ -705,8 +772,24 @@ class VariationalAutoencoder(Autoencoder):
         return z
 
     def fine_tune(self, train_dataset, shape_, eval_dataset=None, epochs=1000, callback=None, lr=1e-4, BASEDIR='./', **dataloader_params):
-        train_data = DataLoader(torch.from_numpy(train_dataset).to(torch.float32), **dataloader_params)
-        eval_data  = DataLoader(torch.from_numpy(eval_dataset).to(torch.float32), **dataloader_params)
+        r"""
+        Fine-tune the decoder only, on pairs of latent vectors and targets.
+
+        Args:
+            train_dataset (np.ndarray): training rows, each holding a latent vector followed by its flattened target, shape (num_samples, latent_dim + inp_chan*N).
+            shape_: not used.
+            eval_dataset (np.ndarray, optional): validation rows with the same layout. ``None`` (default) skips validation and reports a validation loss of 0.
+            epochs (int, optional): number of training epochs (default ``1000``).
+            callback (optional): early stopping callback (default ``None``).
+            lr (float, optional): learning rate (default ``1e-4``).
+            BASEDIR (str, optional): folder for the TensorBoard logs and ``decoder_state.pth`` (default ``'./'``).
+            **dataloader_params: arguments passed to the DataLoaders.
+
+        Returns:
+            int: 0.
+        """
+        train_data = DataLoader(torch.from_numpy(train_dataset), **dataloader_params)
+        eval_data  = DataLoader(torch.from_numpy(eval_dataset), **dataloader_params) if eval_dataset is not None else None
         prev_train_loss = 1e99
         writer    = SummaryWriter(BASEDIR)
         decoder_model = self.decoder
@@ -719,7 +802,7 @@ class VariationalAutoencoder(Autoencoder):
             decoder_model.train()
             tr_loss = 0
             for batch0 in train_data:
-                batch = batch0.to(self._device)
+                batch = batch0.to(self._device, dtype=self._dtype)
                 optimizer.zero_grad()
                 with autocast(device_type=self._device):
                     in_data = batch[:, :self.lat_dim]
@@ -737,18 +820,19 @@ class VariationalAutoencoder(Autoencoder):
             ## Validation
             decoder_model.eval()
             va_loss     = 0
-            with torch.no_grad():
-                for val_batch0 in eval_data:
-                    val_batch = val_batch0.to(self._device)
-                    with autocast(device_type=self._device):
-                        val_in_data   = val_batch[:, :self.lat_dim]
-                        val_recon     = decoder_model(val_in_data)
-                        vali_loss     = self._lossfunc(torch.reshape(batch[:, self.lat_dim:], val_recon.shape), val_recon, reduction='mean')
+            if eval_data is not None:
+                with torch.no_grad():
+                    for val_batch0 in eval_data:
+                        val_batch = val_batch0.to(self._device, dtype=self._dtype)
+                        with autocast(device_type=self._device):
+                            val_in_data   = val_batch[:, :self.lat_dim]
+                            val_recon     = decoder_model(val_in_data)
+                            vali_loss     = self._lossfunc(torch.reshape(val_batch[:, self.lat_dim:], val_recon.shape), val_recon, reduction='mean')
                         
-                    va_loss  += vali_loss.item()
+                        va_loss  += vali_loss.item()
 
-            num_batches = len(eval_data)
-            va_loss    /=num_batches
+                num_batches = len(eval_data)
+                va_loss    /=num_batches
             writer.add_scalar("Ft/Loss/train",tr_loss,epoch+1)
             writer.add_scalar("Ft/Loss/vali", va_loss,epoch+1)
             
@@ -763,30 +847,11 @@ class VariationalAutoencoder(Autoencoder):
 
         writer.flush()
         writer.close()
-        torch.save(decoder_model.state_dict(), '%s/decoder_state' % BASEDIR)
+        torch.save(decoder_model.state_dict(), '%s/decoder_state.pth' % BASEDIR)
         
-        self.decoder.load_state_dict(torch.load('%s/decoder_state' % BASEDIR, weights_only=True))
+        self.decoder.load_state_dict(torch.load('%s/decoder_state.pth' % BASEDIR, weights_only=True))
 
         return 0
-
-    def decode(self, z):
-        r"""
-        Decode a latent space element to the original space.
-        Output shape matches ``reconstruct``: (inp_chan, N, num_samples).
-
-        Args:
-            z (np.ndarray): Element(s) of the latent space, shape (num_samples, latent_dim).
-
-        Returns:
-            np.ndarray: Decoded data, shape (inp_chan, N, num_samples).
-        """
-        zt = torch.tensor(z, dtype=torch.float32, device=self._device)
-        with torch.no_grad():
-            var = self.decoder(zt)
-        var_np = var.cpu().detach().numpy()
-        # Reshape to (num_samples, inp_chan, N) then transpose to (inp_chan, N, num_samples)
-        var_flat = var_np.reshape(var_np.shape[0], self.inp_chan, self.N)
-        return np.transpose(var_flat, (1, 2, 0)) 
 
 
 class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
@@ -811,6 +876,15 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
         return sample
              
     def _kld(self, mu, logvar):
+        r'''
+        KL term of the loss, which ``fit`` subtracts as ``mse - beta*kld``.
+
+        This is a batch-level term on purpose, not the per-sample KL divergence
+        to N(0, I): the mu term uses the batch mean of ``mu``, so it only pulls
+        the mean of the batch to zero, and the variance term uses the exponential
+        of the batch mean of ``logvar``. The sum runs over the batch and the
+        latent dimensions, like the reconstruction error.
+        '''
         mum     = torch.mean(mu, axis=0)
         logvarm = torch.mean(logvar, axis=0)
         return 0.5*torch.sum(1 + logvar - mum**2 - logvarm.exp())
@@ -842,8 +916,9 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
         Args:
             train_dataset (torch.utils.data.Dataset): Training dataset.
             eval_dataset (torch.utils.data.Dataset): Evaluation dataset.
+            betasch: Scheduler that gives the value of beta, the weight of the KL term, at each epoch (e.g. ``betaLinearScheduler``). When ``None`` beta is ``1``. Default is ``None``.
             epochs (int): Number of epochs to train the model. Default is ``100``.
-            callback: Callback object to change the value of beta during training. Default is ``None``.
+            callback: Early stopping object, its ``early_stop`` method decides when to stop training. Default is ``None``.
             lr (float): Learning rate. Default is ``1e-3``.
             BASEDIR (str): Directory to save the model. Default is ``"./"``.
             reduction (str): Reduction method for the loss function. Default is ``"mean"``.
@@ -873,9 +948,9 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
             tr_loss = 0
             mse     = 0
             kld     = 0
-            beta    = betasch.getBeta(epoch) if betasch is not None else 0
+            beta    = betasch.getBeta(epoch) if betasch is not None else 1
             for batch0 in train_data:
-                batch = batch0.to(self._device)
+                batch = batch0.to(self._device, dtype=self._dtype)
                 optimizer.zero_grad()
                 with autocast(device_type=self._device):
                     recon, mu, logvar, _ = self(batch)
@@ -899,7 +974,7 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
             if eval_dataset is not None:
                 with torch.no_grad():
                     for val_batch0 in eval_data:
-                        val_batch = val_batch0.to(self._device)
+                        val_batch = val_batch0.to(self._device, dtype=self._dtype)
                         with autocast(device_type=self._device):
                             val_recon, val_mu, val_logvar, _ = self(val_batch)
                             mse_i     = self._lossfunc(val_batch, val_recon, reduction='sum')
@@ -925,7 +1000,7 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
 
         writer.flush()
         writer.close()
-        torch.save(self.state_dict(), '%s/model_state' % BASEDIR)
+        torch.save(self.state_dict(), '%s/model_state.pth' % BASEDIR)
 
     @cr('VAEfc.reconstruct')
     def reconstruct(self, dataset):
@@ -947,7 +1022,7 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
         with torch.no_grad():
             ## Energy recovered in reconstruction
             for energy_batch in loader:
-                energy_batch = energy_batch.to(self._device)
+                energy_batch = energy_batch.to(self._device, dtype=self._dtype)
                 x_recon,_,_,_ = self(energy_batch)
 
                 for i in range(num_samples):
@@ -969,16 +1044,16 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
 
         return rec.cpu().numpy()
           
-    def latent_space(self, dataset: torch.utils.data.Dataset, sample: bool = True):
+    def latent_space(self,dataset:torch.utils.data.Dataset,sample:bool=True):
         r"""
         Compute the latent space of the elements of a given dataset.
 
         Args:
             dataset (torch.utils.data.Dataset): Dataset to compute the latent space.
-            sample (bool, optional): if ``True`` return a reparameterised draw
-                ``mu + sigma*eps``; if ``False`` (default) return the posterior
-                mean ``mu``, which is deterministic and is what downstream
-                surrogates should be trained against.
+            sample (bool, optional): if ``True`` (default) return a reparameterised
+                draw ``mu + sigma*eps``; if ``False`` return the posterior mean ``mu``,
+                which is deterministic and is what downstream surrogates should be
+                trained against.
 
         Returns:
             torch.Tensor: Latent coordinates, shape (num_samples, latent_dim).
@@ -987,7 +1062,7 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
         was_training = self.training
         self.eval()
         with torch.no_grad():
-            batch      = next(iter(loader)).to(self._device)
+            batch      = next(iter(loader)).to(self._device, dtype=self._dtype)
             mu, logvar = self.encoder(batch)
             z          = self._reparamatrizate(mu, logvar) if sample else mu
         if was_training:
@@ -995,8 +1070,24 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
         return z
 
     def fine_tune(self, train_dataset, shape_, eval_dataset=None, epochs=1000, callback=None, lr=1e-4, BASEDIR='./', **dataloader_params):
-        train_data = DataLoader(torch.from_numpy(train_dataset).to(torch.float32), **dataloader_params)
-        eval_data  = DataLoader(torch.from_numpy(eval_dataset).to(torch.float32), **dataloader_params)
+        r"""
+        Fine-tune the decoder only, on pairs of latent vectors and targets.
+
+        Args:
+            train_dataset (np.ndarray): training rows, each holding a latent vector followed by its flattened target, shape (num_samples, n, latent_dim + in_size), with the latent vector and target along the last axis.
+            shape_: not used.
+            eval_dataset (np.ndarray, optional): validation rows with the same layout. ``None`` (default) skips validation and reports a validation loss of 0.
+            epochs (int, optional): number of training epochs (default ``1000``).
+            callback (optional): early stopping callback (default ``None``).
+            lr (float, optional): learning rate (default ``1e-4``).
+            BASEDIR (str, optional): folder for the TensorBoard logs and ``decoder_state.pth`` (default ``'./'``).
+            **dataloader_params: arguments passed to the DataLoaders.
+
+        Returns:
+            int: 0.
+        """
+        train_data = DataLoader(torch.from_numpy(train_dataset), **dataloader_params)
+        eval_data  = DataLoader(torch.from_numpy(eval_dataset), **dataloader_params) if eval_dataset is not None else None
         prev_train_loss = 1e99
         writer    = SummaryWriter(BASEDIR)
         decoder_model = self.decoder
@@ -1009,7 +1100,7 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
             decoder_model.train()
             tr_loss = 0
             for batch0 in train_data:
-                batch = batch0.to(self._device)
+                batch = batch0.to(self._device, dtype=self._dtype)
                 optimizer.zero_grad()
                 with autocast(device_type=self._device):
                     in_data = batch[:, :, :self.lat_dim]
@@ -1027,18 +1118,19 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
             ## Validation
             decoder_model.eval()
             va_loss     = 0
-            with torch.no_grad():
-                for val_batch0 in eval_data:
-                    val_batch = val_batch0.to(self._device)
-                    with autocast(device_type=self._device):
-                        val_in_data   = val_batch[:, :, :self.lat_dim]
-                        val_recon     = decoder_model(val_in_data)
-                        vali_loss     = self._lossfunc(val_batch[:, :, self.lat_dim:], val_recon, reduction='sum')
+            if eval_data is not None:
+                with torch.no_grad():
+                    for val_batch0 in eval_data:
+                        val_batch = val_batch0.to(self._device, dtype=self._dtype)
+                        with autocast(device_type=self._device):
+                            val_in_data   = val_batch[:, :, :self.lat_dim]
+                            val_recon     = decoder_model(val_in_data)
+                            vali_loss     = self._lossfunc(val_batch[:, :, self.lat_dim:], val_recon, reduction='sum')
                         
-                    va_loss  += vali_loss.item()
+                        va_loss  += vali_loss.item()
 
-            num_batches = len(eval_data)
-            va_loss    /=num_batches
+                num_batches = len(eval_data)
+                va_loss    /=num_batches
             writer.add_scalar("Ft/Loss/train",tr_loss,epoch+1)
             writer.add_scalar("Ft/Loss/vali", va_loss,epoch+1)
             
@@ -1053,22 +1145,8 @@ class FullyConnectedVariationalAutoencoder(FullyConnectedAutoencoder):
 
         writer.flush()
         writer.close()
-        torch.save(decoder_model.state_dict(), '%s/decoder_state' % BASEDIR)
+        torch.save(decoder_model.state_dict(), '%s/decoder_state.pth' % BASEDIR)
         
-        self.decoder.load_state_dict(torch.load('%s/decoder_state' % BASEDIR, weights_only=True))
+        self.decoder.load_state_dict(torch.load('%s/decoder_state.pth' % BASEDIR, weights_only=True))
 
         return 0
-
-    def decode(self, z):
-        r"""
-        Decode a latent space element to the original space.
-
-        Args:
-            z (np.ndarray): Element of the latent space.
-
-        Returns:
-            np.ndarray: Decoded latent space.
-        """
-        zt  = torch.tensor(z, dtype=torch.float32)
-        var = self.decoder(zt)
-        return var.cpu().detach().numpy()

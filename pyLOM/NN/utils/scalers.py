@@ -4,7 +4,7 @@
 #
 # NN utility routines.
 #
-# Last rev:
+# Last rev: 25/11/2026
 
 # Built-in modules
 import os
@@ -273,6 +273,9 @@ class MinMaxScaler:
             - If `variables` is a list, each item is treated as an independent variable.
         - If `blocks` provided and `variables` is array/tensor:
             - Group by the blocks for min/max.
+
+        Returns:
+            MinMaxScaler: the fitted scaler, so calls can be chained.
         """
         # Normalize inputs to a single 2D matrix for easier handling
         is_array  = isinstance(variables, np.ndarray)
@@ -301,6 +304,7 @@ class MinMaxScaler:
         # When fitting from a single 2D matrix, we remember how to split/stack later.
         # If a list is passed, we know we should return a list on transform if a list was passed.
         self._fit_from_list = not (is_array or is_tensor)
+        return self
 
     def transform(
         self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]
@@ -322,6 +326,11 @@ class MinMaxScaler:
             X = self._orient(self._ensure_2d(variables))
             blocks = self._split_into_blocks(X)
 
+            if len(blocks) != len(self.variable_scaling_params):
+                raiseError(
+                    f"Number of variables to transform ({len(blocks)}) does not match the number fitted ({len(self.variable_scaling_params)})"
+                )
+
             if is_tensor:
                 scaled_blocks = [
                     _scale_block(block, p, self.feature_range) for block, p in zip(blocks, self.variable_scaling_params)
@@ -336,6 +345,10 @@ class MinMaxScaler:
                 return out.T if self._column else out
 
         # --- Case 2: list input (backward-compatible) ---
+        if len(variables) != len(self.variable_scaling_params):
+            raiseError(
+                f"Number of variables to transform ({len(variables)}) does not match the number fitted ({len(self.variable_scaling_params)})"
+            )
         scaled_list = []
         for i, v in enumerate(variables):
             v2d = self._ensure_2d(v)
@@ -426,6 +439,10 @@ class StandardScaler:
 
     Supports both matrix/tensor input and list-of-blocks input, mirroring
     MinMaxScaler behavior used by Dataset.
+
+    Each column of a matrix or tensor, or each item of a list, is one variable.
+    Unlike MinMaxScaler there is no ``column`` or ``blocks`` option: to scale
+    variables stored by rows, pass the data transposed.
     """
 
     def __init__(self, eps: float = 1e-12):
@@ -459,7 +476,8 @@ class StandardScaler:
         params = []
         for b in blocks:
             mean = float(b.mean())
-            std  = float(b.std())
+            # Divide by n for both inputs: torch divides by n-1 unless told otherwise
+            std  = float(b.std(correction=0)) if isinstance(b, torch.Tensor) else float(b.std())
             if std < self.eps:
                 std = 1.0
             params.append({"mean": mean, "std": std})
@@ -467,6 +485,7 @@ class StandardScaler:
         self.variable_scaling_params = params
         self._fit_from_list = not (is_array or is_tensor)
         self._is_fitted = True
+        return self
 
     def transform(self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]):
         if not self._is_fitted:
@@ -560,6 +579,10 @@ class RobustScaler:
     Robust scaler using median and IQR: z = (x - median) / IQR.
 
     Supports both matrix/tensor input and list-of-blocks input.
+
+    Each column of a matrix or tensor, or each item of a list, is one variable.
+    Unlike MinMaxScaler there is no ``column`` or ``blocks`` option: to scale
+    variables stored by rows, pass the data transposed.
     """
 
     def __init__(self, eps: float = 1e-12):
@@ -608,6 +631,7 @@ class RobustScaler:
         self.variable_scaling_params = params
         self._fit_from_list = not (is_array or is_tensor)
         self._is_fitted = True
+        return self
 
     def transform(self, variables: Union[List[Union[np.ndarray, torch.Tensor]], np.ndarray, torch.Tensor]):
         if not self._is_fitted:

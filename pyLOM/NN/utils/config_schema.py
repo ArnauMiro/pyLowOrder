@@ -8,7 +8,7 @@ from .. import DEVICE
 
 
 # ----------------------------------------------------------------------
-# Base Configs (DTOs puros: strings y primitivos; nada "vivo")
+# Base Configs (pure DTOs: strings and primitives; nothing "live")
 # ----------------------------------------------------------------------
 
 @dataclass(frozen=True, kw_only=True)
@@ -67,7 +67,7 @@ class GNSModelConfig(ModelConfigBase):
     decoder_hidden_layers: int
     message_hidden_layers: int
     update_hidden_layers: int
-    groupnorm_groups: int = 2  # verificar divisibilidad en el constructor del modelo
+    groupnorm_groups: int = 2  # must divide latent_dim: torch.nn.GroupNorm raises otherwise
     debug: bool = False
 
 

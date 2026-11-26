@@ -4,7 +4,7 @@
 #
 # GAVI Module
 #
-# Last rev: 27/10/2025
+# Last rev: 24/07/2026
 
 
 from .wrapper import vae_R, save_vae_R, load_vae_R, vae_Q, QR, reconstruct_Q

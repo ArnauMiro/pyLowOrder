@@ -4,7 +4,12 @@
 #
 # Message passing graph neural network architecture for NN Module
 #
-# Last rev: 30/03/2025
+# Last rev: 25/11/2026
+#
+# Precision: the Graph keeps the precision of its mesh and is converted to the model's own
+# dtype when it is set; input and target batches are converted when they enter the model
+# (see gns/trainer.py). The model's dtype is the dtype of its weights: float32 by default,
+# float64 if the model is built after torch.set_default_dtype(torch.float64).
 
 import json
 import getpass
@@ -24,6 +29,7 @@ from .. import set_seed
 from ... import pprint, cr
 from ...utils import (
     raiseError,
+    raiseWarning,
     get_git_commit,
 )
 from ..utils import (
@@ -89,7 +95,14 @@ class GNS(torch.nn.Module):
         config : GNSModelConfig
             Pure DTO with model hyperparameters.
         graph : Graph
-            Fully loaded in-memory Graph object.
+            Fully loaded in-memory Graph object. It is moved to the model's device and
+            converted to the model's dtype in place, so the object passed in changes too
+            (a warning is raised when its dtype changes). Later calls to ``.to()``,
+            ``.double()`` or ``.float()`` on the model convert the graph in the same way.
+            Converting back does not restore lost precision: a float64 graph used by a
+            float32 model is cut to float32. For a float64 model, call
+            ``torch.set_default_dtype(torch.float64)`` before building it, or load the
+            graph again.
         graph_spec : Optional[GraphSpec]
             Optional provenance info (e.g., path/id). Not a hyperparameter.
         """
@@ -281,6 +294,11 @@ class GNS(torch.nn.Module):
             pprint(0, f"Moving graph to device {self.device}.")
             graph = graph.to(self.device)
 
+        # The graph keeps the mesh precision, convert its features to the model's dtype. The
+        # layers are built after the graph is set, with torch's default dtype. The conversion
+        # is in place (like the device move) so a graph can be shared between models.
+        graph = self._graph_to(graph, dtype=torch.get_default_dtype())
+
         # Update dependent dims (model_config must be set before assigning graph)
         self._encoder_input_dim = graph.x.shape[1] + self.model_config.input_dim
         self._edge_dim = graph.edge_attr.shape[1]
@@ -288,6 +306,32 @@ class GNS(torch.nn.Module):
         # Assign and fingerprint
         self._graph = graph
         self.graph_fingerprint = graph.fingerprint()
+
+    @staticmethod
+    def _graph_to(graph: Graph, dtype: torch.dtype) -> Graph:
+        """Convert the floating point tensors of the graph to ``dtype``, in place, with a warning."""
+        if graph.x.dtype != dtype or graph.edge_attr.dtype != dtype:
+            raiseWarning(f"GNS: converting the graph in place from {graph.x.dtype} to {dtype}; the Graph object passed in is changed too.")
+            graph = graph.apply(lambda t: t.to(dtype) if t.is_floating_point() else t)
+        return graph
+
+    def _apply(self, fn, recurse=True):
+        """
+        Keep the graph and the stored devices in step with the parameters after ``.to()``,
+        ``.double()``, ``.float()``, ``.cuda()`` or ``.cpu()``. The graph is not a parameter
+        or buffer, so torch alone would leave it behind.
+        """
+        super()._apply(fn, recurse)
+        p = next(self.parameters(), None)
+        if p is None or getattr(self, "_graph", None) is None:
+            return self
+        self.device = p.device
+        for helper in (getattr(self, "injector", None), getattr(self, "_helpers", None)):
+            if helper is not None: helper.device = p.device
+        if self._graph.x.device != p.device:
+            self._graph = self._graph.to(p.device)
+        self._graph = self._graph_to(self._graph, dtype=p.dtype)
+        return self
 
     @cr('GNS.forward')
     def forward(self, graph: Union[Data, Graph]) -> Tensor:
@@ -666,8 +710,8 @@ class GNS(torch.nn.Module):
         Returns
         -------
         (GNS, Dict[str, Any]):
-            - trained_model (GNS): instancia del modelo (no entrenado).
-            - fit_kwargs (dict): kwargs para GNS.fit, p.ej. {"config": GNSTrainingConfig}.
+            - trained_model (GNS): model instance (not trained).
+            - fit_kwargs (dict): kwargs for GNS.fit, e.g. {"config": GNSTrainingConfig}.
         """
         if eval_dataset is None:
             raiseError("Optuna optimization requires a validation dataset (eval_dataset).")
@@ -690,7 +734,7 @@ class GNS(torch.nn.Module):
             model_cfg = dataclass_from_dict(GNSModelConfig, model_dict, strict=True)
             training_cfg = dataclass_from_dict(GNSTrainingConfig, training_dict, strict=True)
 
-            # 3) Build model (no resolvers here; __init__ y fit se encargan internamente)
+            # 3) Build model (no resolvers here; __init__ and fit handle them internally)
             model = cls(config=model_cfg, graph=shared_graph, graph_spec=GraphSpec(path=str(graph_path)))
 
             # 4) Logging (DTOs -> dicts)
@@ -704,7 +748,7 @@ class GNS(torch.nn.Module):
                 if trial.should_prune():
                     raise TrialPruned()
 
-            # 6) Train (fit se encarga de resolver loss/optimizer/scheduler)
+            # 6) Train (fit resolves the loss, optimizer and scheduler)
             try:
                 if optuna_optimizer.pruner is not None:
                     losses = model.fit(
@@ -754,7 +798,7 @@ class GNS(torch.nn.Module):
         # ---- Run optimization ----
         best_params_flat = optuna_optimizer.optimize(objective_function=objective)
 
-        # ---- Reconstruct best dicts for model and training (solo claves buscadas) ----
+        # ---- Reconstruct best dicts for model and training (only the searched keys) ----
         best_model_cfg_dict    = _materialize_space(model_space,    best_params_flat)
         best_training_cfg_dict = _materialize_space(training_space, best_params_flat)
 
@@ -795,7 +839,7 @@ class GNS(torch.nn.Module):
         training_cfg = optimization_params.get("training")
 
         if graph_path is None:
-            raise ValueError("Missing required key 'graph_path' in optimization_params['model'].")
+            raiseError("Missing required key 'graph_path' in optimization_params['model'].")
 
         return graph_path, {
             "model": model_cfg,

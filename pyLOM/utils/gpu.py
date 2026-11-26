@@ -4,7 +4,7 @@
 #
 # GPU setup routines
 #
-# Last rev: 14/02/2025
+# Last rev: 26/11/2026
 from __future__ import print_function, division
 
 import numpy as np
@@ -12,9 +12,16 @@ import numpy as np
 from .mpi    import MPI_RANK
 from .errors import raiseWarning
 
+# cupy can be installed on a machine without a usable GPU (e.g., a CPU runner).
+# getDeviceCount raises when there is no driver; with no driver or no device
+# pyLOM runs on the CPU, as if cupy was not installed.
 try:
 	import cupy as cp
+	GPU_AVAILABLE = cp.cuda.runtime.getDeviceCount() > 0
+except Exception:
+	GPU_AVAILABLE = False
 
+if GPU_AVAILABLE:
 	def gpu_device(id=MPI_RANK,gpu_per_node=4):
 		'''
 		Setup the GPU to be used
@@ -71,7 +78,7 @@ try:
 	def from_dlpack(X):
 		return cp.from_dlpack(X)
 
-except:
+else:
 	import numpy as cp
 
 	def gpu_device(id=MPI_RANK,gpu_per_node=4):
@@ -103,4 +110,11 @@ except:
 		return np.ascontiguousarray(X)
 
 	def from_dlpack(X):
-		return X
+		'''
+		Without cupy all the math runs on the CPU, so return X (e.g. a torch tensor)
+		as a numpy array, moving it to the CPU first when it lives on a GPU
+		'''
+		# Device type 1 is the CPU in DLPack, a CUDA tensor has to be copied to the CPU before numpy can read it
+		if X.__dlpack_device__()[0] != 1:
+			X = X.cpu()
+		return np.from_dlpack(X)

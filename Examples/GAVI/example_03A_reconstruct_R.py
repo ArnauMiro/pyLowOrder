@@ -24,7 +24,7 @@ Ry = pyLOM.NN.GAVI.load('QR_veloy.h5', vars=['B'])[0]
 data, _ = pyLOM.NN.GAVI.create_dataset((Rx, Ry), scale='max')
 
 # Load trained VAE (same architecture as vae_R)
-vae = pyLOM.NN.GAVI.load_vae_R(data, latent_dim, BASEDIR=BASEDIR)
+vae = pyLOM.NN.GAVI.load_vae_R(latent_dim, BASEDIR=BASEDIR)
 
 # Load latent vectors
 latent = np.load(os.path.join(BASEDIR, 'latent_%i.npy' % latent_dim))

@@ -4,7 +4,7 @@
 #
 # NN datasets.
 #
-# Last rev:
+# Last rev: 25/11/2026
 
 import numpy as np
 import torch
@@ -67,7 +67,7 @@ class Dataset(torch.utils.data.Dataset):
         outputs_scaler (MinMaxScaler): Scaler to scale the output variables. If the scaler is not fitted, it will be fitted. Default is ``None``.
         snapshots_by_column (bool): If the snapshots from `variables_out` are stored by column. The snapshots on `pyLOM.Dataset`s have this format. Default is ``True``.
         combine_parameters_with_cartesian_prod (bool): If ``True``, parameters are combined using the Cartesian product when building the parameter grid. Default is ``False``.
-        squeeze_last_dim (bool): If ``True``, a singleton trailing dimension in the output variables is squeezed after processing. Default is ``True``.
+        squeeze_last_dim (bool): If ``True``, the output variables lose a dummy mesh axis (``mesh_shape=(1,)``) and a singleton channel axis, wherever they sit, so point data with C channels gives (N, C) and a single channel gives (N, *mesh_shape). Both ``channels_last`` layouts give the same shape unless the channel and mesh axes are both larger than 1. Default is ``True``.
         channels_last (bool): If ``True``, output variables are returned with channels last ordering. Default is ``False``.
     """
     @cr("NN.Dataset.__init__")
@@ -89,6 +89,7 @@ class Dataset(torch.utils.data.Dataset):
         self.num_channels = len(variables_out)
         self.mesh_shape = mesh_shape
         self.channels_last = channels_last
+        self.squeeze_last_dim = squeeze_last_dim
 
         # Attach scalers on the instance
         self.inputs_scaler = inputs_scaler
@@ -105,7 +106,7 @@ class Dataset(torch.utils.data.Dataset):
         # --- inputs / parameters ---
         if variables_in is not None:
             self.parameters = self._process_parameters(parameters, combine_parameters_with_cartesian_prod)
-            self.variables_in = torch.tensor(variables_in, dtype=torch.float32) if type(variables_in) != torch.Tensor else variables_in.clone().detach()
+            self.variables_in = torch.tensor(variables_in) if type(variables_in) != torch.Tensor else variables_in.clone().detach()
 
             if self.inputs_scaler is not None:
                 # Build column-wise list: [variables_in columns] + [parameters columns]
@@ -134,9 +135,9 @@ class Dataset(torch.utils.data.Dataset):
                     transformed_tensors.append(tb)
 
                 n_in_cols = self.variables_in.shape[1]
-                self.variables_in = torch.cat(transformed_tensors[:n_in_cols], dim=1).float()
+                self.variables_in = torch.cat(transformed_tensors[:n_in_cols], dim=1)
                 if self.parameters is not None:
-                    self.parameters = torch.cat(transformed_tensors[n_in_cols:], dim=1).float()
+                    self.parameters = torch.cat(transformed_tensors[n_in_cols:], dim=1)
         else:
             self.variables_in = None
             if parameters is not None:
@@ -159,12 +160,13 @@ class Dataset(torch.utils.data.Dataset):
         (one block per channel) and transforms accordingly (per-channel min/max).
         - Rebuilds a torch.Tensor with shape (N, C, *mesh_shape) by default.
           If ``channels_last=True`` it returns (N, *mesh_shape, C).
+        - With ``squeeze_last_dim`` the dummy mesh axis (``mesh_shape=(1,)``) and a
+          singleton channel axis are removed, in either layout.
         """
         # 1) Normalise every channel to a torch tensor without leaving its device.
         #    torch.as_tensor is a no-op for a tensor that is already of the right
         #    type and wraps a numpy array without copying, so neither input path
-        #    round-trips. detach() keeps autograd history out of the dataset;
-        #    np.asarray used to raise outright on a grad-requiring tensor.
+        #    round-trips. detach() keeps autograd history out of the dataset.
         t_vars = [(v if isinstance(v, torch.Tensor) else torch.as_tensor(v)).detach()
                   for v in variables_out]
         flat_list = [t.reshape(-1, 1) for t in t_vars]
@@ -181,7 +183,7 @@ class Dataset(torch.utils.data.Dataset):
 
         # 3) Rebuild tensors and stack along the channel axis
         stacked = []
-        for scaled, orig in zip(flat_scaled, t_vars):
+        for scaled in flat_scaled:
             s = scaled if isinstance(scaled, torch.Tensor) else torch.as_tensor(scaled)
             stacked.append(s.reshape(-1, *self.mesh_shape))
 
@@ -199,7 +201,7 @@ class Dataset(torch.utils.data.Dataset):
                     out = out.squeeze(-1)
                 if out.ndim > 2 and out.shape[1] == 1:    # singleton channel -> (N, *mesh)
                     out = out.squeeze(1)
-        return out.float()
+        return out
 
 
     def _process_parameters(self, parameters, combine_parameters_with_cartesian_prod):
@@ -216,7 +218,7 @@ class Dataset(torch.utils.data.Dataset):
                 parameters = torch.tensor(parameters[0])
             else:
                 parameters = torch.tensor(list(product(*parameters)))
-        return parameters.float()
+        return parameters
 
     @property
     def shape(self):
@@ -417,7 +419,7 @@ class Dataset(torch.utils.data.Dataset):
             subset_lengths: List[int] = []
             for i, frac in enumerate(sizes):
                 if frac < 0 or frac > 1:
-                    raise ValueError(f"Fraction at index {i} is not between 0 and 1")
+                    raiseError(f"Fraction at index {i} is not between 0 and 1")
                 n_items_in_split = int(
                     np.floor(len(self) * frac)  # type: ignore[arg-type]
                 )
@@ -489,7 +491,7 @@ class Dataset(torch.utils.data.Dataset):
             subset_lengths: List[int] = []
             for i, frac in enumerate(sizes):
                 if frac < 0 or frac > 1:
-                    raise ValueError(f"Fraction at index {i} is not between 0 and 1")
+                    raiseError(f"Fraction at index {i} is not between 0 and 1")
                 n_items_in_split = int(
                     np.floor(len(self.parameters) * frac)  # type: ignore[arg-type]
                 )
@@ -537,14 +539,15 @@ class Dataset(torch.utils.data.Dataset):
 
                 # Create a new dataset instance with the split data
                 split_dataset = self._build_new(
-                    variables_out=tuple([split_variables_out[:, i].reshape(-1, *self.mesh_shape).numpy()
-                                    for i in range(self.num_channels)]),
+                    variables_out=tuple(v.numpy() for v in self._split_channels(split_variables_out)),
                     mesh_shape=self.mesh_shape,
                     variables_in=split_variables_in.numpy() if split_variables_in is not None else None,
                     # Parameters must be transposed to pass only as many list as the number of variables
                     parameters=split_parameters.T.tolist() if split_parameters is not None else None,
                     combine_parameters_with_cartesian_prod=False,
-                    snapshots_by_column=False  # Since the data is already reshaped
+                    snapshots_by_column=False,  # Since the data is already reshaped
+                    squeeze_last_dim=self.squeeze_last_dim,
+                    channels_last=self.channels_last,
                 )
                 split_datasets.append(split_dataset)
             else:
@@ -631,7 +634,7 @@ class Dataset(torch.utils.data.Dataset):
     
     @cr("NN.Dataset.map")
     def map(self, function: Callable, fn_kwargs: dict = {}, batched: bool = False, batch_size: int = 1000):
-        '''
+        r'''
         Apply a function to the dataset.
 
         Args:
@@ -671,7 +674,7 @@ class Dataset(torch.utils.data.Dataset):
         batch_size: int = 1000,
         return_views: bool = True,
     ):
-        """
+        r"""
         Filter the dataset using a function.
 
         Args:
@@ -707,27 +710,35 @@ class Dataset(torch.utils.data.Dataset):
         
         return self._create_subset_from_indices(indices, return_views)
 
+    def _split_channels(self,out):
+        r'''
+        Split output data with this dataset's layout into one tensor per channel.
+
+        Args:
+            out (torch.Tensor): output rows as returned by the dataset, with any squeezed axes.
+
+        Returns:
+            tuple: one tensor of shape (N, *mesh_shape) per channel.
+        '''
+        # Restore the axes removed by squeeze_last_dim, then take each channel
+        if self.channels_last:
+            out = out.reshape(-1, *self.mesh_shape, self.num_channels)
+            return tuple(out[..., i] for i in range(self.num_channels))
+        out = out.reshape(-1, self.num_channels, *self.mesh_shape)
+        return tuple(out[:, i] for i in range(self.num_channels))
+
     def _create_subset_from_indices(self, indices, return_views):
         if not return_views:
             data = self[indices]
-            if self.variables_in is None:
-                dataset = self._build_new(
-                    variables_out=tuple([data[:, i].reshape(-1, *self.mesh_shape)
-                                 for i in range(self.num_channels)]),
-                    mesh_shape=self.mesh_shape,
-                    variables_in=None,
-                    combine_parameters_with_cartesian_prod=False,
-                    snapshots_by_column=False  # Since the data is already reshaped
-                )
-            else:
-                dataset = self._build_new(
-                    variables_out=tuple([data[1][:, i].reshape(-1, *self.mesh_shape)
-                                for i in range(self.num_channels)]),
-                    mesh_shape=self.mesh_shape,
-                    variables_in=data[0],
-                    combine_parameters_with_cartesian_prod=False,
-                    snapshots_by_column=False  # Since the data is already reshaped
-                )
+            dataset = self._build_new(
+                variables_out=self._split_channels(data if self.variables_in is None else data[1]),
+                mesh_shape=self.mesh_shape,
+                variables_in=None if self.variables_in is None else data[0],
+                combine_parameters_with_cartesian_prod=False,
+                snapshots_by_column=False,  # Since the data is already reshaped
+                squeeze_last_dim=self.squeeze_last_dim,
+                channels_last=self.channels_last,
+            )
             return dataset
         else:
             return Subset(self, indices)       
@@ -948,19 +959,19 @@ class NeighborhoodDataset(Dataset):
         super().__init__(*args, **kwargs)
 
         if self.variables_in is None:
-            raise ValueError("NeighborhoodDataset requires input variables (coordinates).")
+            raiseError("NeighborhoodDataset requires input variables (coordinates).")
 
         input_dim = self.variables_in.shape[1]
 
         if geom_dim is None:
             if input_dim < 2:
-                raise ValueError("At least 2 input columns are required for geometry.")
+                raiseError("At least 2 input columns are required for geometry.")
             self.geom_dim = min(3, input_dim)
         else:
             if geom_dim not in (2, 3):
-                raise ValueError("geom_dim must be 2 or 3.")
+                raiseError("geom_dim must be 2 or 3.")
             if input_dim < geom_dim:
-                raise ValueError(
+                raiseError(
                     f"geom_dim={geom_dim} but only {input_dim} input columns available."
                 )
             self.geom_dim = geom_dim

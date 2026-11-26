@@ -1,9 +1,12 @@
+import sys, os
 import numpy as np
 import torch
 from torch.utils.data import TensorDataset
 
 from pyLOM.NN import Diffusion, DiT, RegressionEvaluator
 import pyLOM
+
+OUTDIR = sys.argv[3]
 
 
 class AnalyticalFunctionDataset:
@@ -175,7 +178,8 @@ model = DiT(
     mlp_ratio=2.5,
 )
 
-results_folder = 'synthetic_data_experiment'
+results_folder = os.path.join(OUTDIR, 'synthetic_data_experiment')
+pyLOM.NN.create_results_folder(results_folder, verbose=False)
 
 diffusion = Diffusion(
     model,

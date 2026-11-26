@@ -18,7 +18,7 @@ pyLOM.gpu_device(gpu_per_node=4) # Detect GPU configuration
 
 ## Parameters
 DATAFILE = './DATA/CYLINDER.h5'
-VARLIST  = ['velox']
+VARLIST  = ['VELOX']
 
 k = 1600 ## Final number of modes we want to retain
 o = 100  ## Number of oversampled modes
@@ -27,7 +27,7 @@ q = 1    ## Number of power iterations
 ## Data loading
 pyLOM.pprint(0, 'Loading data...', flush=True)
 d = pyLOM.Dataset.load(DATAFILE)
-X = d['velox']
+X = d['VELOX']
 pyLOM.pprint(0, 'Data loaded!', X.dtype, X.shape, flush=True)
 
 ## Run QR

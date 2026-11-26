@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# Utilities for seeding, devices and Optuna hyperparameter optimisation.
+#
+# Last rev: 25/11/2026
+
 from typing import Optional, Union, Dict, Tuple, List, Any
 import os
 import random
@@ -7,8 +15,10 @@ import torch
 from torch import Tensor
 
 from .. import DEVICE
+from ...utils.errors import raiseError
+from ...utils.parall import pprint
 
-def set_seed(seed: Optional[int] = None) -> None:
+def set_seed(seed:int=-1) -> None:
     """
     Set the random seed for full reproducibility across Python, NumPy, and PyTorch.
     
@@ -32,12 +42,12 @@ def set_seed(seed: Optional[int] = None) -> None:
     Args
     ----
     seed : int, optional
-        The seed value to use for all RNGs. If ``None``, uses current UNIX time.
+        The seed value to use for all RNGs. If ``-1`` (default), uses current UNIX time.
     """
     # -------------------------------
     # Python & NumPy RNGs
     # -------------------------------
-    if seed is None:
+    if seed == -1:
         seed = int(time.time())
 
     os.environ["PYTHONHASHSEED"] = str(seed)  # enforce deterministic hashing in Python
@@ -99,9 +109,9 @@ def create_results_folder(RESUDIR: str, verbose: bool=True):
     if not os.path.exists(RESUDIR):
         os.makedirs(RESUDIR)
         if verbose: 
-            print(f"Folder created: {RESUDIR}")
+            pprint(0, f"Folder created: {RESUDIR}")
     elif verbose:
-        print(f"Folder already exists: {RESUDIR}")
+        pprint(0, f"Folder already exists: {RESUDIR}")
         
 
 def select_device(device: str = DEVICE):
@@ -129,7 +139,7 @@ def cleanup_tensors(tensors: Union[Tensor, Dict, None, Tuple, List]) -> None:
     if tensors is None:
         return
 
-    # Eliminar referencias dentro de estructuras
+    # Remove the references inside containers
     if isinstance(tensors, dict):
         for key in list(tensors.keys()):
             tensors[key] = None
@@ -169,7 +179,7 @@ def get_optimizing_value(name: str, spec: Any, trial):
     elif ptype == "categorical":
         return trial.suggest_categorical(name, spec["choices"])
     else:
-        raise ValueError(f"Unsupported param type '{ptype}' for '{name}'")
+        raiseError(f"Unsupported param type '{ptype}' for '{name}'")
 
 
 def sample_params(space: dict, trial, prefix="") -> dict:
@@ -196,15 +206,15 @@ def _is_dist_spec(x: object) -> bool:
 
 def _materialize_space(space: dict, flat: dict, prefix: str = "") -> dict:
     """
-    Reemplaza specs {type:...} en `space` por valores de `flat` (claves punteadas).
-    Mantiene constantes y recorre recursivamente dicts anidados.
+    Replace the {type:...} specs in `space` with the values in `flat` (dotted keys).
+    Constants are kept and nested dicts are walked recursively.
     """
     out = {}
     for k, v in space.items():
         path = f"{prefix}.{k}" if prefix else k
         if _is_dist_spec(v):
             if path not in flat:
-                raise ValueError(f"Missing sampled value for '{path}'")
+                raiseError(f"Missing sampled value for '{path}'")
             out[k] = flat[path]
         elif isinstance(v, dict):
             out[k] = _materialize_space(v, flat, path)

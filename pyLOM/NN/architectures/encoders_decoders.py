@@ -4,10 +4,12 @@
 #
 # Encoder-Decoder architecture for NN Module
 #
-# Last rev: 09/10/2024
+# Last rev: 24/11/2026
 
 import torch.nn as nn
 import torch
+
+from ...utils.errors import raiseError
 
 class Encoder1D(nn.Module):
 	r"""
@@ -29,9 +31,9 @@ class Encoder1D(nn.Module):
 		vae (bool): Wheather the encoder is going to be used on a VAE or not. Default is ``False``.
 	"""
 
-	def __init__(self, nlayers, latent_dim, input_length, input_channels,
-				 filter_channels, kernel_size, padding, activation_funcs,
-				 nlinear, batch_norm=True, stride=2, dropout=0, vae=True):
+	def __init__(self,nlayers,latent_dim,input_length,input_channels,
+				 filter_channels,kernel_size,padding,activation_funcs,
+				 nlinear,batch_norm=True,stride=2,dropout=0,vae=True):
 		super(Encoder1D, self).__init__()
 
 		self.nlayers    = nlayers
@@ -79,15 +81,15 @@ class Encoder1D(nn.Module):
 			if isinstance(layer, (nn.Conv1d, nn.Linear)):
 				nn.init.xavier_uniform_(layer.weight)
 
-	def forward(self, x):
+	def forward(self,x):
 		out = x
 		for ilayer, conv_layer in enumerate(self.conv_layers):
 			out = conv_layer(out)
 			if self.batch_norm:
 				out = self.norm_layers[ilayer](out)
-			out = self.funcs[ilayer](out)
-		out = self.funcs[ilayer + 1](self.flat(out))
-		out = self.funcs[ilayer + 2](self.fc1(out))
+			out = self.dropout(self.funcs[ilayer](out))
+		out = self.dropout(self.funcs[ilayer+1](self.flat(out)))
+		out = self.dropout(self.funcs[ilayer+2](self.fc1(out)))
 		if self.isvae:
 			return self.mu(out), self.logvar(out)
 		else:
@@ -111,9 +113,9 @@ class Decoder1D(nn.Module):
 		stride (int): Stride for the convolutional layers. Default is ``2``.
 		dropout (float): Dropout probability. Default is ``0``.
 	"""
-	def __init__(self, nlayers, latent_dim, input_length, input_channels,
-				 filter_channels, kernel_size, padding, activation_funcs,
-				 nlinear, batch_norm=True, stride=2, dropout=0):
+	def __init__(self,nlayers,latent_dim,input_length,input_channels,
+				 filter_channels,kernel_size,padding,activation_funcs,
+				 nlinear,batch_norm=True,stride=2,dropout=0):
 		super(Decoder1D, self).__init__()
 
 		self.nlayers    = nlayers
@@ -161,9 +163,9 @@ class Decoder1D(nn.Module):
 			if isinstance(layer, (nn.ConvTranspose1d, nn.Linear)):
 				nn.init.xavier_uniform_(layer.weight)
 
-	def forward(self, x):
-		out = self.funcs[self.nlayers + 1](self.fc1(x))
-		out = self.funcs[self.nlayers](self.fc2(out))
+	def forward(self,x):
+		out = self.dropout(self.funcs[self.nlayers+1](self.fc1(x)))
+		out = self.dropout(self.funcs[self.nlayers](self.fc2(out)))
 
 		conv1d_channels = self.filt_chan * (1 << (self.nlayers - 1))
 		deconv_length = out.shape[1] // conv1d_channels
@@ -172,7 +174,7 @@ class Decoder1D(nn.Module):
 		for ilayer, deconv_layer in enumerate(self.deconv_layers[:-1]):
 			if self.batch_norm:
 				out = self.norm_layers[ilayer](out)
-			out = self.funcs[self.nlayers - ilayer - 1](deconv_layer(out))
+			out = self.dropout(self.funcs[self.nlayers-ilayer-1](deconv_layer(out)))
 
 		return self.deconv_layers[-1](out)
 
@@ -199,20 +201,20 @@ class Encoder2D(nn.Module):
 	"""
 	def __init__(
 		self,
-		nlayers: int,
-		latent_dim: int,
-		nh: int,
-		nw: int,
-		input_channels: int,
-		filter_channels: int,
-		kernel_size: int,
-		padding: int,
-		activation_funcs: list,
-		nlinear: int,
-		batch_norm: bool = False,
-		stride: int = 2,
-		dropout: float = 0,
-		vae: bool = False,
+		nlayers:int,
+		latent_dim:int,
+		nh:int,
+		nw:int,
+		input_channels:int,
+		filter_channels:int,
+		kernel_size:int,
+		padding:int,
+		activation_funcs:list,
+		nlinear:int,
+		batch_norm:bool=False,
+		stride:int=2,
+		dropout:float=0.,
+		vae:bool=False,
 	):
 		super(Encoder2D, self).__init__()
 
@@ -258,7 +260,7 @@ class Encoder2D(nn.Module):
 			elif isinstance(layer, nn.Linear):
 				nn.init.xavier_uniform_(layer.weight)
 
-	def forward(self, x:torch.Tensor): 
+	def forward(self,x:torch.Tensor): 
 		r'''
 		Do a forward evaluation of the data.
 
@@ -273,9 +275,9 @@ class Encoder2D(nn.Module):
 			out = conv_layer(out)
 			if self.batch_norm:
 				out = self.norm_layers[ilayer](out)
-			out = self.funcs[ilayer](out)
-		out = self.funcs[ilayer+1](self.flat(out))
-		out = self.funcs[ilayer+2](self.fc1(out))
+			out = self.dropout(self.funcs[ilayer](out))
+		out = self.dropout(self.funcs[ilayer+1](self.flat(out)))
+		out = self.dropout(self.funcs[ilayer+2](self.fc1(out)))
 		if self.isvae:
 			return self.mu(out), self.logvar(out)
 		else:
@@ -295,11 +297,11 @@ class FullyConnectedEncoder2D(nn.Module):
 	"""
 	def __init__(
 		self,
-		hidden_layer_sizes: list,
-		lat_dim: int,
-		in_size: int,
-		activation_funcs: list,
-		vae: bool = False,
+		hidden_layer_sizes:list,
+		lat_dim:int,
+		in_size:int,
+		activation_funcs:list,
+		vae:bool=False,
 	):
 		super(FullyConnectedEncoder2D, self).__init__()
 
@@ -312,7 +314,7 @@ class FullyConnectedEncoder2D(nn.Module):
 		self.encoding_layers = nn.ModuleList()
 
 		if len(self.hidden_layer_sizes) != len(self.funcs):
-			raise ValueError("Incorrect number of layers! 'hidden_layer_sizes' and 'funcs' must have the same length.")
+			raiseError("Incorrect number of layers! 'hidden_layer_sizes' and 'funcs' must have the same length.")
 		
 		current_dim = self.in_size
 		for idx, hidden_dim in enumerate(self.hidden_layer_sizes):
@@ -336,7 +338,7 @@ class FullyConnectedEncoder2D(nn.Module):
 				pass
 		return None
 
-	def forward(self, x:torch.Tensor): 
+	def forward(self,x:torch.Tensor): 
 		r'''
 		Do a forward evaluation of the data.
 
@@ -377,19 +379,19 @@ class Decoder2D(nn.Module):
 	"""
 	def __init__(
 		self,
-		nlayers: int,
-		latent_dim: int,
-		nh: int,
-		nw: int,
-		input_channels: int,
-		filter_channels: int,
-		kernel_size: int,
-		padding: int,
-		activation_funcs: list,
-		nlinear: int,
-		batch_norm: bool = False,
-		stride: int = 2,
-		dropout: float = 0,
+		nlayers:int,
+		latent_dim:int,
+		nh:int,
+		nw:int,
+		input_channels:int,
+		filter_channels:int,
+		kernel_size:int,
+		padding:int,
+		activation_funcs:list,
+		nlinear:int,
+		batch_norm:bool=False,
+		stride:int=2,
+		dropout:float=0.,
 	):
 		super(Decoder2D, self).__init__()       
 		
@@ -433,7 +435,7 @@ class Decoder2D(nn.Module):
 			elif isinstance(layer, nn.Linear):
 				nn.init.xavier_uniform_(layer.weight)
 
-	def forward(self, x:torch.Tensor):
+	def forward(self,x:torch.Tensor):
 		r'''
 		Do a forward evaluation of the data.
 
@@ -443,13 +445,13 @@ class Decoder2D(nn.Module):
 		Returns:
 			(torch.Tensor): Prediction of the neural network.
 		'''
-		out = self.funcs[self.nlayers+1](self.fc1(x))
-		out = self.funcs[self.nlayers](self.fc2(out))
+		out = self.dropout(self.funcs[self.nlayers+1](self.fc1(x)))
+		out = self.dropout(self.funcs[self.nlayers](self.fc2(out)))
 		out = out.view(out.size(0), self.filt_chan * (1 << (self.nlayers-1)), int(self.nh // (1 << self.nlayers)), int(self.nw // (1 << self.nlayers)))
 		for ilayer, (deconv_layer) in enumerate(self.deconv_layers[:-1]):
 			if self.batch_norm:
 				out = self.norm_layers[ilayer](out)
-			out = self.funcs[self.nlayers-ilayer-1](deconv_layer(out))
+			out = self.dropout(self.funcs[self.nlayers-ilayer-1](deconv_layer(out)))
 		return self.deconv_layers[-1](out)
 
 
@@ -465,10 +467,10 @@ class FullyConnectedDecoder2D(nn.Module):
 	"""
 	def __init__(
 		self,
-		hidden_layer_sizes: list,
-		lat_dim: int,
-		out_size: int,
-		activation_funcs: list,
+		hidden_layer_sizes:list,
+		lat_dim:int,
+		out_size:int,
+		activation_funcs:list,
 	):
 		super(FullyConnectedDecoder2D, self).__init__()
 
@@ -480,7 +482,7 @@ class FullyConnectedDecoder2D(nn.Module):
 		self.decoding_layers = nn.ModuleList()
 
 		if len(self.hidden_layer_sizes) != len(self.funcs):
-			raise ValueError("Incorrect number of layers! 'hidden_layer_sizes' and 'funcs' must have the same length.")
+			raiseError("Incorrect number of layers! 'hidden_layer_sizes' and 'funcs' must have the same length.")
 
 		current_dim = self.lat_dim
 		for idx, hidden_dim in enumerate(self.hidden_layer_sizes):
@@ -499,7 +501,7 @@ class FullyConnectedDecoder2D(nn.Module):
 				pass
 		return None
 
-	def forward(self, x:torch.Tensor): 
+	def forward(self,x:torch.Tensor): 
 		r'''
 		Do a forward evaluation of the data.
 
@@ -538,21 +540,21 @@ class Encoder3D(nn.Module):
 	"""
 	def __init__(
 		self,
-		nlayers: int,
-		latent_dim: int,
-		nx: int,
-		ny: int,
-		nz: int,
-		input_channels: int,
-		filter_channels: int,
-		kernel_size: int,
-		padding: int,
-		activation_funcs: list,
-		nlinear: int,
-		batch_norm: bool = False,
-		stride: int = 2,
-		dropout: float = 0,
-		vae: bool = False,
+		nlayers:int,
+		latent_dim:int,
+		nx:int,
+		ny:int,
+		nz:int,
+		input_channels:int,
+		filter_channels:int,
+		kernel_size:int,
+		padding:int,
+		activation_funcs:list,
+		nlinear:int,
+		batch_norm:bool=False,
+		stride:int=2,
+		dropout:float=0.,
+		vae:bool=False,
 	):
 		super(Encoder3D,self).__init__()
 
@@ -600,7 +602,7 @@ class Encoder3D(nn.Module):
 			elif isinstance(layer, nn.Linear):
 				nn.init.xavier_uniform_(layer.weight)
 	
-	def forward(self, x:torch.Tensor):
+	def forward(self,x:torch.Tensor):
 		r'''
 		Do a forward evaluation of the data.
 
@@ -615,9 +617,9 @@ class Encoder3D(nn.Module):
 			out = conv_layer(out)
 			if self.batch_norm:
 				out=self.norm_layers[ilayer](out)
-			out = self.funcs[ilayer](out)
-		out = self.funcs[ilayer+1](self.flat(out))
-		out = self.funcs[ilayer+2](self.fc1(out))
+			out = self.dropout(self.funcs[ilayer](out))
+		out = self.dropout(self.funcs[ilayer+1](self.flat(out)))
+		out = self.dropout(self.funcs[ilayer+2](self.fc1(out)))
 		if self._isvae:
 			return self.mu(out), self.logvar(out)
 		else:
@@ -646,20 +648,20 @@ class Decoder3D(nn.Module):
 	"""
 	def __init__(
 		self,
-		nlayers: int,
-		latent_dim: int,
-		nx: int,
-		ny: int,
-		nz: int,
-		input_channels: int,
-		filter_channels: int,
-		kernel_size: int,
-		padding: int,
-		activation_funcs: list,
-		nlinear: int,
-		batch_norm: bool = False,
-		stride: int = 2,
-		dropout: float = 0,
+		nlayers:int,
+		latent_dim:int,
+		nx:int,
+		ny:int,
+		nz:int,
+		input_channels:int,
+		filter_channels:int,
+		kernel_size:int,
+		padding:int,
+		activation_funcs:list,
+		nlinear:int,
+		batch_norm:bool=False,
+		stride:int=2,
+		dropout:float=0.,
 	):
 		
 		super(Decoder3D, self).__init__()       
@@ -705,7 +707,7 @@ class Decoder3D(nn.Module):
 			elif isinstance(layer, nn.Linear):
 				nn.init.xavier_uniform_(layer.weight)
 
-	def forward(self, x:torch.Tensor):
+	def forward(self,x:torch.Tensor):
 		r'''
 		Do a forward evaluation of the data.
 
@@ -715,13 +717,13 @@ class Decoder3D(nn.Module):
 		Returns:
 			(torch.Tensor): Prediction of the neural network.
 		'''
-		out = self.funcs[self.nlayers+1](self.fc1(x))
-		out = self.funcs[self.nlayers](self.fc2(out))
+		out = self.dropout(self.funcs[self.nlayers+1](self.fc1(x)))
+		out = self.dropout(self.funcs[self.nlayers](self.fc2(out)))
 		out = out.view(out.size(0), self.filt_chan * (1 << (self.nlayers-1)), int(self.nx // (1 << self.nlayers)), int(self.ny // (1 << self.nlayers)), int(self.nz // (1 << self.nlayers)))
 		for ilayer, (deconv_layer) in enumerate(self.deconv_layers[:-1]):
 			if self.batch_norm:
 				out = self.norm_layers[ilayer](out)
-			out = self.funcs[self.nlayers-ilayer-1](deconv_layer(out))
+			out = self.dropout(self.funcs[self.nlayers-ilayer-1](deconv_layer(out)))
 		return self.deconv_layers[-1](out)
 
 class ShallowDecoder(nn.Module):
@@ -775,9 +777,9 @@ class Encoder1DNoLatent(nn.Module):
 		dropout (float): Dropout probability. Default is ``0``.
 		vae (bool): Wheather the encoder is going to be used on a VAE or not. Default is ``False``.
 	"""
-	def __init__(self, nlayers, input_length, input_channels,
-				 filter_channels, kernel_size, padding, activation_funcs,
-				 batch_norm=False, stride=2, dropout=0, vae=False):
+	def __init__(self,nlayers,input_length,input_channels,
+				 filter_channels,kernel_size,padding,activation_funcs,
+				 batch_norm=False,stride=2,dropout=0,vae=False):
 		super(Encoder1DNoLatent, self).__init__()
 
 		self.nlayers    = nlayers
@@ -815,14 +817,14 @@ class Encoder1DNoLatent(nn.Module):
 			if isinstance(layer, (nn.Conv1d, nn.Linear)):
 				nn.init.xavier_uniform_(layer.weight)
 
-	def forward(self, x):
+	def forward(self,x):
 		out = x
 		for ilayer, conv_layer in enumerate(self.conv_layers):
 			#print(out.shape)
 			out = conv_layer(out)
 			if self.batch_norm:
 				out = self.norm_layers[ilayer](out)
-			out = self.funcs[ilayer](out)
+			out = self.dropout(self.funcs[ilayer](out))
 		out = self.funcs[self.nlayers - ilayer - 1](self.flat(out))
 		return out
 
@@ -841,9 +843,9 @@ class Decoder1DNoLatent(nn.Module):
 		stride (int): Stride for the convolutional layers. Default is ``2``.
 		dropout (float): Dropout probability. Default is ``0``.
 	"""
-	def __init__(self, nlayers, input_length, input_channels,
-				 filter_channels, kernel_size, padding, activation_funcs,
-				batch_norm=False, stride=2, dropout=0):
+	def __init__(self,nlayers,input_length,input_channels,
+				 filter_channels,kernel_size,padding,activation_funcs,
+				batch_norm=False,stride=2,dropout=0):
 		super(Decoder1DNoLatent, self).__init__()
 
 		self.nlayers    = nlayers
@@ -889,7 +891,7 @@ class Decoder1DNoLatent(nn.Module):
 			if isinstance(layer, (nn.ConvTranspose1d, nn.Linear)):
 				nn.init.xavier_uniform_(layer.weight)
 
-	def forward(self, x):
+	def forward(self,x):
 		conv1d_channels = self.filt_chan * (1 << (self.nlayers - 1))
 		#x   = self.funcs[self.nlayers - 1](self.fc1(x))
 		deconv_length = x.shape[1] // conv1d_channels
@@ -898,6 +900,6 @@ class Decoder1DNoLatent(nn.Module):
 		for ilayer, deconv_layer in enumerate(self.deconv_layers[:-1]):
 			if self.batch_norm:
 				out = self.norm_layers[ilayer](out)
-			out = self.funcs[self.nlayers - ilayer - 1](deconv_layer(out))
+			out = self.dropout(self.funcs[self.nlayers-ilayer-1](deconv_layer(out)))
 
 		return self.deconv_layers[-1](out)

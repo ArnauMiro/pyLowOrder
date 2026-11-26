@@ -8,7 +8,14 @@
 # On the integration of geometry agnostic variational-autoencoders into large-scale SVD based models. 
 # Computers & Fluids, 302, 106797. https://doi.org/10.1016/j.compfluid.2025.106797
 #
-# Last rev: 24/10/2025
+# Last rev: 25/11/2026
+#
+# Precision: the data keeps the precision it was given (create_dataset computes the
+# scaling statistics in it) and is converted to the network's own dtype when it enters a
+# VAE, an autoencoder or a decoder. The network's dtype is the dtype of its weights:
+# float32 by default, float64 if the network is built after
+# torch.set_default_dtype(torch.float64). load_vae_R restores the dtype the weights were
+# saved with.
 
 import numpy as np
 import torch
@@ -23,8 +30,18 @@ from ...inp_out.io_h5     import h5_save_QR, h5_load_QR, h5_load_compressed
 from ...vmmath.truncation import energy as math_energy
 
 
-def _as(x,device):
-	return torch.as_tensor(x, dtype=torch.float32, device=device)
+def _as(x,dtype,device):
+	return torch.as_tensor(x, dtype=dtype, device=device)
+
+
+def _same_precision(*arrays):
+	r'''
+	Return the arrays in one dtype for the compiled routines, which accept float32
+	or float64 but not both at once: float32 if any of them is float32, otherwise
+	their common dtype. Arrays already in that dtype are not copied.
+	'''
+	dtype = np.float32 if any(a.dtype == np.float32 for a in arrays) else np.result_type(*[a.dtype for a in arrays])
+	return tuple(a.astype(dtype, copy=False) for a in arrays)
 
 
 @cr('GAVI.save_QR')
@@ -76,7 +93,7 @@ def load_compressed(fname:str, ptable:PartitionTable, nelxAE:int=1, basedir:str=
 	return Qmeans, Qstds, torch.tensor(weights, device=DEVICE), torch.tensor(biases, device=DEVICE), cpu_to_gpu(Q), cpu_to_gpu(B)
 
 @cr('GAVI.create_dataset')
-def create_dataset(data:tuple, scale:str='max', device:torch.device=DEVICE, scaler=None):
+def create_dataset(data:tuple,scale:str='max',device:torch.device=DEVICE,scaler=None):
 	r'''
 	Create the pyLOM.NN dataset for neural network training of the GAVI autoencoders.
 
@@ -97,28 +114,27 @@ def create_dataset(data:tuple, scale:str='max', device:torch.device=DEVICE, scal
 	'''
 	# Generate a matrix from tupled data
 	nchannel = len(data)
-	# matrix (np.ndarray): data matrix that will be added to the dataset with shape (number of modes, number of variables, number of samples).
-	matrix   = torch.zeros((data[0].shape[0], nchannel, data[0].shape[1]), dtype=torch.float32, device=device)
-	for ichannel in range(nchannel):
-		matrix[:,ichannel,:] = torch.tensor(data[ichannel], dtype=torch.float32, device=device)
+	# matrix (torch.Tensor): data matrix that will be added to the dataset with shape (number of modes, number of variables, number of samples).
+	# The data keeps its own precision, the scaling statistics are computed in it and the model converts to its dtype later
+	matrix   = torch.stack([torch.as_tensor(data[ichannel], device=device) for ichannel in range(nchannel)], dim=1)
 	# Scaling
 	if scale is None or scale == 'none':
 		matsca, scaler_out = matrix, None
 	elif scale == 'max':
-		s          = _as(scaler,device) if scaler is not None else torch.max(torch.abs(matrix))
+		s          = _as(scaler,matrix.dtype,device) if scaler is not None else torch.max(torch.abs(matrix))
 		matsca     = matrix/s
 		scaler_out = s
 	elif scale == 'maxchan':
-		s          = _as(scaler,device) if scaler is not None else torch.amax(torch.abs(matrix), dim=(0,2))
+		s          = _as(scaler,matrix.dtype,device) if scaler is not None else torch.amax(torch.abs(matrix), dim=(0,2))
 		matsca     = matrix/s.view(1,-1,1)
 		scaler_out = s
 	elif scale == 'meanstd':
 		if scaler is not None:
-			sc         = _as(scaler,device)
+			sc         = _as(scaler,matrix.dtype,device)
 			mean, std  = sc[:,0], sc[:,1]
 		else:
 			mean = matrix.mean(dim=(0,2))
-			std  = matrix.std(dim=(0,2))
+			std  = matrix.std(dim=(0,2), correction=0) # divide by n, like np.std
 		matsca     = (matrix - mean.view(1,-1,1))/std.view(1,-1,1)
 		scaler_out = torch.stack((mean, std), dim=1)
 	else:
@@ -140,4 +156,5 @@ def energy(dataset:Dataset,reconstructed:np.array,channel:int):
 	Returns:
 		energy: energy kept on the reconstruction 
 	'''
-	return math_energy(dataset.variables_out[:,channel,:].cpu().numpy().T,reconstructed[channel])
+	# The compiled routine needs C-contiguous arrays (both inputs are transposed views) of one dtype
+	return math_energy(*_same_precision(np.ascontiguousarray(dataset.variables_out[:,channel,:].cpu().numpy().T),np.ascontiguousarray(reconstructed[channel])))

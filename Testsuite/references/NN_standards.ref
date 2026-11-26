@@ -1,0 +1,15 @@
+TSUITE dataset_bits    = 64 32
+TSUITE dataset_squeeze = 3 5 8 6
+TSUITE dataset_keep    = 4 5 1 8 6
+TSUITE dataset_2chan   = 4 5 2 8 6
+TSUITE scaler_fit_self = 1 1 1
+TSUITE standard_std    = 0.2850442475863558 0.2850442475863558 0.2850442475863558
+TSUITE minmax_default  = 0.0 0.0 0.0 1.0 1.0 1.0
+TSUITE minmax_column   = 0.0 0.1 1.0 0.0 0.06354515050167224 1.0
+TSUITE beta_scheduler  = 0.1 0.1 0.55 1.0
+TSUITE model_bits      = 64 64 32
+TSUITE vae_modes       = 256 2.9802322e-08 8.940697e-08
+TSUITE cr_running      = 0 0
+TSUITE gavi_precision  = 32 32 64 64
+TSUITE gavi_meanstd    = 64 0.2873003054683791 0.28730030546837904
+TSUITE gavi_energy     = 0.9900000095367432

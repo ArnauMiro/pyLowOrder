@@ -4,7 +4,16 @@
 #
 # RBF-ELM (Radial Basis Function-augmented Extreme Learning Machine) class.
 #
-# Last rev: 09/06/2026
+# Last rev: 24/11/2026
+#
+# Precision: a Dataset keeps the precision it was given, and the data is converted to
+# the model's own dtype when it enters the model. The model's dtype is the dtype of its
+# RBF layer, self.hidden.centers.dtype (its weights are buffers, not parameters, so
+# next(self.parameters()) cannot be used): float32 by default, float64 if the model is
+# converted after building (.double() or .to(torch.float64)) or built after
+# torch.set_default_dtype(torch.float64). The dense path of fit solves with a streaming QR
+# in the model's dtype. The CHOLMOD path runs on the CPU and solves in float64 on purpose,
+# then converts beta to the model's dtype.
 
 import math, os, numpy as np, torch, torch.nn as nn, scipy.sparse as sp
 
@@ -185,18 +194,18 @@ class RBFELM(nn.Module):
     @model_name.setter
     def model_name(self, value: str) -> None:
         if not isinstance(value, str):
-            raise TypeError("model_name must be a string")
+            raiseError("model_name must be a string")
         value = value.strip()
         if not value:
-            raise ValueError("model_name cannot be empty")
+            raiseError("model_name cannot be empty")
         self._model_name = value
 
     @staticmethod
     def _sample_centers(
-        all_x: torch.Tensor,
-        n_centers: int,
-        method: str,
-        gen: torch.Generator,
+        all_x:torch.Tensor,
+        n_centers:int,
+        method:str,
+        gen:Optional[torch.Generator],
     ) -> torch.Tensor:
         """
         Select ``n_centers`` rows from ``all_x`` as RBF centers.
@@ -205,7 +214,7 @@ class RBFELM(nn.Module):
             all_x (torch.Tensor): All training inputs, shape ``(N, D)``.
             n_centers (int): Number of centers to select.
             method (str): Sampling method, either ``"random"`` or ``"uniform"``.
-            gen (torch.Generator): RNG state (for reproducibility).
+            gen (torch.Generator, optional): RNG state (for reproducibility). ``None`` uses the global torch RNG.
 
         Returns:
             torch.Tensor: Selected center rows, shape ``(n_centers, D)``.
@@ -276,7 +285,7 @@ class RBFELM(nn.Module):
         distances, _ = nbrs.kneighbors(centers_np)
         local_spacing = distances[:, 1:].mean(axis=1)
         sigma = local_spacing
-        sigma = np.where(sigma > 0, sigma, np.finfo(np.float32).eps)
+        sigma = np.where(sigma > 0, sigma, np.finfo(centers_np.dtype).eps)
         gamma = alpha / (sigma ** 2)
         return torch.tensor(gamma, device=centers.device, dtype=centers.dtype)
 
@@ -301,7 +310,7 @@ class RBFELM(nn.Module):
             train_dataset (torch.utils.data.Dataset): Training dataset to fit the model.
             batch_size (int, optional): Block size for DataLoader during fitting (default: ``10_000``).
             dataloader_kwargs (dict, optional): Additional keyword arguments to pass to the dataloader (default: ``{}``). See PyTorch documentation at https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader. Overrides the following defaults: ``batch_size`` (taken from the ``batch_size`` argument),``shuffle=True``, ``num_workers=0``, ``pin_memory=PIN_MEMORY`` (default: ``False``).
-            use_cholmod (bool, optional): If ``True``, uses sparse CHOLMOD solver for the normal equations. Requires scikit-sparse to be installed. If ``False`` (default), uses classical dense PyTorch solver.
+            use_cholmod (bool, optional): If ``True``, uses sparse CHOLMOD solver for the normal equations. Requires scikit-sparse to be installed. If ``False`` (default), uses a dense PyTorch streaming QR of H, in the model's dtype.
             sparsity_threshold (float, optional): Threshold for zeroing small values in H and H^T H when using CHOLMOD (default: ``1e-6``). Higher values produce sparser matrices but may affect accuracy.
             save_logs_path (str, optional): Path to save the training results. If ``None``, no results will be saved (default: ``None``).
             print_rate_batch (int, optional): Print progress every N batches (default: ``1``). Set to ``0`` to disable intermediate prints.
@@ -323,16 +332,19 @@ class RBFELM(nn.Module):
             **dataloader_kwargs,
         }
 
-        dtype = torch.float32
+        # The model's dtype is the dtype of its RBF layer
+        dtype    = self.hidden.centers.dtype
+        # The CHOLMOD path runs on the CPU and is done in float64 on purpose, whatever the
+        # model's dtype: H^T H squares the condition number of H, which float32 cannot
+        # resolve. beta is converted to the model's dtype at the end.
+        np_dtype = np.float64
 
         # Pass 1: sample centers and set up the RBFLayer
         all_x = train_dataset[:][0].to(self.device, dtype=dtype)
         N = all_x.shape[0]
         L = self.n_centers
         
-        gen = torch.Generator(device="cpu")
-        if self.seed is not None:
-            gen.manual_seed(self.seed)
+        gen = torch.Generator(device="cpu").manual_seed(self.seed) if self.seed is not None else None
 
         selected_centers = self._sample_centers(
             all_x = all_x, 
@@ -354,15 +366,18 @@ class RBFELM(nn.Module):
             self.train_dataloader = DataLoader(train_dataset, **_dataloader_kwargs)
 
         if use_cholmod:
-            HtH_sparse = sp.csc_matrix((L, L), dtype=np.float32)
-            Hty_np = np.zeros((L, self.output_size), dtype=np.float32)
+            HtH_sparse = sp.csc_matrix((L, L), dtype=np_dtype)
+            Hty_np = np.zeros((L, self.output_size), dtype=np_dtype)
             if verbose:
                 pprint(0, f"\n[fit_cholmod] Accumulating H^T H  (N={N}, L={L}, threshold={sparsity_threshold})")
         else:
-            HtH_dense = torch.zeros((L, L), device=self.device, dtype=dtype)
-            Hty_dense = torch.zeros((L, self.output_size), device=self.device, dtype=dtype)
+            # Streaming QR of [H y], one batch of rows at a time, in the model's dtype. It works
+            # with cond(H) instead of cond(H)^2 (H^T H), so float32 stays accurate on the GPU.
+            # Rz keeps [R z]; starting with R = sqrt(lambda) I adds the Tikhonov term.
+            Rz = torch.zeros((L, L + self.output_size), device=self.device, dtype=dtype)
+            Rz[:, :L] = math.sqrt(self.reg_lambda) * torch.eye(L, device=self.device, dtype=dtype)
             if verbose:
-                pprint(0, f"\n[fit] Accumulating H^T H  (N={N}, L={L})")
+                pprint(0, f"\n[fit] Streaming QR of H  (N={N}, L={L})")
 
         for b_idx, batch in enumerate(self.train_dataloader):
             x_blk, y_blk = batch[0].to(self.device, dtype=dtype), batch[1].to(self.device, dtype=dtype)
@@ -371,7 +386,7 @@ class RBFELM(nn.Module):
 
             if use_cholmod:
                 with torch.no_grad():
-                    H_blk = self.hidden(x_blk).cpu()
+                    H_blk = self.hidden(x_blk).cpu().to(torch.float64)
                 
                 mask_H = H_blk.abs() >= sparsity_threshold
                 H_blk_sparse = H_blk * mask_H
@@ -379,15 +394,15 @@ class RBFELM(nn.Module):
                 HtH_blk = H_blk_sparse.T @ H_blk_sparse
                 mask_HtH = HtH_blk.abs() >= sparsity_threshold
                 nz_rows, nz_cols = mask_HtH.nonzero(as_tuple=True)
-                nz_vals = HtH_blk[nz_rows, nz_cols].numpy().astype(np.float32)
+                nz_vals = HtH_blk[nz_rows, nz_cols].numpy().astype(np_dtype)
 
                 block_sparse = sp.csc_matrix(
                     (nz_vals, (nz_rows.numpy(), nz_cols.numpy())),
                     shape=(L, L),
-                    dtype=np.float32,
+                    dtype=np_dtype,
                 )
                 HtH_sparse = HtH_sparse + block_sparse
-                Hty_np += (H_blk_sparse.T @ y_blk.cpu()).numpy()
+                Hty_np += (H_blk_sparse.T @ y_blk.cpu().to(torch.float64)).numpy()
 
                 if verbose and print_rate_batch != 0 and (b_idx % print_rate_batch) == 0:
                     sparsity_H = 1.0 - mask_H.sum().item() / H_blk.numel()
@@ -402,8 +417,9 @@ class RBFELM(nn.Module):
                     )
             else:
                 H_blk = self.hidden(x_blk)
-                HtH_dense += H_blk.T @ H_blk
-                Hty_dense += H_blk.T @ y_blk
+                # Only the first L rows of the new R are needed: the rest is the residual,
+                # which does not depend on beta
+                Rz = torch.linalg.qr(torch.cat([Rz, torch.cat([H_blk, y_blk], dim=1)]), mode="r")[1][:L]
 
                 if verbose and print_rate_batch != 0 and (b_idx % print_rate_batch) == 0:
                     threshold = 1e-6
@@ -422,12 +438,12 @@ class RBFELM(nn.Module):
         if use_cholmod:
             if verbose:
                 final_sparsity = 1.0 - HtH_sparse.nnz / (L * L)
-                mem_mb = HtH_sparse.nnz * 4 / 1024 ** 2
+                mem_mb = HtH_sparse.nnz * HtH_sparse.dtype.itemsize / 1024 ** 2
                 pprint(0, f"\n[fit_cholmod] H^T H assembled — nnz={HtH_sparse.nnz:,}  "
                       f"sparsity={final_sparsity:.3%}  mem≈{mem_mb:.1f} MB")
                 pprint(0, f"[fit_cholmod] Factorising with CHOLMOD...")
 
-            A = HtH_sparse + self.reg_lambda * sp.eye(L, format="csc", dtype=np.float32)
+            A = HtH_sparse + self.reg_lambda * sp.eye(L, format="csc", dtype=np_dtype)
             A = sp.csc_matrix(A)
             del HtH_sparse
 
@@ -437,14 +453,14 @@ class RBFELM(nn.Module):
             if verbose:
                 pprint(0, f"[fit_cholmod] Solving for {self.output_size} output dim(s)...")
 
-            beta_np = np.empty((L, self.output_size), dtype=np.float32)
+            beta_np = np.empty((L, self.output_size), dtype=np_dtype)
             for o in range(self.output_size):
                 beta_np[:, o] = factor(Hty_np[:, o])
 
             self.beta = torch.tensor(beta_np, dtype=dtype, device=self.device)
         else:
-            I = torch.eye(L, device=self.device, dtype=dtype)
-            self.beta = torch.linalg.solve(HtH_dense + self.reg_lambda * I, Hty_dense)
+            # R beta = z, the least squares solution of (H^T H + lambda I) beta = H^T y
+            self.beta = torch.linalg.solve_triangular(Rz[:, :L], Rz[:, L:], upper=True)
 
         if verbose:
             pprint(0, f"\n[fit] Done. Beta shape: {tuple(self.beta.shape)}")
@@ -493,20 +509,27 @@ class RBFELM(nn.Module):
         predict_dataloader = DataLoader(X, **_dataloader_kwargs)
         total_rows = len(predict_dataloader.dataset)
         total_cols = self.output_size
-        all_predictions = np.empty((total_rows, total_cols), dtype=np.float32)
-        all_targets = np.empty((total_rows, total_cols), dtype=np.float32)
+        # Predictions in the model's dtype, targets in the dataset's own precision
+        dtype = self.hidden.centers.dtype
+        all_predictions = np.empty((total_rows, total_cols), dtype=torch.empty((), dtype=dtype).numpy().dtype)
+        all_targets = None
 
         self.eval()
         start_idx = 0
         with torch.no_grad():
             for x, y in predict_dataloader:
-                output = self(x.to(self.device))
+                output = self(x.to(self.device, dtype=dtype))
                 batch_size = x.size(0)
                 end_idx = start_idx + batch_size
                 all_predictions[start_idx:end_idx, :] = output.cpu().numpy()
                 if return_targets:
-                    all_targets[start_idx:end_idx, :] = y.cpu().numpy()
+                    y_np = y.cpu().numpy()
+                    if all_targets is None:
+                        all_targets = np.empty((total_rows, total_cols), dtype=y_np.dtype)
+                    all_targets[start_idx:end_idx, :] = y_np
                 start_idx = end_idx
+        if return_targets and all_targets is None: # empty dataset
+            all_targets = np.empty((0, total_cols), dtype=all_predictions.dtype)
 
         return (all_predictions, all_targets) if return_targets else all_predictions
 
@@ -1043,6 +1066,7 @@ class MultiRBFELM:
         weighted_sum = np.zeros((N, output_size), dtype=np.float64)
         weight_total = np.zeros((N, 1), dtype=np.float64)
         targets_out  = np.empty((N, output_size), dtype=np.float64)
+        out_dtype    = weighted_sum.dtype # replaced by the cluster models' precision below
 
         # Group points by their active-cluster sets to minimise repeated model calls
         cluster_to_points: List[List[int]] = [[] for _ in range(self.n_clusters)]
@@ -1084,9 +1108,11 @@ class MultiRBFELM:
             w_i = 1.0 / (d_sq_i + self.blend_eps)
 
             weighted_sum[point_indices_i] += w_i[:, np.newaxis] * y_pred
+            out_dtype = y_pred_scaled.dtype
             weight_total[point_indices_i] += w_i[:, np.newaxis]
 
-        preds_out = (weighted_sum / weight_total).astype(np.float32)
+        # Blend in float64, then return in the precision of the cluster models' predictions
+        preds_out = (weighted_sum / weight_total).astype(out_dtype)
 
         if return_targets:
             return preds_out, targets_out
