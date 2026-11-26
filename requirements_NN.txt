@@ -1,7 +1,6 @@
 torch>=2.3.0,<2.16
 torch-geometric
 torchvision
-tensorflow
 tensorboard
 xgboost
 scikit-learn
