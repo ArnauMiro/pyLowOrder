@@ -1,0 +1,4 @@
+TSUITE y            = 0.0 1.0 0.494949494949495
+TSUITE y_test       = 0.0 1.0 0.36842105
+TSUITE y_pred       = 0.0 1.0 0.3684210526315789
+TSUITE mean_error   = 0.0

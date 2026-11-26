@@ -177,6 +177,7 @@ class ClusteredPipeline:
     Args:
         train_dataset: the training dataset.
         cluster_col_idx (int): the index of the column containing the cluster labels.
+        scalers (List): the list of scalers fitted over the dataset, if the dataset was scaled before being passed in. Else, use ``[None, None]``.
         valid_dataset (optional): the validation dataset. Default is ``None``.
         test_dataset (optional): the test dataset. Default is ``None``.
         models_dict (Dict, optional): the dictionary of models to train for each cluster. Default is ``None``.
@@ -188,27 +189,40 @@ class ClusteredPipeline:
     def __init__(
         self,
         train_dataset,
-        cluster_col_idx: int,
-        valid_dataset=None,
-        test_dataset=None, 
-        models_dict: Dict = None,
-        training_params_dict: Dict = None,
-        optimizers_dict: Dict = None,
-        model_classes_dict: Dict = None,
-        models_outputs_dict: Dict = None,
+        cluster_col_idx:        int,
+        scalers:                list,
+        valid_dataset:          torch.utils.data.Dataset | None = None,
+        test_dataset:           torch.utils.data.Dataset | None = None,
+        models_dict:            Dict = None,
+        training_params_dict:   Dict = None,
+        optimizers_dict:        Dict = None,
+        model_classes_dict:     Dict = None,
+        models_outputs_dict:    Dict = None,
     ):
-        self.train_dataset = train_dataset
-        self.test_dataset = test_dataset
-        self.valid_dataset = valid_dataset
-
         ok_opt_pipeline = (optimizers_dict is not None) and (model_classes_dict is not None)
         ok_fixed_train = (models_dict is not None) and (training_params_dict is not None)
         if not (ok_opt_pipeline or ok_fixed_train):
             raiseError(f"Either models_dict and training_params_dict or optimizers_dict and model_classes_dict must be provided.")
         if ok_opt_pipeline and ok_fixed_train:
             raiseError(f"Provide either models_dict and training_params_dict or optimizers_dict and model_classes_dict, not both.")
-        
+
         self.cluster_col_idx = cluster_col_idx
+
+        if scalers is not None:
+            if len(scalers) != 2:
+                raiseError("scalers must be a list of two elements: [input_scaler, output_scaler]")
+            input_scaler, output_scaler = scalers
+            if output_scaler is not None:
+                col_scaler = copy.deepcopy(output_scaler)
+                col_scaler.keep_columns([cluster_col_idx])
+                train_dataset = self._unscale_cluster_column(train_dataset, col_scaler)
+                valid_dataset = self._unscale_cluster_column(valid_dataset, col_scaler)
+                test_dataset  = self._unscale_cluster_column(test_dataset, col_scaler)
+
+        self.train_dataset = train_dataset
+        self.test_dataset = test_dataset
+        self.valid_dataset = valid_dataset
+
         self.n_clusters = self._get_n_clusters()
 
         self.dict_keys = ["classifier"]
@@ -262,7 +276,15 @@ class ClusteredPipeline:
 
     def _get_n_clusters(self):
         return len(self._get_cluster_ids())
-    
+
+    def _unscale_cluster_column(self, dataset, col_scaler):
+        if dataset is None:
+            return None
+        ds_new = copy.deepcopy(dataset)
+        col = ds_new.variables_out[:, self.cluster_col_idx:self.cluster_col_idx + 1]
+        ds_new.variables_out[:, self.cluster_col_idx:self.cluster_col_idx + 1] = col_scaler.inverse_transform(col)
+        return ds_new
+
     def _get_cluster_ids(self):
         cluster_col = self.train_dataset[:][1][:, self.cluster_col_idx]
         cluster_col_np = cluster_col.detach().cpu().numpy() if hasattr(cluster_col, "detach") else np.asarray(cluster_col)
@@ -350,6 +372,7 @@ class ClusteredPipeline:
                     raiseWarning("Validation dataset not provided, using train dataset for evaluation on optimization")
 
                 pprint(0, "Optimizing classifier hyperparameters")
+                self.optimizers_dict["classifier"].optimization_params["n_classes"] = self.n_clusters
                 model_classifier, training_params_classifier = self.model_classes_dict["classifier"].create_optimized_model(
                     train_dataset = self.train_dataset_dict["classifier"],
                     eval_dataset = self.valid_dataset_dict["classifier"],
@@ -403,7 +426,15 @@ class ClusteredPipeline:
 
         return self.model_outputs_dict
 
-    def evaluate(self, evaluators_dict, scalers: List = [None, None], threshold: float = 0.5, set_to_use: str = "test", deep: bool = False, verbose: bool = True) -> Dict:
+    def evaluate(
+        self, 
+        evaluators_dict:    Dict,
+        scalers:            List = [None, None], 
+        threshold:          float = 0.5, 
+        set_to_use:         str = "test", 
+        deep:               bool = False, 
+        verbose:            bool = True
+    ) -> Dict:
         r"""
         Evaluate the models on the test datasets.
         """
@@ -430,8 +461,6 @@ class ClusteredPipeline:
             if len(scalers) != 2:
                 raiseError("scalers must be a list of two elements: [input_scaler, output_scaler]")
             input_scaler, output_scaler = scalers
-            output_scaler_classifier = copy.deepcopy(output_scaler)
-            output_scaler_classifier.keep_columns([self.cluster_col_idx])
             output_scaler_regressors = copy.deepcopy(output_scaler)
             output_scaler_regressors.drop_columns([self.cluster_col_idx])
 
@@ -463,7 +492,7 @@ class ClusteredPipeline:
                 self.evaluation_dataset_dict["classifier"],
                 evaluators_dict["classifier"],
                 inputs_scaler = input_scaler,
-                outputs_scaler = output_scaler_classifier,
+                outputs_scaler = None,
                 kwargs={"given_threshold": threshold},
                 verbose = verbose,
             )
@@ -496,7 +525,8 @@ class ClusteredPipeline:
                 def _mask_filter_fn(inputs, outputs, mask_np):
                     return mask_np.tolist()
 
-                mask = (probs.flatten() < threshold) if cid == 0 else (probs.flatten() >= threshold)
+                predicted_class = np.argmax(probs, axis=1)
+                mask = (predicted_class == cid)
                 if isinstance(mask, torch.Tensor):
                     mask_np = mask.detach().cpu().numpy().astype(bool)
                 else:
@@ -534,53 +564,56 @@ class ClusteredPipeline:
 
         # Error of the models conditioned to the classifier output
         if deep:
-            if verbose:
-                pprint(0, "\nDeep evaluation of the full clustered model:")
-            y_true_classifier = metrics_dict["classifier"][1][1]
-            y_pred_probs_classifier = metrics_dict["classifier"][1][2]
-            y_pred_classifier = torch.Tensor([0 if p < threshold else 1 for p in y_pred_probs_classifier.flatten()])
+            if self.n_clusters != 2:
+                raiseWarning("Deep evaluation is only supported for binary classification. Skipping deep evaluation.")
+            else: 
+                if verbose:
+                    pprint(0, "\nDeep evaluation of the full clustered model:")
+                y_true_classifier = metrics_dict["classifier"][1][1]
+                y_pred_probs_classifier = metrics_dict["classifier"][1][2]
+                y_pred_classifier = torch.Tensor([0 if p < threshold else 1 for p in y_pred_probs_classifier.flatten()])
 
-            mask_tp = ( (y_true_classifier.flatten() == 1) & (y_pred_classifier.flatten() == 1) )
-            mask_tn = ( (y_true_classifier.flatten() == 0) & (y_pred_classifier.flatten() == 0) )
-            mask_fp = ( (y_true_classifier.flatten() == 0) & (y_pred_classifier.flatten() == 1) )
-            mask_fn = ( (y_true_classifier.flatten() == 1) & (y_pred_classifier.flatten() == 0) )
-            masks = [mask_tp, mask_tn, mask_fp, mask_fn]
-            names = ['True Positive', 'True Negative', 'False Positive', 'False Negative']
+                mask_tp = ( (y_true_classifier.flatten() == 1) & (y_pred_classifier.flatten() == 1) )
+                mask_tn = ( (y_true_classifier.flatten() == 0) & (y_pred_classifier.flatten() == 0) )
+                mask_fp = ( (y_true_classifier.flatten() == 0) & (y_pred_classifier.flatten() == 1) )
+                mask_fn = ( (y_true_classifier.flatten() == 1) & (y_pred_classifier.flatten() == 0) )
+                masks = [mask_tp, mask_tn, mask_fp, mask_fn]
+                names = ['True Positive', 'True Negative', 'False Positive', 'False Negative']
 
-            x_true_model = metrics_dict["full_model"][1][0]
-            y_true_model = metrics_dict["full_model"][1][1]
-            y_pred_model = metrics_dict["full_model"][1][2]
+                x_true_model = metrics_dict["full_model"][1][0]
+                y_true_model = metrics_dict["full_model"][1][1]
+                y_pred_model = metrics_dict["full_model"][1][2]
 
-            for midx, mask in enumerate(masks):
-                if isinstance(mask, torch.Tensor):
-                    mask_np = mask.detach().cpu().numpy().astype(bool)
-                else:
-                    mask_np = np.asarray(mask, dtype=bool)
+                for midx, mask in enumerate(masks):
+                    if isinstance(mask, torch.Tensor):
+                        mask_np = mask.detach().cpu().numpy().astype(bool)
+                    else:
+                        mask_np = np.asarray(mask, dtype=bool)
 
-                if mask_np.size != len(self.evaluation_dataset):
-                    raiseError(f"Mask length {mask_np.size} != dataset length {len(self.evaluation_dataset)}")
+                    if mask_np.size != len(self.evaluation_dataset):
+                        raiseError(f"Mask length {mask_np.size} != dataset length {len(self.evaluation_dataset)}")
 
-                x_true_cond = x_true_model[mask_np]
-                y_true_cond = y_true_model[mask_np]
-                y_pred_cond = y_pred_model[mask_np]
+                    x_true_cond = x_true_model[mask_np]
+                    y_true_cond = y_true_model[mask_np]
+                    y_pred_cond = y_pred_model[mask_np]
 
-                metrics_cond = {}
-                for evaluator in evaluators_dict["full_model"]:
-                    metrics_cond.update(evaluator(y_true_cond, y_pred_cond))
-                    if verbose:
-                        pprint(0, f"\nConditioned on {names[midx]}:")
-                        evaluator.print_metrics()
+                    metrics_cond = {}
+                    for evaluator in evaluators_dict["full_model"]:
+                        metrics_cond.update(evaluator(y_true_cond, y_pred_cond))
+                        if verbose:
+                            pprint(0, f"\nConditioned on {names[midx]}:")
+                            evaluator.print_metrics()
 
-                key_suffix = ""
-                if np.all(mask_np == (mask_tp.detach().cpu().numpy().astype(bool))):
-                    key_suffix = "TP"
-                elif np.all(mask_np == (mask_tn.detach().cpu().numpy().astype(bool))):
-                    key_suffix = "TN"
-                elif np.all(mask_np == (mask_fp.detach().cpu().numpy().astype(bool))):
-                    key_suffix = "FP"
-                elif np.all(mask_np == (mask_fn.detach().cpu().numpy().astype(bool))):
-                    key_suffix = "FN"
+                    key_suffix = ""
+                    if np.all(mask_np == (mask_tp.detach().cpu().numpy().astype(bool))):
+                        key_suffix = "TP"
+                    elif np.all(mask_np == (mask_tn.detach().cpu().numpy().astype(bool))):
+                        key_suffix = "TN"
+                    elif np.all(mask_np == (mask_fp.detach().cpu().numpy().astype(bool))):
+                        key_suffix = "FP"
+                    elif np.all(mask_np == (mask_fn.detach().cpu().numpy().astype(bool))):
+                        key_suffix = "FN"
 
-                metrics_dict[f"full_model_{key_suffix}"] = metrics_cond, [x_true_cond, y_true_cond, y_pred_cond]
+                    metrics_dict[f"full_model_{key_suffix}"] = metrics_cond, [x_true_cond, y_true_cond, y_pred_cond]
 
-        return metrics_dict
+            return metrics_dict

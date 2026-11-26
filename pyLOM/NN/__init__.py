@@ -49,6 +49,7 @@ from .architectures.encoders_decoders import Encoder1D, Decoder1D, Encoder2D, Fu
 from .architectures.pinn              import PINN, BurgersPINN, Euler2DPINN, NavierStokesIncompressible2DPINN, BoundaryCondition
 from .architectures.shred             import SHRED
 from .architectures.binary_classifier import BinaryClassifier
+from .architectures.multiclass_classifier import MulticlassClassifier
 from .architectures.diffusion         import Diffusion, DiT, Unet1D
 from .architectures.rbfelm            import RBFELM, MultiRBFELM
 
