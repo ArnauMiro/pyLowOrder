@@ -28,7 +28,7 @@ from ..utils.errors import raiseError
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _sqr(float[:,:] A):
+def _sqr(float[:,::1] A):
 	'''
 	QR factorization using Lapack
 		Q(m,n) is the Q matrix
@@ -46,7 +46,7 @@ def _sqr(float[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _dqr(double[:,:] A):
+def _dqr(double[:,::1] A):
 	'''
 	QR factorization using Lapack
 		Q(m,n) is the Q matrix
@@ -64,7 +64,7 @@ def _dqr(double[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _cqr(np.complex64_t[:,:] A):
+def _cqr(np.complex64_t[:,::1] A):
 	'''
 	QR factorization using Lapack
 		Q(m,n) is the Q matrix
@@ -82,7 +82,7 @@ def _cqr(np.complex64_t[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _zqr(np.complex128_t[:,:] A):
+def _zqr(np.complex128_t[:,::1] A):
 	'''
 	QR factorization using Lapack
 		Q(m,n) is the Q matrix
@@ -101,15 +101,12 @@ def _zqr(np.complex128_t[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def qr(real_full[:,:] A):
+def qr(real_full[:,::1] A):
 	'''
 	QR factorization using Lapack
 		Q(m,n) is the Q matrix
 		R(n,n) is the R matrix
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	A = np.ascontiguousarray(A)
-
 	if real_full is np.complex128_t:
 		return _zqr(A)
 	elif real_full is np.complex64_t:
@@ -124,7 +121,7 @@ def qr(real_full[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _stsqr(float[:,:] A):
+def _stsqr(float[:,::1] A):
 	'''
 	Parallel QR factorization using Lapack
 		Q(m,n) is the Q matrix
@@ -144,7 +141,7 @@ def _stsqr(float[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _dtsqr(double[:,:] A):
+def _dtsqr(double[:,::1] A):
 	'''
 	Parallel QR factorization using Lapack
 		Q(m,n) is the Q matrix
@@ -164,7 +161,7 @@ def _dtsqr(double[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _ctsqr(np.complex64_t[:,:] A):
+def _ctsqr(np.complex64_t[:,::1] A):
 	'''
 	Parallel QR factorization using Lapack
 		Q(m,n) is the Q matrix
@@ -184,7 +181,7 @@ def _ctsqr(np.complex64_t[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _ztsqr(np.complex128_t[:,:] A):
+def _ztsqr(np.complex128_t[:,::1] A):
 	'''
 	Parallel QR factorization using Lapack
 		Q(m,n) is the Q matrix
@@ -205,15 +202,12 @@ def _ztsqr(np.complex128_t[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def tsqr(real_full[:,:] A):
+def tsqr(real_full[:,::1] A):
 	'''
 	Parallel QR factorization using Lapack
 		Q(m,n) is the Q matrix
 		R(n,n) is the R matrix
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	A = np.ascontiguousarray(A)
-
 	if real_full is np.complex128_t:
 		return _ztsqr(A)
 	elif real_full is np.complex64_t:
@@ -228,7 +222,7 @@ def tsqr(real_full[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _slocal_randomized_qr(float[:,:] A, int r, int q, int seed):
+def _slocal_randomized_qr(float[:,::1] A, int r, int q, int seed):
 	'''
 	Parallel Randomized QR factorization using Lapack.
 		Q(m,r)   
@@ -248,7 +242,7 @@ def _slocal_randomized_qr(float[:,:] A, int r, int q, int seed):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _dlocal_randomized_qr(double[:,:] A, int r, int q, int seed):
+def _dlocal_randomized_qr(double[:,::1] A, int r, int q, int seed):
 	'''
 	Parallel Randomized QR factorization using Lapack.
 		Q(m,r)   
@@ -269,14 +263,12 @@ def _dlocal_randomized_qr(double[:,:] A, int r, int q, int seed):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def local_randomized_qr(real[:,:] A, const int r, const int q, const int seed=-1):
+def local_randomized_qr(real[:,::1] A, const int r, const int q, const int seed=-1):
 	'''
 	Parallel Single value decomposition (SVD) using Lapack.
 		Q(m,r)   
 		B(n,r)   
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	A = np.ascontiguousarray(A)
 	seed = <int>time(NULL) if seed < 0 else seed
 	if real is double:
 		return _dlocal_randomized_qr(A,r,q,seed)
@@ -288,7 +280,7 @@ def local_randomized_qr(real[:,:] A, const int r, const int q, const int seed=-1
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _srandomized_qr(float[:,:] A, int r, int q, int seed, bint local):
+def _srandomized_qr(float[:,::1] A, int r, int q, int seed, bint local):
 	'''
 	Parallel Randomized QR factorization using Lapack.
 		Q(m,r)   
@@ -308,7 +300,7 @@ def _srandomized_qr(float[:,:] A, int r, int q, int seed, bint local):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _drandomized_qr(double[:,:] A, int r, int q, int seed, bint local):
+def _drandomized_qr(double[:,::1] A, int r, int q, int seed, bint local):
 	'''
 	Parallel Randomized QR factorization using Lapack.
 		Q(m,r)   
@@ -329,14 +321,12 @@ def _drandomized_qr(double[:,:] A, int r, int q, int seed, bint local):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def randomized_qr(real[:,:] A, const int r, const int q, const int seed=-1, const bint local=False, const bint hybrid=False):
+def randomized_qr(real[:,::1] A, const int r, const int q, const int seed=-1, const bint local=False, const bint hybrid=False):
 	'''
 	Parallel Single value decomposition (SVD) using Lapack.
 		Q(m,r)   
 		B(n,r)   
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	A = np.ascontiguousarray(A)
 	seed = <int>time(NULL) if seed < 0 else seed
 	if real is double:
 		return _drandomized_qr(A,r,q,seed,local)
@@ -348,7 +338,7 @@ def randomized_qr(real[:,:] A, const int r, const int q, const int seed=-1, cons
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _sinit_qr_streaming(float[:,:] A, int r, int q, int seed):
+def _sinit_qr_streaming(float[:,::1] A, int r, int q, int seed):
 	'''
 	Parallel Randomized QR factorization using Lapack.
 		Q(m,r)   
@@ -369,7 +359,7 @@ def _sinit_qr_streaming(float[:,:] A, int r, int q, int seed):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _dinit_qr_streaming(double[:,:] A, int r, int q, int seed):
+def _dinit_qr_streaming(double[:,::1] A, int r, int q, int seed):
 	'''
 	Parallel Randomized QR factorization using Lapack.
 		Q(m,r)   
@@ -391,14 +381,12 @@ def _dinit_qr_streaming(double[:,:] A, int r, int q, int seed):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def init_qr_streaming(real[:,:] A, const int r, const int q, seed=None):
+def init_qr_streaming(real[:,::1] A, const int r, const int q, seed=None):
 	'''
 	Parallel Single value decomposition (SVD) using Lapack.
 		Q(m,r)   
 		B(n,r)   
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	A = np.ascontiguousarray(A)
 	cdef unsigned int seed2 = <int>time(NULL) if seed == None else int(seed)
 	if real is double:
 		return _dinit_qr_streaming(A,r,q,seed2)
@@ -410,7 +398,7 @@ def init_qr_streaming(real[:,:] A, const int r, const int q, seed=None):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _supdate_qr_streaming(float[:,:] Q1, float[:,:] B1, float[:,:] Yo, float[:,:] A, int r, int q, int seed):
+def _supdate_qr_streaming(float[:,::1] Q1, float[:,::1] B1, float[:,::1] Yo, float[:,::1] A, int r, int q, int seed):
 	'''
 	Parallel Randomized QR factorization using Lapack.
 		Q(m,r)   
@@ -432,7 +420,7 @@ def _supdate_qr_streaming(float[:,:] Q1, float[:,:] B1, float[:,:] Yo, float[:,:
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _dupdate_qr_streaming(double[:,:] Q1, double[:,:] B1, double[:,:] Yo, double[:,:] A, int r, int q, int seed):
+def _dupdate_qr_streaming(double[:,::1] Q1, double[:,::1] B1, double[:,::1] Yo, double[:,::1] A, int r, int q, int seed):
 	'''
 	Parallel Randomized QR factorization using Lapack.
 		Q(m,r)   
@@ -455,17 +443,12 @@ def _dupdate_qr_streaming(double[:,:] Q1, double[:,:] B1, double[:,:] Yo, double
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def update_qr_streaming(real[:,:] A, real [:,:] Q1, real[:,:] B1, real[:,:] Yo, const int r, const int q):
+def update_qr_streaming(real[:,::1] A, real[:,::1] Q1, real[:,::1] B1, real[:,::1] Yo, const int r, const int q):
 	'''
 	Parallel Single value decomposition (SVD) using Lapack.
 		Q(m,r)   
 		B(n,r)   
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	A = np.ascontiguousarray(A)
-	Q1 = np.ascontiguousarray(Q1)
-	B1 = np.ascontiguousarray(B1)
-	Yo = np.ascontiguousarray(Yo)
 	cdef unsigned int seed = <int>time(NULL)
 	if real is double:
 		return _dupdate_qr_streaming(Q1,B1,Yo,A,r,q,seed)

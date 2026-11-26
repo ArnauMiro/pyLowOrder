@@ -20,10 +20,10 @@ ctypedef fused real:
 	double
 
 ctypedef fused realM:
-	float[:]
-	double[:]
-	float[:,:]
-	double[:,:]
+	float[::1]
+	double[::1]
+	float[:,::1]
+	double[:,::1]
 
 
 @cr('math.RMSE')
@@ -44,16 +44,12 @@ def RMSE(realM A, realM B, int relative=True):
 	Returns:
 		(float): Root mean square error.
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	A = np.ascontiguousarray(A)
-	B = np.ascontiguousarray(B)
-
 	cdef int m = A.shape[0], n = A.shape[1] if A.ndim > 1 else 1
-	if realM is double[:]:
+	if realM is double[::1]:
 		return c_dRMSE_relative(&A[0],&B[0],m,n) if relative else c_dRMSE(&A[0],&B[0],m,n)
-	elif realM is double[:,:]:
+	elif realM is double[:,::1]:
 		return c_dRMSE_relative(&A[0,0],&B[0,0],m,n) if relative else c_dRMSE(&A[0,0],&B[0,0],m,n)
-	elif realM is float[:]:
+	elif realM is float[::1]:
 		return c_sRMSE_relative(&A[0],&B[0],m,n) if relative else c_sRMSE(&A[0],&B[0],m,n)
 	else:
 		return c_sRMSE_relative(&A[0,0],&B[0,0],m,n) if relative else c_sRMSE(&A[0,0],&B[0,0],m,n)
@@ -75,16 +71,12 @@ def MAE(realM A, realM B):
 	Returns:
 		(float): Mean absolute error.
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	A = np.ascontiguousarray(A)
-	B = np.ascontiguousarray(B)
-
 	cdef int m = A.shape[0], n = A.shape[1] if A.ndim > 1 else 1
-	if realM is double[:]:
+	if realM is double[::1]:
 		return c_dMAE(&A[0],&B[0],m,n)
-	elif realM is double[:,:]:
+	elif realM is double[:,::1]:
 		return c_dMAE(&A[0,0],&B[0,0],m,n) 
-	elif realM is float[:]:
+	elif realM is float[::1]:
 		return c_sMAE(&A[0],&B[0],m,n)
 	else:
 		return c_sMAE(&A[0,0],&B[0,0],m,n)
@@ -106,16 +98,12 @@ def r2(realM A, realM B):
 	Returns:
 		(float): r2 score .
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	A = np.ascontiguousarray(A)
-	B = np.ascontiguousarray(B)
-
 	cdef int m = A.shape[0], n = A.shape[1] if A.ndim > 1 else 1
-	if realM is double[:]:
+	if realM is double[::1]:
 		return c_dr2(&A[0],&B[0],m,n)
-	elif realM is double[:,:]:
+	elif realM is double[:,::1]:
 		return c_dr2(&A[0,0],&B[0,0],m,n)
-	elif realM is float[:]:
+	elif realM is float[::1]:
 		return c_sr2(&A[0],&B[0],m,n)
 	else:
 		return c_sr2(&A[0,0],&B[0,0],m,n)
@@ -125,7 +113,7 @@ def r2(realM A, realM B):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _sMRE_array(float[:,:] A, float[:,:] B, int axis=1):
+def _sMRE_array(float[:,::1] A, float[:,::1] B, int axis=1):
 	'''
 	Mean relative error computed along a certain axis of the array.
 	'''
@@ -139,7 +127,7 @@ def _sMRE_array(float[:,:] A, float[:,:] B, int axis=1):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _dMRE_array(double[:,:] A, double[:,:] B, int axis=1):
+def _dMRE_array(double[:,::1] A, double[:,::1] B, int axis=1):
 	'''
 	Mean relative error computed along a certain axis of the array.
 	'''
@@ -154,7 +142,7 @@ def _dMRE_array(double[:,:] A, double[:,:] B, int axis=1):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def MRE_array(real[:,:] A, real[:,:] B, int axis=1):
+def MRE_array(real[:,::1] A, real[:,::1] B, int axis=1):
 	r'''
 	Mean relative error computed along a certain axis of the array.
 
@@ -166,10 +154,6 @@ def MRE_array(real[:,:] A, real[:,:] B, int axis=1):
 	Returns:
 		(np.ndarray): Mean relative error.
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	A = np.ascontiguousarray(A)
-	B = np.ascontiguousarray(B)
-
 	if real is double:
 		return _dMRE_array(A,B,axis)
 	else:

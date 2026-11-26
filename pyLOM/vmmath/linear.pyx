@@ -37,7 +37,7 @@ from ..utils.errors   import raiseError
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef tuple _slinear_operator(float[:,:] Y, float[:,:] Z, float r):
+cdef tuple _slinear_operator(float[:,::1] Y, float[:,::1] Z, float r):
 	r'''
 	Reduced order version of the linear operator (Jacobian)
 	'''
@@ -105,7 +105,7 @@ cdef tuple _slinear_operator(float[:,:] Y, float[:,:] Z, float r):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef tuple _dlinear_operator(double[:,:] Y, double[:,:] Z, double r):
+cdef tuple _dlinear_operator(double[:,::1] Y, double[:,::1] Z, double r):
 	r'''
 	Reduced order version of the linear operator (Jacobian)
 	'''
@@ -171,7 +171,7 @@ cdef tuple _dlinear_operator(double[:,:] Y, double[:,:] Z, double r):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def linear_operator(real[:,:] Y, real[:,:] Z, real r):
+def linear_operator(real[:,::1] Y, real[:,::1] Z, real r):
 	r'''
 	Reduced order version of the linear operator (Jacobian)
 
@@ -188,9 +188,6 @@ def linear_operator(real[:,:] Y, real[:,:] Z, real r):
 		VT (ndarray): right singular vectors of Y
 		Atilde (ndarray): reduced-order linear operator (Jacobian)
 	'''
-	Y = np.ascontiguousarray(Y)
-	Z = np.ascontiguousarray(Z)
-
 	if real is double:
 		return _dlinear_operator(Y,Z,r)
 	else:
@@ -298,8 +295,6 @@ def concatenate(list X, remove_mean=False):
 		Y (ndarray): snapshot matrix at time t
 		Z (ndarray): snapshot matrix at time t + dt
 	'''
-	X = [np.ascontiguousarray(M) for M in X]
-
 	if X[0].dtype == np.double:
 		return _dconcatenate(X,remove_mean)
 	else:
@@ -311,7 +306,7 @@ def concatenate(list X, remove_mean=False):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef tuple _sseparate(float[:,:] X, int remove_mean):
+cdef tuple _sseparate(float[:,::1] X, int remove_mean):
 	r'''
 	Separates a snapshot matrix into two matrices for the purpose of computing the linear operator (Jacobian) from them
 	'''
@@ -336,7 +331,7 @@ cdef tuple _sseparate(float[:,:] X, int remove_mean):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef tuple _dseparate(double[:,:] X, int remove_mean):
+cdef tuple _dseparate(double[:,::1] X, int remove_mean):
 	r'''
 	Separates a snapshot matrix into two matrices for the purpose of computing the linear operator (Jacobian) from them
 	'''
@@ -360,7 +355,7 @@ cdef tuple _dseparate(double[:,:] X, int remove_mean):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def separate(real[:,:] X, remove_mean=False):
+def separate(real[:,::1] X, remove_mean=False):
 	r'''
 	Separates a snapshot matrix into two matrices for the purpose of computing the linear operator (Jacobian) from them
 
@@ -372,8 +367,6 @@ def separate(real[:,:] X, remove_mean=False):
 		Y (ndarray): snapshot matrix at time t
 		Z (ndarray): snapshot matrix at time t + dt
 	'''
-	X = np.ascontiguousarray(X)
-
 	if real is double:
 		return _dseparate(X,remove_mean)
 	else:
@@ -497,8 +490,6 @@ def resolvent(real[:,:] A, object w):
 		S (ndarray): energy gains
 		V (ndarray): forcing modes
 	'''
-	A = np.ascontiguousarray(A)
-
 	if real is double:
 		return _zresolvent(A,np.complex128(w))
 	else:
@@ -510,7 +501,7 @@ def resolvent(real[:,:] A, object w):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.float32_t,ndim=2] _sflip_columns(float[:,:] A):
+cdef np.ndarray[np.float32_t,ndim=2] _sflip_columns(float[:,::1] A):
 	r'''
 	Flips the columns of a matrix A in a reverse order
 	'''
@@ -524,7 +515,7 @@ cdef np.ndarray[np.float32_t,ndim=2] _sflip_columns(float[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=2] _dflip_columns(double[:,:] A):
+cdef np.ndarray[np.double_t,ndim=2] _dflip_columns(double[:,::1] A):
 	r'''
 	Flips the columns of a matrix A in a reverse order
 	'''
@@ -538,7 +529,7 @@ cdef np.ndarray[np.double_t,ndim=2] _dflip_columns(double[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex64_t,ndim=2] _cflip_columns(np.complex64_t[:,:] A):
+cdef np.ndarray[np.complex64_t,ndim=2] _cflip_columns(np.complex64_t[:,::1] A):
 	r'''
 	Flips the columns of a matrix A in a reverse order
 	'''
@@ -552,7 +543,7 @@ cdef np.ndarray[np.complex64_t,ndim=2] _cflip_columns(np.complex64_t[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex128_t,ndim=2] _zflip_columns(np.complex128_t[:,:] A):
+cdef np.ndarray[np.complex128_t,ndim=2] _zflip_columns(np.complex128_t[:,::1] A):
 	r'''
 	Flips the columns of a matrix A in a reverse order
 	'''
@@ -567,7 +558,7 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zflip_columns(np.complex128_t[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def flip_columns(real_full[:,:] A):
+def flip_columns(real_full[:,::1] A):
 	r'''
 	Flips the columns of a matrix A in a reverse order
 
@@ -578,7 +569,6 @@ def flip_columns(real_full[:,:] A):
 		B (ndarray): the matrix with flipped columns
 	'''
 	cdef object B
-	A = np.ascontiguousarray(A)
 	if real_full is np.complex128_t:
 		B = _zflip_columns(A)
 	elif real_full is np.complex64_t:

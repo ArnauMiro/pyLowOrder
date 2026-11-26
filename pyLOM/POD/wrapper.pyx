@@ -29,7 +29,7 @@ from ..utils.errors   import raiseError
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _srun(float[:,:] X, bint remove_mean, bint divide_variance, bint randomized, int r, int q, int seed):
+def _srun(float[:,::1] X, bint remove_mean, bint divide_variance, bint randomized, int r, int q, int seed):
 	'''
 	Run POD analysis of a matrix X.
 
@@ -92,7 +92,7 @@ def _srun(float[:,:] X, bint remove_mean, bint divide_variance, bint randomized,
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _drun(double[:,:] X, bint remove_mean, bint divide_variance, bint randomized, const int r, const int q, const int seed):
+def _drun(double[:,::1] X, bint remove_mean, bint divide_variance, bint randomized, const int r, const int q, const int seed):
 	'''
 	Run POD analysis of a matrix X.
 
@@ -156,7 +156,7 @@ def _drun(double[:,:] X, bint remove_mean, bint divide_variance, bint randomized
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def run(real[:,:] X, bint remove_mean=True, bint divide_variance=False, bint randomized=False, const int r=1, const int q=3, const int seed=-1):
+def run(real[:,::1] X, bint remove_mean=True, bint divide_variance=False, bint randomized=False, const int r=1, const int q=3, const int seed=-1):
 	r'''
 	Run POD analysis of a matrix.
 
@@ -172,9 +172,6 @@ def run(real[:,:] X, bint remove_mean=True, bint divide_variance=False, bint ran
 		[(np.ndarray), (np.ndarray), (np.ndarray)]: POD spatial modes (left singular vectors), singular values and temporal coefficients (right singular vectors).
 	'''
 	seed = <int>time(NULL) if seed < 0 else seed
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	X = np.ascontiguousarray(X)
-
 	if real is double:
 		return _drun(X,remove_mean, divide_variance, randomized, r, q, seed)
 	else:
@@ -187,7 +184,7 @@ def run(real[:,:] X, bint remove_mean=True, bint divide_variance=False, bint ran
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _struncate(float[:,:] U, float[:] S, float[:,:] V, float r):
+def _struncate(float[:,::1] U, float[::1] S, float[:,::1] V, float r):
 	'''
 	Truncate POD matrices (U,S,V) given a residual r.
 
@@ -223,7 +220,7 @@ def _struncate(float[:,:] U, float[:] S, float[:,:] V, float r):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _dtruncate(double[:,:] U, double[:] S, double[:,:] V, double r):
+def _dtruncate(double[:,::1] U, double[::1] S, double[:,::1] V, double r):
 	'''
 	Truncate POD matrices (U,S,V) given a residual r.
 
@@ -260,7 +257,7 @@ def _dtruncate(double[:,:] U, double[:] S, double[:,:] V, double r):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def truncate(real[:,:] U, real[:] S, real[:,:] V, real r=1e-8):
+def truncate(real[:,::1] U, real[::1] S, real[:,::1] V, real r=1e-8):
 	r'''
 	Truncate POD matrices (U, S, V) given a residual, number of modes or cumulative energy r.
 
@@ -278,11 +275,6 @@ def truncate(real[:,:] U, real[:] S, real[:,:] V, real r=1e-8):
 		[(np.array), (np.array), (np.array)]: Truncated POD spatial modes (left singular vectors), singular values and temporal coefficients (right singular vectors).
 
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	U = np.ascontiguousarray(U)
-	S = np.ascontiguousarray(S)
-	V = np.ascontiguousarray(V)
-
 	if real is double:
 		return _dtruncate(U,S,V,r)
 	else:
@@ -295,7 +287,7 @@ def truncate(real[:,:] U, real[:] S, real[:,:] V, real r=1e-8):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _sreconstruct(float[:,:] U, float[:] S, float[:,:] V):
+def _sreconstruct(float[:,::1] U, float[::1] S, float[:,::1] V):
 	'''
 	Reconstruct the flow given the POD decomposition matrices
 	that can be possibly truncated.
@@ -329,7 +321,7 @@ def _sreconstruct(float[:,:] U, float[:] S, float[:,:] V):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _dreconstruct(double[:,:] U, double[:] S, double[:,:] V):
+def _dreconstruct(double[:,::1] U, double[::1] S, double[:,::1] V):
 	'''
 	Reconstruct the flow given the POD decomposition matrices
 	that can be possibly truncated.
@@ -364,7 +356,7 @@ def _dreconstruct(double[:,:] U, double[:] S, double[:,:] V):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def reconstruct(real[:,:] U, real[:] S, real[:,:] V):
+def reconstruct(real[:,::1] U, real[::1] S, real[:,::1] V):
 	r'''
 	Reconstruct the flow given the POD decomposition matrices
 	that can be possibly truncated.
@@ -379,11 +371,6 @@ def reconstruct(real[:,:] U, real[:] S, real[:,:] V):
 	Returns:
 		(np.array): Reconstructed flow.
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	U = np.ascontiguousarray(U)
-	S = np.ascontiguousarray(S)
-	V = np.ascontiguousarray(V)
-
 	if real is double:
 		return _dreconstruct(U,S,V)
 	else:

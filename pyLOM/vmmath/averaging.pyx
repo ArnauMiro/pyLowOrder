@@ -21,7 +21,7 @@ from ..utils.cr   import cr
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.float32_t,ndim=1] _stemporal_mean(float[:,:] X):
+cdef np.ndarray[np.float32_t,ndim=1] _stemporal_mean(float[:,::1] X):
 	'''
 	Temporal mean of matrix X(m,n) where m is the spatial coordinates
 	and n is the number of snapshots.
@@ -38,7 +38,7 @@ cdef np.ndarray[np.float32_t,ndim=1] _stemporal_mean(float[:,:] X):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=1] _dtemporal_mean(double[:,:] X):
+cdef np.ndarray[np.double_t,ndim=1] _dtemporal_mean(double[:,::1] X):
 	'''
 	Temporal mean of matrix X(m,n) where m is the spatial coordinates
 	and n is the number of snapshots.
@@ -56,7 +56,7 @@ cdef np.ndarray[np.double_t,ndim=1] _dtemporal_mean(double[:,:] X):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def temporal_mean(real[:,:] X):
+def temporal_mean(real[:,::1] X):
 	r'''
 	Temporal mean of matrix X(m,n) where m is the spatial coordinates
 	and n is the number of snapshots.
@@ -67,9 +67,6 @@ def temporal_mean(real[:,:] X):
 	Returns:
 		numpy.ndarray: Averaged snapshot matrix (m,).
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	X = np.ascontiguousarray(X)
-
 	if real is double:
 		return _dtemporal_mean(X)
 	else:
@@ -80,7 +77,7 @@ def temporal_mean(real[:,:] X):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.float32_t,ndim=1] _stemporal_variance(float[:,:] X, float[:] X_mean):
+cdef np.ndarray[np.float32_t,ndim=1] _stemporal_variance(float[:,::1] X, float[::1] X_mean):
 	'''
 	Temporal variance of matrix X(m,n) where m is the spatial coordinates
 	and n is the number of snapshots.
@@ -97,7 +94,7 @@ cdef np.ndarray[np.float32_t,ndim=1] _stemporal_variance(float[:,:] X, float[:] 
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=1] _dtemporal_variance(double[:,:] X, double[:] X_mean):
+cdef np.ndarray[np.double_t,ndim=1] _dtemporal_variance(double[:,::1] X, double[::1] X_mean):
 	'''
 	Temporal variance of matrix X(m,n) where m is the spatial coordinates
 	and n is the number of snapshots.
@@ -115,7 +112,7 @@ cdef np.ndarray[np.double_t,ndim=1] _dtemporal_variance(double[:,:] X, double[:]
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def temporal_variance(real[:,:] X, real[:] X_mean):
+def temporal_variance(real[:,::1] X, real[::1] X_mean):
 	r'''
 	Temporal variance of matrix X(m,n) where m is the spatial coordinates
 	and n is the number of snapshots.
@@ -126,10 +123,6 @@ def temporal_variance(real[:,:] X, real[:] X_mean):
 	Returns:
 		numpy.ndarray: Averaged snapshot matrix (m,).
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	X = np.ascontiguousarray(X)
-	X_mean = np.ascontiguousarray(X_mean)
-
 	if real is double:
 		return _dtemporal_variance(X, X_mean)
 	else:
@@ -140,7 +133,7 @@ def temporal_variance(real[:,:] X, real[:] X_mean):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.float32_t,ndim=2] _ssubtract_mean(float[:,:] X, float[:] X_mean):
+cdef np.ndarray[np.float32_t,ndim=2] _ssubtract_mean(float[:,::1] X, float[::1] X_mean):
 	'''
 	Computes out(m,n) = X(m,n) - X_mean(m) where m is the spatial coordinates
 	and n is the number of snapshots.
@@ -157,7 +150,7 @@ cdef np.ndarray[np.float32_t,ndim=2] _ssubtract_mean(float[:,:] X, float[:] X_me
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=2] _dsubtract_mean(double[:,:] X, double[:] X_mean):
+cdef np.ndarray[np.double_t,ndim=2] _dsubtract_mean(double[:,::1] X, double[::1] X_mean):
 	'''
 	Computes out(m,n) = X(m,n) - X_mean(m) where m is the spatial coordinates
 	and n is the number of snapshots.
@@ -175,7 +168,7 @@ cdef np.ndarray[np.double_t,ndim=2] _dsubtract_mean(double[:,:] X, double[:] X_m
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def subtract_mean(real[:,:] X, real[:] X_mean):
+def subtract_mean(real[:,::1] X, real[::1] X_mean):
 	r'''
 	Computes out(m,n) = X(m,n) - X_mean(m) where m is the spatial coordinates
 	and n is the number of snapshots.
@@ -187,10 +180,6 @@ def subtract_mean(real[:,:] X, real[:] X_mean):
 	Returns:
 		numpy.ndarray: Snapshot matrix without the average(m,n).
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	X = np.ascontiguousarray(X)
-	X_mean = np.ascontiguousarray(X_mean)
-
 	if real is double:
 		return _dsubtract_mean(X,X_mean)
 	else:
@@ -201,7 +190,7 @@ def subtract_mean(real[:,:] X, real[:] X_mean):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=2] _snorm_variance(float[:,:] X, float[:] X_mean, float[:] X_var):
+cdef np.ndarray[np.double_t,ndim=2] _snorm_variance(float[:,::1] X, float[::1] X_mean, float[::1] X_var):
 	r'''
 	Computes out(m,n) = (X(m,n) - X_mean(m))/X_var(m) where m is the spatial coordinates
 	and n is the number of snapshots.
@@ -230,7 +219,7 @@ cdef np.ndarray[np.double_t,ndim=2] _snorm_variance(float[:,:] X, float[:] X_mea
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=2] _dnorm_variance(double[:,:] X, double[:] X_mean, double[:] X_var):
+cdef np.ndarray[np.double_t,ndim=2] _dnorm_variance(double[:,::1] X, double[::1] X_mean, double[::1] X_var):
 	r'''
 	Computes out(m,n) = (X(m,n) - X_mean(m))/X_var(m) where m is the spatial coordinates
 	and n is the number of snapshots.
@@ -259,7 +248,7 @@ cdef np.ndarray[np.double_t,ndim=2] _dnorm_variance(double[:,:] X, double[:] X_m
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def norm_variance(real[:,:] X, real[:] X_mean, real[:] X_var):
+def norm_variance(real[:,::1] X, real[::1] X_mean, real[::1] X_var):
 	r'''
 	Computes out(m,n) = (X(m,n) - X_mean(m))/X_var(m) where m is the spatial coordinates
 	and n is the number of snapshots.
@@ -272,11 +261,6 @@ def norm_variance(real[:,:] X, real[:] X_mean, real[:] X_var):
 	Returns:
 		numpy.ndarray: Snapshot matrix without the average(m,n).
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	X = np.ascontiguousarray(X)
-	X_mean = np.ascontiguousarray(X_mean)
-	X_var = np.ascontiguousarray(X_var)
-
 	if real is double:
 		return _dnorm_variance(X,X_mean,X_var)
 	else:

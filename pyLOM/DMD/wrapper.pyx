@@ -284,7 +284,7 @@ cdef _srun_core(float *Y, float *Z, int m, int n, int m_aux, float r):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _srun_matrix(float[:,:] X, float r, int remove_mean):
+def _srun_matrix(float[:,::1] X, float r, int remove_mean):
 	'''
 	DMD of a single data matrix X
 	'''
@@ -613,7 +613,7 @@ cdef _drun_core(double *Y, double *Z, int m, int n, int m_aux, double r):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _drun_matrix(double[:,:] X, double r, int remove_mean):
+def _drun_matrix(double[:,::1] X, double r, int remove_mean):
 	'''
 	DMD of a single data matrix X
 	'''
@@ -714,12 +714,9 @@ def run(object X, object r, int remove_mean=True):
 		- Phi:      DMD Modes
 		- bJov:        Amplitude of the DMD modes
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
 	if isinstance(X, list):
-		X = [np.ascontiguousarray(M) for M in X]
 		dtype = X[0].dtype
 	else:
-		X = np.ascontiguousarray(X)
 		dtype = X.dtype
 
 	if dtype == np.double:
@@ -788,10 +785,6 @@ def frequency_damping(real[:] rreal, real[:] iimag, real dt):
 	'''
 	Computation of the damping ratio and the frequency of each mode
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	rreal = np.ascontiguousarray(rreal)
-	iimag = np.ascontiguousarray(iimag)
-
 	if real is double:
 		return _dfrequency_damping(rreal,iimag,dt)
 	else:
@@ -803,7 +796,7 @@ def frequency_damping(real[:] rreal, real[:] iimag, real dt):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _sreconstruction_jovanovic(np.complex64_t[:,:] Phi, float[:] muReal, float[:] muImag, float[:] t, np.complex64_t[:] bJov):
+def _sreconstruction_jovanovic(np.complex64_t[:,::1] Phi, float[::1] muReal, float[::1] muImag, float[::1] t, np.complex64_t[::1] bJov):
 	'''
 	Computation of the reconstructed flow from the DMD computations
 	'''
@@ -825,7 +818,7 @@ def _sreconstruction_jovanovic(np.complex64_t[:,:] Phi, float[:] muReal, float[:
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _dreconstruction_jovanovic(np.complex128_t[:,:] Phi, double[:] muReal, double[:] muImag, double[:] t, np.complex128_t[:] bJov):
+def _dreconstruction_jovanovic(np.complex128_t[:,::1] Phi, double[::1] muReal, double[::1] muImag, double[::1] t, np.complex128_t[::1] bJov):
 	'''
 	Computation of the reconstructed flow from the DMD computations
 	'''
@@ -848,17 +841,10 @@ def _dreconstruction_jovanovic(np.complex128_t[:,:] Phi, double[:] muReal, doubl
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def reconstruction_jovanovic(real_complex[:,:] Phi, real[:] muReal, real[:] muImag, real[:] t, real_complex[:] bJov):
+def reconstruction_jovanovic(real_complex[:,::1] Phi, real[::1] muReal, real[::1] muImag, real[::1] t, real_complex[::1] bJov):
 	'''
 	Computation of the reconstructed flow from the DMD computations
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	Phi = np.ascontiguousarray(Phi)
-	muReal = np.ascontiguousarray(muReal)
-	muImag = np.ascontiguousarray(muImag)
-	t = np.ascontiguousarray(t)
-	bJov = np.ascontiguousarray(bJov)
-
 	if real_complex is np.complex128_t:
 		return _dreconstruction_jovanovic(Phi,muReal,muImag,t,bJov)
 	else:
