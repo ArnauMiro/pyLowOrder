@@ -24,6 +24,7 @@ from torch.utils.data    import DataLoader, TensorDataset
 from ...utils.cr         import cr
 from .encoders_decoders  import ShallowDecoder
 from ..dataset           import Dataset
+from ..                  import DEVICE
 from ...utils.errors     import raiseError
 from ...utils.parall     import pprint
 
@@ -67,6 +68,10 @@ class SHRED(nn.Module):
 		rng = np.random.default_rng(None if seed == -1 else seed)
 		if decoder_sizes is None:
 			decoder_sizes = [350, 400]
+		# Constructor arguments, saved by save() so that load() rebuilds the same network
+		self._config = dict(output_size=output_size, total_sensors=total_sensors, hidden_size=hidden_size,
+			hidden_layers=hidden_layers, decoder_sizes=list(decoder_sizes), input_size=input_size,
+			dropout=dropout, nconfigs=nconfigs, compile=compile, seed=seed)
 		if compile:
 			self.lstm    = torch.compile(nn.LSTM(input_size=input_size, hidden_size=hidden_size, num_layers=hidden_layers, batch_first=True), mode="max-autotune")
 			self.decoder = torch.compile(ShallowDecoder(output_size, hidden_size, decoder_sizes, dropout), mode="max-autotune")
@@ -247,16 +252,46 @@ class SHRED(nn.Module):
 
 	def save(self, path:str, scaler_path:str, podscale_path:str, sensors:np.array):
 		r'''
-		Save a SHRED configuration to a .pth file.
+		Save a SHRED configuration to a .pth file. The file also holds the constructor
+		arguments and the sensor configurations, so :meth:`load` rebuilds the model
+		without restating its architecture.
 
 		Args:
-			path (str): where the model will be saved.
+			path (str): where the model will be saved, without the ``.pth`` extension.
 			scaler_path (str): path to the scaler used to scale the sensor data.
 			podscale_path (str): path to the scaler used for the POD coefficients.
 			sensors (np.array): IDs of the sensors used for the current SHRED configuration.
 		'''
 		torch.save({
 			'model_state_dict': self.state_dict(),
+			'config'          : self._config,
+			'configs'         : self.configs,
 			'scaler_path'     : scaler_path,
 			'podscale_path'   : podscale_path,
 			'sensors'         : sensors,}, "%s.pth" % path)
+
+	@classmethod
+	def load(cls, path:str, device:torch.device=DEVICE):
+		r'''
+		Load a SHRED saved with :meth:`save`, rebuilding the network from the stored
+		constructor arguments and restoring its weights and sensor configurations.
+
+		Args:
+			path (str): path given to :meth:`save`, without the ``.pth`` extension.
+			device (torch.device, optional): device where the model is loaded (default ``DEVICE``).
+
+		Returns:
+			tuple: the SHRED model, in eval mode, and a dict with the ``sensors``,
+			``scaler_path`` and ``podscale_path`` given to :meth:`save`.
+		'''
+		# The file holds numpy arrays (sensors and configurations), which weights_only does not allow
+		saved = torch.load("%s.pth" % path, map_location=device, weights_only=False)
+		# Files saved without the constructor arguments cannot rebuild the network
+		if 'config' not in saved:
+			raiseError('SHRED: <%s.pth> has no stored configuration; build the SHRED with its original arguments and use load_state_dict' % path)
+
+		model = cls(device=device, **saved['config'])
+		model.load_state_dict(saved['model_state_dict'])
+		model.configs = saved['configs']
+		model.eval()
+		return model, {k: saved[k] for k in ('sensors', 'scaler_path', 'podscale_path')}
