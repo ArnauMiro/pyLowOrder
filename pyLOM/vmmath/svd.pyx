@@ -28,7 +28,7 @@ from ..utils.errors import raiseError
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _ssvd(float[:,:] A, int do_copy):
+def _ssvd(float[:,::1] A, int do_copy):
 	'''
 	Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
@@ -57,7 +57,7 @@ def _ssvd(float[:,:] A, int do_copy):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _dsvd(double[:,:] A, int do_copy):
+def _dsvd(double[:,::1] A, int do_copy):
 	'''
 	Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
@@ -86,7 +86,7 @@ def _dsvd(double[:,:] A, int do_copy):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _csvd(np.complex64_t[:,:] A, int do_copy):
+def _csvd(np.complex64_t[:,::1] A, int do_copy):
 	'''
 	Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
@@ -115,7 +115,7 @@ def _csvd(np.complex64_t[:,:] A, int do_copy):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _zsvd(np.complex128_t[:,:] A, int do_copy):
+def _zsvd(np.complex128_t[:,::1] A, int do_copy):
 	'''
 	Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
@@ -145,7 +145,7 @@ def _zsvd(np.complex128_t[:,:] A, int do_copy):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def svd(real_full[:,:] A, int do_copy=True):
+def svd(real_full[:,::1] A, int do_copy=True):
 	'''
 	Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
@@ -166,7 +166,7 @@ def svd(real_full[:,:] A, int do_copy=True):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _stsqr_svd(float[:,:] A):
+def _stsqr_svd(float[:,::1] A):
 	'''
 	Parallel Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
@@ -188,7 +188,7 @@ def _stsqr_svd(float[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _dtsqr_svd(double[:,:] A):
+def _dtsqr_svd(double[:,::1] A):
 	'''
 	Parallel Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
@@ -210,7 +210,7 @@ def _dtsqr_svd(double[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _ctsqr_svd(np.complex64_t[:,:] A):
+def _ctsqr_svd(np.complex64_t[:,::1] A):
 	'''
 	Parallel Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
@@ -232,7 +232,7 @@ def _ctsqr_svd(np.complex64_t[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _ztsqr_svd(np.complex128_t[:,:] A):
+def _ztsqr_svd(np.complex128_t[:,::1] A):
 	'''
 	Parallel Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
@@ -255,7 +255,7 @@ def _ztsqr_svd(np.complex128_t[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def tsqr_svd(real_full[:,:] A):
+def tsqr_svd(real_full[:,::1] A):
 	'''
 	Parallel Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
@@ -276,7 +276,7 @@ def tsqr_svd(real_full[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _srandomized_svd(float[:,:] A, int r, int q, int seed):
+def _srandomized_svd(float[:,::1] A, int r, int q, int seed):
 	'''
 	Parallel Randomized Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
@@ -298,7 +298,7 @@ def _srandomized_svd(float[:,:] A, int r, int q, int seed):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _drandomized_svd(double[:,:] A, int r, int q, int seed):
+def _drandomized_svd(double[:,::1] A, int r, int q, int seed):
 	'''
 	Parallel Randomized Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.
@@ -321,7 +321,7 @@ def _drandomized_svd(double[:,:] A, int r, int q, int seed):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def randomized_svd(real[:,:] A, const int r, const int q, const int seed=-1):
+def randomized_svd(real[:,::1] A, const int r, const int q, const int seed=-1):
 	'''
 	Parallel Single value decomposition (SVD) using Lapack.
 		U(m,n)   are the POD modes.

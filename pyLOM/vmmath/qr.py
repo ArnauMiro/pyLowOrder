@@ -136,11 +136,11 @@ def qr_streaming(Ai, r, q, seed, local):
 	# QR factorization on A
 	for j in range(q):
 		Qi,_ = qrfun(Yi)
-		Q2i  = matmulp(Ai.T,Qi)
+		Q2i  = matmulp(transpose(Ai),Qi)
 		Yi   = matmul(Ai,Q2i)
 
 	Qi,_ = qrfun(Yi)
-	B    = matmulp(Qi.T,Ai)
+	B    = matmulp(transpose(Qi),Ai)
 
 	return Qi, B, Yi
 
@@ -167,11 +167,11 @@ def qr_streaming2(Ai, r, q, seed, local):
 	# QR factorization on A
 	for j in range(q):
 		Qi,_ = qrfun(Yi) # on GPU
-		Q2i  = matmulp(Ai.T,gpu_to_cpu(Qi)) # on CPU
+		Q2i  = matmulp(transpose(Ai),gpu_to_cpu(Qi)) # on CPU
 		Yi   = cpu_to_gpu(matmul(Ai,Q2i)) # on CPU to GPU
 
 	Qi,_ = qrfun(Yi) # on GPU
-	B    = cpu_to_gpu(matmulp(gpu_to_cpu(Qi.T),Ai))
+	B    = cpu_to_gpu(matmulp(transpose(gpu_to_cpu(Qi)),Ai))
 
 	return Qi, B, Yi
 
@@ -213,13 +213,13 @@ def update_qr_streaming(Ai, Q1, B1, Yo, r, q):
 	Yn    = matmul(Ai,omega)
 	for jj in range(q):
 		Qpi,_ = tsqr(Yn)
-		O2    = matmulp(Ai.T, Qpi)
+		O2    = matmulp(transpose(Ai), Qpi)
 		Yn    = matmul(Ai,O2)
 	Yo   += Yn
 	Q2,_  = tsqr(Yo)
-	Q2Q1  = matmulp(Q2.T, Q1)
+	Q2Q1  = matmulp(transpose(Q2), Q1)
 	B2o   = matmul(Q2Q1, B1)
-	B2n   = matmulp (Q2.T, Ai)
+	B2n   = matmulp (transpose(Q2), Ai)
 	B2    = p.hstack((B2o, B2n))
 
 	return Q2, B2, Yo

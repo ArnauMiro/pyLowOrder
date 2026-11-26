@@ -21,7 +21,7 @@ from ..utils.cr import cr
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.float32_t,ndim=1] _sleast_squares(float[:,:] A, float[:] b):
+cdef np.ndarray[np.float32_t,ndim=1] _sleast_squares(float[:,::1] A, float[::1] b):
 	'''
 	Least squares regression
 	(A^T * A)^-1 * A^T * b
@@ -36,7 +36,7 @@ cdef np.ndarray[np.float32_t,ndim=1] _sleast_squares(float[:,:] A, float[:] b):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=1] _dleast_squares(double[:,:] A, double[:] b):
+cdef np.ndarray[np.double_t,ndim=1] _dleast_squares(double[:,::1] A, double[::1] b):
 	'''
 	Least squares regression
 	(A^T * A)^-1 * A^T * b
@@ -52,7 +52,7 @@ cdef np.ndarray[np.double_t,ndim=1] _dleast_squares(double[:,:] A, double[:] b):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def least_squares(real[:,:] A, real[:] b):
+def least_squares(real[:,::1] A, real[::1] b):
 	'''
 	Least squares regression
 	(A^T * A)^-1 * A^T * b
@@ -67,7 +67,7 @@ def least_squares(real[:,:] A, real[:] b):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.float32_t,ndim=1] _sridge_regression(float[:,:] A, float[:] b, float lam):
+cdef np.ndarray[np.float32_t,ndim=1] _sridge_regression(float[:,::1] A, float[::1] b, float lam):
 	'''
 	Least squares regression
 	(A^T * A)^-1 * A^T * b
@@ -82,7 +82,7 @@ cdef np.ndarray[np.float32_t,ndim=1] _sridge_regression(float[:,:] A, float[:] b
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=1] _dridge_regression(double[:,:] A, double[:] b, double lam):
+cdef np.ndarray[np.double_t,ndim=1] _dridge_regression(double[:,::1] A, double[::1] b, double lam):
 	'''
 	Least squares regression
 	(A^T * A)^-1 * A^T * b
@@ -98,7 +98,7 @@ cdef np.ndarray[np.double_t,ndim=1] _dridge_regression(double[:,:] A, double[:] 
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def ridge_regresion(real[:,:] A, real[:] b, real lam):
+def ridge_regresion(real[:,::1] A, real[::1] b, real lam):
 	'''
 	Ridge regression
 	'''

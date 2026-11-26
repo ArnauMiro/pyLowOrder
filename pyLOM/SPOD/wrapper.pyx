@@ -145,7 +145,7 @@ cdef void _dsort(double *L, double *P, double *f, int M, int nBlks, int nf):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean):
+def _srun(float[:,::1] X, float[:] t, int nDFT, int nolap, int remove_mean):
 	'''
 	Run SPOD analysis of a matrix X.
 
@@ -287,7 +287,7 @@ def _srun(float[:,:] X, float[:] t, int nDFT, int nolap, int remove_mean):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean):
+def _drun(double[:,::1] X, double[:] t, int nDFT, int nolap, int remove_mean):
 	'''
 	Run SPOD analysis of a matrix X.
 
@@ -429,7 +429,7 @@ def _drun(double[:,:] X, double[:] t, int nDFT, int nolap, int remove_mean):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def run(real[:,:] X, real[:] t, int nDFT=0, int nolap=0, int remove_mean=True):
+def run(real[:,::1] X, real[:] t, int nDFT=0, int nolap=0, int remove_mean=True):
 	r'''
 	Run SPOD analysis of a matrix X.
 

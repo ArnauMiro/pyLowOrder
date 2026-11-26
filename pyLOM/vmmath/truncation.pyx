@@ -11,6 +11,7 @@ cimport numpy as np
 
 import numpy as np
 
+from libc.string   cimport memcpy
 from libc.math  cimport fabs
 from .cfuncs    cimport real, c_svector_norm, c_dvector_norm, c_senergy, c_denergy, c_slocal_energy, c_dlocal_energy
 from ..utils.cr  import cr
@@ -21,7 +22,7 @@ from ..utils.cr  import cr
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef int _scompute_truncation_residual(float[:] S, float r):
+cdef int _scompute_truncation_residual(float[::1] S, float r):
 	'''
 	Compute the truncation residual.
 	r must be a float precision (r<1) where:
@@ -51,7 +52,7 @@ cdef int _scompute_truncation_residual(float[:] S, float r):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef int _dcompute_truncation_residual(double[:] S, double r):
+cdef int _dcompute_truncation_residual(double[::1] S, double r):
 	'''
 	Compute the truncation residual.
 	r must be a float precision (r<1) where:
@@ -81,7 +82,7 @@ cdef int _dcompute_truncation_residual(double[:] S, double r):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def compute_truncation_residual(real[:] S, real r):
+def compute_truncation_residual(real[::1] S, real r):
 	'''
 	Compute the truncation residual.
 	r must be a float precision (r<1) where:
@@ -98,7 +99,7 @@ def compute_truncation_residual(real[:] S, real r):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef float _senergy(float[:,:] A, float[:,:] B):
+cdef float _senergy(float[:,::1] A, float[:,::1] B):
 	'''
 	Compute RMSE between X_POD and X
 	'''
@@ -112,7 +113,7 @@ cdef float _senergy(float[:,:] A, float[:,:] B):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef double _denergy(double[:,:] A, double[:,:] B):
+cdef double _denergy(double[:,::1] A, double[:,::1] B):
 	'''
 	Compute RMSE between X_POD and X
 	'''
@@ -127,7 +128,7 @@ cdef double _denergy(double[:,:] A, double[:,:] B):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def energy(real[:,:] A, real[:,:] B):
+def energy(real[:,::1] A, real[:,::1] B):
 	'''
 	Compute RMSE between X_POD and X
 	'''
@@ -141,7 +142,7 @@ def energy(real[:,:] A, real[:,:] B):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef float _slocal_energy(float[:,:] A, float[:,:] B):
+cdef float _slocal_energy(float[:,::1] A, float[:,::1] B):
 	'''
 	Compute RMSE between X_POD and X
 	'''
@@ -155,7 +156,7 @@ cdef float _slocal_energy(float[:,:] A, float[:,:] B):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef double _dlocal_energy(double[:,:] A, double[:,:] B):
+cdef double _dlocal_energy(double[:,::1] A, double[:,::1] B):
 	'''
 	Compute RMSE between X_POD and X
 	'''
@@ -170,7 +171,7 @@ cdef double _dlocal_energy(double[:,:] A, double[:,:] B):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def local_energy(real[:,:] A, real[:,:] B):
+def local_energy(real[:,::1] A, real[:,::1] B):
 	'''
 	Compute RMSE between X_POD and X
 	'''
@@ -178,3 +179,45 @@ def local_energy(real[:,:] A, real[:,:] B):
 		return _dlocal_energy(A,B)
 	else:
 		return _slocal_energy(A,B)
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef float _sremove_rows(float[:,::1] A, int rows):
+	'''
+	Get A with the disired number of rows
+	'''
+	cdef int n = A.shape[1]
+	cdef np.ndarray[np.float32_t,ndim=2] B = np.zeros((rows,n),dtype=np.float32)
+	memcpy(&B[0,0],&A[0,0],rows*n*sizeof(float))
+	return B
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+cdef float _dremove_rows(double[:,::1] A, int rows):
+	'''
+	Get A with the disired number of rows
+	'''
+	cdef int n = A.shape[1]
+	cdef np.ndarray[np.double_t,ndim=2] B = np.zeros((rows,n),dtype=np.double)
+	memcpy(&B[0,0],&A[0,0],rows*n*sizeof(double))
+	return B
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False) # turn off bounds-checking for entire function
+@cython.wraparound(False)  # turn off negative index wrapping for entire function
+@cython.nonecheck(False)
+@cython.cdivision(True)    # turn off zero division check
+def remove_rows(real[:,::1] A, int rows):
+	'''
+	Get A with the disired number of rows
+	'''
+	if real is double:
+		return _dremove_rows(A, rows)
+	else:
+		return _sremove_rows(A, rows)

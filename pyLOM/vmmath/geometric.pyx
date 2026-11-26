@@ -25,7 +25,7 @@ from ..utils.errors import raiseError
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.float32_t,ndim=2] _scellCenters(float[:,:] xyz, int[:,:] conec):
+cdef np.ndarray[np.float32_t,ndim=2] _scellCenters(float[:,::1] xyz, int[:,::1] conec):
 	'''
 	Compute the cell centers given a list 
 	of elements (internal function).
@@ -42,7 +42,7 @@ cdef np.ndarray[np.float32_t,ndim=2] _scellCenters(float[:,:] xyz, int[:,:] cone
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=2] _dcellCenters(double[:,:] xyz, int[:,:] conec):
+cdef np.ndarray[np.double_t,ndim=2] _dcellCenters(double[:,::1] xyz, int[:,::1] conec):
 	'''
 	Compute the cell centers given a list 
 	of elements (internal function).
@@ -60,7 +60,7 @@ cdef np.ndarray[np.double_t,ndim=2] _dcellCenters(double[:,:] xyz, int[:,:] cone
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def cellCenters(real[:,:] xyz, int[:,:] conec):
+def cellCenters(real[:,::1] xyz, int[:,::1] conec):
 	r'''
 	Compute the cell centers given a list 
 	of elements.
@@ -82,7 +82,7 @@ def cellCenters(real[:,:] xyz, int[:,:] conec):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.float32_t,ndim=2] _snormals(float[:,:] xyz, int[:,:] conec):
+cdef np.ndarray[np.float32_t,ndim=2] _snormals(float[:,::1] xyz, int[:,::1] conec):
 	'''
 	Compute the cell centers given a list 
 	of elements (internal function).
@@ -99,7 +99,7 @@ cdef np.ndarray[np.float32_t,ndim=2] _snormals(float[:,:] xyz, int[:,:] conec):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=2] _dnormals(double[:,:] xyz, int[:,:] conec):
+cdef np.ndarray[np.double_t,ndim=2] _dnormals(double[:,::1] xyz, int[:,::1] conec):
 	'''
 	Compute the cell centers given a list 
 	of elements (internal function).
@@ -117,7 +117,7 @@ cdef np.ndarray[np.double_t,ndim=2] _dnormals(double[:,:] xyz, int[:,:] conec):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def normals(real[:,:] xyz, int[:,:] conec):
+def normals(real[:,::1] xyz, int[:,::1] conec):
 	r'''
 	Compute the cell normals given a list 
 	of elements.
@@ -139,7 +139,7 @@ def normals(real[:,:] xyz, int[:,:] conec):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.float32_t,ndim=2] _seuclidean_d(float[:,:] X):
+cdef np.ndarray[np.float32_t,ndim=2] _seuclidean_d(float[:,::1] X):
 	'''
 	Compute Euclidean distances between simulations.
 
@@ -161,7 +161,7 @@ cdef np.ndarray[np.float32_t,ndim=2] _seuclidean_d(float[:,:] X):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=2] _deuclidean_d(double[:,:] X):
+cdef np.ndarray[np.double_t,ndim=2] _deuclidean_d(double[:,::1] X):
 	'''
 	Compute Euclidean distances between simulations.
 
@@ -184,7 +184,7 @@ cdef np.ndarray[np.double_t,ndim=2] _deuclidean_d(double[:,:] X):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def euclidean_d(real[:,:] X):
+def euclidean_d(real[:,::1] X):
 	r'''
 	Compute the Euclidean distances between simulations.
 
