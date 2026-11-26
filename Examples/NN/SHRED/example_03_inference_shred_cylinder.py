@@ -3,7 +3,7 @@
 # Example of POD to reduce dimensionality for SHRED architecture.
 # This example must be run in serial, preferably on GPUs.
 #
-# Last revision: 04/02/2026
+# Last revision: 25/11/2026
 from __future__ import print_function, division
 
 import numpy as np, torch
@@ -34,7 +34,6 @@ mask_vali = sensors.get_variable('validation_time')
 mask_test = sensors.get_variable('test_time')
 # Training
 sens_trai = sensors.mask_field(sensvar, mask_trai)
-nsens     = sens_trai.shape[0]
 # Validation
 sens_vali = sensors.mask_field(sensvar, mask_vali)
 # Test
@@ -61,25 +60,20 @@ full_pod[:,mask_vali] = pod_vali
 full_pod[:,mask_test] = pod_test
 
 
-## Build SHRED architecture
-shred = pyLOM.NN.SHRED(output_size, device, nsens)
-
-
 ## Load all SHRED configurations and evaluate them using the data from the corresponding sensors
 outres = np.zeros((output_size, ntimeG, nconfigs), dtype=full_pod.dtype)
 MRE    = np.zeros((output_size, nconfigs), dtype=full_pod.dtype)
 for kk in range(nconfigs):
-    # Load the SHRED model for this configuration
-    load_dict = torch.load('%s%i.pth' % (shreds, kk), weights_only=False)
-    mysensors = load_dict['sensors']
-    shred.load_state_dict(load_dict['model_state_dict'])
+    # Load the SHRED model for this configuration; its architecture is stored in the file
+    shred, saved = pyLOM.NN.SHRED.load('%s%i' % (shreds, kk), device)
+    mysensors    = saved['sensors']
     # Get the sensor values for the training, validation and test
     mytrai = sens_trai[mysensors,:]
     myvali = sens_vali[mysensors,:]
     mytest = sens_test[mysensors,:]
     # Load the appropiate scaler
     myscaler = pyLOM.NN.MinMaxScaler(column=True)
-    myscaler = myscaler.load(load_dict['scaler_path'])
+    myscaler = myscaler.load(saved['scaler_path'])
     trai_sca = myscaler.transform(mytrai)
     vali_sca = myscaler.transform(myvali)
     test_sca = myscaler.transform(mytest)
@@ -93,7 +87,7 @@ for kk in range(nconfigs):
     output = shred(torch.from_numpy(delayed).permute(1,2,0).to(device)).cpu().detach().numpy().T
     # Load the POD scaler of that SHRED to transform POD data
     podscale = pyLOM.NN.MinMaxScaler(column=True)
-    podscale = podscale.load(load_dict['podscale_path'])
+    podscale = podscale.load(saved['podscale_path'])
     outres[:,:,kk] = podscale.inverse_transform(output)
     # Compute mean relative error
     MRE[:,kk] = pyLOM.math.MRE_array(full_pod, outres[:,:,kk])

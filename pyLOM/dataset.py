@@ -22,7 +22,7 @@ class Dataset(object):
 	with the number of variables and relates them so that the operations 
 	in parallel are easier.
 	'''
-	def __init__(self, xyz=None, ptable=None, vars=None, order=None, point=True, **kwargs):
+	def __init__(self, xyz=None, ptable=None, vars={}, order=None, point=True, **kwargs):
 		'''
 		Class constructor
 
@@ -166,13 +166,18 @@ class Dataset(object):
 			'value' : var, 
 		}
 
-	def split_data(self,var,mode='reconstruct'):
+	def split_data(self,var,ptrain=0.7,mode='reconstruct',seed=-1):
 		r'''
 		Generate random training, validation and test masks for a dataset of Nt samples.
 
 		Args:
 			variable (str): variable which will be splitted in different samples
-			mode (str, optional): type of splitting to perform (default, ``'reconstruct'``). In reconstruct mode all three datasets have samples along all the data range.
+			ptrain (int, optional): percentage of training data (default, ``0.7``).
+			mode (str, optional): type of splitting to perform (default, ``'reconstruct'``).
+
+		Available modes are:
+			reconstruct: In reconstruct mode all three datasets have samples along all the data range.
+			latest: In latest mode the testing dataset samples the last 20% of the data range.
 	
 		Returns:
 			[(np.ndarray), (np.ndarray), (np.ndarray)]: List of arrays containing the identifiers of the training, validation and test samples.
@@ -180,7 +185,7 @@ class Dataset(object):
 		
 		N    = len(self.vars[var]["value"])
 		idim = self.vars[var]["idim"]
-		trid, vaid, teid = data_splitting(N, mode)
+		trid, vaid, teid = data_splitting(N,ptrain,mode,seed=seed)
 		self.add_variable('training_%s'%var,idim,trid)
 		self.add_variable('validation_%s'%var,idim,vaid)
 		self.add_variable('test_%s'%var,idim,teid)
@@ -215,12 +220,9 @@ class Dataset(object):
 		Then for each sensor finds the nearest point from the dataset to get its coordinates and dataset value.
 		It creates a new dataset containing all the sensor coordinates and values
 		'''
-		# Fix seed if user requested
-		if seed > 0: np.random.seed(seed)
-
 		# Obtain the indices of the sensors and to which rank
 		# this index has been found
-		idxsensors, ranksensors = find_random_sensors(bounds,self.xyz,nsensors)
+		idxsensors, ranksensors = find_random_sensors(bounds,self.xyz,nsensors,seed=seed)
 
 		# Create a new partition table
 		nparts   = MPI_SIZE

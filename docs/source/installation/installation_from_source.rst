@@ -60,6 +60,14 @@ That is, install the **CuPy** package with CUDA 12 support. Other supported syst
 
     make requirements_cupy
 
+For the **NN** module with a full GPU pipeline, install instead:
+
+.. code-block:: bash
+
+    make requirements_NN_cupy
+
+which installs PyTorch and CuPy with matching CUDA 13 versions (``torch>=2.11`` and ``cupy-cuda13x``).
+
 Prerequisites
 -------------
 
