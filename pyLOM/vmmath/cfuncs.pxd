@@ -206,9 +206,3 @@ ctypedef fused real_full:
 	double
 	np.complex64_t
 	np.complex128_t
-ctypedef fused real_float:
-	float
-	np.complex64_t
-ctypedef fused real_double:
-	double
-	np.complex128_t

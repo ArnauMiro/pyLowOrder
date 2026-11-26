@@ -22,7 +22,7 @@ cdef extern from "<complex.h>" nogil:
 cdef double complex J = 1j
 from libc.stdlib     cimport malloc, free
 from libc.string     cimport memcpy, memset
-from ..vmmath.cfuncs cimport real, real_complex, real_float, real_double, real_full
+from ..vmmath.cfuncs cimport real, real_full
 from ..vmmath.cfuncs cimport c_stranspose, c_smatmul, c_smatmulp, c_stsqr_svd, c_scompute_truncation_residual, c_scompute_truncation, c_sseparate, c_sconcatenate, c_sflip_columns
 from ..vmmath.cfuncs cimport c_dtranspose, c_dmatmul, c_dmatmulp, c_dtsqr_svd, c_dcompute_truncation_residual, c_dcompute_truncation, c_dseparate, c_dconcatenate, c_dflip_columns
 from ..vmmath.cfuncs cimport c_csvd, c_cdagger, c_cflip_columns
