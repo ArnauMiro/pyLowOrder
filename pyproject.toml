@@ -39,7 +39,7 @@ readme = "README.md"
 # 'Programming Language' classifiers above, 'pip install' will check this
 # and refuse to install the project if the version does not match. See
 # https://packaging.python.org/guides/distributing-packages-using-setuptools/#python-requires
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 
 # This is either text indicating the license for the distribution, or a file
 # that contains the license
@@ -106,10 +106,9 @@ classifiers = [  # Optional
   # that you indicate you support Python 3. These classifiers are *not*
   # checked by "pip install". See instead "python_requires" below.
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3 :: Only",
 ]
 
@@ -144,22 +143,32 @@ cuda = [
 cuda12x = [
     "cupy-cuda12x",
 ]
-cuda11x = [
-    "cupy-cuda11x",
-]
-rocm-4-0 = [
-    "cupy-rocm-4-0",
+rocm-7-0 = [
+    "cupy-rocm-7-0",
 ]
 # Dependencies to work with the NN module
 NN = [
-  "torch>=2.3.0,<=2.11.0",
+  "torch>=2.3.0,<2.16",
+  "torch-geometric",
   "torchvision",
-  "torchsummary",
   "tensorflow",
   "tensorboard",
   "xgboost",
   "scikit-learn",
-  "fluidflow",
+]
+# Dependencies to work with the NN module with a full GPU pipeline (torch and cupy on CUDA).
+# The CUDA versions of torch and cupy must match: torch>=2.11 wheels on PyPI use CUDA 13, hence cupy-cuda13x.
+# Keep both CUDA versions matched in future upgrades.
+# cupy-cuda13x needs a local CUDA 13 toolkit; cupy-cuda13x[ctk] would install the CUDA libraries from PyPI instead.
+NN_cupy = [
+  "torch>=2.11.0,<2.16",
+  "torch-geometric",
+  "torchvision",
+  "tensorflow",
+  "tensorboard",
+  "xgboost",
+  "scikit-learn",
+  "cupy-cuda13x",
 ]
 # Dependencies to work with the GPR module
 GPR = [
@@ -172,6 +181,8 @@ optionals = [
   "pyvista",
   "optuna",
   "nvtx",
+  "scikit-sparse>=0.4.16,<0.5.0",
+  "fluidflow",
 ]
 # Dependencies for the RL module
 rl = [
@@ -192,9 +203,9 @@ rl = [
 # maintainers, and where to support the project financially. The key is
 # what's used to render the link text on PyPI.
 [project.urls]  # Optional
-"Homepage"    = "https://ArnauMiro@github.com/ArnauMiro/pyLowOrder"
-"Bug Reports" = "https://ArnauMiro@github.com/ArnauMiro/pyLowOrder/issues"
-"Source"      = "https://ArnauMiro@github.com/ArnauMiro/pyLowOrder"
+"Homepage"    = "https://github.com/ArnauMiro/pyLowOrder"
+"Bug Reports" = "https://github.com/ArnauMiro/pyLowOrder/issues"
+"Source"      = "https://github.com/ArnauMiro/pyLowOrder"
 
 # This is configuration specific to the `setuptools` build backend.
 # If you are using a different build backend, you will need to change this.

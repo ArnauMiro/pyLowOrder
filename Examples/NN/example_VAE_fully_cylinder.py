@@ -79,7 +79,7 @@ rec = model.reconstruct(td)
 RESUDIR_FT = f"{RESUDIR}/ft_vae_beta_{beta}_{lat_dim}"
 pyLOM.NN.create_results_folder(RESUDIR_FT)
 
-td_ft   = pyLOM.NN.Dataset((u_xm,), (in_size,))
+td_ft   = pyLOM.NN.Dataset((u_xm,), (in_size,), squeeze_last_dim=False)
 
 z = model.latent_space(td_ft).cpu().numpy()
 z_noisy = z + 10*np.random.rand(z.shape[0], z.shape[1], z.shape[2])  # Add noise to simulate regression prediction
@@ -97,7 +97,7 @@ model.fine_tune(train_dataset=dataset_train, eval_dataset=dataset_train, epochs=
 ls = model.latent_space(td)
 rec_ft = model.decode(ls)
 
-pyLOM.pprint(0, np.abs(td[0].numpy()-rec[:, :, 0]).mean())
+pyLOM.pprint(0, np.abs(td[0].numpy()-rec[:, :, 0].T).mean())
 pyLOM.pprint(0, np.abs(td[0].numpy()-rec_ft[0]).mean())
 
 pyLOM.cr_info()

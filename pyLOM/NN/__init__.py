@@ -4,7 +4,7 @@
 #
 # NN Module
 #
-# Last rev: 09/10/2024
+# Last rev: 23/11/2026
 
 # Supress prints from tensorflow
 import os, torch
@@ -24,38 +24,36 @@ ALLOW_TF32 = True
 PIN_MEMORY = True if torch.cuda.is_available() else False
 
 
-from fluidFlow.dit import DiT
-from fluidFlow.unet import Unet1D
+from .                                import GAVI
 
-from .                                      import GAVI
+from .pipeline                        import Pipeline, ClusteredPipeline
+from .loss                            import BaseLossFunction, TorchLossAdapter, GradientWeightedMSE, NeighborDifferenceMSELoss, HybridGradientNeighborMSELoss, FocalMSELoss
+from .dataset                         import Dataset, NeighborhoodDataset
+from .gns                             import Graph
+from .utils.scalers                   import MinMaxScaler, StandardScaler, RobustScaler, load_scaler
+from .utils                           import RegressionEvaluator, ClassificationEvaluator, EarlyStopper
+from .utils                           import GNSModelConfig, GNSTrainingConfig
+from .utils                           import select_device, betaLinearScheduler, create_results_folder, set_seed, load_yaml, dataclass_from_dict
+from .utils                           import tanh, relu, elu, sigmoid, leakyRelu, silu
 
-from .pipeline                              import Pipeline, ClusteredPipeline
-from .loss                                  import BaseLossFunction, TorchLossAdapter, GradientWeightedMSE, NeighborDifferenceMSELoss, HybridGradientNeighborMSELoss, FocalMSELoss
-from .dataset                               import Dataset, NeighborhoodDataset
-from .gns                                   import Graph
-from .utils.scalers                         import MinMaxScaler, StandardScaler, RobustScaler
-from .utils                                 import RegressionEvaluator, ClassificationEvaluator, EarlyStopper
-from .utils                                 import GNSModelConfig, GNSTrainingConfig
-from .utils                                 import select_device, betaLinearScheduler, create_results_folder, set_seed, load_yaml, dataclass_from_dict
-from .utils                                 import tanh, relu, elu, sigmoid, leakyRelu, silu
+from .optimizer                       import OptunaOptimizer, OptunaStudyManager
 
-from .optimizer                             import OptunaOptimizer, OptunaStudyManager
+from .interpolator                    import Interpolator
+from .aerodynamics                    import global_coeff, jacobians_pressure
 
-from .interpolator                          import Interpolator
-from .aerodynamics                          import global_coeff, jacobians_pressure
+from .architectures.mlp               import MLP, MLP_JIT
+from .architectures.kan               import KAN, KAN_SIN, ChebyshevLayer, JacobiLayer, SineLayer
+from .architectures.gns               import GNS
+from .architectures.autoencoders      import Autoencoder, FullyConnectedAutoencoder, VariationalAutoencoder, FullyConnectedVariationalAutoencoder
+from .architectures.encoders_decoders import Encoder1D, Decoder1D, Encoder2D, FullyConnectedEncoder2D, Decoder2D, FullyConnectedDecoder2D, Encoder3D, Decoder3D, ShallowDecoder, Encoder1DNoLatent, Decoder1DNoLatent
+from .architectures.pinn              import PINN, BurgersPINN, Euler2DPINN, NavierStokesIncompressible2DPINN, BoundaryCondition
+from .architectures.shred             import SHRED
+from .architectures.binary_classifier import BinaryClassifier
+from .architectures.multiclass_classifier import MulticlassClassifier
+from .architectures.diffusion         import Diffusion, DiT, Unet1D
+from .architectures.rbfelm            import RBFELM, MultiRBFELM
 
-from .architectures.mlp                     import MLP, MLP_JIT
-from .architectures.kan                     import KAN, KAN_SIN, ChebyshevLayer, JacobiLayer, SineLayer
-from .architectures.gns                     import GNS
-from .architectures.autoencoders            import Autoencoder, FullyConnectedAutoencoder, VariationalAutoencoder, FullyConnectedVariationalAutoencoder
-from .architectures.encoders_decoders       import Encoder1D, Decoder1D, Encoder2D, FullyConnectedEncoder2D, Decoder2D, FullyConnectedDecoder2D, Encoder3D, Decoder3D, ShallowDecoder, Encoder1DNoLatent, Decoder1DNoLatent
-from .architectures.pinn                    import PINN, BurgersPINN, Euler2DPINN, NavierStokesIncompressible2DPINN, BoundaryCondition
-from .architectures.shred                   import SHRED
-from .architectures.binary_classifier       import BinaryClassifier
-from .architectures.multiclass_classifier   import MulticlassClassifier
-from .architectures.diffusion               import Diffusion
-
-from .utils                                 import plot_train_test_loss, plot_true_vs_pred, save_experiment_artifacts
-from ..utils.plots                          import plotSnapshot, plotModalErrorBars, plotTimeSeries
+from .utils                           import plot_train_test_loss, plot_true_vs_pred, save_experiment_artifacts
+from ..utils.plots                    import plotSnapshot, plotModalErrorBars, plotTimeSeries
 
 del os, utils

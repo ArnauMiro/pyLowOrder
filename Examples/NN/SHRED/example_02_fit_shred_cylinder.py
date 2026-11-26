@@ -3,7 +3,7 @@
 # Example of POD to reduce dimensionality for SHRED architecture.
 # This example must be run in serial, preferably on GPUs.
 #
-# Last revision: 04/02/2026
+# Last revision: 25/11/2026
 from __future__ import print_function, division
 
 import os, numpy as np, torch
@@ -83,7 +83,7 @@ for kk, mysensors in enumerate(shred.configs):
     myvali = sens_vali[mysensors,:]
     mytest = sens_test[mysensors,:]
     # Scale the data
-    myscaler = pyLOM.NN.MinMaxScaler()
+    myscaler = pyLOM.NN.MinMaxScaler(column=True) # one variable per sensor (rows)
     scalpath = '%s%i.json' % (inscaler, kk)
     myscaler.fit(mytrai)
     myscaler.save(scalpath)
