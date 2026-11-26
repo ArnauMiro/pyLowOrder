@@ -67,7 +67,7 @@ def _gavi_paths(BASEDIR:str,modelstr:str,latent_dim:int):
 
 ## Compute the randomized QR factorization
 @cr('GAVI.QR')
-def QR(X:np.ndarray,k:int,q:int=1,osampl:int=10):
+def QR(X:np.ndarray,k:int,q:int=1,osampl:int=10,seed:int=-1):
 	r"""
 	Function to compute the randomized QR factorization. The wrapped algorithm is the hybrid CPU-GPU from:
 
@@ -78,6 +78,9 @@ def QR(X:np.ndarray,k:int,q:int=1,osampl:int=10):
 		k (int): number of modes to retain
 		q (int, optional): number of power iterations
 		osampl (int, optional): number of oversampled modes
+		seed (int, optional): seed of the random sketch, -1 for a random seed and 0 or above for a fixed one (default ``-1``).
+			A fixed seed gives the same factorization on every run of the same build, but the Python and
+			the compiled builds draw different random matrices, so their Q and B differ.
 
 	Returns
 		[np.ndarray, np.ndarray] the Q and B matrices with k modes each
@@ -86,7 +89,7 @@ def QR(X:np.ndarray,k:int,q:int=1,osampl:int=10):
 	r   = k+osampl if k+osampl < X.shape[1] else X.shape[1]
 	Xm  = temporal_mean(X)
 	X   = subtract_mean(X, Xm)
-	Q,B = randomized_qr(X,r,q,hybrid=True)
+	Q,B = randomized_qr(X,r,q,seed=seed,hybrid=True)
 	
 	return Q[:,:k].copy(), B[:k,:].copy()
 
