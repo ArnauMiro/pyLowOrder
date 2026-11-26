@@ -95,7 +95,7 @@ pipeline.run()
 
 ## Reconstruct dataset and compute accuracy
 rec = model.reconstruct(td)
-rd  = pyLOM.NN.Dataset((rec,), (nx, ny, nz))
+rd  = pyLOM.NN.Dataset((rec,), (nx, ny, nz), squeeze_last_dim=False)
 td.pad(n0x, n0y, n0z)
 rd.pad(n0x, n0y, n0z)
 d.add_field('urec',1,rd[:,0,:,:,:].numpy().reshape((nt,n0x*n0y*n0z)).T)

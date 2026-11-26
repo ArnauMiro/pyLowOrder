@@ -1,4 +1,14 @@
 #!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# Training loop of the GNS model.
+#
+# Last rev: 25/11/2026
+#
+# Precision: a Dataset keeps the precision it was given, and the input and target batches
+# are converted to the model's own dtype when they enter the model. The model's dtype is
+# the dtype of its weights, next(model.parameters()).dtype: float32 by default.
 from __future__ import annotations
 
 import copy
@@ -9,6 +19,7 @@ from torch import Tensor
 from torch_geometric.data import Data
 
 from ... import pprint
+from ...utils.errors import raiseError
 from ..utils import cleanup_tensors
 from ..utils.config_schema import GNSTrainingConfig
 
@@ -58,7 +69,7 @@ class _GNSTrainingLoop:
         best_metric = getattr(model, "best_metric", "loss")
         self.best_metric_space = str(getattr(model, "best_metric_space", "scaled")).strip().lower()
         if self.best_metric_space not in {"scaled", "physical"}:
-            raise RuntimeError(
+            raiseError(
                 f"Invalid best_metric_space='{self.best_metric_space}'. Allowed: 'scaled', 'physical'."
             )
         self.nan_guard_enabled = bool(getattr(config, "nan_guard_enabled", True))
@@ -251,15 +262,18 @@ class _GNSTrainingLoop:
         num_losses = 0
         logged_first_batch_stats = False
 
+        # Batches are converted to the model's own dtype, the Dataset keeps the input precision
+        dtype = next(model.parameters()).dtype
+
         model._debug_print("Starting main loop over input batches...")
         with context:
             model._debug_print("Entering input dataloader loop...")
             for batch in input_dataloader:
                 input_batches += 1
                 model._debug_print("Processing new input batch...")
-                inputs_batch = batch[0].to(model.device)
+                inputs_batch = batch[0].to(model.device, dtype=dtype)
                 try:
-                    targets_batch = batch[1].to(model.device)
+                    targets_batch = batch[1].to(model.device, dtype=dtype)
                 except IndexError:
                     targets_batch = None
                 model._debug_print(
@@ -340,7 +354,7 @@ class _GNSTrainingLoop:
         model = self.model
         inverse_fn = getattr(model, "inverse_output_fn", None)
         if inverse_fn is None:
-            raise RuntimeError(
+            raiseError(
                 "best_metric_space='physical' requires model.inverse_output_fn to be set."
             )
         out = inverse_fn(tensor)
@@ -370,9 +384,9 @@ class _GNSTrainingLoop:
 
         N = int(subgraph.num_nodes)
         if output_full.ndim != 2:
-            raise RuntimeError(f"Unexpected output_full.ndim={output_full.ndim}; expected 2.")
+            raiseError(f"Unexpected output_full.ndim={output_full.ndim}; expected 2.")
         if output_full.size(0) != B * N:
-            raise RuntimeError(
+            raiseError(
                 f"Unexpected output length {int(output_full.size(0))}; expected B*N={B}*{N}={B*N}."
             )
 
@@ -383,12 +397,12 @@ class _GNSTrainingLoop:
             seed_mask_local = seed_mask_local.to(device=output_full.device)
             seed_mask_local = seed_mask_local.reshape(-1).to(dtype=torch.bool).contiguous()
             if int(seed_mask_local.numel()) != N:
-                raise RuntimeError(
+                raiseError(
                     f"Invalid subgraph.seed_mask length {int(seed_mask_local.numel())}; expected N={N}."
                 )
         seed_idx = torch.nonzero(seed_mask_local, as_tuple=False).reshape(-1)
         if int(seed_idx.numel()) == 0:
-            raise RuntimeError("Empty seed selection in subgraph.seed_mask; cannot compute loss.")
+            raiseError("Empty seed selection in subgraph.seed_mask; cannot compute loss.")
 
         out_view = output_full.view(B, N, output_full.size(-1))
         output = out_view.index_select(1, seed_idx).reshape(-1, output_full.size(-1))
@@ -399,7 +413,7 @@ class _GNSTrainingLoop:
             if tb.ndim == 2:
                 tb = tb.unsqueeze(0)
             if int(tb.size(0)) != B:
-                raise RuntimeError(
+                raiseError(
                     f"Unexpected targets batch size {int(tb.size(0))}; expected B={B}."
                 )
             subset = getattr(subgraph, "subset", None)
@@ -407,7 +421,7 @@ class _GNSTrainingLoop:
                 subset = subset.to(device=tb.device, dtype=torch.long)
                 tb = tb.index_select(1, subset)
             if int(tb.size(1)) != N:
-                raise RuntimeError(
+                raiseError(
                     f"Unexpected targets node dimension {int(tb.size(1))}; expected N={N}."
                 )
             targets = tb.index_select(1, seed_idx.to(tb.device)).reshape(-1, tb.size(-1))
@@ -440,7 +454,7 @@ class _GNSTrainingLoop:
             G=G,
         )
         if targets is None:
-            raise RuntimeError("Targets are required in training but were not provided.")
+            raiseError("Targets are required in training but were not provided.")
 
         if output.shape != targets.shape:
             subgraph_seed_count = int(getattr(subgraph, "seed_mask", torch.tensor([])).sum().item()) if getattr(subgraph, "seed_mask", None) is not None else None
@@ -459,18 +473,18 @@ class _GNSTrainingLoop:
                 "output.shape": tuple(output.shape),
                 "targets.shape": tuple(targets.shape),
             }
-            raise RuntimeError(f"Shape mismatch detected in _train_one_batch: {debug_info}")
+            raiseError(f"Shape mismatch detected in _train_one_batch: {debug_info}")
 
         if self.nan_guard_enabled:
             if not torch.isfinite(output).all():
-                raise RuntimeError("Non-finite values detected in model outputs during training.")
+                raiseError("Non-finite values detected in model outputs during training.")
             if not torch.isfinite(targets).all():
-                raise RuntimeError("Non-finite values detected in targets during training.")
+                raiseError("Non-finite values detected in targets during training.")
         if model._counter % 100 == 0:
             model._debug_print(f" - Training batch {model._counter}: output.shape={output.shape}, targets.shape={targets.shape}")
         loss = self._compute_loss(output, targets, loss_fn)
         if self.nan_guard_enabled and not torch.isfinite(loss):
-            raise RuntimeError(
+            raiseError(
                 f"Non-finite training loss detected at batch {model._counter}. "
                 "Aborting to prevent NaN propagation."
             )
@@ -485,7 +499,7 @@ class _GNSTrainingLoop:
                     grad_nonfinite_name = name
                     break
             if grad_nonfinite_name is not None:
-                raise RuntimeError(f"Non-finite gradients detected in parameter '{grad_nonfinite_name}'.")
+                raiseError(f"Non-finite gradients detected in parameter '{grad_nonfinite_name}'.")
 
         if self.grad_clip_enabled:
             total_norm = torch.nn.utils.clip_grad_norm_(
@@ -494,7 +508,7 @@ class _GNSTrainingLoop:
                 norm_type=self.grad_clip_norm_type,
             )
             if self.nan_guard_enabled and not torch.isfinite(total_norm):
-                raise RuntimeError("Non-finite gradient norm after clipping.")
+                raiseError("Non-finite gradient norm after clipping.")
 
         model.optimizer.step()
 
@@ -524,16 +538,16 @@ class _GNSTrainingLoop:
         if loss_fn is not None:
             model._debug_print("Computing evaluation loss...")
             if targets is None:
-                raise RuntimeError("Targets are required for evaluation loss but were not provided.")
+                raiseError("Targets are required for evaluation loss but were not provided.")
             assert output.shape == targets.shape, f"Output shape {output.shape} != target shape {targets.shape}"
             if self.nan_guard_enabled:
                 if not torch.isfinite(output).all():
-                    raise RuntimeError("Non-finite values detected in model outputs during evaluation.")
+                    raiseError("Non-finite values detected in model outputs during evaluation.")
                 if not torch.isfinite(targets).all():
-                    raise RuntimeError("Non-finite values detected in targets during evaluation.")
+                    raiseError("Non-finite values detected in targets during evaluation.")
             loss = self._compute_loss(output, targets, loss_fn)
             if self.nan_guard_enabled and not torch.isfinite(loss):
-                raise RuntimeError("Non-finite evaluation loss detected.")
+                raiseError("Non-finite evaluation loss detected.")
             return loss.item(), G, output, targets, loss
 
         return output

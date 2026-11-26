@@ -25,7 +25,7 @@ def h5_save_partition(file,ptable):
 	Save a partition table inside an HDF5 file.
 
 	Args:
-		file (string): file name
+		file (h5py.File): file name
 		ptable (PartitionTable): partition table to be saved
 	'''
 	# Create a group for the mesh
@@ -40,7 +40,7 @@ def h5_load_partition(file):
 	Load a partition table inside an HDF5 file.
 
 	Args:
-		file (string): file name to load the partition from
+		file (h5py.File): file name to load the partition from
 
 	Returns:
 		PartitionTable
@@ -53,6 +53,30 @@ def h5_load_partition(file):
 	points   = np.array(file['PARTITIONS']['Points'][:])
 	# Return partition class
 	return PartitionTable(nparts,ids,elements,points)
+
+def h5_save_partition_table(fname,ptable,*,mode='w'):
+	r'''
+	Save a partition table inside an HDF5 file.
+
+	Args:
+		fname (string): file name
+		ptable (PartitionTable): partition table to be saved
+	'''
+	file = h5py.File(fname,mode,driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,mode)
+	h5_save_partition(file,ptable)
+
+def h5_load_partition_table(fname):
+	r'''
+	Load a partition table from an HDF5 file.
+
+	Args:
+		fname (string): file name to load the partition from
+
+	Returns:
+		PartitionTable
+	'''
+	file = h5py.File(fname,'r',driver='mpio',comm=MPI_COMM) if not MPI_SIZE == 1 else h5py.File(fname,'r')
+	return h5_load_partition(file)
 
 def h5_save_meshes(file,mtype,xyz,conec,eltype,cellO,pointO,ptable):
 	r'''
@@ -1159,17 +1183,13 @@ def h5_load_compressed(fname:str, basedir:str, ptable:PartitionTable, nelxAE:int
 
 def _h5_prep_numeric_features(features_dict):
 	"""
-	Validate graph feature dictionary and cast numeric arrays to float32.
+	Validate graph feature dictionary, numeric arrays keep their own precision.
 	"""
 	out = {}
 	for name, arr in features_dict.items():
 		a = np.asarray(arr)
 		if a.dtype == np.dtype('O') or a.dtype.kind in ('U', 'S'):
 			raiseError(f"Feature '{name}' has non-numeric dtype={a.dtype}. Move it to METADATA or drop it.")
-		if a.dtype.kind not in ('f', 'c'):
-			a = a.astype('float32', copy=False)
-		else:
-			a = a.astype('float32', copy=False)
 		out[name] = a
 	return out
 
@@ -1212,10 +1232,10 @@ def h5_save_graph_serial(
 	  edgeIndex           : i4[2,E]
 	  NODEFEATRS (group)
 		attrs['feature_names'] : S[]
-		<feat_name>            : float32[N, k_i]
+		<feat_name>            : [N, k_i], in the graph's own precision
 	  EDGEFEATRS (group)
 		attrs['feature_names'] : S[]
-		<feat_name>            : float32[E, k_i]
+		<feat_name>            : [E, k_i], in the graph's own precision
 	"""
 
 	if node_features_dict is None or edge_features_dict is None:
@@ -1227,7 +1247,7 @@ def h5_save_graph_serial(
 		edge_index = edge_index.T  # Ensure shape (2, E)
 	edge_index = edge_index.astype('int32', copy=False)
 
-	# Validate that features are numeric and cast to float32
+	# Validate that features are numeric, they are saved in their own precision
 	node_features_dict = _h5_prep_numeric_features(node_features_dict)
 	edge_features_dict = _h5_prep_numeric_features(edge_features_dict)
 
@@ -1272,8 +1292,8 @@ def h5_load_graph_serial(fname):
 	num_nodes : int
 	num_edges : int
 	edge_index : np.ndarray, shape (2, E), dtype=int64
-	node_features_dict : OrderedDict[str, np.ndarray]  # float32 arrays
-	edge_features_dict : OrderedDict[str, np.ndarray]  # float32 arrays
+	node_features_dict : OrderedDict[str, np.ndarray]  # in the stored precision
+	edge_features_dict : OrderedDict[str, np.ndarray]  # in the stored precision
 	"""
 	f  = h5py.File(fname, mode='r')
 	if 'GRAPH' not in f:
@@ -1309,13 +1329,9 @@ def h5_load_graph_serial(fname):
 	node_features_dict = OrderedDict()
 	for name in node_names:
 		arr = np.array(node_grp[name])
-		# Enforce numeric and float32
+		# Enforce numeric, keep the stored precision
 		if arr.dtype == np.dtype('O') or arr.dtype.kind in ('U', 'S'):
 			raiseError(f"Node feature '{name}' has non-numeric dtype={arr.dtype}.")
-		if arr.dtype.kind not in ('f', 'c'):
-			arr = arr.astype('float32', copy=False)
-		else:
-			arr = arr.astype('float32', copy=False)
 		node_features_dict[name] = arr
 
 	# Edge features in stored order
@@ -1329,12 +1345,9 @@ def h5_load_graph_serial(fname):
 	edge_features_dict = OrderedDict()
 	for name in edge_names:
 		arr = np.array(edge_grp[name])
+		# Enforce numeric, keep the stored precision
 		if arr.dtype == np.dtype('O') or arr.dtype.kind in ('U', 'S'):
 			raiseError(f"Edge feature '{name}' has non-numeric dtype={arr.dtype}.")
-		if arr.dtype.kind not in ('f', 'c'):
-			arr = arr.astype('float32', copy=False)
-		else:
-			arr = arr.astype('float32', copy=False)
 		edge_features_dict[name] = arr
 
 	f.close()

@@ -4,7 +4,7 @@
 #
 # Utils - Chrono modules for performance.
 #
-# Last rev: 09/07/2021
+# Last rev: 24/11/2026
 from __future__ import print_function, division
 
 import numpy as np, copy, functools
@@ -185,7 +185,8 @@ def cr_reset():
 	'''
 	Delete all channels and start again
 	'''
-	CHANNEL_DICT = {}
+	# clear() empties the module dictionary, an assignment would only create a local variable
+	CHANNEL_DICT.clear()
 
 def cr_info(rank=-1):
 	'''
@@ -239,11 +240,37 @@ def cr(ch_name,suff=0):
 		@functools.wraps(func)
 		def wrapper(*args,**kwargs):
 			cr_start(ch_name,suff)
-			out = func(*args,**kwargs)
-			cr_stop(ch_name,suff)
-			return out
+			# Stop the channel even if func raises, otherwise it stays running and the next call aborts
+			try:
+				return func(*args,**kwargs)
+			finally:
+				cr_stop(ch_name,suff)
 		return wrapper
 	return decorator
+
+class cr_block(object):
+	'''
+	CR context manager, times the code inside a with block:
+
+		with cr_block('POD.SVD'):
+			...
+
+	Use it instead of a manual cr_start/cr_stop pair: the channel
+	is stopped even if the block raises.
+	'''
+	__slots__ = ('_name','_suff')
+
+	def __init__(self,ch_name,suff=0):
+		self._name = ch_name
+		self._suff = suff
+
+	def __enter__(self):
+		cr_start(self._name,self._suff)
+		return self
+
+	def __exit__(self,exc_type,exc_value,traceback):
+		cr_stop(self._name,self._suff)
+		return False # do not hide the exception
 
 try:
 	import nvtx
@@ -256,12 +283,43 @@ try:
 			@functools.wraps(func)
 			def wrapper(*args,**kwargs):
 				cr_start(ch_name,suff)
-				with nvtx.annotate(message=ch_name,color=color):
-					out = func(*args,**kwargs)
-				cr_stop(ch_name,suff)
-				return out
+				# Stop the channel even if func raises, otherwise it stays running and the next call aborts
+				try:
+					with nvtx.annotate(message=ch_name,color=color):
+						return func(*args,**kwargs)
+				finally:
+					cr_stop(ch_name,suff)
 			return wrapper
 		return decorator
+
+	class cr_nvtx_block(cr_block):
+		'''
+		CR NVTX context manager, times the code inside a with block
+		and marks it as an NVTX range, like the cr_nvtx decorator:
+
+			with cr_nvtx_block('POD.SVD'):
+				...
+
+		The channel is stopped even if the block raises.
+		'''
+		__slots__ = ('_annot',)
+
+		def __init__(self,ch_name,suff=0,color="green"):
+			super().__init__(ch_name,suff)
+			self._annot = nvtx.annotate(message=ch_name,color=color)
+
+		def __enter__(self):
+			cr_start(self._name,self._suff)
+			self._annot.__enter__()
+			return self
+
+		def __exit__(self,exc_type,exc_value,traceback):
+			# Same order as cr_nvtx: close the NVTX range, then stop the channel
+			try:
+				self._annot.__exit__(exc_type,exc_value,traceback)
+			finally:
+				cr_stop(self._name,self._suff)
+			return False # do not hide the exception
 
 except:
 	raiseWarning('Import - NVTX not present!',False)
@@ -274,8 +332,20 @@ except:
 			@functools.wraps(func)
 			def wrapper(*args,**kwargs):
 				cr_start(ch_name,suff)
-				out = func(*args,**kwargs)
-				cr_stop(ch_name,suff)
-				return out
+				# Stop the channel even if func raises, otherwise it stays running and the next call aborts
+				try:
+					return func(*args,**kwargs)
+				finally:
+					cr_stop(ch_name,suff)
 			return wrapper
 		return decorator
+
+	class cr_nvtx_block(cr_block):
+		'''
+		CR NVTX context manager, same as cr_block since NVTX
+		is not present (color is accepted and ignored)
+		'''
+		__slots__ = ()
+
+		def __init__(self,ch_name,suff=0,color="green"):
+			super().__init__(ch_name,suff)

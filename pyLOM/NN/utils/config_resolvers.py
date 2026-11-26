@@ -4,7 +4,7 @@
 #
 # NN config resolver routines.
 #
-# Last rev: 15/04/2026
+# Last rev: 25/11/2026
 import importlib
 import yaml
 import numpy as np
@@ -144,7 +144,7 @@ def resolve_scheduler(scheduler_path: str):
     if scheduler_path is None:
         return None
     cls = resolve_import(scheduler_path)
-    # _LRScheduler is internal; comprobamos interfaz básica
+    # _LRScheduler is internal; check the basic interface only
     if not isinstance(cls, type):
         raiseError(f"Scheduler '{scheduler_path}' must be a class.")
     return cls
@@ -173,13 +173,13 @@ def instantiate_from_config(spec: Optional[Mapping[str, Any]]) -> Any:
     if not spec:
         return None
     if "type" not in spec:
-        raise ValueError("Spec must contain a 'type' key.")
+        raiseError("Spec must contain a 'type' key.")
 
     cls_or_fn = resolve_import(spec["type"])
 
     args = spec.get("args", [])
     if not isinstance(args, (list, tuple)):
-        raise TypeError("'args' must be a list or tuple if provided.")
+        raiseError("'args' must be a list or tuple if provided.")
 
     kwargs = {k: v for k, v in spec.items() if k not in ("type", "args")}
     return cls_or_fn(*args, **kwargs)

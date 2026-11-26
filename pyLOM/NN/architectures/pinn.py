@@ -1,3 +1,17 @@
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# PINN (Physics-Informed Neural Network) classes.
+#
+# Last rev: 24/11/2026
+#
+# Precision: a Dataset keeps the precision it was given, and the data is converted to
+# the model's own dtype when it enters the model. The model's dtype is the dtype of the
+# network's weights, next(self.model.parameters()).dtype: float32 by default, float64 if
+# the model is converted after building (.double() or .to(torch.float64)) or built after
+# torch.set_default_dtype(torch.float64).
+
 from abc import ABC, abstractmethod
 from pathlib import Path
 
@@ -191,9 +205,11 @@ class PINN(ABC):
         if lr_scheduler_class is not None:
             lr_scheduler = lr_scheduler_class(optimizer, **lr_scheduler_params)
 
+        # Batches keep the dataset precision, the model works in its own dtype
+        dtype = next(self.model.parameters()).dtype
         def closure():
-            x_batch = batch[0].to(self.device)
-            y_batch = batch[1].to(self.device) if len(batch) == 2 else None
+            x_batch = batch[0].to(self.device, dtype=dtype)
+            y_batch = batch[1].to(self.device, dtype=dtype) if len(batch) == 2 else None
 
             optimizer.zero_grad()
             losses = self.compute_loss(x_batch, y_batch, boundary_conditions, use_bfloat16)
@@ -231,8 +247,8 @@ class PINN(ABC):
                 self.model.eval()
                 test_loss = 0
                 for batch in test_data_loader:
-                    x_batch = batch[0].to(self.device)
-                    y_batch = batch[1].to(self.device) if len(batch) == 2 else None
+                    x_batch = batch[0].to(self.device, dtype=dtype)
+                    y_batch = batch[1].to(self.device, dtype=dtype) if len(batch) == 2 else None
                     losses = self.compute_loss(x_batch, y_batch, boundary_conditions)
                     test_loss += sum(losses).item()
                 logs["test_loss"].append(test_loss / len(test_data_loader))
@@ -255,7 +271,7 @@ class PINN(ABC):
         self.model.eval()
         data = X[:]
         input_data = data[0] # keep only the input data
-        return self.model(input_data.to(self.device)).detach().cpu().numpy()
+        return self.model(input_data.to(self.device, dtype=next(self.model.parameters()).dtype)).detach().cpu().numpy()
 
     def __repr__(self):
         """

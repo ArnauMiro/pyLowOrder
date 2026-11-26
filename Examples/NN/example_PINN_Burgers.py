@@ -69,7 +69,7 @@ input_dim = TX.shape[1]
 output_dim = 1 # u(t, x)
 
 # The pinn needs a neural network, which can be any pytorch model that implements nn.Module
-net = pyLOM.NN.MLP(
+net = pyLOM.NN.MLP_JIT(
     input_size=input_dim,
     output_size=output_dim,
     hidden_size=40,
@@ -98,6 +98,7 @@ training_params = {
 pipeline_adam = pyLOM.NN.Pipeline(
     model=burgers_pinn,
     train_dataset=train_dataset,
+    valid_dataset=test_dataset, # the test loss is computed on the validation dataset
     test_dataset=test_dataset,
     training_params=training_params
 )
@@ -126,6 +127,7 @@ training_params = {
 pipeline_lbfgs = pyLOM.NN.Pipeline(
     model=burgers_pinn,
     train_dataset=train_dataset,
+    valid_dataset=test_dataset, # the test loss is computed on the validation dataset
     test_dataset=test_dataset,
     training_params=training_params
 )

@@ -4,24 +4,12 @@
 #
 # Setup and cythonize code.
 #
-# Last rev: 13/11/2026
+# Last rev: 24/11/2026
 from __future__ import print_function, division
 
 import os, sys, numpy as np, mpi4py
-from setuptools import setup, Extension, find_packages
+from setuptools import setup, Extension
 from Cython.Build import cythonize
-
-
-## Read INIT file
-with open('pyLOM/__init__.py') as f:
-	for l in f.readlines():
-		if '__version__' in l:
-			__version__ = eval(l.split('=')[1].strip())
-
-
-## Read README file
-with open('README.md') as f:
-	readme = f.read()
 
 
 ## Read compilation options
@@ -352,18 +340,10 @@ modules_list = Module_Math + Module_ROM if options['USE_COMPILED'] else []
 
 ## Main setup
 setup(
-	name             = 'pyLowOrder',
-	version          = __version__,
-	author           = 'Benet Eiximeno, Beka Begiashvili, Fermín Gutierrez, David Ramos, Miguel Jaraiz, Pablo Yeste, Ángel Ladrón, Nicolás Becerra, Víctor Francés-Belda, Isaac Robledo, Javier Nieto-Centenero, Arnau Miro, Gonzalo Rubio, Lucas Lacasa, Rodrigo Castellanos, Carlos Sanmiguel, Esther Andrés, Eusebio Valero, Oriol Lehmkuhl',
-	author_email     = 'beiximeno@nvidia.com, beka.begiashvili@alumnos.upm.es, fermin.gutierrezm@upm.es, david.ramos.archilla@upm.es, miguel.jaraizga@upm.es, p.yesteb@upm.es, angel.lcordoba@upm.es, n.becerra@upm.es, vfrabel@inta.es, irobmar@inta.es, jniecen@inta.es, arnau.miro@upc.edu, g.rubio@upm.es, lucas@ifisc.uib-csic.es, rodrigo.castellanos@uc3m.es, csanvil@inta.es, eandper@inta.es, eusebio.valero@upm.es, oriol.lehmkuhl@bsc.es',
-	maintainer       = 'Benet Eiximeno, Arnau Miro',
-	maintainer_email = 'beiximeno@nvidia.com, arnau.mirojane@bsc.es',
+	# Metadata, packages and dependencies are declared in pyproject.toml, setup.py only builds the compiled extensions
+	url              = 'https://github.com/ArnauMiro/pyLowOrder',
 	ext_modules      = cythonize(modules_list,
 		language_level = str(sys.version_info[0]), # This is to specify python 3 synthax
 		annotate       = True                      # This is to generate a report on the conversion to C code
 	),
-    long_description = readme,
-    url              = 'https://github.com/ArnauMiro/pyLowOrder',
-    packages         = find_packages(exclude=('Converters','DATA','Deps','docs','Examples','Testsuite','Tools')),
-	install_requires = ['numpy','matplotlib','cython>=3.0.0','h5py>=3.0.0','mpi4py>=4.0.0','nfft']
 )

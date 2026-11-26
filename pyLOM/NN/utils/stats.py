@@ -1,3 +1,11 @@
+#!/usr/bin/env python
+#
+# pyLOM - Python Low Order Modeling.
+#
+# Regression and classification evaluators.
+#
+# Last rev: 25/11/2026
+
 import numpy as np, torch
 
 from typing import Optional, Dict
@@ -55,11 +63,11 @@ class RegressionEvaluator():
     @tolerance.setter
     def tolerance(self, value: float) -> None:
         if value < 0:
-            raise raiseError("Tolerance must be a positive value.")
+            raiseError("Tolerance must be a positive value.")
         if value == 0:
-            raise raiseError("Tolerance cannot be zero.")
+            raiseError("Tolerance cannot be zero.")
         if value > 1e-2:
-            raise raiseError("Tolerance should be less than 1e-2.")
+            raiseError("Tolerance should be less than 1e-2.")
         self._tolerance = value
 
     def mean_squared_error(
@@ -195,7 +203,7 @@ class RegressionEvaluator():
         Print the calculated regression metrics.
         """
         if self._metrics is None:
-            raise raiseError("No metrics have been calculated yet.")
+            raiseError("No metrics have been calculated yet.")
 
         def _print_block(label, metrics):
             pprint(0, f"\n{label}")
@@ -251,7 +259,7 @@ class RegressionEvaluator():
         if column_names is None:
             column_names = [f"col_{i}" for i in range(n_cols)]
         elif len(column_names) != n_cols:
-            raise ValueError(f"Expected {n_cols} column names, got {len(column_names)}.")
+            raiseError(f"Expected {n_cols} column names, got {len(column_names)}.")
 
         if n_cols == 1:
             self._metrics = self._compute_metrics_single(y_true[:, 0], y_pred[:, 0])
