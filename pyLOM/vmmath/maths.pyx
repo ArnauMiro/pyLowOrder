@@ -32,6 +32,12 @@ from .cfuncs       cimport c_ztranspose, c_zmatmul, c_zmatmulp, c_zvecmat, c_zve
 from ..utils.cr     import cr
 from ..utils.errors import raiseError
 
+ctypedef fused complexM:
+	np.complex64_t[::1]
+	np.complex128_t[::1]
+	np.complex64_t[:,::1]
+	np.complex128_t[:,::1]
+
 
 ## Cython functions
 @cython.initializedcheck(False)
@@ -39,7 +45,7 @@ from ..utils.errors import raiseError
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.float32_t,ndim=2] _stranspose(float[:,:] A):
+cdef np.ndarray[np.float32_t,ndim=2] _stranspose(float[:,::1] A):
 	'''
 	Transposed of matrix A
 	'''
@@ -53,7 +59,7 @@ cdef np.ndarray[np.float32_t,ndim=2] _stranspose(float[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=2] _dtranspose(double[:,:] A):
+cdef np.ndarray[np.double_t,ndim=2] _dtranspose(double[:,::1] A):
 	'''
 	Transposed of matrix A
 	'''
@@ -67,7 +73,7 @@ cdef np.ndarray[np.double_t,ndim=2] _dtranspose(double[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex64_t,ndim=2] _ctranspose(np.complex64_t[:,:] A):
+cdef np.ndarray[np.complex64_t,ndim=2] _ctranspose(np.complex64_t[:,::1] A):
 	'''
 	Transposed of matrix A
 	'''
@@ -81,7 +87,7 @@ cdef np.ndarray[np.complex64_t,ndim=2] _ctranspose(np.complex64_t[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex128_t,ndim=2] _ztranspose(np.complex128_t[:,:] A):
+cdef np.ndarray[np.complex128_t,ndim=2] _ztranspose(np.complex128_t[:,::1] A):
 	'''
 	Transposed of matrix A
 	'''
@@ -96,7 +102,7 @@ cdef np.ndarray[np.complex128_t,ndim=2] _ztranspose(np.complex128_t[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def transpose(real_full[:,:] A):
+def transpose(real_full[:,::1] A):
 	r'''
 	Transposed of matrix A
 
@@ -106,9 +112,6 @@ def transpose(real_full[:,:] A):
 	Results
 		np.ndarray: Transposed matrix
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	A = np.ascontiguousarray(A)
-
 	if real_full is np.complex128_t:
 		return _ztranspose(A)
 	elif real_full is np.complex64_t:
@@ -123,7 +126,7 @@ def transpose(real_full[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef float _svector_sum(float[:] v, int start=0):
+cdef float _svector_sum(float[::1] v, int start=0):
 	'''
 	Sum of a vector
 	'''
@@ -137,7 +140,7 @@ cdef float _svector_sum(float[:] v, int start=0):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef double _dvector_sum(double[:] v, int start=0):
+cdef double _dvector_sum(double[::1] v, int start=0):
 	'''
 	Sum of a vector
 	'''
@@ -152,7 +155,7 @@ cdef double _dvector_sum(double[:] v, int start=0):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def vector_sum(real[:] v, int start=0):
+def vector_sum(real[::1] v, int start=0):
 	r'''
 	Sum of a vector
 
@@ -163,9 +166,6 @@ def vector_sum(real[:] v, int start=0):
 	Result:
 		float: sum of the vector
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	v = np.ascontiguousarray(v)
-
 	if real is double:
 		return _dvector_sum(v,start)
 	else:
@@ -176,7 +176,7 @@ def vector_sum(real[:] v, int start=0):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef float _svector_norm(float[:] v, int start=0):
+cdef float _svector_norm(float[::1] v, int start=0):
 	'''
 	L2 norm of a vector
 	'''
@@ -190,7 +190,7 @@ cdef float _svector_norm(float[:] v, int start=0):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef double _dvector_norm(double[:] v, int start=0):
+cdef double _dvector_norm(double[::1] v, int start=0):
 	'''
 	L2 norm of a vector
 	'''
@@ -205,7 +205,7 @@ cdef double _dvector_norm(double[:] v, int start=0):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def vector_norm(real[:] v, int start=0):
+def vector_norm(real[::1] v, int start=0):
 	r'''
 	L2 norm of a vector
 	
@@ -216,9 +216,6 @@ def vector_norm(real[:] v, int start=0):
 	Result:
 		float: norm of the vector
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	v = np.ascontiguousarray(v)
-
 	if real is double:
 		return _dvector_norm(v,start)
 	else:
@@ -229,7 +226,7 @@ def vector_norm(real[:] v, int start=0):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef float _svector_mean(float[:] v, int start=0):
+cdef float _svector_mean(float[::1] v, int start=0):
 	'''
 	Sum of a vector
 	'''
@@ -243,7 +240,7 @@ cdef float _svector_mean(float[:] v, int start=0):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef double _dvector_mean(double[:] v, int start=0):
+cdef double _dvector_mean(double[::1] v, int start=0):
 	'''
 	Sum of a vector
 	'''
@@ -258,7 +255,7 @@ cdef double _dvector_mean(double[:] v, int start=0):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def vector_mean(real[:] v, int start=0):
+def vector_mean(real[::1] v, int start=0):
 	r'''
 	Mean of a vector
 
@@ -269,9 +266,6 @@ def vector_mean(real[:] v, int start=0):
 	Result:
 		float: mean of the vector
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	v = np.ascontiguousarray(v)
-
 	if real is double:
 		return _dvector_mean(v,start)
 	else:
@@ -282,7 +276,7 @@ def vector_mean(real[:] v, int start=0):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.float32_t,ndim=2] _smatmul(float[:,:] A, float[:,:] B):
+cdef np.ndarray[np.float32_t,ndim=2] _smatmul(float[:,::1] A, float[:,::1] B):
 	'''
 	Matrix multiplication C = A x B
 	'''
@@ -296,7 +290,7 @@ cdef np.ndarray[np.float32_t,ndim=2] _smatmul(float[:,:] A, float[:,:] B):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=2] _dmatmul(double[:,:] A, double[:,:] B):
+cdef np.ndarray[np.double_t,ndim=2] _dmatmul(double[:,::1] A, double[:,::1] B):
 	'''
 	Matrix multiplication C = A x B
 	'''
@@ -310,7 +304,7 @@ cdef np.ndarray[np.double_t,ndim=2] _dmatmul(double[:,:] A, double[:,:] B):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex64_t,ndim=2] _cmatmul(np.complex64_t[:,:] A, np.complex64_t[:,:] B):
+cdef np.ndarray[np.complex64_t,ndim=2] _cmatmul(np.complex64_t[:,::1] A, np.complex64_t[:,::1] B):
 	'''
 	Matrix multiplication C = A x B
 	'''
@@ -324,7 +318,7 @@ cdef np.ndarray[np.complex64_t,ndim=2] _cmatmul(np.complex64_t[:,:] A, np.comple
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex128_t,ndim=2] _zmatmul(np.complex128_t[:,:] A, np.complex128_t[:,:] B):
+cdef np.ndarray[np.complex128_t,ndim=2] _zmatmul(np.complex128_t[:,::1] A, np.complex128_t[:,::1] B):
 	'''
 	Matrix multiplication C = A x B
 	'''
@@ -339,7 +333,7 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zmatmul(np.complex128_t[:,:] A, np.comp
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def matmul(real_full[:,:] A, real_full[:,:] B):
+def matmul(real_full[:,::1] A, real_full[:,::1] B):
 	r'''
 	Matrix multiplication 
 	C = A x B
@@ -352,10 +346,6 @@ def matmul(real_full[:,:] A, real_full[:,:] B):
 		np.ndarray: Resulting matrix C (M,N)
 	'''
 	# Select type
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	A = np.ascontiguousarray(A)
-	B = np.ascontiguousarray(B)
-
 	if real_full is np.complex128_t:
 		return _zmatmul(A,B)
 	elif real_full is np.complex64_t:
@@ -370,7 +360,7 @@ def matmul(real_full[:,:] A, real_full[:,:] B):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.float32_t,ndim=2] _smatmulp(float[:,:] A, float[:,:] B):
+cdef np.ndarray[np.float32_t,ndim=2] _smatmulp(float[:,::1] A, float[:,::1] B):
 	'''
 	Matrix multiplication C = A x B
 	'''
@@ -384,7 +374,7 @@ cdef np.ndarray[np.float32_t,ndim=2] _smatmulp(float[:,:] A, float[:,:] B):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=2] _dmatmulp(double[:,:] A, double[:,:] B):
+cdef np.ndarray[np.double_t,ndim=2] _dmatmulp(double[:,::1] A, double[:,::1] B):
 	'''
 	Matrix multiplication C = A x B
 	'''
@@ -398,7 +388,7 @@ cdef np.ndarray[np.double_t,ndim=2] _dmatmulp(double[:,:] A, double[:,:] B):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex64_t,ndim=2] _cmatmulp(np.complex64_t[:,:] A, np.complex64_t[:,:] B):
+cdef np.ndarray[np.complex64_t,ndim=2] _cmatmulp(np.complex64_t[:,::1] A, np.complex64_t[:,::1] B):
 	'''
 	Matrix multiplication C = A x B
 	'''
@@ -412,7 +402,7 @@ cdef np.ndarray[np.complex64_t,ndim=2] _cmatmulp(np.complex64_t[:,:] A, np.compl
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex128_t,ndim=2] _zmatmulp(np.complex128_t[:,:] A, np.complex128_t[:,:] B):
+cdef np.ndarray[np.complex128_t,ndim=2] _zmatmulp(np.complex128_t[:,::1] A, np.complex128_t[:,::1] B):
 	'''
 	Matrix multiplication C = A x B
 	'''
@@ -427,7 +417,7 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zmatmulp(np.complex128_t[:,:] A, np.com
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def matmulp(real_full[:,:] A, real_full[:,:] B):
+def matmulp(real_full[:,::1] A, real_full[:,::1] B):
 	r'''
 	Matrix multiplication in parallel
 	C = A x B 
@@ -442,10 +432,6 @@ def matmulp(real_full[:,:] A, real_full[:,:] B):
 	Result:
 		np.ndarray: Resulting matrix C (M,N)
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	A = np.ascontiguousarray(A)
-	B = np.ascontiguousarray(B)
-
 	if real_full is np.complex128_t:
 		return _zmatmulp(A,B)
 	elif real_full is np.complex64_t:
@@ -460,7 +446,7 @@ def matmulp(real_full[:,:] A, real_full[:,:] B):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.float32_t,ndim=2] _svecmat(float[:] v, float[:,:] A):
+cdef np.ndarray[np.float32_t,ndim=2] _svecmat(float[::1] v, float[:,::1] A):
 	'''
 	Vector times a matrix C = v x A
 	'''
@@ -475,7 +461,7 @@ cdef np.ndarray[np.float32_t,ndim=2] _svecmat(float[:] v, float[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=2] _dvecmat(double[:] v, double[:,:] A):
+cdef np.ndarray[np.double_t,ndim=2] _dvecmat(double[::1] v, double[:,::1] A):
 	'''
 	Vector times a matrix C = v x A
 	'''
@@ -490,7 +476,7 @@ cdef np.ndarray[np.double_t,ndim=2] _dvecmat(double[:] v, double[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex64_t,ndim=2] _cvecmat(np.complex64_t[:] v, np.complex64_t[:,:] A):
+cdef np.ndarray[np.complex64_t,ndim=2] _cvecmat(np.complex64_t[::1] v, np.complex64_t[:,::1] A):
 	'''
 	Vector times a matrix C = v x A
 	'''
@@ -505,7 +491,7 @@ cdef np.ndarray[np.complex64_t,ndim=2] _cvecmat(np.complex64_t[:] v, np.complex6
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex128_t,ndim=2] _zvecmat(np.complex128_t[:] v, np.complex128_t[:,:] A):
+cdef np.ndarray[np.complex128_t,ndim=2] _zvecmat(np.complex128_t[::1] v, np.complex128_t[:,::1] A):
 	'''
 	Vector times a matrix C = v x A
 	'''
@@ -520,7 +506,7 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zvecmat(np.complex128_t[:] v, np.comple
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.float32_t,ndim=2] _svecmatT(float[:] v, float[:,:] A):
+cdef np.ndarray[np.float32_t,ndim=2] _svecmatT(float[::1] v, float[:,::1] A):
 	'''
 	Vector times a matrix C = v x A
 	'''
@@ -535,7 +521,7 @@ cdef np.ndarray[np.float32_t,ndim=2] _svecmatT(float[:] v, float[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=2] _dvecmatT(double[:] v, double[:,:] A):
+cdef np.ndarray[np.double_t,ndim=2] _dvecmatT(double[::1] v, double[:,::1] A):
 	'''
 	Vector times a matrix C = v x A
 	'''
@@ -550,7 +536,7 @@ cdef np.ndarray[np.double_t,ndim=2] _dvecmatT(double[:] v, double[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex64_t,ndim=2] _cvecmatT(np.complex64_t[:] v, np.complex64_t[:,:] A):
+cdef np.ndarray[np.complex64_t,ndim=2] _cvecmatT(np.complex64_t[::1] v, np.complex64_t[:,::1] A):
 	'''
 	Vector times a matrix C = v x A
 	'''
@@ -565,7 +551,7 @@ cdef np.ndarray[np.complex64_t,ndim=2] _cvecmatT(np.complex64_t[:] v, np.complex
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex128_t,ndim=2] _zvecmatT(np.complex128_t[:] v, np.complex128_t[:,:] A):
+cdef np.ndarray[np.complex128_t,ndim=2] _zvecmatT(np.complex128_t[::1] v, np.complex128_t[:,::1] A):
 	'''
 	Vector times a matrix C = v x A
 	'''
@@ -581,7 +567,7 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zvecmatT(np.complex128_t[:] v, np.compl
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def vecmat(real_full[:] v, real_full[:,:] A, transposed=False):
+def vecmat(real_full[::1] v, real_full[:,::1] A, transposed=False):
 	r'''
 	Vector times a matrix 
 	C = v x A
@@ -593,10 +579,6 @@ def vecmat(real_full[:] v, real_full[:,:] A, transposed=False):
 	Result:
 		np.ndarray: Resulting matrix C (M,N)
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	v = np.ascontiguousarray(v)
-	A = np.ascontiguousarray(A)
-
 	if real_full is np.complex128_t:
 		return _zvecmat(v,A) if not transposed else _zvecmatT(v,A)
 	elif real_full is np.complex64_t:
@@ -611,7 +593,7 @@ def vecmat(real_full[:] v, real_full[:,:] A, transposed=False):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef void _ssort(float[:] v, int[:] index):
+cdef void _ssort(float[::1] v, int[::1] index):
 	'''
 	Sort a vector
 	'''
@@ -623,7 +605,7 @@ cdef void _ssort(float[:] v, int[:] index):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef void _dsort(double[:] v, int[:] index):
+cdef void _dsort(double[::1] v, int[::1] index):
 	'''
 	Sort a vector
 	'''
@@ -635,7 +617,7 @@ cdef void _dsort(double[:] v, int[:] index):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef void _csort(np.complex64_t[:] v, int[:] index):
+cdef void _csort(np.complex64_t[::1] v, int[::1] index):
 	'''
 	Sort a vector
 	'''
@@ -647,7 +629,7 @@ cdef void _csort(np.complex64_t[:] v, int[:] index):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef void _zsort(np.complex128_t[:] v, int[:] index):
+cdef void _zsort(np.complex128_t[::1] v, int[::1] index):
 	'''
 	Sort a vector
 	'''
@@ -660,7 +642,7 @@ cdef void _zsort(np.complex128_t[:] v, int[:] index):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def argsort(real_full[:] v):
+def argsort(real_full[::1] v):
 	r'''
 	Returns the indices that sort a vector
 
@@ -670,8 +652,6 @@ def argsort(real_full[:] v):
 	Result:
 		np.ndarray: Indices that sort v (M,)
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	v = np.ascontiguousarray(v)
 	cdef int n = v.shape[0]
 	cdef np.ndarray[np.int32_t,ndim=1] index = np.zeros((n,),dtype=np.int32)
 	if real_full is np.complex128_t:
@@ -688,7 +668,7 @@ def argsort(real_full[:] v):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _ceigen(float[:,:] A):
+def _ceigen(float[:,::1] A):
 	'''
 	Eigenvalues and eigenvectors using Lapack.
 		real(n)   are the real eigenvalues.
@@ -709,7 +689,7 @@ def _ceigen(float[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _zeigen(double[:,:] A):
+def _zeigen(double[:,::1] A):
 	'''
 	Eigenvalues and eigenvectors using Lapack.
 		real(n)   are the real eigenvalues.
@@ -731,7 +711,7 @@ def _zeigen(double[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def eigen(real[:,:] A):
+def eigen(real[:,::1] A):
 	r'''
 	Eigenvalues and eigenvectors.
 
@@ -748,9 +728,6 @@ def eigen(real[:,:] A):
 		np.ndarray: the imaginary eigenvalues, imag(M)
 		np.ndarray: the right eigenvectors, vecs(M,M)
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	A = np.ascontiguousarray(A)
-
 	if real is double:
 		return _zeigen(A)
 	else:
@@ -808,10 +785,6 @@ def polar(real[:] rreal, real[:] iimag):
 		np.ndarray: the modulus
 		np.ndarray: the argument
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	rreal = np.ascontiguousarray(rreal)
-	iimag = np.ascontiguousarray(iimag)
-
 	if real is double:
 		return _dpolar(rreal,iimag)
 	else:
@@ -822,7 +795,7 @@ def polar(real[:] rreal, real[:] iimag):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex64_t,ndim=2] _ccholesky(np.complex64_t[:,:] A):
+cdef np.ndarray[np.complex64_t,ndim=2] _ccholesky(np.complex64_t[:,::1] A):
 	'''
 	Compute the Lower Cholesky decomposition of matrix A. The C routine modifies directly the matrix!
 	'''
@@ -836,7 +809,7 @@ cdef np.ndarray[np.complex64_t,ndim=2] _ccholesky(np.complex64_t[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex128_t,ndim=2] _zcholesky(np.complex128_t[:,:] A):
+cdef np.ndarray[np.complex128_t,ndim=2] _zcholesky(np.complex128_t[:,::1] A):
 	'''
 	Compute the Lower Cholesky decomposition of matrix A. The C routine modifies directly the matrix!
 	'''
@@ -851,7 +824,7 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zcholesky(np.complex128_t[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def cholesky(real_complex[:,:] A):
+def cholesky(real_complex[:,::1] A):
 	r'''
 	Conjugates complex number A
 
@@ -861,9 +834,6 @@ def cholesky(real_complex[:,:] A):
 	Result:
 		np.ndarray: Conjugate of A
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	A = np.ascontiguousarray(A)
-
 	if real_complex is np.complex128_t:
 		return _zcholesky(A)
 	else:
@@ -874,7 +844,7 @@ def cholesky(real_complex[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex64_t,ndim=2] _cvandermonde(float[:] rreal, float[:] iimag, int m, int n):
+cdef np.ndarray[np.complex64_t,ndim=2] _cvandermonde(float[::1] rreal, float[::1] iimag, int m, int n):
 	'''
 	Builds a Vandermonde matrix of (m x n) with the real and
 	imaginary parts of the eigenvalues
@@ -888,7 +858,7 @@ cdef np.ndarray[np.complex64_t,ndim=2] _cvandermonde(float[:] rreal, float[:] ii
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex128_t,ndim=2] _zvandermonde(double[:] rreal, double[:] iimag, int m, int n):
+cdef np.ndarray[np.complex128_t,ndim=2] _zvandermonde(double[::1] rreal, double[::1] iimag, int m, int n):
 	'''
 	Builds a Vandermonde matrix of (m x n) with the real and
 	imaginary parts of the eigenvalues
@@ -903,7 +873,7 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zvandermonde(double[:] rreal, double[:]
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def vandermonde(real[:] rreal, real[:] iimag, int m, int n):
+def vandermonde(real[::1] rreal, real[::1] iimag, int m, int n):
 	r'''
 	Builds a Vandermonde matrix of (m x n) with the real and
 	imaginary parts of the eigenvalues
@@ -917,10 +887,6 @@ def vandermonde(real[:] rreal, real[:] iimag, int m, int n):
 	Result:
 		np.ndarray: the Vandermonde matrix
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	rreal = np.ascontiguousarray(rreal)
-	iimag = np.ascontiguousarray(iimag)
-
 	if real is double:
 		return _zvandermonde(rreal,iimag,m,n)
 	else:
@@ -931,7 +897,7 @@ def vandermonde(real[:] rreal, real[:] iimag, int m, int n):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex64_t,ndim=2] _cvandermondeTime(float[:] rreal, float[:] iimag, int m, float[:] t):
+cdef np.ndarray[np.complex64_t,ndim=2] _cvandermondeTime(float[::1] rreal, float[::1] iimag, int m, float[::1] t):
 	'''
 	Builds a Vandermonde matrix of (m x n) with the real and
 	imaginary parts of the eigenvalues for a certain timesteps
@@ -946,7 +912,7 @@ cdef np.ndarray[np.complex64_t,ndim=2] _cvandermondeTime(float[:] rreal, float[:
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex128_t,ndim=2] _zvandermondeTime(double[:] rreal, double[:] iimag, int m, double[:] t):
+cdef np.ndarray[np.complex128_t,ndim=2] _zvandermondeTime(double[::1] rreal, double[::1] iimag, int m, double[::1] t):
 	'''
 	Builds a Vandermonde matrix of (m x n) with the real and
 	imaginary parts of the eigenvalues for a certain timesteps
@@ -962,7 +928,7 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zvandermondeTime(double[:] rreal, doubl
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def vandermondeTime(real[:] rreal, real[:] iimag, int m, real[:] t):
+def vandermondeTime(real[::1] rreal, real[::1] iimag, int m, real[::1] t):
 	r'''
 	Builds a Vandermonde matrix of (m x n) with the real and
 	imaginary parts of the eigenvalues
@@ -977,11 +943,6 @@ def vandermondeTime(real[:] rreal, real[:] iimag, int m, real[:] t):
 	Result:
 		np.ndarray: the Vandermonde matrix
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	rreal = np.ascontiguousarray(rreal)
-	iimag = np.ascontiguousarray(iimag)
-	t = np.ascontiguousarray(t)
-
 	if real is double:
 		return _zvandermondeTime(rreal,iimag,m,t)
 	else:
@@ -992,7 +953,7 @@ def vandermondeTime(real[:] rreal, real[:] iimag, int m, real[:] t):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.float32_t,ndim=1] _sdiag(float[:,:] A):
+cdef np.ndarray[np.float32_t,ndim=1] _sdiag(float[:,::1] A):
 	'''
 	Returns the diagonal of A (A is a square matrix)
 	'''
@@ -1007,7 +968,7 @@ cdef np.ndarray[np.float32_t,ndim=1] _sdiag(float[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=1] _ddiag(double[:,:] A):
+cdef np.ndarray[np.double_t,ndim=1] _ddiag(double[:,::1] A):
 	'''
 	Returns the diagonal of A (A is a square matrix)
 	'''
@@ -1022,7 +983,7 @@ cdef np.ndarray[np.double_t,ndim=1] _ddiag(double[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex64_t,ndim=1] _cdiag(np.complex64_t[:,:] A):
+cdef np.ndarray[np.complex64_t,ndim=1] _cdiag(np.complex64_t[:,::1] A):
 	'''
 	Returns the diagonal of A (A is a square matrix)
 	'''
@@ -1037,7 +998,7 @@ cdef np.ndarray[np.complex64_t,ndim=1] _cdiag(np.complex64_t[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex128_t,ndim=1] _zdiag(np.complex128_t[:,:] A):
+cdef np.ndarray[np.complex128_t,ndim=1] _zdiag(np.complex128_t[:,::1] A):
 	'''
 	Returns the diagonal of A (A is a square matrix)
 	'''
@@ -1052,7 +1013,7 @@ cdef np.ndarray[np.complex128_t,ndim=1] _zdiag(np.complex128_t[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.float32_t,ndim=2] _sdiag2(float[:] A):
+cdef np.ndarray[np.float32_t,ndim=2] _sdiag2(float[::1] A):
 	'''
 	Returns a matrix with A in its diagonal
 	'''
@@ -1068,7 +1029,7 @@ cdef np.ndarray[np.float32_t,ndim=2] _sdiag2(float[:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=2] _ddiag2(double[:] A):
+cdef np.ndarray[np.double_t,ndim=2] _ddiag2(double[::1] A):
 	'''
 	Returns a matrix with A in its diagonal
 	'''
@@ -1083,7 +1044,7 @@ cdef np.ndarray[np.double_t,ndim=2] _ddiag2(double[:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex64_t,ndim=2] _cdiag2(np.complex64_t[:] A):
+cdef np.ndarray[np.complex64_t,ndim=2] _cdiag2(np.complex64_t[::1] A):
 	'''
 	Returns a matrix with A in its diagonal
 	'''
@@ -1099,7 +1060,7 @@ cdef np.ndarray[np.complex64_t,ndim=2] _cdiag2(np.complex64_t[:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex128_t,ndim=2] _zdiag2(np.complex128_t[:] A):
+cdef np.ndarray[np.complex128_t,ndim=2] _zdiag2(np.complex128_t[::1] A):
 	'''
 	Returns a matrix with A in its diagonal
 	'''
@@ -1125,9 +1086,6 @@ def diag(np.ndarray A):
 	Result:
 		np.ndarray: Diagonal of A (M,)
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	A = np.ascontiguousarray(A)
-
 	if A.ndim == 1:
 		if A.dtype in [np.float64,np.double]:
 			return _ddiag2(A)
@@ -1152,7 +1110,7 @@ def diag(np.ndarray A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex64_t,ndim=2] _cconj(np.complex64_t[:,:] A):
+cdef np.ndarray[np.complex64_t,ndim=2] _cconj(np.complex64_t[:,::1] A):
 	'''
 	Returns the pointwise conjugate of A
 	'''
@@ -1169,7 +1127,7 @@ cdef np.ndarray[np.complex64_t,ndim=2] _cconj(np.complex64_t[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex128_t,ndim=2] _zconj(np.complex128_t[:,:] A):
+cdef np.ndarray[np.complex128_t,ndim=2] _zconj(np.complex128_t[:,::1] A):
 	'''
 	Returns the pointwise conjugate of A
 	'''
@@ -1187,30 +1145,32 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zconj(np.complex128_t[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def conj(real_complex[:,:] A):
+def conj(complexM A):
 	r'''
 	Conjugates complex number A
 
 	Args:
-		A (np.ndarray): Vector, matrix or number A
+		A (np.ndarray): Vector (N) or matrix (M,N) A
 	
 	Result:
-		np.ndarray: Conjugate of A
+		np.ndarray: Conjugate of A, with the shape of A
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	A = np.ascontiguousarray(A)
-
-	if real_complex is np.complex128_t:
+	# A vector is conjugated as a single row (1,N) and returned as a vector (N)
+	if complexM is np.complex128_t[:,::1]:
 		return _zconj(A)
-	else:
+	elif complexM is np.complex64_t[:,::1]:
 		return _cconj(A)
+	elif complexM is np.complex128_t[::1]:
+		return _zconj(np.asarray(A).reshape(1,-1)).reshape(-1)
+	else:
+		return _cconj(np.asarray(A).reshape(1,-1)).reshape(-1)
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.float32_t,ndim=2] _sinv(float[:,:] A):
+cdef np.ndarray[np.float32_t,ndim=2] _sinv(float[:,::1] A):
 	'''
 	Returns the inverse of A
 	'''
@@ -1222,7 +1182,7 @@ cdef np.ndarray[np.float32_t,ndim=2] _sinv(float[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=2] _dinv(double[:,:] A):
+cdef np.ndarray[np.double_t,ndim=2] _dinv(double[:,::1] A):
 	'''
 	Returns the inverse of A
 	'''
@@ -1234,7 +1194,7 @@ cdef np.ndarray[np.double_t,ndim=2] _dinv(double[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex64_t,ndim=2] _cinv(np.complex64_t[:,:] A):
+cdef np.ndarray[np.complex64_t,ndim=2] _cinv(np.complex64_t[:,::1] A):
 	'''
 	Returns the inverse of A
 	'''
@@ -1246,7 +1206,7 @@ cdef np.ndarray[np.complex64_t,ndim=2] _cinv(np.complex64_t[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex128_t,ndim=2] _zinv(np.complex128_t[:,:] A):
+cdef np.ndarray[np.complex128_t,ndim=2] _zinv(np.complex128_t[:,::1] A):
 	'''
 	Returns the inverse of A
 	'''
@@ -1259,7 +1219,7 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zinv(np.complex128_t[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def inv(real_full[:,:] A):
+def inv(real_full[:,::1] A):
 	r'''
 	Computes the inverse matrix of A
 
@@ -1269,9 +1229,6 @@ def inv(real_full[:,:] A):
 	Result:
 		np.ndarray: Inverse of A (M,N)
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	A = np.ascontiguousarray(A)
-
 	if real_full is np.complex128_t:
 		return _zinv(A)
 	elif real_full is np.complex64_t:
@@ -1308,7 +1265,7 @@ def flip(real[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex64_t,ndim=2] _cdagger(np.complex64_t[:,:] A):
+cdef np.ndarray[np.complex64_t,ndim=2] _cdagger(np.complex64_t[:,::1] A):
 	'''
 	Returns the dagger of A
 	'''
@@ -1325,7 +1282,7 @@ cdef np.ndarray[np.complex64_t,ndim=2] _cdagger(np.complex64_t[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.complex128_t,ndim=2] _zdagger(np.complex128_t[:,:] A):
+cdef np.ndarray[np.complex128_t,ndim=2] _zdagger(np.complex128_t[:,::1] A):
 	'''
 	Returns the dagger of A
 	'''
@@ -1343,7 +1300,7 @@ cdef np.ndarray[np.complex128_t,ndim=2] _zdagger(np.complex128_t[:,:] A):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def dagger(real_full[:,:] A):
+def dagger(real_full[:,::1] A):
 	r'''
 	Dagger of matrix A
 
@@ -1353,9 +1310,6 @@ def dagger(real_full[:,:] A):
 	Results
 		np.ndarray: dagger matrix
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	A = np.ascontiguousarray(A)
-
 	if real_full is np.complex128_t:
 		return _zdagger(A)
 	elif real_full is np.complex64_t:

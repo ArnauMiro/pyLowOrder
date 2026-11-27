@@ -39,7 +39,7 @@ from ..utils.errors   import raiseError
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _crun(np.complex64_t[:,:] Phi, float[:] delta, float[:] omega, float f, float[:] W=None):
+def _crun(np.complex64_t[:,::1] Phi, float[::1] delta, float[::1] omega, float f, float[::1] W=None):
 	r'''
     Resolvent Analysis of snapshot matrix X
     '''
@@ -149,7 +149,7 @@ def _crun(np.complex64_t[:,:] Phi, float[:] delta, float[:] omega, float f, floa
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _zrun(np.complex128_t[:,:] Phi, double[:] delta, double[:] omega, double f, double[:] W=None):
+def _zrun(np.complex128_t[:,::1] Phi, double[::1] delta, double[::1] omega, double f, double[::1] W=None):
 	r'''
     Resolvent Analysis of snapshot matrix X
     '''
@@ -261,7 +261,7 @@ def _zrun(np.complex128_t[:,:] Phi, double[:] delta, double[:] omega, double f, 
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def run(real_complex[:,:] Phi, real[:] delta, real[:] omega, real f, real[:] W=None):
+def run(real_complex[:,::1] Phi, real[::1] delta, real[::1] omega, real f, real[::1] W=None):
 	r'''
     Resolvent Analysis of snapshot matrix X
 
@@ -277,8 +277,6 @@ def run(real_complex[:,:] Phi, real[:] delta, real[:] omega, real f, real[:] W=N
         - S: emergy gains
         - V_res: forcing modes
     '''
-	Phi = np.ascontiguousarray(Phi)
-
 	if real_complex is np.complex128_t:
 		return _zrun(Phi, delta, omega, f, W)
 	else:
@@ -385,7 +383,7 @@ cdef tuple _crun_new_core(float *Y, float *Z, int m, int n_total, int m_aux, np.
 
 	return U, S, V
 
-def _crun_new_matrix(float[:,:] X, np.complex64_t w, float r, int remove_mean, float[:] W):
+def _crun_new_matrix(float[:,::1] X, np.complex64_t w, float r, int remove_mean, float[::1] W):
 	'''
 	Resolvent analysis of a single data matrix X
 	'''
@@ -428,7 +426,7 @@ def _crun_new_matrix(float[:,:] X, np.complex64_t w, float r, int remove_mean, f
 		free(W_sqrt)
 	return out
 
-def _crun_new_list(list X, np.complex64_t w, float r, int remove_mean, float[:] W):
+def _crun_new_list(list X, np.complex64_t w, float r, int remove_mean, float[::1] W):
 	'''
 	Resolvent analysis of a list of data matrices X
 	'''
@@ -587,7 +585,7 @@ cdef tuple _zrun_new_core(double *Y, double *Z, int m, int n_total, int m_aux, n
 
 	return U, S, V
 
-def _zrun_new_matrix(double[:,:] X, np.complex128_t w, double r, int remove_mean, double[:] W):
+def _zrun_new_matrix(double[:,::1] X, np.complex128_t w, double r, int remove_mean, double[::1] W):
 	'''
 	Resolvent analysis of a single data matrix X
 	'''
@@ -630,7 +628,7 @@ def _zrun_new_matrix(double[:,:] X, np.complex128_t w, double r, int remove_mean
 		free(W_sqrt)
 	return out
 
-def _zrun_new_list(list X, np.complex128_t w, double r, int remove_mean, double[:] W):
+def _zrun_new_list(list X, np.complex128_t w, double r, int remove_mean, double[::1] W):
 	'''
 	Resolvent analysis of a list of data matrices X
 	'''
@@ -693,7 +691,7 @@ def _zrun_new_list(list X, np.complex128_t w, double r, int remove_mean, double[
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def run_new(object X, object w, object r, int remove_mean=True, real[:] W=None):
+def run_new(object X, object w, object r, int remove_mean=True, real[::1] W=None):
 	r'''
     Resolvent Analysis of snapshot matrix X
 
@@ -712,10 +710,8 @@ def run_new(object X, object w, object r, int remove_mean=True, real[:] W=None):
         - V_res: forcing modes
     '''
 	if isinstance(X, list):
-		X = [np.ascontiguousarray(M) for M in X]
 		dtype = X[0].dtype
 	else:
-		X = np.ascontiguousarray(X)
 		dtype = X.dtype
 
 	if dtype == np.double:

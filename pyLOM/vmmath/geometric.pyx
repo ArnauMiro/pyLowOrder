@@ -25,7 +25,7 @@ from ..utils.errors import raiseError
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.float32_t,ndim=2] _scellCenters(float[:,:] xyz, int[:,:] conec):
+cdef np.ndarray[np.float32_t,ndim=2] _scellCenters(float[:,::1] xyz, int[:,::1] conec):
 	'''
 	Compute the cell centers given a list 
 	of elements (internal function).
@@ -42,7 +42,7 @@ cdef np.ndarray[np.float32_t,ndim=2] _scellCenters(float[:,:] xyz, int[:,:] cone
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=2] _dcellCenters(double[:,:] xyz, int[:,:] conec):
+cdef np.ndarray[np.double_t,ndim=2] _dcellCenters(double[:,::1] xyz, int[:,::1] conec):
 	'''
 	Compute the cell centers given a list 
 	of elements (internal function).
@@ -60,7 +60,7 @@ cdef np.ndarray[np.double_t,ndim=2] _dcellCenters(double[:,:] xyz, int[:,:] cone
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def cellCenters(real[:,:] xyz, int[:,:] conec):
+def cellCenters(real[:,::1] xyz, int[:,::1] conec):
 	r'''
 	Compute the cell centers given a list 
 	of elements.
@@ -72,10 +72,6 @@ def cellCenters(real[:,:] xyz, int[:,:] conec):
 	Returns:
 		np.ndarray: center positions
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	xyz = np.ascontiguousarray(xyz)
-	conec = np.ascontiguousarray(conec)
-
 	if real is double:
 		return _dcellCenters(xyz,conec)
 	else:
@@ -86,7 +82,7 @@ def cellCenters(real[:,:] xyz, int[:,:] conec):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.float32_t,ndim=2] _snormals(float[:,:] xyz, int[:,:] conec):
+cdef np.ndarray[np.float32_t,ndim=2] _snormals(float[:,::1] xyz, int[:,::1] conec):
 	'''
 	Compute the cell centers given a list 
 	of elements (internal function).
@@ -103,7 +99,7 @@ cdef np.ndarray[np.float32_t,ndim=2] _snormals(float[:,:] xyz, int[:,:] conec):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=2] _dnormals(double[:,:] xyz, int[:,:] conec):
+cdef np.ndarray[np.double_t,ndim=2] _dnormals(double[:,::1] xyz, int[:,::1] conec):
 	'''
 	Compute the cell centers given a list 
 	of elements (internal function).
@@ -121,7 +117,7 @@ cdef np.ndarray[np.double_t,ndim=2] _dnormals(double[:,:] xyz, int[:,:] conec):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def normals(real[:,:] xyz, int[:,:] conec):
+def normals(real[:,::1] xyz, int[:,::1] conec):
 	r'''
 	Compute the cell normals given a list 
 	of elements.
@@ -133,10 +129,6 @@ def normals(real[:,:] xyz, int[:,:] conec):
 	Returns:
 		np.ndarray: cell normals
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	xyz = np.ascontiguousarray(xyz)
-	conec = np.ascontiguousarray(conec)
-
 	if real is double:
 		return _dnormals(xyz,conec)
 	else:
@@ -147,7 +139,7 @@ def normals(real[:,:] xyz, int[:,:] conec):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.float32_t,ndim=2] _seuclidean_d(float[:,:] X):
+cdef np.ndarray[np.float32_t,ndim=2] _seuclidean_d(float[:,::1] X):
 	'''
 	Compute Euclidean distances between simulations.
 
@@ -169,7 +161,7 @@ cdef np.ndarray[np.float32_t,ndim=2] _seuclidean_d(float[:,:] X):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef np.ndarray[np.double_t,ndim=2] _deuclidean_d(double[:,:] X):
+cdef np.ndarray[np.double_t,ndim=2] _deuclidean_d(double[:,::1] X):
 	'''
 	Compute Euclidean distances between simulations.
 
@@ -192,7 +184,7 @@ cdef np.ndarray[np.double_t,ndim=2] _deuclidean_d(double[:,:] X):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def euclidean_d(real[:,:] X):
+def euclidean_d(real[:,::1] X):
 	r'''
 	Compute the Euclidean distances between simulations.
 
@@ -202,9 +194,6 @@ def euclidean_d(real[:,:] X):
 	Returns:
 		np.ndarray: MxM distance matrix 
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	X = np.ascontiguousarray(X)
-
 	if real is double:
 		return _deuclidean_d(X)
 	else:
@@ -478,11 +467,6 @@ def wall_normals(int[:] nodes_idx, real[:,:] nodes_xyz, real[:] surf_normal):
 		- cell_edges: List of graph edges representing the element walls (node indices)
 		- wall_normals: List of the unitary wall normals
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	nodes_idx = np.ascontiguousarray(nodes_idx)
-	nodes_xyz = np.ascontiguousarray(nodes_xyz)
-	surf_normal = np.ascontiguousarray(surf_normal)
-
 	if real is double:
 		return _dwall_normals(nodes_idx, nodes_xyz, surf_normal)
 	else:

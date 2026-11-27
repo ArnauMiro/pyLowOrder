@@ -41,13 +41,15 @@ def run(Phi, delta, omega, f, W=None):
         What = matmulp(dagger(Phi), Phi) 
     
     else:
-        What = matmulp(dagger(Phi), vecmat(W, Phi))
+        What = matmulp(dagger(Phi), vecmat(W.astype(Phi.dtype), Phi))
     
     Fhat = dagger(cholesky(What))
-    Fhat_inv = inv(Fhat)
+    # NOTE: vmmath's inv() works in place and returns a view of its argument;
+    # pass a copy so Fhat is not overwritten (it is needed below)
+    Fhat_inv = inv(Fhat.copy())
 
     # Solve the optimization problem
-    Hhat = matmul(Fhat, vecmat(H, Fhat_inv))
+    Hhat = matmul(Fhat, vecmat(H.astype(Fhat_inv.dtype), Fhat_inv))
     U, S, VT = svd(Hhat)
     V = dagger(VT)
 

@@ -40,7 +40,7 @@ def hammwin(int N):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _sfft(float[:] t, float[:] y, int equispaced):
+def _sfft(float[::1] t, float[::1] y, int equispaced):
 	'''
 	Compute the fft of a signal y that is sampled at a
 	constant timestep. Return the frequency and PSD
@@ -73,7 +73,7 @@ def _sfft(float[:] t, float[:] y, int equispaced):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def _dfft(double[:] t, double[:] y, int equispaced):
+def _dfft(double[::1] t, double[::1] y, int equispaced):
 	'''
 	Compute the fft of a signal y that is sampled at a
 	constant timestep. Return the frequency and PSD
@@ -107,7 +107,7 @@ def _dfft(double[:] t, double[:] y, int equispaced):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def fft(real[:] t, real[:] y, int equispaced=True):
+def fft(real[::1] t, real[::1] y, int equispaced=True):
 	r'''
 	Compute the PSD of a signal y. For non equispaced time samples
 	the nfft package is required.
@@ -121,10 +121,6 @@ def fft(real[:] t, real[:] y, int equispaced=True):
 		numpy.ndarray: frequency.
 		numpy.ndarray: power density spectra.
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	t = np.ascontiguousarray(t)
-	y = np.ascontiguousarray(y)
-
 	if real is double:
 		return _dfft(t,y,equispaced)
 	else:

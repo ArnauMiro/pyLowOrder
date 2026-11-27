@@ -86,7 +86,7 @@ def run(X, r, remove_mean = True):
 	P    = matmul(transpose(conj(w)), w)*conj(matmul(Vand, transpose(conj(Vand))))
 	Pl   = cholesky(P)
 	G    = matmul(diag(S), VT).astype(w.dtype)
-	q    = np.conj(diag(matmul(matmul(Vand, transpose(conj(G))), w)))
+	q    = conj(diag(matmul(matmul(Vand, transpose(conj(G))), w)))
 	bJov = matmul(inv(transpose(conj(Pl))), matmul(inv(Pl), q.reshape(-1,1))).ravel() #Amplitudes according to Jovanovic 2014
 	cr_stop('DMD.amplitudes',0)
 

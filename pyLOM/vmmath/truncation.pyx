@@ -22,7 +22,7 @@ from ..utils.cr  import cr
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef int _scompute_truncation_residual(float[:] S, float r):
+cdef int _scompute_truncation_residual(float[::1] S, float r):
 	'''
 	Compute the truncation residual.
 	r must be a float precision (r<1) where:
@@ -52,7 +52,7 @@ cdef int _scompute_truncation_residual(float[:] S, float r):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef int _dcompute_truncation_residual(double[:] S, double r):
+cdef int _dcompute_truncation_residual(double[::1] S, double r):
 	'''
 	Compute the truncation residual.
 	r must be a float precision (r<1) where:
@@ -82,16 +82,13 @@ cdef int _dcompute_truncation_residual(double[:] S, double r):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def compute_truncation_residual(real[:] S, real r):
+def compute_truncation_residual(real[::1] S, real r):
 	'''
 	Compute the truncation residual.
 	r must be a float precision (r<1) where:
 		- r > 0: target residual
 		- r < 0: fraction of cumulative energy to retain
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	S = np.ascontiguousarray(S)
-
 	if real is double:
 		return _dcompute_truncation_residual(S,r)
 	else:
@@ -102,7 +99,7 @@ def compute_truncation_residual(real[:] S, real r):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef float _senergy(float[:,:] A, float[:,:] B):
+cdef float _senergy(float[:,::1] A, float[:,::1] B):
 	'''
 	Compute RMSE between X_POD and X
 	'''
@@ -116,7 +113,7 @@ cdef float _senergy(float[:,:] A, float[:,:] B):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef double _denergy(double[:,:] A, double[:,:] B):
+cdef double _denergy(double[:,::1] A, double[:,::1] B):
 	'''
 	Compute RMSE between X_POD and X
 	'''
@@ -131,14 +128,10 @@ cdef double _denergy(double[:,:] A, double[:,:] B):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def energy(real[:,:] A, real[:,:] B):
+def energy(real[:,::1] A, real[:,::1] B):
 	'''
 	Compute RMSE between X_POD and X
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	A = np.ascontiguousarray(A)
-	B = np.ascontiguousarray(B)
-
 	if real is double:
 		return _denergy(A,B)
 	else:
@@ -149,7 +142,7 @@ def energy(real[:,:] A, real[:,:] B):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef float _slocal_energy(float[:,:] A, float[:,:] B):
+cdef float _slocal_energy(float[:,::1] A, float[:,::1] B):
 	'''
 	Compute RMSE between X_POD and X
 	'''
@@ -163,7 +156,7 @@ cdef float _slocal_energy(float[:,:] A, float[:,:] B):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef double _dlocal_energy(double[:,:] A, double[:,:] B):
+cdef double _dlocal_energy(double[:,::1] A, double[:,::1] B):
 	'''
 	Compute RMSE between X_POD and X
 	'''
@@ -178,14 +171,10 @@ cdef double _dlocal_energy(double[:,:] A, double[:,:] B):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def local_energy(real[:,:] A, real[:,:] B):
+def local_energy(real[:,::1] A, real[:,::1] B):
 	'''
 	Compute RMSE between X_POD and X
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	A = np.ascontiguousarray(A)
-	B = np.ascontiguousarray(B)
-
 	if real is double:
 		return _dlocal_energy(A,B)
 	else:
@@ -196,7 +185,7 @@ def local_energy(real[:,:] A, real[:,:] B):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef float _sremove_rows(float[:,:] A, int rows):
+cdef float _sremove_rows(float[:,::1] A, int rows):
 	'''
 	Get A with the disired number of rows
 	'''
@@ -210,7 +199,7 @@ cdef float _sremove_rows(float[:,:] A, int rows):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-cdef float _dremove_rows(double[:,:] A, int rows):
+cdef float _dremove_rows(double[:,::1] A, int rows):
 	'''
 	Get A with the disired number of rows
 	'''
@@ -224,13 +213,10 @@ cdef float _dremove_rows(double[:,:] A, int rows):
 @cython.wraparound(False)  # turn off negative index wrapping for entire function
 @cython.nonecheck(False)
 @cython.cdivision(True)    # turn off zero division check
-def remove_rows(real[:,:] A, int rows):
+def remove_rows(real[:,::1] A, int rows):
 	'''
 	Get A with the disired number of rows
 	'''
-	# Ensure C-contiguous input (C routines assume a dense layout)
-	A = np.ascontiguousarray(A)
-
 	if real is double:
 		return _dremove_rows(A, rows)
 	else:
